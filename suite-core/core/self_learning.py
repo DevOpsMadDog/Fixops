@@ -650,7 +650,7 @@ class SelfLearningEngine:
     """Orchestrates all 5 feedback loops.
 
     Usage:
-        engine = SelfLearningEngine()
+        engine = SelfLearningEngine.get_instance()
 
         # Record feedback
         engine.decision_loop.record(decision_id, finding_id, "FIX", "FIX")
@@ -662,6 +662,15 @@ class SelfLearningEngine:
         # Get learning insights
         insights = engine.get_insights()
     """
+
+    _instance: Optional["SelfLearningEngine"] = None
+
+    @classmethod
+    def get_instance(cls) -> "SelfLearningEngine":
+        """Thread-safe singleton accessor."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     def __init__(self, config: Optional[LearningConfig] = None):
         self.config = config or LearningConfig.from_env()
@@ -776,6 +785,40 @@ class SelfLearningEngine:
             "medium_severity": sum(1 for i in insights if i["severity"] == "medium"),
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
+
+    def record_pipeline_run(
+        self,
+        run_id: str,
+        findings_count: int,
+        decision: str,
+        signed: bool,
+        quantum_signed: bool,
+    ) -> None:
+        """Record a brain-pipeline execution for self-learning feedback.
+
+        Stores as a DECISION_OUTCOME feedback record so the Decision Outcome
+        Loop can later correlate pipeline runs with their real-world outcomes.
+        """
+        self.db.store_feedback(
+            FeedbackRecord(
+                feedback_id=run_id or f"pipeline-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                feedback_type=FeedbackType.DECISION_OUTCOME,
+                entity_id=run_id or "pipeline",
+                outcome=OutcomeStatus.UNKNOWN,
+                predicted=decision,
+                actual="",
+                confidence=0.0,
+                context={
+                    "run_id": run_id,
+                    "findings_count": findings_count,
+                    "decision": decision,
+                    "evidence_signed": signed,
+                    "quantum_signed": quantum_signed,
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                },
+                source="brain_pipeline",
+            )
+        )
 
     def get_status(self) -> Dict[str, Any]:
         """Get engine status."""

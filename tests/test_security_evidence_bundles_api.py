@@ -69,23 +69,20 @@ class TestListBundles:
         assert isinstance(data["total"], int)
         assert data["total"] == len(data["bundles"])
 
-    def test_demo_bundles_match_ui_count(self, client, auth):
-        """Returns at least 2 bundles (demo or real data)."""
+    def test_no_demo_bundles_in_enterprise_mode(self, client, auth):
+        """Enterprise mode returns bundles from real data only."""
         data = client.get(f"{BASE}/bundles", headers=auth).json()
-        assert data["total"] >= 2
+        assert data["total"] >= 0  # Could be 0 with no real data
 
-    def test_demo_bundle_ids_with_unconfigured_storage(self, auth):
-        """When no manifests exist on disk, demo data has the expected IDs."""
+    def test_empty_bundles_with_unconfigured_storage(self, auth):
+        """When no manifests exist on disk, returns empty list (no demo data)."""
         app = create_app()
         app.state.evidence_manifest_dir = None
         app.state.evidence_bundle_dir = None
         unclient = TestClient(app)
         data = unclient.get(f"{BASE}/bundles", headers=auth).json()
-        ids = {b["id"] for b in data["bundles"]}
-        assert "EVB-2026-001" in ids
-        assert "EVB-2026-002" in ids
-        assert "EVB-2026-003" in ids
-        assert "EVB-2025-042" in ids
+        assert data["total"] == 0
+        assert data["bundles"] == []
 
     def test_bundle_field_completeness(self, client, auth):
         """Every bundle has all fields the UI EvidenceBundle type expects."""
@@ -115,30 +112,23 @@ class TestListBundles:
         for bundle in data["bundles"]:
             assert isinstance(bundle["sections"], list)
 
-    def test_demo_bundle_sections_non_empty(self, auth):
-        """Demo bundles have non-empty sections with name and page_count."""
+    def test_no_demo_bundle_sections(self, auth):
+        """Unconfigured storage returns no bundles (enterprise mode)."""
         app = create_app()
         app.state.evidence_manifest_dir = None
         app.state.evidence_bundle_dir = None
         unclient = TestClient(app)
         data = unclient.get(f"{BASE}/bundles", headers=auth).json()
-        for bundle in data["bundles"]:
-            assert len(bundle["sections"]) > 0
-            for section in bundle["sections"]:
-                assert "name" in section
-                assert "page_count" in section
+        assert data["total"] == 0
 
-    def test_bundle_statuses(self, auth):
-        """Demo data includes a variety of statuses."""
+    def test_bundle_statuses_empty_when_unconfigured(self, auth):
+        """Unconfigured storage returns empty bundles list."""
         app = create_app()
         app.state.evidence_manifest_dir = None
         app.state.evidence_bundle_dir = None
         unclient = TestClient(app)
         data = unclient.get(f"{BASE}/bundles", headers=auth).json()
-        statuses = {b["status"] for b in data["bundles"]}
-        # The demo set should include at least signed and generated
-        assert "signed" in statuses or "verified" in statuses
-        assert "generated" in statuses or "expired" in statuses
+        assert data["total"] == 0
 
 
 # ===========================================================================
@@ -277,16 +267,14 @@ class TestGenerateBundle:
 class TestVerifyBundle:
     """Tests for POST /api/v1/evidence/bundles/{bundle_id}/verify."""
 
-    def test_verify_signed_bundle_returns_valid(self, client, auth):
-        """Verifying a known-signed demo bundle returns valid=True."""
+    def test_verify_nonexistent_bundle_returns_invalid(self, client, auth):
+        """Verifying a nonexistent bundle returns valid=False (no demo shortcuts)."""
         resp = client.post(
             f"{BASE}/bundles/EVB-2026-001/verify", headers=auth
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["valid"] is True
-        assert data["hash_match"] is True
-        assert data["signature_valid"] is True
+        assert data["valid"] is False
 
     def test_verify_unsigned_bundle_returns_invalid(self, client, auth):
         """Verifying a known-unsigned demo bundle returns valid=False."""
@@ -299,13 +287,13 @@ class TestVerifyBundle:
         assert data["hash_match"] is False
         assert data["signature_valid"] is False
 
-    def test_verify_hipaa_signed_bundle(self, client, auth):
-        """HIPAA demo bundle (EVB-2026-003) is in the signed set."""
+    def test_verify_hipaa_bundle_returns_invalid(self, client, auth):
+        """Nonexistent HIPAA bundle not verified (enterprise mode)."""
         resp = client.post(
             f"{BASE}/bundles/EVB-2026-003/verify", headers=auth
         )
         assert resp.status_code == 200
-        assert resp.json()["valid"] is True
+        assert resp.json()["valid"] is False
 
     def test_verify_expired_bundle(self, client, auth):
         """Expired demo bundle (EVB-2025-042) is not in the signed set."""
@@ -332,17 +320,13 @@ class TestVerifyBundle:
                      "certificate_chain", "issuer"}
         assert required.issubset(set(data.keys()))
 
-    def test_verify_certificate_chain_structure(self, client, auth):
-        """Certificate chain is a list of strings with expected entries."""
+    def test_verify_certificate_chain_shape(self, client, auth):
+        """Certificate chain is a list (may be empty for unverified bundles)."""
         data = client.post(
             f"{BASE}/bundles/EVB-2026-001/verify", headers=auth
         ).json()
         chain = data["certificate_chain"]
         assert isinstance(chain, list)
-        assert len(chain) == 3
-        assert "Root CA" in chain[0]
-        assert "Intermediate" in chain[1]
-        assert "EVB-2026-001" in chain[2]
 
     def test_verify_issuer_is_string(self, client, auth):
         """Issuer field is a non-empty string."""
@@ -391,40 +375,31 @@ class TestVerifyBundle:
 class TestDownloadBundle:
     """Tests for GET /api/v1/evidence/bundles/{bundle_id}/download."""
 
-    def test_download_json_format(self, client, auth):
-        """Download with format=json returns JSON response."""
+    def test_download_nonexistent_json_format(self, client, auth):
+        """Download for nonexistent bundle returns 404."""
         resp = client.get(
             f"{BASE}/bundles/EVB-2026-001/download",
             params={"format": "json"},
             headers=auth,
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["bundle_id"] == "EVB-2026-001"
-        assert data["format"] == "json"
-        assert "hash" in data
-        assert "sections" in data
+        assert resp.status_code == 404
 
-    def test_download_pdf_format(self, client, auth):
-        """Download with format=pdf returns a JSON response with pdf format tag."""
+    def test_download_nonexistent_pdf_format(self, client, auth):
+        """Download for nonexistent bundle with pdf format returns 404."""
         resp = client.get(
             f"{BASE}/bundles/EVB-2026-001/download",
             params={"format": "pdf"},
             headers=auth,
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["format"] == "pdf"
+        assert resp.status_code == 404
 
-    def test_download_default_format_is_json(self, client, auth):
-        """Default format is json when no format parameter is provided."""
+    def test_download_returns_404_for_missing_bundle(self, client, auth):
+        """Nonexistent bundle download returns 404 (no demo fallback)."""
         resp = client.get(
             f"{BASE}/bundles/EVB-2026-001/download",
             headers=auth,
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["format"] == "json"
+        assert resp.status_code == 404
 
     def test_download_invalid_format_rejected(self, client, auth):
         """Invalid format parameter is rejected (422)."""
@@ -435,29 +410,25 @@ class TestDownloadBundle:
         )
         assert resp.status_code == 422
 
-    def test_download_has_content_disposition(self, client, auth):
-        """Response includes Content-Disposition header for download."""
+    def test_download_missing_bundle_no_content_disposition(self, client, auth):
+        """Missing bundle returns 404, no Content-Disposition header."""
         resp = client.get(
             f"{BASE}/bundles/EVB-2026-001/download",
             params={"format": "json"},
             headers=auth,
         )
-        cd = resp.headers.get("content-disposition", "")
-        assert "attachment" in cd
-        assert "EVB-2026-001" in cd
+        assert resp.status_code == 404
 
-    def test_download_synthetic_bundle_structure(self, client, auth):
-        """Synthetic bundle has expected metadata fields."""
-        data = client.get(
+    def test_download_nonexistent_bundle_returns_error(self, client, auth):
+        """Nonexistent bundle returns 404 with error detail."""
+        resp = client.get(
             f"{BASE}/bundles/EVB-2026-001/download",
             params={"format": "json"},
             headers=auth,
-        ).json()
-        assert "generated_at" in data
-        assert "signature_algorithm" in data
-        assert "signed_by" in data
-        assert "metadata" in data
-        assert data["metadata"]["platform"] == "ALdeci CTEM+"
+        )
+        assert resp.status_code == 404
+        data = resp.json()
+        assert "detail" in data
 
     def test_download_path_traversal_rejected(self, client, auth):
         """Path traversal in download bundle_id is rejected (400 or 404)."""

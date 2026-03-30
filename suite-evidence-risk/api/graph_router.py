@@ -115,7 +115,8 @@ async def graph_stats(org_id: str = Depends(get_org_id)):
             "edge_types": s.get("edge_types", {}),
             "density": s.get("density", 0.0),
         }
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError) as exc:
+        logger.warning("Graph stats unavailable: %s", type(exc).__name__)
         return {"status": "ok", "engine": "graph", "nodes": 0, "edges": 0, "node_types": {}, "edge_types": {}}
 
 

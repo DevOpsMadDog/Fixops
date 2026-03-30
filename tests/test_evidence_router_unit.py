@@ -176,29 +176,22 @@ class TestEvidenceStats:
 class TestEvidenceBundles:
     """Tests for GET /api/v1/evidence/bundles."""
 
-    def test_bundles_returns_demo_when_unconfigured(
+    def test_bundles_returns_empty_when_unconfigured(
         self, unconfigured_client, auth_headers
     ):
-        """When evidence storage is not configured, demo/fallback data is returned."""
+        """When evidence storage is not configured, empty list is returned (no demo data)."""
         resp = unconfigured_client.get(f"{BASE}/bundles", headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert "bundles" in data
-        assert data["total"] >= 1
-        # Verify bundle structure (IDs may vary between demo data versions)
-        bundle = data["bundles"][0]
-        assert "id" in bundle
-        assert "framework" in bundle
-        assert "status" in bundle
+        assert data["total"] == 0
 
-    def test_bundles_demo_second_bundle(self, unconfigured_client, auth_headers):
-        """Multiple demo bundles are available."""
+    def test_bundles_empty_when_no_real_data(self, unconfigured_client, auth_headers):
+        """Enterprise mode returns empty list when no real evidence exists."""
         resp = unconfigured_client.get(f"{BASE}/bundles", headers=auth_headers)
         data = resp.json()
-        assert data["total"] >= 2
-        bundle2 = data["bundles"][1]
-        assert "id" in bundle2
-        assert "framework" in bundle2
+        assert data["total"] == 0
+        assert data["bundles"] == []
 
     def test_bundles_returns_real_data_when_configured(
         self, configured_client_with_data, auth_headers
@@ -487,18 +480,13 @@ class TestEvidenceCollect:
 class TestEvidenceDownload:
     """Tests for GET /api/v1/evidence/bundles/{bundle_id}/download."""
 
-    def test_download_fallback_synthetic(self, client, auth_headers):
-        """Downloading a bundle without physical file returns synthetic JSON (200)."""
+    def test_download_returns_404_for_missing_bundle(self, client, auth_headers):
+        """Downloading a nonexistent bundle returns 404 (no synthetic fallback)."""
         resp = client.get(
             f"{BASE}/bundles/nonexistent-bundle/download",
             headers=auth_headers,
         )
-        # The download endpoint now returns a synthetic JSON bundle
-        # when no physical file exists (for demo / air-gapped mode)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["bundle_id"] == "nonexistent-bundle"
-        assert "hash" in data
+        assert resp.status_code == 404
 
     def test_download_path_traversal_rejected(self, client, auth_headers):
         """Path traversal in bundle download is rejected."""

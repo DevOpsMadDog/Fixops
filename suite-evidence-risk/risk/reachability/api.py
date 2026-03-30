@@ -517,3 +517,50 @@ async def get_analysis(
             "total": 0,
             "metrics": {},
         }
+
+
+class CallGraphRequest(BaseModel):
+    """Request for call graph analysis."""
+
+    repo_path: str = Field(..., description="Local path to repository")
+    target_function: Optional[str] = Field(None, description="Function to check reachability for")
+
+
+@router.post("/call-graph")
+async def analyze_call_graph(request: CallGraphRequest):
+    """Build and return call graph statistics for a repository.
+
+    Supports Python, JavaScript/TypeScript, Java, and Go.
+    Returns graph stats, entry points, and optional reachability check.
+    """
+    from pathlib import Path as _P
+    from risk.reachability.call_graph import CallGraphBuilder
+
+    repo = _P(request.repo_path)
+    if not repo.is_dir():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Repository path not found",
+        )
+
+    builder = CallGraphBuilder()
+    graph = builder.build_call_graph(repo)
+    stats = CallGraphBuilder.get_graph_stats(graph)
+    entries = CallGraphBuilder.get_entry_points(graph)
+
+    result: Dict[str, Any] = {
+        "stats": stats,
+        "entry_points": entries[:100],  # cap response size
+    }
+
+    if request.target_function:
+        reachable, chain = CallGraphBuilder.is_reachable_from_entry(
+            graph, request.target_function
+        )
+        result["reachability"] = {
+            "function": request.target_function,
+            "reachable": reachable,
+            "call_chain": chain,
+        }
+
+    return result

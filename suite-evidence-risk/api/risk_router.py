@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
@@ -182,7 +183,7 @@ async def risk_score(request: Request) -> Dict[str, Any]:
         "risk_score": avg,
         "level": "critical" if avg >= 80 else "high" if avg >= 60 else "medium" if avg >= 40 else "low",
         "components_assessed": len(scores),
-        "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

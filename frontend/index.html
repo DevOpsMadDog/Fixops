@@ -403,8 +403,9 @@ td.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
 
 <script>
 /* ===== API Config ===== */
-const API_BASE='http://localhost:8000';
-const API_KEY='fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U';
+const API_BASE = window.FIXOPS_API_BASE || 'http://localhost:8000';
+const API_KEY = window.FIXOPS_API_KEY || '';
+if (!API_KEY) { console.warn('FIXOPS_API_KEY not configured. Set window.FIXOPS_API_KEY or pass via environment.'); }
 const headers={'X-API-Key':API_KEY,'Content-Type':'application/json'};
 let refreshTimer=null;
 let chartInstances={};

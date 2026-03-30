@@ -121,3 +121,123 @@ async def update_sso_config(id: str, config_data: SSOConfigUpdate):
 
     updated_config = db.update_sso_config(config)
     return SSOConfigResponse(**updated_config.to_dict())
+
+
+# ---------------------------------------------------------------------------
+# API Key Management — creation, rotation, revocation, audit
+# ---------------------------------------------------------------------------
+
+class KeyCreateRequest(BaseModel):
+    """Request to create a new API key."""
+    name: str
+    user_id: str
+    role: str = "viewer"
+    scopes: list = []
+    ttl_days: Optional[int] = None
+
+
+class KeyRotateRequest(BaseModel):
+    """Request to rotate an existing API key."""
+    performed_by: str = "admin"
+
+
+class KeyResponse(BaseModel):
+    """API key record (no plaintext key)."""
+    id: str
+    key_prefix: str
+    name: str
+    user_id: str
+    role: str
+    scopes: list
+    is_active: bool
+    created_at: str
+    expires_at: Optional[str] = None
+    rotated_at: Optional[str] = None
+    revoked_at: Optional[str] = None
+    last_used_at: Optional[str] = None
+    predecessor_id: Optional[str] = None
+
+
+class KeyCreateResponse(KeyResponse):
+    """Response from key creation — includes the plaintext key (shown ONCE)."""
+    plaintext_key: str
+
+
+def _get_key_manager():
+    """Lazy-load key manager."""
+    try:
+        from core.key_manager import KeyManager
+        return KeyManager()
+    except (ImportError, OSError) as exc:
+        raise HTTPException(status_code=503, detail=f"Key manager unavailable: {exc}")
+
+
+@router.post("/keys", response_model=KeyCreateResponse, status_code=201)
+async def create_api_key(req: KeyCreateRequest):
+    """Create a new managed API key with TTL and scope restrictions."""
+    km = _get_key_manager()
+    record, plaintext = km.create_key(
+        user_id=req.user_id,
+        name=req.name,
+        role=req.role,
+        scopes=req.scopes,
+        ttl_days=req.ttl_days,
+    )
+    resp = record.to_dict()
+    resp["plaintext_key"] = plaintext
+    return KeyCreateResponse(**resp)
+
+
+@router.post("/keys/{key_id}/rotate", response_model=KeyCreateResponse)
+async def rotate_api_key(key_id: str, req: KeyRotateRequest):
+    """Rotate an API key — creates replacement, puts old key in grace period."""
+    km = _get_key_manager()
+    try:
+        new_record, new_plaintext = km.rotate_key(key_id, performed_by=req.performed_by)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    resp = new_record.to_dict()
+    resp["plaintext_key"] = new_plaintext
+    return KeyCreateResponse(**resp)
+
+
+@router.delete("/keys/{key_id}")
+async def revoke_api_key(key_id: str):
+    """Immediately revoke an API key."""
+    km = _get_key_manager()
+    success = km.revoke_key(key_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Key not found or already revoked")
+    return {"status": "revoked", "key_id": key_id}
+
+
+@router.get("/keys", response_model=list)
+async def list_api_keys(user_id: Optional[str] = None, include_revoked: bool = False):
+    """List managed API keys."""
+    km = _get_key_manager()
+    keys = km.list_keys(user_id=user_id, include_revoked=include_revoked)
+    return [k.to_dict() for k in keys]
+
+
+@router.get("/keys/expiring")
+async def get_expiring_keys(within_days: int = Query(default=7, ge=1, le=365)):
+    """Get API keys expiring within the specified timeframe."""
+    km = _get_key_manager()
+    keys = km.get_expiring_keys(within_days=within_days)
+    return {"expiring_within_days": within_days, "count": len(keys), "keys": [k.to_dict() for k in keys]}
+
+
+@router.post("/keys/cleanup")
+async def cleanup_expired_keys():
+    """Deactivate all expired keys past their grace period."""
+    km = _get_key_manager()
+    count = km.cleanup_expired()
+    return {"deactivated_count": count}
+
+
+@router.get("/keys/{key_id}/audit")
+async def get_key_audit_log(key_id: str, limit: int = Query(default=100, ge=1, le=1000)):
+    """Get audit trail for a specific API key."""
+    km = _get_key_manager()
+    log = km.get_audit_log(key_id=key_id, limit=limit)
+    return {"key_id": key_id, "entries": log}

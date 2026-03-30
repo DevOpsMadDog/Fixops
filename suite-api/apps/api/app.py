@@ -816,7 +816,7 @@ from .upload_manager import ChunkUploadManager
 logger = logging.getLogger(__name__)
 
 JWT_ALGORITHM = "HS256"
-JWT_EXP_MINUTES = int(os.getenv("FIXOPS_JWT_EXP_MINUTES", "120"))
+JWT_EXP_MINUTES = int(os.getenv("FIXOPS_JWT_EXP_MINUTES", "30"))
 _JWT_SECRET_FILE = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data")) / ".jwt_secret"
 _MIN_JWT_SECRET_LENGTH = 32
 _MAX_TOKEN_LENGTH = 4096
@@ -1620,12 +1620,12 @@ def create_app() -> FastAPI:
             response["errors"] = errors
         return response
 
-    app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     # Enterprise reachability analysis API
     if reachability_router:
-        app.include_router(reachability_router, dependencies=[Depends(_verify_api_key)])
+        app.include_router(reachability_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))])
 
-    app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(inventory_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))])
 
     # Login endpoint — public (no auth required)
     app.include_router(users_public_router)
@@ -1656,20 +1656,20 @@ def create_app() -> FastAPI:
         ],
     )
 
-    app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
-        app.include_router(triage_router, dependencies=[Depends(_verify_api_key)])
+        app.include_router(triage_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
     # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
-    app.include_router(fail_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(fail_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
 
     # APP_ID Configuration — app registry, classification, lifecycle
     if app_config_router:
         app.include_router(
             app_config_router,
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted APP_ID Configuration router")
 
@@ -1677,7 +1677,7 @@ def create_app() -> FastAPI:
     if material_change_router:
         app.include_router(
             material_change_router,
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Material Change Detection router")
 
@@ -1685,13 +1685,13 @@ def create_app() -> FastAPI:
     if connectors_router:
         app.include_router(
             connectors_router,
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Universal Connectors router")
 
-    app.include_router(reports_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(workflows_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    app.include_router(workflows_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
 
     app.include_router(
         auth_router,
@@ -1710,15 +1710,15 @@ def create_app() -> FastAPI:
     _logger.info("Mounted CI/CD Gate router")
 
     # Enterprise features - Remediation, Collaboration, SLA
-    app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(sla_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(remediation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+    app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+    app.include_router(sla_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
         app.include_router(
             scanner_ingest_router,
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted Scanner Ingest router")
 
@@ -1726,7 +1726,7 @@ def create_app() -> FastAPI:
     if webhook_subscriptions_router:
         app.include_router(
             webhook_subscriptions_router,
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Webhook Subscriptions router")
 
@@ -1734,7 +1734,7 @@ def create_app() -> FastAPI:
     if dtrack_router:
         app.include_router(
             dtrack_router,
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))],
         )
         _logger.info("Mounted Dependency-Track router")
 
@@ -1751,14 +1751,14 @@ def create_app() -> FastAPI:
 
     # Validation router - compatibility checking for security tool outputs
     if validation_router:
-        app.include_router(validation_router, dependencies=[Depends(_verify_api_key)])
+        app.include_router(validation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
     # Enterprise marketplace API
     if marketplace_router:
         app.include_router(
             marketplace_router,
             prefix="/api/v1/marketplace",
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
         )
 
     # Suite-Attack routers (offensive security) — require attack:execute scope
@@ -1780,13 +1780,13 @@ def create_app() -> FastAPI:
 
     # Suite-Feeds router (real-time vulnerability intelligence)
     if feeds_router:
-        app.include_router(feeds_router, dependencies=[Depends(_verify_api_key)])
+        app.include_router(feeds_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
 
     # Knowledge Brain router (central intelligence graph — from suite-core/api/)
     try:
         from api.brain_router import router as brain_router
 
-        app.include_router(brain_router, dependencies=[Depends(_verify_api_key)])
+        app.include_router(brain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Loaded Knowledge Brain router from suite-core")
     except ImportError as e:
         _logger.warning("Knowledge Brain router not available: %s", e)
@@ -1806,46 +1806,51 @@ def create_app() -> FastAPI:
         _logger.info("Mounted AutoFix router with write:findings scope guard")
 
     _core_routers = [
-        (nerve_center_router, "Nerve Center", None),
-        (decisions_router, "Decisions", "/api/v1"),
-        (deduplication_router, "Deduplication", None),
-        (ml_router, "ML/MindsDB", None),
-        (autofix_verify_router, "AutoFix Verification", None),
-        (postfix_verify_router, "MPTE Post-Fix Verification", None),
-        (mitre_mapper_router, "MITRE ATT&CK Mapper", None),
-        (airgap_router, "Air-Gap Operations", None),
-        (fuzzy_identity_router, "Fuzzy Identity", None),
-        (exposure_case_router, "Exposure Case", None),
-        (pipeline_router, "Pipeline", None),
-        (copilot_router, "Copilot", None),
-        (agents_router, "Agents", None),
-        (predictions_router, "Predictions", None),
-        (llm_router, "LLM", None),
-        (algorithmic_router, "Algorithmic", None),
-        (llm_monitor_router, "LLM Monitor", None),
-        (llm_guard_router, "LLM Guard", None),
-        (code_to_cloud_router, "Code-to-Cloud", None),
-        (streaming_router, "SSE Streaming", None),
-        (quantum_crypto_router, "Quantum Crypto", None),
-        (zero_gravity_router, "Zero-Gravity Data", None),
-        (single_agent_router, "AI Agent", None),
-        (knowledge_graph_router, "Knowledge Graph", None),
-        (vllm_router, "Self-Hosted LLM (Air-Gapped)", None),
-        (mcp_protocol_router, "MCP Protocol", None),
-        (self_learning_router, "Self-Learning", None),
-        (developer_profiles_router, "Developer Risk Profiles", None),
-        (supply_chain_router, "Supply Chain Security", None),
-        (causal_router, "Causal Inference", None),
-        (gnn_router, "GNN Attack Paths", None),
-        (monte_carlo_router, "Monte Carlo Risk Simulation", None),
-        (runtime_router, "Runtime Protection", None),
-        (threat_modeling_router, "Threat Modeling", None),
-        (ai_code_guardian_router, "AI Code Guardian", None),
-        (attack_surface_router, "Attack Surface Discovery", None),
+        (nerve_center_router, "Nerve Center", None, "read:findings"),
+        (decisions_router, "Decisions", "/api/v1", "read:findings"),
+        (deduplication_router, "Deduplication", None, "write:findings"),
+        (ml_router, "ML/MindsDB", None, "read:findings"),
+        (autofix_verify_router, "AutoFix Verification", None, "write:findings"),
+        (postfix_verify_router, "MPTE Post-Fix Verification", None, "write:findings"),
+        (mitre_mapper_router, "MITRE ATT&CK Mapper", None, "read:findings"),
+        (airgap_router, "Air-Gap Operations", None, "admin:all"),
+        (fuzzy_identity_router, "Fuzzy Identity", None, "read:findings"),
+        (exposure_case_router, "Exposure Case", None, "read:findings"),
+        (pipeline_router, "Pipeline", None, "read:findings"),
+        (copilot_router, "Copilot", None, "read:findings"),
+        (agents_router, "Agents", None, "read:findings"),
+        (predictions_router, "Predictions", None, "read:findings"),
+        (llm_router, "LLM", None, "read:findings"),
+        (algorithmic_router, "Algorithmic", None, "read:findings"),
+        (llm_monitor_router, "LLM Monitor", None, "read:findings"),
+        (llm_guard_router, "LLM Guard", None, "read:findings"),
+        (code_to_cloud_router, "Code-to-Cloud", None, "read:graph"),
+        (streaming_router, "SSE Streaming", None, "read:findings"),
+        (quantum_crypto_router, "Quantum Crypto", None, "admin:all"),
+        (zero_gravity_router, "Zero-Gravity Data", None, "admin:all"),
+        (single_agent_router, "AI Agent", None, "read:findings"),
+        (knowledge_graph_router, "Knowledge Graph", None, "read:graph"),
+        (vllm_router, "Self-Hosted LLM (Air-Gapped)", None, "admin:all"),
+        (mcp_protocol_router, "MCP Protocol", None, "read:findings"),
+        (self_learning_router, "Self-Learning", None, "read:findings"),
+        (developer_profiles_router, "Developer Risk Profiles", None, "read:findings"),
+        (supply_chain_router, "Supply Chain Security", None, "read:sbom"),
+        (causal_router, "Causal Inference", None, "read:findings"),
+        (gnn_router, "GNN Attack Paths", None, "read:graph"),
+        (monte_carlo_router, "Monte Carlo Risk Simulation", None, "read:findings"),
+        (runtime_router, "Runtime Protection", None, "read:findings"),
+        (threat_modeling_router, "Threat Modeling", None, "read:findings"),
+        (ai_code_guardian_router, "AI Code Guardian", None, "read:findings"),
+        (attack_surface_router, "Attack Surface Discovery", None, "read:findings"),
     ]
-    for _r, _name, _prefix in _core_routers:
+    for _r, _name, _prefix, _scope in _core_routers:
         if _r:
-            kwargs: Dict[str, Any] = {"dependencies": [Depends(_verify_api_key)]}
+            kwargs: Dict[str, Any] = {
+                "dependencies": [
+                    Depends(_verify_api_key),
+                    Depends(_require_scope(_scope)),
+                ],
+            }
             if _prefix:
                 kwargs["prefix"] = _prefix
             app.include_router(_r, **kwargs)
@@ -1932,7 +1937,8 @@ def create_app() -> FastAPI:
     # OSS Tools — needs /api/v1 prefix normalization
     if oss_tools_router:
         app.include_router(
-            oss_tools_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key)]
+            oss_tools_router, prefix="/api/v1",
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))],
         )
         _logger.info("Mounted OSS Tools router from suite-integrations")
 
@@ -1943,7 +1949,7 @@ def create_app() -> FastAPI:
         app.include_router(
             detailed_logs_router,
             prefix="/api/v1",
-            dependencies=[Depends(_verify_api_key)],
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
         )
         _logger.info("Mounted Detailed Logs router at /api/v1/logs")
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as _lr_err:
@@ -2203,8 +2209,8 @@ def create_app() -> FastAPI:
                     )
         except ImportError:
             pass  # DTrack connector not available
-        except Exception:
-            logger.debug("Dependency-Track forwarding skipped (not configured or unavailable)")
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError) as exc:
+            logger.debug("Dependency-Track forwarding skipped: %s", type(exc).__name__)
 
         result: Dict[str, Any] = {
             "status": "ok",
@@ -3670,7 +3676,7 @@ def create_app() -> FastAPI:
     try:
         from apps.api.gap_router import ALL_GAP_ROUTERS
         for _gap_r in ALL_GAP_ROUTERS:
-            app.include_router(_gap_r, dependencies=[Depends(_verify_api_key)])
+            app.include_router(_gap_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
         _logger.info("Mounted %d gap routers for frontend coverage", len(ALL_GAP_ROUTERS))
     except ImportError as _gap_err:
         _logger.warning("Failed to mount gap routers: %s", _gap_err)

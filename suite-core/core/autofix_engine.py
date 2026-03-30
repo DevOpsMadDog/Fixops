@@ -791,7 +791,7 @@ class AutoFixEngine:
                 if cve_node:
                     ctx["related_cves"].append(cve_node)
 
-        except (OSError, ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        except Exception as exc:
             logger.debug("[AutoFix] Graph enrichment skipped: %s", type(exc).__name__)
 
         # EPSS + KEV enrichment from ThreatEnricher (real FIRST.org + CISA data)

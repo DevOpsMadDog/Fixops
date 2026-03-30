@@ -1,12 +1,17 @@
 """Seed realistic DoD-grade demo data for ALdeci RFP demo."""
+import os
 import requests
 import json
 import time
 import sys
 
-BASE = "http://localhost:8000"
+BASE = os.environ.get("FIXOPS_API_BASE", "http://localhost:8000")
+_api_token = os.environ.get("FIXOPS_API_TOKEN")
+if not _api_token:
+    print("ERROR: FIXOPS_API_TOKEN environment variable is required", file=sys.stderr)
+    sys.exit(1)
 HEADERS = {
-    "X-API-Key": "fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U",
+    "X-API-Key": _api_token,
     "Content-Type": "application/json"
 }
 

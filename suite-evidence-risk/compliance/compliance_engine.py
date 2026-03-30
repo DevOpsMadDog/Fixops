@@ -48,6 +48,10 @@ class Framework(str, Enum):
     NIST_800_53 = "NIST_800_53_R5"
     NIST_CSF = "NIST_CSF_2.0"
     OWASP_ASVS = "OWASP_ASVS_4.0"
+    CMMC_V2 = "CMMC_V2"
+    FEDRAMP = "FedRAMP"
+    HIPAA = "HIPAA"
+    DFARS = "DFARS_252.204-7012"
 
 
 class ControlStatus(str, Enum):
@@ -279,6 +283,256 @@ ISO_27001_CONTROLS: Dict[str, Dict[str, Any]] = {
     "A.8.29": {"title": "Security Testing in Development", "category": "Technological", "cwes": [], "evidence": [EvidenceType.PENETRATION_TEST, EvidenceType.SCAN_RESULT], "automated": True},
 }
 
+# ---------------------------------------------------------------------------
+# CMMC V2 Level 2 Controls (NIST SP 800-171 mapped practices)
+# 14 domains, 110 practices — Level 2 subset (required for CUI handling)
+# ---------------------------------------------------------------------------
+CMMC_V2_CONTROLS: Dict[str, Dict[str, Any]] = {
+    # AC — Access Control
+    "AC.L2-3.1.1": {"title": "Authorized Access Control", "category": "AC", "cwes": ["CWE-862", "CWE-863"], "evidence": [EvidenceType.ACCESS_REVIEW, EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.2": {"title": "Transaction & Function Control", "category": "AC", "cwes": ["CWE-862"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.3": {"title": "CUI Flow Enforcement", "category": "AC", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.5": {"title": "Least Privilege", "category": "AC", "cwes": ["CWE-269", "CWE-250"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "AC.L2-3.1.7": {"title": "Privileged Functions", "category": "AC", "cwes": ["CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW, EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.8": {"title": "Unsuccessful Logon Attempts", "category": "AC", "cwes": ["CWE-307"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.12": {"title": "Remote Access Control", "category": "AC", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.13": {"title": "Remote Access Confidentiality", "category": "AC", "cwes": ["CWE-319"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.14": {"title": "Remote Access Routing", "category": "AC", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC.L2-3.1.20": {"title": "External System Connections", "category": "AC", "cwes": ["CWE-918"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # AT — Awareness & Training
+    "AT.L2-3.2.1": {"title": "Role-Based Risk Awareness", "category": "AT", "cwes": [], "evidence": [EvidenceType.TRAINING_RECORD], "automated": False},
+    "AT.L2-3.2.2": {"title": "Insider Threat Awareness", "category": "AT", "cwes": [], "evidence": [EvidenceType.TRAINING_RECORD], "automated": False},
+    # AU — Audit & Accountability
+    "AU.L2-3.3.1": {"title": "System Auditing", "category": "AU", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU.L2-3.3.2": {"title": "User Accountability", "category": "AU", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU.L2-3.3.4": {"title": "Audit Failure Alerting", "category": "AU", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU.L2-3.3.5": {"title": "Audit Record Correlation", "category": "AU", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "AU.L2-3.3.8": {"title": "Audit Protection", "category": "AU", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # CM — Configuration Management
+    "CM.L2-3.4.1": {"title": "System Baselining", "category": "CM", "cwes": ["CWE-16", "CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "CM.L2-3.4.2": {"title": "Security Configuration Enforcement", "category": "CM", "cwes": ["CWE-16"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "CM.L2-3.4.5": {"title": "Access Restrictions for Change", "category": "CM", "cwes": ["CWE-1104"], "evidence": [EvidenceType.CHANGE_RECORD], "automated": True},
+    "CM.L2-3.4.6": {"title": "Least Functionality", "category": "CM", "cwes": ["CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # IA — Identification & Authentication
+    "IA.L2-3.5.1": {"title": "Identification", "category": "IA", "cwes": ["CWE-287"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA.L2-3.5.2": {"title": "Authentication", "category": "IA", "cwes": ["CWE-287", "CWE-306"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA.L2-3.5.3": {"title": "Multi-Factor Authentication", "category": "IA", "cwes": ["CWE-287", "CWE-306"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA.L2-3.5.7": {"title": "Password Complexity", "category": "IA", "cwes": ["CWE-521"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA.L2-3.5.10": {"title": "Cryptographic Authentication", "category": "IA", "cwes": ["CWE-327", "CWE-798"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # IR — Incident Response
+    "IR.L2-3.6.1": {"title": "Incident Handling", "category": "IR", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "IR.L2-3.6.2": {"title": "Incident Reporting", "category": "IR", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    # MA — Maintenance
+    "MA.L2-3.7.5": {"title": "Nonlocal Maintenance", "category": "MA", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # MP — Media Protection
+    "MP.L2-3.8.1": {"title": "Media Protection", "category": "MP", "cwes": ["CWE-312"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "MP.L2-3.8.3": {"title": "Media Sanitization", "category": "MP", "cwes": ["CWE-312"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": False},
+    # PE — Physical Protection
+    "PE.L2-3.10.1": {"title": "Physical Access Limitation", "category": "PE", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": False},
+    # PS — Personnel Security
+    "PS.L2-3.9.2": {"title": "Personnel Actions During Transfer/Termination", "category": "PS", "cwes": ["CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    # RA — Risk Assessment
+    "RA.L2-3.11.1": {"title": "Risk Assessments", "category": "RA", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    "RA.L2-3.11.2": {"title": "Vulnerability Scanning", "category": "RA", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "RA.L2-3.11.3": {"title": "Vulnerability Remediation", "category": "RA", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CHANGE_RECORD], "automated": True},
+    # SC — System & Communications Protection
+    "SC.L2-3.13.1": {"title": "Boundary Protection", "category": "SC", "cwes": ["CWE-284", "CWE-918"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC.L2-3.13.2": {"title": "Security Engineering", "category": "SC", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC.L2-3.13.5": {"title": "Public Access System Separation", "category": "SC", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC.L2-3.13.8": {"title": "CUI Transmission Cryptography", "category": "SC", "cwes": ["CWE-319", "CWE-327"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC.L2-3.13.11": {"title": "CUI Encryption at Rest", "category": "SC", "cwes": ["CWE-312", "CWE-311"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC.L2-3.13.16": {"title": "Data at Rest Protection", "category": "SC", "cwes": ["CWE-312"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # SI — System & Information Integrity
+    "SI.L2-3.14.1": {"title": "Flaw Remediation", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CHANGE_RECORD], "automated": True},
+    "SI.L2-3.14.2": {"title": "Malicious Code Protection", "category": "SI", "cwes": ["CWE-506"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SI.L2-3.14.3": {"title": "Security Alerts & Advisories", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SI.L2-3.14.6": {"title": "System Monitoring — Attacks", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SI.L2-3.14.7": {"title": "System Monitoring — Unauthorized Use", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+}
+
+# ---------------------------------------------------------------------------
+# FedRAMP Controls (NIST 800-53 Moderate baseline — 325 controls, key subset)
+# FedRAMP extends NIST 800-53 with additional FedRAMP-specific requirements.
+# Core subset covers the most automated/scanned control families.
+# ---------------------------------------------------------------------------
+FEDRAMP_CONTROLS: Dict[str, Dict[str, Any]] = {
+    # Access Control
+    "AC-1": {"title": "Access Control Policy & Procedures", "category": "AC", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "AC-2": {"title": "Account Management", "category": "AC", "cwes": ["CWE-269", "CWE-732"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "AC-3": {"title": "Access Enforcement", "category": "AC", "cwes": ["CWE-862", "CWE-863"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-4": {"title": "Information Flow Enforcement", "category": "AC", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-5": {"title": "Separation of Duties", "category": "AC", "cwes": ["CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "AC-6": {"title": "Least Privilege", "category": "AC", "cwes": ["CWE-269", "CWE-250"], "evidence": [EvidenceType.ACCESS_REVIEW, EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-7": {"title": "Unsuccessful Logon Attempts", "category": "AC", "cwes": ["CWE-307"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-8": {"title": "System Use Notification", "category": "AC", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-11": {"title": "Session Lock", "category": "AC", "cwes": ["CWE-613"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-12": {"title": "Session Termination", "category": "AC", "cwes": ["CWE-613"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-14": {"title": "Actions Without Identification", "category": "AC", "cwes": ["CWE-306"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-17": {"title": "Remote Access", "category": "AC", "cwes": ["CWE-284", "CWE-319"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-18": {"title": "Wireless Access", "category": "AC", "cwes": ["CWE-284"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AC-20": {"title": "External Information Systems", "category": "AC", "cwes": ["CWE-918"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # Audit
+    "AU-2": {"title": "Event Logging", "category": "AU", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU-3": {"title": "Content of Audit Records", "category": "AU", "cwes": ["CWE-778", "CWE-117"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU-6": {"title": "Audit Review & Analysis", "category": "AU", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "AU-8": {"title": "Time Stamps", "category": "AU", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU-9": {"title": "Protection of Audit Information", "category": "AU", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU-11": {"title": "Audit Record Retention", "category": "AU", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "AU-12": {"title": "Audit Generation", "category": "AU", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # Config Management
+    "CM-2": {"title": "Baseline Configuration", "category": "CM", "cwes": ["CWE-16", "CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "CM-3": {"title": "Configuration Change Control", "category": "CM", "cwes": ["CWE-1104"], "evidence": [EvidenceType.CHANGE_RECORD], "automated": True},
+    "CM-6": {"title": "Configuration Settings", "category": "CM", "cwes": ["CWE-16"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "CM-7": {"title": "Least Functionality", "category": "CM", "cwes": ["CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "CM-8": {"title": "Information System Component Inventory", "category": "CM", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # Identification
+    "IA-2": {"title": "Identification & Authentication (Org Users)", "category": "IA", "cwes": ["CWE-287", "CWE-306"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA-4": {"title": "Identifier Management", "category": "IA", "cwes": ["CWE-287"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA-5": {"title": "Authenticator Management", "category": "IA", "cwes": ["CWE-798", "CWE-521"], "evidence": [EvidenceType.CONFIG_AUDIT, EvidenceType.SCAN_RESULT], "automated": True},
+    "IA-6": {"title": "Authenticator Feedback", "category": "IA", "cwes": ["CWE-200"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "IA-8": {"title": "Identification (Non-Org Users)", "category": "IA", "cwes": ["CWE-287"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # Incident Response
+    "IR-4": {"title": "Incident Handling", "category": "IR", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "IR-5": {"title": "Incident Monitoring", "category": "IR", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE, EvidenceType.SCAN_RESULT], "automated": True},
+    "IR-6": {"title": "Incident Reporting", "category": "IR", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "IR-8": {"title": "Incident Response Plan", "category": "IR", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    # Risk Assessment
+    "RA-3": {"title": "Risk Assessment", "category": "RA", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    "RA-5": {"title": "Vulnerability Scanning", "category": "RA", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    # System & Services Acquisition
+    "SA-3": {"title": "System Development Life Cycle", "category": "SA", "cwes": [], "evidence": [EvidenceType.CODE_REVIEW], "automated": True},
+    "SA-4": {"title": "Acquisition Process", "category": "SA", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "SA-8": {"title": "Security Engineering Principles", "category": "SA", "cwes": [], "evidence": [EvidenceType.CODE_REVIEW], "automated": True},
+    "SA-11": {"title": "Developer Security Testing", "category": "SA", "cwes": ["CWE-89", "CWE-79", "CWE-78"], "evidence": [EvidenceType.CODE_REVIEW, EvidenceType.SCAN_RESULT], "automated": True},
+    # System & Communications Protection
+    "SC-5": {"title": "Denial of Service Protection", "category": "SC", "cwes": ["CWE-400"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC-7": {"title": "Boundary Protection", "category": "SC", "cwes": ["CWE-284", "CWE-918"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC-8": {"title": "Transmission Confidentiality & Integrity", "category": "SC", "cwes": ["CWE-319"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC-12": {"title": "Cryptographic Key Establishment", "category": "SC", "cwes": ["CWE-320", "CWE-327"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "SC-13": {"title": "Cryptographic Protection", "category": "SC", "cwes": ["CWE-327", "CWE-326"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SC-28": {"title": "Protection of Information at Rest", "category": "SC", "cwes": ["CWE-312", "CWE-311"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # System & Information Integrity
+    "SI-2": {"title": "Flaw Remediation", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CHANGE_RECORD], "automated": True},
+    "SI-3": {"title": "Malicious Code Protection", "category": "SI", "cwes": ["CWE-506"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SI-4": {"title": "Information System Monitoring", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SI-5": {"title": "Security Alerts & Advisories", "category": "SI", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "SI-10": {"title": "Information Input Validation", "category": "SI", "cwes": ["CWE-89", "CWE-79", "CWE-78", "CWE-22"], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CODE_REVIEW], "automated": True},
+}
+
+# ---------------------------------------------------------------------------
+# HIPAA Security Rule Controls (45 CFR 164.3xx)
+# Administrative (164.308), Physical (164.310), Technical (164.312)
+# ---------------------------------------------------------------------------
+HIPAA_CONTROLS: Dict[str, Dict[str, Any]] = {
+    # Administrative Safeguards — 164.308
+    "164.308(a)(1)": {"title": "Security Management Process", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT, EvidenceType.POLICY_CHECK], "automated": True},
+    "164.308(a)(1)(ii)(A)": {"title": "Risk Analysis", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    "164.308(a)(1)(ii)(B)": {"title": "Risk Management", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    "164.308(a)(1)(ii)(D)": {"title": "Information System Activity Review", "category": "Administrative", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT, EvidenceType.SCAN_RESULT], "automated": True},
+    "164.308(a)(3)": {"title": "Workforce Security", "category": "Administrative", "cwes": ["CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "164.308(a)(4)": {"title": "Information Access Management", "category": "Administrative", "cwes": ["CWE-862", "CWE-863"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "164.308(a)(5)": {"title": "Security Awareness & Training", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.TRAINING_RECORD], "automated": False},
+    "164.308(a)(6)": {"title": "Security Incident Procedures", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "164.308(a)(7)": {"title": "Contingency Plan", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "164.308(a)(8)": {"title": "Evaluation", "category": "Administrative", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    # Physical Safeguards — 164.310
+    "164.310(a)(1)": {"title": "Facility Access Controls", "category": "Physical", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": False},
+    "164.310(b)": {"title": "Workstation Use", "category": "Physical", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "164.310(c)": {"title": "Workstation Security", "category": "Physical", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": False},
+    "164.310(d)(1)": {"title": "Device & Media Controls", "category": "Physical", "cwes": ["CWE-312"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    # Technical Safeguards — 164.312
+    "164.312(a)(1)": {"title": "Access Control", "category": "Technical", "cwes": ["CWE-862", "CWE-287"], "evidence": [EvidenceType.CONFIG_AUDIT, EvidenceType.ACCESS_REVIEW], "automated": True},
+    "164.312(a)(2)(i)": {"title": "Unique User Identification", "category": "Technical", "cwes": ["CWE-287"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(a)(2)(ii)": {"title": "Emergency Access Procedure", "category": "Technical", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "164.312(a)(2)(iii)": {"title": "Automatic Logoff", "category": "Technical", "cwes": ["CWE-613"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(a)(2)(iv)": {"title": "Encryption & Decryption", "category": "Technical", "cwes": ["CWE-311", "CWE-312"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(b)": {"title": "Audit Controls", "category": "Technical", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(c)(1)": {"title": "Integrity", "category": "Technical", "cwes": ["CWE-345", "CWE-354"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "164.312(d)": {"title": "Person or Entity Authentication", "category": "Technical", "cwes": ["CWE-287", "CWE-306"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(e)(1)": {"title": "Transmission Security", "category": "Technical", "cwes": ["CWE-319", "CWE-327"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(e)(2)(i)": {"title": "Integrity Controls (Transmission)", "category": "Technical", "cwes": ["CWE-345"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "164.312(e)(2)(ii)": {"title": "Encryption (Transmission)", "category": "Technical", "cwes": ["CWE-319", "CWE-327"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+}
+
+# ---------------------------------------------------------------------------
+# DFARS 252.204-7012 — Safeguarding Covered Defense Information
+# 14 security requirements mapped from NIST SP 800-171
+# ---------------------------------------------------------------------------
+DFARS_CONTROLS: Dict[str, Dict[str, Any]] = {
+    "DFARS-3.1": {"title": "Access Control — Limit system access", "category": "Access", "cwes": ["CWE-862", "CWE-863", "CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW, EvidenceType.CONFIG_AUDIT], "automated": True},
+    "DFARS-3.2": {"title": "Awareness & Training — Ensure personnel trained", "category": "Training", "cwes": [], "evidence": [EvidenceType.TRAINING_RECORD], "automated": False},
+    "DFARS-3.3": {"title": "Audit & Accountability — Create & retain logs", "category": "Audit", "cwes": ["CWE-778"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "DFARS-3.4": {"title": "Configuration Management — Establish baselines", "category": "Configuration", "cwes": ["CWE-16", "CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "DFARS-3.5": {"title": "Identification & Authentication — Identify & verify users", "category": "Identity", "cwes": ["CWE-287", "CWE-306"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "DFARS-3.6": {"title": "Incident Response — Establish IR capability", "category": "Incident", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "DFARS-3.7": {"title": "Maintenance — Perform system maintenance", "category": "Maintenance", "cwes": [], "evidence": [EvidenceType.CHANGE_RECORD], "automated": True},
+    "DFARS-3.8": {"title": "Media Protection — Protect system media", "category": "Media", "cwes": ["CWE-312"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "DFARS-3.9": {"title": "Personnel Security — Screen & protect during termination", "category": "Personnel", "cwes": ["CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "DFARS-3.10": {"title": "Physical Protection — Limit physical access", "category": "Physical", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": False},
+    "DFARS-3.11": {"title": "Risk Assessment — Assess and scan vulnerabilities", "category": "Risk", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT, EvidenceType.SCAN_RESULT], "automated": True},
+    "DFARS-3.12": {"title": "Security Assessment — Assess effectiveness", "category": "Assessment", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT, EvidenceType.PENETRATION_TEST], "automated": True},
+    "DFARS-3.13": {"title": "System & Communications Protection — Monitor & protect boundaries", "category": "Communications", "cwes": ["CWE-284", "CWE-319", "CWE-918"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "DFARS-3.14": {"title": "System & Information Integrity — Identify & manage flaws", "category": "Integrity", "cwes": ["CWE-506"], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CHANGE_RECORD], "automated": True},
+}
+
+# ---------------------------------------------------------------------------
+# NIST CSF 2.0 — Cybersecurity Framework Core Functions
+# ---------------------------------------------------------------------------
+NIST_CSF_CONTROLS: Dict[str, Dict[str, Any]] = {
+    # Govern
+    "GV.OC-01": {"title": "Organizational Context", "category": "Govern", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "GV.RM-01": {"title": "Risk Management Strategy", "category": "Govern", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    "GV.SC-01": {"title": "Supply Chain Risk Management", "category": "Govern", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    # Identify
+    "ID.AM-01": {"title": "Asset Inventory", "category": "Identify", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "ID.AM-02": {"title": "Software Inventory", "category": "Identify", "cwes": [], "evidence": [EvidenceType.CONFIG_AUDIT, EvidenceType.SCAN_RESULT], "automated": True},
+    "ID.RA-01": {"title": "Vulnerability Identification", "category": "Identify", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "ID.RA-02": {"title": "Threat Intelligence", "category": "Identify", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "ID.RA-03": {"title": "Risk Identification", "category": "Identify", "cwes": [], "evidence": [EvidenceType.RISK_ASSESSMENT], "automated": True},
+    # Protect
+    "PR.AA-01": {"title": "Identity Management", "category": "Protect", "cwes": ["CWE-287"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "PR.AA-03": {"title": "Access Control", "category": "Protect", "cwes": ["CWE-862", "CWE-863"], "evidence": [EvidenceType.ACCESS_REVIEW], "automated": True},
+    "PR.AT-01": {"title": "Security Awareness Training", "category": "Protect", "cwes": [], "evidence": [EvidenceType.TRAINING_RECORD], "automated": False},
+    "PR.DS-01": {"title": "Data-at-Rest Protection", "category": "Protect", "cwes": ["CWE-312", "CWE-311"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "PR.DS-02": {"title": "Data-in-Transit Protection", "category": "Protect", "cwes": ["CWE-319"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "PR.PS-01": {"title": "Configuration Management", "category": "Protect", "cwes": ["CWE-16", "CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "PR.PS-02": {"title": "Software Maintenance", "category": "Protect", "cwes": [], "evidence": [EvidenceType.CHANGE_RECORD], "automated": True},
+    # Detect
+    "DE.CM-01": {"title": "Network Monitoring", "category": "Detect", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "DE.CM-06": {"title": "External Service Provider Monitoring", "category": "Detect", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "DE.CM-09": {"title": "Computing Resource Monitoring", "category": "Detect", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "DE.AE-02": {"title": "Anomaly Detection", "category": "Detect", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "DE.AE-06": {"title": "Event Correlation", "category": "Detect", "cwes": [], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    # Respond
+    "RS.MA-01": {"title": "Incident Management", "category": "Respond", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "RS.AN-03": {"title": "Incident Analysis", "category": "Respond", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+    "RS.MI-01": {"title": "Incident Mitigation", "category": "Respond", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE, EvidenceType.CHANGE_RECORD], "automated": True},
+    # Recover
+    "RC.RP-01": {"title": "Recovery Plan Execution", "category": "Recover", "cwes": [], "evidence": [EvidenceType.POLICY_CHECK], "automated": False},
+    "RC.CO-03": {"title": "Recovery Communication", "category": "Recover", "cwes": [], "evidence": [EvidenceType.INCIDENT_RESPONSE], "automated": True},
+}
+
+# ---------------------------------------------------------------------------
+# OWASP ASVS 4.0 — Application Security Verification Standard
+# 14 chapters covering application-specific security requirements
+# ---------------------------------------------------------------------------
+OWASP_ASVS_CONTROLS: Dict[str, Dict[str, Any]] = {
+    "V1": {"title": "Architecture, Design & Threat Modeling", "category": "Architecture", "cwes": [], "evidence": [EvidenceType.CODE_REVIEW, EvidenceType.RISK_ASSESSMENT], "automated": True},
+    "V2": {"title": "Authentication Verification", "category": "Authentication", "cwes": ["CWE-287", "CWE-306", "CWE-521", "CWE-798"], "evidence": [EvidenceType.CONFIG_AUDIT, EvidenceType.SCAN_RESULT], "automated": True},
+    "V3": {"title": "Session Management Verification", "category": "Session", "cwes": ["CWE-613", "CWE-384"], "evidence": [EvidenceType.CONFIG_AUDIT, EvidenceType.SCAN_RESULT], "automated": True},
+    "V4": {"title": "Access Control Verification", "category": "Access", "cwes": ["CWE-862", "CWE-863", "CWE-269"], "evidence": [EvidenceType.ACCESS_REVIEW, EvidenceType.SCAN_RESULT], "automated": True},
+    "V5": {"title": "Input Validation Verification", "category": "Input", "cwes": ["CWE-89", "CWE-79", "CWE-78", "CWE-22", "CWE-502"], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CODE_REVIEW], "automated": True},
+    "V6": {"title": "Output Encoding Verification", "category": "Output", "cwes": ["CWE-79", "CWE-116"], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CODE_REVIEW], "automated": True},
+    "V7": {"title": "Cryptography Verification", "category": "Cryptography", "cwes": ["CWE-327", "CWE-326", "CWE-320"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "V8": {"title": "Data Protection Verification", "category": "Data", "cwes": ["CWE-312", "CWE-311", "CWE-200", "CWE-209"], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.CONFIG_AUDIT], "automated": True},
+    "V9": {"title": "Communication Verification", "category": "Communications", "cwes": ["CWE-319"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+    "V10": {"title": "Malicious Code Verification", "category": "Malicious", "cwes": ["CWE-506", "CWE-829"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "V11": {"title": "Business Logic Verification", "category": "Logic", "cwes": [], "evidence": [EvidenceType.CODE_REVIEW, EvidenceType.PENETRATION_TEST], "automated": True},
+    "V12": {"title": "File & Resource Verification", "category": "Files", "cwes": ["CWE-22", "CWE-434"], "evidence": [EvidenceType.SCAN_RESULT], "automated": True},
+    "V13": {"title": "API & Web Service Verification", "category": "API", "cwes": ["CWE-918", "CWE-284"], "evidence": [EvidenceType.SCAN_RESULT, EvidenceType.PENETRATION_TEST], "automated": True},
+    "V14": {"title": "Configuration Verification", "category": "Configuration", "cwes": ["CWE-16", "CWE-1188"], "evidence": [EvidenceType.CONFIG_AUDIT], "automated": True},
+}
+
 # Build reverse lookup: CWE → list of (framework, control_id)
 _CWE_TO_CONTROLS: Dict[str, List[Tuple[Framework, str]]] = {}
 
@@ -293,6 +547,12 @@ def _build_cwe_index() -> None:
         (Framework.PCI_DSS, PCI_DSS_CONTROLS),
         (Framework.NIST_800_53, NIST_800_53_CONTROLS),
         (Framework.ISO_27001, ISO_27001_CONTROLS),
+        (Framework.CMMC_V2, CMMC_V2_CONTROLS),
+        (Framework.FEDRAMP, FEDRAMP_CONTROLS),
+        (Framework.HIPAA, HIPAA_CONTROLS),
+        (Framework.DFARS, DFARS_CONTROLS),
+        (Framework.NIST_CSF, NIST_CSF_CONTROLS),
+        (Framework.OWASP_ASVS, OWASP_ASVS_CONTROLS),
     ]:
         for ctrl_id, ctrl_def in controls.items():
             for cwe in ctrl_def.get("cwes", []):
@@ -475,6 +735,12 @@ class ComplianceEngine:
             Framework.PCI_DSS: PCI_DSS_CONTROLS,
             Framework.NIST_800_53: NIST_800_53_CONTROLS,
             Framework.ISO_27001: ISO_27001_CONTROLS,
+            Framework.CMMC_V2: CMMC_V2_CONTROLS,
+            Framework.FEDRAMP: FEDRAMP_CONTROLS,
+            Framework.HIPAA: HIPAA_CONTROLS,
+            Framework.DFARS: DFARS_CONTROLS,
+            Framework.NIST_CSF: NIST_CSF_CONTROLS,
+            Framework.OWASP_ASVS: OWASP_ASVS_CONTROLS,
         }
         enabled = os.getenv("FIXOPS_COMPLIANCE_FRAMEWORKS", "")
         if enabled:
@@ -760,7 +1026,7 @@ class ComplianceEngine:
             "app_id": app_id or "organization-wide",
             "assessment_period": {
                 "days": period_days,
-                "start": (datetime.now(timezone.utc) - __import__("datetime").timedelta(days=period_days)).isoformat(),
+                "start": (datetime.now(timezone.utc) - timedelta(days=period_days)).isoformat(),
                 "end": datetime.now(timezone.utc).isoformat(),
             },
             "posture": posture.to_dict(),

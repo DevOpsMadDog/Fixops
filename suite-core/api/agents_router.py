@@ -800,8 +800,9 @@ async def get_trending_threats(
             kev_count = stats.get("kev_count", 0)
 
             # Get high-EPSS CVEs from the database
-            conn = __import__("sqlite3").connect(feeds_service.db_path)
-            conn.row_factory = __import__("sqlite3").Row
+            import sqlite3
+            conn = sqlite3.connect(feeds_service.db_path)
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT cve_id, epss, percentile FROM epss_scores ORDER BY epss DESC LIMIT ?",

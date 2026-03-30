@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -418,8 +420,8 @@ async def compute_adjustments() -> Dict[str, Any]:
                 for adj in adjustments
             ],
             "count": len(adjustments),
-            "computed_at": __import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
+            "computed_at": datetime.now(
+                timezone.utc
             ).isoformat(),
         }
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
@@ -752,8 +754,8 @@ async def demo_live_feedback(
         feedback_id = ""
         loop_name = req.loop.lower().strip()
         if loop_name == "decision":
-            fid = req.finding_id or f"VULN-LIVE-{__import__('secrets').token_hex(4)}"
-            did = req.decision_id or f"DEC-LIVE-{__import__('secrets').token_hex(4)}"
+            fid = req.finding_id or f"VULN-LIVE-{secrets.token_hex(4)}"
+            did = req.decision_id or f"DEC-LIVE-{secrets.token_hex(4)}"
             feedback_id = engine.decision_loop.record(
                 decision_id=did, finding_id=fid,
                 predicted_action=req.predicted_action,
@@ -762,7 +764,7 @@ async def demo_live_feedback(
                 context={"scanner": req.scanner, "live_demo": True},
             )
         elif loop_name == "mpte":
-            fid = req.finding_id or f"MPTE-LIVE-{__import__('secrets').token_hex(4)}"
+            fid = req.finding_id or f"MPTE-LIVE-{secrets.token_hex(4)}"
             feedback_id = engine.mpte_loop.record(
                 finding_id=fid,
                 predicted_exploitable=req.predicted_exploitable,
@@ -771,14 +773,14 @@ async def demo_live_feedback(
                 context={"scanner": req.scanner, "live_demo": True},
             )
         elif loop_name == "fp":
-            fid = req.finding_id or f"FP-LIVE-{__import__('secrets').token_hex(4)}"
+            fid = req.finding_id or f"FP-LIVE-{secrets.token_hex(4)}"
             feedback_id = engine.fp_loop.record(
                 finding_id=fid, scanner=req.scanner,
                 rule_id=req.rule_id, is_false_positive=req.is_false_positive,
                 context={"live_demo": True},
             )
         elif loop_name == "remediation":
-            fid = req.finding_id or f"REM-LIVE-{__import__('secrets').token_hex(4)}"
+            fid = req.finding_id or f"REM-LIVE-{secrets.token_hex(4)}"
             feedback_id = engine.remediation_loop.record(
                 finding_id=fid, fix_type=req.fix_type,
                 fix_applied=req.fix_applied, resolved=req.resolved,

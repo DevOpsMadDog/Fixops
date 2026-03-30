@@ -955,7 +955,7 @@ async def list_marketplace_integrations():
             if cls is not None:
                 try:
                     configured = getattr(cls(), "configured", False)
-                except Exception:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                     pass
             marketplace.append({
                 "id": name,
@@ -1935,7 +1935,7 @@ async def list_registered_scanners():
             if cls is not None:
                 try:
                     configured = getattr(cls(), "configured", False)
-                except Exception:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                     pass
             third_party.append({
                 "id": name, "name": display, "type": "third-party",

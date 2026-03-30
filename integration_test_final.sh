@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-API="http://localhost:8000"
-KEY="fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U"
+API="${FIXOPS_API_BASE:-http://localhost:8000}"
+KEY="${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN}"
 PASS=0
 FAIL=0
 WARN=0

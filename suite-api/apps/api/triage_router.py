@@ -334,8 +334,8 @@ def _enrich_attack_paths(finding: TriageFindingInput) -> Tuple[AttackPathSummary
             paths=path_dicts,
         ), True
 
-    except Exception:
-        logger.debug("Attack path enrichment unavailable: %s", "engine error")
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError) as exc:
+        logger.warning("Attack path enrichment unavailable: %s", type(exc).__name__)
         return AttackPathSummary(), False
 
 
@@ -388,8 +388,8 @@ def _enrich_compliance(finding: TriageFindingInput) -> Tuple[ComplianceImpact, b
             compliance_gaps=gaps,
         ), True
 
-    except Exception:
-        logger.debug("Compliance enrichment error: %s", "mapping failure")
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        logger.warning("Compliance enrichment error: %s", type(exc).__name__)
         return _fallback_compliance(finding), False
 
 
@@ -463,8 +463,8 @@ def _enrich_self_learning(finding: TriageFindingInput) -> Tuple[Optional[float],
 
         return adjustment, True
 
-    except Exception:
-        logger.debug("Self-learning enrichment unavailable: %s", "engine error")
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        logger.warning("Self-learning enrichment unavailable: %s", type(exc).__name__)
         return None, False
 
 
@@ -686,8 +686,8 @@ async def submit_feedback(
                 updated_confidence = round(updated_confidence, 4)
                 confidence_updated = True
 
-        except Exception:
-            logger.debug("Self-learning feedback recording failed: %s", "engine error")
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError) as exc:
+            logger.warning("Self-learning feedback recording failed: %s", type(exc).__name__)
 
     return TriageFeedbackResponse(
         feedback_id=feedback_id,
@@ -868,7 +868,7 @@ async def triage_queue(
                     node_id = getattr(f, "cve_id", None) or f.id
                     paths = engine.discover_attack_paths(target=node_id, max_paths=5)
                     ap_count = len(paths)
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError):
                 pass
 
         # Composite score

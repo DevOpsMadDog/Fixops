@@ -277,8 +277,9 @@ class BuiltinScanner:
     - OWASP Top 10 coverage
     """
 
-    def __init__(self, timeout: float = 15.0):
+    def __init__(self, timeout: float = 15.0, verify_ssl: bool = False):
         self.timeout = timeout
+        self.verify_ssl = verify_ssl  # Scanning targets may have self-signed certs
         self._findings: List[ScanFinding] = []
         self._phase = 0
 
@@ -330,7 +331,7 @@ class BuiltinScanner:
         try:
             async with httpx.AsyncClient(
                 timeout=self.timeout,
-                verify=False,  # We check SSL separately
+                verify=self.verify_ssl,  # Configurable: scan targets may use self-signed certs
                 follow_redirects=True,
                 headers={
                     "User-Agent": "FixOps-MPTE-Scanner/2.0 (Enterprise Security Assessment)"

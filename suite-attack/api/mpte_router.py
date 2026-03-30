@@ -120,7 +120,7 @@ def _validate_target_url(url: str, field_name: str = "target_url") -> str:
             raise HTTPException(
                 status_code=422, detail=f"{field_name} targets a blocked host"
             )
-        # Resolve hostname to check for internal IPs
+        # Resolve hostname to check for internal IPs (prevents DNS rebinding)
         try:
             addr = ipaddress.ip_address(hostname)
             for net in _BLOCKED_NETS:
@@ -130,7 +130,26 @@ def _validate_target_url(url: str, field_name: str = "target_url") -> str:
                         detail=f"{field_name} targets a blocked internal network",
                     )
         except ValueError:
-            pass  # Not an IP literal — hostname is OK
+            # Not an IP literal — resolve hostname to check resolved IPs
+            try:
+                import socket as _sock
+                resolved = _sock.getaddrinfo(hostname, None, _sock.AF_UNSPEC, _sock.SOCK_STREAM)
+                for family, _type, _proto, _canonname, sockaddr in resolved:
+                    resolved_ip = ipaddress.ip_address(sockaddr[0])
+                    for net in _BLOCKED_NETS:
+                        if resolved_ip in net:
+                            raise HTTPException(
+                                status_code=422,
+                                detail=f"{field_name} resolves to a blocked internal network",
+                            )
+                    for net in _METADATA_NETS:
+                        if resolved_ip in net:
+                            raise HTTPException(
+                                status_code=422,
+                                detail=f"{field_name} resolves to a blocked metadata endpoint",
+                            )
+            except (OSError, socket.gaierror):
+                pass  # DNS resolution failure — allow the request to fail naturally
     else:
         # Even for allowed hosts, still block metadata IPs
         try:
@@ -1213,7 +1232,9 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
         _release_scan_slot()
 
 
-_FINDING_ID_PATTERN = __import__("re").compile(r"^[a-zA-Z0-9_\-.:]+$")
+import re
+
+_FINDING_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_\-.:]+$")
 _MAX_FINDING_ID_LEN = 256
 
 
@@ -1329,11 +1350,13 @@ def get_pen_test_stats():
     """Get statistics about pen tests including real scan results."""
     try:
         all_requests = db.list_requests(limit=10000)
-    except Exception:
+    except (OSError, ValueError, RuntimeError) as exc:
+        logger.warning("Failed to list MPTE requests: %s", type(exc).__name__)
         all_requests = []
     try:
         all_results = db.list_results(limit=10000)
-    except Exception:
+    except (OSError, ValueError, RuntimeError) as exc:
+        logger.warning("Failed to list MPTE results: %s", type(exc).__name__)
         all_results = []
     scan_results = _get_all_scan_results()
 

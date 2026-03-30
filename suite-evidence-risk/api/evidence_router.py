@@ -1622,7 +1622,7 @@ def _build_export_bundle(
     now = dt.now(tz.utc)
     bundle_id = f"EVB-{now.strftime('%Y')}-{uuid.uuid4().hex[:6].upper()}"
     generated_at = now.isoformat()
-    from_date = (now - __import__("datetime").timedelta(days=period_days)).isoformat()
+    from_date = (now - timedelta(days=period_days)).isoformat()
 
     controls_list: List[Dict[str, Any]] = []
     posture_dict: Dict[str, Any] = {}

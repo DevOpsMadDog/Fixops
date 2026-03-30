@@ -1785,11 +1785,11 @@ class PipelineOrchestrator:
                                     len(dtrack_findings),
                                     project_name,
                                 )
-                    except Exception:
-                        logger.debug("DTrack project lookup failed for %s", project_name)
+                    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError) as exc:
+                        logger.debug("DTrack project lookup failed for %s: %s", project_name, type(exc).__name__)
         except ImportError:
             pass  # DTrack connector not available
-        except Exception:
-            logger.debug("Dependency-Track enrichment skipped")
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError) as exc:
+            logger.debug("Dependency-Track enrichment skipped: %s", type(exc).__name__)
 
         return result

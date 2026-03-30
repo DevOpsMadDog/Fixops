@@ -151,7 +151,7 @@ async def nerve_center_status():
             proc.create_time(), tz=timezone.utc
         )).total_seconds()
         uptime_hours = round(uptime_s / 3600, 2)
-    except Exception:
+    except (ImportError, OSError):
         uptime_hours = 0.0
 
     return {
@@ -712,7 +712,7 @@ async def list_playbooks():
                         label=pb["name"],
                         properties={k: v for k, v in pb.items() if k != "id"},
                     )
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 pass
         playbooks = _DEFAULTS
     return {"playbooks": playbooks}
