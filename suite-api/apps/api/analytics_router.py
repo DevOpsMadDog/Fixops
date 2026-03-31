@@ -1107,15 +1107,14 @@ async def executive_summary(request: Request) -> Dict[str, Any]:
     mttr_hours = None
     try:
         mttr_hours = db.calculate_mttr()
-    except (AttributeError, Exception):
+    except Exception:
         mttr_hours = None
 
     # SLA compliance: % of open findings within SLA window (days by severity)
     _SLA_DAYS = {"critical": 7, "high": 30, "medium": 90, "low": 180}
     sla_breached = 0
     sla_total_open = 0
-    from datetime import datetime, timezone as _tz
-    _now = datetime.now(_tz.utc)
+    _now = datetime.now(timezone.utc)
     for f in findings:
         st = f.status.value if hasattr(f.status, "value") else str(f.status)
         if st.lower() not in ("open", "in_progress"):
@@ -1129,7 +1128,7 @@ async def executive_summary(request: Request) -> Dict[str, Any]:
                 if isinstance(created_at, str):
                     created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
                 if created_at.tzinfo is None:
-                    created_at = created_at.replace(tzinfo=_tz.utc)
+                    created_at = created_at.replace(tzinfo=timezone.utc)
                 age_days = (_now - created_at).days
                 if age_days > sla_window:
                     sla_breached += 1

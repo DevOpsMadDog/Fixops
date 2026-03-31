@@ -934,8 +934,8 @@ class OnlineLearningPipeline:
             # Guard against concurrent retrain calls: stamp the time before
             # releasing the lock so that any other thread calling
             # _should_retrain() will see the update and bail out.
-            if self._min_interval_s > 0 and not (
-                time.time() - self._last_retrain_time >= self._min_interval_s
+            if self._min_interval_s > 0 and (
+                time.time() - self._last_retrain_time < self._min_interval_s
             ):
                 return RetrainResult(
                     success=False,

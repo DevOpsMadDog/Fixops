@@ -892,7 +892,7 @@ _TEMPLATES: List[FixTemplate] = [
         languages=["python", "javascript"],
         vulnerable_patterns=[
             r"is_authenticated\s*=\s*True",
-            r"@app\.route.*methods.*(?!.*login).*without.*auth",
+            r"skip_auth\s*=\s*True",
         ],
         fix_description=(
             "Authentication is missing, bypassed, or insufficiently verified. "
