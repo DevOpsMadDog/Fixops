@@ -881,6 +881,533 @@ _TEMPLATES: List[FixTemplate] = [
             "sensitive data exposure", "verbose error", "debug info",
         ],
     ),
+
+
+    # =========================================================================
+    # CWE-287: Improper Authentication
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-287",
+        cwe_name="Improper Authentication",
+        languages=["python", "javascript"],
+        vulnerable_patterns=[
+            r"is_authenticated\s*=\s*True",
+            r"@app\.route.*methods.*(?!.*login).*without.*auth",
+        ],
+        fix_description=(
+            "Authentication is missing, bypassed, or insufficiently verified. "
+            "Attackers can impersonate users or access protected resources without "
+            "valid credentials. Add decorator-based or explicit authentication guards. "
+            "This is OWASP Top 10 A07:2021 - Identification and Authentication Failures."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "# Missing: no authentication check before sensitive operation\n"
+                    "def get_user_data(user_id: int):\n"
+                    "    return db.query(User).filter(User.id == user_id).first()"
+                ),
+                "after": (
+                    "from functools import wraps\n"
+                    "from flask import session, abort\n\n"
+                    "def require_auth(f):\n"
+                    "    @wraps(f)\n"
+                    "    def decorated(*args, **kwargs):\n"
+                    "        if 'user_id' not in session:\n"
+                    "            abort(401)\n"
+                    "        return f(*args, **kwargs)\n"
+                    "    return decorated\n\n"
+                    "@require_auth\n"
+                    "def get_user_data(user_id: int):\n"
+                    "    current_user = session['user_id']\n"
+                    "    if current_user != user_id and not is_admin(current_user):\n"
+                    "        abort(403)\n"
+                    "    return db.query(User).filter(User.id == user_id).first()"
+                ),
+            },
+            "javascript": {
+                "before": (
+                    "// Missing: no authentication\n"
+                    "app.get('/api/user/:id', async (req, res) => {\n"
+                    "  const user = await User.findById(req.params.id);\n"
+                    "  res.json(user);\n"
+                    "});"
+                ),
+                "after": (
+                    "const jwt = require('jsonwebtoken');\n\n"
+                    "function authenticateToken(req, res, next) {\n"
+                    "  const token = req.headers['authorization']?.split(' ')[1];\n"
+                    "  if (!token) return res.sendStatus(401);\n"
+                    "  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {\n"
+                    "    if (err) return res.sendStatus(403);\n"
+                    "    req.user = user;\n"
+                    "    next();\n"
+                    "  });\n"
+                    "}\n\n"
+                    "app.get('/api/user/:id', authenticateToken, async (req, res) => {\n"
+                    "  if (req.user.id !== req.params.id && !req.user.isAdmin) {\n"
+                    "    return res.sendStatus(403);\n"
+                    "  }\n"
+                    "  const user = await User.findById(req.params.id);\n"
+                    "  res.json(user);\n"
+                    "});"
+                ),
+            },
+        },
+        confidence=0.80,
+        severity="critical",
+        fix_type="code_patch",
+        testing_guidance=(
+            "1. Test unauthenticated requests return 401.\n"
+            "2. Test requests with invalid/expired tokens return 403.\n"
+            "3. Test that authenticated users cannot access other users' data.\n"
+            "4. Verify admin users have appropriate elevated access."
+        ),
+        risk_assessment="High impact — authentication is the primary defense layer.",
+        effort_minutes=30,
+        mitre_techniques=["T1078", "T1110"],
+        compliance_refs=["CWE-287", "OWASP A07:2021", "NIST AC-14", "PCI-DSS 8.2"],
+        title_keywords=[
+            "missing authentication", "improper authentication", "auth bypass",
+            "unauthenticated", "no auth check", "authentication failure",
+        ],
+    ),
+
+    # =========================================================================
+    # CWE-862: Missing Authorization
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-862",
+        cwe_name="Missing Authorization",
+        languages=["python", "java", "javascript"],
+        vulnerable_patterns=[
+            r"\.find_by_id\s*\(\s*(?:request|req)\.",
+            r"@login_required\s*\n.*def.*without.*ownership",
+        ],
+        fix_description=(
+            "The application does not perform proper authorization checks before "
+            "granting access to resources or operations. Authenticated users may "
+            "access data or functionality they should not. Add ownership and role "
+            "checks before every resource mutation. OWASP A01:2021."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "@login_required\n"
+                    "def update_document(doc_id):\n"
+                    "    doc = Document.query.get(doc_id)\n"
+                    "    doc.update(request.json)\n"
+                    "    return jsonify(doc)"
+                ),
+                "after": (
+                    "@login_required\n"
+                    "def update_document(doc_id):\n"
+                    "    doc = Document.query.get_or_404(doc_id)\n"
+                    "    # Authorization: owner or admin only\n"
+                    "    if doc.owner_id != current_user.id and not current_user.has_role('admin'):\n"
+                    "        abort(403, 'Insufficient permissions to modify this document')\n"
+                    "    doc.update(request.json)\n"
+                    "    return jsonify(doc)"
+                ),
+            },
+            "java": {
+                "before": (
+                    "@GetMapping(\"/documents/{id}\")\n"
+                    "public Document getDocument(@PathVariable Long id) {\n"
+                    "    return documentRepository.findById(id).orElseThrow();\n"
+                    "}"
+                ),
+                "after": (
+                    "@GetMapping(\"/documents/{id}\")\n"
+                    "@PreAuthorize(\"hasRole('ADMIN') or @documentService.isOwner(#id, authentication.principal.id)\")\n"
+                    "public Document getDocument(@PathVariable Long id) {\n"
+                    "    return documentRepository.findById(id)\n"
+                    "        .orElseThrow(() -> new ResourceNotFoundException(\"Document\", id));\n"
+                    "}"
+                ),
+            },
+        },
+        confidence=0.80,
+        severity="high",
+        fix_type="code_patch",
+        testing_guidance=(
+            "1. Test that users cannot access resources owned by other users.\n"
+            "2. Test IDOR by substituting resource IDs.\n"
+            "3. Verify admin users have appropriate elevated access.\n"
+            "4. Test vertical privilege escalation."
+        ),
+        risk_assessment="High impact — broken access control is #1 OWASP risk.",
+        effort_minutes=25,
+        mitre_techniques=["T1548", "T1078"],
+        compliance_refs=["CWE-862", "OWASP A01:2021", "NIST AC-3", "PCI-DSS 7.1"],
+        title_keywords=[
+            "missing authorization", "broken access control", "privilege escalation",
+            "idor", "insecure direct object", "unauthorized access", "access control",
+        ],
+    ),
+
+    # =========================================================================
+    # CWE-352: Cross-Site Request Forgery (CSRF)
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-352",
+        cwe_name="Cross-Site Request Forgery (CSRF)",
+        languages=["python", "javascript"],
+        vulnerable_patterns=[
+            r"@app\.route.*methods.*POST",
+            r"app\.post\s*\(",
+        ],
+        fix_description=(
+            "State-changing requests do not include CSRF tokens, allowing malicious "
+            "sites to perform actions on behalf of authenticated users. Enable CSRF "
+            "middleware and require CSRF tokens on all state-changing endpoints."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "from flask import Flask, request\n"
+                    "app = Flask(__name__)\n\n"
+                    "@app.route('/transfer', methods=['POST'])\n"
+                    "def transfer_funds():\n"
+                    "    amount = request.form['amount']\n"
+                    "    process_transfer(amount)"
+                ),
+                "after": (
+                    "from flask import Flask, request\n"
+                    "from flask_wtf.csrf import CSRFProtect\n\n"
+                    "app = Flask(__name__)\n"
+                    "app.config['SECRET_KEY'] = os.environ['SECRET_KEY']\n"
+                    "csrf = CSRFProtect(app)  # Applies globally\n\n"
+                    "@app.route('/transfer', methods=['POST'])\n"
+                    "def transfer_funds():\n"
+                    "    # CSRF token validated automatically\n"
+                    "    amount = request.form['amount']\n"
+                    "    process_transfer(amount)"
+                ),
+            },
+            "javascript": {
+                "before": (
+                    "app.post('/api/transfer', async (req, res) => {\n"
+                    "  await transferFunds(req.body.amount, req.body.to);\n"
+                    "  res.json({ success: true });\n"
+                    "});"
+                ),
+                "after": (
+                    "const csrf = require('csurf');\n"
+                    "const csrfProtection = csrf({ cookie: { httpOnly: true, secure: true } });\n\n"
+                    "app.post('/api/transfer', csrfProtection, async (req, res) => {\n"
+                    "  await transferFunds(req.body.amount, req.body.to);\n"
+                    "  res.json({ success: true });\n"
+                    "});\n\n"
+                    "app.get('/api/csrf-token', csrfProtection, (req, res) => {\n"
+                    "  res.json({ csrfToken: req.csrfToken() });\n"
+                    "});"
+                ),
+            },
+        },
+        confidence=0.80,
+        severity="medium",
+        fix_type="code_patch",
+        testing_guidance=(
+            "1. Verify POST requests without CSRF token return 403.\n"
+            "2. Test replay attacks (reusing a token fails).\n"
+            "3. Verify CSRF tokens are not in URLs or logs.\n"
+            "4. Test SameSite cookie is set to Strict or Lax."
+        ),
+        risk_assessment="Medium impact — prevents cross-origin request forgery.",
+        effort_minutes=20,
+        mitre_techniques=["T1185"],
+        compliance_refs=["CWE-352", "OWASP A01:2021", "PCI-DSS 6.2.4"],
+        title_keywords=[
+            "csrf", "cross-site request forgery", "xsrf", "missing csrf token",
+            "csrf protection", "state changing without token",
+        ],
+    ),
+
+    # =========================================================================
+    # CWE-312: Cleartext Storage of Sensitive Information
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-312",
+        cwe_name="Cleartext Storage of Sensitive Information",
+        languages=["python", "javascript"],
+        vulnerable_patterns=[
+            r"json\.dump.*password",
+            r"logging\.(info|debug|warning).*password",
+        ],
+        fix_description=(
+            "Sensitive data (passwords, PII, secrets, keys) is stored in cleartext. "
+            "Use bcrypt for passwords (adaptive hash, not reversible) and AES-256-GCM "
+            "or Fernet for other sensitive fields. Violates GDPR, HIPAA, PCI-DSS."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "# BAD: storing plaintext password\n"
+                    "db.execute('INSERT INTO users (username, password) VALUES (?, ?)',\n"
+                    "           (username, password))"
+                ),
+                "after": (
+                    "import bcrypt\n\n"
+                    "# GOOD: bcrypt hash (salted + adaptive cost factor)\n"
+                    "password_hash = bcrypt.hashpw(\n"
+                    "    password.encode('utf-8'),\n"
+                    "    bcrypt.gensalt(rounds=12),\n"
+                    ")\n"
+                    "db.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)',\n"
+                    "           (username, password_hash))\n\n"
+                    "# Verification (constant-time):\n"
+                    "# bcrypt.checkpw(password.encode('utf-8'), stored_hash)"
+                ),
+            },
+            "javascript": {
+                "before": (
+                    "// BAD: cleartext storage\n"
+                    "await db.query(\n"
+                    "  'INSERT INTO users (username, password) VALUES ($1, $2)',\n"
+                    "  [username, password]\n"
+                    ");"
+                ),
+                "after": (
+                    "const bcrypt = require('bcrypt');\n"
+                    "const SALT_ROUNDS = 12;\n\n"
+                    "const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);\n"
+                    "await db.query(\n"
+                    "  'INSERT INTO users (username, password_hash) VALUES ($1, $2)',\n"
+                    "  [username, passwordHash]\n"
+                    ");\n\n"
+                    "// Verification: await bcrypt.compare(inputPwd, storedHash);"
+                ),
+            },
+        },
+        confidence=0.80,
+        severity="critical",
+        fix_type="code_patch",
+        testing_guidance=(
+            "1. Verify passwords are never stored in plaintext.\n"
+            "2. Verify bcrypt hash is in the user record.\n"
+            "3. Test login with correct and incorrect passwords.\n"
+            "4. Check logs do not contain cleartext passwords."
+        ),
+        risk_assessment=(
+            "Critical — cleartext password/PII storage is a catastrophic breach risk "
+            "violating GDPR Art.32, HIPAA §164.312(a)(2)(iv), PCI-DSS Req 8.2."
+        ),
+        effort_minutes=45,
+        mitre_techniques=["T1552"],
+        compliance_refs=["CWE-312", "GDPR Art.32", "HIPAA §164.312(a)(2)(iv)", "PCI-DSS 8.2.1"],
+        title_keywords=[
+            "cleartext password", "plaintext password", "unencrypted password",
+            "sensitive data storage", "cleartext storage", "password in database",
+            "pii storage", "unencrypted sensitive",
+        ],
+    ),
+
+    # =========================================================================
+    # CWE-319: Cleartext Transmission of Sensitive Information
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-319",
+        cwe_name="Cleartext Transmission of Sensitive Information",
+        languages=["python", "javascript"],
+        vulnerable_patterns=[
+            r"requests\.get\s*\(\s*['\"]http://",
+            r"requests\.post\s*\(\s*['\"]http://",
+        ],
+        fix_description=(
+            "Sensitive data is transmitted over unencrypted channels (HTTP instead of HTTPS). "
+            "Switch all endpoints to HTTPS/TLS 1.2+. Verify certificates. Redirect HTTP "
+            "to HTTPS. Set HSTS headers. Required by PCI-DSS 4.2.1, HIPAA §164.312(e)(1)."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "import requests\n\n"
+                    "# BAD: HTTP for sensitive API call\n"
+                    "response = requests.post(\n"
+                    "    'http://api.example.com/auth/token',\n"
+                    "    json={'username': username, 'password': password},\n"
+                    ")"
+                ),
+                "after": (
+                    "import requests\n"
+                    "import certifi\n\n"
+                    "# GOOD: HTTPS with certificate verification\n"
+                    "session = requests.Session()\n"
+                    "session.verify = certifi.where()\n"
+                    "response = session.post(\n"
+                    "    'https://api.example.com/auth/token',\n"
+                    "    json={'username': username, 'password': password},\n"
+                    "    timeout=10,\n"
+                    ")"
+                ),
+            },
+            "javascript": {
+                "before": (
+                    "const app = express();\n"
+                    "app.listen(80);  // HTTP only"
+                ),
+                "after": (
+                    "const express = require('express');\n"
+                    "const https = require('https');\n"
+                    "const fs = require('fs');\n\n"
+                    "const app = express();\n\n"
+                    "// Redirect HTTP → HTTPS\n"
+                    "const httpApp = express();\n"
+                    "httpApp.use((req, res) => res.redirect(301, `https://${req.hostname}${req.url}`));\n"
+                    "httpApp.listen(80);\n\n"
+                    "// HTTPS server (TLS 1.2+ only)\n"
+                    "https.createServer({\n"
+                    "  key: fs.readFileSync(process.env.TLS_KEY_PATH),\n"
+                    "  cert: fs.readFileSync(process.env.TLS_CERT_PATH),\n"
+                    "  minVersion: 'TLSv1.2',\n"
+                    "}, app).listen(443);"
+                ),
+            },
+        },
+        confidence=0.80,
+        severity="high",
+        fix_type="config_hardening",
+        testing_guidance=(
+            "1. Verify all API endpoints use HTTPS.\n"
+            "2. Verify TLS 1.0/1.1 are disabled.\n"
+            "3. Test HTTP requests are redirected to HTTPS.\n"
+            "4. Run SSL Labs test targeting A+ rating."
+        ),
+        risk_assessment="High — required by PCI-DSS 4.2.1, HIPAA §164.312(e)(1).",
+        effort_minutes=30,
+        mitre_techniques=["T1040"],
+        compliance_refs=["CWE-319", "PCI-DSS 4.2.1", "HIPAA §164.312(e)(1)", "GDPR Art.32"],
+        title_keywords=[
+            "cleartext transmission", "http instead of https", "unencrypted connection",
+            "missing tls", "missing ssl", "http api call", "no encryption in transit",
+        ],
+    ),
+
+    # =========================================================================
+    # CWE-400: Uncontrolled Resource Consumption
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-400",
+        cwe_name="Uncontrolled Resource Consumption",
+        languages=["python", "javascript"],
+        vulnerable_patterns=[
+            r"re\.(match|search|fullmatch)\s*\(['\"].*(\\+)+",
+            r"file\.read\s*\(\s*\)(?!\s*#.*limit)",
+        ],
+        fix_description=(
+            "The application does not limit resource consumption (CPU, memory, file handles). "
+            "Add rate limiting, input size caps, and avoid catastrophically backtracking regex "
+            "patterns. Required to prevent DoS and meet SLA obligations."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "import re\n\n"
+                    "def validate_input(user_input: str) -> bool:\n"
+                    "    # BAD: catastrophically backtracking regex\n"
+                    "    pattern = r'^(a+)+$'\n"
+                    "    return bool(re.match(pattern, user_input))"
+                ),
+                "after": (
+                    "import re\n\n"
+                    "MAX_INPUT_LENGTH = 10_000\n\n"
+                    "def validate_input(user_input: str) -> bool:\n"
+                    "    if len(user_input) > MAX_INPUT_LENGTH:\n"
+                    "        raise ValueError(f'Input exceeds {MAX_INPUT_LENGTH} char limit')\n"
+                    "    # GOOD: bounded pattern, no backtracking risk\n"
+                    "    pattern = r'^a{1,1000}$'\n"
+                    "    return bool(re.match(pattern, user_input))"
+                ),
+            },
+        },
+        confidence=0.75,
+        severity="medium",
+        fix_type="code_patch",
+        testing_guidance=(
+            "1. Test with very large inputs — should return 413/400.\n"
+            "2. Test ReDoS with crafted input (e.g., 'aaaaaaa!').\n"
+            "3. Load test API endpoints to verify rate limiting.\n"
+            "4. Verify memory usage doesn't spike with large payloads."
+        ),
+        risk_assessment="Medium — DoS can cause service outages and SLA breaches.",
+        effort_minutes=20,
+        mitre_techniques=["T1499"],
+        compliance_refs=["CWE-400", "OWASP A05:2021", "NIST SC-5"],
+        title_keywords=[
+            "denial of service", "dos", "resource exhaustion", "redos",
+            "unbounded input", "rate limiting", "resource consumption",
+            "catastrophic backtracking", "uncontrolled resource",
+        ],
+    ),
+
+    # =========================================================================
+    # CWE-601: Open Redirect
+    # =========================================================================
+    FixTemplate(
+        cwe_id="CWE-601",
+        cwe_name="Open Redirect",
+        languages=["python", "javascript"],
+        vulnerable_patterns=[
+            r"redirect\s*\(\s*request\.(args|params|form)",
+            r"res\.redirect\s*\(\s*req\.(query|body|params)",
+            r"return\s+HttpResponseRedirect\s*\(\s*request\.",
+        ],
+        fix_description=(
+            "The application accepts user-controlled URLs for redirects without validation. "
+            "Attackers can redirect users to malicious sites. Validate redirects against an "
+            "allowlist of trusted hosts or require relative URLs only."
+        ),
+        fix_snippets={
+            "python": {
+                "before": (
+                    "from flask import redirect, request\n\n"
+                    "@app.route('/login')\n"
+                    "def login():\n"
+                    "    # BAD: open redirect\n"
+                    "    next_url = request.args.get('next', '/')\n"
+                    "    if authenticated:\n"
+                    "        return redirect(next_url)"
+                ),
+                "after": (
+                    "from flask import redirect, request\n"
+                    "from urllib.parse import urlparse\n\n"
+                    "ALLOWED_HOSTS = {'example.com', 'app.example.com'}\n\n"
+                    "def is_safe_redirect_url(target: str) -> bool:\n"
+                    "    if not target:\n"
+                    "        return False\n"
+                    "    if target.startswith('/'):\n"
+                    "        return True  # Relative URLs always safe\n"
+                    "    parsed = urlparse(target)\n"
+                    "    return parsed.netloc in ALLOWED_HOSTS\n\n"
+                    "@app.route('/login')\n"
+                    "def login():\n"
+                    "    next_url = request.args.get('next', '/')\n"
+                    "    if not is_safe_redirect_url(next_url):\n"
+                    "        next_url = '/'\n"
+                    "    if authenticated:\n"
+                    "        return redirect(next_url)"
+                ),
+            },
+        },
+        confidence=0.80,
+        severity="medium",
+        fix_type="code_patch",
+        testing_guidance=(
+            "1. Test that redirecting to external domain is blocked.\n"
+            "2. Test bypass attempts: //evil.com, /\\evil.com.\n"
+            "3. Verify relative redirects (/dashboard) work normally.\n"
+            "4. Test allowlisted external URLs are permitted."
+        ),
+        risk_assessment="Medium — enables phishing and credential theft attacks.",
+        effort_minutes=15,
+        mitre_techniques=["T1566"],
+        compliance_refs=["CWE-601", "OWASP A01:2021"],
+        title_keywords=[
+            "open redirect", "unvalidated redirect", "url redirect",
+            "phishing redirect", "redirect to external",
+        ],
+    ),
 ]
 
 

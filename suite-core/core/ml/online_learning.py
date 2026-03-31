@@ -847,6 +847,7 @@ class OnlineLearningPipeline:
         self._lock = threading.Lock()
         self._last_retrain_time = 0.0
         self._min_interval_s = min_interval_s
+        self._training_in_progress = False  # Single-flight guard
         self._retrain_history: List[Dict[str, Any]] = []
         self._model_dir = model_dir or DEFAULT_MODEL_DIR
         self._log_path = DEFAULT_FEEDBACK_LOG
@@ -916,12 +917,38 @@ class OnlineLearningPipeline:
         """Force immediate retraining with current buffer contents.
 
         Thread-safe: acquires lock, drains buffer, retrains, validates,
-        and atomically swaps the model if all gates pass.
+        and atomically swaps the model if all gates pass.  A single-flight
+        guard prevents concurrent training runs which would waste resources
+        and cause race conditions on model weights.
         """
         with self._lock:
+            # Single-flight guard: if training is already in progress (in
+            # another thread), skip this invocation instead of queuing up
+            # another expensive training run.
+            if self._training_in_progress:
+                return RetrainResult(
+                    success=False,
+                    rejection_reason="Training already in progress",
+                )
+
+            # Guard against concurrent retrain calls: stamp the time before
+            # releasing the lock so that any other thread calling
+            # _should_retrain() will see the update and bail out.
+            if self._min_interval_s > 0 and not (
+                time.time() - self._last_retrain_time >= self._min_interval_s
+            ):
+                return RetrainResult(
+                    success=False,
+                    rejection_reason="Rate-limited: retrain too soon",
+                )
+            # Claim the retrain slot before leaving the lock
+            self._last_retrain_time = time.time()
+            self._training_in_progress = True
+
             # Drain buffer
             examples = self._buffer.drain()
             if not examples:
+                self._training_in_progress = False
                 return RetrainResult(
                     success=False,
                     rejection_reason="No feedback examples in buffer",
@@ -934,7 +961,12 @@ class OnlineLearningPipeline:
         current_model = get_risk_model()
 
         # Run incremental training
-        result = self._trainer.retrain(examples, current_model)
+        try:
+            result = self._trainer.retrain(examples, current_model)
+        finally:
+            # Always clear training guard even on exception
+            with self._lock:
+                self._training_in_progress = False
 
         with self._lock:
             if result.success:
