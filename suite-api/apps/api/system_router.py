@@ -320,8 +320,8 @@ async def system_status() -> Dict[str, Any]:
         conn.execute("SELECT 1")
         conn.close()
         db_status = "up"
-    except Exception:
-        pass
+    except (sqlite3.Error, OSError) as exc:  # narrowed from bare Exception
+        logger.warning("Health check DB probe failed: %s", exc)
 
     # Check AI engine — do we have any LLM API keys?
     ai_status = "unavailable"
@@ -995,6 +995,71 @@ async def system_onboarding() -> Dict[str, Any]:
         "status": "complete" if completed_steps == total_steps else "in_progress",
         "next_recommended_step": next_step,
         "steps": step_results,
+    }
+
+
+@router.get("/db-stats", summary="Database health and size statistics")
+async def db_stats() -> Dict[str, Any]:
+    """Return health and size information for all SQLite databases.
+
+    Useful for monitoring disk usage, detecting growth, and planning
+    capacity (e.g. when to consider migrating to PostgreSQL).
+    """
+    import sqlite3
+
+    db_dirs = ["data", ".fixops_data", "suite-api/data"]
+    databases: List[Dict[str, Any]] = []
+    total_size_bytes = 0
+
+    for db_dir in db_dirs:
+        db_path = Path(db_dir)
+        if not db_path.exists():
+            continue
+        for db_file in sorted(db_path.glob("*.db")):
+            file_size = db_file.stat().st_size
+            total_size_bytes += file_size
+            info: Dict[str, Any] = {
+                "path": str(db_file),
+                "size_bytes": file_size,
+                "size_human": f"{file_size / 1024 / 1024:.2f} MB",
+            }
+            try:
+                conn = sqlite3.connect(str(db_file), timeout=2)
+                conn.execute("PRAGMA journal_mode")  # verify readable
+                # Table count
+                tables = conn.execute(
+                    "SELECT count(*) FROM sqlite_master WHERE type='table'"
+                ).fetchone()[0]
+                info["tables"] = tables
+                # WAL mode check
+                journal = conn.execute("PRAGMA journal_mode").fetchone()[0]
+                info["journal_mode"] = journal
+                # Page metrics
+                page_size = conn.execute("PRAGMA page_size").fetchone()[0]
+                page_count = conn.execute("PRAGMA page_count").fetchone()[0]
+                freelist = conn.execute("PRAGMA freelist_count").fetchone()[0]
+                info["page_size"] = page_size
+                info["fragmentation_pct"] = round(
+                    freelist / max(page_count, 1) * 100, 1
+                )
+                info["status"] = "healthy"
+                conn.close()
+            except (sqlite3.Error, OSError) as exc:
+                info["status"] = "error"
+                info["error"] = str(exc)
+            databases.append(info)
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+        "total_databases": len(databases),
+        "total_size_bytes": total_size_bytes,
+        "total_size_human": f"{total_size_bytes / 1024 / 1024:.1f} MB",
+        "databases": databases,
+        "recommendation": (
+            "Consider PostgreSQL migration"
+            if total_size_bytes > 500 * 1024 * 1024
+            else "SQLite is appropriate for current data volume"
+        ),
     }
 
 

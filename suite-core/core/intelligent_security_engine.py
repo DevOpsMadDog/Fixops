@@ -43,7 +43,7 @@ def _get_consensus_engine():
         try:
             from core.llm_consensus import ConsensusEngine
             _consensus_engine = ConsensusEngine()
-        except Exception:
+        except (ImportError, OSError, RuntimeError):  # narrowed from bare Exception
             logger.warning("consensus_engine.unavailable")
     return _consensus_engine
 
@@ -55,7 +55,7 @@ def _get_compliance_engine():
         try:
             from compliance.compliance_engine import ComplianceEngine
             _compliance_engine = ComplianceEngine()
-        except Exception:
+        except (ImportError, OSError, RuntimeError):  # narrowed from bare Exception
             logger.warning("compliance_engine.unavailable")
     return _compliance_engine
 

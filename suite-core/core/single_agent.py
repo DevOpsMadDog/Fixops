@@ -159,7 +159,8 @@ class VLLMBackend(BaseInferenceBackend):
                 text = result["choices"][0]["message"]["content"]
                 tokens = result.get("usage", {}).get("total_tokens", 0)
                 return text, tokens
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError) as e:  # narrowed from bare Exception
+            logger.warning("vLLM generation failed: %s", e)
             return ("", 0)
 
     def is_available(self) -> bool:

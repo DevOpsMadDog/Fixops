@@ -940,7 +940,8 @@ async def analyze_sbom_vulnerabilities(
                 dtrack_status = "project_not_found"
     except ImportError:
         dtrack_status = "connector_unavailable"
-    except Exception:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        logger.warning("Dependency-Track enrichment failed: %s", exc)
         dtrack_status = "error"
 
     # Generate VEX
@@ -1033,7 +1034,8 @@ async def ingest_vex_document(
             dtrack_status = "forwarded" if outcome.success else "forward_failed"
     except ImportError:
         dtrack_status = "connector_unavailable"
-    except Exception:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        logger.warning("Dependency-Track VEX forwarding failed: %s", exc)
         dtrack_status = "error"
 
     return {

@@ -77,6 +77,14 @@ except ImportError as e:
 
 from apps.api.gate_router import router as gate_router
 from apps.api.inventory_router import router as inventory_router
+
+# PR Gate & CI/CD Gate router (PR gating, check runs, CI exit-code gate)
+pr_gate_router: Optional[APIRouter] = None
+try:
+    from apps.api.pr_gate_router import router as pr_gate_router
+    logging.getLogger(__name__).info("Loaded PR Gate router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("PR Gate router not available: %s", e)
 from apps.api.policies_router import router as policies_router
 from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
@@ -1664,6 +1672,14 @@ def create_app() -> FastAPI:
 
     # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
     app.include_router(fail_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+
+    # PR Gate & CI/CD Gate — evaluate findings, post to GitHub PRs, CI exit-code gating
+    if pr_gate_router:
+        app.include_router(
+            pr_gate_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted PR Gate router")
 
     # APP_ID Configuration — app registry, classification, lifecycle
     if app_config_router:
@@ -3496,8 +3512,47 @@ def create_app() -> FastAPI:
     _logger.info("Mounted MCP Auto-Discovery router at /api/v1/mcp")
 
     # ------------------------------------------------------------------
-    # Startup hooks: database, EventBus, route logging
+    # Startup hooks: database, EventBus, route logging, env validation
     # ------------------------------------------------------------------
+    @app.on_event("startup")
+    async def _validate_environment():
+        """Warn about missing or insecure environment configuration."""
+        token = os.getenv("FIXOPS_API_TOKEN", "")
+        if not token:
+            _logger.warning(
+                "FIXOPS_API_TOKEN is not set — API authentication is disabled. "
+                "Set it in .env or environment (see .env.example)."
+            )
+        elif token in ("changeme", "changeme-generate-a-real-token", "test", "dev"):
+            _logger.warning(
+                "FIXOPS_API_TOKEN is set to a default/insecure value — "
+                "generate a real token: python3 -c \"import secrets; print(f'fixops_sk_{secrets.token_urlsafe(32)}')\""
+            )
+
+        jwt_secret = os.getenv("FIXOPS_JWT_SECRET", "")
+        if not jwt_secret:
+            _logger.info(
+                "FIXOPS_JWT_SECRET is not set — auto-generating (tokens won't survive restarts)"
+            )
+
+        # Check for at least one LLM provider (optional but useful)
+        llm_keys = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY"]
+        has_llm = any(os.getenv(k) for k in llm_keys)
+        has_self_hosted = os.getenv("FIXOPS_VLLM_URL") or os.getenv("FIXOPS_OLLAMA_URL")
+        if not has_llm and not has_self_hosted:
+            _logger.info(
+                "No LLM provider configured — AI consensus/AutoFix will use "
+                "deterministic fallback. Set OPENAI_API_KEY or FIXOPS_OLLAMA_URL "
+                "for full AI capability."
+            )
+
+        _logger.info(
+            "Environment: mode=%s, data_dir=%s, rate_limit=%s",
+            os.getenv("FIXOPS_MODE", "enterprise"),
+            os.getenv("FIXOPS_DATA_DIR", ".fixops_data"),
+            "disabled" if os.getenv("FIXOPS_DISABLE_RATE_LIMIT") == "1" else "enabled",
+        )
+
     @app.on_event("startup")
     async def _init_enterprise_db():
         """Initialize the enterprise DatabaseManager (PostgreSQL / SQLite)."""

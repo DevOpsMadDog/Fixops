@@ -116,9 +116,9 @@ def _persist_sast_findings(findings: list, app_id: str | None = None) -> int:
             db.create_finding(finding)
             persisted += 1
         return persisted
-    except Exception:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Failed to persist SAST findings to analytics DB")
-        return 0
+        return -1  # Distinguish error from zero findings
 
 
 @router.post("/scan/code")

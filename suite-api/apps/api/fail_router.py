@@ -34,7 +34,8 @@ from attack.fail_engine import (
     DrillEngine,
     get_drill_engine,
 )
-from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -246,7 +247,7 @@ class LogActivityRequest(BaseModel):
     summary="Inject a synthetic vulnerability (create drill)",
     response_description="Created drill with injection metadata",
 )
-async def inject_vulnerability(req: InjectRequest) -> InjectResponse:
+async def inject_vulnerability(req: InjectRequest, org_id: str = Depends(get_org_id)) -> InjectResponse:
     """
     Inject a synthetic vulnerability finding into the FixOps pipeline.
 
@@ -263,7 +264,7 @@ async def inject_vulnerability(req: InjectRequest) -> InjectResponse:
         drill = engine.create_drill(
             scenario=req.scenario,
             target_component=req.target_component,
-            org_id=req.org_id,
+            org_id=org_id,
             notes=req.notes,
             injected_by=req.injected_by,
         )
@@ -301,7 +302,7 @@ async def inject_vulnerability(req: InjectRequest) -> InjectResponse:
     summary="List active / historical drills",
 )
 async def list_drills(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     history: bool = Query(False, description="Include historical (graded/cancelled) drills"),
     days: int = Query(90, ge=1, le=365, description="Days of history to include"),
 ) -> Dict[str, Any]:
@@ -519,7 +520,7 @@ async def cancel_drill(
     summary="Components with no recent security activity",
 )
 async def get_neglect_zones(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     threshold_days: int = Query(
         90, ge=1, le=365, description="Days of inactivity to flag as neglected"
     ),
@@ -570,7 +571,7 @@ async def get_neglect_zones(
     include_in_schema=False,
 )
 async def get_readiness_score(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     Compute the organisation's security readiness score based on drill history.
@@ -600,7 +601,7 @@ async def get_readiness_score(
     summary="Industry benchmark comparison",
 )
 async def get_comparison(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     Compare organisation readiness score against the industry benchmark.
@@ -700,7 +701,7 @@ async def create_scenario(req: CreateScenarioRequest) -> Dict[str, Any]:
     summary="Export labeled training samples",
 )
 async def get_training_data(
-    org_id: Optional[str] = Query(None, description="Filter by organisation"),
+    org_id: str = Depends(get_org_id),
     scenario_id: Optional[str] = Query(None, description="Filter by scenario"),
     limit: int = Query(1000, ge=1, le=10000, description="Maximum samples to return"),
 ) -> Dict[str, Any]:
@@ -814,6 +815,7 @@ async def health_check() -> Dict[str, Any]:
 
 @router.get("/scores", summary="List FAIL scores")
 async def list_scores(
+    org_id: str = Depends(get_org_id),
     grade: Optional[str] = Query(None, description="Filter by grade"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -822,8 +824,8 @@ async def list_scores(
     try:
         from core.fail_db import FAILDB
         db = FAILDB()
-        scores = db.get_scores_by_org(org_id="default", grade=grade, limit=limit, offset=offset)
-        total = db.count(org_id="default")
+        scores = db.get_scores_by_org(org_id=org_id, grade=grade, limit=limit, offset=offset)
+        total = db.count(org_id=org_id)
         return {"total": total, "limit": limit, "offset": offset, "results": scores}
     except ImportError as exc:
         logger.warning("Failed to load FAIL scores: %s", exc)
@@ -832,14 +834,15 @@ async def list_scores(
 
 @router.get("/top-risks", summary="Top risks by FAIL score")
 async def top_risks(
+    org_id: str = Depends(get_org_id),
     limit: int = Query(20, ge=1, le=100),
 ):
     """Get the highest-risk findings by FAIL score."""
     try:
         from core.fail_db import FAILDB
         db = FAILDB()
-        risks = db.get_top_risks(org_id="default", limit=limit)
-        total = db.count(org_id="default")
+        risks = db.get_top_risks(org_id=org_id, limit=limit)
+        total = db.count(org_id=org_id)
         return {"risks": risks, "total": total}
     except ImportError as exc:
         logger.warning("Failed to load top risks: %s", exc)
@@ -847,12 +850,12 @@ async def top_risks(
 
 
 @router.get("/stats", summary="FAIL score statistics")
-async def fail_stats():
+async def fail_stats(org_id: str = Depends(get_org_id)):
     """Aggregate FAIL scoring statistics."""
     try:
         from core.fail_db import FAILDB
         db = FAILDB()
-        stats = db.get_stats(org_id="default")
+        stats = db.get_stats(org_id=org_id)
         return stats
     except ImportError as exc:
         logger.warning("Failed to load FAIL stats: %s", exc)
@@ -875,7 +878,7 @@ async def fail_stats():
 
 @router.get("/history", summary="Drill history (alias for drills?history=true)", include_in_schema=False)
 async def get_fail_history(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(90, ge=1, le=365, description="Days of history to include"),
 ) -> Dict[str, Any]:
     """Return drill history for an org — alias used by the UI."""

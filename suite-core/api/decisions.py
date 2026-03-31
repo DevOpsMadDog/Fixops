@@ -11,6 +11,7 @@ from core.db.enterprise.session import DatabaseManager
 from core.enterprise.security import get_current_user
 from core.services.enterprise.decision_engine import DecisionContext, decision_engine
 from core.services.enterprise.metrics import FixOpsMetrics
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -38,7 +39,7 @@ class DecisionResponse(BaseModel):
 
 
 @router.post("/make-decision", response_model=DecisionResponse)
-async def make_security_decision(request: DecisionRequest):
+async def make_security_decision(request: DecisionRequest, org_id: str = Depends(get_org_id)):
     """
     Make a security decision based on context and intelligence
     Core FixOps Decision & Verification Engine endpoint
@@ -80,7 +81,7 @@ async def make_security_decision(request: DecisionRequest):
 
 
 @router.get("/metrics")
-async def get_decision_metrics():
+async def get_decision_metrics(org_id: str = Depends(get_org_id)):
     """Get decision engine performance metrics and status"""
     try:
         metrics = await decision_engine.get_decision_metrics()
@@ -92,7 +93,7 @@ async def get_decision_metrics():
 
 
 @router.get("/recent")
-async def get_recent_decisions(limit: int = Query(default=10, ge=1, le=50)):
+async def get_recent_decisions(org_id: str = Depends(get_org_id), limit: int = Query(default=10, ge=1, le=50)):
     """Get recent pipeline decisions with full context"""
     try:
         decisions = await decision_engine.get_recent_decisions(limit)

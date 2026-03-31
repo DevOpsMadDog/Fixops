@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from risk.reachability.analyzer import ReachabilityAnalyzer
@@ -143,6 +144,7 @@ def get_job_queue() -> JobQueue:
 async def analyze_reachability(
     request: ReachabilityAnalysisRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
     analyzer: ReachabilityAnalyzer = Depends(get_analyzer),
     storage: ReachabilityStorage = Depends(get_storage),
     job_queue: JobQueue = Depends(get_job_queue),
@@ -292,6 +294,7 @@ async def analyze_reachability(
 @router.post("/analyze/bulk", response_model=BulkAnalysisResponse)
 async def analyze_bulk(
     request: BulkAnalysisRequest,
+    org_id: str = Depends(get_org_id),
     analyzer: ReachabilityAnalyzer = Depends(get_analyzer),
     job_queue: JobQueue = Depends(get_job_queue),
 ):
@@ -349,6 +352,7 @@ async def analyze_bulk(
 @router.get("/job/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(
     job_id: str,
+    org_id: str = Depends(get_org_id),
     job_queue: JobQueue = Depends(get_job_queue),
 ):
     """Get status of an analysis job."""
@@ -380,6 +384,7 @@ async def get_result(
     component_version: str,
     repo_url: str,
     repo_commit: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
     storage: ReachabilityStorage = Depends(get_storage),
 ):
     """Get cached analysis result."""
@@ -417,6 +422,7 @@ async def delete_result(
     component_version: str,
     repo_url: str,
     repo_commit: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
     storage: ReachabilityStorage = Depends(get_storage),
 ):
     """Delete cached analysis result."""
@@ -527,7 +533,7 @@ class CallGraphRequest(BaseModel):
 
 
 @router.post("/call-graph")
-async def analyze_call_graph(request: CallGraphRequest):
+async def analyze_call_graph(request: CallGraphRequest, org_id: str = Depends(get_org_id)):
     """Build and return call graph statistics for a repository.
 
     Supports Python, JavaScript/TypeScript, Java, and Go.

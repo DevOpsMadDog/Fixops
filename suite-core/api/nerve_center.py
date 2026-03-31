@@ -13,8 +13,9 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from core.persistent_store import get_persistent_store
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 _log = logging.getLogger(__name__)
@@ -125,10 +126,10 @@ class RemediationTrigger(BaseModel):
 
 
 @router.get("/status")
-async def nerve_center_status():
+async def nerve_center_status(org_id: str = Depends(get_org_id)):
     """Overall nerve center status — aggregates threat pulse, suite health, and pipeline state."""
     import os
-    pulse = await get_threat_pulse()
+    pulse = await get_threat_pulse(org_id=org_id)
 
     # Count suites that are actually importable
     suite_names = [
@@ -170,7 +171,7 @@ async def nerve_center_status():
 
 
 @router.get("/pulse", response_model=ThreatPulse)
-async def get_threat_pulse():
+async def get_threat_pulse(org_id: str = Depends(get_org_id)):
     """Real-time threat pulse — computed from brain + ML + event bus."""
     # ── Gather real metrics ───────────────────────────────────────────
     brain = _brain()
@@ -252,7 +253,7 @@ async def get_threat_pulse():
 
 
 @router.get("/state", response_model=NerveCenterState)
-async def get_nerve_center_state():
+async def get_nerve_center_state(org_id: str = Depends(get_org_id)):
     """Full nerve center state — computed from brain, ML store, event bus."""
     import httpx
 
@@ -426,7 +427,7 @@ async def get_nerve_center_state():
             pass
 
     # ── Compose threat pulse from same data ───────────────────────────
-    pulse = await get_threat_pulse()
+    pulse = await get_threat_pulse(org_id=org_id)
 
     return NerveCenterState(
         threat_pulse=pulse,
@@ -440,7 +441,7 @@ async def get_nerve_center_state():
 
 
 @router.post("/auto-remediate")
-async def trigger_auto_remediation(req: RemediationTrigger):
+async def trigger_auto_remediation(req: RemediationTrigger, org_id: str = Depends(get_org_id)):
     """Trigger auto-remediation from the nerve center — the brain decides and acts."""
     return {
         "status": "accepted",
@@ -453,7 +454,7 @@ async def trigger_auto_remediation(req: RemediationTrigger):
 
 
 @router.get("/intelligence-map")
-async def get_intelligence_map():
+async def get_intelligence_map(org_id: str = Depends(get_org_id)):
     """Return the intelligence map — merges structural topology with live brain graph data."""
     # Structural nodes (always present — describes the architecture)
     _STRUCTURAL_NODES = [
@@ -618,7 +619,7 @@ async def get_intelligence_map():
 
 
 @router.get("/playbooks")
-async def list_playbooks():
+async def list_playbooks(org_id: str = Depends(get_org_id)):
     """List all playbooks — reads from brain graph nodes of type PLAYBOOK."""
     brain = _brain()
     playbooks: List[Dict[str, Any]] = []
@@ -719,7 +720,7 @@ async def list_playbooks():
 
 
 @router.post("/playbooks/validate")
-async def validate_playbook(playbook: Dict[str, Any]):
+async def validate_playbook(playbook: Dict[str, Any], org_id: str = Depends(get_org_id)):
     """Validate a playbook YAML against the schema."""
     errors = []
     warnings = []
@@ -735,7 +736,7 @@ async def validate_playbook(playbook: Dict[str, Any]):
 
 
 @router.post("/playbooks/execute/{playbook_id}")
-async def execute_playbook(playbook_id: str, dry_run: bool = Query(False)):
+async def execute_playbook(playbook_id: str, org_id: str = Depends(get_org_id), dry_run: bool = Query(False)):
     """Execute a playbook by ID. Use dry_run=true for preview."""
     return {
         "execution_id": f"exec-{playbook_id}-{int(time.time())}",
@@ -752,7 +753,7 @@ async def execute_playbook(playbook_id: str, dry_run: bool = Query(False)):
 
 
 @router.get("/overlay")
-async def get_overlay_config():
+async def get_overlay_config(org_id: str = Depends(get_org_id)):
     """Get the current overlay configuration for the UI editor."""
     # Build dynamic api_config from environment
     api_token = os.environ.get("FIXOPS_API_TOKEN", "")
@@ -880,7 +881,7 @@ _overlay_config = get_persistent_store("nerve_center_overlay")
 
 
 @router.put("/overlay")
-async def update_overlay_config(config: Dict[str, Any]):
+async def update_overlay_config(config: Dict[str, Any], org_id: str = Depends(get_org_id)):
     """Update overlay configuration — validates and applies changes."""
     for key, value in config.items():
         _overlay_config[key] = value
