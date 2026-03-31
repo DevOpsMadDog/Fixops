@@ -1103,6 +1103,45 @@ async def executive_summary(request: Request) -> Dict[str, Any]:
     resolution_rate = round(resolved / max(total, 1) * 100, 1)
     risk_score = min(100, by_severity["critical"] * 25 + by_severity["high"] * 10 + by_severity["medium"] * 3)
 
+    # Real MTTR from analytics DB
+    mttr_hours = None
+    try:
+        mttr_hours = db.calculate_mttr()
+    except (AttributeError, Exception):
+        mttr_hours = None
+
+    # SLA compliance: % of open findings within SLA window (days by severity)
+    _SLA_DAYS = {"critical": 7, "high": 30, "medium": 90, "low": 180}
+    sla_breached = 0
+    sla_total_open = 0
+    from datetime import datetime, timezone as _tz
+    _now = datetime.now(_tz.utc)
+    for f in findings:
+        st = f.status.value if hasattr(f.status, "value") else str(f.status)
+        if st.lower() not in ("open", "in_progress"):
+            continue
+        sla_total_open += 1
+        sev = (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower()
+        sla_window = _SLA_DAYS.get(sev, 90)
+        created_at = getattr(f, "created_at", None)
+        if created_at:
+            try:
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=_tz.utc)
+                age_days = (_now - created_at).days
+                if age_days > sla_window:
+                    sla_breached += 1
+            except (ValueError, TypeError):
+                pass
+    sla_compliance_pct = round(
+        (1 - sla_breached / max(sla_total_open, 1)) * 100, 1
+    ) if sla_total_open else 100.0
+
+    # False positive rate
+    fp_rate = round(by_status.get("false_positive", 0) / max(total, 1) * 100, 1)
+
     return {
         "status": "ok",
         "total_findings": total,
@@ -1112,11 +1151,19 @@ async def executive_summary(request: Request) -> Dict[str, Any]:
         "risk_score": risk_score,
         "risk_level": "critical" if risk_score >= 75 else "high" if risk_score >= 50 else "medium" if risk_score >= 25 else "low",
         "resolution_rate": resolution_rate,
+        "sla": {
+            "compliant_pct": sla_compliance_pct,
+            "breached_count": sla_breached,
+            "tracked_open": sla_total_open,
+            "thresholds_days": _SLA_DAYS,
+        },
         "kpis": {
-            "mttr_hours": 0,
-            "false_positive_rate": round(by_status.get("false_positive", 0) / max(total, 1) * 100, 1),
-            "sla_compliance": round(resolution_rate, 1),
+            "mttr_hours": round(mttr_hours, 2) if mttr_hours is not None else None,
+            "mttr_days": round(mttr_hours / 24, 2) if mttr_hours is not None else None,
+            "false_positive_rate": fp_rate,
+            "sla_compliance": sla_compliance_pct,
             "scanner_coverage": len(by_scanner),
+            "resolution_rate": resolution_rate,
         },
     }
 
