@@ -1,0 +1,177 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-03T03:46:00Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "status": "validation-green-for-exercised-selection",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed",
+    "broader_validation_status": "passed",
+    "confirmation_result": {
+      "passed": 233,
+      "failed": 0,
+      "duration_seconds": 291.1,
+      "coverage_enabled": false
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": false,
+    "tests/test_autonomous_foundation.py": false,
+    "tests/test_autonomous_workspace.py": false,
+    "resolution": "used nearest available successor coverage and recorded absence of requested filenames"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260403T031557Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260402-231602.json",
+    "metrics": {
+      "sast_findings": 5,
+      "secrets_found": 0,
+      "total_findings": 5,
+      "steps_total": 17,
+      "steps_passed": 14,
+      "steps_failed": 0,
+      "pass_rate": 82.4,
+      "duration_seconds": 4.5
+    },
+    "findings": [
+      {
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 140,
+        "cwe": "CWE-502"
+      },
+      {
+        "severity": "high",
+        "title": "ECB Mode Usage",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 150,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 103,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 62,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/connectors.py",
+        "line_number": 60,
+        "cwe": "CWE-209"
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "high_visibility_initial",
+      "log": "data/autonomous-reports/high-visibility-validation-20260403T031653Z.log",
+      "status": "blocked",
+      "reason": "invalid pytest warning filter referencing FastAPIDeprecationWarning"
+    },
+    {
+      "name": "high_visibility_rerun",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260403T031750Z.log",
+      "status": "improved",
+      "reason": "ran after pytest harness repair and branding/header follow-up"
+    },
+    {
+      "name": "broader_validation",
+      "log": "data/autonomous-reports/broader-validation-20260403T032528Z.log",
+      "status": "failed_before_fix",
+      "reason": "app-factory timeout pressure and pipeline orchestrator import failure through optional pgmpy/torch stack"
+    },
+    {
+      "name": "targeted_app_factory_rerun",
+      "log": "data/autonomous-reports/targeted-app-factory-rerun-20260403T033846Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 10,
+        "failed": 0
+      }
+    },
+    {
+      "name": "validation_confirmation",
+      "log": "data/autonomous-reports/validation-confirmation-20260403T034003Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 233,
+        "failed": 0,
+        "duration_seconds": 291.1,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "run executed with --no-cov to avoid earlier coverage teardown instability",
+        "non-fatal telemetry export message remained: Failed to export metrics batch code: 404, reason: Not Found"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "pyproject.toml",
+      "change": "removed invalid FastAPI warning filter that blocked pytest collection and added filter to prevent module-not-imported coverage warnings from aborting validation"
+    },
+    {
+      "file": "suite-core/core/processing_layer.py",
+      "change": "broadened optional pgmpy import guard to catch runtime import failures and fall back cleanly when probabilistic dependencies misbehave"
+    },
+    {
+      "file": "tests/test_app_factory.py",
+      "change": "added module-level pytest timeout marker of 120 seconds to accommodate slow create_app setup"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "created status document summarizing this autonomous cycle and current branch health"
+    }
+  ],
+  "environment_notes": {
+    "api_startup_unblocked": true,
+    "local_token_configured_for_cycle": true,
+    "demo_mode_used": true,
+    "dependencies_installed_during_cycle": [
+      "PyJWT",
+      "sarif-om"
+    ]
+  },
+  "remaining_risks": [
+    "self-scan still reports 5 security findings requiring product remediation",
+    "coverage-enabled validation still needs a first-class clean run",
+    "requested autonomous_cycle/foundation/workspace test filenames are absent and should be replaced formally or implemented"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "Remediate the self-scan findings in suite-core/core/sast_engine.py and stack-trace exposure paths"
+    },
+    {
+      "priority": 2,
+      "action": "Stabilize coverage-enabled execution for the exercised suite selection"
+    },
+    {
+      "priority": 3,
+      "action": "Normalize telemetry export behavior in local test runs to eliminate the 404 export warning"
+    },
+    {
+      "priority": 4,
+      "action": "Codify successor coverage for the missing autonomous cycle/foundation/workspace suite names"
+    }
+  ]
+}

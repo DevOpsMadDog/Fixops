@@ -1,0 +1,64 @@
+{
+  "type": "aldeci-self-scan",
+  "date": "2026-04-03T03:16:02.243988+00:00",
+  "sast_findings": 5,
+  "secrets_found": 0,
+  "total_findings": 5,
+  "steps_total": 17,
+  "steps_passed": 14,
+  "steps_failed": 0,
+  "pass_rate": 82.4,
+  "duration_seconds": 4.5,
+  "findings": [
+    {
+      "id": "SAST-fd469a90f59b",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 103,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-113e2a1b60e9",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 62,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-2e58653f5f8e",
+      "title": "Insecure Deserialization",
+      "severity": "critical",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-502",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 140,
+      "description": "Unsafe deserialization of untrusted data"
+    },
+    {
+      "id": "SAST-4a62d272547b",
+      "title": "ECB Mode Usage",
+      "severity": "high",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-327",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 150,
+      "description": "ECB mode preserves plaintext patterns \u2014 insecure for most data"
+    },
+    {
+      "id": "SAST-d64a71f85540",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/connectors.py",
+      "line_number": 60,
+      "description": "Stack trace included in HTTP response"
+    }
+  ]
+}

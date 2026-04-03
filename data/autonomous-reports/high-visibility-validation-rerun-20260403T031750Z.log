@@ -1,0 +1,217 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Fixops_repo
+configfile: pyproject.toml
+plugins: anyio-4.11.0, asyncio-0.26.0, timeout-2.4.0, xdist-3.8.0, mock-3.15.1, cov-5.0.0, Faker-40.12.0
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+collecting ... collected 49 items
+
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_api_header FAILED [  2%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output PASSED [  4%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_evidence_bundle PASSED [  6%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_aldeci_keys PASSED [  8%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_fallback_to_fixops_keys PASSED [ 10%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_branded_key_overrides_canonical PASSED [ 12%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_with_custom_namespace PASSED [ 14%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_config_from_flag PASSED [ 16%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_persists_across_api_requests PASSED [ 18%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_env_var_takes_precedence PASSED [ 20%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_train_bn_lr_end_to_end PASSED [ 22%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end PASSED [ 24%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file PASSED [ 26%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end PASSED [ 28%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification PASSED [ 30%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds PASSED [ 32%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_default_values PASSED [ 34%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_from_env PASSED    [ 36%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_valid_config PASSED [ 38%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_threshold PASSED [ 40%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_weights PASSED [ 42%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_timeout PASSED [ 44%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_retries PASSED [ 46%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_initialization 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 48%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_initialization_with_custom_config 
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.8, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 51%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_success 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 53%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_fallback_response 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:38 [ WARNING] core.mpte_advanced: LLM provider openai returned fallback response: provider_disabled
+PASSED                                                                   [ 55%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_with_fallback 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:38 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-04-02 23:23:38 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-04-02 23:23:39 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-04-02 23:23:39 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-04-02 23:23:41 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-04-02 23:23:41 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 57%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_without_fallback 
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:41 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-04-02 23:23:41 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-04-02 23:23:41 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-04-02 23:23:42 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-04-02 23:23:42 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-04-02 23:23:44 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-04-02 23:23:44 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 59%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_timeout_with_fallback 
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-04-02 23:23:44 [ WARNING] core.mpte_advanced: LLM call to openai timed out (attempt 1/1)
+2026-04-02 23:23:44 [   ERROR] core.mpte_advanced: LLM call to openai failed after 1 attempts: LLM call to openai timed out after 0.01s
+PASSED                                                                   [ 61%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_architect_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: LLM provider gemini returned successful response (confidence=0.85)
+PASSED                                                                   [ 63%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_developer_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: LLM provider anthropic returned successful response (confidence=0.85)
+PASSED                                                                   [ 65%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_lead_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 67%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_compose_consensus 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 69%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_confidence_to_priority 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 71%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_suggest_tools 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 73%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_derive_strategy 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 75%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_derive_success_criteria 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 77%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_assess_business_impact 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 79%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_statistics 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 81%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [ WARNING] core.mpte_advanced: FALLBACK_DECISION: Using deterministic fallback for role=architect, vulnerability=CVE-2024-1234. This is NOT an AI-generated decision.
+PASSED                                                                   [ 83%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_consensus 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 0/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 85%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_consensus_with_contributing_fallbacks 
+-------------------------------- live log setup --------------------------------
+2026-04-02 23:23:44 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-02 23:23:44 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 2/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 87%]
+tests/test_ai_consensus.py::TestLLMCallError::test_exception_message PASSED [ 89%]
+tests/test_ai_consensus.py::TestLLMCallError::test_exception_inheritance PASSED [ 91%]
+tests/test_ai_consensus.py::TestAIDecision::test_creation PASSED         [ 93%]
+tests/test_ai_consensus.py::TestAIDecision::test_default_metadata PASSED [ 95%]
+tests/test_ai_consensus.py::TestConsensusDecision::test_creation PASSED  [ 97%]
+tests/test_ai_consensus.py::TestAIRole::test_roles PASSED                [100%]
+INTERNALERROR> Traceback (most recent call last):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 43, in run_old_style_hookwrapper
+INTERNALERROR>     teardown.send(result)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pytest_cov/plugin.py", line 339, in pytest_runtestloop
+INTERNALERROR>     self.cov_controller.finish()
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pytest_cov/engine.py", line 46, in ensure_topdir_wrapper
+INTERNALERROR>     return meth(self, *args, **kwargs)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pytest_cov/engine.py", line 256, in finish
+INTERNALERROR>     self.cov.save()
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 855, in save
+INTERNALERROR>     data = self.get_data()
+INTERNALERROR>            ^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 936, in get_data
+INTERNALERROR>     self._post_save_work()
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 954, in _post_save_work
+INTERNALERROR>     self._inorout.warn_unimported_source()
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/inorout.py", line 551, in warn_unimported_source
+INTERNALERROR>     self._warn_about_unmeasured_code(pkg)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/inorout.py", line 561, in _warn_about_unmeasured_code
+INTERNALERROR>     self.warn(f"Module {pkg} was never imported.", slug="module-not-imported")
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 497, in _warn
+INTERNALERROR>     warnings.warn(msg, category=CoverageWarning, stacklevel=2)
+INTERNALERROR> coverage.exceptions.CoverageWarning: Module risk was never imported. (module-not-imported); see https://coverage.readthedocs.io/en/7.13.5/messages.html#warning-module-not-imported
+INTERNALERROR> 
+INTERNALERROR> During handling of the above exception, another exception occurred:
+INTERNALERROR> 
+INTERNALERROR> Traceback (most recent call last):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/main.py", line 289, in wrap_session
+INTERNALERROR>     session.exitstatus = doit(config, session) or 0
+INTERNALERROR>                          ^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/main.py", line 343, in _main
+INTERNALERROR>     config.hook.pytest_runtestloop(session=session)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_hooks.py", line 512, in __call__
+INTERNALERROR>     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_manager.py", line 120, in _hookexec
+INTERNALERROR>     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 167, in _multicall
+INTERNALERROR>     raise exception
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 139, in _multicall
+INTERNALERROR>     teardown.throw(exception)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/logging.py", line 801, in pytest_runtestloop
+INTERNALERROR>     return (yield)  # Run all the tests.
+INTERNALERROR>             ^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 139, in _multicall
+INTERNALERROR>     teardown.throw(exception)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/terminal.py", line 688, in pytest_runtestloop
+INTERNALERROR>     result = yield
+INTERNALERROR>              ^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 152, in _multicall
+INTERNALERROR>     teardown.send(result)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 47, in run_old_style_hookwrapper
+INTERNALERROR>     _warn_teardown_exception(hook_name, hook_impl, e)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 73, in _warn_teardown_exception
+INTERNALERROR>     warnings.warn(PluggyTeardownRaisedWarning(msg), stacklevel=6)
+INTERNALERROR> pluggy.PluggyTeardownRaisedWarning: A plugin raised an exception during an old-style hookwrapper teardown.
+INTERNALERROR> Plugin: _cov, Hook: pytest_runtestloop
+INTERNALERROR> CoverageWarning: Module risk was never imported. (module-not-imported); see https://coverage.readthedocs.io/en/7.13.5/messages.html#warning-module-not-imported
+INTERNALERROR> For more information see https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluggyTeardownRaisedWarning
+
+=================== 1 failed, 48 passed in 351.53s (0:05:51) ===================

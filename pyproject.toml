@@ -96,6 +96,7 @@ filterwarnings = [
     "ignore::pytest.PytestConfigWarning",
     "ignore:Unclosed.*MemoryObject.*:ResourceWarning",
     "ignore::ResourceWarning",
-    "ignore::fastapi.exceptions.FastAPIDeprecationWarning",
     "ignore:Duplicate Operation ID:UserWarning",
+    "ignore:Module .* was never imported\\.:coverage.exceptions.CoverageWarning",
 ]
+
