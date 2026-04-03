@@ -976,15 +976,29 @@ def create_app() -> FastAPI:
 
     flag_provider = create_flag_provider(overlay.raw_config)
 
-    branding = flag_provider.json(
-        "fixops.branding",
-        default={
-            "product_name": "FixOps",
-            "short_name": "FixOps",
-            "org_name": "FixOps",
-            "telemetry_namespace": "fixops",
-        },
-    )
+    default_branding = {
+        "product_name": "FixOps",
+        "short_name": "FixOps",
+        "org_name": "FixOps",
+        "telemetry_namespace": "fixops",
+    }
+    product_namespace = os.getenv("PRODUCT_NAMESPACE", "").strip().lower() or None
+    branding: dict[str, str] | dict[str, object] = {}
+    if product_namespace and product_namespace != "fixops":
+        branding = flag_provider.json(f"{product_namespace}.branding", default={})
+    if not branding:
+        branding = flag_provider.json("fixops.branding", default={})
+    if not branding:
+        branding = dict(default_branding)
+    else:
+        branding = {**default_branding, **branding}
+        short_name = str(
+            branding.get("short_name") or product_namespace or default_branding["short_name"]
+        ).strip()
+        branding["short_name"] = short_name
+        branding["telemetry_namespace"] = str(
+            branding.get("telemetry_namespace") or short_name
+        ).strip().lower()
 
     configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
 
