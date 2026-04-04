@@ -121,6 +121,14 @@ def read_file(path: str) -> str:
         return ""
 
 
+def resolve_first_existing_path(*paths: str) -> str:
+    """Return the first repository-relative path that exists."""
+    for path in paths:
+        if os.path.isfile(os.path.join(ROOT, path)):
+            return path
+    return paths[0] if paths else ""
+
+
 def main():
     global FINDINGS_ALL
     start_time = time.monotonic()
@@ -211,9 +219,9 @@ def main():
     print(f"{'━' * 66}")
 
     secrets_targets = [
-        ("docker/docker-compose.yml", "Docker Compose"),
-        ("suite-core/config/fixops.overlay.yml", "FixOps Config"),
-        (".env", "Environment Variables"),
+        (resolve_first_existing_path("docker-compose.yml", "docker/docker-compose.yml"), "Docker Compose"),
+        (resolve_first_existing_path("suite-core/config/fixops.overlay.yml"), "FixOps Config"),
+        (resolve_first_existing_path(".env", ".env.example"), "Environment Variables"),
     ]
 
     total_secrets = 0
@@ -262,11 +270,12 @@ def main():
 
     # Scan Dockerfile
     step("Container: ALdeci Dockerfile")
-    dockerfile = read_file("docker/Dockerfile")
+    dockerfile_path = resolve_first_existing_path("Dockerfile", "docker/Dockerfile")
+    dockerfile = read_file(dockerfile_path)
     if dockerfile:
         code_resp, body, ms = api("POST", "/api/v1/container/scan/dockerfile", {
             "content": dockerfile[:3000],
-            "filename": "Dockerfile",
+            "filename": dockerfile_path,
         })
         if code_resp in (200, 201):
             findings = body.get("findings", [])
