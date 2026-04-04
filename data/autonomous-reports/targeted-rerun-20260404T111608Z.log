@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Fixops_repo
+configfile: pyproject.toml
+plugins: anyio-4.11.0, timeout-2.4.0, cov-5.0.0, asyncio-0.26.0
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 7 items
+
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output PASSED [ 14%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_train_bn_lr_end_to_end PASSED [ 28%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end PASSED [ 42%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file PASSED [ 57%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end PASSED [ 71%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification PASSED [ 85%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds PASSED [100%]
+
+============================= slowest 10 durations =============================
+15.70s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification
+11.04s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds
+10.92s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end
+10.47s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file
+10.05s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end
+6.13s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output
+5.54s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_train_bn_lr_end_to_end
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+========================= 7 passed in 70.07s (0:01:10) =========================
