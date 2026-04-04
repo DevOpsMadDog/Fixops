@@ -47,6 +47,36 @@ PASS = 0
 FAIL = 0
 TOTAL = 0
 FINDINGS_ALL = []
+CURRENT_STEP_STATUS: str | None = None
+STEP_OPEN = False
+
+
+def _finalize_step() -> None:
+    """Record the outcome of the currently open step, if any."""
+    global PASS, FAIL, CURRENT_STEP_STATUS, STEP_OPEN
+    if not STEP_OPEN:
+        return
+    if CURRENT_STEP_STATUS == "passed":
+        PASS += 1
+    elif CURRENT_STEP_STATUS == "failed":
+        FAIL += 1
+    CURRENT_STEP_STATUS = None
+    STEP_OPEN = False
+
+
+def _mark_step_passed() -> None:
+    """Mark the current step as passed unless it has already failed."""
+    global CURRENT_STEP_STATUS
+    if STEP_OPEN and CURRENT_STEP_STATUS is None:
+        CURRENT_STEP_STATUS = "passed"
+
+
+def _mark_step_failed() -> None:
+    """Mark the current step as failed, overriding any earlier success within the step."""
+    global CURRENT_STEP_STATUS
+    if STEP_OPEN:
+        CURRENT_STEP_STATUS = "failed"
+
 
 
 def api(method: str, path: str, body: Any = None, timeout: int = 60) -> Tuple[int, Any, float]:
@@ -83,15 +113,17 @@ def api(method: str, path: str, body: Any = None, timeout: int = 60) -> Tuple[in
 
 
 def step(name: str) -> int:
-    global TOTAL
+    global TOTAL, CURRENT_STEP_STATUS, STEP_OPEN
+    _finalize_step()
     TOTAL += 1
+    CURRENT_STEP_STATUS = None
+    STEP_OPEN = True
     print(f"\n  {B}{M}┌─ Step {TOTAL}: {name}{X}")
     return TOTAL
 
 
 def ok(msg: str):
-    global PASS
-    PASS += 1
+    _mark_step_passed()
     print(f"  {G}│  ✓ {msg}{X}")
 
 
@@ -100,8 +132,7 @@ def warn(msg: str):
 
 
 def fail(msg: str):
-    global FAIL
-    FAIL += 1
+    _mark_step_failed()
     print(f"  {R}│  ✗ {msg}{X}")
 
 
@@ -473,6 +504,7 @@ def main():
     # FINAL SUMMARY
     # ══════════════════════════════════════════════════════════════
 
+    _finalize_step()
     elapsed = time.monotonic() - start_time
 
     print(f"\n{'═' * 66}")
