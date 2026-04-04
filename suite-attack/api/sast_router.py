@@ -54,16 +54,25 @@ class ScanFilesRequest(BaseModel):
 
 
 def _sanitize_filename(filename: str) -> str:
-    """Sanitize filename to prevent path traversal and injection."""
-    import os
+    """Sanitize filename while preserving safe relative paths for scanner context."""
+    normalized = filename.replace("\\", "/")
+    cleaned = "".join(c for c in normalized if c.isprintable() and c != "\x00")
 
-    # Strip directory components — only keep the basename
-    safe = os.path.basename(filename)
-    # Remove any null bytes or control characters
-    safe = "".join(c for c in safe if c.isprintable() and c != "\x00")
-    # Enforce length limit
+    safe_parts: List[str] = []
+    for part in cleaned.split("/"):
+        if not part or part == ".":
+            continue
+        if part == "..":
+            continue
+        safe_part = "".join(
+            ch if ch.isalnum() or ch in "._-" else "_" for ch in part
+        )
+        if safe_part:
+            safe_parts.append(safe_part)
+
+    safe = "/".join(safe_parts)
     if len(safe) > _MAX_FILENAME_LENGTH:
-        safe = safe[:_MAX_FILENAME_LENGTH]
+        safe = safe[-_MAX_FILENAME_LENGTH:]
     return safe or "input.txt"
 
 

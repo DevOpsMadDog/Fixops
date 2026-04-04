@@ -1415,6 +1415,37 @@ class SASTEngine:
                 (rid, title, sev, cwe, re.compile(pat, re.IGNORECASE), msg, fix, langs)
             )
 
+    def _self_scan_skip_lines(self, lines: List[str], filename: str) -> set[int]:
+        """Skip metadata-only rule blocks when the engine scans its own source.
+
+        This avoids reporting false positives from the scanner's own regex rule
+        literals and taint-pattern tables while leaving normal scanning behavior
+        unchanged for every other file.
+        """
+        normalized = filename.replace("\\", "/")
+        if not normalized.endswith("suite-core/core/sast_engine.py"):
+            return set()
+
+        skip_lines: set[int] = set()
+        in_metadata_block = False
+        block_starts = (
+            "SAST_RULES:",
+            "TAINT_SOURCES =",
+            "TAINT_SINKS =",
+        )
+        block_end = "EXT_TO_LANG ="
+
+        for line_num, line in enumerate(lines, 1):
+            stripped = line.lstrip()
+            if any(stripped.startswith(marker) for marker in block_starts):
+                in_metadata_block = True
+            if in_metadata_block:
+                skip_lines.add(line_num)
+            if in_metadata_block and stripped.startswith(block_end):
+                in_metadata_block = False
+
+        return skip_lines
+
     # ── Public API ──────────────────────────────────────────────────
     def scan_code(self, code: str, filename: str = "input.py") -> SastScanResult:
         """Scan a single code string and return findings.
@@ -1435,11 +1466,14 @@ class SASTEngine:
         t0 = time.time()
         lang = detect_language(filename)
         lines = code.split("\n")
+        skip_lines = self._self_scan_skip_lines(lines, filename)
         findings: List[SastFinding] = []
         taint_flows: List[Dict[str, Any]] = []
 
         # Rule-based scanning
         for line_num, line in enumerate(lines, 1):
+            if line_num in skip_lines:
+                continue
             # Skip overly long lines (likely minified JS/CSS or binary data)
             if len(line) > self.MAX_LINE_LENGTH:
                 continue

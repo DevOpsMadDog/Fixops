@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import sys
 import os
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'suite-core'))
 
@@ -511,3 +512,16 @@ class TestCompiledRules:
         for r in engine._compiled_rules:
             _, _, _, cwe, _, _, _, _ = r
             assert cwe.startswith("CWE-")
+
+
+class TestSelfScanBehavior:
+    def test_self_scan_skips_rule_metadata_false_positives(self, engine):
+        source_path = Path(__file__).resolve().parents[1] / "suite-core" / "core" / "sast_engine.py"
+        code = source_path.read_text(encoding="utf-8")
+        lines = code.split("\n")
+
+        skip_lines = engine._self_scan_skip_lines(lines, "suite-core/core/sast_engine.py")
+        assert skip_lines
+
+        result = engine.scan_code(code, "suite-core/core/sast_engine.py")
+        assert not any(f.line_number in skip_lines for f in result.findings)

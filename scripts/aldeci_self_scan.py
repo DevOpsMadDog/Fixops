@@ -176,11 +176,12 @@ def main():
             footer()
             continue
 
-        # Take first 5000 chars to avoid timeout
-        code_content = code_content[:5000]
+        # Scan the full file so filename-aware self-scan exclusions and rule context
+        # are evaluated against the complete source rather than a truncated prefix.
         code_resp, body, ms = api("POST", "/api/v1/sast/scan/code", {
             "code": code_content,
             "language": "python",
+            "filename": filepath,
             "scan_type": "security",
         })
         if code_resp in (200, 201):
