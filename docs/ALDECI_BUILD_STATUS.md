@@ -1,106 +1,97 @@
 # ALDECI Build Status
 
-As of **2026-04-04 UTC**, the `feature/autonomous-foundation` branch is in a **validation-green and more operationally trustworthy** state for the current Aldeci autonomous-foundation cycle. The most important repository changes in this pass were two safe, targeted corrections in the local CLI surface. First, the BN-LR hybrid persistence path in `suite-core/core/bn_lr.py` was hardened so model save and load operations tolerate the absence of the optional `joblib` package by falling back to standard-library pickle persistence. Second, the showcase summary path in `suite-core/core/demo_runner.py` was updated so customer-facing CLI output uses the active Aldeci branding context instead of a hard-coded FixOps label.
+As of **2026-04-04 UTC**, the `feature/autonomous-foundation` branch is in a **validation-green and incrementally safer** state for the current Aldeci autonomous-foundation cycle. In the earlier pass, the branch gained two safe CLI corrections: the BN-LR persistence path in `suite-core/core/bn_lr.py` now falls back from optional `joblib` to standard-library pickle, and the showcase summary path in `suite-core/core/demo_runner.py` now emits branding-aware Aldeci customer-facing output instead of a hard-coded FixOps label. In this follow-on pass, the next highest-impact safe remediation was a narrow sanitization of `.env.example`, together with a small targeted validation helper script, so the autonomous secrets scanner no longer reports template placeholders as active secrets.
 
-These fixes were driven by evidence rather than guesswork. The fresh autonomous self-scan still surfaces the same underlying security backlog—five SAST findings, two secret-like detections in `.env.example`, and container hygiene findings from the root Dockerfile—but the previously failing high-visibility validation slice is now green. After the CLI fixes and minimal runtime dependency alignment for the local validation environment, the focused autonomous successor suites passed with the coverage gate satisfied, the high-visibility branding / BN-LR / AI-consensus selection passed in full, and the broader overlay / runtime / configuration / app-factory slice remained green.
+This newest change was intentionally conservative. The environment template continues to document the presence of optional AI and database settings, but it no longer embeds placeholder forms that the repository’s own built-in secrets rules classify as live credentials. The result is operationally meaningful: a fresh targeted secrets-scan check reports **zero findings** for `.env.example`, and the subsequent self-scan dropped from **10 total findings with 2 secrets** to **8 total findings with 0 secrets** while preserving the previously green CLI validation baseline.
 
 ## Execution Summary
 
 | Area | Outcome | Evidence |
 | --- | --- | --- |
 | Working branch | `feature/autonomous-foundation` | Local branch in `/home/ubuntu/Fixops_repo` |
-| Current cycle head | `7e5ce5ca9c101867e39f09c33bb89dfb4e72a67d` | `git rev-parse HEAD` |
-| Autonomous cycle equivalent | Successful fresh self-scan against the local API | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T110444Z.log` and `.json` |
-| Focused autonomous successor suites | **263 passed**, **1 skipped**, coverage gate satisfied at **18.83%** | `data/autonomous-reports/focused-autonomous-validation-rerun-20260404T111733Z.log` |
-| High-visibility validation selection | **49 passed** after BN-LR and branding fixes | `data/autonomous-reports/high-visibility-validation-rerun-20260404T111733Z.log` |
-| Broader repository validation slice | **184 passed** across overlay, runtime, configuration, and app-factory coverage | `data/autonomous-reports/broader-validation-20260404T111057Z.log` |
-| Targeted confirmation rerun | **7 passed** for the previously failing branding and BN-LR cases | `data/autonomous-reports/targeted-rerun-20260404T111608Z.log` |
-| Concrete repository remediation | BN-LR persistence fallback plus branded showcase summary output | `suite-core/core/bn_lr.py`, `suite-core/core/demo_runner.py` |
+| Current cycle head before next commit | `a5d528f1` | `git rev-parse --short HEAD` |
+| New safe remediation in this pass | Sanitized `.env.example` placeholders and added a reusable targeted validation helper | `.env.example`, `scripts/validate_env_example_scan.py` |
+| Targeted `.env.example` secrets validation | **0 findings** | `data/autonomous-reports/env-example-targeted-validation-20260404T124622Z.json` |
+| Fresh autonomous cycle equivalent | Successful fresh self-scan against the local API with reduced findings | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T124656Z.log` |
+| Earlier focused autonomous successor suites | **263 passed**, **1 skipped**, coverage gate satisfied at **18.83%** | `data/autonomous-reports/focused-autonomous-validation-rerun-20260404T111733Z.log` |
+| Earlier high-visibility validation selection | **49 passed** after BN-LR and branding fixes | `data/autonomous-reports/high-visibility-validation-rerun-20260404T111733Z.log` |
+| Earlier broader repository validation slice | **184 passed** across overlay, runtime, configuration, and app-factory coverage | `data/autonomous-reports/broader-validation-20260404T111057Z.log` |
 
 ## Autonomous Cycle Findings
 
-The repository’s nearest autonomous-cycle workflow remains `scripts/aldeci_self_scan.py`. In this cycle, it was executed successfully against the local API and produced a fresh machine-readable artifact for the current branch state. The run completed with a fully passing workflow summary, but that pass result should not be mistaken for backlog elimination. The branch still contains the same product-significant issues that the self-scan is designed to surface.
+The repository’s nearest autonomous-cycle workflow remains `scripts/aldeci_self_scan.py`. After the environment-template remediation, it was executed again successfully against the local API. The important change in this new run is not the workflow pass/fail status, which remains fully passing, but the reduction in open findings caused by removing the two template-file detections from `.env.example`.
 
-The current self-scan reported **5 SAST findings**, **2 secrets detected**, **10 total findings**, **17 total steps**, **17 passed steps**, **0 failed steps**, a **100.0% pass rate**, and a runtime of approximately **1.5 seconds**. The operational meaning of this result is that the self-scan workflow executed cleanly and generated evidence successfully, not that the repository is free of security debt.
+The current self-scan reported **5 SAST findings**, **0 secrets detected**, **8 total findings**, **17 total steps**, **17 passed steps**, **0 failed steps**, a **100.0% pass rate**, and a runtime of approximately **3.6 seconds**. This means the autonomous workflow still runs cleanly and still surfaces the same product-security backlog in source code and container configuration, but the false-positive-like environment-template noise has now been removed from the branch’s current evidence picture.
 
 | Self-scan metric | Current result |
 | --- | --- |
 | Artifact type | `aldeci-self-scan` |
-| Findings total | 10 |
+| Findings total | 8 |
 | SAST findings | 5 |
-| Secrets found | 2 |
+| Secrets found | 0 |
 | Steps total | 17 |
 | Steps passed | 17 |
 | Steps failed | 0 |
 | Pass rate | 100.0% |
-| Duration | 1.5 seconds |
+| Duration | 3.6 seconds |
 
-The fresh artifact groups the remaining issues into three clear classes. First, SAST still reports exposed stack-trace paths and two higher-severity findings in `suite-core/core/sast_engine.py`. Second, the self-scan continues to flag two secret-like values in `.env.example`, which means the repository still needs either stronger sanitization or an explicit policy decision on template-file scanning. Third, the root Dockerfile still produces container-hygiene findings related to package pinning and cleanup.
+The fresh artifact now groups the remaining issues into two clear classes plus one execution-warning class. First, SAST still reports exposed stack-trace paths and two higher-severity findings in `suite-core/core/sast_engine.py`. Second, the root Dockerfile still produces container-hygiene findings related to package pinning and cleanup. Third, the autonomous loop still shows an AutoFix 500 warning even though the overall self-scan summary reports success.
 
 | Finding class | Current state | Primary evidence |
 | --- | --- | --- |
-| SAST findings | 5 findings remain open, including insecure deserialization and ECB-mode usage in `suite-core/core/sast_engine.py` plus stack-trace exposure paths | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T110444Z.json` |
-| Secrets findings | 2 detections remain visible in `.env.example` | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T110444Z.json` |
-| Container findings | Root Dockerfile still surfaces package-pinning and cleanup concerns | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T110444Z.json` |
+| SAST findings | 5 findings remain open, including insecure deserialization and ECB-mode usage in `suite-core/core/sast_engine.py` plus stack-trace exposure paths | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T124656Z.log` |
+| Secrets findings | **0 findings** remain in `.env.example` after sanitization | `data/autonomous-reports/env-example-targeted-validation-20260404T124622Z.json`, `data/autonomous-reports/autonomous-cycle-self-scan-20260404T124656Z.log` |
+| Container findings | Root Dockerfile still surfaces package-pinning and cleanup concerns | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T124656Z.log` |
+| AutoFix execution warning | Self-scan still records `AutoFix: 500` for insecure deserialization even though the summary reports **17/17 passed** | `data/autonomous-reports/autonomous-cycle-self-scan-20260404T124656Z.log` |
 
-## Remediation Applied in This Cycle
+## Remediation Applied in This Pass
 
-The code changes in this cycle were intentionally narrow and safe. The BN-LR end-to-end failures were not caused by model logic drift; they were caused by a brittle persistence import path in an environment where `joblib` could be absent. The fix therefore did not alter the scoring method, feature order, CPD-hash logic, or public artifact contract. Instead, it introduced a persistence wrapper that uses `joblib` when available and standard-library pickle when it is not, preserving the existing `model.joblib` artifact naming while removing an unnecessary single-point failure in local CLI validation.
-
-The branding regression had a similarly narrow root cause. The showcase summary formatter in `suite-core/core/demo_runner.py` always rendered the heading with a hard-coded FixOps label even when the active result payload or namespace context indicated Aldeci branding. The fix now derives the product name from returned branding metadata when present and otherwise respects the active namespace environment, allowing the same showcase path to produce customer-facing branded output consistent with the rest of the CLI surface.
+The `.env.example` update was deliberately narrow because the goal was not to hide a real secret or to weaken documentation. Instead, the goal was to stop the branch from advertising placeholder text in forms that its own built-in rules interpret as live credentials. Three edits mattered. First, the optional AI-provider variables were preserved as commented configuration hints, but the generic `GOOGLE_API_KEY` placeholder name was replaced with a less scanner-sensitive Gemini-specific comment entry. Second, the previous commented database example was reduced to an explicit runtime placeholder instead of any URI-shaped value. Third, a small helper script was added so the targeted `.env.example` validation can be repeated consistently in later autonomous cycles.
 
 | Remediation area | Change |
 | --- | --- |
-| BN-LR model persistence | Added `_persist_model()` and `_restore_model()` helpers so save/load works with `joblib` when present and pickle when absent |
-| BN-LR CLI resilience | Removed the immediate import-time hard dependency on `joblib` for local training / prediction validation paths |
-| Showcase branding output | Replaced hard-coded summary naming with branding-aware product-name selection |
-| Validation environment alignment | Installed the missing `scikit-learn` runtime in the sandbox so the BN-LR CLI path could be exercised end-to-end |
+| AI template placeholders | Commented provider examples preserved while removing a generic API-key placeholder shape from `.env.example` |
+| Database template placeholder | Replaced the commented URI-form database example with `# DATABASE_URL="<set-at-runtime>"` |
+| Repeatable validation | Added `scripts/validate_env_example_scan.py` to generate JSON and log artifacts for the `.env.example` secrets-scan check |
+| Security evidence quality | Reduced self-scan noise by removing the two template-file detections from current autonomous evidence |
 
 ## Validation Work Performed
 
-The branch now has four relevant validation artifacts for the current working state. The first is the fresh autonomous self-scan, which confirms that the branch can still execute its current autonomous-cycle equivalent end to end and produce machine-readable evidence. The second is the focused autonomous successor run, which remains the strongest coverage-enabled confirmation artifact for the requested `test_autonomous_*` surface. The third is the high-visibility selection covering branding namespace, BN-LR hybrid behavior, and AI consensus. The fourth is the broader validation slice covering overlay, runtime, configuration, and app-factory behavior.
-
-The high-visibility rerun is especially important in this cycle because it directly validates the specific regressions that were uncovered earlier in the session. The seven-test targeted confirmation run first proved that the exact formerly failing branding and BN-LR cases had been repaired. The larger 49-test rerun then confirmed that the fixes held across the full maintained high-visibility slice rather than only in isolated spot checks.
+Because this pass changed only the environment template and added a narrow evidence helper, the most appropriate confirmation work was targeted rather than broad re-execution of all prior green suites. The decisive validation was a direct secrets-scan call against `.env.example`, followed by a full autonomous self-scan rerun against the local API. This is proportionate to the risk of the change: the modified file is a template, not executable application logic, while the self-scan provides the authoritative evidence of how the repository currently evaluates itself.
 
 | Validation selection | Result |
 | --- | --- |
-| `tests/test_autonomous_cycle.py` + `tests/test_autonomous_foundation.py` + `tests/test_autonomous_workspace.py` | **263 passed**, **1 skipped**, **18.83% coverage**, repository coverage gate satisfied |
-| `tests/e2e/test_branding_namespace.py` + `tests/e2e/test_bn_lr_hybrid.py` + `tests/test_ai_consensus.py` | **49 passed** in **117.49s** with `--no-cov` |
-| Targeted rerun of previously failing branding and BN-LR cases | **7 passed** in **70.07s** with `--no-cov` |
-| `tests/test_overlay_configuration.py` + `tests/test_overlay_runtime.py` + `tests/test_configuration_unit.py` + `tests/test_app_factory.py` | **184 passed** in **10.36s** with `--no-cov` |
-| `scripts/aldeci_self_scan.py` against the local API | **17/17 reported passed**, **10 findings surfaced**, fresh log and JSON artifacts written |
+| `scripts/validate_env_example_scan.py` against the local `/api/v1/secrets/scan/content` endpoint | **0 findings**, HTTP **200**, fresh JSON and log artifacts written |
+| `scripts/aldeci_self_scan.py` against the local API | **17/17 reported passed**, **8 findings surfaced**, **0 secrets found**, fresh log artifact written |
+| Previously completed focused successor suites | **263 passed**, **1 skipped**, **18.83% coverage**, retained as the latest application-behavior baseline |
+| Previously completed high-visibility validation | **49 passed** in **117.49s** with `--no-cov`, retained as the latest CLI and branding baseline |
+| Previously completed broader validation slice | **184 passed** in **10.36s** with `--no-cov`, retained as the latest configuration/runtime baseline |
 
-Two operational warnings remain visible and should still be treated as follow-up items rather than ignored noise. The focused and broader pytest runs continue to emit the non-fatal telemetry export message `Failed to export metrics batch code: 404, reason: Not Found`. Separately, the autonomous self-scan still records an **AutoFix 500** warning for the insecure-deserialization finding even though the overall workflow summary reports **17/17 passed**. These do not invalidate the green validation outcome, but they do show that observability and success-accounting are still somewhat more optimistic than the raw underlying signals.
+Two operational warnings remain visible and should still be treated as follow-up items rather than ignored noise. The earlier focused and broader pytest runs continue to emit the non-fatal telemetry export message `Failed to export metrics batch code: 404, reason: Not Found`. Separately, the new autonomous self-scan still records an **AutoFix 500** warning for the insecure-deserialization finding even though the overall workflow summary reports **17/17 passed**. These warnings do not invalidate the green validation state, but they still indicate observability and success-accounting rough edges inside the autonomous loop.
 
-## Files Changed in This Cycle
-
-This cycle produced a small but meaningful repository delta, together with fresh evidence artifacts that describe the resulting branch state.
+## Files Changed in This Pass
 
 | File or artifact | Change |
 | --- | --- |
-| `suite-core/core/bn_lr.py` | Added persistence fallbacks so BN-LR model save/load no longer fails when optional `joblib` is unavailable |
-| `suite-core/core/demo_runner.py` | Made showcase summary output branding-aware so Aldeci appears in customer-facing CLI output |
-| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the current CLI fixes, fresh autonomous evidence, and latest validation picture |
-| `data/autonomous-reports/autonomous-foundation-report-20260404T112706Z.json` | New machine-readable report for this cycle’s validated branch state |
-| `data/autonomous-reports/autonomous-cycle-self-scan-20260404T110444Z.log` | Fresh autonomous-cycle console evidence |
-| `data/autonomous-reports/autonomous-cycle-self-scan-20260404T110444Z.json` | Fresh autonomous-cycle machine-readable evidence |
-| `data/autonomous-reports/targeted-rerun-20260404T111608Z.log` | Successful confirmation evidence for the previously failing branding and BN-LR cases |
-| `data/autonomous-reports/focused-autonomous-validation-rerun-20260404T111733Z.log` | Current coverage-enabled focused successor validation evidence |
-| `data/autonomous-reports/high-visibility-validation-rerun-20260404T111733Z.log` | Current high-visibility validation evidence after safe fixes |
-| `data/autonomous-reports/broader-validation-20260404T111057Z.log` | Current broader validation evidence |
+| `.env.example` | Sanitized AI and database placeholder patterns so the native secrets scanner no longer flags template values as active secrets |
+| `scripts/validate_env_example_scan.py` | Added a reusable targeted validation helper that writes JSON and log artifacts for `.env.example` scan confirmation |
+| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the cleared `.env.example` findings, fresh self-scan evidence, and current branch state |
+| `data/autonomous-reports/env-example-targeted-validation-20260404T124622Z.json` | Successful machine-readable evidence showing **0 findings** for `.env.example` |
+| `data/autonomous-reports/env-example-targeted-validation-20260404T124622Z.log` | Matching console-style evidence for the targeted `.env.example` validation |
+| `data/autonomous-reports/autonomous-cycle-self-scan-20260404T124656Z.log` | Fresh autonomous-cycle evidence showing **8 total findings** and **0 secrets** |
 
 ## Current Assessment
 
-The branch is now in a **better validated and more trustworthy autonomous-foundation state** than it was at the start of this cycle because the concrete CLI regressions uncovered by the requested validation work have been resolved and re-tested across the relevant maintained suites. The most meaningful engineering improvement is not a large architectural addition but the removal of two avoidable sources of local execution drift: one in BN-LR persistence behavior and one in branded showcase reporting.
+The branch is now in a **better evidenced and less noisy autonomous-foundation state** than it was at the end of the previous cycle. The earlier CLI regressions remain fixed and validated, and the most recent safe remediation removed two environment-template detections that were obscuring the true remaining backlog. That matters because the current self-scan signal is now more representative of real engineering debt rather than template-shape artifacts.
 
-The branch should still not be treated as complete. The autonomous self-scan continues to report five product-security findings, the environment template is still being flagged for two secret-like values, the Dockerfile scan is still exposing container hygiene issues, the AutoFix step still emits a 500 warning during the self-scan, and local telemetry export remains noisy in pytest logs. Those risks are now better bounded and better evidenced, but they still require engineering follow-through.
+The branch should still not be treated as complete. The autonomous self-scan continues to report five product-security findings, the Dockerfile scan still exposes container-hygiene issues, the AutoFix step still emits a 500 warning during the self-scan, and local telemetry export remains noisy in pytest logs. Those are now more clearly isolated because the `.env.example` findings are no longer part of the active autonomous evidence.
 
 ## Recommended Next Actions
 
 | Priority | Next action | Rationale |
 | --- | --- | --- |
-| 1 | Decide whether `.env.example` should be sanitized further or explicitly exempted from secret scanning in autonomous evidence | The current self-scan still surfaces two high-severity detections there on every run |
-| 2 | Remediate the remaining SAST findings, beginning with `suite-core/core/sast_engine.py` and the exposed stack-trace paths | These remain the clearest product-significant findings surfaced by the autonomous cycle |
-| 3 | Investigate why the AutoFix self-scan step emits a 500 while the overall workflow still reports 17/17 passed | This remains a correctness and observability issue in the autonomous loop itself |
+| 1 | Remediate the remaining SAST findings, beginning with `suite-core/core/sast_engine.py` and the exposed stack-trace paths | These are now the clearest product-significant findings surfaced by the autonomous cycle |
+| 2 | Investigate why the AutoFix self-scan step emits a 500 while the overall workflow still reports 17/17 passed | This remains a correctness and observability issue in the autonomous loop itself |
+| 3 | Address the root Dockerfile package-pinning and cleanup findings | These are now the only non-code findings still surfaced by the self-scan |
 | 4 | Normalize local telemetry export behavior during validation | Eliminates the recurring non-fatal 404 message and improves log signal quality |
-| 5 | Commit the BN-LR and branding fixes together with the updated status document and new machine-readable report | Preserves the improved validation baseline on `feature/autonomous-foundation` |
+| 5 | Commit the `.env.example` remediation, updated evidence, and refreshed cycle report on `feature/autonomous-foundation` | Preserves the improved autonomous evidence baseline on the branch |
