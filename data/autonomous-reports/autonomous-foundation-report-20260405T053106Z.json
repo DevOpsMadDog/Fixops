@@ -1,0 +1,372 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-05T05:31:06Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "3b6bf9508848273e87bc57895c69dc505648854c",
+  "status": "green-baseline-retained-with-live-self-scan-backlog-reduction-and-open-followup",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-reduced-live-backlog",
+    "cycle_fix_status": "implemented-and-targetedly-validated",
+    "focused_successor_validation_status": "previous-cycle-green-baseline-retained",
+    "high_visibility_status": "previous-cycle-green-baseline-retained",
+    "broader_validation_status": "previous-cycle-green-baseline-retained",
+    "targeted_confirmation_status": "passed-no-cov",
+    "confirmation_result": {
+      "cwe209_targeted": {
+        "passed": 35,
+        "failed": 0,
+        "duration_seconds": 0.38,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_sast_engine_unit.py"
+        ]
+      },
+      "basic_auth_tls_targeted": {
+        "passed": 37,
+        "failed": 0,
+        "duration_seconds": 0.41,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_sast_engine_unit.py"
+        ]
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "resolution": "maintained successor wrapper suites remain present; the latest branch-level baseline for them is still the prior focused validation run"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T052643Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260405-012649.json",
+    "metrics": {
+      "sast_findings": 93,
+      "secrets_found": 0,
+      "total_findings": 20,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.1,
+      "duration_seconds": 5.8
+    },
+    "findings": [
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 176,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "low",
+        "title": "Deprecated API Usage — urllib",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 232,
+        "cwe": "CWE-477"
+      },
+      {
+        "severity": "low",
+        "title": "Missing Error Handling in IO",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 232,
+        "cwe": "CWE-755"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 1750,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 1829,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 2038,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 759,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 760,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 1706,
+        "cwe": "CWE-502"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 927,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Logging Sensitive Data",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 942,
+        "cwe": "CWE-532"
+      },
+      {
+        "severity": "medium",
+        "title": "Logging Sensitive Data",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 1184,
+        "cwe": "CWE-532"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 1188,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 1201,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 1223,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 1368,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 1645,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      },
+      {
+        "severity": "low",
+        "title": "Apt-get No Clean",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_post_restart_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T052643Z.log",
+      "status": "passed-with-open-findings",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 20,
+        "duration_seconds": 5.8
+      },
+      "notes": [
+        "the local API was restarted before this self-scan so the result reflects the latest scanner code",
+        "the integration connector basic-auth false positive no longer appears in the live backlog snapshot"
+      ]
+    },
+    {
+      "name": "targeted_sast_engine_cwe209_precision",
+      "log": "data/autonomous-reports/sast-engine-cwe209-targeted-nocov-20260405T051752Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 35,
+        "failed": 0,
+        "duration_seconds": 0.38,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_sast_engine_unit.py"
+        ]
+      },
+      "notes": [
+        "the tightened CWE-209 rule still flags exception detail placed into HTTP responses",
+        "logger-only exception handling remains ignored after the precision fix"
+      ]
+    },
+    {
+      "name": "targeted_sast_engine_basic_auth_tls_precision",
+      "log": "data/autonomous-reports/sast-engine-basic-auth-targeted-nocov-20260405T052520Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 37,
+        "failed": 0,
+        "duration_seconds": 0.41,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_sast_engine_unit.py"
+        ]
+      },
+      "notes": [
+        "the tightened Basic Auth Without TLS rule ignores HTTPS-only Basic header construction",
+        "explicit insecure HTTP plus Basic authentication still triggers detection"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_previous_green_baseline",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260405T030628Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 474.63,
+        "coverage_enabled": true,
+        "coverage_percent": 18.84,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this remains the latest branch-level focused autonomous successor-suite baseline",
+        "it predates the current SAST-engine precision edits"
+      ]
+    },
+    {
+      "name": "high_visibility_previous_green_baseline",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260405T032305Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 279.74,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "this remains the latest high-visibility branch baseline",
+        "it predates the current SAST-engine precision edits"
+      ]
+    },
+    {
+      "name": "broader_foundation_previous_green_baseline",
+      "log": "data/autonomous-reports/broader-validation-20260405T032818Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 19.85,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "this remains the latest broader configuration/runtime baseline",
+        "it predates the current SAST-engine precision edits"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "suite-core/core/sast_engine.py",
+      "change": "tightened the exposed-stack-trace response rule to require more response-specific exception detail context and tightened the Basic Auth Without TLS rule to require an explicit insecure http transport signal"
+    },
+    {
+      "file": "tests/test_sast_engine_unit.py",
+      "change": "added regression coverage proving the tightened CWE-209 rule ignores logger-only exception handling while still flagging response exposure, and proving the tightened Basic Auth rule ignores HTTPS-only Basic headers while still flagging explicit HTTP transport"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative to reflect the refreshed post-restart self-scan evidence and current backlog interpretation"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260405T053106Z.json",
+      "change": "wrote a new machine-readable cycle report for the current scanner-precision continuation pass"
+    }
+  ],
+  "environment_notes": {
+    "api_restart_required_for_live_scan_accuracy": true,
+    "stale_service_was_replaced_before_final_self_scan": true,
+    "local_token_configured_for_cycle": true,
+    "focused_successor_suite_coverage_gate_still_satisfied_in_previous_green_baseline": true,
+    "full_branch_matrix_not_yet_rerun_after_current_sast_engine_edits": true,
+    "known_nonfatal_test_message": "Failed to export metrics batch code: 404, reason: Not Found"
+  },
+  "remaining_risks": [
+    "the latest full focused, high-visibility, and broader validation matrix predates the current SAST-engine precision edits",
+    "excessive data exposure is now the dominant open issue family across brain_pipeline.py, micro_pentest.py, and sast_engine.py",
+    "token-without-expiration findings remain open in suite-api/apps/api/app.py and suite-core/core/crypto.py",
+    "weak cryptography and insecure deserialization remain open in suite-core/core/autofix_engine.py",
+    "root Dockerfile scan still surfaces package-pinning and cleanup hygiene findings",
+    "local telemetry export still emits a non-fatal 404 message during validation"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "rerun the focused autonomous successor suites, high-visibility suites, and broader validation slice against the updated SAST-engine source state"
+    },
+    {
+      "priority": 2,
+      "action": "triage the excessive-data-exposure findings in suite-core/core/brain_pipeline.py, suite-core/core/micro_pentest.py, and suite-core/core/sast_engine.py"
+    },
+    {
+      "priority": 3,
+      "action": "triage the token-without-expiration findings in suite-api/apps/api/app.py and suite-core/core/crypto.py"
+    },
+    {
+      "priority": 4,
+      "action": "triage the remaining weak-cryptography and insecure-deserialization findings in suite-core/core/autofix_engine.py"
+    },
+    {
+      "priority": 5,
+      "action": "defer Dockerfile package-pinning and cleanup hygiene work until the current application-level backlog clusters have been reduced further"
+    }
+  ]
+}

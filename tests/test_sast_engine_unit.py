@@ -319,6 +319,45 @@ def get_user(user_id):
         result = engine.scan_code(js_code, filename="app.js")
         assert result is not None
 
+    def test_exposed_stack_trace_rule_ignores_logger_only_exception_lines(self):
+        engine = SASTEngine()
+        code = '''def fallback(logger):
+    try:
+        risky_call()
+    except Exception as e:
+        logger.warning(f"micro_pentest.mpte_unavailable error={e}")
+        return {"status": "fallback"}
+'''
+        result = engine.scan_code(code, filename="micro_pentest.py")
+        rule_ids = {finding.rule_id for finding in result.findings}
+        assert "SAST-058" not in rule_ids
+
+    def test_exposed_stack_trace_rule_flags_exception_details_in_response(self):
+        engine = SASTEngine()
+        code = '''def api_error(exc):
+    return JSONResponse({"status": "error", "exception": str(exc)}, status_code=500)
+'''
+        result = engine.scan_code(code, filename="app.py")
+        rule_ids = {finding.rule_id for finding in result.findings}
+        assert "SAST-058" in rule_ids
+
+    def test_basic_auth_without_tls_rule_ignores_https_only_basic_headers(self):
+        engine = SASTEngine()
+        code = '''def azure_headers(token):
+    base_url = "https://dev.azure.com"
+    return {"Authorization": f"Basic {token}", "base_url": base_url}
+'''
+        result = engine.scan_code(code, filename="connectors.py")
+        rule_ids = {finding.rule_id for finding in result.findings}
+        assert "SAST-073" not in rule_ids
+
+    def test_basic_auth_without_tls_rule_flags_basic_auth_over_http(self):
+        engine = SASTEngine()
+        code = 'config = {"url": "http://example.internal", "Authorization": "Basic abc123"}'
+        result = engine.scan_code(code, filename="client.py")
+        rule_ids = {finding.rule_id for finding in result.findings}
+        assert "SAST-073" in rule_ids
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
