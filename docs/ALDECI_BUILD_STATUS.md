@@ -1,105 +1,107 @@
 # ALDECI Build Status
 
-As of **2026-04-04 UTC**, the `feature/autonomous-foundation` branch has completed another **autonomous foundation recovery cycle**, this time focused on restoring the branch’s **execution environment to match the repository-declared dependency baseline** and then revalidating the branch’s high-signal test slices. The branch did not require a new source-code remediation in this pass. Instead, the current cycle established that the most visible regressions were **dependency-driven runtime gaps** in the sandbox rather than new defects in the ALDECI codebase. After aligning the environment with packages already declared in `requirements.txt` and `requirements-test.txt`, the branch recovered its expected validation posture: the fresh self-scan again completed at **17/17 passed**, the focused autonomous suites finished at **263 passed, 1 skipped, 0 failed** with **18.34% coverage**, the high-visibility suites finished at **49 passed**, and the broader repository validation slice remained green at **184 passed**.[1] [2] [3] [4] [5] [6]
+As of **2026-04-05 UTC**, the `feature/autonomous-foundation` branch has completed another autonomous execution cycle with a materially stronger evidence base than the prior report. The branch now has a **fresh green autonomous self-scan run**, a **fresh green focused successor-suite validation run**, a **fresh green high-visibility validation run**, a **fresh green broader repository validation slice**, and a **new safe source-code remediation** in the hybrid evidence-bundle verifier that prevents raw exception text from being returned when a malformed hybrid signature envelope is parsed.[1] [2] [3] [4] [5] [6] [7] [8]
 
-The most important engineering conclusion from this cycle is that the branch’s recent instability was caused by **missing local runtime and test dependencies**, not by a newly introduced logic regression in the BN/LR hybrid, branding namespace, AI consensus, or application-factory paths. The first confirmation came from the fresh autonomous self-scan, which showed the branch still able to scan itself successfully with **0 secrets found**, **23 surfaced findings**, and **0 failed steps**.[2] The next confirmation came from the focused validation reruns: once `scikit-learn` was restored, the BN/LR end-to-end tests became green again, and once `sqlalchemy`, `pyotp`, `apscheduler`, and `aiosqlite` were restored, the previously missing routers and scheduler paths loaded during app startup, which pushed aggregate focused coverage back above the required **18.0%** threshold.[3] [7] [8]
+The most important distinction in this cycle is that it combined **platform-level confirmation** with **incremental backlog reduction**. Earlier cycles had already restored the local dependency baseline. This cycle then proved that the branch could again execute its autonomous path end to end, that the requested validation sequence remained green in the current sandbox, and that the next safe backlog item could be reduced without destabilizing the branch. The concrete code-level change was intentionally narrow: `HybridVerifier.verify_evidence_bundle()` no longer surfaces raw `CryptoError` text for malformed hybrid signature envelopes, and a regression test now locks that behavior in place.[1] [3] [4] [5] [6] [7] [8]
 
 ## Execution Summary
 
-| Area | Outcome | Evidence |
+| Area | Current outcome | Evidence |
 | --- | --- | --- |
-| Working branch | `feature/autonomous-foundation` | Current branch context for `/home/ubuntu/Fixops_repo` [1] |
-| Current cycle head before doc/report commit | `79ada7b1` | Repository head captured during this cycle [1] |
-| Primary issue addressed in this pass | Validation regressions traced to missing declared dependencies in the local execution environment | Focused validation rerun evidence and dependency manifests [3] [7] [8] |
-| Fresh autonomous self-scan | **17/17 passed**, **100%**, **325 SAST findings**, **23 surfaced findings**, **0 secrets**, **5.8s** | Self-scan log and JSON artifact [2] [6] |
-| Focused autonomous validation | **263 passed**, **1 skipped**, **0 failed**, **18.34% coverage**, **208.24s** | Focused validation rerun log [3] |
-| High-visibility validation | **49 passed**, **0 failed**, **94.67s** | High-visibility rerun log [4] |
-| Broader repository validation slice | **184 passed**, **0 failed**, **9.19s** | Broader validation rerun log [5] |
-| Code changes in repository source | **None required for product logic in this pass** | Runtime issue resolved through environment alignment against declared manifests [7] [8] |
-| Documentation/report changes | Status document rewritten and new machine-readable cycle report added | Current working tree changes |
+| Working branch | `feature/autonomous-foundation` | Current repository context and cycle artifacts [1] [3] [4] [5] |
+| Current cycle head before any new commit | `2c27c7a4e7c99f4ae8e86993223543850cceed58` | Repository state captured during this pass [7] |
+| Fresh autonomous cycle | **17/17 passed**, **100%**, **325 SAST findings**, **23 surfaced findings**, **0 secrets**, **8.4s** | Self-scan log and JSON artifact [1] [2] |
+| Focused successor-suite validation | **263 passed**, **1 skipped**, **0 failed**, **18.84% coverage**, threshold **18.0%** | Focused validation log [3] |
+| High-visibility validation | **49 passed**, **0 failed**, **279.74s** | High-visibility validation log [4] |
+| Broader repository validation slice | **184 passed**, **0 failed**, **19.85s** | Broader validation log [5] |
+| Safe remediation confirmation | **1 targeted regression test passed** with **64 deselected** in **0.39s** | Revalidation log [6] |
+| Code changes applied in this cycle | Sanitized malformed hybrid-signature verification errors and added a regression test | Source and test files [7] [8] |
 
-## What This Cycle Proved
+## What This Cycle Demonstrated
 
-This cycle is best understood as an **environment-baseline restoration pass**. The ALDECI branch had already demonstrated that its autonomous self-scan could complete cleanly after the prior accounting remediation, and the current self-scan confirmed that this remains true. The self-scan log and result artifact again show a fully passing autonomous execution path with internally consistent step accounting and no newly surfaced critical or secret-related regression.[2] [6]
+This cycle established that the branch is presently **operationally green at the requested validation baseline**. The self-scan completed cleanly with no failed steps and no secrets findings, while the focused successor suites again cleared the repository’s coverage gate at **18.84%**, which is above the enforced **18.0%** minimum.[1] [2] [3] The high-visibility slice also remained fully green, which means the branding namespace path, the BN/LR hybrid behavior, and the AI consensus path all retained their already-restored functional posture in the current sandbox run.[4]
 
-The more significant diagnostic result came from the validation sequence. The focused autonomous suites initially exposed a BN/LR hybrid failure pattern that was not caused by faulty business logic in `suite-core/core/bn_lr.py`, but by an unavailable `scikit-learn` runtime in the sandbox. After restoring that manifest-declared package, the BN/LR end-to-end tests passed, but the focused suite still missed its global coverage gate because application startup was silently skipping important routes and scheduler-linked paths. The post-fix log shows the concrete causes clearly: the **Decisions router** was unavailable because `sqlalchemy` was missing, the **Business Context router** was unavailable because `pyotp` was missing, and exploit-signal scheduling was skipped because `apscheduler` was unavailable.[3] Once those dependencies, plus `aiosqlite`, were restored from the repository manifests, the branch recovered the expected route-loading surface and crossed back above the aggregate coverage gate.[3] [7] [8]
+The broader repository validation slice adds a second layer of confidence. The configuration, overlay-runtime, and app-factory suites completed at **184 passed** without failures, which is important because it shows that the branch’s local startup and routing surface remained stable while the cycle moved from autonomous scan execution into validation and then into a source-level remediation step.[5]
 
-| Recovery stage | Observed state | Interpretation |
+| Validation slice | Interpretation |
+| --- | --- |
+| `scripts/aldeci_self_scan.py` | Autonomous operation is currently executable and internally complete at **17/17 passed** [1] [2] |
+| `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, `tests/test_autonomous_workspace.py` | The successor autonomous suite set is green and above the required coverage threshold [3] |
+| `tests/e2e/test_branding_namespace.py`, `tests/e2e/test_bn_lr_hybrid.py`, `tests/test_ai_consensus.py` | The most visible user-facing and model-behavior slices remain green in the current cycle [4] |
+| `tests/test_overlay_configuration.py`, `tests/test_overlay_runtime.py`, `tests/test_configuration_unit.py`, `tests/test_app_factory.py` | Core runtime/configuration and API-factory behavior remained green in the broader slice [5] |
+
+## Safe Remediation Applied in This Pass
+
+The next safe backlog target selected from the self-scan cluster was in `suite-core/core/crypto.py`. Before this change, the malformed v2 hybrid-signature-envelope path in `HybridVerifier.verify_evidence_bundle()` returned `detail=str(exc)`, which could expose raw parser exception text to callers. The remediation now returns a sanitized, type-only message of the form `Invalid hybrid signature envelope: CryptoError`, which preserves diagnostic value while avoiding unnecessary detail disclosure.[6] [7]
+
+The corresponding regression test was added to `tests/test_crypto_unit.py`. That test constructs a malformed hybrid evidence bundle with required envelope metadata missing, invokes the verifier path directly, and asserts both that verification fails and that the returned `error_detail` is sanitized rather than echoing the raw “missing fields” parser message. The targeted revalidation log confirms that this new test passed in the current cycle.[6] [8]
+
+| Changed file | Safe change applied | Why it matters |
 | --- | --- | --- |
-| Fresh self-scan | Autonomous flow passed **17/17** with unchanged finding totals | Core branch behavior remained functional [2] [6] |
-| Focused rerun after `scikit-learn` restoration | All selected tests passed, but coverage remained **17.75%**, below gate | BN/LR logic was healthy, but app startup surface was still reduced by missing dependencies [9] |
-| Focused rerun after `sqlalchemy`, `pyotp`, `apscheduler`, and `aiosqlite` restoration | **263 passed**, **1 skipped**, **18.34% coverage** | Declared runtime baseline successfully restored [3] |
-| High-visibility rerun | **49 passed** | Branding, BN/LR hybrid, and AI consensus paths all reconfirmed green [4] |
-| Broader validation slice | **184 passed** | Repository foundation slice remained stable during the same cycle [5] |
-
-## Dependency Alignment Findings
-
-A notable aspect of this cycle is that the missing packages were not undocumented surprises. The repository’s dependency manifests already declared the critical modules that the failing validation paths needed. The main manifest lists `scikit-learn`, `apscheduler`, `sqlalchemy`, and `pyotp`, and the test-oriented manifest also lists `sqlalchemy` and `aiosqlite`.[7] [8] That means the branch’s regression was fundamentally an **execution-environment drift problem**, not a repository-definition problem.
-
-This distinction matters for future autonomous work. When a branch is judged only by raw test outcomes without checking whether the local runtime matches the manifest, an environment drift issue can easily be mistaken for a new application defect. The evidence from this cycle shows that ALDECI’s validation baseline can recover without altering product code when the runtime is brought back into alignment with the repository’s own declared dependencies.[3] [4] [5] [7] [8]
-
-| Restored dependency | Why it mattered in this cycle | Evidence |
-| --- | --- | --- |
-| `scikit-learn` | Required for BN/LR hybrid end-to-end validation | BN/LR tests passed after restoration inside focused rerun [3] [7] |
-| `sqlalchemy` | Required for the Decisions router to load during app startup | Focused rerun log showed missing router before restoration [9] |
-| `pyotp` | Required for the Business Context router to load | Focused rerun log showed missing router before restoration [9] |
-| `apscheduler` | Required for exploit-signal scheduler availability | Focused rerun log showed scheduler unavailable before restoration [9] |
-| `aiosqlite` | Part of the declared dependency set needed by the validation/runtime baseline | Manifest alignment action in this cycle [8] |
+| `suite-core/core/crypto.py` | Replaced raw `str(exc)` exposure in malformed hybrid-signature-envelope handling with a sanitized type-only message | Reduces stack-trace and parser-detail exposure risk without changing successful verification behavior [7] |
+| `tests/test_crypto_unit.py` | Added regression coverage for sanitized malformed-envelope verification failures | Prevents silent regression back to raw exception-detail exposure [6] [8] |
 
 ## Current Self-Scan Backlog Shape
 
-Although this pass was about validation recovery rather than backlog reduction, the fresh self-scan still provides a useful snapshot of the remaining surfaced security work. The current artifact shows **23 total surfaced findings**, composed primarily of medium-severity issues in stack-trace exposure, weak cryptography, and response data exposure, plus three container-related findings. The branch therefore remains free of newly surfaced critical findings in the current self-scan, but it is **not backlog-complete**.[2] [6]
+The latest self-scan artifact remains useful as the current backlog snapshot, but it should be interpreted carefully. Its totals describe the branch **before** the new crypto sanitization fix was applied later in the cycle, so the artifact is still the right reference for backlog shape, but not yet the final post-fix backlog count.[1] [2] [6] [7] [8]
 
-| Backlog signal | Current state | Primary evidence |
+The backlog remains concentrated in medium-severity findings. The self-scan JSON shows **23 surfaced findings** in total, consisting of **20 medium-severity** and **3 low-severity** items. By title, the dominant cluster is **13 “Exposed Stack Trace in Response”** findings, followed by **3 “Excessive Data Exposure in API Response”** findings, **2 “Weak Cryptography”** findings, and **3 container hygiene findings** represented by package-pinning and cleanup issues.[2]
+
+| Backlog signal | Current state | Evidence |
 | --- | --- | --- |
-| Critical findings | No critical findings surfaced in the current self-scan artifact | Self-scan log and JSON result [2] [6] |
-| Secrets findings | **0** | Self-scan log and JSON result [2] [6] |
-| Total surfaced findings | **23** | Self-scan log and JSON result [2] [6] |
-| Dominant issue family | Medium-severity stack-trace exposure findings across `micro_pentest`, `app.py`, `crypto.py`, and `connectors.py` | Self-scan JSON result [6] |
-| Response exposure findings | Present in `suite-core/core/brain_pipeline.py` and `suite-core/core/sast_engine.py` | Self-scan JSON result [6] |
-| Weak cryptography findings | Present in `suite-core/core/autofix_engine.py` | Self-scan JSON result [6] |
-| Container hygiene findings | Three surfaced container findings remain | Self-scan JSON result [6] |
+| Secrets findings | **0** | Self-scan log and JSON artifact [1] [2] |
+| Total surfaced findings | **23** | Self-scan log and JSON artifact [1] [2] |
+| Severity mix | **20 medium**, **3 low**, **0 high**, **0 critical** | Self-scan JSON artifact [2] |
+| Dominant issue family | **13 exposed stack-trace** findings | Self-scan JSON artifact [2] |
+| Secondary issue family | **3 excessive data exposure** findings | Self-scan JSON artifact [2] |
+| Crypto-related backlog | **2 weak cryptography** findings remain in `suite-core/core/autofix_engine.py`; one additional crypto sanitization path was remediated in this cycle | Self-scan JSON artifact and code/test changes [2] [7] [8] |
+| Container hygiene backlog | **2 no-package-pinning** findings and **1 apt-get-no-clean** finding remain | Self-scan JSON artifact [2] |
 
-## Validation Interpretation
+| File cluster | Surfaced findings in current artifact | Primary issue pattern |
+| --- | --- | --- |
+| `suite-core/core/brain_pipeline.py` | 3 | Excessive data exposure, deprecated API usage, missing IO error handling [2] |
+| `suite-core/core/micro_pentest.py` | 3 | Exposed stack-trace responses [2] |
+| `suite-core/core/autofix_engine.py` | 3 | Stack-trace exposure and weak cryptography [2] |
+| `suite-api/apps/api/app.py` | 3 | Exposed stack-trace responses [2] |
+| `suite-core/core/crypto.py` | 3 in the pre-fix snapshot | Exposed stack-trace / raw error-detail style findings, with one safe remediation now applied in this cycle [2] [7] |
+| `suite-core/core/connectors.py` | 3 | Exposed stack-trace responses [2] |
+| `suite-core/core/sast_engine.py` | 2 | Excessive data exposure [2] |
+| Container / unknown-path findings | 3 | Package pinning and cleanup hygiene [2] |
 
-The branch should now be described as **autonomous-self-scan green and validation-baseline restored in the current environment**. The focused suites are again above the enforced coverage threshold, the high-visibility suites are fully green, and the broader repository foundation slice remains green in the same cycle.[3] [4] [5] This is a materially stronger operational position than the start of the pass because the branch now has a fresh, current-cycle confirmation that both the autonomous path and the key validation slices can execute successfully in a properly aligned sandbox.
+## Validation Interpretation After the Safe Fix
 
-At the same time, the evidence also argues against over-claiming. This pass did not reduce the remaining self-scan backlog; rather, it restored trust that the branch’s validation matrix is once again measuring the codebase instead of the incompleteness of the local Python environment. The next highest-value cycle should therefore return to **direct backlog reduction**, especially across the concentrated medium-severity stack-trace and exposure clusters that remain visible in the self-scan artifact.[2] [3] [6]
+The evidence supports a precise status statement rather than an inflated one. The branch is **green on the requested autonomous and validation baseline**, and it also now carries **one additional safe source-level remediation** that has been confirmed by a targeted regression test.[1] [3] [4] [5] [6] [7] [8] At the same time, the branch does **not yet** have a fresh full-matrix validation stamp taken *after* the crypto change, because the code fix landed after the broader validation slice and was confirmed only through a targeted revalidation step in this cycle.[5] [6] [7] [8]
 
-| Validation slice | Current interpretation |
-| --- | --- |
-| `scripts/aldeci_self_scan.py` against local API | Freshly green in the current cycle at **17/17 passed** [2] |
-| `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, `tests/test_autonomous_workspace.py` | Freshly green in the current cycle at **263 passed**, **1 skipped**, **18.34%** coverage [3] |
-| `tests/e2e/test_branding_namespace.py`, `tests/e2e/test_bn_lr_hybrid.py`, `tests/test_ai_consensus.py` | Freshly green in the current cycle at **49 passed** [4] |
-| `tests/test_overlay_configuration.py`, `tests/test_overlay_runtime.py`, `tests/test_configuration_unit.py`, `tests/test_app_factory.py` | Green in the current cycle at **184 passed** [5] |
+That means the branch is in a stronger position than it was at the start of the pass, but the evidence should be interpreted in two layers. First, the branch-level autonomous and validation baseline is healthy. Second, the newly remediated crypto path is verified narrowly and credibly, but it should still be included in the next broader validation or self-scan cycle so that the machine-readable backlog totals can be refreshed against the new source state.[1] [2] [3] [4] [5] [6] [7] [8]
 
 ## Files Changed in This Pass
 
-This cycle’s repository modifications are intentionally limited to **status and reporting artifacts**. The engineering work itself consisted of restoring the execution environment to the dependency baseline already defined by the repository. Because the manifests were already correct, no source-code or manifest edit was required to recover validation health.
+This pass included both code and reporting changes. The code changes were intentionally small and low-risk, while the reporting changes were needed to capture the new state of the branch accurately.
 
 | File or artifact | Change |
 | --- | --- |
-| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the environment-alignment recovery cycle and restored validation baseline |
-| `data/autonomous-reports/autonomous-foundation-report-20260404T233300Z.json` | New machine-readable report capturing this cycle’s evidence and conclusions |
+| `suite-core/core/crypto.py` | Sanitized malformed hybrid-signature-envelope verification failures so callers no longer receive raw `CryptoError` text [7] |
+| `tests/test_crypto_unit.py` | Added a regression test to lock in the sanitized error-detail behavior [6] [8] |
+| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the fresh cycle evidence, safe remediation, and current backlog interpretation |
+| `data/autonomous-reports/autonomous-foundation-report-20260405T034156Z.json` | New machine-readable report for the current cycle state |
 
 ## Recommended Next Actions
 
 | Priority | Next action | Rationale |
 | --- | --- | --- |
-| 1 | Return to triaging the medium-severity stack-trace exposure findings in `suite-core/core/micro_pentest.py`, `suite-api/apps/api/app.py`, `suite-core/core/crypto.py`, and `suite-core/core/connectors.py` | These remain the most concentrated surfaced application-security backlog cluster [6] |
-| 2 | Review the excessive data exposure findings in `suite-core/core/brain_pipeline.py` and `suite-core/core/sast_engine.py` | They remain visible in the latest self-scan artifact [6] |
-| 3 | Triage the weak cryptography findings in `suite-core/core/autofix_engine.py` | They remain a recurring medium-severity backlog item [6] |
-| 4 | Preserve environment-manifest alignment before future autonomous cycles by ensuring declared dependencies are present before interpreting failures as product regressions | This cycle showed that missing runtime packages can masquerade as code defects [3] [7] [8] [9] |
-| 5 | After the next batch of code-level backlog fixes, rerun the same focused, high-visibility, and broader validation slices | The current baseline is restored and should serve as the comparison point for the next substantive remediation cycle [3] [4] [5] |
+| 1 | Rerun the autonomous self-scan after the crypto fix so the machine-readable backlog totals reflect the new source state | The current self-scan artifact is still the pre-fix snapshot [1] [2] [6] [7] |
+| 2 | Continue reducing the medium-severity stack-trace cluster in `suite-core/core/micro_pentest.py`, `suite-api/apps/api/app.py`, `suite-core/core/connectors.py`, and the remaining paths in `suite-core/core/crypto.py` | Stack-trace exposure is still the dominant surfaced issue family [2] |
+| 3 | Triage the excessive-data-exposure paths in `suite-core/core/brain_pipeline.py` and `suite-core/core/sast_engine.py` | These remain the second most visible application-security cluster [2] |
+| 4 | Triage the remaining weak-cryptography findings in `suite-core/core/autofix_engine.py` | The current pass improved one crypto-adjacent exposure path, but weak-cryptography findings remain open elsewhere [2] |
+| 5 | After the next safe remediation, rerun the focused, high-visibility, and broader slices to stamp the updated source state with a fresh full validation matrix | The current cycle’s full matrix validated the baseline, while the new code fix received only targeted confirmation [3] [4] [5] [6] |
 
 ## References
 
-[1]: ../data/autonomous-reports/autonomous-foundation-report-20260404T211630Z.json "Previous autonomous foundation report"
-[2]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260404T230545Z.log "Autonomous self-scan log for the current cycle"
-[3]: ../data/autonomous-reports/focused-autonomous-validation-post-runtime-restore-20260404T232137Z.log "Focused autonomous validation log after runtime restoration"
-[4]: ../data/autonomous-reports/high-visibility-validation-post-runtime-restore-20260404T232523Z.log "High-visibility validation log after runtime restoration"
-[5]: ../data/autonomous-reports/broader-validation-rerun-20260404T231402Z.log "Broader repository validation log for the current cycle"
-[6]: ../data/demo-results/self-scan-20260404-190551.json "Current ALDECI self-scan result artifact"
-[7]: ../requirements.txt "Primary Python dependency manifest"
-[8]: ../requirements-test.txt "Test dependency manifest"
-[9]: ../data/autonomous-reports/focused-autonomous-validation-post-sklearn-20260404T231529Z.log "Intermediate focused validation log showing remaining missing dependency symptoms"
+[1]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260405T030540Z.log "Autonomous self-scan log for the current cycle"
+[2]: ../data/demo-results/self-scan-20260404-230549.json "Machine-readable self-scan result artifact used in the current cycle"
+[3]: ../data/autonomous-reports/focused-autonomous-validation-20260405T030628Z.log "Focused autonomous validation log for the current cycle"
+[4]: ../data/autonomous-reports/high-visibility-validation-rerun-20260405T032305Z.log "High-visibility validation log for the current cycle"
+[5]: ../data/autonomous-reports/broader-validation-20260405T032818Z.log "Broader repository validation log for the current cycle"
+[6]: ../data/autonomous-reports/revalidation-crypto-sanitization-20260405T033827Z.log "Targeted revalidation log for the crypto sanitization fix"
+[7]: ../suite-core/core/crypto.py "Hybrid evidence-bundle verifier source with sanitized malformed-envelope handling"
+[8]: ../tests/test_crypto_unit.py "Regression test covering sanitized malformed hybrid-signature verification errors"

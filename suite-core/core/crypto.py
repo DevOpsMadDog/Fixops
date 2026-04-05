@@ -1776,7 +1776,7 @@ class HybridVerifier:
                 return VerificationResult.failure(
                     algorithm=sig_block.get("algorithm", "unknown"),
                     fingerprint=sig_block.get("key_fingerprint", "unknown"),
-                    detail=str(exc),
+                    detail=f"Invalid hybrid signature envelope: {type(exc).__name__}",
                 )
             return self.verify_hybrid(canonical_bytes, hybrid_sig)
 

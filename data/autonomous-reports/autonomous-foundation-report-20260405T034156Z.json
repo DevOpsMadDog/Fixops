@@ -1,0 +1,367 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-05T03:41:56Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "2c27c7a4e7c99f4ae8e86993223543850cceed58",
+  "status": "validation-green-with-safe-crypto-sanitization-and-open-security-followup",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-open-findings",
+    "cycle_fix_status": "implemented-and-targetedly-validated",
+    "focused_successor_validation_status": "passed-with-coverage",
+    "high_visibility_status": "passed-no-cov",
+    "broader_validation_status": "passed-no-cov",
+    "targeted_confirmation_status": "passed-no-cov",
+    "confirmation_result": {
+      "passed": 1,
+      "deselected": 64,
+      "failed": 0,
+      "duration_seconds": 0.39,
+      "coverage_enabled": false,
+      "selected_suites": [
+        "tests/test_crypto_unit.py::TestHybridVerifierSanitization::test_verify_evidence_bundle_sanitizes_hybrid_signature_parse_errors"
+      ]
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "resolution": "maintained successor wrapper suites remain present and passed in the current focused validation run"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T030540Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260404-230549.json",
+    "metrics": {
+      "sast_findings": 325,
+      "secrets_found": 0,
+      "total_findings": 23,
+      "steps_total": 17,
+      "steps_passed": 17,
+      "steps_failed": 0,
+      "pass_rate": 100.0,
+      "duration_seconds": 8.4
+    },
+    "findings": [
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 176,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "low",
+        "title": "Deprecated API Usage — urllib",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 232,
+        "cwe": "CWE-477"
+      },
+      {
+        "severity": "low",
+        "title": "Missing Error Handling in IO",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 232,
+        "cwe": "CWE-755"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 304,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 1522,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 1564,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 624,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 759,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 760,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 103,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 406,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 414,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 62,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 123,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 124,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 1368,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 1645,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/connectors.py",
+        "line_number": 60,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/connectors.py",
+        "line_number": 275,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/connectors.py",
+        "line_number": 280,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      },
+      {
+        "severity": "low",
+        "title": "Apt-get No Clean",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "focused_autonomous_successor_current",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260405T030628Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 474.63,
+        "coverage_enabled": true,
+        "coverage_percent": 18.84,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "coverage-enabled successor-suite validation satisfied the repository coverage gate in the current cycle",
+        "this run is the current branch-level confirmation artifact for the autonomous successor suite set"
+      ]
+    },
+    {
+      "name": "high_visibility_current",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260405T032305Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 279.74,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "executed without coverage gating to isolate functional validation",
+        "branding namespace, BN-LR hybrid behavior, and AI consensus remained green in the current cycle"
+      ]
+    },
+    {
+      "name": "broader_foundation_current",
+      "log": "data/autonomous-reports/broader-validation-20260405T032818Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 19.85,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "broader validation adds confidence around overlay, configuration, runtime, and app-factory behavior",
+        "this slice remained green before the subsequent targeted crypto sanitization fix"
+      ]
+    },
+    {
+      "name": "autonomous_cycle_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T030540Z.log",
+      "status": "passed",
+      "result": {
+        "steps_passed": 17,
+        "steps_total": 17,
+        "findings_total": 23,
+        "duration_seconds": 8.4
+      },
+      "notes": [
+        "the self-scan workflow executed successfully and produced fresh machine-readable evidence for the current branch state",
+        "the self-scan findings snapshot predates the later crypto sanitization fix applied in this same cycle"
+      ]
+    },
+    {
+      "name": "targeted_crypto_sanitization_confirmation",
+      "log": "data/autonomous-reports/revalidation-crypto-sanitization-20260405T033827Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 1,
+        "deselected": 64,
+        "failed": 0,
+        "duration_seconds": 0.39,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_crypto_unit.py::TestHybridVerifierSanitization::test_verify_evidence_bundle_sanitizes_hybrid_signature_parse_errors"
+        ]
+      },
+      "notes": [
+        "this targeted rerun directly confirmed the newly added regression test for sanitized malformed hybrid-signature-envelope failures",
+        "the source check in the same evidence log confirmed that the old raw detail=str(exc) path is no longer present in verify_evidence_bundle"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "suite-core/core/crypto.py",
+      "change": "replaced raw malformed hybrid-signature-envelope exception text with a sanitized type-only verification failure detail in HybridVerifier.verify_evidence_bundle"
+    },
+    {
+      "file": "tests/test_crypto_unit.py",
+      "change": "added a regression test that asserts malformed hybrid evidence bundles return a sanitized error_detail instead of raw missing-fields parser text"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative to reflect the fresh cycle evidence, safe crypto sanitization fix, and current backlog interpretation"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260405T034156Z.json",
+      "change": "wrote a new machine-readable cycle report for the current validated branch state"
+    }
+  ],
+  "environment_notes": {
+    "api_startup_unblocked": true,
+    "local_token_configured_for_cycle": true,
+    "demo_mode_used": true,
+    "focused_successor_suite_coverage_gate_satisfied": true,
+    "high_visibility_and_broader_slices_executed_before_source_fix": true,
+    "post_fix_confirmation_scope": "targeted regression test plus source check",
+    "known_nonfatal_test_message": "Failed to export metrics batch code: 404, reason: Not Found"
+  },
+  "remaining_risks": [
+    "the latest full self-scan artifact still reports 23 surfaced findings and has not yet been refreshed after the crypto sanitization fix",
+    "exposed stack-trace findings remain the dominant open issue family across micro_pentest, app.py, crypto.py, connectors.py, and autofix_engine.py",
+    "excessive data exposure findings remain open in brain_pipeline.py and sast_engine.py",
+    "weak cryptography findings remain open in suite-core/core/autofix_engine.py",
+    "root Dockerfile scan still surfaces package-pinning and cleanup hygiene findings",
+    "local telemetry export still emits a non-fatal 404 message during validation"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "rerun the autonomous self-scan after the crypto fix so the machine-readable backlog totals reflect the updated source state"
+    },
+    {
+      "priority": 2,
+      "action": "continue reducing the medium-severity stack-trace exposure cluster in suite-core/core/micro_pentest.py, suite-api/apps/api/app.py, suite-core/core/connectors.py, and the remaining paths in suite-core/core/crypto.py"
+    },
+    {
+      "priority": 3,
+      "action": "triage the excessive-data-exposure findings in suite-core/core/brain_pipeline.py and suite-core/core/sast_engine.py"
+    },
+    {
+      "priority": 4,
+      "action": "triage the remaining weak-cryptography findings in suite-core/core/autofix_engine.py"
+    },
+    {
+      "priority": 5,
+      "action": "after the next safe remediation, rerun the focused, high-visibility, and broader validation slices to stamp the updated source state with a fresh full validation matrix"
+    }
+  ]
+}
