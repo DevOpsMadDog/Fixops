@@ -1,0 +1,262 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-05T19:49:33Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_during_cycle": "524c34e4552a5155f25b3ad7e51181d37a08be99",
+  "status": "validation-recovered-with-representative-coverage-baseline-and-open-autofix-followup",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-open-findings",
+    "cycle_fix_status": "safe-runtime-alignment-applied-without-source-edits",
+    "focused_successor_validation_status": "passed-post-alignment-and-cleared-coverage-gate",
+    "high_visibility_status": "tests-passed-but-narrow-slice-missed-global-coverage-gate",
+    "broader_validation_status": "representative-rerun-passed-and-cleared-coverage-gate",
+    "confirmation_result": {
+      "focused_autonomous_successor": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 458.92,
+        "coverage_percent": 19.03,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "representative_broader_rerun": {
+        "passed": 447,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 458.85,
+        "coverage_percent": 19.02,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "resolution": "all requested successor and high-visibility suites remain present; the focused successor slice and the representative broader rerun now have fresh post-alignment evidence"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T190719Z.log",
+    "base_url": "http://localhost:8000",
+    "metrics": {
+      "sast_findings": 78,
+      "secrets_found": 0,
+      "total_findings": 15,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.0,
+      "duration_seconds": 7.7
+    },
+    "notes": [
+      "the local API was brought to a healthy state on port 8000 before the self-scan was executed",
+      "the self-scan baseline remained stable during this continuation cycle and still shows an open AutoFix HTTP 500 follow-up"
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_current_cycle",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T190719Z.log",
+      "status": "passed-with-open-findings",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "duration_seconds": 7.7
+      },
+      "notes": [
+        "the SAST engine phase remained clean at 0 findings",
+        "the insecure-deserialization AutoFix step still returned HTTP 500"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_post_alignment",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260405T190749Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 458.92,
+        "coverage_percent": 19.03,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this run provides the fresh post-alignment successor baseline requested for the branch",
+        "the repository-wide coverage gate was satisfied without altering the configured threshold"
+      ]
+    },
+    {
+      "name": "high_visibility_post_alignment",
+      "log": "data/autonomous-reports/high-visibility-validation-20260405T191605Z.log",
+      "status": "tests-passed-coverage-gate-failed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 413.54,
+        "coverage_percent": 5.55,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the selected tests themselves passed cleanly after runtime alignment",
+        "the global coverage gate remained below threshold because the slice is narrow relative to the repository-wide denominator"
+      ]
+    },
+    {
+      "name": "broader_foundation_initial_post_alignment",
+      "log": "data/autonomous-reports/broader-validation-20260405T192329Z.log",
+      "status": "tests-passed-coverage-gate-failed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 125.99,
+        "coverage_percent": 15.82,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the selected tests passed cleanly",
+        "the coverage denominator remained too broad for this narrow slice to clear the repository-wide threshold"
+      ]
+    },
+    {
+      "name": "broader_foundation_representative_rerun",
+      "log": "data/autonomous-reports/broader-validation-rerun-20260405T193328Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 447,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 458.85,
+        "coverage_percent": 19.02,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the safest remediation was to broaden the validation slice rather than weaken the repository coverage rule",
+        "the unchanged repository-wide coverage gate was satisfied on a more representative validation set"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative for the fresh post-alignment validation continuation cycle"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260405T194933Z.json",
+      "change": "wrote a new machine-readable report capturing the fresh self-scan, validation evidence, and representative broader rerun"
+    }
+  ],
+  "environment_remediation": {
+    "type": "sandbox-package-alignment-to-repository-manifests",
+    "source_manifests": [
+      "requirements.txt",
+      "requirements-test.txt"
+    ],
+    "evidence_log": "data/autonomous-reports/environment-alignment-20260405T194811Z.log",
+    "packages_aligned": {
+      "PyJWT": "2.10.1",
+      "pytest": "8.4.2",
+      "pytest_asyncio": "0.26.0",
+      "pytest_cov": "5.0.0",
+      "scikit_learn": "1.8.0",
+      "scipy": "1.17.1",
+      "joblib": "1.5.3"
+    },
+    "rationale": "the repository already declared the required runtime and test dependencies, so the lowest-risk remediation was to align the sandbox environment rather than modify branch source code"
+  },
+  "environment_notes": {
+    "local_api_healthy_for_self_scan": true,
+    "local_api_port": 8000,
+    "initial_api_start_failed_before_alignment": true,
+    "initial_failure_cause": "missing jwt dependency in the sandbox runtime",
+    "product_or_test_source_code_modified_in_this_cycle": false,
+    "reporting_artifacts_modified_in_this_cycle": true,
+    "dependency_alignment_changed_validation_outcome": true,
+    "high_visibility_slice_is_logically_green_but_coverage_narrow": true,
+    "known_nonfatal_test_message": "OpenTelemetry exporter warnings reported HTTP 404 during metrics export in several otherwise successful test runs"
+  },
+  "remaining_risks": [
+    "the insecure-deserialization AutoFix path in the live self-scan still returns HTTP 500",
+    "the high-visibility validation slice passes logically but does not satisfy the repository-wide 18% coverage gate when run alone",
+    "OpenTelemetry metrics-export warnings continue to emit HTTP 404 noise during otherwise successful validation runs",
+    "live backlog findings remain around token expiration, sensitive logging, weak cryptography, insecure deserialization, brain-pipeline robustness, and Dockerfile hygiene"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "decide whether narrow visibility-focused suites should always be paired with a representative broader slice when enforcing the repository-wide 18% coverage gate"
+    },
+    {
+      "priority": 2,
+      "action": "triage the insecure-deserialization AutoFix HTTP 500 path exposed by the autonomous self-scan"
+    },
+    {
+      "priority": 3,
+      "action": "investigate and either configure or suppress the OpenTelemetry metrics-export HTTP 404 noise seen during validation runs"
+    },
+    {
+      "priority": 4,
+      "action": "codify the validated local bootstrap and dependency-alignment procedure so future autonomous cycles do not lose time rediscovering missing runtime packages"
+    },
+    {
+      "priority": 5,
+      "action": "continue backlog reduction on token-expiration, sensitive-logging, weak-cryptography, insecure-deserialization, and Dockerfile-hygiene findings"
+    }
+  ],
+  "evidence": {
+    "focused_validation_log": "data/autonomous-reports/focused-autonomous-validation-20260405T190749Z.log",
+    "high_visibility_validation_log": "data/autonomous-reports/high-visibility-validation-20260405T191605Z.log",
+    "broader_validation_log": "data/autonomous-reports/broader-validation-20260405T192329Z.log",
+    "broader_validation_rerun_log": "data/autonomous-reports/broader-validation-rerun-20260405T193328Z.log",
+    "environment_alignment_log": "data/autonomous-reports/environment-alignment-20260405T194811Z.log",
+    "repo_state_log": "data/autonomous-reports/repo-state-20260405T195009Z.log"
+  }
+}
