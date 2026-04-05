@@ -1,0 +1,138 @@
+
+[1m[96m══════════════════════════════════════════════════════════════════[0m
+[1m[96m  ALdeci Self-Scan — Eating Our Own Dog Food[0m
+[1m[96m  Scanning ALdeci with ALdeci's native scanners[0m
+[1m[96m══════════════════════════════════════════════════════════════════[0m
+  [2mAPI: http://localhost:8001 | Codebase: /home/ubuntu/Fixops_repo[0m
+
+  [1m[95m┌─ Step 1: Pre-flight Health Check[0m
+  [92m│  ✓ API healthy: 200 (41ms)[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  🔍 PHASE 1: SAST — Scan ALdeci Source Code[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 2: SAST: Brain Pipeline (V3)[0m
+  [92m│  ✓ 17 findings, 888 taint flows (960ms)[0m
+  [2m│    [LOW] Deprecated API Usage — urllib[0m
+  [2m│    [LOW] Missing Error Handling in IO[0m
+  [2m│    [MEDIUM] Unbounded Resource Allocation[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 3: SAST: MPTE Engine (V5)[0m
+  [92m│  ✓ 0 findings — clean! (395ms)[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 4: SAST: AutoFix Engine (V3)[0m
+  [92m│  ✓ 9 findings, 36 taint flows (440ms)[0m
+  [2m│    [MEDIUM] Weak Cryptography[0m
+  [2m│    [MEDIUM] Weak Cryptography[0m
+  [2m│    [CRITICAL] Insecure Deserialization[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 5: SAST: API Gateway[0m
+  [92m│  ✓ 37 findings, 389 taint flows (769ms)[0m
+  [2m│    [MEDIUM] Token Without Expiration[0m
+  [2m│    [MEDIUM] Logging Sensitive Data[0m
+  [2m│    [MEDIUM] Logging Sensitive Data[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 6: SAST: Crypto/Evidence (V10)[0m
+  [92m│  ✓ 15 findings, 45 taint flows (516ms)[0m
+  [2m│    [MEDIUM] Token Without Expiration[0m
+  [2m│    [MEDIUM] Token Without Expiration[0m
+  [2m│    [MEDIUM] Token Without Expiration[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 7: SAST: SAST Engine[0m
+  [92m│  ✓ 0 findings — clean! (139ms)[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 8: SAST: Integration Connectors[0m
+  [92m│  ✓ 0 findings — clean! (664ms)[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  🔐 PHASE 2: SECRETS — Scan Configuration Files[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 9: Secrets: Docker Compose[0m
+  [92m│  ✓ 0 secrets — clean! (16ms)[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 10: Secrets: FixOps Config[0m
+  [92m│  ✓ 0 secrets — clean! (12ms)[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 11: Secrets: Environment Variables[0m
+  [92m│  ✓ 0 secrets — clean! (11ms)[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  🏗️  PHASE 3: IaC — Scan Infrastructure Configs[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 12: Container: ALdeci Dockerfile[0m
+  [92m│  ✓ 4 Dockerfile findings (14ms)[0m
+  [2m│    [medium] No Package Pinning[0m
+  [2m│    [low] Apt-get No Clean[0m
+  [2m│    [medium] No Package Pinning[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  📦 PHASE 4: SBOM — ALdeci's Own Dependencies[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 13: Generate ALdeci SBOM from requirements.txt[0m
+  [92m│  ✓ Generated SBOM: 38 dependencies[0m
+  [92m│  ✓ SBOM ingested: 200[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  🧠 PHASE 5: Brain Pipeline — Process Self-Scan Findings[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 14: Brain Pipeline — 15 self-scan findings[0m
+  [92m│  ✓ Brain Pipeline: 13/12 steps (491ms)[0m
+  [2m│  Input: 15 → Clusters: 1 → Noise: 93%[0m
+  [2m│  Graph: 0 nodes[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  🔧 PHASE 6: AutoFix — Fix ALdeci's Own Vulnerabilities[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 15: AutoFix: Insecure Deserialization[0m
+  [93m│  ⚠ AutoFix: 500 (169ms)[0m
+  [95m└─────────────────────────────────[0m
+
+[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m  📋 PHASE 7: Evidence — Self-Compliance Assessment[0m
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [1m[95m┌─ Step 16: SOC2 Self-Assessment[0m
+  [92m│  ✓ SOC2: signed with RSA-SHA256 (PKCS1v15) (1029ms)[0m
+  [2m│  Score: 0.38 | Compliance: 38.0%[0m
+  [2m│  Signature: Tmhd3MLNjI0Vd51crIIQjo2otwFz5C...[0m
+  [95m└─────────────────────────────────[0m
+
+  [1m[95m┌─ Step 17: Brain Evidence — Self-Assessment Bundle[0m
+  [92m│  ✓ Brain Evidence: score=0.8636, status=qualified (22ms)[0m
+  [95m└─────────────────────────────────[0m
+
+══════════════════════════════════════════════════════════════════
+[1m  ALdeci Self-Scan — RESULTS[0m
+══════════════════════════════════════════════════════════════════
+  SAST findings:      78
+  Secrets found:      0
+  Total findings:     15
+  Brain processed:    15 findings
+  Evidence signed:    ✓ RSA-SHA256
+  Duration:           5.7s
+
+  Steps: 17 | Passed: [92m16[0m | Failed: [91m0[0m
+
+  [1m[92m🏆 SELF-SCAN PASSED — 16/17 (94%)[0m
+  [2mALdeci successfully scanned itself. Dog food tastes good.[0m
+

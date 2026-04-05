@@ -1,106 +1,104 @@
 # ALDECI Build Status
 
-As of **2026-04-05 UTC**, the `feature/autonomous-foundation` branch has completed another autonomous continuation cycle that materially improved the **accuracy of the branch’s self-scan backlog**. This pass did not attempt a large product-surface refactor. Instead, it focused on **safe scanner-precision remediation** inside `suite-core/core/sast_engine.py`, expanded targeted regression coverage in `tests/test_sast_engine_unit.py`, and then reran the autonomous self-scan against a freshly restarted local API so the new scanner behavior was reflected in the live evidence trail.[1] [2] [3] [4] [5] [6]
+As of **2026-04-05 UTC**, the `feature/autonomous-foundation` branch has completed another autonomous continuation cycle that combined a fresh self-scan, focused branch validation, a safe scanner-precision fix, and a live confirmation rerun against a freshly started API instance. The work in this pass stayed deliberately narrow. Rather than attempting a broad product-surface refactor, it targeted the **SAST-086 “Excessive Data Exposure in API Response”** detector in `suite-core/core/sast_engine.py`, added regression coverage in `tests/test_sast_engine_unit.py`, and then verified the impact through a new restart-backed self-scan artifact.[1] [2] [6] [7] [8] [9]
 
-The most important outcome is that the refreshed self-scan now reports **20 surfaced findings instead of 21**, and **93 SAST findings instead of 94**, with the prior **Basic Auth Without TLS** connector finding eliminated from the live post-restart backlog snapshot.[1] [2] The same cycle also preserved the earlier safe **CWE-209 response-exposure rule tightening**, so the current branch state now carries two evidence-backed SAST-rule precision improvements: one for **response-detail exposure detection** and one for **Basic authentication over explicit insecure HTTP transport**.[3] [4] [5] [6]
+The most important outcome is that the branch’s live backlog is now materially smaller and more trustworthy. The refreshed self-scan reports **15 surfaced findings instead of 20** and **78 SAST findings instead of 93**, while the **SAST Engine** self-scan phase itself is now clean. In practical terms, the prior self-scan-only **excessive-data-exposure** findings in `brain_pipeline.py`, `micro_pentest.py`, and `sast_engine.py` were removed from the live backlog after the rule was tightened to require actual response-construction context. The branch still carries meaningful open security work, but the current evidence base is less noisy than it was at the start of the cycle.[1] [2] [7] [9]
 
 ## Execution Summary
 
 | Area | Current outcome | Evidence |
 | --- | --- | --- |
-| Working branch | `feature/autonomous-foundation` | Repository state captured in the current cycle [1] [2] |
-| Current head before any new commit in this pass | `3b6bf9508848273e87bc57895c69dc505648854c` | Repository inspection during this cycle [10] |
-| Fresh post-restart autonomous self-scan | **16/17 passed**, **94.1%**, **93 SAST findings**, **20 surfaced findings**, **0 secrets**, **5.8s** | Post-restart self-scan log and JSON artifact [1] [2] |
-| Targeted SAST validation: CWE-209 precision | **35 passed**, **0 failed**, **0.38s**, no coverage enforcement | Targeted SAST engine validation log [3] |
-| Targeted SAST validation: Basic Auth/TLS precision | **37 passed**, **0 failed**, **0.41s**, no coverage enforcement | Targeted SAST engine validation log [4] |
-| Current full-matrix branch baseline | Prior focused, high-visibility, and broader slices remain the latest branch-level baseline from the preceding committed cycle | Prior validation logs [7] [8] [9] |
-| Code changes applied in this pass | Tightened two SAST rules and expanded regression coverage in the SAST engine unit suite | Source and test files [5] [6] |
+| Working branch | `feature/autonomous-foundation` | Current cycle report [9] |
+| Head before any new cycle commit | `0e51b21b6feb3d4fd2d3ffdac2fa06f04b1c8f0b` | Current cycle report [9] |
+| Fresh autonomous self-scan | **16/17 passed**, **94%**, **78 SAST findings**, **15 surfaced findings**, **0 secrets**, **5.7s** | Restart-backed self-scan log and JSON artifact [1] [2] |
+| Targeted SAST confirmation | **6 passed**, **0 failed**, **33 deselected**, **0.28s**, no coverage enforcement | Targeted SAST validation log [6] |
+| Focused autonomous successor slice | **263 passed**, **1 skipped**, **0 failed**, **446.39s** | Focused validation log [3] |
+| High-visibility slice | **49 passed**, **0 failed**, **272.08s** | High-visibility validation log [4] |
+| Broader repository slice | **184 passed**, **0 failed**, **19.91s** | Broader validation log [5] |
+| Code changes applied in this pass | Tightened **SAST-086** matching context and added regression coverage for response-context serialization vs internal helper serialization | Source and test files [7] [8] |
 
-## What This Cycle Demonstrated
+## What This Cycle Changed
 
-This cycle demonstrated that the branch’s autonomous self-scan evidence can be improved through **narrow, low-risk scanner corrections** rather than only through application-surface changes. The first correction, validated earlier in this continuation pass, tightened the **CWE-209 “Exposed Stack Trace in Response”** rule so that it focuses on exception detail in actual response-construction contexts instead of matching generic exception language too broadly. The second correction tightened **SAST-073 “Basic Auth Without TLS”** so it now requires an explicit insecure `http://` transport signal when pairing Basic authentication with transport risk, rather than flagging every occurrence of a Basic `Authorization` header regardless of endpoint security context.[3] [4] [5] [6]
+This cycle demonstrated that the branch’s autonomous security backlog can still be improved through **safe scanner-precision work** when the backlog contains obvious self-scan noise. The revised SAST-086 pattern no longer treats every `.to_dict()` occurrence as an API-response exposure. Instead, it now requires that object serialization appear in a response-construction context such as `return`, `JSONResponse(...)`, `jsonify(...)`, or `json.dumps(...)`. That adjustment preserves the intended security signal while avoiding generic internal helper serialization matches.[6] [7] [8]
 
-The live post-restart self-scan is the key confirmation artifact because it shows the local API was not merely using stale in-memory scanner code. After restarting the service and rerunning the autonomous self-scan, the branch produced a new machine-readable snapshot with **20 surfaced findings**, and the **Integration Connectors** phase became clean, removing the earlier false-positive Azure DevOps Basic-auth finding from the backlog view.[1] [2] This makes the current evidence base materially more trustworthy than the intermediate pre-restart scan that still reflected stale runtime state.
+The live confirmation step matters as much as the code change. An intermediate self-scan executed before loading the updated runtime still showed stale results, so the branch was rescanned against a freshly started API instance on **port 8001**. That restart-backed run is the authoritative evidence for the current branch state. It shows the **SAST Engine** phase falling to **0 findings** and the total self-scan backlog dropping by five surfaced items overall, even though the backlog still contains one separate **Unbounded Resource Allocation** signal in `brain_pipeline.py`.[1] [2] [9]
 
 | Validation slice | Interpretation |
 | --- | --- |
-| `scripts/aldeci_self_scan.py` against the restarted local API | Confirms the refreshed scanner behavior is live and produces a reduced backlog snapshot [1] [2] |
-| `tests/test_sast_engine_unit.py` targeted no-cov rerun for CWE-209 precision | Confirms the rule still flags response-exposure patterns while avoiding logger-only false positives [3] [5] [6] |
-| `tests/test_sast_engine_unit.py` targeted no-cov rerun for Basic Auth/TLS precision | Confirms HTTPS-only Basic-header patterns are ignored while explicit insecure HTTP transport still triggers detection [4] [5] [6] |
-| Prior focused, high-visibility, and broader validation slices | Remain the most recent branch-level multi-suite baseline, but they predate the current SAST-engine edits [7] [8] [9] |
+| `scripts/aldeci_self_scan.py` against the fresh API instance | Confirms the updated scanner logic is live and produces the reduced backlog now reflected in the branch status [1] [2] [9] |
+| `tests/test_sast_engine_unit.py` targeted confirmation | Confirms internal `to_dict()` helpers are ignored while response-context object serialization is still detected [6] [8] |
+| Focused autonomous successor suites | Provide the current branch-level baseline for the requested autonomous successor tests, but they predate the final SAST-086 edit [3] [9] |
+| High-visibility suites | Remain green earlier in the same cycle and provide confidence that major visible workflows are stable, but they also predate the final SAST-086 edit [4] [9] |
+| Broader repository slice | Confirms configuration, overlay, and app-factory coverage remains green earlier in the same cycle, but it predates the final SAST-086 edit [5] [9] |
 
 ## Safe Remediation Applied in This Pass
 
-The change in `suite-core/core/sast_engine.py` was intentionally precise. The **CWE-209** pattern now anchors more clearly to **HTTP response construction** and explicit exception-detail inclusion, which reduces false positives from generic exception references outside response payloads. In the same file, the **Basic Auth Without TLS** rule now requires Basic authentication to appear alongside an explicit insecure `http://` transport indicator, which prevents HTTPS-only Azure DevOps PAT header construction from being classified as transport insecurity.[3] [4] [5]
-
-The corresponding regression coverage was expanded in `tests/test_sast_engine_unit.py`. The unit suite now includes assertions that the tightened **CWE-209** rule ignores logger-only exception handling while still flagging exception detail placed into HTTP responses, and that the tightened **SAST-073** rule ignores HTTPS-only Basic-header construction while still flagging Basic authentication over explicit insecure HTTP transport. The targeted reruns for these cases remained green in the current sandbox session.[3] [4] [6]
+The remediation in this pass was intentionally small and low-risk. The code change did not alter business logic, persistence, routing, or data models. Instead, it narrowed a regex-driven scanner rule so the scanner behaves more like a reviewer would: it now differentiates between internal serialization helpers and actual API-response construction. The associated unit coverage was expanded to preserve that distinction across future iterations.[6] [7] [8]
 
 | Changed file | Safe change applied | Why it matters |
 | --- | --- | --- |
-| `suite-core/core/sast_engine.py` | Tightened **SAST-058** and **SAST-073** regex patterns to require more security-relevant context | Reduces false positives without suppressing the intended risky patterns [5] |
-| `tests/test_sast_engine_unit.py` | Expanded regression coverage for both rule families | Prevents the scanner from silently drifting back to broader, noisier matching behavior [3] [4] [6] |
+| `suite-core/core/sast_engine.py` | Tightened **SAST-086** to require response-construction context before flagging object serialization | Removes self-scan noise without suppressing the intended API-exposure pattern [7] |
+| `tests/test_sast_engine_unit.py` | Added regression coverage proving internal `to_dict()` helpers are ignored while response-context serialization is still flagged | Prevents the scanner from drifting back toward the broader false-positive behavior [6] [8] |
+| `data/autonomous-reports/autonomous-foundation-report-20260405T112305Z.json` | Added a machine-readable record of the current continuation cycle and evidence paths | Preserves the current branch status in durable structured form [9] |
 
 ## Current Self-Scan Backlog Shape
 
-The latest machine-readable self-scan artifact is now the correct live backlog baseline for this branch state. It reports **20 surfaced findings** with a severity mix of **16 medium**, **3 low**, and **1 critical** item, while still showing **0 secrets findings**.[1] [2] The backlog shape has changed meaningfully relative to the earlier cycle: the **Basic Auth Without TLS** connector issue no longer appears in the current snapshot, and the remaining findings are now concentrated in **data exposure**, **token lifetime**, **sensitive logging**, **weak cryptography**, **insecure deserialization**, and **container hygiene** categories.[2]
+The refreshed JSON artifact is now the correct live backlog baseline for this branch state. It reports **15 surfaced findings** with a severity mix of **11 medium**, **3 low**, and **1 critical**, while continuing to report **0 secrets**. The most meaningful structural change is that the earlier self-scan-only **excessive-data-exposure** cluster is gone from the live snapshot. What remains is a more concentrated backlog around **token lifetime**, **sensitive logging**, **weak cryptography**, **insecure deserialization**, **brain pipeline robustness**, and **container hygiene**.[1] [2] [9]
 
 | Backlog signal | Current state | Evidence |
 | --- | --- | --- |
-| Secrets findings | **0** | Post-restart self-scan log and JSON artifact [1] [2] |
-| Total surfaced findings | **20** | Post-restart self-scan log and JSON artifact [1] [2] |
-| Severity mix | **16 medium**, **3 low**, **1 critical**, **0 high** | Machine-readable self-scan artifact [2] |
-| Dominant issue family | **6 excessive-data-exposure** findings across `brain_pipeline.py`, `micro_pentest.py`, and `sast_engine.py` | Machine-readable self-scan artifact [2] |
-| Token-lifetime backlog | **4 token-without-expiration** findings across `suite-api/apps/api/app.py` and `suite-core/core/crypto.py` | Machine-readable self-scan artifact [2] |
-| Logging backlog | **2 logging-sensitive-data** findings in `suite-api/apps/api/app.py` | Machine-readable self-scan artifact [2] |
-| Crypto backlog | **2 weak-cryptography** findings and **1 insecure-deserialization** finding remain in `suite-core/core/autofix_engine.py` | Machine-readable self-scan artifact [2] |
-| Container hygiene backlog | **2 no-package-pinning** findings and **1 apt-get-no-clean** finding remain | Machine-readable self-scan artifact [2] |
+| Secrets findings | **0** | Self-scan log and JSON artifact [1] [2] |
+| Total surfaced findings | **15** | Self-scan log and JSON artifact [1] [2] |
+| SAST findings | **78** | Self-scan log and JSON artifact [1] [2] |
+| Severity mix | **11 medium**, **3 low**, **1 critical**, **0 high** | Machine-readable self-scan artifact [2] |
+| SAST Engine self-scan phase | **0 findings — clean** | Self-scan log [1] |
+| AutoFix self-scan step | Still returns **HTTP 500** during insecure-deserialization autofix attempt | Self-scan log and cycle report [1] [9] |
+| Dominant remaining application clusters | Token expiration, sensitive logging, weak cryptography, insecure deserialization, and brain-pipeline robustness | Self-scan artifact [2] |
+| Container hygiene backlog | **2 no-package-pinning** findings and **1 apt-get-no-clean** finding remain | Self-scan artifact [2] |
 
 | File cluster | Surfaced findings in current artifact | Primary issue pattern |
 | --- | --- | --- |
-| `suite-core/core/brain_pipeline.py` | 3 | Excessive data exposure, deprecated API usage, missing IO error handling [2] |
-| `suite-core/core/micro_pentest.py` | 3 | Excessive data exposure in API responses [2] |
+| `suite-core/core/brain_pipeline.py` | 3 | Deprecated `urllib` usage, missing IO error handling, unbounded resource allocation [2] |
 | `suite-core/core/autofix_engine.py` | 3 | Weak cryptography and insecure deserialization [2] |
 | `suite-api/apps/api/app.py` | 3 | Token-without-expiration and sensitive logging [2] |
 | `suite-core/core/crypto.py` | 3 | Token-without-expiration findings [2] |
-| `suite-core/core/sast_engine.py` | 2 | Excessive data exposure in API responses [2] |
-| Container / Dockerfile findings | 3 | Package pinning and cleanup hygiene [2] |
+| `Dockerfile` | 3 | Package pinning and cleanup hygiene [2] |
 
-## Validation Interpretation After the Scanner Fixes
+## Validation Interpretation After This Pass
 
-The correct interpretation of the branch is now two-layered. First, the branch still retains the **earlier broader green validation baseline** from the previous committed cycle across the focused autonomous successor suites, the high-visibility suites, and the broader configuration/runtime slice.[7] [8] [9] Second, the **new scanner changes introduced in this continuation pass** have only been confirmed through **targeted SAST-engine unit validation** and a **fresh post-restart autonomous self-scan**, not through a newly rerun full validation matrix.[1] [3] [4] [7] [8] [9]
+The branch should now be interpreted as having a **current green validation baseline from earlier in the same cycle**, plus a **final safe scanner fix** that has been validated in a targeted way and confirmed through a fresh live self-scan. That is a meaningful improvement, but it is not yet equivalent to a fully rerun matrix after the final edit. The focused autonomous successor suites, the high-visibility slice, and the broader repository slice all passed in this same continuation cycle, yet each of those slices completed before the final SAST-086 refinement was loaded into the fresh API runtime.[3] [4] [5] [9]
 
-That evidence is still strong enough to justify a concrete status improvement: the branch now has a **more accurate live security backlog** than it had at the start of the pass, and the scanner-noise floor is lower. However, the next cycle should still rerun the focused, high-visibility, and broader repository slices against this updated source state so that the full branch baseline explicitly includes the tightened scanner implementation as well.[1] [2] [3] [4] [7] [8] [9]
+That means the branch is in a good but not fully closed state. The current evidence supports the claim that the branch’s security backlog is more accurate than before and that the fix is low risk. However, the next autonomous cycle should rerun the focused, high-visibility, and broader slices once more so that the explicit branch-wide green baseline includes the final SAST-086 implementation rather than only the targeted confirmation and restart-backed self-scan.[1] [3] [4] [5] [6] [9]
 
 ## Files Changed in This Pass
 
-This pass remained intentionally narrow and low-risk. The code changes were confined to the SAST engine and its unit suite, and the reporting artifacts are being updated to reflect the newly refreshed evidence base.
+This pass remained tightly scoped. The product code change stayed inside the SAST engine, the test change stayed inside the unit suite, and the reporting artifacts were updated to preserve the resulting evidence trail for the branch.
 
 | File or artifact | Change |
 | --- | --- |
-| `suite-core/core/sast_engine.py` | Tightened the **CWE-209** and **Basic Auth Without TLS** detection patterns to reduce false positives while retaining intended risky-pattern coverage [5] |
-| `tests/test_sast_engine_unit.py` | Added regression coverage for the tightened scanner behavior and preserved the earlier targeted rule-validation cases [3] [4] [6] |
-| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the refreshed post-restart self-scan evidence and the updated backlog interpretation |
-| `data/autonomous-reports/autonomous-foundation-report-20260405T053106Z.json` | New machine-readable report for the current continuation cycle state |
+| `suite-core/core/sast_engine.py` | Tightened the **SAST-086** response-exposure rule so it only flags object serialization in response-construction contexts [7] |
+| `tests/test_sast_engine_unit.py` | Added regression coverage for internal-helper vs response-context serialization behavior [6] [8] |
+| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the current autonomous continuation cycle and refreshed evidence base |
+| `data/autonomous-reports/autonomous-foundation-report-20260405T112305Z.json` | New machine-readable report capturing the current cycle, validation evidence, and remaining risks [9] |
 
 ## Recommended Next Actions
 
 | Priority | Next action | Rationale |
 | --- | --- | --- |
-| 1 | Rerun the focused autonomous successor suites, high-visibility suites, and broader repository slice against the updated SAST-engine code | The current full-matrix baseline still predates the latest scanner-source edits [3] [4] [7] [8] [9] |
-| 2 | Triage the **excessive-data-exposure** findings in `suite-core/core/brain_pipeline.py`, `suite-core/core/micro_pentest.py`, and `suite-core/core/sast_engine.py` | This is now the dominant application-security cluster in the live backlog [2] |
-| 3 | Triage the **token-without-expiration** findings in `suite-api/apps/api/app.py` and `suite-core/core/crypto.py` | Token-lifetime control is now the largest remaining auth-related cluster [2] |
+| 1 | Rerun the focused autonomous successor suites, high-visibility suites, and broader validation slice against the updated SAST-engine source state | The current broad green baseline still predates the final SAST-086 refinement [3] [4] [5] [9] |
+| 2 | Triage the AutoFix **HTTP 500** path exposed by the insecure-deserialization self-scan step | This is the most obvious remaining execution-path failure in the live autonomous cycle [1] [9] |
+| 3 | Triage the **token-without-expiration** findings in `suite-api/apps/api/app.py` and `suite-core/core/crypto.py` | This is now the largest remaining authentication-related cluster in the live backlog [2] |
 | 4 | Triage the remaining **weak cryptography** and **insecure deserialization** findings in `suite-core/core/autofix_engine.py` | These remain among the highest-impact code findings in the current snapshot [2] |
-| 5 | Triage the remaining Dockerfile hygiene findings after application-level backlog reduction continues | Container hygiene remains open but is lower priority than the active code-path findings [2] |
+| 5 | Triage the remaining `brain_pipeline.py` robustness findings, then address Dockerfile pinning and cleanup hygiene | These are still open, but they follow the more security-critical authentication and AutoFix paths [2] [9] |
 
 ## References
 
-[1]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260405T052643Z.log "Post-restart autonomous self-scan log for the current scanner-precision cycle"
-[2]: ../data/demo-results/self-scan-20260405-012649.json "Machine-readable self-scan result artifact after the scanner-precision fixes"
-[3]: ../data/autonomous-reports/sast-engine-cwe209-targeted-nocov-20260405T051752Z.log "Targeted SAST engine validation log for the tightened CWE-209 rule"
-[4]: ../data/autonomous-reports/sast-engine-basic-auth-targeted-nocov-20260405T052520Z.log "Targeted SAST engine validation log for the tightened Basic Auth Without TLS rule"
-[5]: ../suite-core/core/sast_engine.py "SAST engine source with tightened CWE-209 and SAST-073 detection patterns"
-[6]: ../tests/test_sast_engine_unit.py "SAST engine unit tests covering the tightened CWE-209 and SAST-073 behaviors"
-[7]: ../data/autonomous-reports/focused-autonomous-validation-20260405T030628Z.log "Focused autonomous successor-suite validation log from the preceding green baseline"
-[8]: ../data/autonomous-reports/high-visibility-validation-rerun-20260405T032305Z.log "High-visibility validation log from the preceding green baseline"
-[9]: ../data/autonomous-reports/broader-validation-20260405T032818Z.log "Broader repository validation log from the preceding green baseline"
-[10]: ../.git/HEAD "Repository head context for the current continuation cycle"
+[1]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260405T112305Z.log "Restart-backed autonomous self-scan log for the current continuation cycle"
+[2]: ../data/demo-results/self-scan-20260405-072311.json "Machine-readable self-scan result artifact after the SAST-086 precision fix"
+[3]: ../data/autonomous-reports/focused-autonomous-validation-20260405T110517Z.log "Focused autonomous successor-suite validation log from the current continuation cycle"
+[4]: ../data/autonomous-reports/high-visibility-validation-20260405T110517Z.log "High-visibility validation log from the current continuation cycle"
+[5]: ../data/autonomous-reports/broader-validation-20260405T111752Z.log "Broader repository validation log from the current continuation cycle"
+[6]: ../data/autonomous-reports/sast-engine-excessive-data-targeted-nocov-20260405T112150Z.log "Targeted SAST engine validation log for the tightened excessive-data-exposure rule"
+[7]: ../suite-core/core/sast_engine.py "SAST engine source with the tightened SAST-086 response-context matcher"
+[8]: ../tests/test_sast_engine_unit.py "SAST engine unit tests covering the tightened SAST-086 behavior"
+[9]: ../data/autonomous-reports/autonomous-foundation-report-20260405T112305Z.json "Machine-readable autonomous continuation-cycle report for the current branch state"

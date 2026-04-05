@@ -954,7 +954,7 @@ SAST_RULES: List[Tuple[str, str, str, str, str, str, str, List[str]]] = [
         "Excessive Data Exposure in API Response",
         "medium",
         "CWE-200",
-        r"""(return|jsonify|JSONResponse|json\.dumps).*\.\.__dict__|\.to_dict\(\)""",
+        r"""(?:return\b|jsonify\s*\(|JSONResponse\s*\(|json\.dumps\s*\()[^\n]*(?:\.__dict__|\.to_dict\(\))""",
         "Full object serialized to response — may include sensitive fields",
         "Use explicit response schemas; exclude sensitive fields",
         ["python", "javascript"],

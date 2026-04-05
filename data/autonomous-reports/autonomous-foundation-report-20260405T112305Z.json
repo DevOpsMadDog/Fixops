@@ -1,0 +1,317 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-05T11:23:05Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "0e51b21b6feb3d4fd2d3ffdac2fa06f04b1c8f0b",
+  "status": "green-validation-baseline-retained-with-live-self-scan-reduction-and-open-autofix-followup",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-reduced-live-backlog",
+    "cycle_fix_status": "implemented-targetedly-validated-and-live-confirmed",
+    "focused_successor_validation_status": "passed-earlier-in-current-cycle-before-fix",
+    "high_visibility_status": "passed-earlier-in-current-cycle-before-fix",
+    "broader_validation_status": "passed-earlier-in-current-cycle-before-fix",
+    "targeted_confirmation_status": "passed-no-cov",
+    "confirmation_result": {
+      "excessive_data_exposure_targeted": {
+        "passed": 6,
+        "failed": 0,
+        "deselected": 33,
+        "duration_seconds": 0.28,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_sast_engine_unit.py"
+        ]
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "resolution": "all requested successor suites remain present and were exercised in the focused validation slice earlier in this continuation cycle"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T112305Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260405-072311.json",
+    "base_url": "http://localhost:8001",
+    "metrics": {
+      "sast_findings": 78,
+      "secrets_found": 0,
+      "total_findings": 15,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.0,
+      "duration_seconds": 5.7
+    },
+    "delta_vs_previous_cycle_report": {
+      "sast_findings_change": -15,
+      "total_findings_change": -5,
+      "net_effect": "response-serialization false positives removed from the live backlog after the SAST-086 precision fix"
+    },
+    "findings": [
+      {
+        "severity": "low",
+        "title": "Deprecated API Usage — urllib",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 232,
+        "cwe": "CWE-477"
+      },
+      {
+        "severity": "low",
+        "title": "Missing Error Handling in IO",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 232,
+        "cwe": "CWE-755"
+      },
+      {
+        "severity": "medium",
+        "title": "Unbounded Resource Allocation",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 233,
+        "cwe": null
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 759,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 760,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 1706,
+        "cwe": "CWE-502"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 927,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Logging Sensitive Data",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 942,
+        "cwe": "CWE-532"
+      },
+      {
+        "severity": "medium",
+        "title": "Logging Sensitive Data",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 1184,
+        "cwe": "CWE-532"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 1188,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 1201,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "Token Without Expiration",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 1223,
+        "cwe": "CWE-613"
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      },
+      {
+        "severity": "low",
+        "title": "Apt-get No Clean",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "line_number": null,
+        "cwe": null
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_fresh_api_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260405T112305Z.log",
+      "status": "passed-with-open-findings",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "duration_seconds": 5.7
+      },
+      "notes": [
+        "the self-scan was rerun against a freshly started API instance on port 8001 so the result reflects the updated scanner code",
+        "the SAST Engine phase became clean and the prior excessive-data-exposure self-scan findings disappeared from the live backlog"
+      ]
+    },
+    {
+      "name": "targeted_sast_engine_excessive_data_precision",
+      "log": "data/autonomous-reports/sast-engine-excessive-data-targeted-nocov-20260405T112150Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 6,
+        "failed": 0,
+        "deselected": 33,
+        "duration_seconds": 0.28,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_sast_engine_unit.py"
+        ]
+      },
+      "notes": [
+        "internal to_dict helper methods are ignored after the precision fix",
+        "response-context object serialization remains detected"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_current_cycle_baseline",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260405T110517Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 446.39,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this focused successor-suite baseline was executed earlier in the same continuation cycle",
+        "it predates the final SAST-086 precision edit and restart-based self-scan confirmation"
+      ]
+    },
+    {
+      "name": "high_visibility_current_cycle_baseline",
+      "log": "data/autonomous-reports/high-visibility-validation-20260405T110517Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 272.08,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "this high-visibility slice passed earlier in the same continuation cycle",
+        "it predates the final SAST-086 precision edit and restart-based self-scan confirmation"
+      ]
+    },
+    {
+      "name": "broader_foundation_current_cycle_baseline",
+      "log": "data/autonomous-reports/broader-validation-20260405T111752Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 19.91,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "this broader validation slice passed earlier in the same continuation cycle",
+        "it predates the final SAST-086 precision edit and restart-based self-scan confirmation"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "suite-core/core/sast_engine.py",
+      "change": "tightened SAST-086 so it only matches object serialization in response-construction contexts rather than generic to_dict occurrences"
+    },
+    {
+      "file": "tests/test_sast_engine_unit.py",
+      "change": "added regression coverage proving internal to_dict helpers are ignored while response-context object serialization is still flagged"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative for the latest autonomous continuation cycle evidence"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260405T112305Z.json",
+      "change": "wrote a new machine-readable report for the latest continuation cycle"
+    }
+  ],
+  "environment_notes": {
+    "fresh_api_instance_used_for_final_self_scan": true,
+    "fresh_api_port": 8001,
+    "live_scan_accuracy_depended_on_loading_updated_code": true,
+    "local_token_configured_for_cycle": true,
+    "full_branch_matrix_not_yet_rerun_after_current_sast_engine_edit": true,
+    "known_nonfatal_test_message": "Failed to export metrics batch code: 404, reason: Not Found"
+  },
+  "remaining_risks": [
+    "the focused, high-visibility, and broader green baselines were executed before the final SAST-086 precision edit and restart-based self-scan confirmation",
+    "the self-scan AutoFix step still returns HTTP 500 during the insecure-deserialization autofix attempt",
+    "token-without-expiration findings remain open in suite-api/apps/api/app.py and suite-core/core/crypto.py",
+    "weak cryptography and insecure deserialization remain open in suite-core/core/autofix_engine.py",
+    "brain_pipeline.py still surfaces deprecated urllib usage, missing IO error handling, and unbounded resource allocation",
+    "the root Dockerfile still surfaces package-pinning and cleanup hygiene findings",
+    "local telemetry export still emits a non-fatal 404 message during validation"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "rerun the focused autonomous successor suites, high-visibility suites, and broader validation slice against the updated SAST-engine source state so the green baseline explicitly includes the SAST-086 precision fix"
+    },
+    {
+      "priority": 2,
+      "action": "triage the AutoFix HTTP 500 path exposed by the insecure-deserialization self-scan step"
+    },
+    {
+      "priority": 3,
+      "action": "triage the token-without-expiration findings in suite-api/apps/api/app.py and suite-core/core/crypto.py"
+    },
+    {
+      "priority": 4,
+      "action": "triage the remaining weak-cryptography and insecure-deserialization findings in suite-core/core/autofix_engine.py"
+    },
+    {
+      "priority": 5,
+      "action": "triage the remaining brain_pipeline.py findings and then address Dockerfile package-pinning and cleanup hygiene"
+    }
+  ]
+}

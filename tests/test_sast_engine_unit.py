@@ -341,6 +341,25 @@ def get_user(user_id):
         rule_ids = {finding.rule_id for finding in result.findings}
         assert "SAST-058" in rule_ids
 
+    def test_excessive_data_exposure_rule_ignores_internal_to_dict_helpers(self):
+        engine = SASTEngine()
+        code = '''class ReachabilityResult:
+    def to_dict(self):
+        return {"reachable": True}
+'''
+        result = engine.scan_code(code, filename="micro_pentest.py")
+        rule_ids = {finding.rule_id for finding in result.findings}
+        assert "SAST-086" not in rule_ids
+
+    def test_excessive_data_exposure_rule_flags_response_context_object_serialization(self):
+        engine = SASTEngine()
+        code = '''def get_user_profile(user):
+    return JSONResponse(user.to_dict())
+'''
+        result = engine.scan_code(code, filename="app.py")
+        rule_ids = {finding.rule_id for finding in result.findings}
+        assert "SAST-086" in rule_ids
+
     def test_basic_auth_without_tls_rule_ignores_https_only_basic_headers(self):
         engine = SASTEngine()
         code = '''def azure_headers(token):
