@@ -798,14 +798,29 @@ class AutoFixEngine:
         if cve_ids:
             try:
                 from core.ml.threat_enricher import ThreatEnricher
+
                 enricher = ThreatEnricher()
-                enrichment = enricher.enrich(cve_ids[:5], skip_api=True)
-                for cve_id, data in enrichment.items():
-                    if data.get("epss") is not None:
-                        ctx["epss_score"] = max(ctx["epss_score"] or 0, data["epss"])
-                    if data.get("kev"):
-                        ctx["is_kev"] = True
-            except (ImportError, OSError, ValueError, KeyError, RuntimeError):
+                sampled_cves = cve_ids[:5]
+
+                if hasattr(enricher, "enrich"):
+                    enrichment = enricher.enrich(sampled_cves, skip_api=True)
+                    for _cve_id, data in enrichment.items():
+                        if data.get("epss") is not None:
+                            ctx["epss_score"] = max(ctx["epss_score"] or 0, data["epss"])
+                        if data.get("kev"):
+                            ctx["is_kev"] = True
+                elif hasattr(enricher, "enrich_findings"):
+                    findings = [{"cve_id": cve_id} for cve_id in sampled_cves]
+                    enricher.enrich_findings(findings, skip_api=True)
+                    for finding in findings:
+                        if finding.get("epss_score") is not None:
+                            ctx["epss_score"] = max(
+                                ctx["epss_score"] or 0,
+                                finding["epss_score"],
+                            )
+                        if finding.get("in_kev") or finding.get("kev"):
+                            ctx["is_kev"] = True
+            except (AttributeError, ImportError, OSError, ValueError, KeyError, RuntimeError, TypeError):
                 pass  # Air-gap fallback
 
         # FAIL score computation

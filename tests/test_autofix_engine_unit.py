@@ -322,6 +322,25 @@ class TestEnrichFromGraph:
             ctx = engine._enrich_from_graph("F-001", [])
             assert isinstance(ctx, dict)
 
+    def test_uses_enrich_findings_when_legacy_enrich_method_missing(self, engine):
+        mock_brain = MagicMock()
+        mock_brain.get_node.return_value = None
+
+        class _ThreatEnricherCompat:
+            def enrich_findings(self, findings, skip_api=False):
+                assert skip_api is True
+                findings[0]["epss_score"] = 0.73
+                findings[0]["in_kev"] = True
+                return {"enriched": 1}
+
+        with patch.object(engine, "_get_brain", return_value=mock_brain), patch(
+            "core.ml.threat_enricher.ThreatEnricher", return_value=_ThreatEnricherCompat()
+        ):
+            ctx = engine._enrich_from_graph("F-001", ["CVE-2024-1234"])
+
+        assert ctx["epss_score"] == 0.73
+        assert ctx["is_kev"] is True
+
 
 # ===========================================================================
 # AutoFixEngine: init and stats
