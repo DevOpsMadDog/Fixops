@@ -1,101 +1,95 @@
 # ALDECI Build Status
 
-As of **2026-04-07 UTC**, the `feature/autonomous-foundation` branch completed another autonomous continuation cycle focused on reconciling a **fresh live self-scan AutoFix regression with refreshed validation evidence without weakening the repository coverage policy or introducing speculative source edits**. This pass began from the current branch status and latest structured report, bootstrapped the local API under the repository’s tokenized enterprise runtime contract, ran a fresh autonomous self-scan, refreshed the requested focused, high-visibility, and broader validation slices, isolated the next concrete shared failure, and then reran the relevant confirmations after targeted environment alignment.[1] [2] [3] [4] [5] [6] [7]
+As of **2026-04-07 UTC**, the `feature/autonomous-foundation` branch completed another autonomous continuation cycle centered on a **cold-start readiness regression in the real API test harness rather than a product-logic failure in Aldeci itself**. This pass began from the current branch state and latest structured report, reran a fresh autonomous self-scan, refreshed the requested focused and visibility-oriented validation evidence, isolated the remaining failures to two branding API tests that timed out during server startup, applied a narrow harness-side remediation, and then reran both targeted and covered confirmations to verify the fix under the repository’s existing coverage policy.[1] [2] [3] [4] [5]
 
-The central outcome of this cycle is that the branch’s current blocker was **operational, not product-logic drift**. The fresh self-scan initially reproduced a live `AutoFix: 500` at Step 15, while both the focused successor slice and the high-visibility slice failed in the same six BN-LR hybrid tests. The broader foundational slice remained behaviorally green but still missed the repository-wide `18%` coverage denominator when run in isolation. After confirming that the repository already declared the required ML dependency in `requirements.txt`, the cycle aligned the local runtime, reran the previously failing BN-LR slices to green, and then reran the self-scan to a fully green **17/17** result with AutoFix generating `fix-085a3799dffccb31` at **81.2%** confidence.[1] [2] [3] [4] [5] [6] [7] [8]
+The central outcome of this cycle is that the branch’s live autonomous path is currently **green**, while the remaining concrete regression was traced to **slow-but-progressing API cold starts in `tests/harness/server_manager.py`**. The fresh self-scan completed at **17/17** with AutoFix generating `fix-444b15dfe3cc431a` at **87.2%** confidence, so the product execution path itself was healthy at the start of the pass. The blocking evidence instead emerged in the focused and high-visibility validation slices, where the same two branding API tests timed out after `30` seconds even though the server logs showed ongoing route-mount and startup progress rather than a fatal crash. After adding a one-time startup grace window that activates only when non-fatal progress markers are present, the previously failing branding API tests passed in a dedicated rerun, and the covered autonomous-foundation validation rerun completed at **263 passed, 1 skipped**, with **19.01%** total coverage against the unchanged **18%** gate.[1] [2] [3] [4] [5] [6]
 
 ## Execution Summary
 
 | Area | Current outcome | Evidence |
 | --- | --- | --- |
 | Working branch | `feature/autonomous-foundation` | Current cycle branch context |
-| Fresh autonomous-cycle baseline before runtime alignment | **16/17 passed**, **94%**, **78 SAST findings**, **15 surfaced findings**, **0 secrets**, with Step 15 returning `AutoFix: 500` | Fresh self-scan baseline [1] |
-| Focused successor validation | **257 passed**, **6 failed**, **1 skipped**, **189.09s**, **16.07%** coverage; all six failures were in `TestBNLRHybrid` | Focused validation run [2] |
-| High-visibility validation | **43 passed**, **6 failed**, **148.20s**, **0.55%** coverage; the same six BN-LR hybrid cases failed and the narrow slice still missed the global denominator | High-visibility validation run [3] |
-| Broader foundational validation | **184 passed**, **0 failed**, **116.17s**, but coverage still missed the unchanged gate at **15.80%** | Broader validation run [4] |
-| Targeted BN-LR e2e confirmation after runtime alignment | **6 passed**, **0 failed**, **55.70s** | BN-LR e2e rerun [5] |
-| Targeted BN-LR autonomous-cycle confirmation after runtime alignment | **6 passed**, **0 failed**, **43 deselected**, **55.31s** | BN-LR autonomous-cycle rerun [6] |
-| Final autonomous-cycle confirmation | **17/17 passed**, **100%**, **78 SAST findings**, **15 surfaced findings**, **0 secrets**, AutoFix generated `fix-085a3799dffccb31` at **81.2%** confidence | Final self-scan rerun [7] |
-| Manifest posture | `requirements.txt` already declared `scikit-learn>=1.3.0,<2.0`, so no product-source or dependency-manifest edit was required to recover the failing path | Repository manifest [8] |
+| Fresh autonomous-cycle baseline | **17/17 passed**, **100%**, **78 SAST findings**, **15 surfaced findings**, **0 secrets**, AutoFix generated `fix-444b15dfe3cc431a` at **87.2%** confidence | Fresh self-scan [1] |
+| Focused autonomous-foundation validation before fix | **261 passed**, **2 failed**, **1 skipped**, **498.46s**, **19.02%** coverage; both failures were branding API startup timeouts | Focused validation run [2] |
+| High-visibility validation before fix | **47 passed**, **2 failed**, **414.72s**, **5.54%** coverage; the same two branding API tests failed and the narrow slice still missed the global denominator | High-visibility validation run [3] |
+| Targeted branding API verification after fix | **2 passed**, **0 failed**, **44.78s** | Targeted post-fix verification [4] |
+| Covered autonomous-foundation verification after fix | **263 passed**, **0 failed**, **1 skipped**, **465.21s**, **19.01%** coverage | Covered rerun after fix [5] |
+| Source change scope | Single shared-harness fix in `tests/harness/server_manager.py`; no product runtime or API source logic changes were required | Repository diff [6] |
 
 ## Root Cause and Safe Remediation
 
-This cycle’s evidence indicates that the observed failures were **shared runtime-alignment failures**, not a new source-code regression in Aldeci itself. The fresh self-scan’s live `AutoFix: 500` and the six failing BN-LR hybrid tests appeared in the same pass window, and the repository manifest already showed that the needed ML dependency should have been present. Once the active environment was aligned with that declared dependency, the previously failing BN-LR pathways passed in both the dedicated e2e slice and the autonomous-cycle slice, and the live self-scan’s AutoFix phase recovered without requiring a source patch.[1] [2] [3] [5] [6] [7] [8]
+This cycle’s evidence indicates that the remaining failures were caused by **test-harness readiness timing**, not by branding behavior drifting in the application itself. The fresh autonomous self-scan was already green, which strongly argued against a live API branding defect in production code. The failing tests both used `ServerManager` to spawn a real uvicorn instance and waited for `/api/v1/health` to return `200` within `30` seconds. The captured stderr showed continued startup progress, including provider initialization, namespace-aliasing setup, router mounting, MCP catalog generation, and final route verification, but the shared harness still raised a timeout before the server became reachable.[1] [2] [3] [6]
 
-> The concrete defect in this pass was a **runtime-environment gap relative to the declared repository manifest**, not a branch-local logic regression requiring risky code changes.[2] [3] [5] [6] [7] [8]
+> The concrete defect in this pass was a **false-negative readiness timeout during slow but healthy cold starts**, not a branch-local regression in Aldeci’s branding headers or API behavior.[2] [3] [4] [5] [6]
 
-The remediation therefore stayed deliberately conservative. The cycle did **not** loosen coverage policy, did **not** rewrite BN-LR logic, and did **not** alter the autonomous workflow to bypass the failing AutoFix step. Instead, it used the manifest-backed dependency alignment already implied by the repository configuration, confirmed the exact failing BN-LR pathways directly, and then reran the live self-scan end to end to verify that the operational gap was actually closed.[5] [6] [7] [8]
+The remediation therefore stayed deliberately narrow. Instead of weakening the tests, increasing timeouts indiscriminately, or editing API branding code without evidence, this pass updated the shared server harness to grant **one additional `30`-second startup grace window only when stderr indicates startup progress and no fatal markers such as `Traceback`, `ImportError`, or bind conflicts are present**. Real crashes still fail fast. Slow but healthy startup sequences are allowed one bounded extension, which matches the observed cold-start behavior of the full API surface and preserves meaningful failure semantics for true startup defects.[4] [5] [6]
 
 | Remediation item | Change applied | Why it was the lowest-risk choice |
 | --- | --- | --- |
-| Runtime dependency alignment | Restored the missing ML runtime dependency already declared by the repository manifest | Resolved the concrete failing path without changing product behavior or masking defects [5] [6] [7] [8] |
-| Focused confirmation strategy | Reran the exact BN-LR hybrid suites that had failed in the focused and high-visibility slices | Validated the shared failure directly before drawing broader conclusions [2] [3] [5] [6] |
-| Live workflow confirmation | Reran `scripts/aldeci_self_scan.py` against the live local API after alignment | Proved that the self-scan AutoFix regression was operationally resolved in the real autonomous path [1] [7] |
-| Coverage policy discipline | Kept the repository-wide `18%` denominator unchanged | Prevented this cycle from converting narrow-slice coverage misses into policy erosion [2] [3] [4] |
+| Startup-grace constants | Added explicit fatal and progress marker sets in `ServerManager` | Keeps readiness policy deterministic and reviewable instead of relying on opaque retry behavior [6] |
+| Conditional grace logic | Added a one-time `30s` extension only when the process is still alive and stderr shows healthy startup progress | Prevents masking true crashes while tolerating documented cold-start latency [6] |
+| Targeted verification | Reran only the two previously failing branding API tests immediately after the harness edit | Confirmed the exact failing path before drawing broader conclusions [4] |
+| Covered verification | Reran the full autonomous-foundation covered slice under the unchanged coverage gate | Proved the shared harness fix resolved the original failures in the main suite context [5] |
+| Product-source discipline | Left application branding logic unchanged | The self-scan and targeted rerun evidence never supported an API branding-code regression [1] [4] [6] |
 
 ## Validation Interpretation After This Pass
 
-This cycle leaves the branch in a more trustworthy state because the current live regression was **reproduced, correlated across multiple validation slices, resolved through manifest-consistent environment alignment, and then confirmed in the end-to-end self-scan path**. The important distinction is that the branch now has fresh evidence separating **behavioral failures caused by a missing runtime dependency** from the pre-existing issue that narrow validation slices do not clear the repository-wide coverage denominator when executed alone.[1] [2] [3] [4] [5] [6] [7] [8]
+This cycle leaves the branch in a more trustworthy state because the active autonomous workflow remained green throughout, the residual failures were isolated to a shared harness layer, and the fix was validated first on the exact failing tests and then in the broader covered suite. The important distinction is that the branch now has fresh evidence separating **startup-latency-induced harness flakiness** from genuine application regressions. That distinction matters because the earlier failure signature might otherwise have invited risky or unnecessary edits to branding middleware or API response handling.[1] [2] [3] [4] [5]
 
-The focused successor and high-visibility slices were therefore not ignored; rather, their shared BN-LR failure signature was extracted and confirmed directly. The broader foundational slice remained behaviorally green throughout, reinforcing that the branch’s main instability in this pass was localized to the missing ML runtime support rather than a broad application regression. Once that dependency gap was closed, the targeted reruns went green and the live self-scan moved from **16/17** to **17/17** without backlog inflation.[4] [5] [6] [7]
+The high-visibility slice is still valuable evidence even though its artifact predates the fix. It showed the same two branding API tests failing in a narrower suite context, which reinforced that the issue was shared startup handling rather than one isolated test wrapper. After the harness change, the exact two branding tests passed directly, and the covered rerun of `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, and `tests/test_autonomous_workspace.py` completed cleanly with coverage back above the repository threshold.[2] [3] [4] [5]
 
 | Validation slice | Interpretation |
 | --- | --- |
-| `scripts/aldeci_self_scan.py` before runtime alignment | Reproduced the current live defect: stable backlog shape plus an AutoFix `500`, making the next concrete blocker explicit rather than speculative [1] |
-| `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, `tests/test_autonomous_workspace.py` | Showed the focused successor slice was not broadly broken; instead, six failures concentrated in `TestBNLRHybrid` prevented a clean pass and left coverage at **16.07%** [2] |
-| `tests/e2e/test_branding_namespace.py`, `tests/e2e/test_bn_lr_hybrid.py`, `tests/test_ai_consensus.py` | Confirmed that branding and AI-consensus paths remained healthy while the same six BN-LR hybrid failures recurred, alongside the known narrow-slice coverage limitation [3] |
-| `tests/test_overlay_configuration.py`, `tests/test_overlay_runtime.py`, `tests/test_configuration_unit.py`, `tests/test_app_factory.py` | Demonstrated that the broader foundational slice stayed behaviorally green while still remaining below the unchanged repository-wide denominator when run alone [4] |
-| `tests/e2e/test_bn_lr_hybrid.py` after runtime alignment | Proved the dedicated BN-LR e2e path was restored to green at **6 passed** [5] |
-| `tests/test_autonomous_cycle.py -k BNLRHybrid` after runtime alignment | Confirmed the same six BN-LR cases also passed in the autonomous-cycle suite context at **6 passed, 43 deselected** [6] |
-| `scripts/aldeci_self_scan.py` after runtime alignment | Demonstrated that the live AutoFix step recovered and the self-scan returned to **17/17** with a generated fix suggestion [7] |
+| `scripts/aldeci_self_scan.py` | Demonstrated that the live Aldeci autonomous workflow was already healthy at the start of the pass, including AutoFix generation and evidence signing [1] |
+| `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, `tests/test_autonomous_workspace.py` before fix | Isolated the remaining failures to `TestBrandingNamespace::test_branded_product_name_in_api_header` and `...::test_branding_persists_across_api_requests` while still clearing the repository-wide coverage gate at **19.02%** [2] |
+| `tests/e2e/test_branding_namespace.py`, `tests/e2e/test_bn_lr_hybrid.py`, `tests/test_ai_consensus.py` before fix | Reproduced the same two branding API timeouts in a high-visibility slice and again showed the narrow-slice coverage limitation [3] |
+| `tests/e2e/test_branding_namespace.py::{test_branded_product_name_in_api_header,test_branding_persists_across_api_requests}` after fix | Proved that the exact failing startup path was restored to green at **2 passed** [4] |
+| `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, `tests/test_autonomous_workspace.py` after fix | Confirmed the shared-harness change resolved the failures in the main covered suite context at **263 passed, 1 skipped**, with **19.01%** coverage [5] |
 
 ## Current Self-Scan Backlog Shape
 
-This pass restores the **execution path**, not the underlying backlog. After the final rerun, Aldeci still reports **78 SAST findings**, **15 surfaced findings**, and **0 secrets**. The key improvement is that the live autonomous workflow can now complete the AutoFix phase again for the representative insecure-deserialization case instead of failing during fix generation.[7]
+This pass did **not** materially reduce the backlog; it restored validation trustworthiness around a shared startup boundary. After the fresh self-scan, Aldeci still reports **78 SAST findings**, **15 surfaced findings**, and **0 secrets**. The key improvement is that the autonomous workflow remains executable and the shared test harness now better distinguishes between real startup failures and slow healthy cold starts.[1]
 
 | Backlog signal | Current state | Evidence |
 | --- | --- | --- |
-| Secrets findings | **0** | Final self-scan rerun [7] |
-| Total surfaced findings | **15** | Final self-scan rerun [7] |
-| SAST findings | **78** | Final self-scan rerun [7] |
-| Brain Pipeline output | **15 findings**, **1 cluster**, reported **93% noise** | Final self-scan rerun [7] |
-| AutoFix self-scan step | Succeeds and generated `fix-085a3799dffccb31` at **81.2%** confidence | Final self-scan rerun [7] |
-| Dockerfile hygiene backlog | Package-pinning and cleanup findings remain open | Self-scan evidence [1] [7] |
-| SAST engine slice | Still reports **0 findings — clean** in the self-scan phase | Self-scan evidence [1] [7] |
+| Secrets findings | **0** | Fresh self-scan [1] |
+| Total surfaced findings | **15** | Fresh self-scan [1] |
+| SAST findings | **78** | Fresh self-scan [1] |
+| Brain Pipeline output | **15 findings** processed | Fresh self-scan [1] |
+| AutoFix self-scan step | Succeeds and generated `fix-444b15dfe3cc431a` at **87.2%** confidence | Fresh self-scan [1] |
+| Evidence signing | **RSA-SHA256** signed successfully | Fresh self-scan [1] |
+| Harness stability | Branding API startup flake resolved by conditional startup grace in shared test harness | Targeted and covered reruns [4] [5] [6] |
 
 ## Files Changed in This Pass
 
-This continuation cycle is primarily an **environment-alignment and evidence-refresh pass**. The repository manifest already declared the needed ML runtime dependency, so the branch did not require product-source edits to recover the failing path. The material branch changes from this pass are therefore concentrated in status reporting and structured cycle evidence.
+This continuation cycle produced one substantive code change and refreshed branch status reporting. The application code itself did not require modification; the observed failures were repaired in the shared E2E server harness.
 
 | File or artifact | Change |
 | --- | --- |
-| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the runtime-alignment diagnosis, targeted BN-LR confirmations, and restored green self-scan |
-| `data/autonomous-reports/autonomous-foundation-report-20260407T0329Z.json` | New machine-readable report capturing the current cycle’s evidence, interpretation, and next actions |
-| `data/autonomous-reports/autonomous-cycle-self-scan-20260407T030951Z.log` | Fresh baseline self-scan showing the live AutoFix `500` before runtime alignment |
-| `data/autonomous-reports/focused-autonomous-validation-20260407T031105Z.log` | Focused successor validation showing six BN-LR hybrid failures and **16.07%** coverage |
-| `data/autonomous-reports/high-visibility-validation-20260407T031427Z.log` | Requested high-visibility validation showing the same six BN-LR hybrid failures and the expected narrow-slice coverage miss |
-| `data/autonomous-reports/broader-validation-20260407T031732Z.log` | Broader foundational validation showing behavioral green status with a **15.80%** isolated-slice coverage miss |
-| `data/autonomous-reports/bn-lr-e2e-rerun-20260407T032549Z.log` | Targeted BN-LR e2e rerun proving the dedicated end-to-end path returned to green |
-| `data/autonomous-reports/bn-lr-autonomous-cycle-rerun-20260407T032549Z.log` | Targeted BN-LR rerun inside the autonomous-cycle suite context proving the same six cases returned to green |
-| `data/autonomous-reports/autonomous-cycle-self-scan-20260407T033212Z.log` | Final end-to-end self-scan confirmation at **17/17** |
+| `tests/harness/server_manager.py` | Added fatal/progress startup markers and a one-time conditional startup grace window for slow healthy API cold starts [6] |
+| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the startup-timeout diagnosis, harness remediation, and post-fix validation evidence |
+| `data/autonomous-reports/autonomous-foundation-report-20260407T114435Z.json` | New machine-readable report capturing this cycle’s findings, remediation, and next actions |
+| `data/autonomous-reports/autonomous-cycle-self-scan-20260407T110643Z.log` | Fresh autonomous self-scan proving the live Aldeci path was green before the harness fix [1] |
+| `data/autonomous-reports/focused-autonomous-validation-20260407T110810Z.log` | Focused covered validation showing the two startup-timeout failures before remediation [2] |
+| `data/autonomous-reports/high-visibility-validation-20260407T111653Z.log` | High-visibility validation reproducing the same two branding API startup failures before remediation [3] |
+| `data/autonomous-reports/branding-api-verify-20260407T113312Z.log` | Targeted post-fix proof that the exact two branding API tests returned to green [4] |
+| `data/autonomous-reports/broader-validation-20260407T113425Z.log` | Covered post-fix verification run showing the main autonomous-foundation slice is green again under the repository coverage gate [5] |
 
 ## Recommended Next Actions
 
 | Priority | Next action | Rationale |
 | --- | --- | --- |
-| 1 | Run a representative post-alignment composite suite if branch policy still requires a single broad confirmation artifact beyond targeted BN-LR reruns and the live self-scan | This pass proved the concrete failing path is healthy again, but it did not rerun every earlier slice as one combined gate |
-| 2 | Preserve local runtime alignment discipline when restarting the API by pairing the enterprise token contract with dependency-complete environments | This cycle’s blocker was environmental drift relative to the manifest, not branch logic [7] [8] |
-| 3 | Continue backlog reduction on insecure deserialization, token expiration, sensitive logging, weak cryptography, and Dockerfile hygiene findings now that AutoFix generation is live again | The execution path is restored, but the backlog itself remains materially present [7] |
-| 4 | Decide whether narrow visibility-focused suites should continue to inherit the repository-wide `18%` denominator when run alone, or whether they should always be paired with a representative broader slice | This cycle again showed behaviorally meaningful narrow slices that cannot satisfy the full denominator in isolation [3] [4] |
-| 5 | Consider adding an environment-bootstrap check that verifies manifest-critical ML dependencies before autonomous validation begins | The failing BN-LR and AutoFix paths were both symptoms of runtime incompleteness rather than source regressions [2] [3] [5] [6] [8] |
+| 1 | Rerun the full high-visibility suite after commit if a post-fix visibility artifact is still desired alongside the targeted branding verification | The current high-visibility artifact documents the pre-fix failure state, while the post-fix evidence is targeted rather than full-slice [3] [4] |
+| 2 | Monitor cold-start latency in any additional real-server E2E paths that depend on the same harness | This cycle showed that the full API surface can legitimately take longer than the original readiness budget during some cold starts [2] [3] [6] |
+| 3 | Preserve the current fail-fast semantics for fatal startup errors while avoiding broad timeout inflation | The conditional grace approach fixed the observed issue without weakening crash detection [4] [5] [6] |
+| 4 | Resume backlog reduction on the existing self-scan findings now that the validation harness is trustworthy again | The branch remains operationally healthy, but the underlying `78` SAST / `15` surfaced findings backlog is still present [1] |
+| 5 | Consider adding lightweight startup-duration telemetry for the shared E2E harness | Quantitative cold-start data would make future readiness thresholds evidence-based rather than anecdotal [2] [3] [6] |
 
 ## References
 
-[1]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260407T030951Z.log
-[2]: ../data/autonomous-reports/focused-autonomous-validation-20260407T031105Z.log
-[3]: ../data/autonomous-reports/high-visibility-validation-20260407T031427Z.log
-[4]: ../data/autonomous-reports/broader-validation-20260407T031732Z.log
-[5]: ../data/autonomous-reports/bn-lr-e2e-rerun-20260407T032549Z.log
-[6]: ../data/autonomous-reports/bn-lr-autonomous-cycle-rerun-20260407T032549Z.log
-[7]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260407T033212Z.log
-[8]: ../requirements.txt
+[1]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260407T110643Z.log
+[2]: ../data/autonomous-reports/focused-autonomous-validation-20260407T110810Z.log
+[3]: ../data/autonomous-reports/high-visibility-validation-20260407T111653Z.log
+[4]: ../data/autonomous-reports/branding-api-verify-20260407T113312Z.log
+[5]: ../data/autonomous-reports/broader-validation-20260407T113425Z.log
+[6]: ../tests/harness/server_manager.py
