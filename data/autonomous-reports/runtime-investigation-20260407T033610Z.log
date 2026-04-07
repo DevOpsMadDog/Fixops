@@ -1,0 +1,89 @@
+UTC=2026-04-07T03:36:10Z
+SUMMARY=Fresh self-scan AutoFix 500 traced to incomplete local ML runtime; repository manifest already declared scikit-learn; targeted runtime alignment restored BN-LR suites and live self-scan.
+
+[initial self-scan excerpt]
+27:  [1m[95m┌─ Step 4: SAST: AutoFix Engine (V3)[0m
+103:[1m  🔧 PHASE 6: AutoFix — Fix ALdeci's Own Vulnerabilities[0m
+106:  [1m[95m┌─ Step 15: AutoFix: Insecure Deserialization[0m
+107:  [93m│  ⚠ AutoFix: 500 (667ms)[0m
+134:  Steps: 17 | Passed: [92m16[0m | Failed: [91m0[0m
+136:  [1m[92m🏆 SELF-SCAN PASSED — 16/17 (94%)[0m
+
+[live API traceback excerpt]
+386-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+387-    |   File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 718, in get_autofix_confidence_model
+388-    |     if not _model_instance.load():
+389-    |            ^^^^^^^^^^^^^^^^^^^^^^
+390-    |   File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 600, in load
+391-    |     import joblib
+392:    | ModuleNotFoundError: No module named 'joblib'
+393-    +------------------------------------
+394-During handling of the above exception, another exception occurred:
+395-Traceback (most recent call last):
+396-  File "/usr/local/lib/python3.11/dist-packages/starlette/middleware/errors.py", line 164, in __call__
+397-    await self.app(scope, receive, _send)
+398-  File "/usr/local/lib/python3.11/dist-packages/opentelemetry/instrumentation/fastapi/__init__.py", line 307, in __call__
+--
+583-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+584-  File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 718, in get_autofix_confidence_model
+585-    if not _model_instance.load():
+586-           ^^^^^^^^^^^^^^^^^^^^^^
+587-  File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 600, in load
+588-    import joblib
+589:ModuleNotFoundError: No module named 'joblib'
+590-[32mINFO[0m:     127.0.0.1:46588 - "[1mPOST /api/v1/autofix/generate HTTP/1.1[0m" [91m500 Internal Server Error[0m
+591-[31mERROR[0m:    Exception in ASGI application
+592-  + Exception Group Traceback (most recent call last):
+593-  |   File "/usr/local/lib/python3.11/dist-packages/starlette/_utils.py", line 79, in collapse_excgroups
+594-  |     yield
+595-  |   File "/usr/local/lib/python3.11/dist-packages/starlette/middleware/base.py", line 183, in __call__
+--
+807-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+808-    |   File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 718, in get_autofix_confidence_model
+809-    |     if not _model_instance.load():
+810-    |            ^^^^^^^^^^^^^^^^^^^^^^
+811-    |   File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 600, in load
+812-    |     import joblib
+813:    | ModuleNotFoundError: No module named 'joblib'
+814-    +------------------------------------
+815-During handling of the above exception, another exception occurred:
+816-Traceback (most recent call last):
+817-  File "/usr/local/lib/python3.11/dist-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+818-    result = await app(  # type: ignore[func-returns-value]
+819-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--
+1022-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1023-  File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 718, in get_autofix_confidence_model
+1024-    if not _model_instance.load():
+1025-           ^^^^^^^^^^^^^^^^^^^^^^
+1026-  File "/home/ubuntu/Fixops_repo/suite-core/core/ml/autofix_confidence.py", line 600, in load
+1027-    import joblib
+1028:ModuleNotFoundError: No module named 'joblib'
+1029-[2m2026-04-06 23:09:56[0m [[32m[1minfo     [0m] [1mrequest.started               [0m [36mextra[0m=[35m{'method': 'POST', 'path': '/api/v1/evidence/export', 'query_params': {}, 'client_host': '127.0.0.1'}[0m
+1030-[2m2026-04-06 23:09:56[0m [[32m[1minfo     [0m] [1mrequest.tracing               [0m [36mextra[0m=[35m{'request_id': '2396ed2b-a052-4347-99ca-1db93c0b1fe8', 'correlation_id': '4ffc3638-5b79-42c4-bd30-376a820064d6', 'method': 'POST', 'path': '/api/v1/evidence/export'}[0m
+1031-[2m2026-04-06 23:09:57[0m [[32m[1minfo     [0m] [1mrequest.completed             [0m [36mextra[0m=[35m{'method': 'POST', 'path': '/api/v1/evidence/export', 'status_code': 200, 'duration_ms': 837.87}[0m
+1032-[32mINFO[0m:     127.0.0.1:46604 - "[1mPOST /api/v1/evidence/export HTTP/1.1[0m" [32m200 OK[0m
+1033-[2m2026-04-06 23:09:57[0m [[32m[1minfo     [0m] [1mrequest.started               [0m [36mextra[0m=[35m{'method': 'POST', 'path': '/api/v1/brain/evidence/generate', 'query_params': {}, 'client_host': '127.0.0.1'}[0m
+1034-[2m2026-04-06 23:09:57[0m [[32m[1minfo     [0m] [1mrequest.tracing               [0m [36mextra[0m=[35m{'request_id': '64b18e62-0fd2-4966-8d5d-fe3a1ba18a01', 'correlation_id': 'ceb1a9b0-db9a-440f-833e-2c023a6f49da', 'method': 'POST', 'path': '/api/v1/brain/evidence/generate'}[0m
+
+[requirements manifest excerpt]
+8:pgmpy==0.1.24
+21:scikit-learn>=1.3.0,<2.0
+22:bcrypt>=4.0.0,<5.0
+23:passlib[bcrypt]>=1.7.4,<2.0
+27:python-dotenv>=1.0.0,<2.0
+28:sqlalchemy>=2.0.0,<3.0
+29:pyotp>=2.9.0,<3.0
+33:pytest>=7.4.0,<9.0
+34:pytest-asyncio>=0.21.0,<1.0
+35:pytest-cov>=4.1.0,<6.0
+36:pytest-timeout>=2.2.0,<3.0
+
+[final self-scan excerpt]
+106:  [1m[95m┌─ Step 15: AutoFix: Insecure Deserialization[0m
+107:  [92m│  ✓ AutoFix generated: fix_id=fix-085a3799dffccb31, confidence=81.2% (508ms)[0m
+127:  SAST findings:      78
+128:  Secrets found:      0
+129:  Total findings:     15
+134:  Steps: 17 | Passed: [92m17[0m | Failed: [91m0[0m
+136:  [1m[92m🏆 SELF-SCAN PASSED — 17/17 (100%)[0m
