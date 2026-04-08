@@ -1,96 +1,101 @@
-As of **2026-04-08 UTC**, the `feature/autonomous-foundation` branch completed another autonomous continuation cycle focused on a **safe repository-level validation-harness fix** rather than product logic changes. This pass began from the latest branch status and machine-readable report, verified the previously observed environment-alignment context, confirmed that the branch still carried a local `pyproject.toml` edit removing the default repository-wide coverage threshold from generic pytest `addopts`, and then re-ran the impacted validation slices to determine whether that change correctly separated **targeted local validation** from the **explicit CI coverage gate**.[1] [2] [3] [10]
+# ALDECI Build Status — 2026-04-08 Autonomous Foundation Refresh
 
-The main outcome of this cycle is that the branch now has a **small source-level configuration improvement with fresh validation evidence**. The repository still enforces the **18%** coverage minimum in CI through an explicit workflow command, but local targeted runs are no longer forced through the same repository-wide threshold by default. After that safe change, the combined confirmation rerun across the previously exercised high-visibility and broader slices completed at **233 passed** with **18.93%** coverage, the dedicated high-visibility confirmation rerun completed at **49 passed**, and the dedicated broader rerun completed at **184 passed**. The narrower dedicated reruns still remain below the repository-wide denominator when measured alone, but they are now functionally green and no longer misrepresent targeted local verification as a product defect.[2] [4] [5] [6]
+The main outcome of this pass is that **Aldeci now has a fresh, preserved autonomous self-scan baseline and clean confirmation evidence for the requested validation slices**. On branch `feature/autonomous-foundation` at commit `8f8b9eba4efa08f111beceddeb1c0a56d8c9a118`, the autonomous self-scan completed successfully with **17 of 17 steps passing**, **78 SAST findings**, **0 secrets**, and **15 total surfaced findings** in **13.9 seconds**.[1] [2] [3] The requested focused autonomous suite then completed at **263 passed, 1 skipped**, the high-visibility suite completed at **49 passed**, and the broader impacted slice completed cleanly at **184 passed** after re-running from a fresh coverage state.[4] [5] [6]
 
 ## Execution Summary
 
 | Area | Current outcome | Evidence |
 | --- | --- | --- |
 | Working branch | `feature/autonomous-foundation` | Current repository state [1] |
-| Head commit during reporting | `5be963229b1382d1b52cc8364878f65cda3cccf3` | Current repository state [1] |
-| Repository code change in this pass | `pyproject.toml` no longer applies `--cov-fail-under=18` in default pytest `addopts`; the file now documents that the threshold is enforced explicitly in CI for full-suite runs | Pytest configuration [2] |
-| CI coverage policy | The CI workflow still runs pytest with an explicit `--cov-fail-under=18`, so the branch did **not** weaken the project’s canonical coverage gate | CI workflow [3] |
-| Combined confirmation rerun | **233 passed**, **0 failed**, **409.35s**, **18.93%** coverage across the previously exercised high-visibility and broader validation files | Combined confirmation log [4] |
-| Dedicated high-visibility confirmation | **49 passed**, **0 failed**, **393.73s**, **5.52%** coverage for branding, BN/LR, and AI-consensus tests | High-visibility confirmation log [5] |
-| Dedicated broader impacted rerun | **184 passed**, **0 failed**, **116.05s**, **15.79%** coverage for app-factory and overlay/configuration tests | Broader rerun log [6] |
-| Current autonomous-cycle 2026-04-08 bootstrap evidence | Three preserved server logs show successive local boot blockers on `jwt`, `sarif-om`, and `structlog` imports before runtime alignment | Server bootstrap logs [7] [8] [9] |
-| Latest pre-existing structured autonomous report | The newest existing machine-readable autonomous-foundation report in the workspace before this refresh was `autonomous-foundation-report-20260408T032717Z.json` | Prior structured report [10] |
+| Head commit during reporting | `8f8b9eba4efa08f111beceddeb1c0a56d8c9a118` | Current repository state [1] |
+| Fresh autonomous self-scan | **17/17 passed**, **100% pass rate**, **13.9s** | Self-scan JSON and preserved log [2] [3] |
+| Self-scan finding inventory | **78 SAST findings**, **0 secrets**, **15 total findings** | Self-scan JSON and preserved log [2] [3] |
+| Focused autonomous validation rerun | **263 passed, 1 skipped**, **223.96s**, **15.55%** total measured coverage | Focused rerun log [4] |
+| High-visibility validation rerun | **49 passed**, **201.20s**, **0.54%** total measured coverage | High-visibility rerun log [5] |
+| Broader impacted validation rerun | **184 passed**, **107.76s**, **15.30%** total measured coverage | Clean broader rerun log [6] |
+| Coverage-artifact stabilization | The earlier broader confirmation hit a coverage database error after tests had already passed; a clean rerun from a fresh `.coverage` state completed successfully without the internal coverage failure | Original failing broader rerun and clean rerun [7] [6] |
+| Runtime readiness signal | Application startup completed successfully during the preserved local server run, although the optional Decisions router remained unavailable because `prometheus_client` was absent | Server bootstrap log [8] |
 
-## What Changed in This Pass
+## What This Pass Actually Changed
 
-This continuation cycle differs from the previous one in an important way: it did **not** stop at environment repair. The working tree already contained a targeted repository edit in `pyproject.toml`, and this pass validated that the edit is the correct low-risk way to address the misleading behavior seen in narrow local validation slices. Previously, targeted runs could finish with all selected tests passing but still exit red only because the repository-wide default pytest configuration imposed the full **18%** coverage threshold on every invocation. In this pass, the default threshold was removed from generic local `addopts`, while the CI workflow continued to enforce the same threshold explicitly in the canonical automated path.[2] [3]
+This pass was primarily a **validation and evidence-refresh cycle**, not a source-code change cycle. The repository was on the requested branch and head, and the work focused on producing a fresh autonomous self-scan artifact, running the requested validation slices, and resolving the misleading broader confirmation failure by treating it as a **stale coverage-artifact problem** rather than a product defect.[1] [2] [7]
 
-> The practical change is a **separation of responsibilities**: local targeted validation now answers whether the selected slice is functionally healthy, while CI remains responsible for enforcing the repository-wide coverage baseline on the authoritative full-suite path.[2] [3]
+> The most important distinction from the previous status is that the branch now has a **durable 2026-04-08 self-scan artifact set** and a **clean broader rerun**. The blocker that remained at the end of the prior reporting pass was not a failing test assertion; it was a corrupted or stale coverage database reused during confirmation reruns.[2] [6] [7]
 
-This is the safest configuration-level remediation because it avoids weakening assertions, modifying product logic, or editing test expectations. Instead, it aligns local behavior with the project’s actual automation contract. The CI workflow already spells out the coverage rule in its own command, which means the branch can preserve governance while making local autonomous iterations more truthful and more efficient.[2] [3]
+No product logic or test assertions were modified in this pass. Instead, the stabilization step was operational: remove the stale local coverage database, rerun the same broader impacted test slice, and preserve the clean result under a new evidence file. That approach is the lowest-risk response because it restores trustworthy validation semantics without changing Aldeci behavior.[6] [7]
 
-| Change item | Change applied | Why it was the lowest-risk choice |
+| Change item | Outcome in this pass | Why it was the lowest-risk choice |
 | --- | --- | --- |
-| Local pytest behavior | Removed the default `--cov-fail-under=18` from `pyproject.toml` `addopts` | Prevents narrow local slices from failing solely because of a repository-wide denominator that they were never meant to satisfy [2] |
-| CI governance | Left `.github/workflows/ci.yml` unchanged, where pytest still runs with explicit `--cov-fail-under=18` | Preserves the project’s canonical coverage enforcement in automation [3] |
-| Validation approach | Re-ran the combined confirmation slice plus dedicated high-visibility and broader slices | Demonstrates both mixed-slice and per-slice outcomes after the configuration fix [4] [5] [6] |
-| Product logic | Left application behavior and test assertions unchanged in this pass | The observed problem was validation-harness semantics, not Aldeci feature logic [2] [4] [5] [6] |
+| Autonomous baseline | Preserved a fresh self-scan JSON and log for 2026-04-08 | Re-establishes current autonomous evidence without inferring status from older artifacts [2] [3] |
+| Focused validation | Re-ran the requested autonomous foundation slice and preserved a fresh log | Confirms the core autonomous-path tests are currently green [4] |
+| High-visibility validation | Re-ran branding, BN/LR hybrid, and AI-consensus validation and preserved a fresh log | Confirms the watched visible product slices remain functionally green [5] |
+| Broader validation stabilization | Re-ran the exact broader impacted slice from a fresh coverage state and preserved a clean log | Fixes the misleading rerun failure without editing product code or tests [6] [7] |
+| Source code | No source files required modification in this pass | The observed blocker was operational evidence handling, not application behavior [1] [6] [7] |
 
-## Validation Interpretation After This Pass
+## Validation Interpretation
 
-The current evidence shows that the configuration fix behaves as intended. The most important artifact is the combined confirmation rerun, because it exercises the previously observed high-visibility and broader test families together and clears the unchanged **18%** coverage bar at **18.93%**. This confirms that the branch still satisfies the existing coverage policy when the exercised slice is large enough to be representative.[4]
+The strongest signal from this pass is the **combination of a successful self-scan and clean reruns across all requested validation slices**. The focused autonomous validation rerun covered `tests/test_autonomous_cycle.py`, `tests/test_autonomous_foundation.py`, `tests/test_autonomous_workspace.py`, and `tests/test_git_integration_unit.py`, finishing at **263 passed and 1 skipped**. This confirms that the autonomous foundation path, workspace handling, and Git integration slice are presently stable in the aligned local environment.[4]
 
-The dedicated reruns also matter, but for a different reason. The high-visibility confirmation rerun demonstrates that the branding, BN/LR hybrid, and AI-consensus paths are functionally green again at **49 passed**. The broader rerun demonstrates that the app-factory and overlay/configuration path is functionally green at **184 passed**. Their low coverage percentages are therefore an artifact of slice width rather than evidence of a product regression. That distinction is the reason this `pyproject.toml` change is useful: it makes local results more interpretable without changing the authoritative CI standard.[5] [6]
+The high-visibility rerun covered `tests/e2e/test_bn_lr_hybrid.py`, `tests/e2e/test_branding_namespace.py`, and `tests/test_ai_consensus.py`, finishing at **49 passed**. This indicates that the visible branding, hybrid decisioning, and AI-consensus behavior that had previously needed attention is currently functionally green.[5]
+
+The broader impacted rerun is important for a different reason. The earlier confirmation attempt already showed **184 passed**, but then failed inside coverage reporting because the local `.coverage` database could not be parsed. The clean rerun reproduced the same broader test slice, completed at **184 passed in 107.76 seconds**, and emitted normal coverage artifacts. That result demonstrates that the blocker was a **local coverage artifact integrity issue**, not a regression in the underlying app-factory or overlay/configuration tests.[6] [7]
 
 | Validation slice | Interpretation |
 | --- | --- |
-| `validation-confirmation-rerun-20260408T075547Z.log` | This is the decisive confirmation artifact for this pass because it combines the exercised high-visibility and broader suites, finishes at **233 passed**, and clears the unchanged coverage gate at **18.93%** [4] |
-| `high-visibility-validation-confirmation-20260408T080553Z.log` | Confirms the previously watched branding, BN/LR, and AI-consensus paths are functionally green at **49 passed**; its **5.52%** coverage reflects narrow scope rather than a defect [5] |
-| `broader-validation-rerun-after-fix-20260408T081553Z.log` | Confirms the app-factory and overlay/configuration slice is functionally green at **184 passed**; its **15.79%** coverage remains below the full-repository denominator when isolated [6] |
-| `autonomous-cycle-server-20260408T070021Z.log`, `...070129Z.log`, `...070352Z.log` | Preserve the current cycle’s concrete bootstrap blockers and support the recommendation to add environment preflight checks before future autonomous cycles [7] [8] [9] |
+| `focused-autonomous-validation-rerun-20260408T153728Z.log` | Decisive confirmation that the requested autonomous foundation slice is green at **263 passed, 1 skipped** [4] |
+| `high-visibility-validation-rerun-20260408T153320Z.log` | Confirms the visible branding, BN/LR hybrid, and AI-consensus paths are functionally green at **49 passed** [5] |
+| `broader-validation-rerun-20260408T153320Z.log` | Shows the broader impacted slice’s tests had already passed, but the run ended with a coverage database error tied to `.coverage` reuse [7] |
+| `broader-validation-clean-rerun-20260408T155137Z.log` | Confirms the exact broader slice is clean when rerun from a fresh coverage state, finishing at **184 passed** with normal coverage output [6] |
+| `autonomous-cycle-self-scan-20260408T150933Z.json` and `.log` | Provide the fresh autonomous baseline for this reporting cycle, including pass rate, finding counts, and surfaced issue inventory [2] [3] |
 
 ## Current Risk Picture
 
-This pass improved the trustworthiness of local autonomous validation, but it did not eliminate every risk. The workspace still shows evidence that autonomous-cycle bootstrap can fail early when the active runtime is missing critical packages such as `jwt`, `sarif-om`, or `structlog`. Those failures are operational rather than product-functional, but they still waste iteration time and can obscure the next real code issue.[7] [8] [9]
+The validation harness is in a healthier state than it was before the clean broader rerun, but the self-scan findings show that the product backlog remains real. The fresh self-scan still reports **78 SAST findings** and **15 total findings**, including a **critical insecure deserialization** finding in `suite-core/core/autofix_engine.py` and several token-expiration and sensitive-logging findings across `suite-api/apps/api/app.py` and `suite-core/core/crypto.py`.[2] Those are not newly introduced by this pass, but they remain part of the current autonomous risk picture.
 
-The latest preserved structured autonomous report also still describes an older backlog shape with **78 SAST findings** and **15 surfaced findings**. This cycle did not materially re-scan or reduce that backlog; it primarily improved the accuracy of the validation harness and re-established confidence in local suite interpretation.[10]
+The preserved server bootstrap log also shows that application startup now completes, which is sufficient for the self-scan path, but it still records that the Decisions router was unavailable because `prometheus_client` was missing. Since startup still completed and the self-scan passed, this appears to be a **non-blocking optional dependency gap**, not a hard product outage, but it remains worth tracking for completeness.[8]
+
+A separate operational risk is the possibility of reusing a stale `.coverage` database in later targeted reruns. The evidence from this pass shows that the resulting failure mode can be misleading because the tests themselves may be green while coverage finalization crashes afterward. The clean rerun resolved that condition without code changes, which strongly suggests that future validation helpers should clean or isolate coverage state before launching narrower reruns.[6] [7]
 
 | Risk area | Current state | Evidence |
 | --- | --- | --- |
-| Local bootstrap readiness | Still vulnerable to missing runtime imports in an unaligned sandbox | Server bootstrap logs [7] [8] [9] |
-| CI coverage governance | Preserved explicitly in workflow automation | CI workflow [3] |
-| Local targeted validation accuracy | Improved, because default pytest behavior no longer forces the global threshold onto every narrow slice | Pytest configuration and reruns [2] [4] [5] [6] |
-| Security backlog visibility | Latest structured report still records **78 SAST findings** and **15 surfaced findings** from the prior autonomous baseline | Prior structured report [10] |
+| Autonomous security backlog | Still materially present at **78 SAST findings** and **15 total findings** | Self-scan JSON [2] |
+| Critical self-scan issue | `Insecure Deserialization` remains surfaced in `suite-core/core/autofix_engine.py` | Self-scan JSON [2] |
+| Optional runtime dependency completeness | Server startup completed, but the Decisions router remained unavailable because `prometheus_client` was missing | Server bootstrap log [8] |
+| Targeted rerun evidence integrity | Improved after clean broader rerun, but stale `.coverage` reuse remains a known operational hazard | Original failing broader rerun and clean rerun [7] [6] |
 
 ## Files Changed in This Pass
 
-This continuation cycle introduced a **real but tightly scoped repository change** plus refreshed reporting artifacts.
+This reporting cycle is best described as an **evidence refresh with clean validation confirmation**. The durable outputs from the pass are the fresh autonomous self-scan artifacts, the requested rerun logs, the clean broader rerun log, and the refreshed reporting documents.
 
 | File or artifact | Change |
 | --- | --- |
-| `pyproject.toml` | Updated pytest `addopts` to remove the default `--cov-fail-under=18` and document that CI enforces the threshold explicitly for full-suite runs [2] |
-| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the actual current-cycle change, validated outcomes, and evidence-backed next actions |
-| `data/autonomous-reports/autonomous-foundation-report-20260408T083500Z.json` | New machine-readable report capturing this cycle’s configuration fix, confirmation reruns, remaining risks, and next actions |
-| `data/autonomous-reports/validation-confirmation-rerun-20260408T075547Z.log` | Combined confirmation evidence showing **233 passed** and **18.93%** coverage [4] |
-| `data/autonomous-reports/high-visibility-validation-confirmation-20260408T080553Z.log` | Dedicated high-visibility confirmation evidence showing **49 passed** [5] |
-| `data/autonomous-reports/broader-validation-rerun-after-fix-20260408T081553Z.log` | Dedicated broader confirmation evidence showing **184 passed** [6] |
-| `data/autonomous-reports/autonomous-cycle-server-20260408T070021Z.log` | Bootstrap failure evidence for missing `jwt` [7] |
-| `data/autonomous-reports/autonomous-cycle-server-20260408T070129Z.log` | Bootstrap failure evidence for missing `sarif-om` [8] |
-| `data/autonomous-reports/autonomous-cycle-server-20260408T070352Z.log` | Bootstrap failure evidence for missing `structlog` [9] |
+| `docs/ALDECI_BUILD_STATUS.md` | Rewritten to reflect the fresh autonomous self-scan, current validation outcomes, and the clean broader rerun stabilization |
+| `data/autonomous-reports/autonomous-foundation-report-20260408T154706Z.json` | New machine-readable report capturing this pass’s self-scan, validation results, and remaining risks |
+| `data/autonomous-reports/repo-state-20260408T154706Z.log` | Fresh repository-state evidence for the reporting pass [1] |
+| `data/autonomous-reports/autonomous-cycle-self-scan-20260408T150933Z.json` | Fresh structured self-scan artifact for this cycle [2] |
+| `data/autonomous-reports/autonomous-cycle-self-scan-20260408T150933Z.log` | Preserved self-scan execution log showing **17/17 passed** [3] |
+| `data/autonomous-reports/focused-autonomous-validation-rerun-20260408T153728Z.log` | Focused autonomous validation evidence showing **263 passed, 1 skipped** [4] |
+| `data/autonomous-reports/high-visibility-validation-rerun-20260408T153320Z.log` | High-visibility validation evidence showing **49 passed** [5] |
+| `data/autonomous-reports/broader-validation-rerun-20260408T153320Z.log` | Earlier broader rerun evidence showing the coverage database failure mode after test success [7] |
+| `data/autonomous-reports/broader-validation-clean-rerun-20260408T155137Z.log` | Clean broader rerun evidence showing **184 passed** with normal coverage output [6] |
+| `data/autonomous-reports/autonomous-cycle-server-20260408T150933Z.log` | Server bootstrap evidence showing successful startup and the optional Decisions-router dependency gap [8] |
 
 ## Recommended Next Actions
 
 | Priority | Next action | Rationale |
 | --- | --- | --- |
-| 1 | Commit `pyproject.toml`, the refreshed status document, and the new machine-readable report | This pass produced a real repository change plus durable evidence that the targeted validation behavior is now more truthful [2] [4] [5] [6] |
-| 2 | Add a lightweight runtime preflight for key imports such as `jwt`, `sarif_om`, `structlog`, and `sklearn` before long autonomous cycles begin | The preserved server logs show multiple import-level failures that were detectable earlier at very low cost [7] [8] [9] |
-| 3 | Re-run a fresh autonomous self-scan and persist its output to a durable log path once the runtime is pre-aligned | This cycle validated targeted suites, but the workspace does not currently contain a new preserved 2026-04-08 self-scan log alongside the refreshed reporting artifacts [7] [8] [9] [10] |
-| 4 | Resume reduction of the previously reported self-scan backlog after bootstrap reliability is improved | The latest structured autonomous report still records substantial SAST and surfaced-findings backlog [10] |
+| 1 | Commit the refreshed status document, the new machine-readable report, the new repository-state log, and the clean broader rerun log | This pass produced durable evidence that the requested validation scope is green and that the broader blocker was operational rather than functional [1] [4] [5] [6] |
+| 2 | Add explicit coverage-state cleanup, or isolate `COVERAGE_FILE`, before targeted rerun helpers execute | The earlier broader rerun failed after tests passed because the shared `.coverage` artifact was not trustworthy [7] [6] |
+| 3 | Start backlog reduction from the fresh self-scan artifact, prioritizing the critical insecure-deserialization issue in `autofix_engine.py` and the token/logging findings | The self-scan now provides a current, durable queue rather than an inferred backlog from older evidence [2] |
+| 4 | Decide whether `prometheus_client` should be installed or the Decisions router should remain explicitly optional in local autonomous environments | Startup is functional, but the preserved server log shows the dependency gap clearly [8] |
 
 ## References
 
-[1]: ../data/autonomous-reports/repo-state-20260408T083500Z.log
-[2]: ../pyproject.toml
-[3]: ../.github/workflows/ci.yml
-[4]: ../data/autonomous-reports/validation-confirmation-rerun-20260408T075547Z.log
-[5]: ../data/autonomous-reports/high-visibility-validation-confirmation-20260408T080553Z.log
-[6]: ../data/autonomous-reports/broader-validation-rerun-after-fix-20260408T081553Z.log
-[7]: ../data/autonomous-reports/autonomous-cycle-server-20260408T070021Z.log
-[8]: ../data/autonomous-reports/autonomous-cycle-server-20260408T070129Z.log
-[9]: ../data/autonomous-reports/autonomous-cycle-server-20260408T070352Z.log
-[10]: ../data/autonomous-reports/autonomous-foundation-report-20260408T032717Z.json
+[1]: ../data/autonomous-reports/repo-state-20260408T154706Z.log
+[2]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260408T150933Z.json
+[3]: ../data/autonomous-reports/autonomous-cycle-self-scan-20260408T150933Z.log
+[4]: ../data/autonomous-reports/focused-autonomous-validation-rerun-20260408T153728Z.log
+[5]: ../data/autonomous-reports/high-visibility-validation-rerun-20260408T153320Z.log
+[6]: ../data/autonomous-reports/broader-validation-clean-rerun-20260408T155137Z.log
+[7]: ../data/autonomous-reports/broader-validation-rerun-20260408T153320Z.log
+[8]: ../data/autonomous-reports/autonomous-cycle-server-20260408T150933Z.log
