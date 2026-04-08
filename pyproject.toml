@@ -66,7 +66,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
-    "--cov-fail-under=18",
+    # Coverage threshold is enforced explicitly in CI for full-suite runs.
     "--durations=10",
     "-ra",
 ]
