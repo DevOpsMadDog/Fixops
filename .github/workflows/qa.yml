@@ -23,8 +23,6 @@ jobs:
       PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
     steps:
       - uses: actions/checkout@v4
-      - name: Configure git safe directory
-        run: git config --global --add safe.directory /__w/Fixops/Fixops
       - name: Install dependencies
         run: |
           pip install -r requirements-test.txt

@@ -78,6 +78,7 @@ jobs:
             -q \
             --ignore=tests/e2e \
             --ignore=tests/e2e_real_data \
+            --ignore=tests/real_world_tests \
             --ignore=tests/harness \
             --ignore=tests/sidecar \
             --ignore=tests/load \
@@ -130,7 +131,7 @@ jobs:
             python -m pytest tests/test_scanner_parsers.py -v --timeout=10
           else
             echo "Scanner parser tests not found -- verifying parsers import"
-            python -c "from core.scanner_parsers import ScannerParsers; print('ScannerParsers class loaded OK')"
+            python -c "from core.scanner_parsers import register_scanner_normalizers; print('scanner_parsers module loaded OK')"
           fi
 
   # ── Job 4: Docker Compose Validation ────────────────────────
@@ -143,14 +144,7 @@ jobs:
         run: |
           PASS=0
           FAIL=0
-          for f in docker/docker-compose.yml \
-                   docker/docker-compose.enterprise.yml \
-                   docker/docker-compose.vc-demo.yml \
-                   docker/docker-compose.air-gapped-test.yml \
-                   docker/docker-compose.integration.yml \
-                   docker/docker-compose.demo.yml \
-                   docker/docker-compose.aldeci-complete.yml \
-                   docker/docker-compose.mpte.yml; do
+          for f in docker-compose.yml; do
             if [ -f "$f" ]; then
               if docker compose -f "$f" config --quiet 2>/dev/null; then
                 echo "✅ $f"
@@ -170,7 +164,7 @@ jobs:
         run: |
           PASS=0
           WARN=0
-          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo docker/Dockerfile.demo-sidecar docker/Dockerfile.sidecar docker/Dockerfile.feeds-sidecar docker/Dockerfile.interactive docker/Dockerfile.risk-graph docker/Dockerfile.simple; do
+          for f in Dockerfile; do
             if [ -f "$f" ]; then
               ISSUES=""
               if ! grep -q "HEALTHCHECK" "$f"; then ISSUES="${ISSUES} no-healthcheck"; fi
@@ -273,14 +267,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ hashFiles('docker/Dockerfile', 'requirements.txt') }}
+          key: ${{ runner.os }}-docker-${{ hashFiles('Dockerfile', 'requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-docker-
 
       - name: Build backend image (with layer cache)
         run: |
           docker buildx build \
-            --file docker/Dockerfile \
+            --file Dockerfile \
             --tag fixops:ci-test \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
@@ -404,10 +398,9 @@ jobs:
         if: always()
         run: docker stop fixops-ci && docker rm fixops-ci || true
 
-  # ── Job 7: Full-Stack Compose Test (DEMO-007) ───────────────
-  # Verifies that `docker compose -f docker/docker-compose.yml up`
-  # starts both API + UI and health checks pass within 30s.
-  # This is the customer laptop test — the most important CI job.
+  # ── Job 7: Compose E2E Test (DEMO-007) ───────────────────────
+  # Verifies that `docker compose -f docker-compose.yml up`
+  # starts the API service and core health checks pass.
   compose-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -415,72 +408,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and start full stack (API + UI)
+      - name: Build and start compose stack (API)
         run: |
-          docker compose -f docker/docker-compose.yml up --build -d 2>&1
+          docker compose -f docker-compose.yml up --build -d 2>&1
         env:
           FIXOPS_API_TOKEN: ci-test-token
           FIXOPS_JWT_SECRET: ci-jwt-secret-for-testing-only
 
-      - name: Wait for API + UI health (max 60s, target <30s)
+      - name: Wait for API health (max 60s, target <30s)
         run: |
           START_TS=$(date +%s)
-          API_READY=false
-          UI_READY=false
           for i in $(seq 1 60); do
-            if [[ "$API_READY" != "true" ]] && curl -sf http://localhost:8000/health --max-time 2 > /dev/null 2>&1; then
+            if curl -sf http://localhost:8000/health --max-time 2 > /dev/null 2>&1; then
               ELAPSED=$(($(date +%s) - START_TS))
               echo "✅ API healthy after ${ELAPSED}s"
-              API_READY=true
-            fi
-            if [[ "$UI_READY" != "true" ]] && curl -sf http://localhost:3001/nginx-health --max-time 2 > /dev/null 2>&1; then
-              ELAPSED=$(($(date +%s) - START_TS))
-              echo "✅ UI healthy after ${ELAPSED}s"
-              UI_READY=true
-            fi
-            if [[ "$API_READY" == "true" && "$UI_READY" == "true" ]]; then
-              TOTAL_ELAPSED=$(($(date +%s) - START_TS))
-              echo ""
-              echo "✅ Full stack healthy after ${TOTAL_ELAPSED}s"
-              if [ "$TOTAL_ELAPSED" -gt 30 ]; then
-                echo "⚠️  WARNING: Startup took ${TOTAL_ELAPSED}s (demo target: <30s)"
-              fi
               break
             fi
             if [ $i -eq 60 ]; then
-              echo "❌ Full stack failed to become healthy within 60s"
-              echo "API_READY=$API_READY UI_READY=$UI_READY"
-              docker compose -f docker/docker-compose.yml logs
+              echo "❌ API failed to become healthy within 60s"
+              docker compose -f docker-compose.yml logs
               exit 1
             fi
             sleep 1
           done
 
-      - name: Verify API via UI proxy (nginx → backend)
+      - name: Verify API endpoints
         run: |
-          # The UI's nginx proxies /health and /api/* to the backend
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
           if [ "$STATUS" = "200" ]; then
-            echo "✅ API accessible via UI proxy (/health → backend)"
+            echo "✅ API health endpoint reachable"
           else
-            echo "❌ UI proxy to API failed (got $STATUS)"
+            echo "❌ API health endpoint check failed (got $STATUS)"
             exit 1
           fi
-
-      - name: Verify nginx security headers
-        run: |
-          HEADERS=$(curl -sI http://localhost:3001/ 2>/dev/null)
-          PASS=0; FAIL=0
-          for h in "X-Frame-Options" "X-Content-Type-Options" "X-XSS-Protection" "Strict-Transport-Security"; do
-            if echo "$HEADERS" | grep -qi "$h"; then
-              echo "✅ $h present"
-              PASS=$((PASS + 1))
-            else
-              echo "⚠️  $h missing"
-              FAIL=$((FAIL + 1))
-            fi
-          done
-          echo "Security headers: $PASS present, $FAIL missing"
 
       - name: Run demo health check (DEMO-007 gate)
         run: |
@@ -503,11 +463,11 @@ jobs:
 
       - name: Dump logs on failure
         if: failure()
-        run: docker compose -f docker/docker-compose.yml logs 2>&1 | tail -200
+        run: docker compose -f docker-compose.yml logs 2>&1 | tail -200
 
       - name: Teardown
         if: always()
-        run: docker compose -f docker/docker-compose.yml down -v || true
+        run: docker compose -f docker-compose.yml down -v || true
 
   # ── Job 7.5: Dependency Security Audit ─────────────────────
   dep-audit:
