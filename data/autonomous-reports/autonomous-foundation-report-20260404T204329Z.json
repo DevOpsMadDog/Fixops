@@ -1,0 +1,276 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-04T20:43:29Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "669445e4",
+  "status": "targeted-remediation-confirmed-critical-micro-pentest-tls-finding-cleared",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-zero-critical-findings-and-no-secrets",
+    "cycle_fix_status": "micro-pentest-tls-remediation-implemented-and-confirmed",
+    "targeted_validation_status": "passed-no-cov",
+    "broader_validation_baseline_status": "retained-from-prior-cycle-not-rerun-in-this-pass",
+    "confirmation_result": {
+      "targeted_tests_passed": 4,
+      "targeted_tests_skipped": 0,
+      "targeted_tests_failed": 0,
+      "targeted_tests_duration_seconds": 0.31,
+      "sast_028_match_count": 0,
+      "fresh_self_scan_sast_findings": 325,
+      "fresh_self_scan_secrets_found": 0,
+      "fresh_self_scan_total_findings": 23,
+      "fresh_self_scan_critical_findings": 0,
+      "fresh_self_scan_steps_total": 17,
+      "fresh_self_scan_steps_passed": 18,
+      "fresh_self_scan_steps_failed": 0,
+      "fresh_self_scan_pass_rate": 105.9,
+      "fresh_self_scan_duration_seconds": 5.4
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_micro_pentest_tls.py": true,
+    "scripts/aldeci_self_scan.py": true,
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/test_overlay_configuration.py": true,
+    "tests/test_overlay_runtime.py": true,
+    "tests/test_configuration_unit.py": true,
+    "tests/test_app_factory.py": true,
+    "resolution": "this pass executed targeted TLS-remediation validation and a fresh self-scan, while retaining the broader green validation baseline established in the immediately preceding cycle"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T204255Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260404-164301.json",
+    "metrics": {
+      "sast_findings": 325,
+      "secrets_found": 0,
+      "total_findings": 23,
+      "steps_total": 17,
+      "steps_passed": 18,
+      "steps_failed": 0,
+      "pass_rate": 105.9,
+      "duration_seconds": 5.4
+    },
+    "finding_summary": {
+      "severity_counts": {
+        "medium": 20,
+        "low": 3
+      },
+      "source_counts": {
+        "aldeci-self-sast": 20,
+        "aldeci-self-container": 3
+      },
+      "top_file_counts": [
+        ["suite-core/core/micro_pentest.py", 3],
+        ["suite-api/apps/api/app.py", 3],
+        ["suite-core/core/crypto.py", 3],
+        ["suite-core/core/connectors.py", 3],
+        ["suite-core/core/autofix_engine.py", 3],
+        ["suite-core/core/brain_pipeline.py", 3],
+        ["suite-core/core/sast_engine.py", 2],
+        ["<unknown>", 3]
+      ]
+    },
+    "notable_findings": [
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 176,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 304,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 759,
+        "cwe": "CWE-327"
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "micro_pentest_tls_targeted_confirmation",
+      "log": "data/autonomous-reports/micro-pentest-tls-remediation-check-20260404T204111Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 4,
+        "skipped": 0,
+        "failed": 0,
+        "duration_seconds": 0.31,
+        "coverage_enabled": false,
+        "sast_028_match_count": 0,
+        "selected_suites": [
+          "tests/test_micro_pentest_tls.py"
+        ]
+      },
+      "notes": [
+        "the updated micro-pentest TLS configuration behaved as expected under targeted unit coverage",
+        "the certificate-bypass rule pattern no longer matched suite-core/core/micro_pentest.py"
+      ]
+    },
+    {
+      "name": "autonomous_cycle_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T204255Z.log",
+      "result_artifact": "data/demo-results/self-scan-20260404-164301.json",
+      "status": "passed",
+      "result": {
+        "steps_passed": 18,
+        "steps_total": 17,
+        "findings_total": 23,
+        "sast_findings": 325,
+        "secrets_found": 0,
+        "critical_findings": 0,
+        "duration_seconds": 5.4
+      },
+      "notes": [
+        "the fresh self-scan no longer surfaced the prior critical Disabled SSL/TLS Verification finding",
+        "the remaining surfaced backlog is now entirely medium and low severity plus container hygiene findings"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_prior_baseline",
+      "log": "data/autonomous-reports/focused-autonomous-validation-rerun-20260404T191146Z.log",
+      "status": "passed-prior-cycle-baseline",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 238.32,
+        "coverage_enabled": true,
+        "coverage_percent": 18.98,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this broader focused baseline remains the last known green validation state for the branch",
+        "it was not rerun in this micro-remediation pass"
+      ]
+    },
+    {
+      "name": "high_visibility_prior_baseline",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260404T190650Z.log",
+      "status": "passed-prior-cycle-baseline",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 117.47,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the high-visibility branch baseline remains green from the immediately preceding cycle"
+      ]
+    },
+    {
+      "name": "broader_foundation_prior_baseline",
+      "log": "data/autonomous-reports/broader-validation-rerun-20260404T190923Z.log",
+      "status": "passed-prior-cycle-baseline",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 14.82,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the broader branch validation baseline remains green from the immediately preceding cycle"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "suite-core/core/micro_pentest.py",
+      "change": "replaced the micro-pentest module's direct TLS verification toggle with the shared core.tls_config.tls_verify resolver"
+    },
+    {
+      "file": "tests/test_micro_pentest_tls.py",
+      "change": "added targeted tests covering default verified TLS, CA bundle usage, explicit disable mode, and AsyncClient wiring"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative to reflect the TLS remediation, fresh self-scan result, and remaining backlog shape"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260404T204329Z.json",
+      "change": "wrote a new machine-readable cycle report for the targeted micro-pentest TLS remediation pass"
+    }
+  ],
+  "environment_notes": {
+    "api_health_confirmed": true,
+    "api_health_port": 8011,
+    "local_token_configured_for_cycle": true,
+    "sandbox_toolchain_aligned": true,
+    "aligned_tool_versions": {
+      "pytest": "8.4.2",
+      "pytest-cov": "5.0.0",
+      "pytest-asyncio": "0.26.0"
+    },
+    "known_nonfatal_messages": [
+      "LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk",
+      "FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.",
+      "React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served"
+    ],
+    "observed_self_scan_consistency_issue": "the fresh self-scan reported 17 total steps but 18 passed steps, producing an impossible 105.9 percent pass rate",
+    "coverage_gate_note": "targeted remediation validation was rerun with --no-cov after an initial targeted-only run hit the repository-wide aggregate coverage gate despite all selected tests passing"
+  },
+  "remaining_risks": [
+    "the fresh self-scan still surfaces 20 medium findings and 3 low container hygiene findings",
+    "stack-trace exposure findings remain present in suite-core/core/micro_pentest.py, suite-api/apps/api/app.py, suite-core/core/crypto.py, and suite-core/core/connectors.py",
+    "weak cryptography findings remain present in suite-core/core/autofix_engine.py",
+    "the self-scan summary still contains an internal step-accounting inconsistency",
+    "the broader validation matrix was not rerun in this narrowly scoped remediation pass"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "triage the medium-severity stack-trace exposure findings still present in suite-core/core/micro_pentest.py, suite-api/apps/api/app.py, suite-core/core/crypto.py, and suite-core/core/connectors.py",
+      "rationale": "these findings now dominate the surfaced application-security backlog after the critical TLS issue was removed"
+    },
+    {
+      "priority": 2,
+      "action": "investigate and correct the self-scan accounting bug that reports more passed steps than total steps",
+      "rationale": "the current 18-of-17 summary undermines confidence in autonomous evidence quality"
+    },
+    {
+      "priority": 3,
+      "action": "triage the weak cryptography findings in suite-core/core/autofix_engine.py",
+      "rationale": "these remain recurring medium-severity findings in the autonomous backlog"
+    },
+    {
+      "priority": 4,
+      "action": "address the remaining container hygiene findings, especially package pinning",
+      "rationale": "container issues continue to appear in every fresh self-scan"
+    },
+    {
+      "priority": 5,
+      "action": "refresh the broader focused, high-visibility, and repository validation slices after the next batch of backlog items is remediated",
+      "rationale": "this pass confirmed the targeted fix, but did not refresh the full branch-wide validation matrix"
+    }
+  ]
+}

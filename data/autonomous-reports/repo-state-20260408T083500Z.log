@@ -1,0 +1,24 @@
+---BRANCH---
+feature/autonomous-foundation
+
+---HEAD_COMMIT---
+5be963229b1382d1b52cc8364878f65cda3cccf3
+
+---STATUS_SHORT---
+ M docs/ALDECI_BUILD_STATUS.md
+ M pyproject.toml
+
+---PYPROJECT_DIFF---
+diff --git a/pyproject.toml b/pyproject.toml
+index 749fdb75..f2f75507 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -66,7 +66,7 @@ addopts = [
+     "--cov-report=term-missing",
+     "--cov-report=html",
+     "--cov-report=xml",
+-    "--cov-fail-under=18",
++    # Coverage threshold is enforced explicitly in CI for full-suite runs.
+     "--durations=10",
+     "-ra",
+ ]

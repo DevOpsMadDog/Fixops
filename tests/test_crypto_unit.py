@@ -14,6 +14,7 @@ import pytest
 
 from core.crypto import (
     CryptoError,
+    HybridVerifier,
     KeyGenerationError,
     KeyMetadata,
     KeyNotFoundError,
@@ -608,3 +609,22 @@ class TestEdgeCases:
         ts_part = kid.replace("fixops-rsa-", "")
         assert len(ts_part) == 14
         assert ts_part.isdigit()
+
+
+class TestHybridVerifierSanitization:
+    def test_verify_evidence_bundle_sanitizes_hybrid_signature_parse_errors(self):
+        bundle = {
+            "version": 2,
+            "artifact": "demo",
+            "signature": {
+                "format_version": 2,
+                "algorithm": "hybrid-rsa-ml-dsa",
+                "key_fingerprint": "sha256:test-fingerprint",
+            },
+        }
+
+        result = HybridVerifier.verify_evidence_bundle(object(), bundle)
+
+        assert result.hybrid_valid is False
+        assert result.error_detail == "Invalid hybrid signature envelope: CryptoError"
+        assert "missing fields" not in result.error_detail

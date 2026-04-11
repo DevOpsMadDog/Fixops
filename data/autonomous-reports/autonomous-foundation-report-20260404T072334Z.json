@@ -1,0 +1,255 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-04T07:23:34Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "611a12ff465905ba8f20c025ab22b934a2f07975",
+  "status": "validation-green-with-improved-autonomous-evidence-and-open-security-followup",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-after-path-resolution-fix",
+    "cycle_fix_status": "implemented-and-validated",
+    "focused_successor_validation_status": "passed",
+    "high_visibility_status": "passed-no-cov",
+    "broader_validation_status": "passed-no-cov",
+    "confirmation_result": {
+      "passed": 263,
+      "skipped": 1,
+      "failed": 0,
+      "duration_seconds": 437.5,
+      "coverage_enabled": true,
+      "coverage_percent": 19.02,
+      "coverage_threshold_percent": 18.0
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "resolution": "maintained successor wrapper suites remain present and passed in the current focused validation run"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-rerun-20260404T072206Z.log",
+    "result_artifact": "data/autonomous-reports/autonomous-cycle-self-scan-rerun-20260404T072206Z.json",
+    "prior_run_log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T070642Z.log",
+    "prior_run_result_artifact": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T070642Z.json",
+    "metrics": {
+      "sast_findings": 5,
+      "secrets_found": 2,
+      "total_findings": 10,
+      "steps_total": 17,
+      "steps_passed": 17,
+      "steps_failed": 0,
+      "pass_rate": 100.0,
+      "duration_seconds": 0.6
+    },
+    "delta_from_prior_run": {
+      "sast_findings_change": 0,
+      "secrets_found_change": 2,
+      "total_findings_change": 5,
+      "steps_passed_change": 3,
+      "pass_rate_change": 18.0,
+      "interpretation": "the cycle now sees real repository compose, environment-template, and Dockerfile inputs rather than reporting a partially blind result"
+    },
+    "findings": [
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 103,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 62,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 140,
+        "cwe": "CWE-502"
+      },
+      {
+        "severity": "high",
+        "title": "ECB Mode Usage",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 150,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/connectors.py",
+        "line_number": 60,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "high",
+        "title": "Secret: database_credential in .env.example",
+        "file_path": ".env.example",
+        "cwe": null
+      },
+      {
+        "severity": "high",
+        "title": "Secret: generic in .env.example",
+        "file_path": ".env.example",
+        "cwe": null
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "cwe": null
+      },
+      {
+        "severity": "low",
+        "title": "Apt-get No Clean",
+        "file_path": "Dockerfile",
+        "cwe": null
+      },
+      {
+        "severity": "medium",
+        "title": "No Package Pinning",
+        "file_path": "Dockerfile",
+        "cwe": null
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "focused_autonomous_successor_current",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260404T070709Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 437.5,
+        "coverage_enabled": true,
+        "coverage_percent": 19.02,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "coverage-enabled successor-suite validation satisfied the repository coverage gate",
+        "this remains the strongest confirmation artifact for the current source state"
+      ]
+    },
+    {
+      "name": "high_visibility_current",
+      "log": "data/autonomous-reports/high-visibility-validation-20260404T071458Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 270.95,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "executed without coverage gating to isolate functional validation",
+        "branding namespace, BN-LR hybrid behavior, and AI consensus remain green"
+      ]
+    },
+    {
+      "name": "broader_foundation_current",
+      "log": "data/autonomous-reports/broader-validation-20260404T072017Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 19.87,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "broader validation adds confidence around overlay, configuration, runtime, and app-factory behavior",
+        "this slice also confirms the current branch no longer reproduces the older app-factory failure set"
+      ]
+    },
+    {
+      "name": "autonomous_cycle_rerun_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-rerun-20260404T072206Z.log",
+      "status": "passed",
+      "result": {
+        "steps_passed": 17,
+        "steps_total": 17,
+        "findings_total": 10,
+        "duration_seconds": 0.6
+      },
+      "notes": [
+        "rerun performed after fixing repository-path resolution in the self-scan workflow",
+        "this is the authoritative autonomous evidence artifact for the current branch state"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "scripts/aldeci_self_scan.py",
+      "change": "added repository-path resolution helper and updated secrets plus Dockerfile scan targets to prefer actual root-level files with safe fallback behavior"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative to reflect the self-scan path-resolution remediation, fresh evidence, and current validation outcomes"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260404T072334Z.json",
+      "change": "wrote a new machine-readable cycle report for the current validated branch state"
+    }
+  ],
+  "environment_notes": {
+    "api_startup_unblocked": true,
+    "local_token_configured_for_cycle": true,
+    "demo_mode_used": true,
+    "api_import_path_bootstrapped_via_runtime_dependency_installs": true,
+    "diagnostic_temp_files_present": [],
+    "known_nonfatal_test_message": "Failed to export metrics batch code: 404, reason: Not Found",
+    "observed_self_scan_warning": "AutoFix step emitted a 500 warning for insecure deserialization even though the overall self-scan summary reported success"
+  },
+  "remaining_risks": [
+    "self-scan still reports 5 product-security findings requiring remediation",
+    ".env.example is now correctly scanned and currently surfaces 2 secret-like detections that need sanitization or policy treatment",
+    "root Dockerfile scan now surfaces package-pinning and cleanup findings that remain unresolved",
+    "AutoFix behavior and self-scan summary accounting are not fully aligned because the console shows a 500 warning while the summary reports 17/17 passed",
+    "local telemetry export still emits a non-fatal 404 message during validation"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "decide whether .env.example should be sanitized further or explicitly excluded from autonomous secret scanning evidence"
+    },
+    {
+      "priority": 2,
+      "action": "remediate the remaining SAST findings in suite-core/core/sast_engine.py and the stack-trace exposure paths"
+    },
+    {
+      "priority": 3,
+      "action": "investigate the AutoFix 500 warning and self-scan step-accounting mismatch so autonomous-cycle reporting becomes internally consistent"
+    },
+    {
+      "priority": 4,
+      "action": "normalize telemetry export behavior in local test runs to eliminate the recurring non-fatal 404 message"
+    },
+    {
+      "priority": 5,
+      "action": "commit the self-scan path-resolution patch together with the updated status document and new machine-readable report"
+    }
+  ]
+}

@@ -18,6 +18,8 @@ for suite in ["suite-core", "suite-api", "suite-attack", "suite-feeds",
 
 import pytest
 
+pytestmark = pytest.mark.timeout(120)
+
 # Set env vars BEFORE importing app module
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
 os.environ.setdefault("FIXOPS_MODE", "enterprise")

@@ -1,0 +1,14 @@
+timestamp_utc=2026-04-08T15:47:06Z
+branch=feature/autonomous-foundation
+head=8f8b9eba4efa08f111beceddeb1c0a56d8c9a118
+
+[git_status_short]
+
+[key_artifacts]
+self_scan_json=data/autonomous-reports/autonomous-cycle-self-scan-20260408T150933Z.json
+self_scan_log=data/autonomous-reports/autonomous-cycle-self-scan-20260408T150933Z.log
+server_log=data/autonomous-reports/autonomous-cycle-server-20260408T150933Z.log
+deps_log=data/autonomous-reports/autonomous-cycle-deps-refresh-20260408T150933Z.log
+focused_rerun=data/autonomous-reports/focused-autonomous-validation-rerun-20260408T153728Z.log
+high_visibility_rerun=data/autonomous-reports/high-visibility-validation-rerun-20260408T153320Z.log
+broader_clean_rerun=data/autonomous-reports/broader-validation-clean-rerun-20260408T155137Z.log

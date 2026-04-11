@@ -1,0 +1,345 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-06T15:33:00Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_during_cycle": "dcff69a0a705180cf8c88c551306b79905e1db07",
+  "status": "autofix-http-500-fixed-and-self-scan-fully-green",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "initially-reproduced-autofix-http-500-then-passed-fully-after-compatibility-fix-and-clean-restart",
+    "cycle_fix_status": "targeted-source-fix-with-regression-test-and-live-runtime-confirmation",
+    "focused_successor_validation_status": "passed-and-cleared-coverage-gate",
+    "high_visibility_status": "tests-passed-but-narrow-slice-missed-global-coverage-gate",
+    "broader_validation_status": "tests-passed-but-narrow-slice-missed-global-coverage-gate",
+    "confirmation_result": {
+      "initial_self_scan_baseline": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "failed_steps": 0,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "total_findings": 15,
+        "duration_seconds": 7.7,
+        "autofix_status": "http-500"
+      },
+      "focused_autonomous_successor": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 471.93,
+        "coverage_percent": 19.02,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "autofix_regression_confirmation": {
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 9.26,
+        "selected_suites": [
+          "tests/test_autofix_engine_unit.py::TestEnrichFromGraph",
+          "tests/real_world_tests/test_phase5_remediate.py"
+        ]
+      },
+      "final_self_scan_confirmation": {
+        "steps_passed": 17,
+        "steps_total": 17,
+        "failed_steps": 0,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "total_findings": 15,
+        "duration_seconds": 6.4,
+        "autofix_status": "generated-fix",
+        "fix_id": "fix-97587de5c5ff8bb4",
+        "confidence_percent": 87.2
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "tests/test_autofix_engine_unit.py": true,
+    "tests/real_world_tests/test_phase5_remediate.py": true,
+    "resolution": "all requested successor and visibility suites remain present, and this cycle added a direct regression guard for the repaired AutoFix enrichment path"
+  },
+  "bootstrap_attempts": [
+    {
+      "order": 1,
+      "status": "passed",
+      "log": "data/autonomous-reports/local-api-20260406T150131Z.log",
+      "resolution": "local API was healthy enough to execute the fresh autonomous-cycle baseline that reproduced the live AutoFix HTTP 500"
+    },
+    {
+      "order": 2,
+      "status": "failed",
+      "log": "data/autonomous-reports/local-api-20260406T152713Z.log",
+      "failure_cause": "overlay auth strategy token required FIXOPS_API_TOKEN to be set during clean restart"
+    },
+    {
+      "order": 3,
+      "status": "passed",
+      "log": "data/autonomous-reports/local-api-20260406T152759Z.log",
+      "resolution": "local API restarted successfully with FIXOPS_MODE=enterprise, FIXOPS_API_TOKEN, FIXOPS_JWT_SECRET, and telemetry disabled"
+    }
+  ],
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260406T150207Z.log",
+    "base_url": "http://127.0.0.1:8000",
+    "metrics": {
+      "sast_findings": 78,
+      "secrets_found": 0,
+      "total_findings": 15,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.0,
+      "duration_seconds": 7.7
+    },
+    "notes": [
+      "the fresh autonomous-cycle baseline reproduced the insecure-deserialization AutoFix HTTP 500 before any code edits were applied",
+      "the broader self-scan profile remained stable while isolating the next concrete defect for safe remediation"
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_baseline_current_cycle",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260406T150207Z.log",
+      "status": "passed-with-open-autofix-http-500",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "duration_seconds": 7.7
+      },
+      "notes": [
+        "the SAST engine phase remained clean at 0 findings",
+        "the insecure-deserialization AutoFix step returned HTTP 500 and became the concrete remediation target"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260406T150252Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 471.93,
+        "coverage_percent": 19.02,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this run refreshed the focused autonomous-foundation successor baseline before product code edits",
+        "the repository-wide coverage gate was satisfied without altering threshold policy"
+      ]
+    },
+    {
+      "name": "high_visibility",
+      "log": "data/autonomous-reports/high-visibility-validation-20260406T151114Z.log",
+      "status": "tests-passed-coverage-gate-failed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 436.10,
+        "coverage_percent": 5.55,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the selected tests themselves passed cleanly",
+        "the slice remains too narrow for the repository-wide coverage denominator when run alone"
+      ]
+    },
+    {
+      "name": "broader_foundation_initial",
+      "log": "data/autonomous-reports/broader-validation-20260406T151849Z.log",
+      "status": "tests-passed-coverage-gate-failed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 125.97,
+        "coverage_percent": 15.82,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the broader foundational slice stayed behaviorally green",
+        "coverage remained below the unchanged global denominator when the slice was isolated"
+      ]
+    },
+    {
+      "name": "autofix_regression_post_fix",
+      "log": "data/autonomous-reports/autofix-regression-20260406T152510Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 9.26,
+        "selected_suites": [
+          "tests/test_autofix_engine_unit.py::TestEnrichFromGraph",
+          "tests/real_world_tests/test_phase5_remediate.py"
+        ]
+      },
+      "notes": [
+        "the new regression test passed alongside existing remediation workflow coverage",
+        "this was the direct code-level confirmation for the ThreatEnricher compatibility repair"
+      ]
+    },
+    {
+      "name": "self_scan_rerun_against_stale_process",
+      "log": "data/autonomous-reports/self-scan-rerun-20260406T152552Z.log",
+      "status": "passed-with-open-autofix-http-500",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "duration_seconds": 4.2
+      },
+      "notes": [
+        "the patched code had not yet been loaded because the previous API process was still serving requests",
+        "this rerun confirmed the need for a clean restart rather than indicating the patch was ineffective"
+      ]
+    },
+    {
+      "name": "self_scan_final_confirmation",
+      "log": "data/autonomous-reports/self-scan-rerun-20260406T152844Z.log",
+      "status": "passed",
+      "result": {
+        "steps_passed": 17,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "duration_seconds": 6.4,
+        "fix_id": "fix-97587de5c5ff8bb4",
+        "autofix_confidence_percent": 87.2
+      },
+      "notes": [
+        "after a clean tokenized restart, the insecure-deserialization AutoFix step returned 200 and generated a fix",
+        "the autonomous self-scan improved from 16/17 to 17/17 without changing backlog counts"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "suite-core/core/autofix_engine.py",
+      "change": "added ThreatEnricher interface compatibility so AutoFix graph enrichment works with either enrich(...) or enrich_findings(...)"
+    },
+    {
+      "file": "tests/test_autofix_engine_unit.py",
+      "change": "added a regression test covering the enrich_findings-only ThreatEnricher contract"
+    },
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative for the repaired AutoFix path and refreshed evidence set"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260406T1533Z.json",
+      "change": "wrote a new machine-readable report capturing the fix, validation evidence, restart contract, and next actions"
+    }
+  ],
+  "environment_remediation": {
+    "type": "clean-api-restart-with-overlay-compatible-enterprise-token-contract",
+    "source_manifests": [
+      "suite-api/apps/api/app.py",
+      "suite-core/core/configuration.py",
+      "scripts/aldeci_self_scan.py"
+    ],
+    "evidence_log": "data/autonomous-reports/local-api-20260406T152759Z.log",
+    "bootstrap_configuration": {
+      "FIXOPS_MODE": "enterprise",
+      "FIXOPS_DISABLE_RATE_LIMIT": "1",
+      "FIXOPS_DISABLE_TELEMETRY": "1",
+      "FIXOPS_API_TOKEN": "set-for-local-runtime",
+      "FIXOPS_JWT_SECRET": "set-for-local-runtime",
+      "local_api_host": "127.0.0.1",
+      "local_api_port": 8000
+    },
+    "rationale": "the first post-fix rerun still hit the old error because the patched code was not loaded into the running API process, so the lowest-risk runtime remediation was a clean restart under the repository's required tokenized overlay contract"
+  },
+  "environment_notes": {
+    "local_api_healthy_for_final_self_scan": true,
+    "local_api_port": 8000,
+    "stale_process_initially_masked_fix": true,
+    "restart_without_token_failed": true,
+    "restart_without_token_failure_cause": "overlay auth strategy token required FIXOPS_API_TOKEN",
+    "product_source_code_modified_in_this_cycle": true,
+    "test_source_code_modified_in_this_cycle": true,
+    "reporting_artifacts_modified_in_this_cycle": true,
+    "focused_successor_baseline_stayed_green_before_fix": true,
+    "high_visibility_slice_is_logically_green_but_coverage_narrow": true,
+    "broader_foundation_slice_is_logically_green_but_coverage_narrow": true
+  },
+  "remaining_risks": [
+    "the high-visibility validation slice passes behaviorally but does not satisfy the repository-wide 18% coverage gate when run alone",
+    "the broader foundational validation slice also remains below the repository-wide coverage gate when run in isolation",
+    "live backlog findings remain around token expiration, sensitive logging, weak cryptography, insecure deserialization, brain-pipeline robustness, and Dockerfile hygiene",
+    "future autonomous cycles will still need the tokenized overlay-compatible restart contract when the local API must be relaunched",
+    "additional service call sites may still exist elsewhere if they assume deprecated helper interfaces instead of current contracts"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "run a representative repository-level confirmation suite after this source edit if branch policy still requires a post-edit broad gate signal beyond the focused successor baseline"
+    },
+    {
+      "priority": 2,
+      "action": "continue backlog reduction on insecure deserialization, token expiration, sensitive logging, weak cryptography, and Dockerfile hygiene findings now that the AutoFix path is live again"
+    },
+    {
+      "priority": 3,
+      "action": "codify the clean local restart contract for autonomous validation using FIXOPS_MODE=enterprise, FIXOPS_API_TOKEN, and FIXOPS_JWT_SECRET"
+    },
+    {
+      "priority": 4,
+      "action": "decide whether narrow visibility-focused suites should always be paired with a representative broader slice when enforcing the repository-wide 18% coverage gate"
+    },
+    {
+      "priority": 5,
+      "action": "scan for other compatibility assumptions where code still expects deprecated helper interfaces rather than current service contracts"
+    }
+  ],
+  "evidence": {
+    "autonomous_cycle_log": "data/autonomous-reports/autonomous-cycle-self-scan-20260406T150207Z.log",
+    "focused_validation_log": "data/autonomous-reports/focused-autonomous-validation-20260406T150252Z.log",
+    "high_visibility_validation_log": "data/autonomous-reports/high-visibility-validation-20260406T151114Z.log",
+    "broader_validation_log": "data/autonomous-reports/broader-validation-20260406T151849Z.log",
+    "autofix_regression_log": "data/autonomous-reports/autofix-regression-20260406T152510Z.log",
+    "stale_process_self_scan_log": "data/autonomous-reports/self-scan-rerun-20260406T152552Z.log",
+    "restart_failure_log": "data/autonomous-reports/local-api-20260406T152713Z.log",
+    "successful_restart_log": "data/autonomous-reports/local-api-20260406T152759Z.log",
+    "final_self_scan_log": "data/autonomous-reports/self-scan-rerun-20260406T152844Z.log",
+    "traceback_log": "data/autonomous-reports/local-api-20260406T150131Z.log",
+    "repo_state_log": "data/autonomous-reports/repo-state-20260406T153212Z.log"
+  }
+}

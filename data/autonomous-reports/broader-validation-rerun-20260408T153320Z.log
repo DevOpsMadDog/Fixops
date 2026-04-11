@@ -1,0 +1,656 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Fixops_repo
+configfile: pyproject.toml
+plugins: anyio-4.13.0, timeout-2.4.0, cov-7.1.0, asyncio-1.3.0
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... 
+----------------------------- live log collection ------------------------------
+2026-04-08 11:36:50 [    INFO] core.evidence: RSA signing module loaded successfully
+collected 184 items
+
+tests/test_app_factory.py::TestAppFactory::test_create_app_returns_fastapi 
+-------------------------------- live log setup --------------------------------
+2026-04-08 11:36:52 [    INFO] apps.api.app: Loaded Unified Triage router
+2026-04-08 11:36:52 [    INFO] apps.api.app: Loaded APP_ID Configuration router
+2026-04-08 11:36:52 [    INFO] apps.api.app: Loaded Material Change Detection router
+2026-04-08 11:36:52 [    INFO] apps.api.app: Loaded Universal Connectors router
+2026-04-08 11:36:52 [ WARNING] apps.api.auth_deps: JWT signing key is only 30 chars (minimum 32) — JWT auth disabled.
+2026-04-08 11:36:53 [    INFO] apps.api.app: Loaded PR Gate router
+2026-04-08 11:36:53 [    INFO] apps.api.app: Loaded MPTE (MPTE Enhanced) router from suite-attack
+2026-04-08 11:36:53 [    INFO] apps.api.app: Loaded Micro Pentest router from suite-attack
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Vulnerability Discovery router from suite-attack
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded MPTE Orchestrator router from suite-attack
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Secrets Scanner router from suite-attack
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Feeds router from suite-feeds (production, 36 endpoints)
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Scanner Ingest router (15 new parsers)
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Webhook Subscriptions router
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Sandbox PoC Verifier router
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded enterprise marketplace router
+2026-04-08 11:36:59 [    INFO] apps.api.app: Loaded Nerve Center router from suite-core
+2026-04-08 11:37:00 [ WARNING] apps.api.app: Decisions router not available: No module named 'prometheus_client'
+2026-04-08 11:37:00 [    INFO] apps.api.app: Loaded Deduplication router from suite-core
+2026-04-08 11:37:00 [    INFO] apps.api.app: Loaded ML/MindsDB router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded AutoFix router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded AutoFix Verification router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded MPTE Post-Fix Verification router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded MITRE ATT&CK Mapper router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Air-Gap Operations router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Fuzzy Identity router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Exposure Case router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Pipeline router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Copilot router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Agents router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Predictions router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded LLM router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Algorithmic router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded LLM Monitor router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded LLM Guard router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Streaming/SSE router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Code-to-Cloud router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Quantum Crypto router from suite-core (V6)
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Zero-Gravity router from suite-core (V9)
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Single Agent router from suite-core (V4)
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Knowledge Graph router from suite-core (V3)
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded Supply Chain Security router from suite-core
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded vLLM Self-Hosted LLM router from suite-core (V9)
+2026-04-08 11:37:01 [    INFO] apps.api.app: Loaded MCP Protocol router from suite-core (V7)
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Self-Learning router from suite-core (V8)
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Developer Risk Profiles router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Causal Inference router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded GNN Attack Path router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Monte Carlo Risk Simulation router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Runtime Protection router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Threat Modeling router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded AI Code Guardian router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Attack Surface Discovery router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Dependency-Track router from suite-core
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Attack Simulation router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded SAST router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Container Security router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded DAST router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded CSPM router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded API Fuzzer router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Malware Analysis router from suite-attack
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Evidence router from suite-evidence-risk
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Risk router from suite-evidence-risk
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Graph router from suite-evidence-risk
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Provenance router from suite-evidence-risk
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Compliance Engine router from suite-evidence-risk (V10)
+2026-04-08 11:37:02 [ WARNING] apps.api.app: Business Context router not available: No module named 'prometheus_client'
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Business Context Enhanced router from suite-evidence-risk
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Integrations router from suite-integrations
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded Webhooks routers from suite-integrations
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded IaC router from suite-integrations
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded IDE router from suite-integrations
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded OSS Tools router from suite-integrations
+2026-04-08 11:37:02 [    INFO] api.mcp_router: MCP client store: persistent-backed (data/mcp_state.db)
+2026-04-08 11:37:02 [    INFO] api.mcp_router: MCP config store: persistent-backed (data/mcp_state.db)
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded MCP router from suite-integrations
+2026-04-08 11:37:02 [    INFO] apps.api.app: Loaded SIEM router from suite-integrations
+2026-04-08 11:37:02 [ WARNING] core.exploit_signals: APScheduler unavailable or failed: No module named 'apscheduler'; skipping scheduler
+2026-04-08 11:37:02 [ WARNING] core.processing_layer: pgmpy unavailable; Bayesian inference will use deterministic fallbacks
+2026-04-08 11:37:02 [CRITICAL] apps.api.app: JWT signing key is too short (30 chars, minimum 32). Weak keys are rejected to prevent token forgery. Generating a strong ephemeral key instead. Set a signing key with at least 32 characters for production.
+2026-04-08 11:37:02 [ WARNING] apps.api.app: JWT signing key not set or rejected — generated ephemeral JWT signing key. Tokens will be invalid after restart. For production, set the JWT signing key environment variable (>= 32 chars).
+2026-04-08 11:37:03 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-08 11:37:03 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-08 11:37:03 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-08 11:37:03 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+2026-04-08 11:37:03 [    INFO] apps.api.app: RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)
+2026-04-08 11:37:03 [    INFO] apps.api.app: DetailedLoggingMiddleware disabled (set FIXOPS_DETAILED_LOGGING=1 to enable)
+2026-04-08 11:37:03 [    INFO] apps.api.app: LearningMiddleware enabled — API traffic will be captured for ML
+2026-04-08 11:37:03 [ WARNING] apps.api.app: FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+2026-04-08 11:37:03 [    INFO] core.decision_policy: Initialized DecisionPolicyEngine: block_internet_facing_sqli=True, block_auth_path_sqli=True, internet_facing_multiplier=3.0
+2026-04-08 11:37:03 [    INFO] apps.api.app: Mounted PR Gate router
+2026-04-08 11:37:03 [    INFO] apps.api.app: Mounted APP_ID Configuration router
+2026-04-08 11:37:03 [    INFO] apps.api.app: Mounted Material Change Detection router
+2026-04-08 11:37:03 [    INFO] apps.api.app: Mounted Universal Connectors router
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted CI/CD Gate router
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted Scanner Ingest router
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted Webhook Subscriptions router
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted Dependency-Track router
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted Sandbox PoC Verifier router
+2026-04-08 11:37:04 [    INFO] apps.api.app: Loaded Knowledge Brain router from suite-core
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted AutoFix router with write:findings scope guard
+2026-04-08 11:37:04 [    INFO] apps.api.app: Mounted Nerve Center router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Deduplication router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted ML/MindsDB router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted AutoFix Verification router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted MPTE Post-Fix Verification router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted MITRE ATT&CK Mapper router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Air-Gap Operations router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Fuzzy Identity router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Exposure Case router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Pipeline router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Copilot router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Agents router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Predictions router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted LLM router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Algorithmic router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted LLM Monitor router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted LLM Guard router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Code-to-Cloud router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted SSE Streaming router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Quantum Crypto router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Zero-Gravity Data router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted AI Agent router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Knowledge Graph router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Self-Hosted LLM (Air-Gapped) router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted MCP Protocol router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Self-Learning router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Developer Risk Profiles router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Supply Chain Security router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Causal Inference router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted GNN Attack Paths router from suite-core
+2026-04-08 11:37:05 [    INFO] apps.api.app: Mounted Monte Carlo Risk Simulation router from suite-core
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Runtime Protection router from suite-core
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Threat Modeling router from suite-core
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted AI Code Guardian router from suite-core
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Attack Surface Discovery router from suite-core
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Attack Simulation router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted SAST router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Container Security router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted DAST router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted CSPM router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted API Fuzzer router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Malware Analysis router from suite-attack
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Evidence router from suite-evidence-risk
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Risk router from suite-evidence-risk
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Graph router from suite-evidence-risk
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Provenance router from suite-evidence-risk
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Compliance Engine router from suite-evidence-risk
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Business Context Enhanced router from suite-evidence-risk
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Integrations router from suite-integrations
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Webhooks router from suite-integrations
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted IaC router from suite-integrations
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted IDE router from suite-integrations
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted SIEM router from suite-integrations
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Webhooks Receiver router (no API key auth)
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted OSS Tools router from suite-integrations
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted Detailed Logs router at /api/v1/logs
+2026-04-08 11:37:06 [    INFO] apps.api.app: Mounted MCP Auto-Discovery router at /api/v1/mcp
+2026-04-08 11:37:07 [    INFO] apps.api.app: Mounted 37 gap routers for frontend coverage
+2026-04-08 11:37:07 [ WARNING] apps.api.app: React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served
+2026-04-08 11:37:07 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-08 11:37:07 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-08 11:37:07 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-08 11:37:07 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+2026-04-08 11:37:07 [    INFO] apps.api.app: RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)
+2026-04-08 11:37:07 [    INFO] apps.api.app: DetailedLoggingMiddleware disabled (set FIXOPS_DETAILED_LOGGING=1 to enable)
+2026-04-08 11:37:07 [    INFO] apps.api.app: LearningMiddleware enabled — API traffic will be captured for ML
+2026-04-08 11:37:07 [ WARNING] apps.api.app: FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+2026-04-08 11:37:07 [    INFO] core.decision_policy: Initialized DecisionPolicyEngine: block_internet_facing_sqli=True, block_auth_path_sqli=True, internet_facing_multiplier=3.0
+2026-04-08 11:37:07 [    INFO] apps.api.app: Mounted PR Gate router
+2026-04-08 11:37:07 [    INFO] apps.api.app: Mounted APP_ID Configuration router
+2026-04-08 11:37:07 [    INFO] apps.api.app: Mounted Material Change Detection router
+2026-04-08 11:37:07 [    INFO] apps.api.app: Mounted Universal Connectors router
+2026-04-08 11:37:07 [    INFO] apps.api.app: Mounted CI/CD Gate router
+2026-04-08 11:37:08 [    INFO] apps.api.app: Mounted Scanner Ingest router
+2026-04-08 11:37:08 [    INFO] apps.api.app: Mounted Webhook Subscriptions router
+2026-04-08 11:37:08 [    INFO] apps.api.app: Mounted Dependency-Track router
+2026-04-08 11:37:08 [    INFO] apps.api.app: Mounted Sandbox PoC Verifier router
+2026-04-08 11:37:09 [    INFO] apps.api.app: Loaded Knowledge Brain router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted AutoFix router with write:findings scope guard
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Nerve Center router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Deduplication router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted ML/MindsDB router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted AutoFix Verification router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted MPTE Post-Fix Verification router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted MITRE ATT&CK Mapper router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Air-Gap Operations router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Fuzzy Identity router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Exposure Case router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Pipeline router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Copilot router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Agents router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Predictions router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted LLM router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Algorithmic router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted LLM Monitor router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted LLM Guard router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Code-to-Cloud router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted SSE Streaming router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Quantum Crypto router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Zero-Gravity Data router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted AI Agent router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Knowledge Graph router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Self-Hosted LLM (Air-Gapped) router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted MCP Protocol router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Self-Learning router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Developer Risk Profiles router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Supply Chain Security router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Causal Inference router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted GNN Attack Paths router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Monte Carlo Risk Simulation router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Runtime Protection router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Threat Modeling router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted AI Code Guardian router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Attack Surface Discovery router from suite-core
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Attack Simulation router from suite-attack
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted SAST router from suite-attack
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted Container Security router from suite-attack
+2026-04-08 11:37:09 [    INFO] apps.api.app: Mounted DAST router from suite-attack
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted CSPM router from suite-attack
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted API Fuzzer router from suite-attack
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Malware Analysis router from suite-attack
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Evidence router from suite-evidence-risk
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Risk router from suite-evidence-risk
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Graph router from suite-evidence-risk
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Provenance router from suite-evidence-risk
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Compliance Engine router from suite-evidence-risk
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Business Context Enhanced router from suite-evidence-risk
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Integrations router from suite-integrations
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Webhooks router from suite-integrations
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted IaC router from suite-integrations
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted IDE router from suite-integrations
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted SIEM router from suite-integrations
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Webhooks Receiver router (no API key auth)
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted OSS Tools router from suite-integrations
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted Detailed Logs router at /api/v1/logs
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted MCP Auto-Discovery router at /api/v1/mcp
+2026-04-08 11:37:10 [    INFO] apps.api.app: Mounted 37 gap routers for frontend coverage
+2026-04-08 11:37:10 [ WARNING] apps.api.app: React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served
+PASSED                                                                   [  0%]
+tests/test_app_factory.py::TestAppFactory::test_app_has_state PASSED     [  1%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_overlay PASSED [  1%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_archive PASSED [  2%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_normalizer PASSED [  2%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_orchestrator PASSED [  3%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_artifacts PASSED [  3%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_analytics_store PASSED [  4%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_enhanced_engine PASSED [  4%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_branding PASSED [  5%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_flag_provider PASSED [  5%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_upload_manager PASSED [  6%]
+tests/test_app_factory.py::TestAppFactory::test_app_has_many_routes PASSED [  7%]
+tests/test_app_factory.py::TestAppFactory::test_app_title_contains_branding PASSED [  7%]
+tests/test_app_factory.py::TestHealthEndpoints::test_legacy_health 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [  8%]
+tests/test_app_factory.py::TestHealthEndpoints::test_health_v1 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] core.api_learning_store: APILearningStore initialized at .fixops_data/api_learning.db
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [  8%]
+tests/test_app_factory.py::TestHealthEndpoints::test_readiness 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/ready "HTTP/1.1 200 OK"
+PASSED                                                                   [  9%]
+tests/test_app_factory.py::TestHealthEndpoints::test_version 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/version "HTTP/1.1 200 OK"
+PASSED                                                                   [  9%]
+tests/test_app_factory.py::TestHealthEndpoints::test_metrics 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/metrics "HTTP/1.1 200 OK"
+PASSED                                                                   [ 10%]
+tests/test_app_factory.py::TestAuthHelpers::test_generate_access_token PASSED [ 10%]
+tests/test_app_factory.py::TestAuthHelpers::test_decode_access_token PASSED [ 11%]
+tests/test_app_factory.py::TestAuthHelpers::test_decode_rejects_invalid_token PASSED [ 11%]
+tests/test_app_factory.py::TestAuthHelpers::test_decode_rejects_oversized_token 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: JWT rejected: token exceeds max length (4096 bytes)
+PASSED                                                                   [ 12%]
+tests/test_app_factory.py::TestAuthHelpers::test_jwt_secret_loaded PASSED [ 13%]
+tests/test_app_factory.py::TestAuthHelpers::test_check_auth_rate_limit_allows_normal PASSED [ 13%]
+tests/test_app_factory.py::TestAuthHelpers::test_record_and_check_auth_rate_limit PASSED [ 14%]
+tests/test_app_factory.py::TestMiddleware::test_product_header_present 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 14%]
+tests/test_app_factory.py::TestMiddleware::test_security_headers 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 15%]
+tests/test_app_factory.py::TestMiddleware::test_cors_preflight 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: OPTIONS http://testserver/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 15%]
+tests/test_app_factory.py::TestAuthenticatedEndpoints::test_status_no_auth_dev_mode 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 16%]
+tests/test_app_factory.py::TestAuthenticatedEndpoints::test_search_empty_query 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/search?q= "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 16%]
+tests/test_app_factory.py::TestAuthenticatedEndpoints::test_search_with_query 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/search?q=test "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 17%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_design_csv 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/design "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 17%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_sbom_cyclonedx 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/sbom "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 18%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_sarif 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:10 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:10 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/sarif "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 19%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_cve_feed 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/cve "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 19%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_vex 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/vex "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 20%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_cnapp 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/cnapp "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 20%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_context_json 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/context "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 21%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_unsupported_content_type 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/design "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 21%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/health-expected_codes0] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 22%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/version-expected_codes1] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/version "HTTP/1.1 200 OK"
+PASSED                                                                   [ 22%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/ready-expected_codes2] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/ready "HTTP/1.1 200 OK"
+PASSED                                                                   [ 23%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/metrics-expected_codes3] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/metrics "HTTP/1.1 200 OK"
+PASSED                                                                   [ 23%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/health-expected_codes4] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 24%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/inventory/applications] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/inventory/applications "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 25%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/reports] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/reports "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 25%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/workflows] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/workflows "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 26%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/analytics/dashboard] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/analytics/dashboard "HTTP/1.1 404 Not Found"
+PASSED                                                                   [ 26%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/fail/scores] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/fail/scores "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 27%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/remediation/tasks] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/remediation/tasks "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 27%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/collaboration/comments] 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-08 11:37:11 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/collaboration/comments "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 28%]
+tests/test_app_factory.py::TestPipelineOrchestrator::test_orchestrator_import PASSED [ 28%]
+tests/test_app_factory.py::TestPipelineOrchestrator::test_orchestrator_creation PASSED [ 29%]
+tests/test_app_factory.py::TestUploadManager::test_upload_manager_import PASSED [ 29%]
+tests/test_app_factory.py::TestUploadManager::test_upload_manager_creation PASSED [ 30%]
+tests/test_app_factory.py::TestNormalizers::test_input_normalizer_import PASSED [ 30%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_sbom_import PASSED [ 31%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_sarif_import PASSED [ 32%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_cve_feed_import PASSED [ 32%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_vex_import PASSED [ 33%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_cnapp_import PASSED [ 33%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_business_context_import PASSED [ 34%]
+tests/test_app_factory.py::TestNormalizers::test_input_normalizer_instantiation PASSED [ 34%]
+tests/test_app_factory.py::TestMiddlewareModule::test_correlation_id_middleware PASSED [ 35%]
+tests/test_app_factory.py::TestMiddlewareModule::test_request_logging_middleware PASSED [ 35%]
+tests/test_app_factory.py::TestMiddlewareModule::test_security_headers_middleware PASSED [ 36%]
+tests/test_configuration_unit.py::TestParseOverlay::test_empty_string PASSED [ 36%]
+tests/test_configuration_unit.py::TestParseOverlay::test_whitespace_only PASSED [ 37%]
+tests/test_configuration_unit.py::TestParseOverlay::test_json_valid PASSED [ 38%]
+tests/test_configuration_unit.py::TestParseOverlay::test_yaml_valid PASSED [ 38%]
+tests/test_configuration_unit.py::TestParseOverlay::test_yaml_null_returns_empty PASSED [ 39%]
+tests/test_configuration_unit.py::TestParseOverlay::test_yaml_non_mapping_raises PASSED [ 39%]
+tests/test_configuration_unit.py::TestDeepMerge::test_simple_merge PASSED [ 40%]
+tests/test_configuration_unit.py::TestDeepMerge::test_nested_merge PASSED [ 40%]
+tests/test_configuration_unit.py::TestDeepMerge::test_override_non_mapping_with_value PASSED [ 41%]
+tests/test_configuration_unit.py::TestDeepMerge::test_empty_overrides PASSED [ 41%]
+tests/test_configuration_unit.py::TestDeepMerge::test_empty_base PASSED  [ 42%]
+tests/test_configuration_unit.py::TestRequireMapping::test_valid_mapping PASSED [ 42%]
+tests/test_configuration_unit.py::TestRequireMapping::test_non_mapping_raises PASSED [ 43%]
+tests/test_configuration_unit.py::TestRequireMapping::test_none_raises PASSED [ 44%]
+tests/test_configuration_unit.py::TestRequireString::test_valid_string PASSED [ 44%]
+tests/test_configuration_unit.py::TestRequireString::test_strips_whitespace PASSED [ 45%]
+tests/test_configuration_unit.py::TestRequireString::test_empty_raises PASSED [ 45%]
+tests/test_configuration_unit.py::TestRequireString::test_whitespace_only_raises PASSED [ 46%]
+tests/test_configuration_unit.py::TestRequireString::test_non_string_raises PASSED [ 46%]
+tests/test_configuration_unit.py::TestOptionalString::test_none_returns_none PASSED [ 47%]
+tests/test_configuration_unit.py::TestOptionalString::test_valid_string PASSED [ 47%]
+tests/test_configuration_unit.py::TestOptionalString::test_empty_returns_none PASSED [ 48%]
+tests/test_configuration_unit.py::TestOptionalString::test_whitespace_returns_none PASSED [ 48%]
+tests/test_configuration_unit.py::TestOptionalString::test_non_string_raises PASSED [ 49%]
+tests/test_configuration_unit.py::TestStringList::test_none_returns_empty PASSED [ 50%]
+tests/test_configuration_unit.py::TestStringList::test_valid_list PASSED [ 50%]
+tests/test_configuration_unit.py::TestStringList::test_strips_whitespace PASSED [ 51%]
+tests/test_configuration_unit.py::TestStringList::test_non_list_raises PASSED [ 51%]
+tests/test_configuration_unit.py::TestStringList::test_non_string_item_raises PASSED [ 52%]
+tests/test_configuration_unit.py::TestStringList::test_empty_string_item_raises PASSED [ 52%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_none_returns_defaults PASSED [ 53%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_valid_provider_env PASSED [ 53%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_valid_provider_aws_kms PASSED [ 54%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_valid_provider_azure PASSED [ 54%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_invalid_provider_raises PASSED [ 55%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_unexpected_keys_raises PASSED [ 55%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_rotation_sla_valid PASSED [ 56%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_rotation_sla_zero_raises PASSED [ 57%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_rotation_sla_negative_raises PASSED [ 57%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_key_id_and_aws_region PASSED [ 58%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_none_returns_empty PASSED [ 58%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_valid_control PASSED [ 59%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_non_list_raises PASSED [ 59%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_non_mapping_item_raises PASSED [ 60%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_unexpected_keys PASSED [ 60%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_none_returns_empty PASSED [ 61%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_valid_framework PASSED [ 61%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_non_list_raises PASSED [ 62%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_non_mapping_item_raises PASSED [ 63%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_none_returns_empty PASSED [ 63%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_empty_returns_empty PASSED [ 64%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_valid_config PASSED [ 64%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_unexpected_keys PASSED [ 65%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_none_returns_empty PASSED [ 65%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_valid_action PASSED [ 66%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_non_list_raises PASSED [ 66%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_invalid_trigger_raises PASSED [ 67%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_invalid_type_raises PASSED [ 67%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_force_delivery_boolean PASSED [ 68%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_force_delivery_non_boolean_raises PASSED [ 69%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_parent_page_id_numeric PASSED [ 69%]
+tests/test_configuration_unit.py::TestValidatePolicyConfig::test_none_returns_empty PASSED [ 70%]
+tests/test_configuration_unit.py::TestValidatePolicyConfig::test_empty_returns_empty PASSED [ 70%]
+tests/test_configuration_unit.py::TestValidatePolicyConfig::test_unexpected_keys_raises PASSED [ 71%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_none_returns_empty PASSED [ 71%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_empty_returns_empty PASSED [ 72%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_valid_opa_config PASSED [ 72%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_opa_unexpected_keys_raises PASSED [ 73%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_unexpected_top_keys_raises PASSED [ 73%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_opa_invalid_timeout_raises PASSED [ 74%]
+tests/test_configuration_unit.py::TestOverlayDocument::test_default_values PASSED [ 75%]
+tests/test_configuration_unit.py::TestOverlayDocument::test_valid_document PASSED [ 75%]
+tests/test_configuration_unit.py::TestOverlayDocument::test_extra_field_forbidden PASSED [ 76%]
+tests/test_configuration_unit.py::TestResolveAllowlistedRoots::test_default_without_env PASSED [ 76%]
+tests/test_configuration_unit.py::TestResolveAllowlistedRoots::test_with_env_set PASSED [ 77%]
+tests/test_configuration_unit.py::TestEnsureWithinAllowlist::test_within_allowed_root PASSED [ 77%]
+tests/test_configuration_unit.py::TestEnsureWithinAllowlist::test_outside_allowed_root_raises PASSED [ 78%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_default_values PASSED [ 78%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_maturity_default PASSED [ 79%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_maturity_from_guardrails PASSED [ 79%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_maturity_from_metadata PASSED [ 80%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_defaults PASSED [ 80%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_scaling PASSED [ 81%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_foundational PASSED [ 82%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_advanced PASSED [ 82%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_custom_override PASSED [ 83%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_required_inputs_with_design PASSED [ 83%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_required_inputs_without_design PASSED [ 84%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_signing_settings_defaults PASSED [ 84%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_signing_settings_with_values PASSED [ 85%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_mask_sensitive_fields PASSED [ 85%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_mask_non_sensitive_fields PASSED [ 86%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_to_sanitised_dict PASSED [ 86%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_allowed_overlay_keys_non_empty PASSED [ 87%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_profiles_known_maturities PASSED [ 88%]
+tests/test_configuration_unit.py::TestReadText::test_read_existing_file PASSED [ 88%]
+tests/test_configuration_unit.py::TestReadText::test_read_missing_file PASSED [ 89%]
+tests/test_overlay_configuration.py::test_load_overlay_merges_profile_and_defaults PASSED [ 89%]
+tests/test_overlay_configuration.py::test_environment_variable_override PASSED [ 90%]
+tests/test_overlay_configuration.py::test_guardrail_defaults_when_missing 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-08 11:37:11 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-08 11:37:11 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-08 11:37:11 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+PASSED                                                                   [ 90%]
+tests/test_overlay_configuration.py::test_module_defaults_and_custom_specs 
+-------------------------------- live log call ---------------------------------
+2026-04-08 11:37:11 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-08 11:37:11 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-08 11:37:11 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-08 11:37:11 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+PASSED                                                                   [ 91%]
+tests/test_overlay_configuration.py::test_overlay_rejects_unknown_keys PASSED [ 91%]
+tests/test_overlay_configuration.py::test_overlay_rejects_outside_data_directory PASSED [ 92%]
+tests/test_overlay_configuration.py::test_token_strategy_requires_environment PASSED [ 92%]
+tests/test_overlay_configuration.py::test_compliance_controls_reject_unknown_fields PASSED [ 93%]
+tests/test_overlay_configuration.py::test_policy_actions_reject_unknown_fields PASSED [ 94%]
+tests/test_overlay_configuration.py::test_policy_action_triggers_normalised PASSED [ 94%]
+tests/test_overlay_configuration.py::test_policy_engine_overlay_round_trip PASSED [ 95%]
+tests/test_overlay_configuration.py::test_overlay_toggles_round_trip PASSED [ 95%]
+tests/test_overlay_configuration.py::test_policy_engine_rejects_invalid_timeout PASSED [ 96%]
+tests/test_overlay_configuration.py::test_policy_engine_rejects_unknown_fields PASSED [ 96%]
+tests/test_overlay_configuration.py::test_signing_configuration_round_trip PASSED [ 97%]
+tests/test_overlay_runtime.py::test_prepare_overlay_disables_encryption_without_fernet PASSED [ 97%]
+tests/test_overlay_runtime.py::test_prepare_overlay_disables_encryption_when_key_missing PASSED [ 98%]
+tests/test_overlay_runtime.py::test_prepare_overlay_creates_directories_when_requested PASSED [ 98%]
+tests/test_overlay_runtime.py::test_prepare_overlay_reports_missing_automation_tokens PASSED [ 99%]
+tests/test_overlay_runtime.py::test_prepare_overlay_suppresses_warnings_when_tokens_present PASSED [100%]
+INTERNALERROR> Traceback (most recent call last):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/sqlitedb.py", line 122, in _execute
+INTERNALERROR>     return self.con.execute(sql, parameters)  # type: ignore[arg-type]
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR> sqlite3.OperationalError: no such table: tracer
+INTERNALERROR> 
+INTERNALERROR> During handling of the above exception, another exception occurred:
+INTERNALERROR> 
+INTERNALERROR> Traceback (most recent call last):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/sqlitedb.py", line 127, in _execute
+INTERNALERROR>     return self.con.execute(sql, parameters)  # type: ignore[arg-type]
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR> sqlite3.OperationalError: no such table: tracer
+INTERNALERROR> 
+INTERNALERROR> The above exception was the direct cause of the following exception:
+INTERNALERROR> 
+INTERNALERROR> Traceback (most recent call last):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/report_core.py", line 98, in get_analysis_to_report
+INTERNALERROR>     analysis = coverage._analyze(morf)
+INTERNALERROR>                ^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 1011, in _analyze
+INTERNALERROR>     file_reporter = self._get_file_reporter(morf)
+INTERNALERROR>                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 1038, in _get_file_reporter
+INTERNALERROR>     plugin_name = self._data.file_tracer(mapped_morf)
+INTERNALERROR>                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/sqldata.py", line 956, in file_tracer
+INTERNALERROR>     row = con.execute_one("SELECT tracer FROM tracer WHERE file_id = ?", (file_id,))
+INTERNALERROR>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/sqlitedb.py", line 181, in execute_one
+INTERNALERROR>     with self.execute(sql, parameters) as cur:
+INTERNALERROR>   File "/usr/lib/python3.11/contextlib.py", line 137, in __enter__
+INTERNALERROR>     return next(self.gen)
+INTERNALERROR>            ^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/sqlitedb.py", line 144, in execute
+INTERNALERROR>     cur = self._execute(sql, parameters)
+INTERNALERROR>           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/sqlitedb.py", line 132, in _execute
+INTERNALERROR>     raise DataError(f"Couldn't use data file {self.filename!r}: {msg}") from exc
+INTERNALERROR> coverage.exceptions.DataError: Couldn't use data file '/home/ubuntu/Fixops_repo/.coverage': no such table: tracer
+INTERNALERROR> 
+INTERNALERROR> During handling of the above exception, another exception occurred:
+INTERNALERROR> 
+INTERNALERROR> Traceback (most recent call last):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/main.py", line 318, in wrap_session
+INTERNALERROR>     session.exitstatus = doit(config, session) or 0
+INTERNALERROR>                          ^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/main.py", line 372, in _main
+INTERNALERROR>     config.hook.pytest_runtestloop(session=session)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_hooks.py", line 512, in __call__
+INTERNALERROR>     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_manager.py", line 120, in _hookexec
+INTERNALERROR>     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 167, in _multicall
+INTERNALERROR>     raise exception
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 139, in _multicall
+INTERNALERROR>     teardown.throw(exception)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/logging.py", line 801, in pytest_runtestloop
+INTERNALERROR>     return (yield)  # Run all the tests.
+INTERNALERROR>             ^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 139, in _multicall
+INTERNALERROR>     teardown.throw(exception)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/_pytest/terminal.py", line 707, in pytest_runtestloop
+INTERNALERROR>     result = yield
+INTERNALERROR>              ^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pluggy/_callers.py", line 152, in _multicall
+INTERNALERROR>     teardown.send(result)
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pytest_cov/plugin.py", line 362, in pytest_runtestloop
+INTERNALERROR>     self.cov_total = self.cov_controller.summary(self.cov_report)
+INTERNALERROR>                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pytest_cov/engine.py", line 44, in ensure_topdir_wrapper
+INTERNALERROR>     return meth(self, *args, **kwargs)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/pytest_cov/engine.py", line 143, in summary
+INTERNALERROR>     total = self.cov.report(ignore_errors=True, output_format='total', precision=self.cov_precision, file=_NullFile)
+INTERNALERROR>             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 1172, in report
+INTERNALERROR>     return reporter.report(morfs, outfile=file)
+INTERNALERROR>            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/report.py", line 210, in report
+INTERNALERROR>     for fr, analysis in get_analysis_to_report(self.coverage, morfs):
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/report_core.py", line 113, in get_analysis_to_report
+INTERNALERROR>     coverage._warn(msg, slug="couldnt-parse")
+INTERNALERROR>   File "/usr/local/lib/python3.11/dist-packages/coverage/control.py", line 497, in _warn
+INTERNALERROR>     warnings.warn(msg, category=CoverageWarning, stacklevel=2)
+INTERNALERROR> coverage.exceptions.CoverageWarning: Couldn't parse '/home/ubuntu/Fixops_repo/suite-integrations/api/oss_tools.py': Couldn't use data file '/home/ubuntu/Fixops_repo/.coverage': no such table: tracer (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.5/messages.html#warning-couldnt-parse
+
+============================= 184 passed in 40.84s =============================

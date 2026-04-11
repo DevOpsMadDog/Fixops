@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-04-04T12:46:22.176105+00:00",
+  "target": ".env.example",
+  "url": "http://127.0.0.1:8000/api/v1/secrets/scan/content",
+  "http_status": 200,
+  "secrets_found": 0,
+  "findings": [],
+  "raw_body": {
+    "scan_id": "5d08ae11-4457-4e3f-81ba-1cca092827eb",
+    "status": "completed",
+    "scanner": "gitleaks",
+    "target_path": ".env.example",
+    "repository": "inline",
+    "branch": "main",
+    "findings_count": 0,
+    "findings": [],
+    "started_at": "2026-04-04T08:46:22.187888",
+    "completed_at": "2026-04-04T08:46:22.188818",
+    "duration_seconds": 0.00093,
+    "error_message": null,
+    "metadata": {
+      "fallback": "builtin_scanner"
+    }
+  }
+}

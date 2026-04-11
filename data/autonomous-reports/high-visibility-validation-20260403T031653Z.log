@@ -1,0 +1,16 @@
+ERROR: while parsing the following warning configuration:
+
+  ignore::fastapi.exceptions.FastAPIDeprecationWarning
+
+This error occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/_pytest/config/__init__.py", line 1967, in parse_warning_filter
+    category: type[Warning] = _resolve_warning_category(category_)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/_pytest/config/__init__.py", line 2013, in _resolve_warning_category
+    cat = getattr(m, klass)
+          ^^^^^^^^^^^^^^^^^
+AttributeError: module 'fastapi.exceptions' has no attribute 'FastAPIDeprecationWarning'
+
+

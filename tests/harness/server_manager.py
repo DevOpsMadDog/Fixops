@@ -19,6 +19,38 @@ import requests
 class ServerManager:
     """Manages a real uvicorn server for E2E testing."""
 
+    _STARTUP_GRACE_SECONDS = 30
+    _FATAL_STARTUP_MARKERS = (
+        "traceback",
+        "error:",
+        "exception",
+        "address already in use",
+        "modulenotfounderror",
+        "importerror",
+    )
+    _PROGRESS_STARTUP_MARKERS = (
+        "mounted ",
+        "initialized",
+        "running in offline mode",
+        "using combinedprovider",
+        "namespace aliasing enabled",
+        "mcp tool catalog ready",
+        "api startup complete",
+        "all 8 critical route prefixes verified ok",
+    )
+
+    @classmethod
+    def _should_extend_startup_grace(cls, stderr: str) -> bool:
+        """Return True when startup appears slow but still progressing."""
+        if not stderr:
+            return False
+
+        stderr_lower = stderr.lower()
+        if any(marker in stderr_lower for marker in cls._FATAL_STARTUP_MARKERS):
+            return False
+
+        return any(marker in stderr_lower for marker in cls._PROGRESS_STARTUP_MARKERS)
+
     def __init__(
         self,
         host: str = "127.0.0.1",
@@ -112,8 +144,10 @@ class ServerManager:
 
     def _wait_for_ready(self) -> None:
         """Wait for server to be ready by polling health endpoint."""
-        start_time = time.time()
-        while time.time() - start_time < self.timeout:
+        deadline = time.time() + self.timeout
+        grace_extended = False
+
+        while True:
             if self.process and self.process.poll() is not None:
                 stdout, stderr = self.get_logs()
                 error_msg = (
@@ -130,14 +164,30 @@ class ServerManager:
                     return
             except requests.exceptions.RequestException:
                 pass
-            time.sleep(0.5)
 
-        stdout, stderr = self.get_logs()
-        self.stop()
-        error_msg = f"Server did not become ready within {self.timeout} seconds"
-        if stderr:
-            error_msg += f"\nStderr: {stderr[:500]}"
-        raise RuntimeError(error_msg)
+            if time.time() >= deadline:
+                stdout, stderr = self.get_logs()
+                if (
+                    not grace_extended
+                    and self.process is not None
+                    and self.process.poll() is None
+                    and self._should_extend_startup_grace(stderr)
+                ):
+                    deadline = time.time() + self._STARTUP_GRACE_SECONDS
+                    grace_extended = True
+                    continue
+
+                self.stop()
+                error_msg = f"Server did not become ready within {self.timeout} seconds"
+                if grace_extended:
+                    error_msg += (
+                        f" (+{self._STARTUP_GRACE_SECONDS}s startup grace)"
+                    )
+                if stderr:
+                    error_msg += f"\nStderr: {stderr[:500]}"
+                raise RuntimeError(error_msg)
+
+            time.sleep(0.5)
 
     def stop(self) -> None:
         """Stop the uvicorn server."""

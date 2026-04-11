@@ -97,7 +97,17 @@ def _format_summary(
         executed_raw = modules.get("executed")
         if isinstance(executed_raw, Iterable):
             executed = [str(module) for module in executed_raw]
-    lines = [f"FixOps {mode.title()} mode summary:"]
+
+    product_name = "FixOps"
+    branding = result.get("branding")
+    if isinstance(branding, Mapping):
+        branded_name = branding.get("product_name") or branding.get("short_name")
+        if branded_name:
+            product_name = str(branded_name)
+    elif os.getenv("PRODUCT_NAMESPACE", "").strip().lower() not in {"", "fixops"}:
+        product_name = os.getenv("PRODUCT_NAMESPACE", "FixOps").strip().title()
+
+    lines = [f"{product_name} {mode.title()} mode summary:"]
     if severity:
         lines.append(f"  Highest severity: {severity}")
     if guardrail:

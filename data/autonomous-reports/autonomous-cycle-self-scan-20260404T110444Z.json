@@ -1,0 +1,101 @@
+{
+  "type": "aldeci-self-scan",
+  "date": "2026-04-04T11:04:45.845091+00:00",
+  "sast_findings": 5,
+  "secrets_found": 2,
+  "total_findings": 10,
+  "steps_total": 17,
+  "steps_passed": 17,
+  "steps_failed": 0,
+  "pass_rate": 100.0,
+  "duration_seconds": 1.5,
+  "findings": [
+    {
+      "id": "SAST-aecea449ffb5",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 103,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-c7fbb83d0a01",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 62,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-9ed6894bcf3b",
+      "title": "Insecure Deserialization",
+      "severity": "critical",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-502",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 140,
+      "description": "Unsafe deserialization of untrusted data"
+    },
+    {
+      "id": "SAST-bfacbfbaa4f2",
+      "title": "ECB Mode Usage",
+      "severity": "high",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-327",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 150,
+      "description": "ECB mode preserves plaintext patterns \u2014 insecure for most data"
+    },
+    {
+      "id": "SAST-d009bed6b747",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/connectors.py",
+      "line_number": 60,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "4cf3b21c-914b-4a7f-b18f-2b5e61161399",
+      "title": "Secret: database_credential in .env.example",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env.example",
+      "description": "Secret of type 'database_credential' found in .env.example"
+    },
+    {
+      "id": "3bde0d80-3314-48ac-8a14-f49ae9b70c20",
+      "title": "Secret: generic in .env.example",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env.example",
+      "description": "Secret of type 'generic' found in .env.example"
+    },
+    {
+      "id": "CONT-fcdedafe",
+      "title": "No Package Pinning",
+      "severity": "medium",
+      "source": "aldeci-self-container",
+      "description": "Package installed without version pinning"
+    },
+    {
+      "id": "CONT-9aedbff0",
+      "title": "Apt-get No Clean",
+      "severity": "low",
+      "source": "aldeci-self-container",
+      "description": "apt-get install without cleanup \u2014 bloated image"
+    },
+    {
+      "id": "CONT-b1955ac9",
+      "title": "No Package Pinning",
+      "severity": "medium",
+      "source": "aldeci-self-container",
+      "description": "Package installed without version pinning"
+    }
+  ]
+}

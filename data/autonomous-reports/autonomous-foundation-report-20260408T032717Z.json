@@ -1,0 +1,355 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-08T03:27:17Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_during_cycle": "26258347ea0a73316686968689d7bf48b374c4ba",
+  "status": "runtime-alignment-validated-covered-suite-green",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "fresh-self-scan-restored-after-runtime-repair-and-passed-under-current-script-semantics",
+    "cycle_fix_status": "sandbox-runtime-aligned-with-declared-repository-dependencies-without-source-code-edits",
+    "focused_successor_validation_status": "initially-failed-in-six-bn-lr-tests-due-to-missing-sklearn-then-passed-after-runtime-repair",
+    "high_visibility_status": "initially-failed-in-the-same-six-bn-lr-tests-then-passed-functionally-after-runtime-repair-but-remained-coverage-narrow",
+    "broader_validation_status": "broader-slice-passed-functionally-but-remained-below-the-global-coverage-gate-due-to-slice-width",
+    "confirmation_result": {
+      "initial_self_scan_baseline": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "failed_steps": 0,
+        "pass_rate_percent": 94.0,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "total_findings": 15,
+        "duration_seconds": 6.2,
+        "autofix_status": "http-500-but-overall-self-scan-passed",
+        "autofix_step": "insecure-deserialization"
+      },
+      "focused_autonomous_successor_initial": {
+        "passed": 257,
+        "failed": 6,
+        "skipped": 1,
+        "duration_seconds": 210.18,
+        "coverage_percent": 18.85,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ],
+        "shared_failure_family": "TestBNLRHybrid",
+        "failure_mode": "missing-sklearn-runtime-dependency"
+      },
+      "high_visibility_initial": {
+        "passed": 43,
+        "failed": 6,
+        "skipped": 0,
+        "duration_seconds": 164.34,
+        "coverage_percent": 5.37,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ],
+        "shared_failure_family": "TestBNLRHybrid",
+        "failure_mode": "missing-sklearn-runtime-dependency"
+      },
+      "broader_validation": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 105.09,
+        "coverage_percent": 15.8,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ],
+        "result_character": "functionally-passed-but-coverage-below-global-denominator"
+      },
+      "high_visibility_post_fix": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 223.14,
+        "coverage_percent": 5.53,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ],
+        "result_character": "functionally-green-but-still-coverage-narrow"
+      },
+      "covered_post_fix_verification": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 244.19,
+        "coverage_percent": 19.0,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "resolution": "all requested suites remain present; the decisive confirmation artifact for this cycle is the covered rerun because narrow slices remain below the repository-wide coverage denominator even when functionally green"
+  },
+  "bootstrap_attempts": [
+    {
+      "order": 1,
+      "status": "failed",
+      "log": "data/autonomous-reports/autonomous-cycle-server-20260408T025954Z.log",
+      "resolution": "initial local API bootstrap failed because the active runtime was missing jwt support required by the boot path"
+    },
+    {
+      "order": 2,
+      "status": "passed",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260408T030420Z.log",
+      "resolution": "after narrow runtime repair the local API bootstrapped sufficiently to complete a full self-scan"
+    }
+  ],
+  "autonomous_cycle": {
+    "initial_log": "data/autonomous-reports/autonomous-cycle-self-scan-20260408T030420Z.log",
+    "final_log": "data/autonomous-reports/autonomous-cycle-self-scan-20260408T030420Z.log",
+    "base_url": "http://127.0.0.1:8001",
+    "initial_metrics": {
+      "sast_findings": 78,
+      "secrets_found": 0,
+      "total_findings": 15,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.0,
+      "duration_seconds": 6.2,
+      "autofix_status": "500-on-step-15",
+      "evidence_signing": "RSA-SHA256"
+    },
+    "final_metrics": {
+      "sast_findings": 78,
+      "secrets_found": 0,
+      "total_findings": 15,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.0,
+      "duration_seconds": 6.2,
+      "autofix_status": "500-on-step-15",
+      "evidence_signing": "RSA-SHA256"
+    },
+    "notes": [
+      "the live Aldeci autonomous path was restorable with runtime alignment and did not require repository source edits in this pass",
+      "the self-scan currently treats the AutoFix 500 as non-fatal to overall pass status, which should be reviewed in a later cycle"
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_baseline_current_cycle",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260408T030420Z.log",
+      "status": "passed-with-nonfatal-autofix-500",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "duration_seconds": 6.2
+      },
+      "notes": [
+        "the autonomous workflow is operational again after runtime repair",
+        "the AutoFix substep still returned 500 and deserves follow-up even though the overall run passed"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_initial",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260408T030608Z.log",
+      "status": "failed-in-six-bn-lr-runtime-import-errors",
+      "result": {
+        "passed": 257,
+        "failed": 6,
+        "skipped": 1,
+        "duration_seconds": 210.18,
+        "coverage_percent": 18.85,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "all six failures belonged to TestBNLRHybrid",
+        "traceback showed ModuleNotFoundError for sklearn while the CLI imported core.bn_lr"
+      ]
+    },
+    {
+      "name": "high_visibility_initial",
+      "log": "data/autonomous-reports/high-visibility-validation-20260408T031016Z.log",
+      "status": "failed-in-six-bn-lr-runtime-import-errors-and-coverage-gate-failed",
+      "result": {
+        "passed": 43,
+        "failed": 6,
+        "skipped": 0,
+        "duration_seconds": 164.34,
+        "coverage_percent": 5.37,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the same BN/LR failure family reproduced in a second validation slice",
+        "this confirmed a shared runtime issue rather than one suite wrapper anomaly"
+      ]
+    },
+    {
+      "name": "broader_validation_slice",
+      "log": "data/autonomous-reports/broader-validation-20260408T031412Z.log",
+      "status": "functionally-passed-but-coverage-gate-failed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 105.09,
+        "coverage_percent": 15.8,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ]
+      },
+      "notes": [
+        "this slice provided additional functional confidence but was too narrow to satisfy the global coverage denominator",
+        "the lack of failures here helped show the active blocker was localized rather than repository-wide"
+      ]
+    },
+    {
+      "name": "high_visibility_post_fix",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260408T031807Z.log",
+      "status": "passed-functionally-but-coverage-gate-failed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 223.14,
+        "coverage_percent": 5.53,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "all previously failing BN/LR tests passed after the runtime repair",
+        "the remaining red status in this artifact is only the expected narrow-slice coverage limitation"
+      ]
+    },
+    {
+      "name": "covered_post_fix_verification",
+      "log": "data/autonomous-reports/focused-autonomous-validation-rerun-20260408T032207Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 244.19,
+        "coverage_percent": 19.0,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this is the decisive confirmation artifact for the requested cycle because it is both functionally green and above the repository coverage gate",
+        "the lone skip remains tests/test_git_integration_unit.py:291 not in a git repo"
+      ]
+    }
+  ],
+  "environment_repairs": [
+    {
+      "scope": "api-bootstrap",
+      "change_type": "runtime-package-install",
+      "summary": "installed narrowly missing Python runtime packages so the local API could boot for the autonomous self-scan",
+      "risk_profile": "low",
+      "user_visible_behavior_change": false
+    },
+    {
+      "scope": "test-tooling",
+      "change_type": "runtime-package-install",
+      "summary": "installed pytest, pytest-asyncio, pytest-cov, and pytest-timeout into the active environment",
+      "risk_profile": "low",
+      "user_visible_behavior_change": false
+    },
+    {
+      "scope": "bn-lr-runtime",
+      "change_type": "runtime-package-install",
+      "summary": "installed scikit-learn to satisfy the repository-declared BN/LR runtime dependency used by core.bn_lr",
+      "risk_profile": "low",
+      "user_visible_behavior_change": false
+    }
+  ],
+  "code_changes": [
+    {
+      "path": "docs/ALDECI_BUILD_STATUS.md",
+      "change_type": "documentation-refresh",
+      "summary": "updated the branch status narrative with the runtime-dependency diagnosis, fresh validation evidence, and current next actions",
+      "risk_profile": "none",
+      "user_visible_behavior_change": false
+    },
+    {
+      "path": "data/autonomous-reports/autonomous-foundation-report-20260408T032717Z.json",
+      "change_type": "machine-readable-report-refresh",
+      "summary": "captured this cycle's autonomous baseline, validation outcomes, environment repairs, and recommended next actions",
+      "risk_profile": "none",
+      "user_visible_behavior_change": false
+    }
+  ],
+  "remaining_risks": [
+    "the AutoFix self-scan step still returns HTTP 500 even though the overall self-scan completes successfully",
+    "future autonomous cycles can still waste time if the sandbox is not pre-aligned with repository-declared runtime dependencies before validation begins",
+    "narrow validation slices will continue to appear red on coverage unless they are paired with a covered suite that clears the repository-wide denominator",
+    "the self-scan backlog remains at 78 SAST findings and 15 surfaced findings despite the restored execution path"
+  ],
+  "recommended_next_actions": [
+    {
+      "priority": 1,
+      "action": "commit the refreshed status document and machine-readable report for this cycle",
+      "rationale": "the repository state now includes fresh evidence proving the covered autonomous path is green again"
+    },
+    {
+      "priority": 2,
+      "action": "add a lightweight environment preflight for key imports such as jwt, pytest, and sklearn before long validation runs begin",
+      "rationale": "this pass spent meaningful time on failures that were detectable earlier at import time"
+    },
+    {
+      "priority": 3,
+      "action": "investigate why the AutoFix self-scan step still returns 500 during an otherwise successful self-scan",
+      "rationale": "the live workflow is usable but the self-repair path is not yet fully healthy"
+    },
+    {
+      "priority": 4,
+      "action": "resume backlog reduction on the currently reported self-scan findings",
+      "rationale": "operational confidence improved this cycle, but the underlying 78 SAST and 15 surfaced findings backlog remains"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+Decisions router not available: No module named 'prometheus_client'
+Business Context router not available: No module named 'prometheus_client'
+APScheduler unavailable or failed: No module named 'apscheduler'; skipping scheduler
+pgmpy unavailable; Bayesian inference will use deterministic fallbacks
+LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served
+INFO:     Started server process [6093]
+INFO:     Waiting for application startup.
+Enterprise DB init skipped: No module named 'aiosqlite'
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8001): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.

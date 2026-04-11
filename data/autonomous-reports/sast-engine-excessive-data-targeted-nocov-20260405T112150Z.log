@@ -1,0 +1,27 @@
+API healthy
+
+=== TARGETED SAST ENGINE VALIDATION ===
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Fixops_repo
+configfile: pyproject.toml
+plugins: anyio-4.11.0, cov-5.0.0, timeout-2.4.0, asyncio-0.26.0
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 39 items / 33 deselected / 6 selected
+
+tests/test_sast_engine_unit.py::TestSASTEngineScan::test_exposed_stack_trace_rule_ignores_logger_only_exception_lines PASSED [ 16%]
+tests/test_sast_engine_unit.py::TestSASTEngineScan::test_exposed_stack_trace_rule_flags_exception_details_in_response PASSED [ 33%]
+tests/test_sast_engine_unit.py::TestSASTEngineScan::test_excessive_data_exposure_rule_ignores_internal_to_dict_helpers PASSED [ 50%]
+tests/test_sast_engine_unit.py::TestSASTEngineScan::test_excessive_data_exposure_rule_flags_response_context_object_serialization PASSED [ 66%]
+tests/test_sast_engine_unit.py::TestSASTEngineScan::test_basic_auth_without_tls_rule_ignores_https_only_basic_headers PASSED [ 83%]
+tests/test_sast_engine_unit.py::TestSASTEngineScan::test_basic_auth_without_tls_rule_flags_basic_auth_over_http PASSED [100%]
+
+============================= slowest 10 durations =============================
+0.02s call     tests/test_sast_engine_unit.py::TestSASTEngineScan::test_exposed_stack_trace_rule_ignores_logger_only_exception_lines
+
+(9 durations < 0.005s hidden.  Use -vv to show these durations.)
+======================= 6 passed, 33 deselected in 0.28s =======================

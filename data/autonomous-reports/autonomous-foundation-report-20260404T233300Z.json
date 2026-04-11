@@ -1,0 +1,288 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-04T23:33:00Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "79ada7b1",
+  "status": "validation-baseline-restored-after-environment-alignment-and-current-cycle-reconfirmation",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-consistent-step-metrics-zero-failed-steps-and-no-secrets",
+    "cycle_fix_status": "runtime-and-test-dependency-baseline-restored-without-source-code-remediation",
+    "focused_validation_status": "passed-with-coverage-gate-restored",
+    "high_visibility_validation_status": "passed",
+    "broader_validation_status": "passed",
+    "confirmation_result": {
+      "focused_tests_passed": 263,
+      "focused_tests_skipped": 1,
+      "focused_tests_failed": 0,
+      "focused_tests_duration_seconds": 208.24,
+      "focused_coverage_percent": 18.34,
+      "focused_coverage_threshold_percent": 18.0,
+      "high_visibility_tests_passed": 49,
+      "high_visibility_tests_failed": 0,
+      "high_visibility_duration_seconds": 94.67,
+      "broader_tests_passed": 184,
+      "broader_tests_failed": 0,
+      "broader_duration_seconds": 9.19,
+      "fresh_self_scan_sast_findings": 325,
+      "fresh_self_scan_secrets_found": 0,
+      "fresh_self_scan_total_findings": 23,
+      "fresh_self_scan_steps_total": 17,
+      "fresh_self_scan_steps_passed": 17,
+      "fresh_self_scan_steps_failed": 0,
+      "fresh_self_scan_pass_rate": 100.0,
+      "fresh_self_scan_duration_seconds": 5.8
+    }
+  },
+  "requested_suite_presence": {
+    "scripts/aldeci_self_scan.py": true,
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/test_overlay_configuration.py": true,
+    "tests/test_overlay_runtime.py": true,
+    "tests/test_configuration_unit.py": true,
+    "tests/test_app_factory.py": true,
+    "resolution": "this pass reran the fresh autonomous self-scan, the focused autonomous slice, the high-visibility slice, and the broader repository foundation slice after restoring the environment to the repository-declared dependency baseline"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T230545Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260404-190551.json",
+    "metrics": {
+      "sast_findings": 325,
+      "secrets_found": 0,
+      "total_findings": 23,
+      "steps_total": 17,
+      "steps_passed": 17,
+      "steps_failed": 0,
+      "pass_rate": 100.0,
+      "duration_seconds": 5.8
+    },
+    "finding_summary": {
+      "severity_counts": {
+        "medium": 20,
+        "low": 3
+      },
+      "source_counts": {
+        "aldeci-self-sast": 20,
+        "aldeci-self-container": 3
+      },
+      "top_file_counts": [
+        ["suite-core/core/brain_pipeline.py", 3],
+        ["suite-core/core/micro_pentest.py", 3],
+        ["suite-core/core/autofix_engine.py", 3],
+        ["suite-api/apps/api/app.py", 3],
+        ["suite-core/core/crypto.py", 3],
+        ["suite-core/core/connectors.py", 3],
+        ["suite-core/core/sast_engine.py", 2],
+        ["<unknown>", 3]
+      ]
+    },
+    "notable_findings": [
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 176,
+        "cwe": "CWE-200"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 304,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Weak Cryptography",
+        "file_path": "suite-core/core/autofix_engine.py",
+        "line_number": 759,
+        "cwe": "CWE-327"
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T230545Z.log",
+      "result_artifact": "data/demo-results/self-scan-20260404-190551.json",
+      "status": "passed",
+      "result": {
+        "steps_passed": 17,
+        "steps_total": 17,
+        "findings_total": 23,
+        "sast_findings": 325,
+        "secrets_found": 0,
+        "critical_findings": 0,
+        "duration_seconds": 5.8
+      },
+      "notes": [
+        "the current-cycle autonomous self-scan remained green after environment restoration",
+        "self-scan accounting stayed internally consistent at 17 passed of 17 total steps"
+      ]
+    },
+    {
+      "name": "focused_autonomous_intermediate_post_sklearn",
+      "log": "data/autonomous-reports/focused-autonomous-validation-post-sklearn-20260404T231529Z.log",
+      "status": "failed-coverage-gate-after-test-pass",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 207.76,
+        "coverage_enabled": true,
+        "coverage_percent": 17.75,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "restoring scikit-learn recovered the BN/LR hybrid test path",
+        "coverage still missed the threshold because Decisions, Business Context, and scheduler-linked startup paths were not loading in the sandbox"
+      ]
+    },
+    {
+      "name": "focused_autonomous_current",
+      "log": "data/autonomous-reports/focused-autonomous-validation-post-runtime-restore-20260404T232137Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 208.24,
+        "coverage_enabled": true,
+        "coverage_percent": 18.34,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "the focused baseline was restored after reinstalling repository-declared runtime dependencies",
+        "the BN/LR hybrid, application-factory, branding, and workspace paths all remained green in the final focused rerun"
+      ]
+    },
+    {
+      "name": "high_visibility_current",
+      "log": "data/autonomous-reports/high-visibility-validation-post-runtime-restore-20260404T232523Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 94.67,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the highest-visibility ALDECI validation slice is green again in the current cycle"
+      ]
+    },
+    {
+      "name": "broader_foundation_current",
+      "log": "data/autonomous-reports/broader-validation-rerun-20260404T231402Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 9.19,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the broader repository foundation slice remained green during the same recovery cycle"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative to reflect environment alignment, restored validation, and current-cycle evidence"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260404T233300Z.json",
+      "change": "wrote a new machine-readable cycle report for the environment-alignment recovery pass"
+    }
+  ],
+  "environment_notes": {
+    "api_health_confirmed": true,
+    "api_health_port": 8011,
+    "local_token_configured_for_cycle": true,
+    "sandbox_toolchain_aligned": true,
+    "aligned_tool_versions": {
+      "pytest": "8.4.2",
+      "pytest-cov": "5.0.0",
+      "pytest-asyncio": "0.26.0"
+    },
+    "restored_declared_dependencies": [
+      "scikit-learn>=1.3.0,<2.0",
+      "sqlalchemy>=2.0.0,<3.0",
+      "pyotp>=2.9.0,<3.0",
+      "apscheduler>=3.10,<4.0",
+      "aiosqlite>=0.19.0"
+    ],
+    "intermediate_missing_dependency_symptoms": [
+      "Decisions router not available: No module named 'sqlalchemy'",
+      "Business Context router not available: No module named 'pyotp'",
+      "APScheduler unavailable or failed: No module named 'apscheduler'; skipping scheduler"
+    ],
+    "known_nonfatal_messages": [
+      "LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk",
+      "FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.",
+      "React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served"
+    ],
+    "key_interpretation": "the current-cycle regression was caused by environment drift from the repository-declared dependency baseline rather than by newly introduced ALDECI application defects"
+  },
+  "remaining_risks": [
+    "the fresh self-scan still surfaces 20 medium findings and 3 low-to-medium container hygiene findings",
+    "stack-trace exposure findings remain present in suite-core/core/micro_pentest.py, suite-api/apps/api/app.py, suite-core/core/crypto.py, and suite-core/core/connectors.py",
+    "weak cryptography findings remain present in suite-core/core/autofix_engine.py",
+    "excessive data exposure findings remain present in suite-core/core/brain_pipeline.py and suite-core/core/sast_engine.py",
+    "future autonomous runs can again misrepresent product health if sandbox dependencies drift away from the repository-declared baseline"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "triage the medium-severity stack-trace exposure findings in suite-core/core/micro_pentest.py, suite-api/apps/api/app.py, suite-core/core/crypto.py, and suite-core/core/connectors.py",
+      "rationale": "these findings remain the most concentrated application-security backlog cluster in the fresh self-scan artifact"
+    },
+    {
+      "priority": 2,
+      "action": "review excessive data exposure findings in suite-core/core/brain_pipeline.py and suite-core/core/sast_engine.py",
+      "rationale": "they remain visible in the current self-scan artifact and are good candidates for direct backlog reduction"
+    },
+    {
+      "priority": 3,
+      "action": "triage the weak cryptography findings in suite-core/core/autofix_engine.py",
+      "rationale": "these remain recurring medium-severity findings in the autonomous backlog"
+    },
+    {
+      "priority": 4,
+      "action": "preserve environment-manifest alignment before evaluating future validation regressions as product defects",
+      "rationale": "this cycle showed that missing declared dependencies can mimic application failures and suppress coverage"
+    },
+    {
+      "priority": 5,
+      "action": "use the restored focused, high-visibility, and broader validation slice results as the baseline for the next substantive remediation cycle",
+      "rationale": "the current cycle refreshed the branch's validation baseline end to end"
+    }
+  ]
+}

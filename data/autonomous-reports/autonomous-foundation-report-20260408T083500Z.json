@@ -1,0 +1,250 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-08T08:35:00Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_during_cycle": "5be963229b1382d1b52cc8364878f65cda3cccf3",
+  "status": "validation-harness-fixed-targeted-reruns-green-ci-gate-preserved",
+  "summary": {
+    "autonomous_cycle_equivalent": "targeted-validation-confirmation-reruns-plus-pytest-configuration-fix",
+    "autonomous_cycle_status": "current-cycle-bootstrap-failures-were-captured-but-no-new-durable-self-scan-log-was-preserved-in-this-pass",
+    "cycle_fix_status": "pyproject-default-local-coverage-threshold-removed-while-ci-keeps-explicit-18-percent-gate",
+    "focused_successor_validation_status": "combined-confirmation-rerun-cleared-the-existing-18-percent-coverage-gate-at-18.93-percent",
+    "high_visibility_status": "dedicated-high-visibility-confirmation-rerun-passed-functionally-after-the-configuration-fix",
+    "broader_validation_status": "dedicated-broader-rerun-passed-functionally-after-the-configuration-fix-but-remains-below-the-full-repository-denominator-when-isolated",
+    "confirmation_result": {
+      "repository_change": {
+        "file": "pyproject.toml",
+        "change": "removed default --cov-fail-under=18 from pytest addopts and replaced it with a comment stating CI enforces the threshold explicitly for full-suite runs"
+      },
+      "combined_confirmation_rerun": {
+        "passed": 233,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 409.35,
+        "coverage_percent": 18.93,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/test_ai_consensus.py",
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ]
+      },
+      "high_visibility_confirmation": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 393.73,
+        "coverage_percent": 5.52,
+        "selected_suites": [
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/test_ai_consensus.py"
+        ],
+        "result_character": "functionally-green-but-still-narrow-coverage-when-isolated"
+      },
+      "broader_impacted_rerun": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 116.05,
+        "coverage_percent": 15.79,
+        "selected_suites": [
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ],
+        "result_character": "functionally-green-but-still-below-full-repository-denominator-when-isolated"
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/test_app_factory.py": true,
+    "tests/test_configuration_unit.py": true,
+    "tests/test_overlay_configuration.py": true,
+    "tests/test_overlay_runtime.py": true,
+    "resolution": "all currently exercised suites remain present; this pass validated that the targeted local coverage-threshold fix makes narrow reruns interpretable while CI still enforces the canonical 18 percent gate"
+  },
+  "bootstrap_attempts": [
+    {
+      "order": 1,
+      "status": "failed",
+      "log": "data/autonomous-reports/autonomous-cycle-server-20260408T070021Z.log",
+      "resolution": "local API bootstrap failed because the active runtime was missing jwt"
+    },
+    {
+      "order": 2,
+      "status": "failed",
+      "log": "data/autonomous-reports/autonomous-cycle-server-20260408T070129Z.log",
+      "resolution": "subsequent local API bootstrap failed because the active runtime was missing sarif-om support needed by normalizers"
+    },
+    {
+      "order": 3,
+      "status": "failed",
+      "log": "data/autonomous-reports/autonomous-cycle-server-20260408T070352Z.log",
+      "resolution": "later local API bootstrap failed because the active runtime was missing structlog"
+    }
+  ],
+  "autonomous_cycle": {
+    "initial_log": "data/autonomous-reports/autonomous-cycle-server-20260408T070021Z.log",
+    "final_log": "data/autonomous-reports/autonomous-cycle-server-20260408T070352Z.log",
+    "base_url": "http://127.0.0.1:8001",
+    "initial_metrics": {
+      "status": "bootstrap-failed-before-self-scan",
+      "blocking_import": "jwt"
+    },
+    "final_metrics": {
+      "status": "bootstrap-failed-before-self-scan",
+      "blocking_import": "structlog"
+    },
+    "notes": [
+      "this pass did not produce a new preserved self-scan log under data/autonomous-reports",
+      "the newest existing machine-readable autonomous report before this refresh remained data/autonomous-reports/autonomous-foundation-report-20260408T032717Z.json",
+      "the primary accomplishment of this pass was validation-harness correctness rather than a fresh end-to-end self-scan baseline"
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "combined_confirmation_rerun",
+      "log": "data/autonomous-reports/validation-confirmation-rerun-20260408T075547Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 233,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 409.35,
+        "coverage_percent": 18.93,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/test_ai_consensus.py",
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ]
+      },
+      "notes": [
+        "this is the decisive confirmation artifact for this cycle because it clears the unchanged 18 percent coverage gate after the pytest configuration fix",
+        "it shows the previously exercised high-visibility and broader suites can pass together without weakening CI policy"
+      ]
+    },
+    {
+      "name": "high_visibility_confirmation",
+      "log": "data/autonomous-reports/high-visibility-validation-confirmation-20260408T080553Z.log",
+      "status": "passed-functionally",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 393.73,
+        "coverage_percent": 5.52,
+        "selected_suites": [
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the branding, BN/LR, and AI-consensus path is functionally green again",
+        "its low isolated coverage is expected because the selected slice is intentionally narrow"
+      ]
+    },
+    {
+      "name": "broader_impacted_rerun",
+      "log": "data/autonomous-reports/broader-validation-rerun-after-fix-20260408T081553Z.log",
+      "status": "passed-functionally",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 116.05,
+        "coverage_percent": 15.79,
+        "selected_suites": [
+          "tests/test_app_factory.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py"
+        ]
+      },
+      "notes": [
+        "the app-factory and overlay/configuration path is functionally green after the configuration fix",
+        "this isolated slice still sits below the full-repository denominator, which is why CI remains the authoritative coverage gate"
+      ]
+    }
+  ],
+  "environment_repairs": [
+    {
+      "scope": "validation-harness",
+      "change_type": "repository-configuration-edit",
+      "summary": "updated pyproject.toml so generic local pytest runs no longer inherit the repository-wide coverage fail-under threshold by default",
+      "risk_profile": "low",
+      "user_visible_behavior_change": false
+    }
+  ],
+  "code_changes": [
+    {
+      "path": "pyproject.toml",
+      "change_type": "pytest-configuration-adjustment",
+      "summary": "removed default --cov-fail-under=18 from pytest addopts and documented that CI enforces the threshold explicitly for full-suite runs",
+      "risk_profile": "low",
+      "user_visible_behavior_change": false
+    },
+    {
+      "path": "docs/ALDECI_BUILD_STATUS.md",
+      "change_type": "documentation-refresh",
+      "summary": "updated the branch status narrative with the actual configuration fix, current confirmation evidence, and remaining risks",
+      "risk_profile": "none",
+      "user_visible_behavior_change": false
+    },
+    {
+      "path": "data/autonomous-reports/autonomous-foundation-report-20260408T083500Z.json",
+      "change_type": "machine-readable-report-refresh",
+      "summary": "captured this cycle's pytest configuration fix, confirmation reruns, bootstrap evidence, and recommended next actions",
+      "risk_profile": "none",
+      "user_visible_behavior_change": false
+    }
+  ],
+  "evidence": {
+    "repo_state": "data/autonomous-reports/repo-state-20260408T083500Z.log",
+    "ci_workflow": ".github/workflows/ci.yml",
+    "prior_structured_report": "data/autonomous-reports/autonomous-foundation-report-20260408T032717Z.json"
+  },
+  "remaining_risks": [
+    "future autonomous cycles can still lose time to runtime bootstrap gaps such as missing jwt, sarif-om, or structlog before validation even starts",
+    "this pass did not produce a fresh durable self-scan log, so the latest structured backlog counts still come from the earlier 2026-04-08 report",
+    "isolated narrow slices still show low coverage percentages because they do not represent the full repository denominator, even when functionally green",
+    "the existing self-scan backlog described by the prior structured report remains materially present until a fresh scan and remediation pass are completed"
+  ],
+  "recommended_next_actions": [
+    {
+      "priority": 1,
+      "action": "commit pyproject.toml, the refreshed status document, and this machine-readable report",
+      "rationale": "this pass produced a real repository change and fresh confirmation evidence that targeted local validation is now more truthful while CI policy remains intact"
+    },
+    {
+      "priority": 2,
+      "action": "add a lightweight runtime preflight for jwt, sarif_om, structlog, and sklearn before long autonomous cycles begin",
+      "rationale": "the preserved bootstrap logs show repeated import-level failures that are cheap to detect before starting expensive validation work"
+    },
+    {
+      "priority": 3,
+      "action": "re-run a fresh autonomous self-scan and persist its output to a durable log path once the runtime is pre-aligned",
+      "rationale": "this cycle improved validation-harness correctness but did not preserve a new self-scan artifact under data/autonomous-reports"
+    },
+    {
+      "priority": 4,
+      "action": "resume reduction of the previously reported autonomous backlog after bootstrap reliability is improved",
+      "rationale": "the latest durable autonomous-foundation report before this refresh still records substantial SAST and surfaced-findings backlog"
+    }
+  ]
+}

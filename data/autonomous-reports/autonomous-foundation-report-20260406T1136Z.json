@@ -1,0 +1,294 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-06T11:36:00Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_during_cycle": "30ed2390d108eaa7afa41c052d88080031c84889",
+  "status": "runtime-recovered-with-fresh-validation-baselines-and-open-autofix-followup",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-open-findings-after-runtime-recovery",
+    "cycle_fix_status": "sandbox-runtime-and-overlay-bootstrap-recovered-without-source-edits",
+    "focused_successor_validation_status": "passed-and-cleared-coverage-gate",
+    "high_visibility_status": "tests-passed-but-narrow-slice-missed-global-coverage-gate",
+    "broader_validation_status": "initial-broader-slice-missed-gate-but-representative-rerun-passed",
+    "confirmation_result": {
+      "focused_autonomous_successor": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 440.36,
+        "coverage_percent": 18.99,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "representative_broader_rerun": {
+        "passed": 447,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 404.80,
+        "coverage_percent": 18.59,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      }
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "resolution": "all requested successor and high-visibility suites remain present; this cycle refreshed the focused successor baseline and reconfirmed repository-level green validation through a representative rerun"
+  },
+  "bootstrap_attempts": [
+    {
+      "order": 1,
+      "status": "failed",
+      "log": "data/autonomous-reports/local-api-20260406T105945Z.log",
+      "failure_cause": "missing jwt dependency in sandbox runtime"
+    },
+    {
+      "order": 2,
+      "status": "failed",
+      "log": "data/autonomous-reports/local-api-20260406T110550Z.log",
+      "failure_cause": "overlay auth strategy token required FIXOPS_API_TOKEN to be set"
+    },
+    {
+      "order": 3,
+      "status": "passed",
+      "log": "data/autonomous-reports/local-api-20260406T110619Z.log",
+      "resolution": "local API started successfully on 127.0.0.1:8000 with FIXOPS_API_TOKEN, FIXOPS_MODE=dev, and telemetry disabled"
+    }
+  ],
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260406T110619Z.log",
+    "base_url": "http://127.0.0.1:8000",
+    "metrics": {
+      "sast_findings": 78,
+      "secrets_found": 0,
+      "total_findings": 15,
+      "steps_total": 17,
+      "steps_passed": 16,
+      "steps_failed": 0,
+      "pass_rate": 94.0,
+      "duration_seconds": 7.9
+    },
+    "notes": [
+      "the local API was relaunched successfully only after dependency alignment and tokenized overlay-compatible configuration were restored",
+      "the self-scan baseline remained stable during this continuation cycle and still shows an open AutoFix HTTP 500 follow-up"
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_current_cycle",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260406T110619Z.log",
+      "status": "passed-with-open-findings",
+      "result": {
+        "steps_passed": 16,
+        "steps_total": 17,
+        "findings_total": 15,
+        "sast_findings": 78,
+        "secrets_found": 0,
+        "duration_seconds": 7.9
+      },
+      "notes": [
+        "the SAST engine phase remained clean at 0 findings",
+        "the insecure-deserialization AutoFix step still returned HTTP 500"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor",
+      "log": "data/autonomous-reports/focused-autonomous-validation-20260406T110704Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 440.36,
+        "coverage_percent": 18.99,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "this run provides the fresh focused successor baseline requested for the branch",
+        "the repository-wide coverage gate was satisfied without altering the configured threshold"
+      ]
+    },
+    {
+      "name": "high_visibility",
+      "log": "data/autonomous-reports/high-visibility-validation-20260406T111502Z.log",
+      "status": "tests-passed-coverage-gate-failed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 383.17,
+        "coverage_percent": 5.52,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "the selected tests themselves passed cleanly after runtime recovery",
+        "the global coverage gate remained below threshold because the slice is narrow relative to the repository-wide denominator"
+      ]
+    },
+    {
+      "name": "broader_foundation_initial",
+      "log": "data/autonomous-reports/broader-validation-20260406T112159Z.log",
+      "status": "tests-passed-coverage-gate-failed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 110.63,
+        "coverage_percent": 15.79,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the selected tests passed cleanly",
+        "the coverage denominator remained too broad for this slice to clear the repository-wide threshold"
+      ]
+    },
+    {
+      "name": "broader_foundation_representative_rerun",
+      "log": "data/autonomous-reports/broader-validation-rerun-20260406T112917Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 447,
+        "failed": 0,
+        "skipped": 1,
+        "duration_seconds": 404.80,
+        "coverage_percent": 18.59,
+        "coverage_fail_under": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py",
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "the safest remediation was to broaden the validation slice rather than weaken the repository coverage rule",
+        "the unchanged repository-wide coverage gate was satisfied on a more representative validation set"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative for the fresh runtime-recovery and validation continuation cycle"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260406T1136Z.json",
+      "change": "wrote a new machine-readable report capturing runtime recovery, self-scan evidence, validation outcomes, and next actions"
+    }
+  ],
+  "environment_remediation": {
+    "type": "sandbox-package-alignment-and-overlay-bootstrap-recovery",
+    "source_manifests": [
+      "requirements.txt",
+      "requirements-test.txt"
+    ],
+    "evidence_log": "data/autonomous-reports/environment-alignment-20260406T113246Z.log",
+    "packages_aligned": {
+      "PyJWT": "2.12.1",
+      "pytest": "8.4.2",
+      "pytest_asyncio": "0.26.0",
+      "pytest_cov": "5.0.0",
+      "scikit_learn": "1.8.0",
+      "scipy": "1.17.1",
+      "joblib": "1.5.3"
+    },
+    "bootstrap_configuration": {
+      "FIXOPS_MODE": "dev",
+      "FIXOPS_DISABLE_TELEMETRY": "1",
+      "FIXOPS_API_TOKEN": "set-for-local-runtime",
+      "local_api_host": "127.0.0.1",
+      "local_api_port": 8000
+    },
+    "rationale": "the repository already declared the required runtime and test dependencies, and the active overlay required token auth, so the lowest-risk remediation was to align the sandbox and provide the expected local bootstrap configuration rather than modify branch source code"
+  },
+  "environment_notes": {
+    "local_api_healthy_for_self_scan": true,
+    "local_api_port": 8000,
+    "initial_api_start_failed_before_alignment": true,
+    "initial_failure_cause": "missing jwt dependency in the sandbox runtime",
+    "secondary_api_start_failed_before_token_configuration": true,
+    "secondary_failure_cause": "overlay auth strategy token required FIXOPS_API_TOKEN",
+    "product_or_test_source_code_modified_in_this_cycle": false,
+    "reporting_artifacts_modified_in_this_cycle": true,
+    "dependency_alignment_changed_validation_outcome": true,
+    "high_visibility_slice_is_logically_green_but_coverage_narrow": true
+  },
+  "remaining_risks": [
+    "the insecure-deserialization AutoFix path in the live self-scan still returns HTTP 500",
+    "the high-visibility validation slice passes logically but does not satisfy the repository-wide 18% coverage gate when run alone",
+    "the initial broader foundational validation slice also misses the repository-wide gate when run in isolation",
+    "future autonomous cycles may fail to bootstrap locally if dependency alignment or tokenized overlay-compatible configuration is not restored first",
+    "live backlog findings remain around token expiration, sensitive logging, weak cryptography, insecure deserialization, brain-pipeline robustness, and Dockerfile hygiene"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "codify the validated local bootstrap procedure for autonomous cycles, including dependency alignment and the required FIXOPS_API_TOKEN overlay-compatible runtime configuration"
+    },
+    {
+      "priority": 2,
+      "action": "triage the insecure-deserialization AutoFix HTTP 500 path exposed by the autonomous self-scan"
+    },
+    {
+      "priority": 3,
+      "action": "decide whether narrow visibility-focused suites should always be paired with a representative broader slice when enforcing the repository-wide 18% coverage gate"
+    },
+    {
+      "priority": 4,
+      "action": "formalize the representative broader rerun as the default repository-level confirmation command for continuation cycles if the current gate policy remains unchanged"
+    },
+    {
+      "priority": 5,
+      "action": "continue backlog reduction on token-expiration, sensitive-logging, weak-cryptography, insecure-deserialization, and Dockerfile-hygiene findings"
+    }
+  ],
+  "evidence": {
+    "focused_validation_log": "data/autonomous-reports/focused-autonomous-validation-20260406T110704Z.log",
+    "high_visibility_validation_log": "data/autonomous-reports/high-visibility-validation-20260406T111502Z.log",
+    "broader_validation_log": "data/autonomous-reports/broader-validation-20260406T112159Z.log",
+    "broader_validation_rerun_log": "data/autonomous-reports/broader-validation-rerun-20260406T112917Z.log",
+    "environment_alignment_log": "data/autonomous-reports/environment-alignment-20260406T113246Z.log",
+    "repo_state_log": "data/autonomous-reports/repo-state-20260406T113246Z.log",
+    "initial_api_failure_log": "data/autonomous-reports/local-api-20260406T105945Z.log",
+    "token_requirement_failure_log": "data/autonomous-reports/local-api-20260406T110550Z.log",
+    "successful_api_log": "data/autonomous-reports/local-api-20260406T110619Z.log"
+  }
+}

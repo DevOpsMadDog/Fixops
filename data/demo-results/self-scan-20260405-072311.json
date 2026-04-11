@@ -1,0 +1,155 @@
+{
+  "type": "aldeci-self-scan",
+  "date": "2026-04-05T11:23:11.374661+00:00",
+  "sast_findings": 78,
+  "secrets_found": 0,
+  "total_findings": 15,
+  "steps_total": 17,
+  "steps_passed": 16,
+  "steps_failed": 0,
+  "pass_rate": 94.1,
+  "duration_seconds": 5.7,
+  "findings": [
+    {
+      "id": "SAST-3cece4d0d05a",
+      "title": "Deprecated API Usage \u2014 urllib",
+      "severity": "low",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-477",
+      "file_path": "suite-core/core/brain_pipeline.py",
+      "line_number": 232,
+      "description": "Deprecated HTTP library \u2014 may lack security features"
+    },
+    {
+      "id": "SAST-26e23a6436b1",
+      "title": "Missing Error Handling in IO",
+      "severity": "low",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-755",
+      "file_path": "suite-core/core/brain_pipeline.py",
+      "line_number": 232,
+      "description": "IO operation without error handling \u2014 may crash on failure"
+    },
+    {
+      "id": "SAST-ae3d98a22671",
+      "title": "Unbounded Resource Allocation",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-770",
+      "file_path": "suite-core/core/brain_pipeline.py",
+      "line_number": 233,
+      "description": "Resource allocation without bounds \u2014 DoS risk"
+    },
+    {
+      "id": "SAST-bd681a6efbd7",
+      "title": "Weak Cryptography",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-327",
+      "file_path": "suite-core/core/autofix_engine.py",
+      "line_number": 759,
+      "description": "Use of weak cryptographic algorithm"
+    },
+    {
+      "id": "SAST-194a948cdbbd",
+      "title": "Weak Cryptography",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-327",
+      "file_path": "suite-core/core/autofix_engine.py",
+      "line_number": 760,
+      "description": "Use of weak cryptographic algorithm"
+    },
+    {
+      "id": "SAST-49b0d9061f01",
+      "title": "Insecure Deserialization",
+      "severity": "critical",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-502",
+      "file_path": "suite-core/core/autofix_engine.py",
+      "line_number": 1706,
+      "description": "Unsafe deserialization of untrusted data"
+    },
+    {
+      "id": "SAST-704f4b513110",
+      "title": "Token Without Expiration",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-613",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 927,
+      "description": "Token created without expiration \u2014 indefinitely valid"
+    },
+    {
+      "id": "SAST-cbb5f4ff5ec6",
+      "title": "Logging Sensitive Data",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-532",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 942,
+      "description": "Sensitive data in log output"
+    },
+    {
+      "id": "SAST-7a2825e9f209",
+      "title": "Logging Sensitive Data",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-532",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 1184,
+      "description": "Sensitive data in log output"
+    },
+    {
+      "id": "SAST-85afc9785df2",
+      "title": "Token Without Expiration",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-613",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 1188,
+      "description": "Token created without expiration \u2014 indefinitely valid"
+    },
+    {
+      "id": "SAST-0ba48b85e28e",
+      "title": "Token Without Expiration",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-613",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 1201,
+      "description": "Token created without expiration \u2014 indefinitely valid"
+    },
+    {
+      "id": "SAST-30fe8fffb4c4",
+      "title": "Token Without Expiration",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-613",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 1223,
+      "description": "Token created without expiration \u2014 indefinitely valid"
+    },
+    {
+      "id": "CONT-94181f4d",
+      "title": "No Package Pinning",
+      "severity": "medium",
+      "source": "aldeci-self-container",
+      "description": "Package installed without version pinning"
+    },
+    {
+      "id": "CONT-7f7aa692",
+      "title": "Apt-get No Clean",
+      "severity": "low",
+      "source": "aldeci-self-container",
+      "description": "apt-get install without cleanup \u2014 bloated image"
+    },
+    {
+      "id": "CONT-f0f694fc",
+      "title": "No Package Pinning",
+      "severity": "medium",
+      "source": "aldeci-self-container",
+      "description": "Package installed without version pinning"
+    }
+  ]
+}

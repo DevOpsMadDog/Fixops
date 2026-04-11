@@ -1,0 +1,167 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Fixops_repo
+configfile: pyproject.toml
+plugins: anyio-4.11.0, timeout-2.4.0, cov-5.0.0, asyncio-0.26.0
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 49 items
+
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_api_header PASSED [  2%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output PASSED [  4%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_evidence_bundle PASSED [  6%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_aldeci_keys PASSED [  8%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_fallback_to_fixops_keys PASSED [ 10%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_branded_key_overrides_canonical PASSED [ 12%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_aliasing_with_custom_namespace PASSED [ 14%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_config_from_flag PASSED [ 16%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_persists_across_api_requests PASSED [ 18%]
+tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_namespace_env_var_takes_precedence PASSED [ 20%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_train_bn_lr_end_to_end PASSED [ 22%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end PASSED [ 24%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file PASSED [ 26%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end PASSED [ 28%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification PASSED [ 30%]
+tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds PASSED [ 32%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_default_values PASSED [ 34%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_from_env PASSED    [ 36%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_valid_config PASSED [ 38%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_threshold PASSED [ 40%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_weights PASSED [ 42%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_timeout PASSED [ 44%]
+tests/test_ai_consensus.py::TestConsensusConfig::test_validate_invalid_retries PASSED [ 46%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_initialization 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 48%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_initialization_with_custom_config 
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.8, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 51%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_success 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 53%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_fallback_response 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:40 [ WARNING] core.mpte_advanced: LLM provider openai returned fallback response: provider_disabled
+PASSED                                                                   [ 55%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_with_fallback 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:40 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-04-04 07:23:40 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-04-04 07:23:41 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-04-04 07:23:41 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-04-04 07:23:43 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-04-04 07:23:43 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 57%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_without_fallback 
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:43 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-04-04 07:23:43 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 1/3): API error
+2026-04-04 07:23:43 [    INFO] core.mpte_advanced: Retrying in 1s...
+2026-04-04 07:23:44 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 2/3): API error
+2026-04-04 07:23:44 [    INFO] core.mpte_advanced: Retrying in 2s...
+2026-04-04 07:23:46 [ WARNING] core.mpte_advanced: LLM call to openai failed (attempt 3/3): API error
+2026-04-04 07:23:46 [   ERROR] core.mpte_advanced: LLM call to openai failed after 3 attempts: API error
+PASSED                                                                   [ 59%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_timeout_with_fallback 
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+2026-04-04 07:23:46 [ WARNING] core.mpte_advanced: LLM call to openai timed out (attempt 1/1)
+2026-04-04 07:23:46 [   ERROR] core.mpte_advanced: LLM call to openai failed after 1 attempts: LLM call to openai timed out after 0.01s
+PASSED                                                                   [ 61%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_architect_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: LLM provider gemini returned successful response (confidence=0.85)
+PASSED                                                                   [ 63%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_developer_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: LLM provider anthropic returned successful response (confidence=0.85)
+PASSED                                                                   [ 65%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_lead_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 67%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_compose_consensus 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: LLM provider openai returned successful response (confidence=0.85)
+PASSED                                                                   [ 69%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_confidence_to_priority 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 71%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_suggest_tools 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 73%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_derive_strategy 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 75%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_derive_success_criteria 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 77%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_assess_business_impact 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 79%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_get_statistics 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+PASSED                                                                   [ 81%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_decision 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [ WARNING] core.mpte_advanced: FALLBACK_DECISION: Using deterministic fallback for role=architect, vulnerability=CVE-2024-1234. This is NOT an AI-generated decision.
+PASSED                                                                   [ 83%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_consensus 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 0/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 85%]
+tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_fallback_consensus_with_contributing_fallbacks 
+-------------------------------- live log setup --------------------------------
+2026-04-04 07:23:46 [    INFO] core.mpte_advanced: MultiAIOrchestrator initialized with threshold=0.6, weights={'architect': 0.35, 'developer': 0.4, 'lead': 0.25}
+-------------------------------- live log call ---------------------------------
+2026-04-04 07:23:46 [ WARNING] core.mpte_advanced: FALLBACK_CONSENSUS: Using deterministic consensus composition. Contributing fallback decisions: 2/3. This is NOT an AI-composed consensus.
+PASSED                                                                   [ 87%]
+tests/test_ai_consensus.py::TestLLMCallError::test_exception_message PASSED [ 89%]
+tests/test_ai_consensus.py::TestLLMCallError::test_exception_inheritance PASSED [ 91%]
+tests/test_ai_consensus.py::TestAIDecision::test_creation PASSED         [ 93%]
+tests/test_ai_consensus.py::TestAIDecision::test_default_metadata PASSED [ 95%]
+tests/test_ai_consensus.py::TestConsensusDecision::test_creation PASSED  [ 97%]
+tests/test_ai_consensus.py::TestAIRole::test_roles PASSED                [100%]
+
+============================= slowest 10 durations =============================
+16.55s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_bn_cpd_hash_verification
+14.77s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branding_persists_across_api_requests
+14.77s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_api_header
+10.66s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_predict_bn_lr_end_to_end
+10.62s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_bn_lr_end_to_end
+10.49s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_custom_thresholds
+9.93s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_backtest_with_output_file
+5.25s call     tests/e2e/test_bn_lr_hybrid.py::TestBNLRHybrid::test_train_bn_lr_end_to_end
+5.03s call     tests/e2e/test_branding_namespace.py::TestBrandingNamespace::test_branded_product_name_in_cli_output
+3.01s call     tests/test_ai_consensus.py::TestMultiAIOrchestrator::test_call_llm_error_with_fallback
+======================== 49 passed in 117.49s (0:01:57) ========================

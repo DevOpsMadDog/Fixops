@@ -18,7 +18,11 @@ try:  # pgmpy is declared in requirements and provides Bayesian inference
     from pgmpy.factors.discrete import TabularCPD
     from pgmpy.inference import VariableElimination
     from pgmpy.models import BayesianNetwork
-except (ImportError, SyntaxError):  # pragma: no cover - SyntaxError on Python 3.14 (invalid \p escapes in pgmpy)
+except Exception as exc:  # pragma: no cover - optional stack may fail at import time (e.g. torch runtime init)
+    logger.warning(
+        "pgmpy unavailable; Bayesian inference will use deterministic fallbacks",
+        extra={"error": repr(exc)},
+    )
     BayesianNetwork = None  # type: ignore[assignment]
     VariableElimination = None  # type: ignore[assignment]
     TabularCPD = None  # type: ignore[assignment]

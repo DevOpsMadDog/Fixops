@@ -1,0 +1,1036 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Fixops_repo
+configfile: pyproject.toml
+plugins: anyio-4.11.0, asyncio-0.26.0, xdist-3.8.0, timeout-2.4.0, mock-3.15.1, cov-5.0.0, Faker-40.12.0
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+collecting ... 
+----------------------------- live log collection ------------------------------
+2026-04-05 15:23:34 [    INFO] core.evidence: RSA signing module loaded successfully
+collected 184 items
+
+tests/test_overlay_configuration.py::test_load_overlay_merges_profile_and_defaults PASSED [  0%]
+tests/test_overlay_configuration.py::test_environment_variable_override PASSED [  1%]
+tests/test_overlay_configuration.py::test_guardrail_defaults_when_missing 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:23:35 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-05 15:23:35 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-05 15:23:35 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-05 15:23:35 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+PASSED                                                                   [  1%]
+tests/test_overlay_configuration.py::test_module_defaults_and_custom_specs 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:23:35 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-05 15:23:35 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-05 15:23:35 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-05 15:23:35 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+PASSED                                                                   [  2%]
+tests/test_overlay_configuration.py::test_overlay_rejects_unknown_keys PASSED [  2%]
+tests/test_overlay_configuration.py::test_overlay_rejects_outside_data_directory PASSED [  3%]
+tests/test_overlay_configuration.py::test_token_strategy_requires_environment PASSED [  3%]
+tests/test_overlay_configuration.py::test_compliance_controls_reject_unknown_fields PASSED [  4%]
+tests/test_overlay_configuration.py::test_policy_actions_reject_unknown_fields PASSED [  4%]
+tests/test_overlay_configuration.py::test_policy_action_triggers_normalised PASSED [  5%]
+tests/test_overlay_configuration.py::test_policy_engine_overlay_round_trip PASSED [  5%]
+tests/test_overlay_configuration.py::test_overlay_toggles_round_trip PASSED [  6%]
+tests/test_overlay_configuration.py::test_policy_engine_rejects_invalid_timeout PASSED [  7%]
+tests/test_overlay_configuration.py::test_policy_engine_rejects_unknown_fields PASSED [  7%]
+tests/test_overlay_configuration.py::test_signing_configuration_round_trip PASSED [  8%]
+tests/test_overlay_runtime.py::test_prepare_overlay_disables_encryption_without_fernet PASSED [  8%]
+tests/test_overlay_runtime.py::test_prepare_overlay_disables_encryption_when_key_missing PASSED [  9%]
+tests/test_overlay_runtime.py::test_prepare_overlay_creates_directories_when_requested PASSED [  9%]
+tests/test_overlay_runtime.py::test_prepare_overlay_reports_missing_automation_tokens PASSED [ 10%]
+tests/test_overlay_runtime.py::test_prepare_overlay_suppresses_warnings_when_tokens_present PASSED [ 10%]
+tests/test_configuration_unit.py::TestParseOverlay::test_empty_string PASSED [ 11%]
+tests/test_configuration_unit.py::TestParseOverlay::test_whitespace_only PASSED [ 11%]
+tests/test_configuration_unit.py::TestParseOverlay::test_json_valid PASSED [ 12%]
+tests/test_configuration_unit.py::TestParseOverlay::test_yaml_valid PASSED [ 13%]
+tests/test_configuration_unit.py::TestParseOverlay::test_yaml_null_returns_empty PASSED [ 13%]
+tests/test_configuration_unit.py::TestParseOverlay::test_yaml_non_mapping_raises PASSED [ 14%]
+tests/test_configuration_unit.py::TestDeepMerge::test_simple_merge PASSED [ 14%]
+tests/test_configuration_unit.py::TestDeepMerge::test_nested_merge PASSED [ 15%]
+tests/test_configuration_unit.py::TestDeepMerge::test_override_non_mapping_with_value PASSED [ 15%]
+tests/test_configuration_unit.py::TestDeepMerge::test_empty_overrides PASSED [ 16%]
+tests/test_configuration_unit.py::TestDeepMerge::test_empty_base PASSED  [ 16%]
+tests/test_configuration_unit.py::TestRequireMapping::test_valid_mapping PASSED [ 17%]
+tests/test_configuration_unit.py::TestRequireMapping::test_non_mapping_raises PASSED [ 17%]
+tests/test_configuration_unit.py::TestRequireMapping::test_none_raises PASSED [ 18%]
+tests/test_configuration_unit.py::TestRequireString::test_valid_string PASSED [ 19%]
+tests/test_configuration_unit.py::TestRequireString::test_strips_whitespace PASSED [ 19%]
+tests/test_configuration_unit.py::TestRequireString::test_empty_raises PASSED [ 20%]
+tests/test_configuration_unit.py::TestRequireString::test_whitespace_only_raises PASSED [ 20%]
+tests/test_configuration_unit.py::TestRequireString::test_non_string_raises PASSED [ 21%]
+tests/test_configuration_unit.py::TestOptionalString::test_none_returns_none PASSED [ 21%]
+tests/test_configuration_unit.py::TestOptionalString::test_valid_string PASSED [ 22%]
+tests/test_configuration_unit.py::TestOptionalString::test_empty_returns_none PASSED [ 22%]
+tests/test_configuration_unit.py::TestOptionalString::test_whitespace_returns_none PASSED [ 23%]
+tests/test_configuration_unit.py::TestOptionalString::test_non_string_raises PASSED [ 23%]
+tests/test_configuration_unit.py::TestStringList::test_none_returns_empty PASSED [ 24%]
+tests/test_configuration_unit.py::TestStringList::test_valid_list PASSED [ 25%]
+tests/test_configuration_unit.py::TestStringList::test_strips_whitespace PASSED [ 25%]
+tests/test_configuration_unit.py::TestStringList::test_non_list_raises PASSED [ 26%]
+tests/test_configuration_unit.py::TestStringList::test_non_string_item_raises PASSED [ 26%]
+tests/test_configuration_unit.py::TestStringList::test_empty_string_item_raises PASSED [ 27%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_none_returns_defaults PASSED [ 27%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_valid_provider_env PASSED [ 28%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_valid_provider_aws_kms PASSED [ 28%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_valid_provider_azure PASSED [ 29%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_invalid_provider_raises PASSED [ 29%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_unexpected_keys_raises PASSED [ 30%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_rotation_sla_valid PASSED [ 30%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_rotation_sla_zero_raises PASSED [ 31%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_rotation_sla_negative_raises PASSED [ 32%]
+tests/test_configuration_unit.py::TestValidateSigningConfig::test_key_id_and_aws_region PASSED [ 32%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_none_returns_empty PASSED [ 33%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_valid_control PASSED [ 33%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_non_list_raises PASSED [ 34%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_non_mapping_item_raises PASSED [ 34%]
+tests/test_configuration_unit.py::TestValidateComplianceControls::test_unexpected_keys PASSED [ 35%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_none_returns_empty PASSED [ 35%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_valid_framework PASSED [ 36%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_non_list_raises PASSED [ 36%]
+tests/test_configuration_unit.py::TestValidateComplianceFrameworks::test_non_mapping_item_raises PASSED [ 37%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_none_returns_empty PASSED [ 38%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_empty_returns_empty PASSED [ 38%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_valid_config PASSED [ 39%]
+tests/test_configuration_unit.py::TestValidateComplianceConfig::test_unexpected_keys PASSED [ 39%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_none_returns_empty PASSED [ 40%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_valid_action PASSED [ 40%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_non_list_raises PASSED [ 41%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_invalid_trigger_raises PASSED [ 41%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_invalid_type_raises PASSED [ 42%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_force_delivery_boolean PASSED [ 42%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_force_delivery_non_boolean_raises PASSED [ 43%]
+tests/test_configuration_unit.py::TestValidatePolicyActions::test_parent_page_id_numeric PASSED [ 44%]
+tests/test_configuration_unit.py::TestValidatePolicyConfig::test_none_returns_empty PASSED [ 44%]
+tests/test_configuration_unit.py::TestValidatePolicyConfig::test_empty_returns_empty PASSED [ 45%]
+tests/test_configuration_unit.py::TestValidatePolicyConfig::test_unexpected_keys_raises PASSED [ 45%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_none_returns_empty PASSED [ 46%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_empty_returns_empty PASSED [ 46%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_valid_opa_config PASSED [ 47%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_opa_unexpected_keys_raises PASSED [ 47%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_unexpected_top_keys_raises PASSED [ 48%]
+tests/test_configuration_unit.py::TestValidatePolicyEngineConfig::test_opa_invalid_timeout_raises PASSED [ 48%]
+tests/test_configuration_unit.py::TestOverlayDocument::test_default_values PASSED [ 49%]
+tests/test_configuration_unit.py::TestOverlayDocument::test_valid_document PASSED [ 50%]
+tests/test_configuration_unit.py::TestOverlayDocument::test_extra_field_forbidden PASSED [ 50%]
+tests/test_configuration_unit.py::TestResolveAllowlistedRoots::test_default_without_env PASSED [ 51%]
+tests/test_configuration_unit.py::TestResolveAllowlistedRoots::test_with_env_set PASSED [ 51%]
+tests/test_configuration_unit.py::TestEnsureWithinAllowlist::test_within_allowed_root PASSED [ 52%]
+tests/test_configuration_unit.py::TestEnsureWithinAllowlist::test_outside_allowed_root_raises PASSED [ 52%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_default_values PASSED [ 53%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_maturity_default PASSED [ 53%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_maturity_from_guardrails PASSED [ 54%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_maturity_from_metadata PASSED [ 54%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_defaults PASSED [ 55%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_scaling PASSED [ 55%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_foundational PASSED [ 56%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_advanced PASSED [ 57%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_policy_custom_override PASSED [ 57%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_required_inputs_with_design PASSED [ 58%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_required_inputs_without_design PASSED [ 58%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_signing_settings_defaults PASSED [ 59%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_signing_settings_with_values PASSED [ 59%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_mask_sensitive_fields PASSED [ 60%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_mask_non_sensitive_fields PASSED [ 60%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_to_sanitised_dict PASSED [ 61%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_allowed_overlay_keys_non_empty PASSED [ 61%]
+tests/test_configuration_unit.py::TestOverlayConfig::test_guardrail_profiles_known_maturities PASSED [ 62%]
+tests/test_configuration_unit.py::TestReadText::test_read_existing_file PASSED [ 63%]
+tests/test_configuration_unit.py::TestReadText::test_read_missing_file PASSED [ 63%]
+tests/test_app_factory.py::TestAppFactory::test_create_app_returns_fastapi 
+-------------------------------- live log setup --------------------------------
+2026-04-05 15:23:37 [    INFO] apps.api.app: Loaded Unified Triage router
+2026-04-05 15:23:38 [    INFO] apps.api.app: Loaded APP_ID Configuration router
+2026-04-05 15:23:38 [    INFO] apps.api.app: Loaded Material Change Detection router
+2026-04-05 15:23:38 [    INFO] apps.api.app: Loaded Universal Connectors router
+2026-04-05 15:23:38 [ WARNING] apps.api.auth_deps: JWT signing key is only 30 chars (minimum 32) — JWT auth disabled.
+2026-04-05 15:23:38 [    INFO] apps.api.app: Loaded PR Gate router
+2026-04-05 15:23:39 [    INFO] apps.api.app: Loaded MPTE (MPTE Enhanced) router from suite-attack
+2026-04-05 15:23:39 [    INFO] apps.api.app: Loaded Micro Pentest router from suite-attack
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Vulnerability Discovery router from suite-attack
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded MPTE Orchestrator router from suite-attack
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Secrets Scanner router from suite-attack
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Feeds router from suite-feeds (production, 36 endpoints)
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Scanner Ingest router (15 new parsers)
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Webhook Subscriptions router
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Sandbox PoC Verifier router
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded enterprise marketplace router
+2026-04-05 15:23:44 [    INFO] apps.api.app: Loaded Nerve Center router from suite-core
+2026-04-05 15:23:47 [    INFO] apps.api.app: Loaded Decisions router from suite-core
+2026-04-05 15:23:47 [    INFO] apps.api.app: Loaded Deduplication router from suite-core
+2026-04-05 15:23:47 [    INFO] apps.api.app: Loaded ML/MindsDB router from suite-core
+2026-04-05 15:23:47 [    INFO] apps.api.app: Loaded AutoFix router from suite-core
+2026-04-05 15:23:47 [    INFO] apps.api.app: Loaded AutoFix Verification router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded MPTE Post-Fix Verification router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded MITRE ATT&CK Mapper router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Air-Gap Operations router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Fuzzy Identity router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Exposure Case router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Pipeline router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Copilot router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Agents router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Predictions router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded LLM router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Algorithmic router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded LLM Monitor router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded LLM Guard router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Streaming/SSE router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Code-to-Cloud router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Quantum Crypto router from suite-core (V6)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Zero-Gravity router from suite-core (V9)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Single Agent router from suite-core (V4)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Knowledge Graph router from suite-core (V3)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Supply Chain Security router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded vLLM Self-Hosted LLM router from suite-core (V9)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded MCP Protocol router from suite-core (V7)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Self-Learning router from suite-core (V8)
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Developer Risk Profiles router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Causal Inference router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded GNN Attack Path router from suite-core
+2026-04-05 15:23:48 [    INFO] apps.api.app: Loaded Monte Carlo Risk Simulation router from suite-core
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Runtime Protection router from suite-core
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Threat Modeling router from suite-core
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded AI Code Guardian router from suite-core
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Attack Surface Discovery router from suite-core
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Dependency-Track router from suite-core
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Attack Simulation router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded SAST router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Container Security router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded DAST router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded CSPM router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded API Fuzzer router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Malware Analysis router from suite-attack
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Evidence router from suite-evidence-risk
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Risk router from suite-evidence-risk
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Graph router from suite-evidence-risk
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Provenance router from suite-evidence-risk
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Compliance Engine router from suite-evidence-risk (V10)
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Business Context router from suite-evidence-risk
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Business Context Enhanced router from suite-evidence-risk
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Integrations router from suite-integrations
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded Webhooks routers from suite-integrations
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded IaC router from suite-integrations
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded IDE router from suite-integrations
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded OSS Tools router from suite-integrations
+2026-04-05 15:23:49 [    INFO] api.mcp_router: MCP client store: persistent-backed (data/mcp_state.db)
+2026-04-05 15:23:49 [    INFO] api.mcp_router: MCP config store: persistent-backed (data/mcp_state.db)
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded MCP router from suite-integrations
+2026-04-05 15:23:49 [    INFO] apps.api.app: Loaded SIEM router from suite-integrations
+2026-04-05 15:23:49 [    INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-04-05 15:23:49 [    INFO] apscheduler.scheduler: Added job "refresh_exploit_feeds" to job store "default"
+2026-04-05 15:23:49 [    INFO] apscheduler.scheduler: Scheduler started
+2026-04-05 15:23:49 [    INFO] core.exploit_signals: Exploit feed scheduler started (24h interval).
+2026-04-05 15:23:56 [CRITICAL] apps.api.app: JWT signing key is too short (30 chars, minimum 32). Weak keys are rejected to prevent token forgery. Generating a strong ephemeral key instead. Set a signing key with at least 32 characters for production.
+2026-04-05 15:23:56 [ WARNING] apps.api.app: JWT signing key not set or rejected — generated ephemeral JWT signing key. Tokens will be invalid after restart. For production, set the JWT signing key environment variable (>= 32 chars).
+2026-04-05 15:23:56 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-05 15:23:56 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-05 15:23:56 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-05 15:23:56 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+2026-04-05 15:23:56 [    INFO] apps.api.app: RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)
+2026-04-05 15:23:56 [    INFO] apps.api.app: DetailedLoggingMiddleware disabled (set FIXOPS_DETAILED_LOGGING=1 to enable)
+2026-04-05 15:23:56 [    INFO] apps.api.app: LearningMiddleware enabled — API traffic will be captured for ML
+2026-04-05 15:23:56 [ WARNING] apps.api.app: FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+2026-04-05 15:23:56 [    INFO] core.decision_policy: Initialized DecisionPolicyEngine: block_internet_facing_sqli=True, block_auth_path_sqli=True, internet_facing_multiplier=3.0
+2026-04-05 15:23:56 [    INFO] apps.api.app: Mounted PR Gate router
+2026-04-05 15:23:56 [    INFO] apps.api.app: Mounted APP_ID Configuration router
+2026-04-05 15:23:56 [    INFO] apps.api.app: Mounted Material Change Detection router
+2026-04-05 15:23:56 [    INFO] apps.api.app: Mounted Universal Connectors router
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted CI/CD Gate router
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Scanner Ingest router
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Webhook Subscriptions router
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Dependency-Track router
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Sandbox PoC Verifier router
+2026-04-05 15:23:57 [    INFO] apps.api.app: Loaded Knowledge Brain router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted AutoFix router with write:findings scope guard
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Nerve Center router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Decisions router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Deduplication router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted ML/MindsDB router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted AutoFix Verification router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted MPTE Post-Fix Verification router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted MITRE ATT&CK Mapper router from suite-core
+2026-04-05 15:23:57 [    INFO] apps.api.app: Mounted Air-Gap Operations router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Fuzzy Identity router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Exposure Case router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Pipeline router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Copilot router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Agents router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Predictions router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted LLM router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Algorithmic router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted LLM Monitor router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted LLM Guard router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Code-to-Cloud router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted SSE Streaming router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Quantum Crypto router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Zero-Gravity Data router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted AI Agent router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Knowledge Graph router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Self-Hosted LLM (Air-Gapped) router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted MCP Protocol router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Self-Learning router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Developer Risk Profiles router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Supply Chain Security router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Causal Inference router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted GNN Attack Paths router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Monte Carlo Risk Simulation router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Runtime Protection router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Threat Modeling router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted AI Code Guardian router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Attack Surface Discovery router from suite-core
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Attack Simulation router from suite-attack
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted SAST router from suite-attack
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted Container Security router from suite-attack
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted DAST router from suite-attack
+2026-04-05 15:23:58 [    INFO] apps.api.app: Mounted CSPM router from suite-attack
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted API Fuzzer router from suite-attack
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Malware Analysis router from suite-attack
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Evidence router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Risk router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Graph router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Provenance router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Compliance Engine router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Business Context router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Business Context Enhanced router from suite-evidence-risk
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Integrations router from suite-integrations
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Webhooks router from suite-integrations
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted IaC router from suite-integrations
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted IDE router from suite-integrations
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted SIEM router from suite-integrations
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Webhooks Receiver router (no API key auth)
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted OSS Tools router from suite-integrations
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted Detailed Logs router at /api/v1/logs
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted MCP Auto-Discovery router at /api/v1/mcp
+2026-04-05 15:23:59 [    INFO] apps.api.app: Mounted 37 gap routers for frontend coverage
+2026-04-05 15:23:59 [ WARNING] apps.api.app: React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served
+2026-04-05 15:23:59 [    INFO] core.flags.provider_factory: Initialized LocalOverlayProvider
+2026-04-05 15:23:59 [ WARNING] core.flags.ld_provider: LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+2026-04-05 15:23:59 [    INFO] core.flags.provider_factory: LaunchDarkly running in offline mode
+2026-04-05 15:23:59 [    INFO] core.flags.provider_factory: Using CombinedProvider: Local Overlay → Defaults
+2026-04-05 15:23:59 [    INFO] apps.api.app: RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)
+2026-04-05 15:23:59 [    INFO] apps.api.app: DetailedLoggingMiddleware disabled (set FIXOPS_DETAILED_LOGGING=1 to enable)
+2026-04-05 15:23:59 [    INFO] apps.api.app: LearningMiddleware enabled — API traffic will be captured for ML
+2026-04-05 15:23:59 [ WARNING] apps.api.app: FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+2026-04-05 15:23:59 [    INFO] core.decision_policy: Initialized DecisionPolicyEngine: block_internet_facing_sqli=True, block_auth_path_sqli=True, internet_facing_multiplier=3.0
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted PR Gate router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted APP_ID Configuration router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted Material Change Detection router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted Universal Connectors router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted CI/CD Gate router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted Scanner Ingest router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted Webhook Subscriptions router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted Dependency-Track router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted Sandbox PoC Verifier router
+2026-04-05 15:24:00 [    INFO] apps.api.app: Loaded Knowledge Brain router from suite-core
+2026-04-05 15:24:00 [    INFO] apps.api.app: Mounted AutoFix router with write:findings scope guard
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Nerve Center router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Decisions router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Deduplication router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted ML/MindsDB router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted AutoFix Verification router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted MPTE Post-Fix Verification router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted MITRE ATT&CK Mapper router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Air-Gap Operations router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Fuzzy Identity router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Exposure Case router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Pipeline router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Copilot router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Agents router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Predictions router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted LLM router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Algorithmic router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted LLM Monitor router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted LLM Guard router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Code-to-Cloud router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted SSE Streaming router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Quantum Crypto router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Zero-Gravity Data router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted AI Agent router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Knowledge Graph router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Self-Hosted LLM (Air-Gapped) router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted MCP Protocol router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Self-Learning router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Developer Risk Profiles router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Supply Chain Security router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Causal Inference router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted GNN Attack Paths router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Monte Carlo Risk Simulation router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Runtime Protection router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Threat Modeling router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted AI Code Guardian router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Attack Surface Discovery router from suite-core
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Attack Simulation router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted SAST router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Container Security router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted DAST router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted CSPM router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted API Fuzzer router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Malware Analysis router from suite-attack
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Evidence router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Risk router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Graph router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Provenance router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Compliance Engine router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Business Context router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Business Context Enhanced router from suite-evidence-risk
+2026-04-05 15:24:01 [    INFO] apps.api.app: Mounted Integrations router from suite-integrations
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted Webhooks router from suite-integrations
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted IaC router from suite-integrations
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted IDE router from suite-integrations
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted SIEM router from suite-integrations
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted Webhooks Receiver router (no API key auth)
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted OSS Tools router from suite-integrations
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted Detailed Logs router at /api/v1/logs
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted MCP Auto-Discovery router at /api/v1/mcp
+2026-04-05 15:24:02 [    INFO] apps.api.app: Mounted 37 gap routers for frontend coverage
+2026-04-05 15:24:02 [ WARNING] apps.api.app: React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served
+PASSED                                                                   [ 64%]
+tests/test_app_factory.py::TestAppFactory::test_app_has_state PASSED     [ 64%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_overlay PASSED [ 65%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_archive PASSED [ 65%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_normalizer PASSED [ 66%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_orchestrator PASSED [ 66%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_artifacts PASSED [ 67%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_analytics_store PASSED [ 67%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_enhanced_engine PASSED [ 68%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_branding PASSED [ 69%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_flag_provider PASSED [ 69%]
+tests/test_app_factory.py::TestAppFactory::test_app_state_has_upload_manager PASSED [ 70%]
+tests/test_app_factory.py::TestAppFactory::test_app_has_many_routes PASSED [ 70%]
+tests/test_app_factory.py::TestAppFactory::test_app_title_contains_branding PASSED [ 71%]
+tests/test_app_factory.py::TestHealthEndpoints::test_legacy_health 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 71%]
+tests/test_app_factory.py::TestHealthEndpoints::test_health_v1 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] core.api_learning_store: APILearningStore initialized at .fixops_data/api_learning.db
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 72%]
+tests/test_app_factory.py::TestHealthEndpoints::test_readiness 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/ready "HTTP/1.1 200 OK"
+PASSED                                                                   [ 72%]
+tests/test_app_factory.py::TestHealthEndpoints::test_version 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/version "HTTP/1.1 200 OK"
+PASSED                                                                   [ 73%]
+tests/test_app_factory.py::TestHealthEndpoints::test_metrics 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/metrics "HTTP/1.1 200 OK"
+PASSED                                                                   [ 73%]
+tests/test_app_factory.py::TestAuthHelpers::test_generate_access_token PASSED [ 74%]
+tests/test_app_factory.py::TestAuthHelpers::test_decode_access_token PASSED [ 75%]
+tests/test_app_factory.py::TestAuthHelpers::test_decode_rejects_invalid_token PASSED [ 75%]
+tests/test_app_factory.py::TestAuthHelpers::test_decode_rejects_oversized_token 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: JWT rejected: token exceeds max length (4096 bytes)
+PASSED                                                                   [ 76%]
+tests/test_app_factory.py::TestAuthHelpers::test_jwt_secret_loaded PASSED [ 76%]
+tests/test_app_factory.py::TestAuthHelpers::test_check_auth_rate_limit_allows_normal PASSED [ 77%]
+tests/test_app_factory.py::TestAuthHelpers::test_record_and_check_auth_rate_limit PASSED [ 77%]
+tests/test_app_factory.py::TestMiddleware::test_product_header_present 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 78%]
+tests/test_app_factory.py::TestMiddleware::test_security_headers 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 78%]
+tests/test_app_factory.py::TestMiddleware::test_cors_preflight 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: OPTIONS http://testserver/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 79%]
+tests/test_app_factory.py::TestAuthenticatedEndpoints::test_status_no_auth_dev_mode 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 79%]
+tests/test_app_factory.py::TestAuthenticatedEndpoints::test_search_empty_query 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/search?q= "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 80%]
+tests/test_app_factory.py::TestAuthenticatedEndpoints::test_search_with_query 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/search?q=test "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 80%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_design_csv 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/design "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 81%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_sbom_cyclonedx 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/sbom "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 82%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_sarif 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/sarif "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 82%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_cve_feed 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/cve "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 83%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_vex 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/vex "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 83%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_cnapp 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/cnapp "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 84%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_context_json 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/context "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 84%]
+tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_unsupported_content_type 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: POST http://testserver/inputs/design "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 85%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/health-expected_codes0] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 85%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/version-expected_codes1] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/version "HTTP/1.1 200 OK"
+PASSED                                                                   [ 86%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/ready-expected_codes2] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/ready "HTTP/1.1 200 OK"
+PASSED                                                                   [ 86%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/api/v1/metrics-expected_codes3] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/metrics "HTTP/1.1 200 OK"
+PASSED                                                                   [ 87%]
+tests/test_app_factory.py::TestRouterMounts::test_public_endpoints[/health-expected_codes4] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+PASSED                                                                   [ 88%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/inventory/applications] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/inventory/applications "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 88%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/reports] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/reports "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 89%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/workflows] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/workflows "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 89%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/analytics/dashboard] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/analytics/dashboard "HTTP/1.1 404 Not Found"
+PASSED                                                                   [ 90%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/fail/scores] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/fail/scores "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 90%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/remediation/tasks] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/remediation/tasks "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 91%]
+tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/collaboration/comments] 
+-------------------------------- live log call ---------------------------------
+2026-04-05 15:24:03 [ WARNING] apps.api.app: Failed token auth attempt from IP testclient
+2026-04-05 15:24:03 [    INFO] httpx: HTTP Request: GET http://testserver/api/v1/collaboration/comments "HTTP/1.1 401 Unauthorized"
+PASSED                                                                   [ 91%]
+tests/test_app_factory.py::TestPipelineOrchestrator::test_orchestrator_import PASSED [ 92%]
+tests/test_app_factory.py::TestPipelineOrchestrator::test_orchestrator_creation PASSED [ 92%]
+tests/test_app_factory.py::TestUploadManager::test_upload_manager_import PASSED [ 93%]
+tests/test_app_factory.py::TestUploadManager::test_upload_manager_creation PASSED [ 94%]
+tests/test_app_factory.py::TestNormalizers::test_input_normalizer_import PASSED [ 94%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_sbom_import PASSED [ 95%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_sarif_import PASSED [ 95%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_cve_feed_import PASSED [ 96%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_vex_import PASSED [ 96%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_cnapp_import PASSED [ 97%]
+tests/test_app_factory.py::TestNormalizers::test_normalized_business_context_import PASSED [ 97%]
+tests/test_app_factory.py::TestNormalizers::test_input_normalizer_instantiation PASSED [ 98%]
+tests/test_app_factory.py::TestMiddlewareModule::test_correlation_id_middleware PASSED [ 98%]
+tests/test_app_factory.py::TestMiddlewareModule::test_request_logging_middleware PASSED [ 99%]
+tests/test_app_factory.py::TestMiddlewareModule::test_security_headers_middleware PASSED [100%]
+------------------------------- live log finish --------------------------------
+2026-04-05 15:24:34 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+
+2026-04-05 15:25:34 [   ERROR] opentelemetry.exporter.otlp.proto.http.metric_exporter: Failed to export metrics batch code: 404, reason: Not Found
+
+
+-------- coverage: platform linux, python 3.11.0-candidate-1 ---------
+Name                                                                Stmts   Miss Branch BrPart   Cover   Missing
+----------------------------------------------------------------------------------------------------------------
+suite-api/apps/api/__init__.py                                          6      4      2      0  25.00%   7-11
+suite-api/apps/api/admin_router.py                                    149     68     28      0  45.76%   144-145, 156-183, 189-192, 198-223, 229-233, 256-257, 268-289, 295-298, 304-329, 335-339
+suite-api/apps/api/analytics_router.py                                534    383    150      0  22.08%   41-45, 50-56, 61, 168-170, 178-190, 211-218, 231-246, 255-257, 265-279, 298-350, 369-370, 378-392, 410-418, 424-441, 447-450, 456-472, 483-488, 494-508, 514-547, 564-574, 586-600, 612-627, 640-661, 672-703, 709-720, 733, 752-792, 805-838, 857-924, 946-1005, 1029-1065, 1085-1106, 1127-1138, 1150-1155, 1167-1182, 1212-1223
+suite-api/apps/api/app.py                                            1796    994    354     55  40.98%   30, 33-34, 45-46, 58-59, 66-67, 75-76, 86-87, 115-116, 123-124, 136-137, 144-145, 152-153, 160-161, 168-169, 185, 196-206, 216-217, 227-228, 239-240, 248-249, 261-262, 269-270, 277-278, 285-286, 293-294, 301-302, 312-313, 323-324, 334-335, 342-343, 350-351, 358-359, 366-367, 374-375, 382-383, 390-391, 398-399, 406-407, 414-415, 422-423, 430-431, 441-442, 449-450, 457-458, 465-466, 473-474, 481-482, 489-490, 497-498, 506-507, 515-516, 524-525, 533-534, 544-545, 555-556, 566-567, 577-578, 588-589, 599-600, 607-608, 615-616, 623-624, 631-632, 639-640, 647-648, 658-659, 666-667, 674-675, 682-683, 690-691, 698-699, 706-707, 717-718, 727-728, 735-736, 743-744, 751-752, 759-760, 767-768, 785-786, 809-810, 866-872, 890->908, 903-904, 955-956, 974-975, 988, 989->991, 994-999, 1015, 1034-1054, 1075-1081, 1086->1094, 1100-1110, 1140->1163, 1143, 1183-1184, 1192, 1221-1224, 1231->1235, 1240-1242, 1245-1252, 1255->1262, 1265-1303, 1309-1318, 1332-1334, 1340-1342, 1347->1351, 1355->1359, 1379->1383, 1387->1391, 1396-1398, 1417->1420, 1460, 1465, 1486-1643, 1647->1650, 1684->1688, 1691->1699, 1699->1707, 1707->1715, 1715->1722, 1748->1756, 1756->1764, 1764->1772, 1772->1783, 1783->1787, 1787->1795, 1802->1795, 1812->1816, 1821-1822, 1828->1838, 1877->1876, 1902->1901, 1925->1924, 1952->1951, 1963->1968, 1968->1976, 1985-1986, 1996-2023, 2031-2036, 2039-2040, 2056-2070, 2085-2127, 2139-2257, 2262-2292, 2303-2317, 2328-2342, 2357-2371, 2385-2401, 2417-2431, 2436-2445, 2449-2457, 2461-2487, 2491-2506, 2510-2516, 2520-2526, 2530-2545, 2549-2567, 2593-2661, 2677-2682, 2694-2712, 2721-2745, 2756-2776, 2783-2801, 2807-2815, 2818-2899, 2904, 2909, 2926-3087, 3101-3165, 3177-3258, 3277-3303, 3308-3449, 3462-3469, 3476-3501, 3505-3515, 3534-3563, 3573-3579, 3584-3592, 3597-3620, 3625-3627, 3637-3670, 3710-3711, 3714-3738, 3750-3751, 3761-3786
+suite-api/apps/api/audit_router.py                                    214    137     52      0  28.95%   55-63, 114-117, 131-176, 182-186, 194-195, 205-206, 217-218, 229-230, 241-265, 280-325, 333-394, 404-405, 420-421, 431-450, 464-481, 494
+suite-api/apps/api/auth_deps.py                                        90     56     32      4  31.15%   73, 82, 90, 108-115, 143-165, 187-245
+suite-api/apps/api/auth_router.py                                     146     61     18      0  51.83%   67-68, 79-90, 96-99, 105-123, 168-172, 178-188, 194-201, 207-211, 217-219, 225-227, 233-235, 241-243
+suite-api/apps/api/bulk_router.py                                     551    408    160      0  20.11%   51-53, 59-61, 67-69, 75-77, 93-95, 156-160, 234-253, 265-278, 283-298, 309-376, 383-436, 451-520, 535-694, 699-706, 717-842, 850-865, 878-892, 905-920, 933-948, 959-980, 991-1025, 1031-1035, 1067-1076, 1086-1110, 1122-1150, 1160-1174, 1184-1205, 1219-1265, 1275-1290
+suite-api/apps/api/collaboration_router.py                            251    126     34      0  43.86%   21, 34-36, 87-97, 119-131, 142-146, 152-153, 169-177, 183-185, 198-200, 210-239, 252-266, 278-280, 290-294, 300, 306, 360-378, 394-402, 419-421, 432-437, 443-444, 455-463, 519-539, 562-582, 592-622, 632, 638
+suite-api/apps/api/connectors_router.py                               177     85     36      0  43.19%   58-61, 66-68, 79-82, 92-95, 108-114, 151-165, 179-182, 193, 224-226, 239-291, 302-304, 315-325, 333-344, 352-367, 373-377
+suite-api/apps/api/dependencies.py                                      6      1      0      0  83.33%   35
+suite-api/apps/api/detailed_logging.py                                267    209     58      0  17.85%   39, 43, 47-57, 61-67, 75-80, 83-86, 89-104, 107-138, 142-146, 161-193, 196-199, 202-223, 232-237, 241-248, 256-258, 261-267, 270-412, 432-445, 451-452, 458-460, 466-468, 474-493
+suite-api/apps/api/fail_router.py                                     258    135      8      0  46.24%   51-53, 262-292, 315-321, 342-346, 363-374, 386-400, 412-423, 448-476, 499-510, 539-544, 589-591, 612-613, 636-641, 664-689, 719-733, 763-782, 800-805, 824-832, 841-849, 855-862, 885
+suite-api/apps/api/gap_router.py                                     2019   1746    466      0  10.99%   31-37, 55-116, 122-204, 221-223, 232-244, 249-309, 326-391, 407-421, 425-436, 442-613, 633-690, 702-728, 733-770, 784-824, 830-853, 870-884, 894-931, 937-986, 995-1023, 1035-1055, 1065-1098, 1105-1123, 1133-1173, 1188-1221, 1230, 1304-1333, 1349-1395, 1410-1452, 1467-1540, 1555-1577, 1587-1618, 1646-1700, 1707-1732, 1744-1772, 1786-1814, 1828-1839, 1848-1867, 1877-1898, 1909-1971, 1980-2004, 2021-2052, 2061-2082, 2091-2129, 2157-2175, 2200-2216, 2223, 2235, 2246-2288, 2315-2356, 2389-2444, 2463-2536, 2586-2619, 2624-2655, 2660-2685, 2695-2726, 2743-2788, 2797-2822, 2828-2834, 2848-2914, 2938-2958, 2971-2998, 3026-3100, 3124-3151, 3178-3227, 3247-3270, 3287-3402, 3417-3442, 3472-3477, 3490-3512, 3528-3540, 3564-3633, 3657-3690, 3713-3729, 3742-3755, 3784-3899, 3917-3961, 3973-4002, 4020-4034, 4048-4051, 4057-4067, 4073-4077, 4083-4116, 4135-4159, 4176-4204, 4221-4253, 4272-4289, 4384-4393, 4399-4402, 4408-4411, 4417-4428, 4434-4441, 4454-4514
+suite-api/apps/api/gate_router.py                                     230    136     70      0  31.33%   87-90, 139-142, 150-190, 195-202, 210-230, 238-294, 309-402, 412-415, 430, 461-466, 643-649, 665
+suite-api/apps/api/health.py                                          169    108     30      5  33.17%   56-60, 63-65, 70-71, 77-79, 84, 90-91, 96-100, 106-108, 111, 157-158, 163-164, 187-349, 373-385
+suite-api/apps/api/ingestion.py                                       928    928    264      0   0.00%   16-2114
+suite-api/apps/api/integrations.py                                    200    200     40      0   0.00%   7-417
+suite-api/apps/api/inventory_router.py                                463    335    168      0  20.29%   159-184, 199-200, 211-224, 230-233, 239-263, 269-273, 279-292, 298-303, 312-324, 330-362, 383-385, 396-405, 411-414, 423-425, 431-440, 446-467, 481-482, 496-520, 541-605, 636-676, 688-695, 710-751, 775-829, 857-951, 971-986, 996-999, 1012-1041, 1056-1064
+suite-api/apps/api/knowledge_graph.py                                 116    108     76      0   4.17%   15, 28-299
+suite-api/apps/api/marketplace_router.py                              256    131     56      1  41.67%   52, 57-75, 88-94, 231-233, 277-328, 344-386, 420-450, 471-491, 521-538, 549-563, 575-588, 600-615, 623-636, 647-665, 674-696, 702-709, 715, 721
+suite-api/apps/api/mcp_router.py                                      420    322    166      0  16.72%   194-200, 205-214, 225-234, 242-246, 254-297, 302-362, 371-400, 409-418, 438-603, 645-670, 679-691, 710-834, 861-904, 925-928, 939-940, 950-957, 967-969, 1001-1005, 1026-1027, 1032-1037, 1042, 1060-1068
+suite-api/apps/api/metrics_middleware.py                               99     45     14      2  53.10%   51-53, 61->63, 65-66, 73-74, 115-141, 155-157, 162-163, 168, 202, 211-213, 233, 247-263
+suite-api/apps/api/middleware.py                                       77      7      8      2  89.41%   88, 114->117, 173-185, 234-235
+suite-api/apps/api/normalizers.py                                     965    794    488      0  11.77%   39-46, 109-137, 143-154, 160-180, 186-223, 231-322, 341-344, 360, 382, 394, 411-418, 437, 451, 464, 481, 499, 520, 534, 557-559, 590-604, 608-642, 646-653, 656-720, 723-730, 735-766, 774-879, 882-895, 898-1003, 1016-1078, 1089-1156, 1169-1313, 1318-1519, 1524-1574, 1579-1629, 1636-1657, 1661-1673, 1678-1691, 1702-1765, 1776-1778, 1791-1836
+suite-api/apps/api/org_middleware.py                                   46     16     12      3  56.90%   71, 84-86, 145, 150, 155, 193-198, 223-234
+suite-api/apps/api/pipeline.py                                        909    841    448      0   5.01%   92-173, 189-193, 197-200, 204-211, 215, 219-235, 238-248, 257-289, 317-350, 362-440, 463-535, 551-635, 655-1795
+suite-api/apps/api/policies_router.py                                 266    181    100      0  23.22%   48-51, 56-59, 75-79, 84-88, 123-124, 135-155, 161-164, 170-188, 194-198, 232-263, 268-303, 310-329, 338-343, 361-367, 379-383, 401-428, 443-461, 476-523
+suite-api/apps/api/pr_gate_router.py                                  316    192    106      0  29.38%   196-197, 202-203, 207, 212-216, 220-221, 225-227, 240-345, 361-402, 407-421, 426-435, 453-465, 480-541, 554-631, 649-650, 665-666, 688-723, 732-744
+suite-api/apps/api/rate_limiter.py                                     58     58     12      0   0.00%   3-196
+suite-api/apps/api/remediation_router.py                              369    273     94      0  20.73%   26-27, 39-41, 92-131, 146-157, 168-172, 180-213, 219-229, 237-247, 253-261, 271-273, 283-284, 290, 308-309, 328-373, 379-384, 399-409, 415-425, 431-432, 456-476, 481-504, 535-603, 616-640, 652-672, 682-704, 722-814, 832-844
+suite-api/apps/api/reports_router.py                                  336    251     94      0  19.77%   52-353, 368-370, 415, 436-437, 448-470, 479, 488-532, 549-552, 558-571, 582-618, 628-638, 646-647, 660-661, 680-795, 806-813, 827-920, 940-973, 987-1017
+suite-api/apps/api/routes/enhanced.py                                  51     22      2      0  54.72%   15-21, 44-58, 74-76, 96-98, 109
+suite-api/apps/api/scanner_ingest_router.py                           224    189     68      0  11.99%   52-58, 63-72, 77-83, 98-113, 118-135, 161-244, 281-345, 370-396, 416-434, 452-500, 506-521, 537-540, 553-559
+suite-api/apps/api/sla_router.py                                      151    131     48      0  10.05%   29-33, 38, 49-111, 134-177, 195-236, 246, 251-260
+suite-api/apps/api/static_serve.py                                     12     12      2      0   0.00%   2-17
+suite-api/apps/api/system_router.py                                   410    367    158      0   7.57%   39-51, 65-219, 232, 250-265, 277-288, 312-333, 472-479, 492-509, 521-568, 573-579, 593-773, 873-988, 1008-1052
+suite-api/apps/api/teams_router.py                                     95     49     20      0  40.00%   66-67, 78-96, 102-105, 111-121, 127-131, 137-141, 147-156, 162-167
+suite-api/apps/api/triage_router.py                                   407    264     96      0  28.43%   42-43, 54-55, 64-65, 116-119, 124-126, 189-192, 249-270, 283-339, 347-393, 400-406, 418-421, 426-433, 441-468, 473-491, 496-502, 515, 521, 552-592, 621-692, 717-781, 817-906
+suite-api/apps/api/upload_manager.py                                  137     86     38      2  31.43%   33, 64-80, 105-125, 134-153, 156-178, 181-182, 185-193, 201, 205, 208-209, 226-232, 235-238, 241
+suite-api/apps/api/users_router.py                                    142     66     28      0  44.71%   42-52, 155-164, 172-174, 179, 192-240, 253-254, 265-279, 285-288, 294-310, 316-320
+suite-api/apps/api/validation_router.py                               244    195     96      0  14.41%   82-107, 112-180, 185-223, 244-379, 391-417, 430, 498, 504
+suite-api/apps/api/webhook_subscriptions_router.py                    390    317     84      0  15.40%   50-55, 60-63, 76-83, 88-93, 99-110, 115-130, 159-165, 169-172, 176-179, 184, 190-231, 236-277, 283, 287, 292-323, 331-340, 346-358, 364-400, 406-421, 427-444, 462-502, 520-555, 566-617
+suite-api/apps/api/workflows_router.py                                296    200    102      0  24.12%   46-48, 53-56, 71-73, 78-82, 129-130, 141-158, 165-178, 184-187, 193-209, 215-219, 231-252, 257-303, 317-358, 368-431, 439-444, 464-473, 479-482, 491-502, 512-515, 526-531
+suite-api/apps/fixops_cli/__main__.py                                  61     61     14      0   0.00%   3-143
+suite-api/apps/mpte_integration.py                                    193    193     32      0   0.00%   3-493
+suite-api/backend/__init__.py                                           1      1      0      0   0.00%   3
+suite-api/backend/app.py                                                5      5      0      0   0.00%   3-13
+suite-api/backend/normalizers.py                                        1      1      0      0   0.00%   3
+suite-attack/api/api_fuzzer_router.py                                  73     36     14      0  42.53%   36-40, 45-55, 71, 76-80, 85-87, 93-97, 106-116, 122, 128
+suite-attack/api/app.py                                                46     46      4      0   0.00%   7-119
+suite-attack/api/attack_sim_router.py                                 152     70     18      0  48.24%   27-28, 71-75, 123-134, 151-157, 174-175, 195-199, 224-257, 271-273, 293-298, 320-324, 334-340, 349-353, 366-367, 376-378, 397-398, 419
+suite-attack/api/container_router.py                                  114     68     20      0  34.33%   49-57, 83-95, 101-110, 116-122, 162-171, 186-195, 204-210, 216-232, 244-245, 268
+suite-attack/api/cspm_router.py                                       167    121     46      0  21.60%   35-42, 106-117, 123-133, 142-166, 176-187, 197-218, 228-240, 256-280, 299-353, 366-371, 394
+suite-attack/api/dast_router.py                                       166     86     48      0  37.38%   42-66, 100-103, 125-133, 138-147, 152-163, 183-189, 194-196, 201-204, 237-258, 267-282, 288, 303, 320
+suite-attack/api/fail_router.py                                       225    225      8      0   0.00%   28-822
+suite-attack/api/malware_router.py                                     66     30     12      0  46.15%   29-33, 43-45, 50, 59-67, 73-77, 83-87, 93-95, 107, 113
+suite-attack/api/micro_pentest_router.py                              794    454    190      0  34.55%   50-51, 58-59, 102-132, 148-152, 158-159, 165-199, 205, 210-239, 348, 373, 400, 437, 470, 497, 530, 561-778, 788-864, 870-884, 888-895, 899-913, 919-954, 958-1002, 1010-1018, 1024-1043, 1049-1077, 1081-1086, 1108-1120, 1129, 1138-1149, 1153-1158, 1169-1195, 1199, 1241-1251, 1256-1259, 1324-1327, 1377-1458, 1474-1482, 1505-1537, 1628-1753, 1759-1765, 1775-1788, 1797-1803, 1815-1822, 1831, 1837-1846, 1852-1861, 1867-1905, 1911-1927, 1942-1976, 1994-2000, 2012-2017, 2023-2026
+suite-attack/api/mpte_orchestrator_router.py                          239    191     68      0  15.64%   42-52, 58-68, 74-84, 126-129, 145, 151-184, 251-325, 347-398, 438-496, 502-577, 605-643, 649-667
+suite-attack/api/mpte_router.py                                       645    487    190      0  18.92%   96-166, 178-182, 188-189, 196-212, 218-236, 242-245, 267, 272-301, 314-358, 378-381, 403-410, 424-427, 466-471, 496-509, 527-568, 578-677, 683-686, 692-702, 708-716, 722-730, 742-829, 835-855, 861-864, 873-874, 880-897, 903-906, 912-937, 943-946, 957-1000, 1010-1051, 1061-1062, 1067-1068, 1088-1232, 1251-1288, 1302-1330, 1336-1345, 1351-1403
+suite-attack/api/sast_router.py                                       117     81     32      0  24.16%   58-76, 84-130, 136-145, 151-172, 182-203, 213-227, 233, 245
+suite-attack/api/secrets_router.py                                    177     76     18      0  51.79%   30-31, 48-57, 76, 109-112, 128, 136-153, 163-164, 175-218, 224-227, 233-240, 272-274, 313-316, 327-365
+suite-attack/api/vuln_discovery_router.py                             487    295     90      0  33.28%   35-36, 189-191, 304-305, 314, 318, 324-326, 336-345, 361-381, 401-474, 489-497, 520-575, 613-642, 661-664, 674-699, 726-768, 801, 806-820, 827-880, 891-970, 980-1059, 1069-1072, 1083-1114, 1154-1163, 1181, 1192
+suite-core/api/agents_router.py                                       938    688    254      0  20.97%   32-33, 37-40, 50-52, 62-65, 74-76, 83-85, 92-94, 101-103, 110-112, 125-129, 139-141, 146-148, 153-155, 439, 443, 466-481, 486-554, 563-614, 628-704, 723-775, 791-830, 848-900, 918-981, 1004-1026, 1040-1054, 1059-1086, 1097-1188, 1210-1323, 1340-1379, 1385-1391, 1412-1445, 1468-1523, 1550-1570, 1588-1629, 1653-1685, 1708-1750, 1776-2197, 2220-2270, 2292-2319, 2342-2390, 2405-2448, 2464-2518, 2534-2609, 2629-2727, 2749-2795, 2820-2868, 2898-2935, 2946-2949, 3003-3006, 3012
+suite-core/api/ai_code_guardian_router.py                              35     14      2      0  56.76%   40-46, 62-66, 82-83, 89, 98-100
+suite-core/api/airgap_router.py                                       299    211     24      0  27.24%   45-50, 121-124, 204-205, 210-214, 236-242, 264-280, 304-310, 336-357, 383-395, 423-437, 464-486, 511-522, 554-568, 596-602, 636-655, 685-695, 736-760, 787-803, 825-842, 865-890, 909-934, 951-968, 982-993, 1010-1031
+suite-core/api/algorithmic_router.py                                  186     92     18      0  46.08%   107-130, 136-152, 158-194, 237-252, 258-310, 316-331, 405-418, 424-452, 458-515, 526, 532, 576
+suite-core/api/app.py                                                  58     58      4      0   0.00%   7-132
+suite-core/api/app_config_router.py                                   139     67     16      0  46.45%   37, 106, 121, 168-169, 186-203, 219-220, 233-236, 254-261, 277-283, 296-299, 328-334, 365-369, 382-385, 398-401, 432-436, 452-456
+suite-core/api/attack_surface_router.py                                50     23      4      0  50.00%   43-51, 70-80, 99-101, 107-108, 114, 120, 126-128
+suite-core/api/autofix_router.py                                      194    121     34      0  32.02%   59-121, 158-160, 175-193, 202-213, 219-235, 248-253, 259-269, 275-279, 291-309, 324-332, 352-365, 371-372, 378-380, 392, 398-400, 409, 422-426, 437-440, 450-454
+suite-core/api/autofix_verify_router.py                                31      9      2      0  66.67%   49-57, 88-110, 122
+suite-core/api/brain_router.py                                        279    158     22      0  40.20%   39-41, 108-126, 152-157, 167-171, 177-189, 200-209, 226-258, 267-269, 284-288, 305-311, 329-331, 348-349, 357-359, 365-369, 383-385, 396, 402, 416-429, 438-451, 460-464, 473-477, 486-499, 510-512, 524-540, 558, 576-629, 675-690, 701-705, 717-721
+suite-core/api/causal_router.py                                        62     30      4      0  48.48%   65-75, 83, 93-95, 108-118, 124-131, 137-140, 146-148
+suite-core/api/code_to_cloud_router.py                                105     65     22      0  31.50%   60-78, 84-110, 138-219, 256-284, 334-343, 366, 372
+suite-core/api/copilot_router.py                                      579    407    160      0  23.27%   37-38, 45-46, 53-54, 231, 236, 276-395, 421-439, 451-457, 463-466, 472-481, 501-579, 592-604, 624-653, 658, 663-699, 704-730, 735-765, 770-785, 791-794, 813-833, 847-975, 989-1072, 1087-1157, 1185-1190, 1203-1254, 1264-1266, 1285-1297, 1844-1868, 1873-1900, 1933-2002, 2016
+suite-core/api/decisions.py                                           117     78      8      0  31.20%   47-80, 86-92, 98-104, 110-116, 122-214, 226-284
+suite-core/api/deduplication_router.py                                200    108     26      0  40.71%   20-22, 112-113, 126-127, 145-154, 165-169, 177-195, 201-205, 215-223, 235-237, 246-252, 265-273, 279-280, 286-287, 301-302, 314-315, 327-344, 362-363, 377-400, 414-431, 441-463, 469-472, 485-488
+suite-core/api/developer_profiles_router.py                            74     36     12      0  44.19%   28-31, 62, 68-77, 83-85, 91-107, 113-119, 138-142, 148-149, 155-157
+suite-core/api/dtrack_router.py                                       135     81     32      0  32.34%   36-38, 43-53, 62-69, 81-82, 91-92, 110-119, 133-144, 154-155, 164-168, 181-185, 196-200, 213-217, 230-234, 247-251, 269-277, 292-296, 305-309, 315-319
+suite-core/api/exposure_case_router.py                                114     47      6      0  55.83%   92-93, 99-123, 135-136, 144-148, 154-162, 168-178, 187-192, 198-203, 213, 219
+suite-core/api/feeds_router.py                                        127    127     28      0   0.00%   15-816
+suite-core/api/fuzzy_identity_router.py                               100     48      6      0  49.06%   67-89, 94-98, 107-111, 125-140, 154-158, 177-178, 183-188, 202, 210-220, 231
+suite-core/api/gnn_router.py                                           92     44      8      0  48.00%   82-88, 94-120, 129-155, 168-169, 175-176
+suite-core/api/knowledge_graph_router.py                              178    126     38      0  24.07%   33-36, 71-86, 103-113, 123, 129-140, 146-155, 165-186, 198-222, 228-242, 248-252, 258-264, 270, 289-291, 307-658
+suite-core/api/llm_guard_router.py                                     46     15      2      0  64.58%   55-58, 72-74, 90-92, 105-106, 112-114
+suite-core/api/llm_monitor_router.py                                   33     12      0      0  63.64%   24-33, 39-43, 53-55, 66, 72
+suite-core/api/llm_router.py                                          142     84     42      1  33.15%   99, 106-122, 140-171, 186-309, 320, 329-347, 357, 442-473
+suite-core/api/material_change_router.py                              342    250     76      0  22.01%   65-69, 103-106, 295, 312, 321-322, 343-352, 367-376, 423-499, 532-567, 607-635, 673-703, 750-803, 845-901, 933-1027
+suite-core/api/mcp_protocol_router.py                                 203    148      8      0  26.07%   78-79, 88, 94-113, 123-137, 143-159, 169-175, 185-201, 207-212, 218-223, 229-234, 240-249, 262-293, 302-314, 323-332, 345-425, 434-453, 463-472
+suite-core/api/mindsdb_router.py                                      143     59      8      0  55.63%   118-123, 136, 142-155, 164-181, 187-189, 206-219, 225-234, 245-254, 269-273, 284-285, 291-292, 298-299, 305-306, 315-316, 322-334, 340-342
+suite-core/api/mitre_mapper_router.py                                 182     90     16      0  46.46%   40-41, 46, 72, 104-106, 116-122, 136-138, 247-274, 291-317, 328-337, 356-374, 390-435, 450-469, 482-508
+suite-core/api/monte_carlo_router.py                                   69     23      2      0  64.79%   76-89, 95-97, 110-112, 125-147
+suite-core/api/nerve_center.py                                        287    209     60      0  22.48%   29-34, 39-44, 49-54, 131-158, 177-246, 258-432, 446, 460-605, 624-719, 725-735, 741, 759-761, 886-888
+suite-core/api/pipeline_router.py                                     110     51      4      0  51.75%   84-103, 109-115, 126-132, 144-155, 161-165, 171-177, 185-211, 217, 223
+suite-core/api/postfix_verify_router.py                               141     80     18      0  38.36%   105-109, 113, 117, 152, 169, 173, 186-188, 216-233, 249-290, 312-329, 366-378, 410-421, 437-440, 459-468, 483-486
+suite-core/api/predictions_router.py                                  155    105     14      0  29.59%   95-114, 125-143, 154-181, 187-203, 209-225, 242-261, 271-346, 354-382, 407-444, 449-470, 490, 496
+suite-core/api/quantum_crypto_router.py                                80     38      0      0  52.50%   61, 71-96, 107-122, 128-140, 149-160, 166-176
+suite-core/api/runtime_router.py                                       70     26      6      0  57.89%   61-62, 78-80, 86-87, 93-98, 104-106, 118-121, 127-130, 136-137
+suite-core/api/self_learning_router.py                                332    209     30      0  33.98%   33, 43-45, 116, 122-132, 146-199, 205-218, 224-236, 242-254, 260-273, 279-291, 297-302, 308-313, 322-341, 347-353, 373-386, 401-428, 442-482, 491-503, 515-520, 536-541, 554-559, 579-681, 737-837
+suite-core/api/single_agent_router.py                                  78     50      0      0  35.90%   40, 46-61, 71-87, 93-111, 117, 132-156, 162-168
+suite-core/api/streaming_router.py                                     77     58     10      0  21.84%   35-41, 53-114, 134-176, 186, 192
+suite-core/api/supply_chain_router.py                                  43      9      0      0  79.07%   72-80, 89-96, 102-103
+suite-core/api/threat_modeling_router.py                               37     14      2      0  58.97%   42-50, 56-60, 66-68, 74, 90-91
+suite-core/api/vllm_router.py                                          82     50     12      0  34.04%   58-61, 69-72, 82, 93-116, 136-182, 192-217, 237-241, 258-277, 299-305
+suite-core/api/zero_gravity_router.py                                  71     42      4      0  38.67%   41, 47-58, 68-79, 85-98, 104-110, 116-121, 127
+suite-core/core/__init__.py                                             2      0      0      0 100.00%
+suite-core/core/adapters.py                                           410    410    114      0   0.00%   14-1136
+suite-core/core/ai_agents.py                                          134    109     62      0  12.76%   11-15, 22-24, 36-41, 51-86, 89, 96-107, 110-122, 125-143, 150-228
+suite-core/core/ai_code_guardian.py                                   197    112     66      0  32.32%   149-153, 160-252, 255-256, 259-260, 272-309, 319-325, 330-341, 345-354, 358-365, 369-374, 394-398
+suite-core/core/airgap_config.py                                      719    719    152      0   0.00%   13-1556
+suite-core/core/analytics.py                                          310    255     92      1  13.93%   34-41, 64->66, 72-82, 86, 94-98, 101-118, 121-135, 141-146, 158-211, 218-256, 263-314, 317-334, 341-353, 362-381, 388-391, 394-415, 425-433, 443-458, 470-481, 500-501, 511-512, 530-539, 545-547, 551-554, 565-722, 734-735, 738-764, 767-770
+suite-core/core/analytics_db.py                                       161    124     30      0  19.37%   99-128, 132-141, 151-169, 173-189, 193-199, 203-223, 229-243, 247-266, 276-297, 301-327, 331-351, 355-385, 389, 415, 428
+suite-core/core/analytics_models.py                                    65      3      0      0  95.38%   63, 99, 125
+suite-core/core/api_fuzzer.py                                         137    137     32      0   0.00%   18-361
+suite-core/core/api_key_manager.py                                     74     74     18      0   0.00%   19-386
+suite-core/core/api_learning_store.py                                 448    273     78     15  37.64%   276-280, 293, 299, 303-335, 339-340, 346-355, 359, 363-383, 387-438, 442-480, 484-531, 535-576, 580-587, 591-608, 627-674, 687-700, 711-748, 768->782, 771-774, 776-779, 798-800, 805-806, 810-811, 813-814, 816-817, 840-841, 847-868, 872-921, 925-934, 940-949, 961-979, 983-1006, 1019->1023, 1021->1023
+suite-core/core/app_config.py                                         388    252    122      0  26.67%   102-105, 125-138, 142-145, 150-160, 176, 181-185, 200, 234-238, 272-275, 280-284, 288-291, 299, 303, 306, 309-313, 321-331, 338-374, 378-422, 469-476, 493-494, 501-503, 507-509, 512, 515, 523-528, 532-538, 542, 550-620, 624-630, 634-644, 651-664, 668-678, 686-689, 693-696, 712-738, 752-755, 763-766, 777-781, 795-798, 806-829, 851-863, 872-874
+suite-core/core/async_executor.py                                      27     27     10      0   0.00%   25-105
+suite-core/core/attack_graph_gnn.py                                   282    208    106      0  19.07%   68, 87, 109, 129-132, 142-149, 160-170, 174, 178, 182-185, 188, 223-229, 233-237, 246-296, 309-340, 357-377, 387-404, 415-440, 456-473, 481-504, 519-564, 568-595, 604-624, 644-726
+suite-core/core/attack_path_engine.py                                 249    173     80      0  23.10%   60-61, 91, 120, 148, 182-192, 230-280, 284-319, 339-365, 379-395, 401-464, 487-522, 539-556, 567-573, 577, 587-605, 623-625, 639-641, 646-647, 652-653, 658-659
+suite-core/core/attack_simulation_engine.py                           427    285    124      0  25.77%   277-280, 297-298, 335-340, 364-365, 383-389, 394-401, 404-411, 414-421, 424-431, 447-473, 477, 481, 490-543, 554-679, 691-730, 736-775, 782-811, 821-855, 863-870, 880-943, 961-968, 978-1003, 1014-1047, 1055-1091, 1097, 1101-1104, 1108-1115, 1128-1130
+suite-core/core/attack_surface_discovery.py                           256    157     68      0  30.56%   169-172, 182-231, 234-235, 238-239, 246-247, 255-272, 276-295, 300-348, 352-370, 376-395, 402-415, 431-457, 469-473
+suite-core/core/audit_db.py                                            89     57     16      0  30.48%   90-113, 123-147, 151-171, 175-184, 190-198, 202-222, 228-242, 246, 262, 275
+suite-core/core/audit_logger.py                                        68     11      8      2  82.89%   94, 136-137, 143-144, 204, 244, 283, 311, 341, 371, 394->396
+suite-core/core/audit_models.py                                        62      3      0      0  95.16%   55, 85, 112
+suite-core/core/auth_bootstrap.py                                      42     42      0      0   0.00%   13-244
+suite-core/core/auth_db.py                                            129     90     10      0  28.06%   94-116, 120-129, 133-141, 145-166, 170-176, 179, 197-218, 221-228, 231-238, 243-257, 260, 277-299, 302-310, 313-321, 324-330, 334-342, 345
+suite-core/core/auth_middleware.py                                     99     99     26      0   0.00%   19-238
+suite-core/core/auth_models.py                                         83      4      0      0  95.18%   106, 131, 155, 183
+suite-core/core/autofix_engine.py                                     926    768    298      0  12.91%   70-78, 261-263, 288-313, 320-324, 327-331, 334-338, 341-345, 353-365, 369-372, 376-379, 384-406, 442-443, 466-627, 636-708, 727-837, 862-1152, 1167-1218, 1240-1320, 1343-1414, 1431-1442, 1455-1497, 1510-1547, 1561-1605, 1619-1664, 1687-1816, 1839-1862, 1869-1897, 1915-1946, 1956-2007, 2031-2126, 2134-2167, 2175, 2185-2192, 2196, 2200, 2209-2219, 2224, 2240-2249, 2253-2265, 2269-2277, 2290-2292
+suite-core/core/autofix_templates.py                                  127    127     50      0   0.00%   18-1164
+suite-core/core/autofix_verifier.py                                   171    109     48      0  28.31%   147-228, 243-270, 280-321, 328-351, 361-380, 390-410, 418-439, 447, 470, 481
+suite-core/core/automated_remediation.py                              236    236     40      0   0.00%   3-725
+suite-core/core/bn_lr.py                                               99     99     18      0   0.00%   19-372
+suite-core/core/brain_pipeline.py                                    1788   1788    534      0   0.00%   27-4172
+suite-core/core/brain_pipeline_db.py                                   99     99     16      0   0.00%   29-289
+suite-core/core/business_context.py                                   167    167     68      0   0.00%   6-419
+suite-core/core/cache.py                                              140    140     34      0   0.00%   16-238
+suite-core/core/causal_inference.py                                   231    161     80      0  22.51%   73, 94, 121, 141-143, 149-243, 259-268, 272, 276, 280-289, 293, 311, 328-364, 385-423, 443-471, 485-506, 514-535, 543-581, 593-626, 657-710
+suite-core/core/cli.py                                               2626   2626    814      0   0.00%   3-6000
+suite-core/core/code_to_cloud_tracer.py                               116    116     30      0   0.00%   14-295
+suite-core/core/compliance.py                                          63     56     30      0   7.53%   12-13, 25-78, 85-130
+suite-core/core/configuration.py                                      593     79    266     38  83.12%   208, 236, 246, 256, 288->290, 294, 300, 303, 333, 343->345, 384, 441, 468, 470-480, 487-509, 526->581, 577->581, 636, 724, 779, 1124-1129, 1140-1142, 1148-1149, 1151, 1246-1264, 1293->1317, 1296-1303, 1310, 1312, 1315, 1319, 1330, 1401, 1434, 1435->1427, 1492, 1498, 1499->1517, 1506-1510, 1518
+suite-core/core/connectors.py                                        1373   1234    486      0   7.48%   68-72, 113-120, 123-129, 132-137, 155-156, 159-174, 185-187, 210, 238-271, 274-318, 324, 340-351, 358-404, 415-466, 477-560, 572-632, 646-680, 698-739, 757-762, 766-798, 822-879, 900-959, 977-1006, 1018-1048, 1059-1070, 1077-1131, 1154-1225, 1238-1271, 1284-1316, 1331-1333, 1337-1367, 1378-1384, 1387-1409, 1417-1476, 1484-1508, 1517-1544, 1554-1581, 1592-1605, 1613-1668, 1680-1738, 1749-1794, 1805-1835, 1850-1887, 1905-1912, 1916-1946, 1957-1968, 1976-2032, 2045-2100, 2111-2160, 2174-2204, 2223-2258, 2272, 2276-2305, 2316-2329, 2337-2340, 2344-2441, 2453-2534, 2545-2592, 2604-2633, 2645-2680, 2699-2703, 2712-2721, 2725-2754, 2765-2777, 2785-2838, 2851-2906, 2917-2968, 2981, 2991-3022, 3048-3086, 3100, 3106-3137, 3174-3223, 3247-3282, 3304-3332, 3344-3373, 3389-3400, 3403-3408, 3411-3553, 3562-3613
+suite-core/core/container_scanner.py                                  235    173     88      0  19.20%   30-31, 57, 332, 350-351, 365-472, 491-505, 509-613, 629-709, 725-758, 776-778
+suite-core/core/context_compression.py                                 44     44      8      0   0.00%   11-118
+suite-core/core/context_engine.py                                     149    114     54      0  17.24%   45-64, 68-75, 79-94, 98-101, 104-111, 114-116, 119-122, 125-127, 130-135, 138-142, 147-193, 209-272, 276-281
+suite-core/core/continuous_validation.py                              204    204     48      0   0.00%   3-473
+suite-core/core/crypto.py                                             823    596    128      2  24.08%   180-190, 215, 237-251, 278-288, 293, 325, 337, 396-399, 402, 424, 478-483, 491-509, 517-532, 540-559, 563-580, 584-599, 603-610, 625, 645-657, 699-728, 736, 740, 744-747, 755-759, 763-765, 773-777, 781-785, 801-806, 814-859, 867-887, 895-914, 918-931, 935-947, 1001, 1005, 1023-1034, 1067-1071, 1075, 1104, 1121, 1148-1159, 1200-1212, 1223-1224, 1270-1297, 1315-1320, 1342, 1362-1378, 1389-1390, 1406, 1431-1451, 1469-1474, 1499-1501, 1522-1539, 1573-1586, 1600-1609, 1634-1636, 1656-1704, 1718, 1732, 1749-1798, 1840-1866, 1877-1884, 1908-1923, 1946-1957, 1980-2003, 2022-2046, 2083-2088, 2098-2099, 2103-2108, 2122-2145, 2156-2215, 2219-2220, 2245-2253, 2288-2289, 2305, 2319-2324, 2335-2340, 2348-2354, 2365-2377, 2397-2400, 2406-2409, 2415-2418, 2424-2427, 2433-2436, 2442-2445, 2465, 2482, 2496, 2509, 2527-2554, 2568, 2590-2601, 2621-2628
+suite-core/core/cspm_engine.py                                        464    464    192      0   0.00%   14-1260
+suite-core/core/cve_tester.py                                         563    563    154      0   0.00%   13-1477
+suite-core/core/cybersec_skills_loader.py                             125    125     50      0   0.00%   13-234
+suite-core/core/dast_engine.py                                        584    584    184      0   0.00%   15-1236
+suite-core/core/db/enterprise/session.py                               81     55     14      0  27.37%   27-80, 90-111, 116-119, 125-133, 138-147, 152-156, 162-163
+suite-core/core/decision_policy.py                                    117     87     66      0  16.39%   101-163, 187-201, 209-233, 241-282, 288-306, 312-325
+suite-core/core/decision_tree.py                                      113    113     30      0   0.00%   3-329
+suite-core/core/demo_runner.py                                        111    111     54      0   0.00%   3-205
+suite-core/core/design_context_injector.py                            198    163     86      0  12.32%   36-58, 63-81, 87-94, 97-109, 112-136, 141-148, 153-161, 165-167, 170-174, 179-201, 204-218, 221-235, 238, 245-252, 256-265, 270-281, 284-289
+suite-core/core/developer_risk_profiler.py                            362    362     98      0   0.00%   28-968
+suite-core/core/encrypted_store.py                                    171    171     20      0   0.00%   28-325
+suite-core/core/enhanced_decision.py                                  480    346    204      8  23.10%   84, 112, 152-164, 173->170, 180->170, 187->170, 194->170, 201, 257-523, 549, 593, 608-618, 634-656, 672-706, 746-753, 759-780, 806-834, 844-850, 854-857, 872-905, 913, 929-932, 936-940, 944-948, 952-956, 960-968, 975-985, 989-994, 998-1011, 1015-1057, 1071-1094, 1104-1116, 1139-1175, 1207-1223, 1226-1227, 1230, 1243-1253, 1257-1271
+suite-core/core/enterprise/security.py                                189    106     28      0  38.25%   79-81, 87-92, 97-101, 106-110, 119, 124, 129, 138-148, 153-154, 159-172, 181-197, 204-213, 220-234, 287-304, 308-315, 319-322, 331-336, 350-390, 402-410, 418-432
+suite-core/core/error_responses.py                                     46     46      4      0   0.00%   3-185
+suite-core/core/event_bus.py                                          126     48     12      0  56.52%   108-111, 143-148, 152-154, 158, 163-169, 173-174, 178, 182-234, 238, 249
+suite-core/core/event_subscribers.py                                  107    107      8      0   0.00%   8-211
+suite-core/core/evidence.py                                           219    185     48      0  12.73%   64-67, 74-191, 198-206, 209-223, 232-414, 419-430
+suite-core/core/evidence_indexer.py                                   130    130     56      0   0.00%   6-279
+suite-core/core/exceptions.py                                          13     13      0      0   0.00%   12-60
+suite-core/core/exploit_generator.py                                  163    163     18      0   0.00%   3-564
+suite-core/core/exploit_signals.py                                    363    300    154      0  12.19%   26-31, 37-46, 67-88, 103-137, 144-170, 173-242, 249-283, 286-294, 299-326, 329-334, 341-369, 372-378, 383-449, 454-489, 495-505, 509-516, 520-529, 533-534, 538-539, 543-547
+suite-core/core/exposure_case.py                                      246    161     54      0  28.33%   113-119, 122-125, 135-140, 146-150, 154-157, 160-161, 206-255, 259-265, 276-295, 306-339, 343-394, 402-410, 417-437, 443-452, 462-490, 503, 537-583, 589-611, 614-615, 618-621, 639, 646
+suite-core/core/fail_db.py                                             80     80     10      0   0.00%   8-255
+suite-core/core/fail_engine.py                                        317    317     92      0   0.00%   32-709
+suite-core/core/falkordb_client.py                                    818    633    296      0  16.61%   134-137, 140, 143-145, 148, 151-154, 157-160, 163, 167-190, 194-210, 214-223, 227-270, 282, 301-317, 320-323, 333-343, 346-356, 359-375, 378-390, 393-412, 415-418, 421-435, 438-450, 453, 456, 459, 482, 485, 488-493, 522-537, 549-625, 630-637, 655-692, 700-729, 742-763, 774-783, 787, 791, 795, 807, 819-821, 929-931, 952-975, 981-1002, 1008-1035, 1039-1101, 1133-1201, 1234-1297, 1318-1328, 1339-1348, 1469-1473, 1489-1513, 1537-1572, 1584-1595, 1599-1642, 1653-1676, 1680-1691, 1700-1731, 1738-1744, 1753-1760, 1764, 1768, 1788-1790, 1806-1808
+suite-core/core/feature_matrix.py                                     120     95     12      0  18.94%   10-12, 16-18, 22-25, 29-32, 36-37, 45-49, 58-61, 72-79, 87-96, 105-108, 118-121, 129-137, 145-148, 156-159, 175-178, 186-192, 200-202, 210-213, 224-226, 253-282
+suite-core/core/feedback.py                                           112     91     44      0  13.46%   35-59, 64-97, 119-144, 155-178, 187-241
+suite-core/core/flags/__init__.py                                       6      0      0      0 100.00%
+suite-core/core/flags/base.py                                          24      4      0      0  83.33%   41-54
+suite-core/core/flags/combined.py                                     105     78     30      4  22.96%   55-66, 75-81, 90-117, 126-153, 163-172, 181-187, 196-223
+suite-core/core/flags/ld_provider.py                                  116     86     36      1  20.39%   19-22, 72-103, 110-130, 139-149, 158-168, 177-188, 197-210, 219-229, 233-237
+suite-core/core/flags/local_provider.py                               136    105     82      5  16.51%   46, 52, 55, 72-102, 122-155, 169-178, 187-201, 210-230, 244-259, 268-282
+suite-core/core/flags/namespace_adapter.py                             62     28     10      3  51.39%   38, 43-46, 115-142, 161-162, 171-172, 191-192
+suite-core/core/flags/provider_factory.py                              37      7     10      5  74.47%   44->65, 51, 58, 62-63, 66-67, 75
+suite-core/core/flags/registry.py                                     118    118     18      0   0.00%   11-621
+suite-core/core/hallucination_guards.py                               128    128     64      0   0.00%   3-319
+suite-core/core/iac.py                                                 86     68     42      0  14.06%   10-22, 36-54, 68-78, 86-184
+suite-core/core/iac_db.py                                              56     29      6      0  43.55%   75-102, 106-115, 121-135, 139-152, 156
+suite-core/core/iac_models.py                                          45      2      0      0  95.56%   50, 84
+suite-core/core/iac_scanner.py                                        276    210    100      0  17.55%   72, 123, 152-154, 173-181, 185-187, 191-193, 197-202, 206-249, 253-260, 266-307, 313-353, 362-453, 461-535, 561-693, 711-713
+suite-core/core/integration_db.py                                      64     36      6      0  40.00%   57-80, 84-93, 99-113, 117-139, 143-149, 153
+suite-core/core/integration_models.py                                  41      6      6      0  74.47%   53-59
+suite-core/core/intelligent_security_engine.py                        511    511    118      0   0.00%   17-1290
+suite-core/core/inventory_db.py                                        71     42      4      0  38.67%   106-130, 134-143, 147-155, 159-183, 187-193, 197-218, 222
+suite-core/core/inventory_models.py                                    74      4      0      0  94.59%   46, 81, 116, 148
+suite-core/core/key_manager.py                                        177    177     30      0   0.00%   26-401
+suite-core/core/knowledge_brain.py                                    391    253    102      0  27.99%   24-25, 119-123, 138-139, 172-183, 193-197, 202-205, 211-212, 251-278, 292-326, 330-337, 348-359, 366-398, 402-436, 440-446, 460-500, 508-532, 544-555, 559-575, 582-612, 622-623, 626-627, 631-663, 667-689, 698-704, 714-729, 739-754, 760, 777-792, 796-802, 808-819, 835-837, 840-843, 856-862
+suite-core/core/learning_middleware.py                                 72     17     10      3  75.61%   57-59, 65, 73, 123, 139-140, 167-193
+suite-core/core/llm_consensus.py                                      128    128     30      0   0.00%   25-387
+suite-core/core/llm_guard_service.py                                  141    141     50      0   0.00%   21-375
+suite-core/core/llm_monitor.py                                        118    118     24      0   0.00%   13-312
+suite-core/core/llm_providers.py                                      333    237     70      5  26.05%   57-66, 121-282, 299->297, 301->297, 303, 345-407, 425-427, 464-530, 548-550, 585-600, 624-740, 758-763, 767-771, 781-787, 811-818, 838-895, 913-917, 920, 931-952, 969-983, 995-999, 1011-1035, 1055, 1066-1068, 1083-1084
+suite-core/core/logging_config.py                                      50     31     16      0  28.79%   19, 36-39, 46-51, 58-95, 112-156
+suite-core/core/malware_detector.py                                   119    119     24      0   0.00%   14-381
+suite-core/core/material_change_detector.py                           863    674    244      0  17.07%   300-306, 317-322, 326-331, 338-378, 385-418, 425-461, 468-504, 511-539, 546-584, 590-598, 604-615, 753-770, 785-791, 834-1005, 1032-1072, 1076-1087, 1091-1095, 1099-1105, 1109-1113, 1180-1203, 1217-1225, 1284-1327, 1341-1344, 1419-1426, 1519-1532, 1561-1567, 1584-1596, 1612-1750, 1764-1772, 1790-1814, 1832-1833, 1855-1857, 1878-1966, 1991-2028, 2075-2078, 2093-2109, 2121-2160, 2185-2239, 2257-2258, 2266, 2283, 2320, 2343, 2372-2374, 2384-2386, 2396-2398, 2422-2424, 2447-2454, 2467-2468, 2481-2483, 2495-2496, 2511-2521
+suite-core/core/mcp_server.py                                         907    907    264      0   0.00%   29-2395
+suite-core/core/micro_pentest.py                                      571    500    204      0   9.16%   44, 52-88, 93-109, 140-156, 171-179, 184, 208-317, 521-570, 577-610, 615-635, 644-721, 728-764, 774-842, 854-927, 1111-1112, 1119-1127, 1139-1189, 1196-1296, 1303-1386, 1416-1631, 1646-1918, 1939-1963, 1992-2032
+suite-core/core/mitre_mapper.py                                       208    208     84      0   0.00%   22-2140
+suite-core/core/model_factory.py                                       93     93     28      0   0.00%   3-158
+suite-core/core/model_registry.py                                     163    163     54      0   0.00%   3-463
+suite-core/core/models/__init__.py                                     12     10      6      0  11.11%   9-21
+suite-core/core/models/bayesian_network.py                             83     83     22      0   0.00%   3-271
+suite-core/core/models/bn_lr_hybrid.py                                117    117     32      0   0.00%   7-370
+suite-core/core/models/enterprise/__init__.py                           4      0      0      0 100.00%
+suite-core/core/models/enterprise/base.py                              61     26     10      0  49.30%   61-67, 71-76, 81, 114-116, 120-122, 130-133, 137-142
+suite-core/core/models/enterprise/base_sqlite.py                       60     26     10      0  48.57%   55-61, 65-70, 75, 106-108, 112-114, 122-125, 129-134
+suite-core/core/models/enterprise/security.py                         223     12     10      0  90.56%   271-288
+suite-core/core/models/enterprise/security_sqlite.py                  280     57     10      0  76.90%   128-133, 137, 141-144, 148, 152-155, 159, 240-243, 247, 317-320, 324, 365-368, 372, 376-383, 387, 420-423, 427, 515-518, 522, 548-564
+suite-core/core/models/enterprise/user.py                             119     39     16      0  59.26%   157, 162-167, 170-174, 177-182, 186-187, 191-192, 196-197, 201, 205-210, 216-219, 223-225, 229-244
+suite-core/core/models/enterprise/user_sqlite.py                      160     77     14      0  47.70%   155-158, 162, 166, 170-173, 177-180, 183-189, 195, 198-202, 205-210, 214-215, 219, 223-228, 234-237, 241-243, 247-281, 343-346, 350
+suite-core/core/models/enterprise/waivers.py                           17     10      6      0  30.43%   29-39
+suite-core/core/models/markov_chain.py                                168    168     64      0   0.00%   7-569
+suite-core/core/models/weighted_scoring.py                             50     50     24      0   0.00%   3-136
+suite-core/core/modules.py                                             59     33     18      0  33.77%   55-74, 83-139
+suite-core/core/monte_carlo.py                                        176    113     28      0  30.88%   110, 162-163, 179-203, 212-220, 236-341, 375-434, 450-485, 518-526, 550-571
+suite-core/core/mpte_advanced.py                                      333    333     64      0   0.00%   17-1082
+suite-core/core/mpte_db.py                                            155    114     22      0  23.16%   115-146, 150-160, 187-208, 232-253, 257-288, 292-304, 321-333, 356-377, 399-430, 434-444, 463-473, 495-524, 528-536
+suite-core/core/mpte_models.py                                         70      3      0      0  95.71%   57, 94, 129
+suite-core/core/onboarding.py                                          22     14      8      0  26.67%   14-15, 18-23, 29-42
+suite-core/core/oss_fallback.py                                       158    158     62      0   0.00%   6-371
+suite-core/core/overlay_runtime.py                                     72      5     40      8  88.39%   18, 68, 69->73, 92, 96->90, 102, 104, 116->119
+suite-core/core/paths.py                                               81     30     36     12  58.97%   30, 32, 37, 40->exit, 42, 61-63, 68, 86-97, 113, 119, 128->137, 131-132, 138, 146->143, 150->153, 164-172
+suite-core/core/performance.py                                         64     52     14      0  15.38%   15-24, 30-32, 36-39, 43-46, 53-125
+suite-core/core/persistent_store.py                                   241    142     50      3  36.43%   56, 78-84, 87, 102-103, 109-110, 115, 118-119, 122-123, 129, 132, 135, 141-143, 146-148, 151, 154, 157, 161-163, 167-172, 178-179, 183-185, 233-249, 256-277, 281, 286, 289, 294-304, 307-311, 314-325, 328-333, 338, 341-342, 345-346, 349, 352, 355, 358, 361, 364-366, 369-371, 374, 377, 380, 384-388, 392-397, 403-404, 408-425, 436-437, 440-441, 444-452, 494-497, 500
+suite-core/core/playbook_runner.py                                    655    494    224      0  18.32%   142, 195, 216-225, 229-240, 252, 265-273, 277-284, 288-303, 308-368, 372, 376-388, 392-399, 403-453, 457-461, 466-512, 530-562, 571, 575-580, 586-625, 631-652, 656-662, 671-749, 755-763, 780-863, 869-882, 889-896, 900-937, 946-960, 966-969, 975-976, 982-1002, 1008-1009, 1019-1036, 1046-1047, 1053-1055, 1065-1074, 1080-1081, 1087-1088, 1094-1107, 1117-1118, 1124-1125, 1131-1139, 1149-1157, 1163-1171, 1177-1185, 1191-1199, 1205-1206, 1212-1213, 1219-1220, 1226-1233, 1239-1240, 1246-1247, 1257-1259
+suite-core/core/policy.py                                             121     97     32      0  15.69%   21-26, 31-50, 57-68, 71-88, 95-111, 118-128, 137-153, 161-182, 187-207, 213-241
+suite-core/core/policy_db.py                                           64     36      6      0  40.00%   58-80, 84-93, 99-113, 117-137, 141-147, 151
+suite-core/core/policy_models.py                                       22      1      0      0  95.45%   35
+suite-core/core/portfolio_search.py                                   149    149     62      0   0.00%   6-422
+suite-core/core/postfix_verifier.py                                   404    404    130      0   0.00%   22-1827
+suite-core/core/probabilistic.py                                      435    388    204      0   7.36%   14-31, 35-69, 73, 77-90, 94-111, 115-120, 124-165, 176, 197, 218-245, 249, 259-282, 287-315, 323-365, 375-390, 393-406, 409-433, 438-458, 461-499, 502-510, 520-539, 542-549, 560-594, 602-673
+suite-core/core/processing_layer.py                                   214    181     98      0  10.58%   52, 65-72, 88-103, 115-209, 223-251, 263-278, 290-358, 373-458
+suite-core/core/quantum_crypto.py                                     995    995    198      0   0.00%   31-2537
+suite-core/core/real_scanner.py                                      1029    867    408      0  11.27%   82, 408-436, 456-461, 479-533, 547-611, 620-633, 650-751, 773-890, 897-913, 919-936, 958-1023, 1044-1075, 1085-1300, 1314-1377, 1393-1434, 1443-1572, 1581-1640, 1649-1691, 1700-1743, 1752-1786, 1795-1840, 1849-1878, 1887-1948, 1957-2010, 2026-2089, 2098-2134, 2143-2225, 2253-2317, 2326-2372, 2402-2438, 2447-2489, 2516-2558, 2592-2712, 2727-2814, 2846-2848, 2852-2859, 2878-2912, 2916-2918, 2921-2923, 2926-2927, 2946-2980, 2984-2993, 2997-3014, 3019-3021, 3024-3025, 3037-3039, 3045-3047, 3053-3055
+suite-core/core/report_db.py                                           97     63     10      0  31.78%   92-116, 120-129, 135-149, 153-169, 173-179, 183-206, 210-218, 222-241, 245-253, 257, 278, 302
+suite-core/core/report_models.py                                       64      3      0      0  95.31%   59, 95, 124
+suite-core/core/runtime_protection.py                                 203    127     86      0  26.30%   190-196, 215-329, 341-345, 349-357, 376-380, 387, 390-399, 403-411, 415-440, 455-457
+suite-core/core/safe_path_ops.py                                      203    167     96      2  13.38%   33->42, 37->42, 45-46, 56-57, 78-90, 107-119, 136-148, 165-172, 192-199, 217-232, 247-260, 278-288, 305-319, 349-356, 388-415, 432-448, 465-483, 501-514, 534-547
+suite-core/core/sandbox_verifier.py                                   437    286    116      0  27.31%   102, 233-245, 257-314, 328-419, 423-466, 483-549, 562-568, 580-588, 599-681, 716, 720-724, 753-773, 797-817, 930-992, 996, 1000-1033, 1079-1094, 1099-1100, 1105, 1110, 1115, 1125, 1146-1163, 1175-1176
+suite-core/core/sarif_canon.py                                        156    156     84      0   0.00%   3-261
+suite-core/core/sast_engine.py                                        198    116     78      0  29.71%   54, 1335-1338, 1364, 1409-1414, 1425-1447, 1458-1526, 1543-1567, 1582-1606, 1613, 1618-1624, 1634-1646, 1654-1656
+suite-core/core/sbom_runtime_correlator.py                            250    250    116      0   0.00%   21-693
+suite-core/core/scanner_parsers.py                                   1239   1239    558      0   0.00%   25-2385
+suite-core/core/secrets_db.py                                          56     29      6      0  43.55%   72-97, 101-110, 116-130, 134-147, 151
+suite-core/core/secrets_models.py                                      45      2      0      0  95.56%   51, 82
+suite-core/core/secrets_scanner.py                                    299    230     84      0  18.02%   73, 125, 151-153, 172-180, 184-188, 192-196, 200-205, 209-233, 239-281, 287-331, 342-421, 432-508, 512-527, 531-571, 581-616, 656-827, 846-848
+suite-core/core/security_connectors.py                                847    747    180      0   9.74%   34-43, 50, 57-72, 76-88, 91-107, 121-130, 137-140, 146-166, 170-180, 183-199, 213-221, 228, 238-250, 256-271, 274-292, 306-311, 318-332, 338-353, 359-371, 384-408, 420-431, 445-456, 468-488, 491-492, 496-513, 517-532, 535-546, 558-568, 576-596, 599-600, 604-611, 617-643, 647-678, 682-700, 719-771, 774-785, 797-807, 815-830, 833-834, 838-859, 863-883, 887-902, 905-916, 928-935, 942, 951-964, 968-982, 985-1001, 1015-1024, 1032-1048, 1051-1052, 1058-1076, 1080-1100, 1103-1114, 1139-1153, 1163-1179, 1182-1183, 1196-1232, 1238-1266, 1272-1300, 1308-1344, 1350-1364, 1372-1394, 1400-1422, 1427-1438, 1465-1477, 1485-1504, 1515-1529, 1533-1539, 1555-1606, 1612-1617, 1625-1672, 1682-1710, 1720-1734, 1742-1753, 1759-1770, 1780-1795, 1801-1835, 1843-1873, 1879-1895, 1903-1917
+suite-core/core/security_hardening.py                                 542    542    158      0   0.00%   40-1586
+suite-core/core/self_learning.py                                      571    460    162      0  15.14%   71, 120-126, 130-135, 138, 141-192, 195-207, 211-228, 231-243, 246-250, 253-262, 266-274, 278-287, 301-302, 308-324, 328-349, 362-363, 368-386, 389-404, 420-421, 425-438, 441-491, 500-501, 508-509, 514-529, 532-570, 585-586, 590-604, 607-638, 671-673, 676-691, 695, 707-781, 802, 825-829, 844, 848, 852-863, 875-966, 993-1167, 1171-1191, 1204-1351, 1360-1367, 1383-1385
+suite-core/core/services/collaboration.py                             372    323     64      0  11.24%   42-44, 48-187, 202-274, 285-303, 310-324, 335-360, 364-378, 382-396, 402-418, 432-463, 475-501, 507-529, 533-545, 549-551, 575-626, 630-682, 688-716, 736-760, 768-814, 828-910, 926-1021, 1036-1071, 1090-1129, 1142-1166
+suite-core/core/services/deduplication.py                             380    346     84      0   7.33%   31-34, 38-138, 153-279, 293-312, 323-333, 342-371, 397-442, 454-479, 489-526, 532-543, 547-558, 569-597, 611-629, 635-655, 659-717, 732-858, 868-975, 996-1110, 1123-1190
+suite-core/core/services/enterprise/__init__.py                         3      0      0      0 100.00%
+suite-core/core/services/enterprise/advanced_llm_engine.py            142    142     42      0   0.00%   6-347
+suite-core/core/services/enterprise/business_context_processor.py     198    138     80      0  21.58%   78-126, 130-155, 160-178, 204-219, 224-237, 241-255, 260-278, 282-297, 303-317, 323-350, 357-370, 374-390, 396, 414-428, 432-465, 471-564
+suite-core/core/services/enterprise/cache_service.py                  302    242     78      1  16.58%   9, 17, 20-22, 30-31, 54, 61-104, 116-124, 128-136, 146-184, 188-223, 227-239, 243-266, 270-275, 279-283, 287-292, 296-301, 307-325, 329-352, 358-376, 380-392, 396-408, 414-435, 441-453, 457-470, 476, 483-503
+suite-core/core/services/enterprise/chatgpt_client.py                  56     39     10      0  25.76%   58-61, 73-104, 124-135, 140-159, 162-166, 172-173
+suite-core/core/services/enterprise/compliance_engine.py               45     32     12      0  22.81%   32-37, 47-97, 100-107, 110-115, 118
+suite-core/core/services/enterprise/correlation_engine.py             203    203     54      0   0.00%   6-668
+suite-core/core/services/enterprise/decision_engine.py                573    479    174      0  12.58%   92-110, 114-158, 165-190, 200-220, 224-246, 250-265, 269-308, 312-341, 349-408, 432-471, 480-499, 512-546, 552, 562, 574-642, 646-675, 681-683, 698-781, 790-848, 866-978, 983-1024, 1035-1116, 1126-1147, 1158-1174, 1178-1242, 1246-1272, 1276-1364, 1368-1447, 1450-1460, 1465-1470, 1474-1480, 1485-1497, 1502-1510, 1515-1530, 1540-1550, 1555-1565
+suite-core/core/services/enterprise/enhanced_decision_engine.py       144    144     54      0   0.00%   6-686
+suite-core/core/services/enterprise/evidence_export.py                 67     67     14      0   0.00%   3-131
+suite-core/core/services/enterprise/evidence_lake.py                   78     78     10      0   0.00%   3-195
+suite-core/core/services/enterprise/explainability.py                  66     52     20      0  16.28%   14, 26-42, 47-58, 67-80, 89-119
+suite-core/core/services/enterprise/feeds_service.py                  150    100     36      0  26.88%   51-55, 61-63, 67, 71-76, 80-94, 98-111, 115-117, 134-144, 154-179, 185-200, 208-239
+suite-core/core/services/enterprise/fix_engine.py                      41     41      6      0   0.00%   6-110
+suite-core/core/services/enterprise/golden_regression_store.py        243    192     78      0  15.89%   24-33, 52-112, 125, 149, 167-174, 182-187, 193-194, 203-238, 247, 257-298, 311-312, 317-382, 394-413, 424-443, 448-454, 466-469, 484-493, 500
+suite-core/core/services/enterprise/id_allocator.py                    29     19      8      0  27.03%   21-22, 28-29, 38-52, 57, 62-65
+suite-core/core/services/enterprise/knowledge_graph.py                429    429    164      0   0.00%   7-945
+suite-core/core/services/enterprise/llm_explanation_engine.py         190    190     64      0   0.00%   7-599
+suite-core/core/services/enterprise/marketplace.py                    309    309     76      0   0.00%   8-654
+suite-core/core/services/enterprise/metrics.py                        198    125     26      0  32.59%   152, 161-169, 175-185, 193-225, 232-235, 239, 243, 249-257, 263-284, 293-298, 302-305, 311-317, 321-332, 336-339, 346-353, 357, 361, 368-374, 378-381
+suite-core/core/services/enterprise/missing_oss_integrations.py       512    512    184      0   0.00%   10-1377
+suite-core/core/services/enterprise/oss_integrations.py               141     74     20      0  41.61%   30, 38-65, 80, 90-138, 153, 163-189, 204, 214-241, 255, 282-299
+suite-core/core/services/enterprise/policy_engine.py                  328    328    142      0   0.00%   6-743
+suite-core/core/services/enterprise/processing_layer.py               377    377    106      0   0.00%   12-1040
+suite-core/core/services/enterprise/real_opa_engine.py                206    206     60      0   0.00%   7-475
+suite-core/core/services/enterprise/risk_scorer.py                     85     71     36      0  11.57%   34-40, 45-76, 81-128, 131-136, 139-142
+suite-core/core/services/enterprise/rl_controller.py                   69     33     10      1  46.84%   46->48, 52, 64-82, 95-103, 108, 114-126, 131-133, 137-138
+suite-core/core/services/enterprise/run_registry.py                   108     81     26      0  20.15%   21-25, 72-73, 94-136, 140-147, 151-153, 159-161, 165-167, 173-175, 181-184, 188-205
+suite-core/core/services/enterprise/signing.py                         27     14      2      0  44.83%   23-26, 35-40, 56-60, 65
+suite-core/core/services/enterprise/vector_store.py                   178    178     38      0   0.00%   6-459
+suite-core/core/services/enterprise/vex_ingestion.py                  136     93     48      0  23.37%   35, 49, 78-87, 97-129, 143-180, 190-196, 205-208, 216-243, 251-283, 289-295
+suite-core/core/services/fuzzy_identity.py                            262    204     92      0  16.38%   123-136, 141-144, 151-154, 159, 164-178, 183-220, 225-247, 273-282, 292-296, 300-303, 309-310, 345-359, 371-385, 395-405, 421-474, 483, 496-525, 532-537, 547-556, 560-577, 590-601, 613-614, 617-620, 625
+suite-core/core/services/history.py                                    60     60      6      0   0.00%   3-238
+suite-core/core/services/identity.py                                  141    119     98      1   9.62%   18-19, 117-118, 122-146, 150-181, 185-200, 215-233, 248-262, 272-295, 299-308, 314-322, 326-334
+suite-core/core/services/remediation.py                               363    319     68      0  10.21%   89-95, 103-106, 110-212, 227-291, 295-309, 323-362, 372-435, 445-498, 508-566, 570-629, 633-723, 731-739, 745-756, 770-802, 826-908, 928-1014, 1025-1039, 1070-1073, 1084, 1099-1122, 1130-1154, 1158
+suite-core/core/services/vector_store.py                              103    103     38      0   0.00%   3-183
+suite-core/core/severity_promotion.py                                 127     90     76      0  18.23%   32, 58-67, 104-106, 133-189, 203-231, 237-252, 258-261, 267-293
+suite-core/core/single_agent.py                                       793    793    190      0   0.00%   29-2337
+suite-core/core/soc2_evidence_generator.py                            145    145     32      0   0.00%   10-554
+suite-core/core/ssdlc.py                                              238    182     96      0  16.77%   45-46, 50-79, 94-142, 149, 167-187, 204-224, 238-242, 246-256, 260-267, 271-283, 287-302, 306-314, 318-324, 328-338, 342-362, 366-377, 381-396, 400-404, 408-417, 421-424
+suite-core/core/stage_runner.py                                       629    629    306      0   0.00%   3-1149
+suite-core/core/storage.py                                             72     50     24      1  23.96%   26-39, 43-53, 67->69, 72-75, 85-116, 120-135
+suite-core/core/storage_backends.py                                   485    485    134      0   0.00%   14-1223
+suite-core/core/structlog/__init__.py                                  14     14      2      0   0.00%   3-35
+suite-core/core/structlog/processors.py                                27     27      2      0   0.00%   3-53
+suite-core/core/structlog/stdlib.py                                    20     20      0      0   0.00%   3-45
+suite-core/core/supply_chain_engine.py                                200    117     60      0  31.92%   73, 103, 130-133, 151-168, 259-261, 276-331, 345-380, 388-414, 420-437, 443-460, 466-516, 522-556, 567-569
+suite-core/core/task_queue.py                                         239    239     38      0   0.00%   18-520
+suite-core/core/tenancy.py                                             65     54     22      0  12.64%   16-19, 23-25, 28-61, 64-78, 85-141
+suite-core/core/tenant_store.py                                        70     70     18      0   0.00%   31-162
+suite-core/core/threat_modeling.py                                    180     82     34      0  45.79%   262-266, 298-300, 315-356, 359-360, 363-364, 378-381, 400-402, 406-422, 426-452, 456-466, 479-490, 503-507
+suite-core/core/tls_config.py                                          12      7      4      0  31.25%   28-36
+suite-core/core/user_db.py                                            137     97     10      0  27.21%   79, 83, 87-110, 114-123, 127-136, 140-148, 152-173, 177-184, 188-205, 209-218, 222-230, 234-244, 248-255, 261-271, 275-284, 288-306, 310, 330
+suite-core/core/user_models.py                                         48      6      2      0  84.00%   45-61, 76, 96
+suite-core/core/utils/enterprise/crypto.py                            465    366    126      0  16.75%   88-111, 114, 121-137, 145-153, 156, 163, 175, 188-208, 211-220, 223-241, 247-267, 270, 277, 290-308, 317, 331-374, 377-381, 384-402, 410-427, 430, 437, 450-464, 469, 479-509, 516, 522-526, 530-531, 535-547, 551-579, 583-619, 623-635, 639-649, 655-657, 663-664, 674-709, 725-726, 733-758, 766-767, 775-789, 796-812, 819, 826-828, 835-838, 845, 852-853, 860-861, 868-869, 878, 886-906, 912-938, 942, 946, 954, 961, 968
+suite-core/core/vector_store.py                                       232    176     88      0  17.50%   15, 74-75, 79, 82-93, 96-99, 109-127, 145-151, 157-158, 166-168, 171-178, 183-211, 215-222, 234-238, 244-249, 252-287, 293-326, 329-332, 347-382, 386-398, 402-433
+suite-core/core/verification_engine.py                                306    306    108      0   0.00%   17-747
+suite-core/core/vllm_autofix_adapter.py                               124    124     36      0   0.00%   25-539
+suite-core/core/vuln_intelligence.py                                    3      3      0      0   0.00%   18-23
+suite-core/core/vulnerability_tools.py                                339    339    148      0   0.00%   12-501
+suite-core/core/workflow_db.py                                         97     64     10      0  30.84%   71-92, 96-105, 109-117, 121-139, 143-152, 156-179, 183-192, 198-212, 216-233, 237, 251
+suite-core/core/workflow_models.py                                     42      2      0      0  95.24%   46, 75
+suite-core/core/zero_gravity.py                                       869    869    254      0   0.00%   29-2089
+suite-core/domain/__init__.py                                           3      0      0      0 100.00%
+suite-core/domain/crosswalk.py                                         27     11      4      0  51.61%   24, 33-37, 45, 48-66
+suite-core/domain/evidence.py                                          23      6      0      0  73.91%   29, 32-39
+suite-core/services/graph/__init__.py                                   2      0      0      0 100.00%
+suite-core/services/graph/graph.py                                    432    363    176      0  11.35%   51-60, 64-69, 73-79, 84, 89, 92, 95, 98, 101-106, 113, 116-121, 124, 129-132, 135-138, 141-143, 146, 149, 152, 155-163, 167-174, 181-222, 227-231, 234, 239-246, 249-255, 260-285, 290-333, 336-369, 372-433, 436-485, 490-527, 530-588, 591-641, 647-685, 689-697, 701-712, 718-734
+suite-core/services/match/indexes.py                                   19     12      6      0  28.00%   22-31, 40, 54
+suite-core/services/match/join.py                                      13      8      2      0  33.33%   22-39
+suite-core/services/match/utils.py                                     91     69     36      0  17.32%   26, 32-38, 44-56, 65-70, 82-95, 99-115, 119-130
+suite-core/services/provenance/__init__.py                              2      0      0      0 100.00%
+suite-core/services/provenance/attestation.py                         285    207     74      0  21.73%   66-75, 83-88, 92-135, 169, 174, 180-212, 226-235, 241-255, 263-281, 295-317, 325-338, 346-352, 356-358, 371-415, 446, 454, 458-479, 502, 509, 532-563, 602-622, 627-633, 641-673
+suite-core/services/repro/__init__.py                                   2      2      0      0   0.00%   3-5
+suite-core/services/repro/verifier.py                                 168    168     70      0   0.00%   3-278
+suite-core/simulations/cve_scenario/__init__.py                         2      2      0      0   0.00%   3-5
+suite-core/simulations/cve_scenario/runner.py                         131    131     20      0   0.00%   1-393
+suite-core/telemetry/__init__.py                                      114     50      8      3  56.56%   55-61, 65-68, 72-76, 87-91, 95-98, 102-138, 151->153, 154->157, 175-179
+suite-core/telemetry/_noop.py                                          23     23      0      0   0.00%   3-112
+suite-core/telemetry/fastapi_noop.py                                    1      1      0      0   0.00%   3
+suite-evidence-risk/api/app.py                                         42     42      2      0   0.00%   7-101
+suite-evidence-risk/api/business_context.py                            74     58     24      0  16.33%   24-43, 54-73, 81-99, 104-111, 116-121, 126-133, 138-148
+suite-evidence-risk/api/business_context_enhanced.py                   75     53     16      0  24.18%   32-98, 104-110, 116, 129-161, 167, 212-270
+suite-evidence-risk/api/compliance_engine_router.py                   246    197     54      0  16.33%   40, 46-58, 68-73, 82-88, 97-126, 135-143, 152-181, 189-195, 201-207, 213-223, 231-238, 244-283, 289, 298-343, 349, 358-404, 410, 419-453
+suite-evidence-risk/api/evidence_init.py                                2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/evidence_router.py                            707    539    200      0  18.52%   27-28, 41-42, 58-73, 84, 98, 127, 223-238, 287-291, 337-347, 352-358, 410-415, 443-447, 453-466, 479, 485-486, 500-520, 537-576, 596-676, 686-713, 726-740, 746-767, 779-780, 789-815, 846-912, 940-1055, 1078-1240, 1253-1289, 1399-1430, 1451-1588, 1598-1607, 1622-1839, 1866-1905, 1923-1990, 2020-2034
+suite-evidence-risk/api/graph_init.py                                   2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/graph_router.py                                76     52      8      0  28.57%   12-20, 24-27, 31-41, 51-54, 59-70, 75-79, 86-90, 95-99, 105-120, 126, 132
+suite-evidence-risk/api/provenance_init.py                              2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/provenance_router.py                           51     33     10      0  29.51%   16-21, 32-50, 61, 67, 72-73, 79-98
+suite-evidence-risk/api/risk_init.py                                    2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/risk_router.py                                124     92     28      0  21.05%   19-20, 26-31, 35-43, 47-54, 59-82, 87-95, 100-126, 132-151, 170-181, 193-207, 218, 224
+suite-evidence-risk/compliance/__init__.py                              2      0      0      0 100.00%
+suite-evidence-risk/compliance/compliance_engine.py                   575    358    166      2  31.17%   95, 125, 157, 544, 631-632, 651-668, 671-672, 685-691, 694-700, 703-709, 747-748, 766-803, 818-926, 930-935, 945-993, 1002-1053, 1057-1066, 1081-1092, 1096, 1118-1120, 1445-1511, 1526-1537, 1562-1590, 1594, 1603-1610, 1615-1620, 1664, 1684, 1710, 1736, 1762, 1788-1814, 1836-1860, 1901-1908, 1993-1994, 2011-2099, 2115-2148, 2175-2193, 2209-2240, 2271, 2291-2293, 2299-2301, 2307-2309
+suite-evidence-risk/compliance/mapping.py                              68     40     26      0  29.79%   28, 51, 205-226, 250-298
+suite-evidence-risk/compliance/templates/__init__.py                    6      6      0      0   0.00%   6-12
+suite-evidence-risk/compliance/templates/base.py                       27     27      0      0   0.00%   3-51
+suite-evidence-risk/compliance/templates/hipaa.py                      10     10      0      0   0.00%   3-41
+suite-evidence-risk/compliance/templates/nist.py                       10     10      0      0   0.00%   6-72
+suite-evidence-risk/compliance/templates/owasp.py                      26     26      2      0   0.00%   6-203
+suite-evidence-risk/compliance/templates/pci_dss.py                    10     10      0      0   0.00%   3-47
+suite-evidence-risk/compliance/templates/soc2.py                       10     10      0      0   0.00%   3-53
+suite-evidence-risk/evidence/__init__.py                                2      2      0      0   0.00%   3-5
+suite-evidence-risk/evidence/packager.py                              184    184     72      0   0.00%   3-334
+suite-evidence-risk/risk/dependency_graph.py                          113    113     42      0   0.00%   6-236
+suite-evidence-risk/risk/dependency_health.py                         113    113     34      0   0.00%   6-261
+suite-evidence-risk/risk/dependency_realtime.py                       181    181     70      0   0.00%   6-368
+suite-evidence-risk/risk/enrichment.py                                205    176    132      0   8.61%   12-36, 60, 80-100, 105-142, 147-156, 161-194, 216-328
+suite-evidence-risk/risk/feeds/__init__.py                             11     11      0      0   0.00%   3-51
+suite-evidence-risk/risk/feeds/base.py                                126    126     12      0   0.00%   3-328
+suite-evidence-risk/risk/feeds/ecosystems.py                           96     96     20      0   0.00%   6-341
+suite-evidence-risk/risk/feeds/epss.py                                 96     96     28      0   0.00%   3-140
+suite-evidence-risk/risk/feeds/exploits.py                            142    142     38      0   0.00%   6-423
+suite-evidence-risk/risk/feeds/github.py                               91     91     34      0   0.00%   6-261
+suite-evidence-risk/risk/feeds/kev.py                                  84     84     24      0   0.00%   3-128
+suite-evidence-risk/risk/feeds/nvd.py                                 107    107     48      0   0.00%   6-233
+suite-evidence-risk/risk/feeds/orchestrator.py                        144    144     42      0   0.00%   6-378
+suite-evidence-risk/risk/feeds/osv.py                                  92     92     38      0   0.00%   7-223
+suite-evidence-risk/risk/feeds/vendors.py                              65     65      8      0   0.00%   6-259
+suite-evidence-risk/risk/forecasting.py                                92     92     30      0   0.00%   3-285
+suite-evidence-risk/risk/iac/__init__.py                                5      5      0      0   0.00%   6-15
+suite-evidence-risk/risk/iac/terraform.py                             106    106     18      0   0.00%   3-256
+suite-evidence-risk/risk/license_compliance.py                        184    184     76      0   0.00%   8-482
+suite-evidence-risk/risk/reachability/__init__.py                      11      0      0      0 100.00%
+suite-evidence-risk/risk/reachability/analyzer.py                     272    205     96      0  18.21%   81-86, 143-182, 219-382, 388-465, 474-492, 501-526, 536-577, 583-609, 615-633, 645-691, 695-702, 708-724, 732-739, 743-745, 751-767, 773-792, 798
+suite-evidence-risk/risk/reachability/api.py                          202    122     22      0  35.71%   107-111, 116-125, 130-139, 158-288, 306-346, 359-374, 391-412, 429-442, 455-471, 484-495, 506-520, 542-572
+suite-evidence-risk/risk/reachability/cache.py                         65     49     10      0  21.33%   37-44, 55-63, 80-106, 115-133, 143-160, 164-165
+suite-evidence-risk/risk/reachability/call_graph.py                   435    373    210      0   9.61%   45, 59, 80-91, 103-106, 115-145, 150-163, 199-229, 239-342, 346-354, 362-369, 391-408, 414-505, 525-542, 548-623, 631-650, 662-675, 681-701, 706-710, 715-729, 751-754, 758-781, 785-788, 792-833
+suite-evidence-risk/risk/reachability/code_analysis.py                199    138     56      0  23.92%   69, 98-111, 115-123, 127-159, 183-218, 228-244, 255-288, 297-306, 312, 318-346, 356-413, 419-471, 477-504, 516, 524-553
+suite-evidence-risk/risk/reachability/data_flow.py                    145    106     68      0  18.31%   232-235, 256-258, 267-275, 299-312, 317-323, 333-404, 419-465, 471-496, 504-520
+suite-evidence-risk/risk/reachability/enterprise_features.py          129    129     40      0   0.00%   3-366
+suite-evidence-risk/risk/reachability/git_integration.py              199    156     72      0  15.87%   32-43, 81-95, 117-246, 261-323, 339-403, 407-415, 423-448, 452-461, 465-474, 478-482, 486
+suite-evidence-risk/risk/reachability/job_queue.py                    169    120     32      0  24.38%   67-88, 103-119, 134-159, 186-199, 203-215, 219-226, 230-291, 295-313, 317-341, 345-354, 358-365
+suite-evidence-risk/risk/reachability/monitoring.py                    98     98     30      0   0.00%   3-243
+suite-evidence-risk/risk/reachability/proprietary_analyzer.py         547    459    258      0  10.93%   66-70, 74, 97, 114, 131, 148, 173-182, 188-198, 204-235, 241-264, 272-277, 281-284, 288-291, 295-333, 337-343, 348-373, 381-382, 386-393, 397-435, 443-558, 574-615, 624-628, 632-739, 755-812, 820-824, 828-849, 853-856, 860-890, 894-898, 906-929, 941-946, 950-960, 966-1005, 1013-1017, 1021-1028, 1033-1047, 1051-1066, 1070-1074, 1078-1091, 1099-1102, 1111-1152, 1156-1176, 1185-1218, 1245-1261
+suite-evidence-risk/risk/reachability/proprietary_consensus.py        133    101     44      0  18.08%   47-59, 68-97, 112-132, 138-174, 180-211, 217-242, 249-271, 278-299
+suite-evidence-risk/risk/reachability/proprietary_scoring.py          124     94     38      0  18.52%   37-50, 54, 71-86, 117-136, 154-174, 182-207, 212-232, 239-250, 256-270, 276-295, 301-316, 327-343, 352-376
+suite-evidence-risk/risk/reachability/proprietary_threat_intel.py     139    101     52      0  19.90%   50-64, 68, 107, 126-157, 162-173, 177-196, 200-210, 218-238, 244-274, 279-289, 293-325
+suite-evidence-risk/risk/reachability/storage.py                       99     79      2      0  19.80%   29-41, 45-100, 130-159, 178-221, 246-258, 268-281, 292-300, 304-311, 315-334
+suite-evidence-risk/risk/runtime/__init__.py                            5      5      0      0   0.00%   7-12
+suite-evidence-risk/risk/runtime/cloud.py                             386    386    148      0   0.00%   6-857
+suite-evidence-risk/risk/runtime/container.py                         143    143     42      0   0.00%   6-331
+suite-evidence-risk/risk/runtime/iast.py                              181    181     58      0   0.00%   7-400
+suite-evidence-risk/risk/runtime/iast_advanced.py                     325    325     78      0   0.00%   12-675
+suite-evidence-risk/risk/runtime/rasp.py                              134    134     38      0   0.00%   6-353
+suite-evidence-risk/risk/scoring.py                                   216    216     90      0   0.00%   3-461
+suite-evidence-risk/risk/secrets_detection.py                          88     88     14      0   0.00%   3-232
+suite-evidence-risk/risk/threat_model.py                              157    157     98      0   0.00%   3-377
+suite-feeds/api/app.py                                                 38     38      2      0   0.00%   7-95
+suite-feeds/api/feeds_router.py                                       437    310     94      0  23.92%   28-29, 60-69, 74-97, 180-294, 306-349, 370-383, 392-410, 435-448, 460-478, 500-517, 536-538, 548-554, 568-585, 610-628, 648-665, 686-703, 716-720, 732-734, 751-758, 772-774, 780-793, 810-816, 830-832, 841-843, 849-863, 885-893, 913-915, 926-940, 965-980, 1001-1017, 1043-1078, 1096-1122, 1128, 1185-1208, 1214-1319, 1345, 1355, 1374, 1393-1473
+suite-feeds/feeds_service.py                                         1288   1078    302      0  13.21%   516, 539, 580, 609, 639, 668, 699, 729, 764, 787, 801-804, 808-1144, 1150-1151, 1162-1248, 1264-1357, 1375-1537, 1549-1646, 1661-1809, 1821-1962, 1983-2063, 2079-2085, 2099-2108, 2129-2245, 2250-2284, 2288-2305, 2309-2318, 2336-2432, 2436-2445, 2449-2454, 2470-2529, 2533-2538, 2542-2548, 2564-2635, 2639-2648, 2652-2657, 2672-2695, 2713-2745, 2756-2773, 2784-2806, 2817, 2828-2858, 2872-2904, 2912-2956, 2978-3067, 3078-3098, 3119-3199, 3211-3237, 3248-3276, 3287-3296, 3310-3343, 3355-3380, 3391-3416, 3430-3458, 3470-3496, 3510-3547, 3562-3603, 3615-3688, 3714-3798
+suite-integrations/api/app.py                                          42     42      2      0   0.00%   7-103
+suite-integrations/api/iac_router.py                                  125     44     10      0  60.00%   76-77, 88-104, 110-113, 119-126, 132-139, 170-172, 201-230
+suite-integrations/api/ide_router.py                                  293    188    104      0  26.45%   312-334, 339-390, 395-415, 420-430, 435-458, 463-523, 541-594, 601-687, 693, 723, 757-808, 827-904, 920-982
+suite-integrations/api/integrations_router.py                         288    230    120      0  14.22%   81-83, 105-115, 129-144, 151-194, 203-210, 220-236, 245-253, 259-428, 438-442, 463-615
+suite-integrations/api/mcp_router.py                                  379    224     64      3  35.67%   27-28, 161-168, 175, 178, 181, 184, 187, 190-194, 197-201, 204-210, 214-223, 238-239, 248-279, 301-307, 314-318, 321, 327-331, 544-546, 566-573, 582-591, 597-602, 608, 614, 620-633, 639-646, 652-656, 684-725, 730-739, 749-760, 770-781, 791-805, 815-822, 827-839, 875-905, 922-937, 958
+suite-integrations/api/oss_tools.py                                    92     62     10      0  29.41%   31-46, 54-67, 73-83, 89-99, 107-119, 125-137, 143-159, 165
+suite-integrations/api/siem_router.py                                 119     60      8      0  46.46%   32-33, 82-111, 117-119, 125-129, 135-138, 144-148, 157-181, 192-193, 199-201, 207-233, 239-241
+suite-integrations/api/webhooks_router.py                             819    629    188      1  18.97%   52-72, 86->89, 215-217, 222-224, 234-235, 240, 245, 250, 254-265, 269-279, 285-304, 321-424, 434-527, 533-574, 586-609, 615-628, 634-677, 687-712, 718-779, 790-813, 829-836, 842-877, 888-915, 921-945, 953-1026, 1032-1067, 1073-1107, 1113-1152, 1163-1264, 1269-1320, 1330-1366, 1390-1396, 1401-1414, 1419, 1433-1539, 1560-1570, 1583-1688, 1717-1781, 1802-1863, 1875-1910, 1934, 1939-1944, 1949-1960, 1981-2047, 2054-2084, 2090, 2096
+suite-integrations/integrations/builtin_scanner.py                    405    405    140      0   0.00%   15-1098
+suite-integrations/integrations/github/__init__.py                      2      2      0      0   0.00%   3-5
+suite-integrations/integrations/github/adapter.py                      59     59     24      0   0.00%   3-105
+suite-integrations/integrations/jenkins/__init__.py                     2      2      0      0   0.00%   3-5
+suite-integrations/integrations/jenkins/adapter.py                     37     37     16      0   0.00%   3-82
+suite-integrations/integrations/mpte_client.py                        169     90     32      0  39.30%   107-111, 115-126, 130-132, 141-158, 177-184, 188, 192-205, 215-248, 267-278, 297-316, 337-352, 360-363, 380-386
+suite-integrations/integrations/mpte_decision_integration.py           60     60     28      0   0.00%   2-277
+suite-integrations/integrations/mpte_service.py                       160    136     54      0  11.21%   54-56, 60, 86-123, 127-155, 163-219, 226-241, 245-252, 259-271, 279-302, 306-314, 337-378, 397-403, 420-457, 464-468
+suite-integrations/integrations/siem_engine.py                        249    249     52      0   0.00%   13-469
+suite-integrations/integrations/sonarqube/__init__.py                   2      2      0      0   0.00%   3-5
+suite-integrations/integrations/sonarqube/adapter.py                   19     19      4      0   0.00%   3-51
+suite-integrations/ssvc/__init__.py                                    34     19      4      0  39.47%   24-44, 47-53, 56-57
+suite-integrations/ssvc/plugins/deployer.py                            79     79     10      0   0.00%   3-161
+----------------------------------------------------------------------------------------------------------------
+TOTAL                                                               94460  75813  26512    205  15.82%
+
+8 empty files skipped.
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+FAIL Required test coverage of 18% not reached. Total coverage: 15.82%
+
+============================= slowest 10 durations =============================
+26.09s setup    tests/test_app_factory.py::TestAppFactory::test_create_app_returns_fastapi
+0.76s call     tests/test_app_factory.py::TestHealthEndpoints::test_legacy_health
+0.17s call     tests/test_overlay_runtime.py::test_prepare_overlay_disables_encryption_when_key_missing
+0.17s call     tests/test_overlay_runtime.py::test_prepare_overlay_suppresses_warnings_when_tokens_present
+0.16s call     tests/test_overlay_runtime.py::test_prepare_overlay_disables_encryption_without_fernet
+0.15s call     tests/test_overlay_runtime.py::test_prepare_overlay_reports_missing_automation_tokens
+0.11s setup    tests/test_overlay_configuration.py::test_load_overlay_merges_profile_and_defaults
+0.06s call     tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_cnapp
+0.06s call     tests/test_app_factory.py::TestIngestionEndpoints::test_ingest_unsupported_content_type
+0.04s call     tests/test_app_factory.py::TestRouterMounts::test_authenticated_router_endpoints[/api/v1/analytics/dashboard]
+======================= 184 passed in 125.99s (0:02:05) ========================
+Failed to export metrics batch code: 404, reason: Not Found

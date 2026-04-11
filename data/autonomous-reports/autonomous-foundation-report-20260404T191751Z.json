@@ -1,0 +1,294 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-04T19:17:51Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "head_commit_before_cycle_commit": "ac01fd16",
+  "status": "validation-green-with-evidence-refresh-and-repository-aligned-test-toolchain",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed-with-stable-findings-and-no-secrets",
+    "cycle_fix_status": "no-product-code-change-required-environment-alignment-confirmed",
+    "focused_validation_status": "passed-after-toolchain-alignment",
+    "high_visibility_status": "passed-no-cov",
+    "broader_validation_status": "passed-no-cov",
+    "confirmation_result": {
+      "focused_initial_passed": 263,
+      "focused_initial_skipped": 1,
+      "focused_initial_failed": 0,
+      "focused_initial_duration_seconds": 254.27,
+      "focused_initial_coverage_percent": 16.04,
+      "coverage_threshold_percent": 18.0,
+      "focused_rerun_passed": 263,
+      "focused_rerun_skipped": 1,
+      "focused_rerun_failed": 0,
+      "focused_rerun_duration_seconds": 238.32,
+      "focused_rerun_coverage_percent": 18.98,
+      "high_visibility_passed": 49,
+      "high_visibility_failed": 0,
+      "high_visibility_duration_seconds": 117.47,
+      "broader_passed": 184,
+      "broader_failed": 0,
+      "broader_duration_seconds": 14.82
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": true,
+    "tests/test_autonomous_foundation.py": true,
+    "tests/test_autonomous_workspace.py": true,
+    "tests/e2e/test_branding_namespace.py": true,
+    "tests/e2e/test_bn_lr_hybrid.py": true,
+    "tests/test_ai_consensus.py": true,
+    "tests/test_overlay_configuration.py": true,
+    "tests/test_overlay_runtime.py": true,
+    "tests/test_configuration_unit.py": true,
+    "tests/test_app_factory.py": true,
+    "resolution": "all requested focused, high-visibility, and broader validation suites were rerun in this cycle, with the focused coverage gate restored after aligning sandbox test tooling to repository constraints"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T190130Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260404-150139.json",
+    "metrics": {
+      "sast_findings": 326,
+      "secrets_found": 0,
+      "total_findings": 23,
+      "steps_total": 17,
+      "steps_passed": 17,
+      "steps_failed": 0,
+      "pass_rate": 100.0,
+      "duration_seconds": 7.9
+    },
+    "finding_summary": {
+      "severity_counts": {
+        "critical": 1,
+        "medium": 19,
+        "low": 3
+      },
+      "source_counts": {
+        "aldeci-self-sast": 20,
+        "aldeci-self-container": 3
+      },
+      "top_file_counts": [
+        ["suite-api/apps/api/app.py", 3],
+        ["suite-core/core/autofix_engine.py", 3],
+        ["suite-core/core/brain_pipeline.py", 3],
+        ["suite-core/core/connectors.py", 3],
+        ["suite-core/core/crypto.py", 3],
+        ["suite-core/core/micro_pentest.py", 3],
+        ["<unknown>", 3],
+        ["suite-core/core/sast_engine.py", 2]
+      ]
+    },
+    "notable_findings": [
+      {
+        "severity": "critical",
+        "title": "Disabled SSL/TLS Verification",
+        "file_path": "suite-core/core/micro_pentest.py",
+        "line_number": 190,
+        "cwe": "CWE-295"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 103,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Excessive Data Exposure in API Response",
+        "file_path": "suite-core/core/brain_pipeline.py",
+        "line_number": 176,
+        "cwe": "CWE-200"
+      }
+    ]
+  },
+  "startup_snapshot": {
+    "health_validation_artifact": "data/autonomous-reports/autonomous-startup-validation-20260404T190130Z.json",
+    "status": "healthy",
+    "service": "fixops-api",
+    "version": "0.1.0",
+    "timestamp": "2026-04-04T19:01:30.948228+00:00Z",
+    "notes": [
+      "the local API remained healthy while serving as the target for the autonomous self-scan",
+      "this cycle did not uncover a startup regression in the branch itself"
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "autonomous_cycle_current",
+      "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260404T190130Z.log",
+      "result_artifact": "data/demo-results/self-scan-20260404-150139.json",
+      "status": "passed",
+      "result": {
+        "steps_passed": 17,
+        "steps_total": 17,
+        "findings_total": 23,
+        "sast_findings": 326,
+        "secrets_found": 0,
+        "duration_seconds": 7.9
+      },
+      "notes": [
+        "the self-scan remained green in the current cycle",
+        "the surfaced backlog remained stable and no secrets were found"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_initial",
+      "log": "data/autonomous-reports/focused-autonomous-validation-rerun-20260404T190205Z.log",
+      "status": "failed-coverage-gate-only",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 254.27,
+        "coverage_enabled": true,
+        "coverage_percent": 16.04,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "all selected tests passed functionally, but the aggregate coverage gate missed the configured threshold",
+        "this run was produced before sandbox test-toolchain alignment"
+      ]
+    },
+    {
+      "name": "focused_autonomous_successor_rerun_current",
+      "log": "data/autonomous-reports/focused-autonomous-validation-rerun-20260404T191146Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 263,
+        "skipped": 1,
+        "failed": 0,
+        "duration_seconds": 238.32,
+        "coverage_enabled": true,
+        "coverage_percent": 18.98,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_autonomous_cycle.py",
+          "tests/test_autonomous_foundation.py",
+          "tests/test_autonomous_workspace.py"
+        ]
+      },
+      "notes": [
+        "the focused suite returned to green after aligning sandbox test tooling with repository constraints",
+        "coverage cleared the threshold at 18.98 percent"
+      ]
+    },
+    {
+      "name": "high_visibility_current",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260404T190650Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 117.47,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "branding namespace, BN-LR hybrid behavior, and AI consensus remained green"
+      ]
+    },
+    {
+      "name": "broader_foundation_current",
+      "log": "data/autonomous-reports/broader-validation-rerun-20260404T190923Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 184,
+        "failed": 0,
+        "duration_seconds": 14.82,
+        "coverage_enabled": false,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py"
+        ]
+      },
+      "notes": [
+        "overlay, runtime, configuration, and app-factory coverage remained green"
+      ]
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "rewrote the branch status narrative to reflect the current autonomous evidence, validation reruns, and test-toolchain compatibility finding"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260404T191751Z.json",
+      "change": "wrote a new machine-readable cycle report for the current validation-confirmation pass"
+    }
+  ],
+  "environment_notes": {
+    "api_startup_unblocked": true,
+    "local_token_configured_for_cycle": true,
+    "demo_mode_used": false,
+    "repository_declared_test_constraints": {
+      "pytest": ">=7.4.0,<9.0",
+      "pytest-cov": ">=4.1.0,<6.0",
+      "pytest-asyncio": ">=0.21.0,<1.0"
+    },
+    "sandbox_toolchain_aligned_for_rerun": true,
+    "aligned_tool_versions": {
+      "pytest": "8.4.2",
+      "pytest-cov": "5.0.0",
+      "pytest-asyncio": "0.26.0"
+    },
+    "initial_tool_versions_before_alignment": {
+      "pytest": "9.0.2",
+      "pytest-cov": "7.1.0",
+      "pytest-asyncio": "1.3.0"
+    },
+    "observed_compatibility_issue": "the focused autonomous validation slice passed functionally but missed the configured coverage gate under newer sandbox tooling, then returned to passing coverage after alignment with repository constraints",
+    "known_nonfatal_messages": [
+      "LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk",
+      "FIXOPS_ALLOWED_ORIGINS not set. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.",
+      "React UI dist not found at /home/ubuntu/Fixops_repo/suite-ui/aldeci/dist — SPA not served"
+    ],
+    "observed_self_scan_warning": "AutoFix step emitted a 500 warning for insecure deserialization even though the overall self-scan summary reported success",
+    "result_artifact_hygiene": "the current cycle produced usable timestamped logs and machine-readable scan output, but artifact correlation can still be made cleaner across startup and validation events"
+  },
+  "remaining_risks": [
+    "the autonomous self-scan still surfaces one critical code finding, a broad medium-severity backlog, and three container hygiene findings",
+    "the self-scan still reports an AutoFix 500 warning while the overall summary reports 17/17 passed",
+    "validation reproducibility currently depends on maintaining repository-aligned pytest and coverage tooling in the sandbox environment",
+    "local telemetry and feature-flag related optional integrations still emit non-fatal startup notices in the sandbox environment"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "triage and address the remaining critical Disabled SSL/TLS Verification finding in suite-core/core/micro_pentest.py",
+      "rationale": "it remains the highest-severity issue in the current autonomous backlog"
+    },
+    {
+      "priority": 2,
+      "action": "work through the clustered medium response-exposure and stack-trace findings in suite-api/apps/api/app.py, suite-core/core/crypto.py, suite-core/core/connectors.py, suite-core/core/brain_pipeline.py, and related modules",
+      "rationale": "these findings dominate the current surfaced backlog"
+    },
+    {
+      "priority": 3,
+      "action": "investigate why the AutoFix self-scan step emits a 500 while the overall workflow still reports full success",
+      "rationale": "this remains an observability and correctness gap in the autonomous loop"
+    },
+    {
+      "priority": 4,
+      "action": "codify or preserve repository-aligned pytest and coverage tooling for repeatable sandbox validation",
+      "rationale": "this cycle demonstrated a practical compatibility sensitivity in the validation environment"
+    },
+    {
+      "priority": 5,
+      "action": "improve evidence hygiene for startup and autonomous artifacts so run identity is easier to correlate across logs and machine-readable outputs",
+      "rationale": "current evidence is adequate, but artifact correlation can still be made cleaner"
+    }
+  ]
+}

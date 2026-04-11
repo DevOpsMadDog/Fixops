@@ -1,0 +1,198 @@
+{
+  "report_type": "autonomous-foundation-cycle",
+  "generated_at": "2026-04-03T07:43:00Z",
+  "branch": "feature/autonomous-foundation",
+  "repository_path": "/home/ubuntu/Fixops_repo",
+  "status": "validation-green-for-broader-exercised-selection",
+  "summary": {
+    "autonomous_cycle_equivalent": "scripts/aldeci_self_scan.py",
+    "autonomous_cycle_status": "passed",
+    "high_visibility_status": "tests-passed-but-coverage-gate-failed",
+    "broader_validation_status": "passed",
+    "confirmation_result": {
+      "passed": 233,
+      "failed": 0,
+      "duration_seconds": 395.52,
+      "coverage_enabled": true,
+      "coverage_percent": 18.95
+    }
+  },
+  "requested_suite_presence": {
+    "tests/test_autonomous_cycle.py": false,
+    "tests/test_autonomous_foundation.py": false,
+    "tests/test_autonomous_workspace.py": false,
+    "resolution": "used nearest available successor coverage and recorded absence of requested filenames"
+  },
+  "autonomous_cycle": {
+    "log": "data/autonomous-reports/autonomous-cycle-self-scan-20260403T111218Z.log",
+    "result_artifact": "data/demo-results/self-scan-20260403-071243.json",
+    "metrics": {
+      "sast_findings": 5,
+      "secrets_found": 0,
+      "total_findings": 5,
+      "steps_total": 17,
+      "steps_passed": 14,
+      "steps_failed": 0,
+      "pass_rate": 82.4,
+      "duration_seconds": 3.6
+    },
+    "findings": [
+      {
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 140,
+        "cwe": "CWE-502"
+      },
+      {
+        "severity": "high",
+        "title": "ECB Mode Usage",
+        "file_path": "suite-core/core/sast_engine.py",
+        "line_number": 150,
+        "cwe": "CWE-327"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-api/apps/api/app.py",
+        "line_number": 103,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/crypto.py",
+        "line_number": 62,
+        "cwe": "CWE-209"
+      },
+      {
+        "severity": "medium",
+        "title": "Exposed Stack Trace in Response",
+        "file_path": "suite-core/core/connectors.py",
+        "line_number": 60,
+        "cwe": "CWE-209"
+      }
+    ]
+  },
+  "validation_runs": [
+    {
+      "name": "focused_autonomous_requested_files",
+      "log": "data/autonomous-reports/focused-autonomous-validation-rerun-20260403T112836Z.log",
+      "status": "not_applicable",
+      "reason": "requested suite filenames were absent from the repository checkout"
+    },
+    {
+      "name": "high_visibility_rerun",
+      "log": "data/autonomous-reports/high-visibility-validation-rerun-20260403T112836Z.log",
+      "status": "tests_passed_but_command_failed_on_coverage",
+      "result": {
+        "passed": 49,
+        "failed": 0,
+        "duration_seconds": 372.73,
+        "coverage_percent": 5.54,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "tests completed cleanly at the case level",
+        "process exit remained non-zero because repository-wide coverage gating is applied even to this reduced suite selection"
+      ]
+    },
+    {
+      "name": "broader_validation_rerun",
+      "log": "data/autonomous-reports/broader-validation-rerun-20260403T112836Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 233,
+        "failed": 0,
+        "duration_seconds": 395.52,
+        "coverage_percent": 18.95,
+        "coverage_threshold_percent": 18.0,
+        "selected_suites": [
+          "tests/test_overlay_configuration.py",
+          "tests/test_overlay_runtime.py",
+          "tests/test_configuration_unit.py",
+          "tests/test_app_factory.py",
+          "tests/e2e/test_branding_namespace.py",
+          "tests/e2e/test_bn_lr_hybrid.py",
+          "tests/test_ai_consensus.py"
+        ]
+      },
+      "notes": [
+        "coverage-enabled run satisfied the repository coverage gate",
+        "non-fatal telemetry export messages remained: Failed to export metrics batch code: 404, reason: Not Found"
+      ]
+    },
+    {
+      "name": "targeted_app_factory_repro",
+      "log": "data/autonomous-reports/targeted-app-factory-repro-20260403T112249Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 1,
+        "failed": 0
+      }
+    },
+    {
+      "name": "targeted_auth_and_orchestrator_repro",
+      "log": "data/autonomous-reports/targeted-failure-repro-20260403T112557Z.log",
+      "status": "passed",
+      "result": {
+        "passed": 9,
+        "failed": 0
+      }
+    }
+  ],
+  "changes_applied": [
+    {
+      "file": "docs/ALDECI_BUILD_STATUS.md",
+      "change": "updated the branch status narrative to reflect the fresh self-scan, environment repair work, and current validation outcomes"
+    },
+    {
+      "file": "data/autonomous-reports/autonomous-foundation-report-20260403T074300Z.json",
+      "change": "wrote a new machine-readable cycle report for this validation and evidence collection round"
+    }
+  ],
+  "environment_notes": {
+    "api_startup_unblocked": true,
+    "local_token_configured_for_cycle": true,
+    "demo_mode_used": true,
+    "dependencies_installed_during_cycle": [
+      "PyJWT",
+      "sarif-om",
+      "structlog",
+      "bcrypt",
+      "email-validator",
+      "python-multipart"
+    ],
+    "full_repository_dependency_sync_executed": true,
+    "full_dependency_install_log": "data/autonomous-reports/dependency-install-20260403T111106Z.log"
+  },
+  "remaining_risks": [
+    "self-scan still reports 5 security findings requiring product remediation",
+    "the narrow high-visibility validation selection is not a standalone green signal while repository-wide coverage gating remains enforced",
+    "requested autonomous_cycle/foundation/workspace test filenames are absent and should be replaced formally or implemented",
+    "local telemetry export still emits non-fatal 404 messages during validation"
+  ],
+  "next_actions": [
+    {
+      "priority": 1,
+      "action": "Remediate the self-scan findings in suite-core/core/sast_engine.py and the stack-trace exposure paths"
+    },
+    {
+      "priority": 2,
+      "action": "Decide whether narrow smoke selections should use a dedicated coverage strategy instead of repository-wide coverage gating"
+    },
+    {
+      "priority": 3,
+      "action": "Normalize telemetry export behavior in local test runs to eliminate the recurring 404 export message"
+    },
+    {
+      "priority": 4,
+      "action": "Codify successor coverage for the missing autonomous cycle/foundation/workspace suite names"
+    }
+  ]
+}

@@ -23,14 +23,41 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import joblib
 import numpy as np
+
+try:
+    import joblib as _joblib
+except ImportError:  # pragma: no cover - optional dependency fallback
+    _joblib = None
 from core.processing_layer import ProcessingLayer
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 
 logger = logging.getLogger(__name__)
+
+
+def _persist_model(model: Any, path: Path) -> None:
+    """Persist a trained model while tolerating missing optional joblib."""
+    if _joblib is not None:
+        _joblib.dump(model, path)
+        return
+
+    import pickle
+
+    with path.open("wb") as handle:
+        pickle.dump(model, handle)
+
+
+def _restore_model(path: Path) -> Any:
+    """Load a trained model while tolerating missing optional joblib."""
+    if _joblib is not None:
+        return _joblib.load(path)
+
+    import pickle
+
+    with path.open("rb") as handle:
+        return pickle.load(handle)
 
 
 def compute_bn_cpd_hash() -> str:
@@ -163,7 +190,7 @@ def save_model(model: Any, metadata: Dict[str, Any], output_path: Path) -> None:
     model_file = output_path / "model.joblib"
     metadata_file = output_path / "metadata.json"
 
-    joblib.dump(model, model_file)
+    _persist_model(model, model_file)
 
     with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2)
@@ -196,7 +223,7 @@ def load_model(
     if not metadata_file.exists():
         raise FileNotFoundError(f"Metadata file not found: {metadata_file}")
 
-    model = joblib.load(model_file)
+    model = _restore_model(model_file)
 
     with open(metadata_file, "r") as f:
         metadata = json.load(f)
