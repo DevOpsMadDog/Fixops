@@ -500,3 +500,72 @@ async def get_retention_policy():
         "storage_class": "compliance_archive",
         "note": "Logs older than retention_days are purged; archive_after_days triggers cold storage migration",
     }
+
+
+# ---------------------------------------------------------------------------
+# RBAC-gated audit endpoints (new AuditLogger from core.audit_log)
+# ---------------------------------------------------------------------------
+
+try:
+    from core.audit_log import AuditLogger as _RBACLogger
+    from core.rbac import RBACPermission as _RBACPermission, require_permission as _rp
+
+    _rbac_audit = _RBACLogger.get_instance()
+
+    @router.get("/logs/user/{email}")
+    async def get_user_activity(
+        email: str,
+        days: int = Query(30, ge=1, le=365),
+        _role=Depends(_rp(_RBACPermission.READ_AUDIT_LOG)),
+    ):
+        """Get audit activity for a specific user (requires READ_AUDIT_LOG)."""
+        entries = _rbac_audit.get_user_activity(email, days=days)
+        return {
+            "email": email,
+            "days": days,
+            "entries": [e.model_dump() for e in entries],
+            "total": len(entries),
+        }
+
+    @router.get("/logs/resource/{resource_type}/{resource_id}")
+    async def get_resource_history(
+        resource_type: str,
+        resource_id: str,
+        _role=Depends(_rp(_RBACPermission.READ_AUDIT_LOG)),
+    ):
+        """Get full audit history for a resource (requires READ_AUDIT_LOG)."""
+        entries = _rbac_audit.get_resource_history(resource_type, resource_id)
+        return {
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "entries": [e.model_dump() for e in entries],
+            "total": len(entries),
+        }
+
+    @router.get("/export")
+    async def export_audit_csv(
+        action: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        user_email: Optional[str] = None,
+        _role=Depends(_rp(_RBACPermission.READ_AUDIT_LOG)),
+    ):
+        """Export audit log as CSV (requires READ_AUDIT_LOG)."""
+        from fastapi.responses import Response as _Response
+
+        filters: Dict[str, Any] = {}
+        if action:
+            filters["action"] = action
+        if resource_type:
+            filters["resource_type"] = resource_type
+        if user_email:
+            filters["user_email"] = user_email
+
+        csv_content = _rbac_audit.export_csv(filters or None)
+        return _Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=audit_log.csv"},
+        )
+
+except ImportError:
+    pass  # core.audit_log or core.rbac not yet on path

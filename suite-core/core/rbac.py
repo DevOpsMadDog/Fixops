@@ -652,4 +652,181 @@ __all__ = [
     "RBACEngine",
     "PersonaRoleMapping",
     "create_rbac_engine",
+    # New RBAC additions
+    "RBACRole",
+    "RBACPermission",
+    "ROLE_PERMISSIONS",
+    "require_permission",
+    "require_role",
+    "get_current_user_role",
 ]
+
+
+# ============================================================================
+# NEW: Simple Role + Permission enums for FastAPI dependency injection
+# ============================================================================
+
+from enum import Enum as _Enum
+from typing import Callable as _Callable
+
+
+class RBACRole(_Enum):
+    """Six built-in ALDECI roles (ordered by privilege level, lowest first)."""
+
+    VIEWER = "viewer"
+    DEVELOPER = "developer"
+    SRE = "sre"
+    COMPLIANCE_OFFICER = "compliance_officer"
+    SECURITY_ANALYST = "security_analyst"
+    ADMIN = "admin"
+
+    # Numeric level for hierarchy comparisons
+    @property
+    def level(self) -> int:
+        _levels = {
+            "viewer": 0,
+            "developer": 1,
+            "sre": 2,
+            "compliance_officer": 3,
+            "security_analyst": 4,
+            "admin": 5,
+        }
+        return _levels[self.value]
+
+
+class RBACPermission(_Enum):
+    """Granular permissions used by require_permission()."""
+
+    READ_FINDINGS = "read:findings"
+    WRITE_FINDINGS = "write:findings"
+    DELETE_FINDINGS = "delete:findings"
+    READ_COMPLIANCE = "read:compliance"
+    WRITE_COMPLIANCE = "write:compliance"
+    READ_PIPELINE = "read:pipeline"
+    RUN_PIPELINE = "run:pipeline"
+    READ_CONNECTORS = "read:connectors"
+    WRITE_CONNECTORS = "write:connectors"
+    MANAGE_USERS = "manage:users"
+    MANAGE_SETTINGS = "manage:settings"
+    READ_AUDIT_LOG = "read:audit_log"
+    READ_DASHBOARD = "read:dashboard"
+
+
+# Role → frozenset of allowed permissions
+ROLE_PERMISSIONS: Dict[RBACRole, Set[RBACPermission]] = {
+    RBACRole.ADMIN: frozenset(RBACPermission),  # type: ignore[arg-type]
+    RBACRole.SECURITY_ANALYST: frozenset({
+        RBACPermission.READ_FINDINGS,
+        RBACPermission.WRITE_FINDINGS,
+        RBACPermission.RUN_PIPELINE,
+        RBACPermission.READ_COMPLIANCE,
+        RBACPermission.READ_CONNECTORS,
+        RBACPermission.READ_DASHBOARD,
+    }),
+    RBACRole.DEVELOPER: frozenset({
+        RBACPermission.READ_FINDINGS,
+        RBACPermission.READ_COMPLIANCE,
+        RBACPermission.READ_DASHBOARD,
+    }),
+    RBACRole.COMPLIANCE_OFFICER: frozenset({
+        RBACPermission.READ_FINDINGS,
+        RBACPermission.READ_COMPLIANCE,
+        RBACPermission.WRITE_COMPLIANCE,
+        RBACPermission.READ_AUDIT_LOG,
+        RBACPermission.READ_DASHBOARD,
+    }),
+    RBACRole.VIEWER: frozenset({
+        RBACPermission.READ_FINDINGS,
+        RBACPermission.READ_COMPLIANCE,
+        RBACPermission.READ_DASHBOARD,
+    }),
+    RBACRole.SRE: frozenset({
+        RBACPermission.READ_FINDINGS,
+        RBACPermission.READ_PIPELINE,
+        RBACPermission.RUN_PIPELINE,
+        RBACPermission.READ_CONNECTORS,
+        RBACPermission.READ_DASHBOARD,
+    }),
+}
+
+
+def get_current_user_role(request: Any) -> RBACRole:
+    """Extract the RBAC role from request state (set by auth middleware).
+
+    Falls back to VIEWER when no role information is present.
+    """
+    # Auth middleware stores AuthContext in request.state.auth
+    auth = getattr(getattr(request, "state", None), "auth", None)
+    role_str: str = ""
+    if auth is not None:
+        role_str = getattr(auth, "role", "")
+    if not role_str:
+        # Fallback: check query/path context stored directly
+        role_str = getattr(getattr(request, "state", None), "user_role", "viewer")
+
+    # Map string role → RBACRole (lenient: unknown → VIEWER)
+    _alias: Dict[str, str] = {
+        "admin": "admin",
+        "super_admin": "admin",
+        "analyst": "security_analyst",
+        "security_analyst": "security_analyst",
+        "developer": "developer",
+        "compliance_officer": "compliance_officer",
+        "sre": "sre",
+        "viewer": "viewer",
+        "service": "admin",
+    }
+    normalized = _alias.get(role_str.lower(), "viewer")
+    try:
+        return RBACRole(normalized)
+    except ValueError:
+        return RBACRole.VIEWER
+
+
+def require_permission(permission: RBACPermission) -> _Callable:
+    """FastAPI dependency factory — 403 if user lacks the given permission."""
+    try:
+        from fastapi import Depends, HTTPException, Request, status as _status
+
+        async def _check(request: Request) -> RBACRole:
+            role = get_current_user_role(request)
+            allowed = ROLE_PERMISSIONS.get(role, frozenset())
+            if permission not in allowed:
+                raise HTTPException(
+                    status_code=_status.HTTP_403_FORBIDDEN,
+                    detail=f"Permission denied: {permission.value} required (role={role.value})",
+                )
+            return role
+
+        return _check
+    except ImportError:
+        # FastAPI not available (e.g., during unit tests without FastAPI)
+        def _stub() -> RBACRole:  # type: ignore[return]
+            return RBACRole.ADMIN
+
+        return _stub
+
+
+def require_role(minimum_role: RBACRole) -> _Callable:
+    """FastAPI dependency factory — 403 if user's role level is below minimum."""
+    try:
+        from fastapi import HTTPException, Request, status as _status
+
+        async def _check(request: Request) -> RBACRole:
+            role = get_current_user_role(request)
+            if role.level < minimum_role.level:
+                raise HTTPException(
+                    status_code=_status.HTTP_403_FORBIDDEN,
+                    detail=(
+                        f"Insufficient role: {minimum_role.value} or higher required "
+                        f"(current={role.value})"
+                    ),
+                )
+            return role
+
+        return _check
+    except ImportError:
+        def _stub() -> RBACRole:  # type: ignore[return]
+            return RBACRole.ADMIN
+
+        return _stub
