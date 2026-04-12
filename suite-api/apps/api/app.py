@@ -294,6 +294,17 @@ except ImportError as e:
     _logger.warning("Webhook Subscriptions router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Webhook DLQ router (dead letter queue for failed webhook deliveries)
+# ---------------------------------------------------------------------------
+webhook_dlq_router: Optional[APIRouter] = None
+try:
+    from apps.api.webhook_dlq_router import router as webhook_dlq_router
+
+    _logger.info("Loaded Webhook DLQ router")
+except ImportError as e:
+    _logger.warning("Webhook DLQ router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Sandbox PoC Verifier router (Docker-isolated exploit verification)
 # ---------------------------------------------------------------------------
 sandbox_router: Optional[APIRouter] = None
@@ -1950,6 +1961,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Webhook Subscriptions router")
+
+    # Webhook DLQ — dead letter queue for failed webhook deliveries
+    if webhook_dlq_router:
+        app.include_router(
+            webhook_dlq_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted Webhook DLQ router")
 
     # Dependency-Track — SBOM analysis via OWASP Dependency-Track
     if dtrack_router:
