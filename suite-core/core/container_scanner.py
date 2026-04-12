@@ -776,3 +776,711 @@ def get_container_scanner() -> ContainerImageScanner:
     if _scanner is None:
         _scanner = ContainerImageScanner()
     return _scanner
+
+
+# =============================================================================
+# ContainerSecurityScanner — structured Pydantic-based Dockerfile analysis
+# Adds: Severity enum, CheckCategory enum, ContainerFinding (Pydantic),
+#       DockerfileAnalysis, ContainerSecurityScanner with 20+ checks and
+#       SQLite-backed history/stats.
+# =============================================================================
+
+import sqlite3
+from pathlib import Path as _Path
+from pydantic import BaseModel, Field
+
+_SCANNER_DB_PATH = _Path(__file__).parent.parent.parent / "data" / "container_scanner.db"
+
+_SENSITIVE_PORTS: Dict[int, str] = {
+    22: "SSH",
+    23: "Telnet",
+    2375: "Docker daemon (unencrypted)",
+    2376: "Docker daemon (TLS)",
+    3306: "MySQL",
+    5432: "PostgreSQL",
+    6379: "Redis",
+    27017: "MongoDB",
+    9200: "Elasticsearch",
+    5601: "Kibana",
+    8500: "Consul",
+    2181: "ZooKeeper",
+    4369: "Erlang Port Mapper",
+}
+
+_SECRET_KEY_RE = re.compile(
+    r"(password|passwd|secret|token|api[_\-]?key|private[_\-]?key|"
+    r"access[_\-]?key|auth[_\-]?key|credential|passphrase|"
+    r"db[_\-]?pass|database[_\-]?pass|jwt[_\-]?secret|oauth[_\-]?secret)",
+    re.IGNORECASE,
+)
+
+_RISKY_PKGS = {
+    "curl", "wget", "netcat", "nc", "ncat", "nmap", "telnet",
+    "gcc", "g++", "make", "build-essential", "python3-dev",
+    "openssh-server", "ftp", "rsh", "rlogin",
+}
+
+_TRUSTED_REGISTRIES = {
+    "docker.io", "ghcr.io", "gcr.io", "quay.io", "mcr.microsoft.com",
+    "registry.access.redhat.com", "registry.fedoraproject.org",
+    "public.ecr.aws",
+}
+
+
+class Severity(str, Enum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+
+class CheckCategory(str, Enum):
+    USER_PRIVILEGE = "user_privilege"
+    SECRETS = "secrets"
+    PACKAGES = "packages"
+    BASE_IMAGE = "base_image"
+    NETWORK = "network"
+    FILESYSTEM = "filesystem"
+    RUNTIME = "runtime"
+
+
+class ContainerFinding(BaseModel):  # type: ignore[no-redef]  # shadows dataclass above intentionally
+    """Pydantic finding model used by ContainerSecurityScanner."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    check_id: str
+    title: str
+    description: str
+    severity: Severity
+    category: CheckCategory
+    line_number: Optional[int] = None
+    remediation: str
+    file_path: str = "Dockerfile"
+
+
+class DockerfileAnalysis(BaseModel):
+    """Full security analysis result for a Dockerfile."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    file_path: str = "Dockerfile"
+    findings: List[ContainerFinding] = Field(default_factory=list)
+    base_image: str = ""
+    user: str = "root"
+    exposed_ports: List[int] = Field(default_factory=list)
+    total_layers: int = 0
+    score: float = Field(100.0, ge=0, le=100)
+    org_id: str = "default"
+    scanned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ContainerSecurityScanner:
+    """Analyse Dockerfiles for security misconfigurations (20+ checks)."""
+
+    def __init__(self, db_path: Optional[str] = None) -> None:
+        self._db_path = db_path or str(_SCANNER_DB_PATH)
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def scan_dockerfile(
+        self,
+        content: str,
+        file_path: str = "Dockerfile",
+        org_id: str = "default",
+    ) -> DockerfileAnalysis:
+        """Parse *content* as a Dockerfile and return a full security analysis."""
+        instructions = self._parse_dockerfile(content)
+
+        findings: List[ContainerFinding] = []
+        findings.extend(self._check_root_user(instructions, file_path))
+        findings.extend(self._check_secrets(instructions, file_path))
+        findings.extend(self._check_packages(instructions, file_path))
+        findings.extend(self._check_base_image(instructions, file_path))
+        findings.extend(self._check_network(instructions, file_path))
+        findings.extend(self._check_filesystem(instructions, file_path))
+        findings.extend(self._check_runtime(instructions, file_path, content))
+
+        base_image = self._extract_base_image(instructions)
+        user = self._extract_user(instructions)
+        exposed_ports = self._extract_ports(instructions)
+        total_layers = sum(1 for i in instructions if i["cmd"] in {"RUN", "COPY", "ADD"})
+        score = self.score_analysis(findings)
+
+        analysis = DockerfileAnalysis(
+            file_path=file_path,
+            findings=findings,
+            base_image=base_image,
+            user=user,
+            exposed_ports=exposed_ports,
+            total_layers=total_layers,
+            score=score,
+            org_id=org_id,
+        )
+        self._persist_analysis(analysis)
+        return analysis
+
+    def get_checks(self) -> List[Dict[str, Any]]:
+        """Return metadata for all built-in checks."""
+        return [
+            {"id": "DKR-001", "category": CheckCategory.USER_PRIVILEGE, "severity": Severity.HIGH, "title": "Running as root (no USER directive)"},
+            {"id": "DKR-002", "category": CheckCategory.USER_PRIVILEGE, "severity": Severity.HIGH, "title": "Explicit root USER directive"},
+            {"id": "DKR-010", "category": CheckCategory.SECRETS, "severity": Severity.CRITICAL, "title": "Secret in ENV"},
+            {"id": "DKR-011", "category": CheckCategory.SECRETS, "severity": Severity.CRITICAL, "title": "Secret in ARG"},
+            {"id": "DKR-012", "category": CheckCategory.SECRETS, "severity": Severity.HIGH, "title": "Secret file copied into image"},
+            {"id": "DKR-020", "category": CheckCategory.PACKAGES, "severity": Severity.MEDIUM, "title": "Risky package installed"},
+            {"id": "DKR-021", "category": CheckCategory.PACKAGES, "severity": Severity.LOW, "title": "apt packages without version pins"},
+            {"id": "DKR-022", "category": CheckCategory.PACKAGES, "severity": Severity.LOW, "title": "apt cache not cleaned"},
+            {"id": "DKR-023", "category": CheckCategory.PACKAGES, "severity": Severity.LOW, "title": "apk add without --no-cache"},
+            {"id": "DKR-030", "category": CheckCategory.BASE_IMAGE, "severity": Severity.HIGH, "title": "Base image uses :latest tag"},
+            {"id": "DKR-031", "category": CheckCategory.BASE_IMAGE, "severity": Severity.MEDIUM, "title": "Base image not digest-pinned"},
+            {"id": "DKR-032", "category": CheckCategory.BASE_IMAGE, "severity": Severity.MEDIUM, "title": "Untrusted base registry"},
+            {"id": "DKR-033", "category": CheckCategory.BASE_IMAGE, "severity": Severity.LOW, "title": "Full OS base image"},
+            {"id": "DKR-040", "category": CheckCategory.NETWORK, "severity": Severity.HIGH, "title": "Sensitive port exposed"},
+            {"id": "DKR-041", "category": CheckCategory.NETWORK, "severity": Severity.MEDIUM, "title": "Privileged port exposed"},
+            {"id": "DKR-050", "category": CheckCategory.FILESYSTEM, "severity": Severity.MEDIUM, "title": "Copying entire build context"},
+            {"id": "DKR-051", "category": CheckCategory.FILESYSTEM, "severity": Severity.HIGH, "title": "Secret file added to image"},
+            {"id": "DKR-052", "category": CheckCategory.FILESYSTEM, "severity": Severity.LOW, "title": "No read-only filesystem hint"},
+            {"id": "DKR-060", "category": CheckCategory.RUNTIME, "severity": Severity.CRITICAL, "title": "Privileged mode hint"},
+            {"id": "DKR-061", "category": CheckCategory.RUNTIME, "severity": Severity.HIGH, "title": "Dangerous capability hint"},
+            {"id": "DKR-062", "category": CheckCategory.RUNTIME, "severity": Severity.MEDIUM, "title": "No HEALTHCHECK instruction"},
+            {"id": "DKR-063", "category": CheckCategory.RUNTIME, "severity": Severity.INFO, "title": "No explicit SHELL instruction"},
+        ]
+
+    def score_analysis(self, findings: List[ContainerFinding]) -> float:
+        """Return a 0-100 security score. 100 = no issues."""
+        deductions: Dict[Severity, float] = {
+            Severity.CRITICAL: 25.0,
+            Severity.HIGH: 15.0,
+            Severity.MEDIUM: 7.0,
+            Severity.LOW: 3.0,
+            Severity.INFO: 0.5,
+        }
+        total = sum(deductions.get(f.severity, 0) for f in findings)
+        return max(0.0, round(100.0 - total, 1))
+
+    def get_scan_history(self, org_id: str = "default") -> List[DockerfileAnalysis]:
+        """Return all past analyses for *org_id*, most-recent first."""
+        try:
+            conn = sqlite3.connect(self._db_path)
+            cur = conn.execute(
+                "SELECT data FROM container_analyses WHERE org_id = ? ORDER BY scanned_at DESC",
+                (org_id,),
+            )
+            rows = cur.fetchall()
+            conn.close()
+            return [DockerfileAnalysis.model_validate(json.loads(r[0])) for r in rows]
+        except Exception as exc:
+            logger.warning("get_scan_history failed: %s", exc)
+            return []
+
+    def get_scanner_stats(self, org_id: str = "default") -> Dict[str, Any]:
+        """Return aggregate statistics for *org_id*."""
+        history = self.get_scan_history(org_id)
+        if not history:
+            return {"total_scans": 0, "avg_score": 0.0, "total_findings": 0, "by_severity": {}, "by_category": {}}
+
+        all_findings = [f for a in history for f in a.findings]
+        by_severity: Dict[str, int] = {}
+        by_category: Dict[str, int] = {}
+        for f in all_findings:
+            by_severity[f.severity.value] = by_severity.get(f.severity.value, 0) + 1
+            by_category[f.category.value] = by_category.get(f.category.value, 0) + 1
+
+        avg_score = round(sum(a.score for a in history) / len(history), 1)
+        return {
+            "total_scans": len(history),
+            "avg_score": avg_score,
+            "total_findings": len(all_findings),
+            "by_severity": by_severity,
+            "by_category": by_category,
+        }
+
+    # ------------------------------------------------------------------
+    # Check methods
+    # ------------------------------------------------------------------
+
+    def _check_root_user(
+        self, instructions: List[Dict[str, Any]], file_path: str
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        user_instructions = [i for i in instructions if i["cmd"] == "USER"]
+
+        if not user_instructions:
+            findings.append(ContainerFinding(
+                check_id="DKR-001",
+                title="Container runs as root",
+                description="No USER instruction found — container defaults to root.",
+                severity=Severity.HIGH,
+                category=CheckCategory.USER_PRIVILEGE,
+                file_path=file_path,
+                remediation="Add USER <nonroot> before CMD/ENTRYPOINT.",
+            ))
+        else:
+            for instr in user_instructions:
+                val = instr["value"].strip().lower()
+                if val in {"root", "0", "0:0", "root:root"}:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-002",
+                        title="Explicit root USER directive",
+                        description=f"USER is explicitly set to '{instr['value']}' on line {instr['line']}.",
+                        severity=Severity.HIGH,
+                        category=CheckCategory.USER_PRIVILEGE,
+                        line_number=instr["line"],
+                        file_path=file_path,
+                        remediation="Change USER to a non-root user.",
+                    ))
+        return findings
+
+    def _check_secrets(
+        self, instructions: List[Dict[str, Any]], file_path: str
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        for instr in instructions:
+            cmd, value, line = instr["cmd"], instr["value"], instr["line"]
+
+            if cmd == "ENV":
+                pairs = re.findall(r"(\w+)\s*=\s*\S+", value)
+                if not pairs:
+                    parts = value.split(None, 1)
+                    pairs = [parts[0]] if parts else []
+                for key in pairs:
+                    if _SECRET_KEY_RE.search(key):
+                        findings.append(ContainerFinding(
+                            check_id="DKR-010",
+                            title=f"Secret-like ENV key: {key}",
+                            description=f"ENV on line {line} contains key '{key}' — visible in docker inspect.",
+                            severity=Severity.CRITICAL,
+                            category=CheckCategory.SECRETS,
+                            line_number=line,
+                            file_path=file_path,
+                            remediation="Use Docker secrets (--secret) or runtime env injection.",
+                        ))
+
+            elif cmd == "ARG":
+                key = value.split("=")[0].split()[0] if value else ""
+                if key and _SECRET_KEY_RE.search(key):
+                    findings.append(ContainerFinding(
+                        check_id="DKR-011",
+                        title=f"Secret-like ARG key: {key}",
+                        description=f"ARG on line {line} with key '{key}' is visible in image history.",
+                        severity=Severity.CRITICAL,
+                        category=CheckCategory.SECRETS,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Use --secret flag with BuildKit instead of ARG for secrets.",
+                    ))
+
+            elif cmd in {"COPY", "ADD"}:
+                src_parts = value.split()
+                for src in src_parts[:-1]:
+                    fname = _Path(src).name.lower()
+                    if _SECRET_KEY_RE.search(fname) or fname.endswith(
+                        (".pem", ".key", ".p12", ".pfx", ".jks", ".keystore")
+                    ):
+                        findings.append(ContainerFinding(
+                            check_id="DKR-012",
+                            title=f"Secret file copied: {src}",
+                            description=f"Line {line}: COPY/ADD copies '{src}' which looks like a secret or key file.",
+                            severity=Severity.HIGH,
+                            category=CheckCategory.SECRETS,
+                            line_number=line,
+                            file_path=file_path,
+                            remediation="Use BuildKit secret mounts (--mount=type=secret) instead.",
+                        ))
+        return findings
+
+    def _check_packages(
+        self, instructions: List[Dict[str, Any]], file_path: str
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        for instr in instructions:
+            if instr["cmd"] != "RUN":
+                continue
+            value, line = instr["value"], instr["line"]
+
+            if re.search(r"apt-get\s+install|apt\s+install", value):
+                for pkg in _RISKY_PKGS:
+                    if re.search(rf"\b{re.escape(pkg)}\b", value):
+                        findings.append(ContainerFinding(
+                            check_id="DKR-020",
+                            title=f"Risky package installed: {pkg}",
+                            description=f"Line {line}: '{pkg}' increases attack surface in production images.",
+                            severity=Severity.MEDIUM,
+                            category=CheckCategory.PACKAGES,
+                            line_number=line,
+                            file_path=file_path,
+                            remediation=f"Remove '{pkg}'. Use multi-stage builds to isolate build-time tools.",
+                        ))
+                pkgs_without_pin = re.findall(
+                    r"apt(?:-get)?\s+install(?:\s+-\S+)*\s+((?:(?!\S+=\S+)\S+\s*)+)", value
+                )
+                if pkgs_without_pin:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-021",
+                        title="apt packages without version pins",
+                        description=f"Line {line}: apt install without version pins produces non-reproducible builds.",
+                        severity=Severity.LOW,
+                        category=CheckCategory.PACKAGES,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Pin versions, e.g.: apt-get install -y curl=7.68.0-1",
+                    ))
+                if "rm -rf /var/lib/apt/lists" not in value:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-022",
+                        title="apt cache not cleaned",
+                        description=f"Line {line}: apt-get install without cleaning cache bloats image layers.",
+                        severity=Severity.LOW,
+                        category=CheckCategory.PACKAGES,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Add '&& rm -rf /var/lib/apt/lists/*' after apt-get install.",
+                    ))
+
+            if re.search(r"apk\s+add", value):
+                for pkg in _RISKY_PKGS:
+                    if re.search(rf"\b{re.escape(pkg)}\b", value):
+                        findings.append(ContainerFinding(
+                            check_id="DKR-020",
+                            title=f"Risky package installed: {pkg}",
+                            description=f"Line {line}: Alpine package '{pkg}' is unnecessary in production.",
+                            severity=Severity.MEDIUM,
+                            category=CheckCategory.PACKAGES,
+                            line_number=line,
+                            file_path=file_path,
+                            remediation=f"Remove '{pkg}' from the production image.",
+                        ))
+                if "--no-cache" not in value and "apk cache clean" not in value:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-023",
+                        title="apk add without --no-cache",
+                        description=f"Line {line}: apk add without --no-cache leaves cache in image.",
+                        severity=Severity.LOW,
+                        category=CheckCategory.PACKAGES,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Use 'apk add --no-cache <package>'.",
+                    ))
+        return findings
+
+    def _check_base_image(
+        self, instructions: List[Dict[str, Any]], file_path: str
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        for instr in [i for i in instructions if i["cmd"] == "FROM"]:
+            raw_image = instr["value"].split()[0]
+            line = instr["line"]
+            if raw_image.upper() == "SCRATCH":
+                continue
+
+            if "@sha256:" in raw_image:
+                pass  # pinned — no latest/digest findings
+            elif ":" in raw_image:
+                tag = raw_image.rsplit(":", 1)[1]
+                if tag == "latest":
+                    findings.append(ContainerFinding(
+                        check_id="DKR-030",
+                        title="Base image uses :latest tag",
+                        description=f"Line {line}: FROM {raw_image} — :latest is non-deterministic.",
+                        severity=Severity.HIGH,
+                        category=CheckCategory.BASE_IMAGE,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Pin to a specific tag or @sha256 digest.",
+                    ))
+                else:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-031",
+                        title="Base image not digest-pinned",
+                        description=f"Line {line}: '{raw_image}' has a tag but no @sha256 digest. Tags are mutable.",
+                        severity=Severity.MEDIUM,
+                        category=CheckCategory.BASE_IMAGE,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Append @sha256:<digest> for immutable pinning.",
+                    ))
+            else:
+                findings.append(ContainerFinding(
+                    check_id="DKR-030",
+                    title="Base image uses implicit :latest tag",
+                    description=f"Line {line}: FROM {raw_image} has no tag — defaults to :latest.",
+                    severity=Severity.HIGH,
+                    category=CheckCategory.BASE_IMAGE,
+                    line_number=line,
+                    file_path=file_path,
+                    remediation="Pin to a specific version tag.",
+                ))
+
+            if "/" in raw_image:
+                registry = raw_image.split("/")[0]
+                if "." in registry and registry not in _TRUSTED_REGISTRIES:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-032",
+                        title=f"Untrusted registry: {registry}",
+                        description=f"Line {line}: Registry '{registry}' is not in the trusted list.",
+                        severity=Severity.MEDIUM,
+                        category=CheckCategory.BASE_IMAGE,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Use images from trusted registries or mirror to your private registry.",
+                    ))
+
+            img_lower = raw_image.lower()
+            base_name = img_lower.split("/")[-1].split(":")[0].split("@")[0]
+            full_os = {"ubuntu", "debian", "centos", "fedora", "amazonlinux"}
+            if base_name in full_os and "slim" not in img_lower and "alpine" not in img_lower:
+                findings.append(ContainerFinding(
+                    check_id="DKR-033",
+                    title=f"Full OS base image: {base_name}",
+                    description=f"Line {line}: Full OS base increases attack surface.",
+                    severity=Severity.LOW,
+                    category=CheckCategory.BASE_IMAGE,
+                    line_number=line,
+                    file_path=file_path,
+                    remediation="Switch to a slim/alpine/distroless variant.",
+                ))
+        return findings
+
+    def _check_network(
+        self, instructions: List[Dict[str, Any]], file_path: str
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        for instr in [i for i in instructions if i["cmd"] == "EXPOSE"]:
+            line = instr["line"]
+            for token in instr["value"].split():
+                try:
+                    port = int(token.split("/")[0])
+                except ValueError:
+                    continue
+                if port in _SENSITIVE_PORTS:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-040",
+                        title=f"Sensitive port exposed: {port} ({_SENSITIVE_PORTS[port]})",
+                        description=f"Line {line}: EXPOSE {port} exposes {_SENSITIVE_PORTS[port]}.",
+                        severity=Severity.HIGH,
+                        category=CheckCategory.NETWORK,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation=f"Remove EXPOSE {port} and restrict access via network policies.",
+                    ))
+                elif port < 1024:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-041",
+                        title=f"Privileged port exposed: {port}",
+                        description=f"Line {line}: Ports below 1024 require elevated privileges.",
+                        severity=Severity.MEDIUM,
+                        category=CheckCategory.NETWORK,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Use a port >= 1024 or a reverse proxy.",
+                    ))
+        return findings
+
+    def _check_filesystem(
+        self, instructions: List[Dict[str, Any]], file_path: str
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        for instr in instructions:
+            cmd, value, line = instr["cmd"], instr["value"], instr["line"]
+            if cmd not in {"COPY", "ADD"}:
+                continue
+            parts = value.split()
+            if len(parts) >= 2:
+                src = parts[0]
+                if src in {".", "./"}:
+                    findings.append(ContainerFinding(
+                        check_id="DKR-050",
+                        title="Copying entire build context",
+                        description=f"Line {line}: 'COPY . .' risks including .env files and credentials.",
+                        severity=Severity.MEDIUM,
+                        category=CheckCategory.FILESYSTEM,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Use an explicit allowlist and maintain a .dockerignore file.",
+                    ))
+                fname = _Path(src).name.lower()
+                if _SECRET_KEY_RE.search(fname) or fname.endswith(
+                    (".pem", ".key", ".p12", ".pfx", ".jks", ".keystore", ".env")
+                ):
+                    findings.append(ContainerFinding(
+                        check_id="DKR-051",
+                        title=f"Secret file added to image: {src}",
+                        description=f"Line {line}: '{src}' appears to be a credentials or key file.",
+                        severity=Severity.HIGH,
+                        category=CheckCategory.FILESYSTEM,
+                        line_number=line,
+                        file_path=file_path,
+                        remediation="Use BuildKit secret mounts or inject secrets at runtime.",
+                    ))
+
+        findings.append(ContainerFinding(
+            check_id="DKR-052",
+            title="No read-only filesystem hint",
+            description="No indication the container filesystem will be read-only at runtime.",
+            severity=Severity.LOW,
+            category=CheckCategory.FILESYSTEM,
+            file_path=file_path,
+            remediation="Run with --read-only and mount only required writable paths as tmpfs.",
+        ))
+        return findings
+
+    def _check_runtime(
+        self, instructions: List[Dict[str, Any]], file_path: str, raw_content: str = ""
+    ) -> List[ContainerFinding]:
+        findings: List[ContainerFinding] = []
+        # Use raw content (includes comments/labels) so hints like `--privileged` in comments are caught
+        full_text = (raw_content or "\n".join(f"{i['cmd']} {i['value']}" for i in instructions)).lower()
+
+        if "--privileged" in full_text or "privileged=true" in full_text:
+            findings.append(ContainerFinding(
+                check_id="DKR-060",
+                title="Privileged mode hint detected",
+                description="Dockerfile references '--privileged' which disables all security boundaries.",
+                severity=Severity.CRITICAL,
+                category=CheckCategory.RUNTIME,
+                file_path=file_path,
+                remediation="Remove privileged mode. Use --cap-add for specific capabilities if needed.",
+            ))
+
+        dangerous_caps = ["cap_sys_admin", "sys_admin", "cap_net_admin", "net_admin", "cap_sys_ptrace", "sys_ptrace"]
+        for cap in dangerous_caps:
+            if cap in full_text:
+                findings.append(ContainerFinding(
+                    check_id="DKR-061",
+                    title=f"Dangerous capability hint: {cap.upper()}",
+                    description=f"Dockerfile references '{cap}' — grants elevated kernel privileges.",
+                    severity=Severity.HIGH,
+                    category=CheckCategory.RUNTIME,
+                    file_path=file_path,
+                    remediation="Avoid dangerous capabilities. Use least privilege and drop all unnecessary caps.",
+                ))
+                break
+
+        if not any(i["cmd"] == "HEALTHCHECK" for i in instructions):
+            findings.append(ContainerFinding(
+                check_id="DKR-062",
+                title="No HEALTHCHECK instruction",
+                description="Without HEALTHCHECK, orchestrators cannot detect application-level failures.",
+                severity=Severity.MEDIUM,
+                category=CheckCategory.RUNTIME,
+                file_path=file_path,
+                remediation="Add: HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost/ || exit 1",
+            ))
+
+        if not any(i["cmd"] == "SHELL" for i in instructions):
+            findings.append(ContainerFinding(
+                check_id="DKR-063",
+                title="No explicit SHELL instruction",
+                description="Container uses the default /bin/sh -c shell — less explicit and no pipefail.",
+                severity=Severity.INFO,
+                category=CheckCategory.RUNTIME,
+                file_path=file_path,
+                remediation='Add: SHELL ["/bin/bash", "-o", "pipefail", "-c"]',
+            ))
+        return findings
+
+    # ------------------------------------------------------------------
+    # Parsing helpers
+    # ------------------------------------------------------------------
+
+    def _parse_dockerfile(self, content: str) -> List[Dict[str, Any]]:
+        """Parse Dockerfile content into instruction dicts with cmd, value, line keys."""
+        instructions: List[Dict[str, Any]] = []
+        lines = content.splitlines()
+        i = 0
+        while i < len(lines):
+            raw = lines[i].rstrip()
+            line_num = i + 1
+            stripped = raw.lstrip()
+            if not stripped or stripped.startswith("#"):
+                i += 1
+                continue
+            while raw.endswith("\\"):
+                raw = raw[:-1].rstrip()
+                i += 1
+                if i < len(lines):
+                    raw += " " + lines[i].lstrip()
+            parts = raw.split(None, 1)
+            if not parts:
+                i += 1
+                continue
+            instructions.append({
+                "cmd": parts[0].upper(),
+                "value": parts[1].strip() if len(parts) > 1 else "",
+                "line": line_num,
+            })
+            i += 1
+        return instructions
+
+    def _extract_base_image(self, instructions: List[Dict[str, Any]]) -> str:
+        for i in instructions:
+            if i["cmd"] == "FROM":
+                return i["value"].split()[0]
+        return ""
+
+    def _extract_user(self, instructions: List[Dict[str, Any]]) -> str:
+        user = "root"
+        for i in instructions:
+            if i["cmd"] == "USER":
+                user = i["value"].strip()
+        return user
+
+    def _extract_ports(self, instructions: List[Dict[str, Any]]) -> List[int]:
+        ports: List[int] = []
+        for i in instructions:
+            if i["cmd"] == "EXPOSE":
+                for token in i["value"].split():
+                    try:
+                        ports.append(int(token.split("/")[0]))
+                    except ValueError:
+                        pass
+        return ports
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+
+    def _init_db(self) -> None:
+        try:
+            _Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(self._db_path)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS container_analyses (
+                    id TEXT PRIMARY KEY,
+                    org_id TEXT NOT NULL,
+                    file_path TEXT NOT NULL,
+                    score REAL NOT NULL,
+                    scanned_at TEXT NOT NULL,
+                    data TEXT NOT NULL
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_org_scanned ON container_analyses (org_id, scanned_at)"
+            )
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            logger.warning("ContainerSecurityScanner DB init failed: %s", exc)
+
+    def _persist_analysis(self, analysis: DockerfileAnalysis) -> None:
+        try:
+            conn = sqlite3.connect(self._db_path)
+            conn.execute(
+                "INSERT INTO container_analyses (id, org_id, file_path, score, scanned_at, data) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    analysis.id,
+                    analysis.org_id,
+                    analysis.file_path,
+                    analysis.score,
+                    analysis.scanned_at.isoformat(),
+                    analysis.model_dump_json(),
+                ),
+            )
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            logger.warning("ContainerSecurityScanner persist failed: %s", exc)
