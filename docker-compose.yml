@@ -1,8 +1,10 @@
 # ============================================
 # ALdeci CTEM+ Platform — Docker Compose
 # ============================================
-# Quick start:  docker compose up
-# With DTrack:  docker compose --profile dtrack up
+# Quick start:     docker compose up
+# Full stack:      docker compose --profile ui up
+# With DTrack:     docker compose --profile dtrack up
+# Index TrustGraph: docker compose run --rm trustgraph-init
 # ============================================
 
 services:
@@ -19,8 +21,10 @@ services:
       - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:-}
       - FIXOPS_MODE=enterprise
       - FIXOPS_DISABLE_RATE_LIMIT=${FIXOPS_DISABLE_RATE_LIMIT:-0}
+      - FIXOPS_USE_COUNCIL=${FIXOPS_USE_COUNCIL:-0}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     volumes:
       - aldeci-data:/app/data
       - aldeci-state:/app/.fixops_data
@@ -35,6 +39,38 @@ services:
       resources:
         limits:
           memory: 4G
+
+  # New UI dev server (React 19 + Vite 6)
+  aldeci-ui:
+    build:
+      context: suite-ui/aldeci-ui-new
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:${ALDECI_PORT:-8000}
+    container_name: aldeci-ui
+    ports:
+      - "${ALDECI_UI_PORT:-3000}:80"
+    depends_on:
+      aldeci:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - ui
+
+  # TrustGraph indexer (one-shot: populates Knowledge Cores)
+  trustgraph-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aldeci-trustgraph-init
+    command: ["python", "-c", "from core.trustgraph_indexer import run_indexer; stats = run_indexer(); print(f'Indexed {stats[\"total\"]} entities')"]
+    environment:
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo}
+      - FIXOPS_MODE=enterprise
+    volumes:
+      - aldeci-data:/app/data
+    profiles:
+      - init
 
   # OWASP Dependency-Track (optional — SBOM analysis)
   dtrack-api:
