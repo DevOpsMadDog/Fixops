@@ -94,6 +94,32 @@ from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
 from apps.api.users_router import public_router as users_public_router
 from apps.api.workflows_router import router as workflows_router
+
+# Phase 10: New routers for E2E pipeline
+# WebSocket router for real-time event streaming
+websocket_router: Optional[APIRouter] = None
+try:
+    from apps.api.websocket_routes import router as websocket_router
+    logging.getLogger(__name__).info("Loaded WebSocket router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("WebSocket router not available: %s", e)
+
+# MCP/GraphRAG router for knowledge graph integration
+mcp_router: Optional[APIRouter] = None
+try:
+    from apps.api.mcp_routes import router as mcp_router
+    logging.getLogger(__name__).info("Loaded MCP/GraphRAG router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("MCP/GraphRAG router not available: %s", e)
+
+# Playbook automation router
+playbook_router: Optional[APIRouter] = None
+try:
+    from apps.api.playbook_routes import router as playbook_router
+    logging.getLogger(__name__).info("Loaded Playbook automation router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Playbook automation router not available: %s", e)
+
 from fastapi import (
     APIRouter,
     Body,
@@ -1679,6 +1705,31 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+
+    # Phase 10: New E2E pipeline routers
+    # WebSocket router for real-time event streaming (EventBus, pipeline events)
+    if websocket_router:
+        app.include_router(
+            websocket_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted WebSocket router")
+
+    # MCP/GraphRAG router for knowledge graph and decision memory
+    if mcp_router:
+        app.include_router(
+            mcp_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted MCP/GraphRAG router")
+
+    # Playbook automation router for orchestrated remediation
+    if playbook_router:
+        app.include_router(
+            playbook_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Playbook automation router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
