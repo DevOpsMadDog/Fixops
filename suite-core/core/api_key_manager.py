@@ -1,392 +1,469 @@
 """
-api_key_manager.py — Enterprise API Key Management for FixOps CTEM+ Platform.
+API Key Lifecycle Management — scoped permissions, usage tracking, expiration.
 
-Provides cryptographically secure API key generation, hashing, validation,
-JWT token issuance, and key rotation utilities following Stripe-style key
-format conventions.
+Provides full key lifecycle: create, validate, rotate, revoke, list, update.
 
-Usage:
-    from core.api_key_manager import APIKeyManager
+Key format: ``aldeci_`` + 32 hex chars  (e.g. ``aldeci_a1b2c3d4e5f6...``).
+Keys are SHA-256 hashed before storage — plaintext is returned ONCE on creation.
 
-    mgr = APIKeyManager(jwt_secret="your-64-char-hex-secret")
-    key = mgr.generate_api_key()
-    token = mgr.generate_jwt_token("user@example.com", "admin", ["read", "write"])
-    hashed = mgr.hash_api_key(key)
-    valid = mgr.validate_key_format(key)
-    old_key, new_key = mgr.rotate_key(key)
+Thread-safe via per-thread SQLite connections (WAL mode).
+
+Usage::
+
+    mgr = APIKeyManager()
+    key, raw = mgr.create_key(name="CI", org_id="acme", role=RBACRole.ADMIN,
+                               scopes=["read:findings"])
+    validated = mgr.validate_key(raw)   # increments use_count + last_used_at
+    mgr.revoke_key(key.id)
+
+Environment:
+    FIXOPS_DATA_DIR   directory for the SQLite DB (default: ``.fixops_data``)
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
+import logging
 import os
-import re
 import secrets
-import uuid
-from base64 import urlsafe_b64encode
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+import sqlite3
+import threading
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+from core.rbac import RBACRole
+
+_logger = logging.getLogger(__name__)
+
+_KEY_PREFIX = "aldeci_"
+_KEY_HEX_LEN = 32        # 16 random bytes → 32 hex chars
+_DB_ENV = "FIXOPS_DATA_DIR"
+_DEFAULT_DB_DIR = ".fixops_data"
 
 
 # ---------------------------------------------------------------------------
-# Optional JWT support (PyJWT)
-# ---------------------------------------------------------------------------
-try:
-    import jwt as _pyjwt  # type: ignore
-
-    _JWT_AVAILABLE = True
-except ImportError:  # pragma: no cover
-    _pyjwt = None  # type: ignore
-    _JWT_AVAILABLE = False
-
-
-# ---------------------------------------------------------------------------
-# Key format constants
-# ---------------------------------------------------------------------------
-
-_KEY_PREFIX_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
-_KEY_FULL_PATTERN = re.compile(r"^[a-z][a-z0-9_]*_sk_[A-Za-z0-9_-]{43}$")
-
-# Base64url encodes 32 bytes → 43 characters (no padding)
-_KEY_BYTES = 32
-_B64_LEN = 43  # ceil(32 * 4 / 3) without padding
-
-
-# ---------------------------------------------------------------------------
-# Key metadata dataclass (plain dict to avoid dataclass import weight)
+# Pydantic model
 # ---------------------------------------------------------------------------
 
 
-def _utcnow() -> datetime:
+class APIKey(BaseModel):
+    """API key record.
+
+    ``key_hash`` stores the SHA-256 digest and is excluded from all
+    serialised output so it is never accidentally returned in API responses.
+    """
+
+    id: str
+    name: str
+    key_hash: str = Field(exclude=True)   # SHA-256 — never returned via API
+    prefix: str                            # first 8 chars of raw key (display/lookup)
+    org_id: str
+    created_by: str
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    use_count: int = 0
+    rate_limit: int = 60                  # requests / minute
+    scopes: List[str] = Field(default_factory=list)
+    role: RBACRole = RBACRole.VIEWER
+    is_active: bool = True
+    description: str = ""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _hash_key(raw: str) -> str:
+    """SHA-256 hex digest of a raw API key."""
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _generate_raw_key() -> str:
+    """Generate ``aldeci_`` + 32 random hex chars."""
+    return _KEY_PREFIX + secrets.token_hex(_KEY_HEX_LEN // 2)  # 16 bytes → 32 hex
+
+
+def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _make_metadata(
-    key_hash: str,
-    *,
-    description: str = "",
-    org_id: str = "",
-    scopes: Optional[List[str]] = None,
-    expires_hours: Optional[int] = None,
-) -> Dict[str, Any]:
-    """Return a metadata dict for a newly generated key."""
-    now = _utcnow()
-    expires_at: Optional[str] = None
-    if expires_hours is not None:
-        expires_at = (now + timedelta(hours=expires_hours)).isoformat()
-    return {
-        "key_hash": key_hash,
-        "created_at": now.isoformat(),
-        "expires_at": expires_at,
-        "scopes": scopes or [],
-        "description": description,
-        "org_id": org_id,
-        "key_id": str(uuid.uuid4()),
-        "active": True,
-    }
+def _parse_dt(val: Optional[str]) -> Optional[datetime]:
+    if not val:
+        return None
+    return datetime.fromisoformat(val)
 
 
 # ---------------------------------------------------------------------------
-# APIKeyManager
+# Manager
 # ---------------------------------------------------------------------------
 
 
 class APIKeyManager:
-    """Enterprise API key and JWT management for the FixOps platform.
+    """
+    SQLite-backed API key manager.
 
-    Parameters
-    ----------
-    jwt_secret:
-        Secret used to sign JWT tokens.  Falls back to the
-        ``FIXOPS_JWT_SECRET`` environment variable.  Required for
-        ``generate_jwt_token``.
-    prefix:
-        Default key prefix (e.g. ``"fixops"``).  Must match
-        ``[a-z][a-z0-9_]*``.
-    jwt_algorithm:
-        JWT signing algorithm (default ``HS256``).
+    Thread-safe: each thread keeps its own connection via ``threading.local``.
+    Singleton pattern: calling ``APIKeyManager()`` without arguments returns
+    the same instance; pass an explicit ``db_path`` to create a separate
+    instance (useful for testing).
     """
 
-    def __init__(
-        self,
-        jwt_secret: Optional[str] = None,
-        prefix: str = "fixops",
-        jwt_algorithm: str = "HS256",
-    ) -> None:
-        if not _KEY_PREFIX_PATTERN.match(prefix):
-            raise ValueError(
-                f"Invalid prefix '{prefix}'. Must match [a-z][a-z0-9_]*."
-            )
-        self._default_prefix = prefix
-        self._jwt_secret = jwt_secret or os.environ.get("FIXOPS_JWT_SECRET", "")
-        self._jwt_algorithm = jwt_algorithm
+    _instance: Optional["APIKeyManager"] = None
+    _class_lock: threading.Lock = threading.Lock()
+
+    def __new__(cls, db_path: Optional[str] = None) -> "APIKeyManager":
+        with cls._class_lock:
+            if db_path is not None:
+                # Explicit path — always create a fresh instance (tests, etc.)
+                inst = object.__new__(cls)
+                inst._init(db_path)
+                return inst
+            if cls._instance is None:
+                inst = object.__new__(cls)
+                default_path = os.path.join(
+                    os.getenv(_DB_ENV, _DEFAULT_DB_DIR), "api_keys.db"
+                )
+                inst._init(default_path)
+                cls._instance = inst
+            return cls._instance  # type: ignore[return-value]
+
+    # ------------------------------------------------------------------
+    # Initialisation
+    # ------------------------------------------------------------------
+
+    def _init(self, db_path: str) -> None:
+        self._db_path = db_path
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self._local = threading.local()
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self._db_path)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.row_factory = sqlite3.Row
+            self._local.conn = conn
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    id           TEXT PRIMARY KEY,
+                    name         TEXT NOT NULL,
+                    key_hash     TEXT NOT NULL UNIQUE,
+                    prefix       TEXT NOT NULL,
+                    org_id       TEXT NOT NULL,
+                    created_by   TEXT NOT NULL,
+                    created_at   TEXT NOT NULL,
+                    expires_at   TEXT,
+                    last_used_at TEXT,
+                    use_count    INTEGER NOT NULL DEFAULT 0,
+                    rate_limit   INTEGER NOT NULL DEFAULT 60,
+                    scopes       TEXT    NOT NULL DEFAULT '[]',
+                    role         TEXT    NOT NULL DEFAULT 'viewer',
+                    is_active    INTEGER NOT NULL DEFAULT 1,
+                    description  TEXT    NOT NULL DEFAULT ''
+                )
+            """)
+
+    # ------------------------------------------------------------------
+    # Row converter
+    # ------------------------------------------------------------------
+
+    def _row_to_key(self, row: Dict[str, Any]) -> APIKey:
+        try:
+            role = RBACRole(row["role"])
+        except ValueError:
+            role = RBACRole.VIEWER
+
+        return APIKey(
+            id=row["id"],
+            name=row["name"],
+            key_hash=row["key_hash"],
+            prefix=row["prefix"],
+            org_id=row["org_id"],
+            created_by=row["created_by"],
+            created_at=_parse_dt(row["created_at"]) or _now(),
+            expires_at=_parse_dt(row.get("expires_at")),
+            last_used_at=_parse_dt(row.get("last_used_at")),
+            use_count=int(row.get("use_count", 0)),
+            rate_limit=int(row.get("rate_limit", 60)),
+            scopes=json.loads(row.get("scopes", "[]")),
+            role=role,
+            is_active=bool(row.get("is_active", True)),
+            description=row.get("description", ""),
+        )
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def generate_api_key(
+    def create_key(
         self,
-        prefix: Optional[str] = None,
-        *,
-        description: str = "",
-        org_id: str = "",
-        scopes: Optional[List[str]] = None,
-        expires_hours: Optional[int] = None,
-    ) -> str:
-        """Generate a new API key.
-
-        Returns a key in the format ``<prefix>_sk_<base64url-32-bytes>``,
-        e.g. ``fixops_sk_dGhpcyBpcyBhIHRlc3QgdmFsdWU``.
-
-        The key is generated using :func:`secrets.token_bytes` for
-        cryptographic randomness.
-
-        Parameters
-        ----------
-        prefix:
-            Key prefix (defaults to the manager's ``prefix`` setting).
-        description:
-            Human-readable description for audit records.
-        org_id:
-            Organisation identifier for multi-tenant environments.
-        scopes:
-            Permission scopes granted to this key.
-        expires_hours:
-            Optional expiry duration in hours.  ``None`` means no expiry.
-
-        Returns
-        -------
-        str
-            The raw API key.  Store only its hash via :meth:`hash_api_key`.
-        """
-        effective_prefix = prefix or self._default_prefix
-        if not _KEY_PREFIX_PATTERN.match(effective_prefix):
-            raise ValueError(
-                f"Invalid prefix '{effective_prefix}'. Must match [a-z][a-z0-9_]*."
-            )
-
-        raw_bytes = secrets.token_bytes(_KEY_BYTES)
-        # urlsafe_b64encode produces base64url; strip the trailing '=' padding
-        b64 = urlsafe_b64encode(raw_bytes).rstrip(b"=").decode("ascii")
-        key = f"{effective_prefix}_sk_{b64}"
-
-        # Attach metadata to instance store (callers can retrieve via get_metadata)
-        key_hash = self.hash_api_key(key)
-        self._store_metadata(
-            key_hash,
-            description=description,
-            org_id=org_id,
-            scopes=scopes,
-            expires_hours=expires_hours,
-        )
-
-        return key
-
-    def generate_jwt_token(
-        self,
-        subject: str,
-        role: str,
-        scopes: List[str],
-        *,
-        expires_hours: int = 24,
-        org_id: str = "",
-        extra_claims: Optional[Dict[str, Any]] = None,
-    ) -> str:
-        """Generate a signed JWT token.
-
-        Parameters
-        ----------
-        subject:
-            Token subject (e.g. user email or service account name).
-        role:
-            Role claim (e.g. ``"admin"``, ``"analyst"``, ``"readonly"``).
-        scopes:
-            List of permission scopes (e.g. ``["read:vulns", "write:playbooks"]``).
-        expires_hours:
-            Token lifetime in hours (default 24).
-        org_id:
-            Organisation identifier embedded in the token.
-        extra_claims:
-            Additional claims to merge into the payload.
-
-        Returns
-        -------
-        str
-            Signed JWT string.
-
-        Raises
-        ------
-        RuntimeError
-            If PyJWT is not installed or no JWT secret is configured.
-        """
-        if not _JWT_AVAILABLE:
-            raise RuntimeError(
-                "PyJWT is required for JWT generation. "
-                "Install it with: pip install PyJWT"
-            )
-        if not self._jwt_secret:
-            raise RuntimeError(
-                "JWT secret is not configured. "
-                "Pass jwt_secret= or set FIXOPS_JWT_SECRET env var."
-            )
-
-        now = _utcnow()
-        payload: Dict[str, Any] = {
-            "sub": subject,
-            "role": role,
-            "scopes": scopes,
-            "iat": int(now.timestamp()),
-            "exp": int((now + timedelta(hours=expires_hours)).timestamp()),
-            "jti": str(uuid.uuid4()),
-            "iss": "fixops-platform",
-        }
-        if org_id:
-            payload["org_id"] = org_id
-        if extra_claims:
-            payload.update(extra_claims)
-
-        return _pyjwt.encode(payload, self._jwt_secret, algorithm=self._jwt_algorithm)
-
-    def hash_api_key(self, key: str) -> str:
-        """Return the SHA-256 hex digest of the API key.
-
-        Never store raw API keys; always store only the hash returned here.
-
-        Parameters
-        ----------
-        key:
-            Raw API key string.
-
-        Returns
-        -------
-        str
-            Lowercase hex SHA-256 digest (64 characters).
-        """
-        return hashlib.sha256(key.encode("utf-8")).hexdigest()
-
-    def validate_key_format(self, key: str) -> bool:
-        """Return ``True`` if *key* matches the expected FixOps key format.
-
-        The expected format is ``<prefix>_sk_<43-char-base64url>``.
-
-        Parameters
-        ----------
-        key:
-            API key string to validate.
-
-        Returns
-        -------
-        bool
-        """
-        return bool(_KEY_FULL_PATTERN.match(key))
-
-    def rotate_key(
-        self,
-        old_key: str,
-        *,
-        description: str = "",
-        org_id: str = "",
-        scopes: Optional[List[str]] = None,
-        expires_hours: Optional[int] = None,
-    ) -> Tuple[str, str]:
-        """Generate a replacement key for *old_key*.
-
-        The old key's prefix is preserved on the new key.  Both are returned
-        so callers can support a transition window before revoking the old one.
-
-        Parameters
-        ----------
-        old_key:
-            Existing API key to rotate.
-        description, org_id, scopes, expires_hours:
-            Metadata for the new key (same semantics as :meth:`generate_api_key`).
-
-        Returns
-        -------
-        Tuple[str, str]
-            ``(old_key, new_key)`` — keep old_key active until clients migrate.
-
-        Raises
-        ------
-        ValueError
-            If *old_key* does not match the expected format.
-        """
-        if not self.validate_key_format(old_key):
-            raise ValueError(
-                f"old_key does not match expected format. "
-                f"Got: {old_key[:20]}..."
-            )
-        # Extract the prefix from the old key (everything before "_sk_")
-        prefix = old_key.split("_sk_")[0]
-
-        new_key = self.generate_api_key(
-            prefix=prefix,
-            description=description or f"Rotated from {old_key[:20]}...",
-            org_id=org_id,
-            scopes=scopes,
-            expires_hours=expires_hours,
-        )
-        return old_key, new_key
-
-    def get_metadata(self, key_hash: str) -> Optional[Dict[str, Any]]:
-        """Retrieve stored metadata for a key by its SHA-256 hash.
-
-        Parameters
-        ----------
-        key_hash:
-            SHA-256 hex digest (from :meth:`hash_api_key`).
-
-        Returns
-        -------
-        dict or None
-        """
-        return self._key_store.get(key_hash)
-
-    def revoke_key(self, key_hash: str) -> bool:
-        """Mark a key as revoked in the in-memory store.
-
-        Parameters
-        ----------
-        key_hash:
-            SHA-256 hex digest of the key to revoke.
-
-        Returns
-        -------
-        bool
-            ``True`` if the key was found and revoked, ``False`` otherwise.
-        """
-        meta = self._key_store.get(key_hash)
-        if meta is None:
-            return False
-        meta["active"] = False
-        meta["revoked_at"] = _utcnow().isoformat()
-        return True
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    @property
-    def _key_store(self) -> Dict[str, Any]:
-        """Lazy-initialised in-memory key metadata store."""
-        if not hasattr(self, "_key_store_dict"):
-            self._key_store_dict: Dict[str, Any] = {}
-        return self._key_store_dict
-
-    def _store_metadata(
-        self,
-        key_hash: str,
-        *,
-        description: str,
+        name: str,
         org_id: str,
-        scopes: Optional[List[str]],
-        expires_hours: Optional[int],
-    ) -> None:
-        self._key_store[key_hash] = _make_metadata(
-            key_hash,
-            description=description,
+        role: RBACRole = RBACRole.VIEWER,
+        scopes: Optional[List[str]] = None,
+        expires_at: Optional[datetime] = None,
+        rate_limit: int = 60,
+        description: str = "",
+        created_by: str = "system",
+    ) -> tuple[APIKey, str]:
+        """Create a new API key.
+
+        Returns:
+            ``(APIKey, raw_key)`` — raw_key is shown ONLY at creation time.
+        """
+        raw = _generate_raw_key()
+        key_id = "ak_" + secrets.token_hex(8)
+        key_hash = _hash_key(raw)
+        prefix = raw[:8]
+        now = _now()
+        key_scopes = scopes or []
+
+        with self._conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO api_keys
+                    (id, name, key_hash, prefix, org_id, created_by, created_at,
+                     expires_at, rate_limit, scopes, role, is_active, description)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                """,
+                (
+                    key_id, name, key_hash, prefix, org_id, created_by,
+                    now.isoformat(),
+                    expires_at.isoformat() if expires_at else None,
+                    rate_limit,
+                    json.dumps(key_scopes),
+                    role.value,
+                    description,
+                ),
+            )
+
+        record = APIKey(
+            id=key_id,
+            name=name,
+            key_hash=key_hash,
+            prefix=prefix,
             org_id=org_id,
-            scopes=scopes or [],
-            expires_hours=expires_hours,
+            created_by=created_by,
+            created_at=now,
+            expires_at=expires_at,
+            rate_limit=rate_limit,
+            scopes=key_scopes,
+            role=role,
+            is_active=True,
+            description=description,
         )
+
+        _logger.info("Created API key %s for org=%s role=%s", key_id, org_id, role.value)
+        return record, raw
+
+    def validate_key(self, raw_key: str) -> Optional[APIKey]:
+        """Validate a raw API key.
+
+        Returns the ``APIKey`` record if the key is valid, active, and not
+        expired.  Also increments ``use_count`` and updates ``last_used_at``.
+
+        Returns ``None`` for any invalid / expired / revoked key.
+        """
+        key_hash = _hash_key(raw_key)
+        now = _now()
+
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM api_keys WHERE key_hash = ?", (key_hash,)
+            ).fetchone()
+
+        if not row:
+            return None
+
+        record = self._row_to_key(dict(row))
+
+        if not record.is_active:
+            return None
+
+        if record.expires_at and record.expires_at < now:
+            return None
+
+        # Update usage stats atomically
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE api_keys SET use_count = use_count + 1, last_used_at = ? WHERE id = ?",
+                (now.isoformat(), record.id),
+            )
+
+        record.use_count += 1
+        record.last_used_at = now
+        return record
+
+    def rotate_key(self, key_id: str, created_by: str = "system") -> tuple[APIKey, str]:
+        """Rotate a key — generate a new key with identical config and deactivate the old one.
+
+        Returns:
+            ``(new_APIKey, new_raw_key)``
+
+        Raises:
+            ValueError: if key not found or already inactive.
+        """
+        old = self.get_key(key_id)
+        if old is None:
+            raise ValueError(f"Key not found: {key_id}")
+        if not old.is_active:
+            raise ValueError(f"Key {key_id} is not active")
+
+        new_key, new_raw = self.create_key(
+            name=old.name,
+            org_id=old.org_id,
+            role=old.role,
+            scopes=old.scopes,
+            expires_at=old.expires_at,
+            rate_limit=old.rate_limit,
+            description=old.description,
+            created_by=created_by,
+        )
+
+        # Deactivate the old key
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE api_keys SET is_active = 0 WHERE id = ?",
+                (key_id,),
+            )
+
+        _logger.info("Rotated key %s → %s", key_id, new_key.id)
+        return new_key, new_raw
+
+    def revoke_key(self, key_id: str) -> None:
+        """Revoke a key (sets ``is_active = False``).
+
+        Raises:
+            ValueError: if key not found.
+        """
+        with self._conn() as conn:
+            result = conn.execute(
+                "UPDATE api_keys SET is_active = 0 WHERE id = ?", (key_id,)
+            )
+        if result.rowcount == 0:
+            raise ValueError(f"Key not found: {key_id}")
+        _logger.info("Revoked API key %s", key_id)
+
+    def list_keys(self, org_id: str) -> List[APIKey]:
+        """List all keys for an org ordered by creation date descending.
+
+        ``key_hash`` is excluded via the ``APIKey`` model config — safe to
+        return directly to API callers.
+        """
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM api_keys WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [self._row_to_key(dict(r)) for r in rows]
+
+    def get_key(self, key_id: str) -> Optional[APIKey]:
+        """Get a key record by ID."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM api_keys WHERE id = ?", (key_id,)
+            ).fetchone()
+        if not row:
+            return None
+        return self._row_to_key(dict(row))
+
+    def update_key(self, key_id: str, updates: Dict[str, Any]) -> APIKey:
+        """Update mutable key fields: ``name``, ``description``, ``scopes``, ``rate_limit``.
+
+        Raises:
+            ValueError: if key not found.
+        """
+        key = self.get_key(key_id)
+        if key is None:
+            raise ValueError(f"Key not found: {key_id}")
+
+        allowed = {"name", "description", "scopes", "rate_limit"}
+        cols: List[str] = []
+        params: List[Any] = []
+
+        for field_name, value in updates.items():
+            if field_name not in allowed:
+                continue
+            if field_name == "scopes":
+                cols.append("scopes = ?")
+                params.append(json.dumps(value))
+            else:
+                cols.append(f"{field_name} = ?")
+                params.append(value)
+
+        if cols:
+            params.append(key_id)
+            with self._conn() as conn:
+                conn.execute(
+                    f"UPDATE api_keys SET {', '.join(cols)} WHERE id = ?",
+                    params,
+                )
+
+        updated = self.get_key(key_id)
+        assert updated is not None
+        return updated
+
+    def delete_expired_keys(self) -> int:
+        """Hard-delete inactive + expired keys.  Returns count removed."""
+        now_str = _now().isoformat()
+        with self._conn() as conn:
+            result = conn.execute(
+                "DELETE FROM api_keys "
+                "WHERE is_active = 0 AND expires_at IS NOT NULL AND expires_at < ?",
+                (now_str,),
+            )
+        count = result.rowcount
+        if count:
+            _logger.info("Deleted %d expired API keys", count)
+        return count
+
+    def get_usage_stats(self, key_id: str) -> Dict[str, Any]:
+        """Return usage statistics for a single key.
+
+        Raises:
+            ValueError: if key not found.
+        """
+        key = self.get_key(key_id)
+        if key is None:
+            raise ValueError(f"Key not found: {key_id}")
+
+        now = _now()
+        age_seconds = (now - key.created_at).total_seconds()
+        age_days: Optional[float] = age_seconds / 86400 if age_seconds > 0 else None
+        rate_per_day: Optional[float] = (
+            round(key.use_count / age_days, 2) if age_days else 0.0
+        )
+
+        return {
+            "key_id": key_id,
+            "use_count": key.use_count,
+            "last_used_at": key.last_used_at.isoformat() if key.last_used_at else None,
+            "created_at": key.created_at.isoformat(),
+            "age_days": round(age_days, 2) if age_days is not None else None,
+            "rate_per_day": rate_per_day,
+            "rate_limit": key.rate_limit,
+            "is_active": key.is_active,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton factory
+# ---------------------------------------------------------------------------
+
+
+def get_api_key_manager(db_path: Optional[str] = None) -> APIKeyManager:
+    """Return the singleton ``APIKeyManager`` (or a new instance for a custom path)."""
+    return APIKeyManager(db_path=db_path)
