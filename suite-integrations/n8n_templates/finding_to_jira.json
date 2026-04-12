@@ -1,0 +1,175 @@
+{
+  "name": "ALDECI: Finding → Jira Ticket",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aldeci-finding-jira",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "b2c3d4e5-0002-0002-0002-000000000001",
+      "name": "ALDECI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "aldeci-finding-jira"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "project": {
+          "__rl": true,
+          "value": "={{ $vars.JIRA_PROJECT_KEY }}",
+          "mode": "name"
+        },
+        "issuetype": {
+          "__rl": true,
+          "value": "Bug",
+          "mode": "name"
+        },
+        "summary": "=[ALDECI {{ $json.severity | upcase }}] {{ $json.payload.title || $json.event_type }} — {{ $json.source }}",
+        "additionalFields": {
+          "description": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Security finding detected by ALDECI."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Event Type: "
+                  },
+                  {
+                    "type": "text",
+                    "marks": [{"type": "strong"}],
+                    "text": "={{ $json.event_type }}"
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Severity: "
+                  },
+                  {
+                    "type": "text",
+                    "marks": [{"type": "strong"}],
+                    "text": "={{ $json.severity }}"
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Source: {{ $json.source }}"
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Correlation ID: {{ $json.correlation_id }}"
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Timestamp: {{ $json.timestamp }}"
+                  }
+                ]
+              },
+              {
+                "type": "codeBlock",
+                "attrs": {"language": "json"},
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "={{ JSON.stringify($json.payload, null, 2) }}"
+                  }
+                ]
+              }
+            ]
+          },
+          "priority": {
+            "__rl": true,
+            "value": "={{ $json.severity === 'critical' ? 'Highest' : $json.severity === 'high' ? 'High' : $json.severity === 'medium' ? 'Medium' : 'Low' }}",
+            "mode": "name"
+          },
+          "labels": ["aldeci", "security-finding", "={{ $json.severity }}"]
+        }
+      },
+      "id": "b2c3d4e5-0002-0002-0002-000000000002",
+      "name": "Jira: Create Ticket",
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"jira_key\": $json.key, \"jira_id\": $json.id }"
+      },
+      "id": "b2c3d4e5-0002-0002-0002-000000000003",
+      "name": "Respond: Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "ALDECI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Jira: Create Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira: Create Ticket": {
+      "main": [
+        [
+          {
+            "node": "Respond: Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["aldeci", "security", "jira", "finding"],
+  "meta": {
+    "templateId": "aldeci-finding-to-jira",
+    "description": "Receives ALDECI finding.created or finding.updated events and creates a Jira ticket with full finding details, severity-mapped priority, and structured description.",
+    "aldeci_event_types": ["finding.created", "finding.updated"],
+    "setup_required": ["Configure Jira credentials in n8n", "Set JIRA_PROJECT_KEY variable"],
+    "version": "1.0.0"
+  }
+}

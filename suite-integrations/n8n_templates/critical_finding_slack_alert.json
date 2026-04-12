@@ -1,0 +1,128 @@
+{
+  "name": "ALDECI: Critical Finding → Slack Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aldeci-finding-created",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "ALDECI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "aldeci-finding-created"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.severity }}",
+              "operation": "equal",
+              "value2": "critical"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "Filter: Critical Only",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "channel": "#security-alerts",
+        "text": "=:rotating_light: *Critical Security Finding* :rotating_light:\n\n*Event:* {{ $json.event_type }}\n*Source:* {{ $json.source }}\n*Severity:* {{ $json.severity }}\n*Correlation ID:* {{ $json.correlation_id }}\n*Timestamp:* {{ $json.timestamp }}\n\n*Finding Details:*\n```{{ JSON.stringify($json.payload, null, 2) }}```",
+        "attachments": [],
+        "otherOptions": {
+          "unfurl_links": false
+        }
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Slack: Post Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"filtered\", \"reason\": \"severity not critical\" }"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "Respond: Filtered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"channel\": \"#security-alerts\" }"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "Respond: Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 200]
+    }
+  ],
+  "connections": {
+    "ALDECI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter: Critical Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Critical Only": {
+      "main": [
+        [
+          {
+            "node": "Slack: Post Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Filtered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Post Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond: Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["aldeci", "security", "slack", "finding"],
+  "meta": {
+    "templateId": "aldeci-critical-finding-slack-alert",
+    "description": "Receives ALDECI finding.created events, filters for critical severity, and posts an alert to a Slack channel.",
+    "aldeci_event_type": "finding.created",
+    "version": "1.0.0"
+  }
+}
