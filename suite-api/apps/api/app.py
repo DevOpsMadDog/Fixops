@@ -1155,6 +1155,20 @@ def create_app() -> FastAPI:
     # (set by JWT decode) is already populated when this runs.
     app.add_middleware(OrgIdMiddleware)
 
+    # GZip compression middleware — compresses responses >= 500 bytes.
+    # Reduces bandwidth for large findings/dashboard payloads without extra deps.
+    from starlette.middleware.gzip import GZipMiddleware
+    app.add_middleware(GZipMiddleware, minimum_size=500)
+
+    # Profiling middleware — adds X-Response-Time header, logs slow requests,
+    # tracks per-endpoint P50/P95/P99 latencies.
+    try:
+        from core.profiling import ProfilingMiddleware
+        app.add_middleware(ProfilingMiddleware)
+        logger.info("ProfilingMiddleware enabled — X-Response-Time header + latency tracking")
+    except ImportError as _prof_err:
+        logger.warning("ProfilingMiddleware not available: %s", _prof_err)
+
     # Detailed Logging Middleware — captures full request/response payloads
     # Disabled by default in production. Set FIXOPS_DETAILED_LOGGING=1 to enable.
     if os.getenv("FIXOPS_DETAILED_LOGGING", "0") == "1":
@@ -1984,6 +1998,27 @@ def create_app() -> FastAPI:
         _logger.info("Loaded Queue status router")
     except ImportError as e:
         _logger.warning("Queue router not available: %s", e)
+
+    # Cache management router — stats + flush endpoints (admin-protected)
+    try:
+        from apps.api.cache_router import router as cache_router
+
+        app.include_router(
+            cache_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+        )
+        _logger.info("Loaded Cache management router")
+    except ImportError as _cache_err:
+        _logger.warning("Cache router not available: %s", _cache_err)
+
+    # Profiling metrics router — GET /api/v1/metrics/performance (no extra scope needed)
+    try:
+        from core.profiling import profiling_router
+
+        app.include_router(profiling_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Loaded Profiling metrics router")
+    except ImportError as _prof_err:
+        _logger.warning("Profiling metrics router not available: %s", _prof_err)
 
     _core_routers = [
         (nerve_center_router, "Nerve Center", None, "read:findings"),
