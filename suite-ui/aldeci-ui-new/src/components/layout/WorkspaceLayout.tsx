@@ -86,6 +86,8 @@ import {
   Code2,
   Wifi,
   Building2,
+  ShieldAlert,
+  Siren,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -160,6 +162,7 @@ const navGroups: NavGroup[] = [
       { label: "Workflows", to: "/remediate/workflows", icon: Workflow, roles: ["admin", "security_analyst"] },
       { label: "Exposure Cases", to: "/remediate/cases", icon: AlertTriangle },
       { label: "Ticket Integration", to: "/remediate/tickets", icon: Ticket, roles: ["admin", "security_analyst"] },
+      { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, badge: "GRC", roles: ["admin", "security_analyst"] },
     ],
   },
   {

@@ -91,6 +91,12 @@ const ThreatHunting = lazy(() => import("@/pages/hunting/ThreatHunting"));
 // Vendor Management
 const VendorManagement = lazy(() => import("@/pages/vendors/VendorManagement"));
 
+// Incident Response
+const IncidentResponse = lazy(() => import("@/pages/incidents/IncidentResponse"));
+
+// Risk Acceptance
+const RiskAcceptance = lazy(() => import("@/pages/risk/RiskAcceptance"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -195,6 +201,12 @@ export default function App() {
 
             {/* Vendor Management */}
             <Route path="/vendors" element={<VendorManagement />} />
+
+            {/* Incident Response */}
+            <Route path="/incidents" element={<IncidentResponse />} />
+
+            {/* Risk Acceptance */}
+            <Route path="/risk-acceptance" element={<RiskAcceptance />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
