@@ -246,14 +246,49 @@ P18 GRC Analyst, P19 SecOps Manager, P20 Developer Champion, P21 Security Archit
 P22 Supply Chain, P23 QA Tester, P24 Board Member, P25 External Auditor,
 P26 SRE (new), P27 DPO (new), P28 API Security (new), P29 Threat Modeler (new), P30 MSSP (new)
 
+## Recent Changes (2026-04-12 Beast Mode Session)
+
+### HIGH PRIORITY — All 5 tasks complete, 709 tests passing
+
+1. **Wired 3 new routers into app.py** (`568d2885`)
+   - `trustgraph_routes.py` → `/api/v1/trustgraph/*` (Knowledge Cores, entity management, MCP tools)
+   - `findings_routes.py` → `/api/v1/findings/*` (finding lifecycle, SLA, bulk ops, export)
+   - `pipeline_routes.py` → `/api/v1/pipeline/*` (CTEM 15-stage ingest, batch, monitoring)
+   - All with try/except ImportError pattern + RBAC scope guards
+
+2. **Connected LLM Council to brain_pipeline.py** (`568d2885`)
+   - `_step_llm_council()` now uses `CouncilPipelineAdapter` (singleton)
+   - Adds: decision memory, analyst feedback loop, cost-guarded Opus CTO escalation, session history
+   - Env var `FIXOPS_USE_COUNCIL=1` activates council; falls back to legacy consensus
+
+3. **Connected PipelineOrchestrator to real normalizers** (`568d2885`)
+   - `_normalize` stage uses 32 scanner normalizers via `parse_scanner_output()` + auto-detection
+   - `_enrich` stage uses real `EnrichmentEvidence` (EPSS, KEV, CVSS) when available
+   - `_score` stage uses Bayesian forecasting when available, falls back to heuristic
+
+4. **TrustGraph indexed with 162 entities** (`f3469559`)
+   - Core 1: 48 entities (18 connectors + 30 scanners)
+   - Core 2: 43 entities (28 threat feeds + 10 MITRE ATT&CK TTPs)
+   - Core 3: 47 entities (7 compliance frameworks + 40 controls)
+   - Core 4: 8 decision patterns (seed data for LLM Council)
+   - Core 5: 30 entities (9 competitors + 20 capabilities + ALDECI positioning)
+   - 141 cross-core relationships
+   - Indexer: `suite-core/core/trustgraph_indexer.py`
+
+5. **CISO Dashboard built** (`448f3958`)
+   - React 19 page at `/mission-control/ciso` (admin-only, P01 persona)
+   - Risk posture gauge, 6 KPIs (MTTD/MTTR/SLA/remediation/accuracy/daily)
+   - Top 5 risks, 6 compliance framework cards, 30-day trajectory chart
+   - Pipeline health metrics, connected to analytics API with mock fallback
+
 ## Known Issues (updated 2026-04-12)
 
 1. ~~**New UI is missing**~~ — RESOLVED: `suite-ui/aldeci-ui-new/` exists with 60+ pages
 2. **Test coverage at 19.19%** — Below 25% gate, needs improvement during Beast Mode
 3. **Single-process monolith** — Phase 5 adds horizontal scaling via Helm + queue mode
 4. **No external message queue** — TrustGraph Pulsar replaces EventBus in rearchitecture
-5. **Brain pipeline runs synchronously** — LLM Council (Phase 3) replaces with async 3-stage consensus
-6. **Merge not pushed to GitHub** — run `git push origin features/intermediate-stage` from Mac first
+5. ~~**Brain pipeline runs synchronously**~~ — RESOLVED: LLM Council adapter now wired with async 3-stage consensus
+6. ~~**Merge not pushed to GitHub**~~ — RESOLVED: pushed to origin/features/intermediate-stage
 
 ---
 
