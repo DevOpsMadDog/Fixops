@@ -68,6 +68,7 @@ const EvidenceExportCenter = lazy(() => import("@/pages/comply/EvidenceExportCen
 
 // Settings
 const SettingsHub = lazy(() => import("@/pages/settings/SettingsHub"));
+const SettingsPage = lazy(() => import("@/pages/settings/Settings"));
 const Integrations = lazy(() => import("@/pages/settings/Integrations"));
 const UsersPage = lazy(() => import("@/pages/settings/Users"));
 const Teams = lazy(() => import("@/pages/settings/Teams"));
@@ -99,6 +100,9 @@ const IncidentResponse = lazy(() => import("@/pages/incidents/IncidentResponse")
 
 // Risk Acceptance
 const RiskAcceptance = lazy(() => import("@/pages/risk/RiskAcceptance"));
+
+// SBOM Management
+const SBOMManagement = lazy(() => import("@/pages/sbom/SBOMManagement"));
 
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
@@ -173,7 +177,7 @@ export default function App() {
             <Route path="/comply/export" element={<EvidenceExportCenter />} />
 
             {/* Settings */}
-            <Route path="/settings" element={<SettingsHub />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/integrations" element={<Integrations />} />
             <Route path="/settings/users" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><UsersPage /></RequireRole>} />
             <Route path="/settings/teams" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><Teams /></RequireRole>} />
@@ -213,6 +217,9 @@ export default function App() {
 
             {/* Risk Acceptance */}
             <Route path="/risk-acceptance" element={<RiskAcceptance />} />
+
+            {/* SBOM Management */}
+            <Route path="/sbom" element={<SBOMManagement />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
