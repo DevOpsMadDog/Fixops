@@ -21,6 +21,9 @@ const LiveFeed = lazy(() => import("@/pages/mission-control/LiveFeed"));
 const RiskOverview = lazy(() => import("@/pages/mission-control/RiskOverview"));
 const SOCDashboard = lazy(() => import("@/pages/mission-control/SOCDashboard"));
 
+// Findings Explorer (universal — all personas)
+const FindingsExplorer = lazy(() => import("@/pages/findings/FindingsExplorer"));
+
 // Space 2: Discover
 const FindingExplorer = lazy(() => import("@/pages/discover/FindingExplorer"));
 const CodeScanning = lazy(() => import("@/pages/discover/CodeScanning"));
@@ -186,6 +189,9 @@ export default function App() {
             <Route path="/ai/algorithms" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><AlgorithmicLab /></RequireRole>} />
             <Route path="/ai/ml" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MLDashboard /></RequireRole>} />
             <Route path="/ai/predictions" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Predictions /></RequireRole>} />
+
+            {/* Findings Explorer — universal, all personas */}
+            <Route path="/findings" element={<FindingsExplorer />} />
 
             {/* Attack Surface */}
             <Route path="/attack-surface" element={<AttackSurface />} />
