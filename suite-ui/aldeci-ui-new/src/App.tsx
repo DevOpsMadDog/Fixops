@@ -14,6 +14,7 @@ const AccessDenied = lazy(() => import("@/pages/auth/AccessDenied"));
 
 // Space 1: Mission Control
 const CommandDashboard = lazy(() => import("@/pages/mission-control/CommandDashboard"));
+const CISODashboard = lazy(() => import("@/pages/mission-control/CISODashboard"));
 const ExecutiveView = lazy(() => import("@/pages/mission-control/ExecutiveView"));
 const SLADashboard = lazy(() => import("@/pages/mission-control/SLADashboard"));
 const LiveFeed = lazy(() => import("@/pages/mission-control/LiveFeed"));
@@ -96,6 +97,7 @@ export default function App() {
             {/* Space 1: Mission Control */}
             <Route path="/" element={<CommandDashboard />} />
             <Route path="/mission-control" element={<CommandDashboard />} />
+            <Route path="/mission-control/ciso" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><CISODashboard /></RequireRole>} />
             <Route path="/mission-control/executive" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><ExecutiveView /></RequireRole>} />
             <Route path="/mission-control/sla" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><SLADashboard /></RequireRole>} />
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
