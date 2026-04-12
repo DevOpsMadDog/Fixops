@@ -308,6 +308,15 @@ except ImportError as e:
         f"Enterprise marketplace router not available: {e}"
     )
 
+# Customer onboarding wizard router
+onboarding_wizard_router: Optional[APIRouter] = None
+try:
+    from apps.api.onboarding_router import router as onboarding_wizard_router
+
+    logging.getLogger(__name__).info("Loaded Onboarding Wizard router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Onboarding Wizard router not available: %s", e)
+
 # ---------------------------------------------------------------------------
 # Suite-Core routers (intelligence, brain, ML — from suite-core/api/)
 # ---------------------------------------------------------------------------
@@ -1945,6 +1954,14 @@ def create_app() -> FastAPI:
             prefix="/api/v1/marketplace",
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
         )
+
+    # Customer onboarding wizard
+    if onboarding_wizard_router:
+        app.include_router(
+            onboarding_wizard_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+        )
+        _logger.info("Mounted Onboarding Wizard router")
 
     # Suite-Attack routers (offensive security) — require attack:execute scope
     for _r, _name in [
