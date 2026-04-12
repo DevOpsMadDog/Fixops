@@ -870,6 +870,14 @@ except (ImportError, AttributeError):  # pragma: no cover
     _security_audit = None  # type: ignore[assignment]
 from .org_middleware import OrgIdMiddleware
 
+# Tenant management router — multi-tenancy admin endpoints
+try:
+    from apps.api.tenant_router import router as tenant_router
+    logging.getLogger(__name__).info("Loaded Tenant management router")
+except ImportError as _te:  # pragma: no cover
+    tenant_router = None  # type: ignore[assignment]
+    logging.getLogger(__name__).warning("Tenant router not available: %s", _te)
+
 # ML Learning Middleware — captures all API traffic for anomaly detection & threat scoring
 try:
     from core.learning_middleware import LearningMiddleware
@@ -1774,6 +1782,9 @@ def create_app() -> FastAPI:
         admin_router,
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
     )
+    # Tenant management — multi-tenancy isolation admin endpoints
+    if tenant_router is not None:
+        app.include_router(tenant_router, dependencies=[Depends(_verify_api_key)])
     # System administration routes — health, info, config
     app.include_router(
         system_router,

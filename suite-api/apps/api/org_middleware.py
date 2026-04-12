@@ -45,10 +45,12 @@ import logging
 from contextvars import ContextVar
 from typing import Callable, Optional
 
+import structlog
 from fastapi import Header, Query, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
+_structlog = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # ContextVar — holds org_id for the duration of a single request task
@@ -116,12 +118,33 @@ class OrgIdMiddleware(BaseHTTPMiddleware):
         token = _org_id_var.set(org_id)
         # Also write back to request.state for middleware/handlers that read it there
         request.state.org_id = org_id
+
+        # Bind org_id into structlog context so all log lines for this request
+        # automatically carry the tenant identifier.
+        _structlog.bind(org_id=org_id)
+
+        # Sync TenantContext (thread-local) so core modules that use
+        # TenantContext.get() see the correct org without async ContextVar.
+        try:
+            from core.tenant_isolation import TenantContext as _TenantContext
+            _TenantContext.set(org_id)
+        except ImportError:  # pragma: no cover
+            pass  # tenant_isolation not available — graceful degradation
+
         try:
             response = await call_next(request)
         finally:
             # Reset the contextvar after the request completes so the context
             # does not leak into the next request handled by the same thread/task.
             _org_id_var.reset(token)
+
+            # Clear TenantContext so the thread can be reused without stale org_id.
+            try:
+                from core.tenant_isolation import TenantContext as _TenantContext
+                _TenantContext.clear()
+            except ImportError:  # pragma: no cover
+                pass
+
         return response
 
 
