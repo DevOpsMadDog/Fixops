@@ -137,13 +137,37 @@ async def require_auth(
 ) -> AuthContext:
     """Authenticate via JWT Bearer token or X-API-Key header.
 
+    Accepts three token types:
+    - SSO JWTs (contain 'sso': True claim) — issued by sso_provider.create_sso_jwt
+    - Regular JWTs — issued by create_jwt for local users
+    - Scoped API keys — X-API-Key: fixops_<token>
+
     In dev mode (FIXOPS_AUTH_MODE=dev), returns a default admin context
     when no credentials are provided — matches existing behaviour.
     """
-    # --- Try JWT first ---
+    # --- Try JWT first (covers both regular JWTs and SSO-issued JWTs) ---
     if bearer and bearer.credentials:
         try:
             claims = decode_jwt(bearer.credentials)
+            # SSO JWT: contains 'sso' claim and 'roles' list instead of 'role' string
+            if claims.get("sso"):
+                roles: List[str] = claims.get("roles", [])
+                role_str = roles[0] if roles else "viewer"
+                # Map SSO role to ALDECI scopes via ROLE_SCOPES if role matches UserRole
+                try:
+                    user_role = UserRole(role_str)
+                    scopes = ROLE_SCOPES.get(user_role, [])
+                except ValueError:
+                    scopes = []
+                return AuthContext(
+                    user_id=claims.get("sub", claims.get("email", "")),
+                    email=claims.get("email", ""),
+                    role=role_str,
+                    org_id=claims.get("org_id", "default"),
+                    scopes=scopes,
+                    auth_method="sso",
+                )
+            # Regular JWT
             return AuthContext(
                 user_id=claims["sub"],
                 email=claims.get("email", ""),
