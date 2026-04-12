@@ -1,132 +1,66 @@
-# Changelog
 
-All notable changes to ALdeci (FixOps) are documented in this file.
+# CHANGELOG.md
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+## ✨ Features
 
-## [Unreleased] — Sprint 2: Enterprise Demo (2026-03-01 to 2026-03-06)
-
-### Added — Day 1 (2026-03-01)
-- **CTEM+ API Reference** — 769 endpoints documented by CTEM lifecycle (Discover, Validate, Remediate, Comply) with curl examples for top 20 endpoints [V3][V5][V7][V10]
-- **3-step quickstart guide** in API reference — server startup, authentication, first scan [V7]
-- **Architecture documentation** — Mermaid diagrams showing 12-step Brain Pipeline, 8 native scanners, integration architecture [V3]
-- **Scanner Ingest router** — 25+ third-party scanner parsers (ZAP, Burp, Nessus, Checkmarx, Snyk, SonarQube, etc.) [V7]
-- **Sandbox PoC Verifier** — Docker-isolated exploit verification with self-correction [V5]
-- **Knowledge Graph engine** — FalkorDB-backed graph with 835 LOC client, attack path computation [V3]
-- **Quantum Crypto router** — RSA + ML-DSA hybrid signature endpoints [V6]
-- **Zero-Gravity Data router** — Intelligent data compression and lifecycle management [V9]
-- **Single Agent router** — Self-hosted LLM execution with Llama 3.1 70B support [V4]
-- **Self-Learning router** — 5 feedback loop endpoints for continuous improvement [V8]
-- **Compliance Engine router** — Framework mapping for SOC2, PCI-DSS, HIPAA, GDPR, ISO 27001 [V10]
-- **MCP Protocol router** — Full Model Context Protocol implementation for AI agent integration [V7]
-- **MCP Auto-Discovery router** — Auto-generates MCP tools from all FastAPI routes (replaces static definitions) [V7]
-- **7 Vision engine routers** (V3, V4, V6, V7, V8, V9, V10) — all returning 200 OK [V3-V10]
-- **Universal Connectors router** — Jira + GitHub + Slack fan-out for remediation actions [V1]
-- **Marketplace router** — Enterprise remediation pack marketplace [V7]
-- **CTEM Full Loop demo** — 4 demo scripts covering Discover→Validate→Remediate→Comply→Measure [V10][V5]
-- **5 Persona walkthrough scripts** — CISO, DevSecOps, Auditor, Developer, CTO (3 min each) [V3]
-- **Docker one-command demo** — 34/34 health checks pass within 30s [V9]
-- **MCP Gateway demo** — 705 tools auto-discovered via JSON-RPC [V7]
-- **Knowledge Graph demo data** — 5 apps, 20 vulns, 10+ attack paths, 73 nodes, 110 edges [V3]
-- **Compliance evidence export** — RSA-SHA256 signed bundles with SOC2/PCI-DSS/HIPAA control mapping [V10]
-- **Self-learning feedback loop** — 5 loops demo-ready, score delta: -5.0% after learning [V8]
-
-### Added — Day 2 (2026-03-02)
-- **DEMO-001 complete**: All 769 routes mounted, E2E 58/58 (100%), OpenAPI returns 200 [V3]
-- **DEMO-002 complete**: Postman 411/411 assertions passing (100.0%), all 7 collections GREEN [V10]
-- **11 security hardening fixes** — XXE, SSRF, shell injection, code injection, secrets leakage prevention [V10]
-- **Health + Status endpoints** — Every router now has both `/health` and `/status` endpoints [V7]
-- **Secrets scanner YAML patterns** — 10 new patterns for YAML/env/config unquoted values [V5]
-- **Brain Pipeline hardening** — Thread-safe, async support, timeout guards, sanitized inputs [V3]
-- **Scanner Ingest hardening** — File size limits, path traversal prevention, injection guards [V7]
-- **Scanner Parser hardening** — Crash resilience on malformed input, output caps [V7]
-- **API Reference v2.1** — Updated to 769 endpoints, added 10 new router sections (IaC, IDE, Nerve Center, Decision Records, MindsDB ML, Copilot, Business Context, Graph Analysis, Webhooks full detail, MPTE Orchestrator), security hardening appendix [V3][V7]
-
-### Added — Day 4 (2026-03-02 Late)
-- **API Reference v3.1** — 73 previously undocumented endpoints now fully documented with method/path/description tables [V3][V5][V7][V10]
-- **MPTE Orchestrator section** — New section (4.7) documenting 8 endpoints for unified pentest/decision API [V5]
-- **FAIL Engine correction** — Section 4.4 corrected from scenario-based to score-based endpoints (10 endpoints) with curl example [V3]
-- **Expanded Audit Trail** — 14 endpoints (was 4) with compliance framework mapping, crypto chain verification [V10]
-- **Expanded Reports** — 14 endpoints (was 4) with scheduling, templates, multi-format export (SARIF/CSV/JSON) [V10]
-- **Expanded Policies** — 11 endpoints (was 5) with validation, testing, enforcement, simulation, conflict detection [V3]
-- **Expanded Collaboration** — 23 endpoints (was 3) with watchers, activity feeds, mentions, notification delivery [V3]
-- **Expanded Bulk Operations** — 13 endpoints (was 3) with cluster ops, async jobs, policy application [V3]
-- **Expanded Marketplace** — 14 endpoints (was 4) with contributions, ratings, purchases, compliance content [V7]
-- **Expanded Teams** — 8 endpoints (was 5) with member management [V3]
-- **System metrics endpoint** — Added `/api/v1/system/metrics` (was missing from docs) [V7]
-
-### Added — Day 3 (2026-03-02 PM)
-- **API Reference v3.0** — 780 endpoints documented across 72 routers with 32 curl examples [V3][V5][V7][V10]
-- **Reachability Analysis API** — 7 new endpoints for static call-graph reachability analysis [V3]
-- **Enhanced Decision Analysis API** — 4 new endpoints for multi-LLM comparison and signal analysis [V3]
-- **Expanded Deduplication Engine** — 20 endpoints documented (was 4) with cluster management, correlation, baseline comparison [V3]
-- **Expanded Attack Simulation** — 13 endpoints documented (was 5) with MITRE ATT&CK heatmap, breach impact [V5]
-- **Expanded Vulnerability Discovery** — 11 endpoints documented (was 5) with ML retraining, community contributions [V5]
-- **Expanded Algorithmic Scoring** — 11 endpoints documented (was 3) with Monte Carlo, causal inference, GNN analysis [V3]
-- **Expanded Predictions** — 10 endpoints documented (was 4) with Markov chains, Bayesian networks [V3]
-- **Expanded Exposure Cases** — 10 endpoints documented (was 5) with state machine transitions [V3]
-- **User Guide** — Comprehensive 15-section user guide: 5-minute quickstart, 8 scanner walkthroughs, Brain Pipeline, MPTE, AutoFix, compliance, MCP, air-gapped deployment, troubleshooting [V3][V5][V7][V10]
-- **Investor Technical Brief** — Product overview, TAM/SAM/SOM analysis, competitive matrix, architecture maturity evidence, business model, roadmap milestones [V3]
-- **README documentation table** — Added links to User Guide, Investor Brief, Architecture, CTEM+ Identity docs [V7]
-
-### Added — Day 3 Actual (2026-03-03)
-- **API Reference v4.0** — Full grep audit: 781 verified endpoints (was 780). Corrected undercounted routers: Inventory (7→19), Sandbox (5→8), Connectors (4→8), Evidence (13→15), Compliance (9→10), MCP Gateway (7→8), MCP Protocol (8→9), Brain (30→31). 4 Vision engine health endpoints added. 41 curl examples. Appendix A fully reconciled [V3][V5][V7][V10]
-- **Inventory API expanded** — 19 endpoints documented (was 7) with assets, services, APIs, components, dependencies, search [V1]
-- **Sandbox PoC API expanded** — 8 endpoints documented (was 5) with reachability analysis and status [V5]
-- **Connectors API expanded** — 8 endpoints documented (was 4) with register, test, types, and ticket creation [V1]
-- **Suite-level breakdown corrected** — suite-api (238), suite-core (253), suite-attack (106), suite-feeds (31), suite-evidence-risk (56), suite-integrations (59), sandbox (8), logs (5), @app (25) [V7]
-
-### Added — Post-Demo (2026-03-07)
-- **API Reference v5.0** — Post-demo endpoint audit: 784 verified endpoints (was 781). 3 new endpoints: Brain `/trends`, MCP Protocol `/stats`, Self-Learning `/stats`. Suite-core 253→256. Validation section corrected. 41+ curl examples [V3][V5][V7][V10]
-- **Brain Pipeline trends endpoint** — `GET /api/v1/brain/trends` for finding and risk trend analysis over time [V3]
-- **MCP Protocol statistics** — `GET /api/v1/mcp-protocol/stats` for protocol usage statistics [V7]
-- **Self-Learning statistics** — `GET /api/v1/self-learning/stats` for feedback loop usage and learning metrics [V8]
-
-### Changed
-- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 784 endpoints [V3]
-- **API endpoint count** — Updated from 781 to 784 endpoints via full grep audit. Suite-core 253→256. Corrected suite-level breakdown [V7]
-- **Scanner parser count** — Updated from 10 to 25 normalizers (ZAP, Burp, Nessus, Qualys, Checkmarx, Fortify, Veracode, Snyk, SonarQube, Semgrep, Trivy, Grype, Dependabot, Bandit, ESLint, Anchore, Aqua, Prisma Cloud, AWS Inspector, Nuclei, GitLeaks, TruffleHog, Hadolint, Tfsec, Checkov) [V7]
-- **Architecture doc** — Updated LOC counts, added security hardening details, verified 784 routes [V3]
-- **All docs** — Updated endpoint count references from 781→784 across README.md, API_REFERENCE.md [V7]
-- **Validation router documentation** — Corrected section 8.12 to match actual endpoints (/input, /batch, /supported-formats) instead of stale endpoints (sarif, sbom, cve, vex) [V7]
-
-### Fixed
-- **SQL injection in scan parameters** — Input validation added on all API endpoints [V10]
-- **Rate limiting on scan endpoints** — Configurable per-tier rate limits [V7]
-- **Backend endpoint 404/500 errors** — Backend hardener fixed all broken routes (E2E 58/58) [V3]
-- **Secrets scanner YAML gap** — Was detecting 0 findings in YAML configs, now 6+ [V5]
-- **Brain Pipeline thread safety** — Added proper locking for concurrent requests [V3]
-
-### Security
-- **Input validation** — All 784 endpoints use Pydantic v2 validation
-- **XXE prevention** — XML external entity parsing disabled on scanner ingest [V10]
-- **SSRF protection** — URL validation on DAST/MPTE/micro-pentest target parameters [V5]
-- **Shell injection prevention** — Command escaping on all subprocess calls [V10]
-- **Code injection prevention** — Sandboxed execution for PoC verification [V5]
-- **Secrets leakage prevention** — Response sanitization, no credentials in error messages [V10]
-- **Path traversal prevention** — File path sanitization on upload endpoints [V7]
-- **Scope-based authorization** — Fine-grained scopes: `admin:all`, `attack:execute`, `read:evidence`, `write:integrations`
-- **Rate limiting** — Per-tier rate limits (Community: 100/min, Professional: 1K/min, Enterprise: 10K/min)
-- **Evidence signing** — RSA-SHA256 cryptographic signatures on all evidence bundles [V10]
-
-## [0.1.0] — Sprint 1: Foundation (2026-02-20 to 2026-02-28)
-
-### Added
-- Initial FastAPI gateway with 34 router mounts
-- 8 native scanner engines (SAST, DAST, Secrets, Container, CSPM, API Fuzzer, Malware, LLM Monitor)
-- 12-step Brain Pipeline (all steps implemented)
-- MPTE micro-pentest engine (19-phase verification)
-- AutoFix engine with 10 fix types
-- FAIL Engine (Fault & Attack Injection Layer)
-- Multi-LLM consensus engine (GPT-4 + Claude + Gemini, 85% threshold)
-- Threat intelligence feeds (NVD, KEV, EPSS, OSV, ExploitDB, GitHub Advisories)
-- Evidence engine with RSA-SHA256 signing
-- CLI with 22 commands
-- React frontend (legacy, 85 source files)
-- Docker Compose deployment
-- 10,141 tests collected
-- 16 AI agent definitions
-
----
-
-*Maintained by ALdeci Technical Writer Agent*
+*   **Attack Surface Mapping:** Implements comprehensive asset inventory, e
+exposure paths, and advanced risk scoring.
+*   **Security Knowledge Base:** Added an FTS5 wiki foundation with OWASP T
+Top 10 seed articles for enhanced learning.
+*   **ML Vulnerability Prioritization:** Introduced weighted multi-signal s
+scoring for advanced vulnerability prioritization.
+*   **Threat Hunting Engine:** Enhanced engine with rate limiting for robus
+robust, deep investigation capabilities.
+*   **Compliance Gap Remediation Planner:** Supports 7 major frameworks wit
+with 42 detailed controls for gap analysis.
+*   **Incident Response Playbooks:** Includes 8 pre-defined runbook templat
+templates with full timeline tracking.
+*   **Cloud Security Posture Management (CSPM):** Provides cloud security p
+posture monitoring across AWS, Azure, and GCP.
+*   **Vulnerability Exception Policy Engine:** Allows for formal suppressio
+suppression rules and versioning for exceptions.
+*   **Compliance Evidence Auto-Collector:** Supports 7 major frameworks and
+and generates comprehensive audit packages.
+*   **Security Metrics API Aggregator:** Centralized endpoint to aggregate 
+unified dashboard data.
+*   **Secret Scanning Engine:** Automated detection and tracking of secrets
+secrets via regex detection and rotation monitoring.
+*   **Asset Inventory + CMDB Integration:** Seamless integration with Confi
+Configuration Management Databases.
+*   **Config Drift Detection + Slack Bot:** Monitors for configuration drif
+drift and sends proactive security alerts via Slack.
+*   **SLA Management Engine:** Tracks deadlines, manages escalation policie
+policies, and enforces compliance SLAs.
+*   **Developer Self-Service Security Portal:** A dedicated portal for deve
+developers to manage security resources.
+*   **CI/CD Pipeline Security Gate:** Enforces policy compliance directly w
+within Pull Request workflows.
+*   **Risk Acceptance Workflow:** Formal management of risk exceptions and 
+non-compliance.
+*   **Remediation PR Generator:** Automates the generation of pull requests
+requests to fix dependency vulnerabilities.
+*   **Threat Intel Feed Manager:** Centralized lifecycle management for ove
+over 28 threat intelligence sources.
+*   **Security Posture Scoring:** Unified, quantifiable risk scoring from 0
+0 to 100.
+*   **Executive Reporting Engine:** Generates board-ready, high-level secur
+security reports for executive consumption.
+*   **FixEngine Remediation Workflow:** Advanced workflow for implementing 
+fixes, including playbooks, approval gates, and rollback capabilities.
+*   **Finding Correlation Engine:** Identifies complex exposure cases and a
+attack chains from individual findings.
+*   **SBOM Lifecycle Management:** Comprehensive tools for importing, expor
+exporting, diffing, and managing SBOM compliance.
+*   **Vulnerability Trending Analytics:** Engine for tracking and visualizi
+visualizing vulnerability patterns over time.
+*   **API Key Lifecycle Management System:** Dedicated system for managing 
+the full lifecycle of API keys.
+*   **Multi-Tenancy Isolation:** Ensures strict organization-level data sep
+separation and isolation.
+*   **Notification Engine:** Central alert system supporting rule-based tri
+triggering, multi-channel alerts, and digests.
+*   **Customer Onboarding Wizard API:** API facilitating smooth and structu
+structured customer onboarding.
+*   **Webhook Security Hardening:** Implemented protections against SSRF, m
+malicious payloads, and rate limiting.
+*   **RBAC Role Enforcement + Audit Logging:** Robust role-based access con
