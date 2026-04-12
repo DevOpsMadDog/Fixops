@@ -1,37 +1,53 @@
-"""Runtime Protection Engine — Aikido Zen Parity.
+"""Runtime Protection Engine — Aikido Zen Parity + Host EDR.
 
-Integrates RASP rule engine with advanced bot detection, zero-day pattern
-blocking, SSRF prevention, and behavioural fingerprinting.  Designed for
-in-app deployment as FastAPI middleware or standalone inspection service.
+Two layers of runtime security:
 
-Usage:
+1. RASP / HTTP layer (Aikido Zen parity):
+   Integrates RASP rule engine with advanced bot detection, zero-day pattern
+   blocking, SSRF prevention, and behavioural fingerprinting. Designed for
+   in-app deployment as FastAPI middleware or standalone inspection service.
+
+2. Host EDR layer (CrowdStrike replacement):
+   SQLite-backed host-based runtime monitoring: process execution, file access,
+   network connections, privilege escalation, container escape. Provides
+   ThreatLevel enum, RuntimeEvent/RuntimePolicy/RuntimeAlert Pydantic models,
+   and HostRuntimeEngine for ingestion, policy evaluation, and analytics.
+
+Usage (RASP):
     from core.runtime_protection import RuntimeProtectionEngine, ProtectionConfig
-
     engine = RuntimeProtectionEngine()
-    verdict = engine.inspect_request(
-        source_ip="1.2.3.4",
-        path="/api/v1/users",
-        method="POST",
-        headers={"User-Agent": "curl/7.88"},
-        body='{"name": "test"}',
-    )
+    verdict = engine.inspect_request(source_ip="1.2.3.4", path="/api/v1/users",
+        method="POST", headers={"User-Agent": "curl/7.88"}, body='{"name": "test"}')
     if verdict["blocked"]:
         return JSONResponse(status_code=403, content=verdict)
+
+Usage (EDR):
+    from core.runtime_protection import HostRuntimeEngine, RuntimeEvent, EventType
+    engine = HostRuntimeEngine()
+    event = RuntimeEvent(event_type=EventType.PROCESS_EXEC,
+        source_host="web-01", process_name="xmrig", user="www-data")
+    engine.ingest_event(event)
+    alerts = engine.evaluate_policies(event, org_id="org_123")
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import re
+import sqlite3
+import threading
 import time
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
+from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
 
@@ -455,3 +471,807 @@ def get_runtime_protection_engine(
     if _engine is None:
         _engine = RuntimeProtectionEngine(config)
     return _engine
+
+
+# ===========================================================================
+# HOST EDR LAYER — CrowdStrike Falcon replacement
+# ===========================================================================
+
+
+class ThreatLevel(str, Enum):
+    """Severity of a detected runtime threat."""
+    NONE = "none"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class EventType(str, Enum):
+    """Categories of host-level runtime events."""
+    PROCESS_EXEC = "process_exec"
+    FILE_ACCESS = "file_access"
+    NETWORK_CONNECT = "network_connect"
+    PRIVILEGE_ESCALATION = "privilege_escalation"
+    CONTAINER_ESCAPE = "container_escape"
+
+
+class PolicyAction(str, Enum):
+    """Action to take when a policy matches."""
+    ALERT = "alert"
+    BLOCK = "block"
+    QUARANTINE = "quarantine"
+
+
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
+
+
+class RuntimeEvent(BaseModel):
+    """A runtime security event observed on a host."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    event_type: EventType
+    source_host: str
+    process_name: str
+    user: str
+    details: Dict[str, Any] = Field(default_factory=dict)
+    threat_level: ThreatLevel = ThreatLevel.NONE
+    detected_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    org_id: str = "default"
+
+
+class RuntimePolicy(BaseModel):
+    """A policy that matches events and triggers actions."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    event_type: EventType
+    conditions: Dict[str, Any] = Field(default_factory=dict)
+    action: PolicyAction = PolicyAction.ALERT
+    enabled: bool = True
+    org_id: str = "default"
+
+
+class RuntimeAlert(BaseModel):
+    """An alert generated when a policy matches an event."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    event_id: str
+    policy_id: str
+    threat_level: ThreatLevel
+    message: str
+    acknowledged: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ---------------------------------------------------------------------------
+# Built-in policy definitions
+# ---------------------------------------------------------------------------
+
+_EDR_BUILTIN_POLICIES: List[Dict[str, Any]] = [
+    {
+        "id": "builtin-crypto-mining",
+        "name": "Crypto Mining Detection",
+        "event_type": EventType.PROCESS_EXEC,
+        "conditions": {
+            "process_names": ["xmrig", "minerd", "cpuminer", "bfgminer", "cgminer",
+                              "nbminer", "t-rex", "phoenixminer"],
+            "cmdline_contains": ["--pool", "stratum+tcp", "stratum+ssl",
+                                  "xmr.", "monero", "--donate-level"],
+        },
+        "action": PolicyAction.QUARANTINE,
+        "threat_level": ThreatLevel.CRITICAL,
+    },
+    {
+        "id": "builtin-reverse-shell",
+        "name": "Reverse Shell Detection",
+        "event_type": EventType.NETWORK_CONNECT,
+        "conditions": {
+            "process_names": ["bash", "sh", "zsh", "nc", "ncat", "socat",
+                              "python", "python3", "perl", "ruby"],
+            "cmdline_contains": ["/dev/tcp/", "nc -e", "ncat -e", "bash -i",
+                                  "socat exec", "mkfifo"],
+        },
+        "action": PolicyAction.BLOCK,
+        "threat_level": ThreatLevel.CRITICAL,
+    },
+    {
+        "id": "builtin-privilege-escalation",
+        "name": "Privilege Escalation Detection",
+        "event_type": EventType.PRIVILEGE_ESCALATION,
+        "conditions": {
+            "uid_transition": "non-root-to-root",
+            "suspicious_binaries": ["sudo", "su", "pkexec", "dbus-daemon", "polkit"],
+        },
+        "action": PolicyAction.ALERT,
+        "threat_level": ThreatLevel.HIGH,
+    },
+    {
+        "id": "builtin-container-escape",
+        "name": "Container Escape Detection",
+        "event_type": EventType.CONTAINER_ESCAPE,
+        "conditions": {
+            "indicators": [
+                "host_pid_namespace",
+                "privileged_container",
+                "docker_socket_access",
+                "cgroup_release_agent",
+                "runc_overwrite",
+            ],
+        },
+        "action": PolicyAction.BLOCK,
+        "threat_level": ThreatLevel.CRITICAL,
+    },
+    {
+        "id": "builtin-data-exfiltration",
+        "name": "Data Exfiltration Pattern Detection",
+        "event_type": EventType.NETWORK_CONNECT,
+        "conditions": {
+            "large_outbound_bytes_threshold": 104857600,  # 100 MB
+            "sensitive_file_paths": [
+                "/etc/passwd", "/etc/shadow", "/root/.ssh",
+                "id_rsa", ".env", "credentials",
+            ],
+        },
+        "action": PolicyAction.ALERT,
+        "threat_level": ThreatLevel.HIGH,
+    },
+    {
+        "id": "builtin-suspicious-file-access",
+        "name": "Suspicious Sensitive File Access",
+        "event_type": EventType.FILE_ACCESS,
+        "conditions": {
+            "paths": ["/etc/shadow", "/etc/sudoers", "/proc/mem",
+                      "/dev/kmem", "/root/.ssh/"],
+        },
+        "action": PolicyAction.ALERT,
+        "threat_level": ThreatLevel.MEDIUM,
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# HostRuntimeEngine
+# ---------------------------------------------------------------------------
+
+
+class HostRuntimeEngine:
+    """
+    SQLite-backed host runtime security monitoring engine.
+
+    Replaces CrowdStrike Falcon EDR at $50K+/yr with a self-hosted
+    SQLite-backed solution. Ingests host events, evaluates policies,
+    generates alerts, and provides threat analytics.
+
+    Compliance: SOC2 CC6.8, NIST CSF DE.CM-1, CIS Controls 8.
+    """
+
+    def __init__(self, db_path: str = ":memory:"):
+        """
+        Initialise the engine.
+
+        Args:
+            db_path: SQLite database file path. Use ":memory:" for tests.
+        """
+        self.db_path = db_path
+        self._lock = threading.RLock()
+        # Use a single persistent connection so :memory: databases share state
+        # across all method calls. check_same_thread=False is safe here because
+        # all access is serialised through self._lock.
+        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._init_db()
+        self._seed_builtin_policies()
+
+    # ------------------------------------------------------------------
+    # Schema
+    # ------------------------------------------------------------------
+
+    def _init_db(self) -> None:
+        """Initialise SQLite schema."""
+        with self._lock:
+            self._conn.executescript("""
+                CREATE TABLE IF NOT EXISTS runtime_events (
+                    id TEXT PRIMARY KEY,
+                    event_type TEXT NOT NULL,
+                    source_host TEXT NOT NULL,
+                    process_name TEXT NOT NULL,
+                    user TEXT NOT NULL,
+                    details TEXT NOT NULL DEFAULT '{}',
+                    threat_level TEXT NOT NULL DEFAULT 'none',
+                    detected_at TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default'
+                );
+                CREATE INDEX IF NOT EXISTS idx_re_org_time
+                    ON runtime_events (org_id, detected_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_re_host
+                    ON runtime_events (source_host, detected_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_re_threat
+                    ON runtime_events (org_id, threat_level, detected_at DESC);
+
+                CREATE TABLE IF NOT EXISTS runtime_policies (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    conditions TEXT NOT NULL DEFAULT '{}',
+                    action TEXT NOT NULL DEFAULT 'alert',
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    org_id TEXT NOT NULL DEFAULT 'default'
+                );
+                CREATE INDEX IF NOT EXISTS idx_rp_org_type
+                    ON runtime_policies (org_id, event_type);
+
+                CREATE TABLE IF NOT EXISTS runtime_alerts (
+                    id TEXT PRIMARY KEY,
+                    event_id TEXT NOT NULL,
+                    policy_id TEXT NOT NULL,
+                    threat_level TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    acknowledged INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default'
+                );
+                CREATE INDEX IF NOT EXISTS idx_ra_org_time
+                    ON runtime_alerts (org_id, created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_ra_ack
+                    ON runtime_alerts (org_id, acknowledged, created_at DESC);
+            """)
+            # executescript issues implicit COMMIT; connection stays open.
+
+    def _seed_builtin_policies(self) -> None:
+        """Insert built-in policies once (idempotent)."""
+        with self._lock:
+            cur = self._conn.cursor()
+            for p in _EDR_BUILTIN_POLICIES:
+                cur.execute("SELECT 1 FROM runtime_policies WHERE id = ?", (p["id"],))
+                if not cur.fetchone():
+                    cur.execute(
+                        """
+                        INSERT INTO runtime_policies
+                            (id, name, event_type, conditions, action, enabled, org_id)
+                        VALUES (?, ?, ?, ?, ?, 1, 'default')
+                        """,
+                        (
+                            p["id"],
+                            p["name"],
+                            p["event_type"].value,
+                            json.dumps(p["conditions"]),
+                            p["action"].value,
+                        ),
+                    )
+            self._conn.commit()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def ingest_event(self, event: RuntimeEvent) -> RuntimeEvent:
+        """
+        Persist a runtime event.
+
+        Args:
+            event: The RuntimeEvent to store.
+
+        Returns:
+            The stored event (unchanged).
+        """
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO runtime_events
+                    (id, event_type, source_host, process_name, user,
+                     details, threat_level, detected_at, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event.id,
+                    event.event_type.value,
+                    event.source_host,
+                    event.process_name,
+                    event.user,
+                    json.dumps(event.details),
+                    event.threat_level.value,
+                    event.detected_at.isoformat(),
+                    event.org_id,
+                ),
+            )
+            self._conn.commit()
+        logger.debug("edr.event.ingested", event_id=event.id,
+                     event_type=event.event_type.value, host=event.source_host)
+        return event
+
+    def evaluate_policies(self, event: RuntimeEvent, org_id: str) -> List[RuntimeAlert]:
+        """
+        Evaluate enabled policies against an event and generate alerts.
+
+        Applies org-specific and built-in (default org) policies.
+
+        Args:
+            event: The event to evaluate.
+            org_id: The org context.
+
+        Returns:
+            List of generated RuntimeAlert objects (also persisted).
+        """
+        policies = self._load_policies_for_event(event.event_type, org_id)
+        alerts: List[RuntimeAlert] = []
+        for policy in policies:
+            if not policy.enabled:
+                continue
+            matched, threat_level = self._match_policy(event, policy)
+            if matched:
+                alert = RuntimeAlert(
+                    event_id=event.id,
+                    policy_id=policy.id,
+                    threat_level=threat_level,
+                    message=(
+                        f"Policy '{policy.name}' triggered on {event.source_host}: "
+                        f"process={event.process_name} user={event.user} "
+                        f"type={event.event_type.value}"
+                    ),
+                )
+                self._persist_alert(alert, org_id)
+                alerts.append(alert)
+                logger.warning("edr.alert.generated", policy=policy.name,
+                               event_id=event.id, host=event.source_host,
+                               threat=threat_level)
+        return alerts
+
+    def create_policy(self, policy: RuntimePolicy) -> RuntimePolicy:
+        """
+        Create a new runtime policy.
+
+        Args:
+            policy: The policy to create.
+
+        Returns:
+            The created policy.
+        """
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT INTO runtime_policies
+                    (id, name, event_type, conditions, action, enabled, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    policy.id,
+                    policy.name,
+                    policy.event_type.value,
+                    json.dumps(policy.conditions),
+                    policy.action.value,
+                    1 if policy.enabled else 0,
+                    policy.org_id,
+                ),
+            )
+            self._conn.commit()
+        return policy
+
+    def list_policies(self, org_id: str) -> List[RuntimePolicy]:
+        """
+        List all policies for an org (includes built-in default policies).
+
+        Args:
+            org_id: Organization ID.
+
+        Returns:
+            List of RuntimePolicy objects.
+        """
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT id, name, event_type, conditions, action, enabled, org_id
+                FROM runtime_policies
+                WHERE org_id = ? OR org_id = 'default'
+                ORDER BY name
+                """,
+                (org_id,),
+            )
+            rows = cur.fetchall()
+        return [self._row_to_policy(r) for r in rows]
+
+    def get_active_alerts(self, org_id: str) -> List[RuntimeAlert]:
+        """
+        Get unacknowledged alerts for an org.
+
+        Args:
+            org_id: Organization ID.
+
+        Returns:
+            List of unacknowledged RuntimeAlert objects, newest first.
+        """
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT id, event_id, policy_id, threat_level, message,
+                       acknowledged, created_at
+                FROM runtime_alerts
+                WHERE org_id = ? AND acknowledged = 0
+                ORDER BY created_at DESC
+                """,
+                (org_id,),
+            )
+            rows = cur.fetchall()
+        return [self._row_to_alert(r) for r in rows]
+
+    def acknowledge_alert(self, alert_id: str) -> bool:
+        """
+        Mark an alert as acknowledged.
+
+        Args:
+            alert_id: The alert ID.
+
+        Returns:
+            True if found and updated, False if not found.
+        """
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                "UPDATE runtime_alerts SET acknowledged = 1 WHERE id = ?",
+                (alert_id,),
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def get_threat_timeline(self, org_id: str, hours: int = 24) -> List[RuntimeEvent]:
+        """
+        Get recent threat events (non-NONE threat level) within a time window.
+
+        Args:
+            org_id: Organization ID.
+            hours: How many hours back to look.
+
+        Returns:
+            List of RuntimeEvent objects with non-none threat levels.
+        """
+        since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT id, event_type, source_host, process_name, user,
+                       details, threat_level, detected_at, org_id
+                FROM runtime_events
+                WHERE org_id = ? AND threat_level != 'none' AND detected_at >= ?
+                ORDER BY detected_at DESC
+                """,
+                (org_id, since),
+            )
+            rows = cur.fetchall()
+        return [self._row_to_event(r) for r in rows]
+
+    def get_runtime_stats(self, org_id: str) -> Dict[str, Any]:
+        """
+        Get aggregate statistics for an org.
+
+        Returns:
+            Dict with events_total, alerts_total, alerts_active,
+            events_by_type, threats_by_level, top_hosts.
+        """
+        with self._lock:
+            cur = self._conn.cursor()
+
+            cur.execute("SELECT COUNT(*) FROM runtime_events WHERE org_id = ?", (org_id,))
+            events_total = cur.fetchone()[0]
+
+            cur.execute(
+                "SELECT event_type, COUNT(*) FROM runtime_events "
+                "WHERE org_id = ? GROUP BY event_type", (org_id,)
+            )
+            events_by_type = {r[0]: r[1] for r in cur.fetchall()}
+
+            cur.execute(
+                "SELECT threat_level, COUNT(*) FROM runtime_events "
+                "WHERE org_id = ? AND threat_level != 'none' GROUP BY threat_level",
+                (org_id,),
+            )
+            threats_by_level = {r[0]: r[1] for r in cur.fetchall()}
+
+            cur.execute("SELECT COUNT(*) FROM runtime_alerts WHERE org_id = ?", (org_id,))
+            alerts_total = cur.fetchone()[0]
+
+            cur.execute(
+                "SELECT COUNT(*) FROM runtime_alerts WHERE org_id = ? AND acknowledged = 0",
+                (org_id,),
+            )
+            alerts_active = cur.fetchone()[0]
+
+            cur.execute(
+                """
+                SELECT source_host, COUNT(*) as cnt FROM runtime_events
+                WHERE org_id = ? GROUP BY source_host ORDER BY cnt DESC LIMIT 10
+                """,
+                (org_id,),
+            )
+            top_hosts = [{"host": r[0], "event_count": r[1]} for r in cur.fetchall()]
+
+        return {
+            "org_id": org_id,
+            "events_total": events_total,
+            "alerts_total": alerts_total,
+            "alerts_active": alerts_active,
+            "events_by_type": events_by_type,
+            "threats_by_level": threats_by_level,
+            "top_hosts": top_hosts,
+        }
+
+    def detect_anomalies(self, org_id: str) -> List[Dict[str, Any]]:
+        """
+        Detect unusual patterns in the last hour of event data.
+
+        Detects:
+        - High event volume per host (> 50 events/hr)
+        - Lateral movement (same user on > 3 hosts)
+        - High-threat processes (> 5 critical/high events/hr)
+
+        Args:
+            org_id: Organization ID.
+
+        Returns:
+            List of anomaly dicts with type, description, severity, details.
+        """
+        anomalies: List[Dict[str, Any]] = []
+        since = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+
+        with self._lock:
+            cur = self._conn.cursor()
+
+            # High event volume per host
+            cur.execute(
+                """
+                SELECT source_host, COUNT(*) as cnt FROM runtime_events
+                WHERE org_id = ? AND detected_at >= ?
+                GROUP BY source_host HAVING cnt > 50 ORDER BY cnt DESC
+                """,
+                (org_id, since),
+            )
+            for row in cur.fetchall():
+                anomalies.append({
+                    "type": "high_event_volume",
+                    "description": f"Host {row[0]} generated {row[1]} events in the last hour",
+                    "severity": "medium",
+                    "details": {"host": row[0], "event_count": row[1], "window": "1h"},
+                })
+
+            # Lateral movement — user seen on many hosts
+            cur.execute(
+                """
+                SELECT user, COUNT(DISTINCT source_host) as host_count FROM runtime_events
+                WHERE org_id = ? AND detected_at >= ?
+                GROUP BY user HAVING host_count > 3 ORDER BY host_count DESC
+                """,
+                (org_id, since),
+            )
+            for row in cur.fetchall():
+                anomalies.append({
+                    "type": "lateral_movement",
+                    "description": f"User '{row[0]}' seen on {row[1]} hosts in last hour",
+                    "severity": "high",
+                    "details": {"user": row[0], "host_count": row[1], "window": "1h"},
+                })
+
+            # High-threat processes
+            cur.execute(
+                """
+                SELECT process_name, COUNT(*) as cnt FROM runtime_events
+                WHERE org_id = ? AND threat_level IN ('high', 'critical')
+                  AND detected_at >= ?
+                GROUP BY process_name HAVING cnt > 5 ORDER BY cnt DESC
+                """,
+                (org_id, since),
+            )
+            for row in cur.fetchall():
+                anomalies.append({
+                    "type": "high_threat_process",
+                    "description": (
+                        f"Process '{row[0]}' triggered {row[1]} "
+                        "high/critical events in last hour"
+                    ),
+                    "severity": "high",
+                    "details": {"process": row[0], "threat_count": row[1], "window": "1h"},
+                })
+
+        return anomalies
+
+    def get_process_tree(self, host: str, org_id: str) -> List[Dict[str, Any]]:
+        """
+        Get the process execution chain for a host.
+
+        Returns process_exec events ordered by time, with parent-child
+        relationships reconstructed via pid/ppid in event details.
+
+        Args:
+            host: Source host to query.
+            org_id: Organization ID.
+
+        Returns:
+            List of process tree nodes (roots at top level, children nested).
+        """
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT id, process_name, user, details, threat_level, detected_at
+                FROM runtime_events
+                WHERE org_id = ? AND source_host = ? AND event_type = 'process_exec'
+                ORDER BY detected_at ASC LIMIT 500
+                """,
+                (org_id, host),
+            )
+            rows = cur.fetchall()
+
+        nodes: List[Dict[str, Any]] = []
+        for row in rows:
+            details = json.loads(row[3]) if row[3] else {}
+            nodes.append({
+                "event_id": row[0],
+                "process_name": row[1],
+                "user": row[2],
+                "pid": details.get("pid"),
+                "ppid": details.get("ppid"),
+                "cmdline": details.get("cmdline", ""),
+                "threat_level": row[4],
+                "timestamp": row[5],
+                "children": [],
+            })
+
+        # Wire parent-child by pid/ppid
+        pid_map: Dict[Any, Dict[str, Any]] = {
+            n["pid"]: n for n in nodes if n["pid"] is not None
+        }
+        roots: List[Dict[str, Any]] = []
+        for node in nodes:
+            ppid = node.get("ppid")
+            if ppid and ppid in pid_map and pid_map[ppid] is not node:
+                pid_map[ppid]["children"].append(node)
+            else:
+                roots.append(node)
+
+        return roots if roots else nodes
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _load_policies_for_event(
+        self, event_type: EventType, org_id: str
+    ) -> List[RuntimePolicy]:
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT id, name, event_type, conditions, action, enabled, org_id
+                FROM runtime_policies
+                WHERE (org_id = ? OR org_id = 'default')
+                  AND event_type = ? AND enabled = 1
+                """,
+                (org_id, event_type.value),
+            )
+            return [self._row_to_policy(r) for r in cur.fetchall()]
+
+    def _match_policy(
+        self, event: RuntimeEvent, policy: RuntimePolicy
+    ) -> Tuple[bool, ThreatLevel]:
+        """Return (matched, threat_level) for an event against a policy."""
+        conditions = policy.conditions
+        details = event.details
+        process = event.process_name.lower()
+
+        # Determine threat level from built-in definition or event itself
+        threat_level: ThreatLevel = ThreatLevel.MEDIUM
+        for bp in _EDR_BUILTIN_POLICIES:
+            if bp["id"] == policy.id:
+                threat_level = bp.get("threat_level", ThreatLevel.MEDIUM)
+                break
+        if event.threat_level != ThreatLevel.NONE:
+            threat_level = event.threat_level
+
+        # --- Process name list ---
+        process_names = [p.lower() for p in conditions.get("process_names", [])]
+        cmdline_patterns = [c.lower() for c in conditions.get("cmdline_contains", [])]
+        cmdline = details.get("cmdline", "").lower()
+
+        if process_names or cmdline_patterns:
+            process_hit = process in process_names if process_names else False
+            cmdline_hit = any(pat in cmdline for pat in cmdline_patterns) if cmdline_patterns else False
+            if not process_hit and not cmdline_hit:
+                # Neither matched — skip unless other conditions apply
+                if not conditions.get("paths") and not conditions.get("indicators") \
+                        and conditions.get("large_outbound_bytes_threshold") is None \
+                        and conditions.get("uid_transition") is None:
+                    return False, ThreatLevel.NONE
+            elif process_hit or cmdline_hit:
+                return True, threat_level
+
+        # --- File path matching ---
+        sensitive_paths = conditions.get("paths", []) + conditions.get("sensitive_file_paths", [])
+        if sensitive_paths:
+            accessed = details.get("path", details.get("file", "")).lower()
+            if any(sp.lower() in accessed for sp in sensitive_paths if sp):
+                return True, threat_level
+
+        # --- Container escape indicators ---
+        indicators = conditions.get("indicators", [])
+        if indicators:
+            event_indicators = details.get("indicators", [])
+            if any(ind in event_indicators for ind in indicators):
+                return True, threat_level
+            if any(details.get(ind) for ind in indicators):
+                return True, threat_level
+
+        # --- Large outbound bytes ---
+        threshold = conditions.get("large_outbound_bytes_threshold")
+        if threshold is not None and details.get("bytes_out", 0) >= threshold:
+            return True, threat_level
+
+        # --- Privilege escalation ---
+        if conditions.get("uid_transition") == "non-root-to-root":
+            if (details.get("uid_before", -1) != 0 and details.get("uid_after") == 0) \
+                    or details.get("escalated") is True:
+                return True, threat_level
+
+        return False, ThreatLevel.NONE
+
+    def _persist_alert(self, alert: RuntimeAlert, org_id: str) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO runtime_alerts
+                    (id, event_id, policy_id, threat_level, message,
+                     acknowledged, created_at, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    alert.id,
+                    alert.event_id,
+                    alert.policy_id,
+                    alert.threat_level.value,
+                    alert.message,
+                    1 if alert.acknowledged else 0,
+                    alert.created_at.isoformat(),
+                    org_id,
+                ),
+            )
+            self._conn.commit()
+
+    # ------------------------------------------------------------------
+    # Row converters
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _row_to_event(row: tuple) -> RuntimeEvent:
+        return RuntimeEvent(
+            id=row[0],
+            event_type=EventType(row[1]),
+            source_host=row[2],
+            process_name=row[3],
+            user=row[4],
+            details=json.loads(row[5]) if row[5] else {},
+            threat_level=ThreatLevel(row[6]),
+            detected_at=datetime.fromisoformat(row[7]),
+            org_id=row[8],
+        )
+
+    @staticmethod
+    def _row_to_policy(row: tuple) -> RuntimePolicy:
+        return RuntimePolicy(
+            id=row[0],
+            name=row[1],
+            event_type=EventType(row[2]),
+            conditions=json.loads(row[3]) if row[3] else {},
+            action=PolicyAction(row[4]),
+            enabled=bool(row[5]),
+            org_id=row[6],
+        )
+
+    @staticmethod
+    def _row_to_alert(row: tuple) -> RuntimeAlert:
+        return RuntimeAlert(
+            id=row[0],
+            event_id=row[1],
+            policy_id=row[2],
+            threat_level=ThreatLevel(row[3]),
+            message=row[4],
+            acknowledged=bool(row[5]),
+            created_at=datetime.fromisoformat(row[6]),
+        )
