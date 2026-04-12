@@ -1,27 +1,239 @@
-"""SLA Dashboard & Metrics Router (V3 — Decision Intelligence).
+"""SLA Management Router for ALDECI.
 
-Provides SLA tracking, breach detection, team performance metrics,
-and aging analysis for remediation tasks.
+Provides per-severity SLA policy management, compliance tracking, breach
+detection, and auto-escalation.
 
 Endpoints:
-  GET /dashboard  — SLA compliance dashboard overview
-  GET /metrics    — Detailed SLA metrics by team/severity/app
-  GET /breaches   — Current SLA breaches list
-  GET /health     — Health check
+  POST /api/v1/sla/policies            — create/update SLA policy
+  GET  /api/v1/sla/policies            — get policy for org
+  GET  /api/v1/sla/status/{finding_id} — SLA status for a finding
+  GET  /api/v1/sla/breached            — all breached findings
+  GET  /api/v1/sla/at-risk             — approaching deadline
+  GET  /api/v1/sla/compliance          — compliance rate
+  GET  /api/v1/sla/dashboard           — all SLA metrics
+  POST /api/v1/sla/escalate            — run escalation check
+
+  Legacy endpoints (V3 analytics — retained for backward compat):
+  GET  /api/v1/sla/dashboard-legacy    — old remediation-task view
+  GET  /api/v1/sla/metrics             — MTTR + team breakdown
+  GET  /api/v1/sla/breaches            — task-level breach list
+  GET  /api/v1/sla/health              — health check
 """
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
+
 from apps.api.dependencies import get_org_id
+from core.sla_manager import SLAManager, SLAPolicy, SLARecord, SLAStatus
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/sla", tags=["SLA"])
+
+# Module-level singleton
+_manager = SLAManager()
+
+
+def _get_manager() -> SLAManager:
+    return _manager
+
+
+# ---------------------------------------------------------------------------
+# Request / Response models
+# ---------------------------------------------------------------------------
+
+
+class SLAPolicyRequest(BaseModel):
+    """Payload for creating or updating an SLA policy."""
+
+    name: str
+    severity_deadlines: Dict[str, int] = Field(
+        default_factory=lambda: {"critical": 24, "high": 72, "medium": 336, "low": 720}
+    )
+    escalation_chain: List[str] = Field(default_factory=list)
+    grace_period_hours: int = 0
+    enabled: bool = True
+
+
+class TrackFindingRequest(BaseModel):
+    finding_id: str
+    severity: str
+    discovered_at: Optional[datetime] = None
+
+
+class BulkTrackRequest(BaseModel):
+    findings: List[Dict[str, Any]]
+
+
+class EscalateResponse(BaseModel):
+    escalated_count: int
+    org_id: str
+
+
+# ---------------------------------------------------------------------------
+# Policy endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/policies", response_model=SLAPolicy, status_code=status.HTTP_201_CREATED)
+async def create_or_update_policy(
+    payload: SLAPolicyRequest,
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> SLAPolicy:
+    """Create or update the SLA policy for the current org."""
+    existing = manager.get_policy(org_id)
+    if existing:
+        policy = manager.update_policy(
+            org_id,
+            {
+                "name": payload.name,
+                "severity_deadlines": payload.severity_deadlines,
+                "escalation_chain": payload.escalation_chain,
+                "grace_period_hours": payload.grace_period_hours,
+                "enabled": payload.enabled,
+            },
+        )
+    else:
+        policy = SLAPolicy(
+            org_id=org_id,
+            name=payload.name,
+            severity_deadlines=payload.severity_deadlines,
+            escalation_chain=payload.escalation_chain,
+            grace_period_hours=payload.grace_period_hours,
+            enabled=payload.enabled,
+        )
+        policy = manager.create_policy(policy)
+    return policy
+
+
+@router.get("/policies", response_model=Optional[SLAPolicy])
+async def get_policy(
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> Optional[SLAPolicy]:
+    """Get the SLA policy for the current org."""
+    return manager.get_policy(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Finding tracking endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/track", response_model=SLARecord, status_code=status.HTTP_201_CREATED)
+async def track_finding(
+    payload: TrackFindingRequest,
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> SLARecord:
+    """Start SLA tracking for a finding."""
+    disc = payload.discovered_at or datetime.now(timezone.utc)
+    return manager.track_finding(payload.finding_id, payload.severity, disc, org_id)
+
+
+@router.post("/track/bulk", response_model=Dict[str, Any])
+async def bulk_track(
+    payload: BulkTrackRequest,
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> Dict[str, Any]:
+    """Track multiple findings at once."""
+    count = manager.bulk_track(payload.findings, org_id)
+    return {"tracked": count, "org_id": org_id}
+
+
+# ---------------------------------------------------------------------------
+# Status / query endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/status/{finding_id}", response_model=Dict[str, Any])
+async def get_sla_status(
+    finding_id: str,
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> Dict[str, Any]:
+    """Get the current SLA status for a specific finding."""
+    record = manager.get_record(finding_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"No SLA record for finding '{finding_id}'")
+    computed_status = manager.check_sla_status(finding_id)
+    return {
+        "finding_id": finding_id,
+        "status": computed_status,
+        "severity": record.severity,
+        "deadline": record.deadline.isoformat(),
+        "discovered_at": record.discovered_at.isoformat(),
+        "escalated": record.escalated,
+        "exempt_reason": record.exempt_reason,
+    }
+
+
+@router.get("/breached", response_model=List[SLARecord])
+async def get_breached(
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> List[SLARecord]:
+    """Return all breached SLA findings for the current org."""
+    return manager.get_breached(org_id)
+
+
+@router.get("/at-risk", response_model=List[SLARecord])
+async def get_at_risk(
+    hours_threshold: float = Query(24.0, ge=1.0, le=720.0),
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> List[SLARecord]:
+    """Return findings approaching their SLA deadline."""
+    return manager.get_at_risk(org_id, hours_threshold=hours_threshold)
+
+
+@router.get("/compliance", response_model=Dict[str, Any])
+async def get_compliance(
+    period_days: int = Query(30, ge=1, le=365),
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> Dict[str, Any]:
+    """Return the SLA compliance rate for the current org."""
+    rate = manager.get_sla_compliance_rate(org_id, period_days=period_days)
+    mttr = manager.get_mttr_by_severity(org_id)
+    return {
+        "org_id": org_id,
+        "period_days": period_days,
+        "compliance_rate": rate,
+        "mttr_by_severity": mttr,
+    }
+
+
+@router.get("/dashboard", response_model=Dict[str, Any])
+async def get_dashboard(
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> Dict[str, Any]:
+    """Return all SLA metrics for dashboard display."""
+    return manager.get_sla_dashboard(org_id)
+
+
+@router.post("/escalate", response_model=EscalateResponse)
+async def run_escalation(
+    org_id: str = Depends(get_org_id),
+    manager: SLAManager = Depends(_get_manager),
+) -> EscalateResponse:
+    """Run escalation check — alerts on all breached, un-escalated findings."""
+    count = manager.run_escalation_check(org_id)
+    return EscalateResponse(escalated_count=count, org_id=org_id)
+
+
+# ---------------------------------------------------------------------------
+# Legacy V3 endpoints — retained for backward compatibility
+# ---------------------------------------------------------------------------
 
 
 def _get_remediation_db():
@@ -38,52 +250,58 @@ def _compute_sla_targets() -> Dict[str, int]:
     return {
         "critical": 24,
         "high": 72,
-        "medium": 168,   # 7 days
-        "low": 720,      # 30 days
+        "medium": 168,
+        "low": 720,
     }
 
 
-@router.get("/dashboard")
-async def sla_dashboard() -> Dict[str, Any]:
-    """SLA compliance dashboard — breach counts, compliance rates, aging analysis."""
+def _task_age_hours(task: Dict[str, Any], now: datetime) -> float:
+    """Calculate task age in hours."""
+    created = task.get("created_at")
+    if not created:
+        return 0
+    try:
+        dt = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (now - dt).total_seconds() / 3600
+    except (ValueError, TypeError):
+        return 0
+
+
+@router.get("/dashboard-legacy")
+async def sla_dashboard_legacy() -> Dict[str, Any]:
+    """Legacy SLA compliance dashboard — breach counts from remediation tasks."""
     now = datetime.now(timezone.utc)
     targets = _compute_sla_targets()
-
-    # Attempt to get real remediation data
     tasks: List[Dict[str, Any]] = []
     try:
         db = _get_remediation_db()
         if db:
             raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError):
         pass
 
-    # Compute SLA stats from tasks
     total = len(tasks)
     breached = 0
     at_risk = 0
     compliant = 0
     by_severity: Dict[str, Dict[str, int]] = {
-        sev: {"total": 0, "breached": 0, "compliant": 0}
-        for sev in targets
+        sev: {"total": 0, "breached": 0, "compliant": 0} for sev in targets
     }
 
     for task in tasks:
         sev = (task.get("severity") or "medium").lower()
-        status = (task.get("status") or "").lower()
+        st = (task.get("status") or "").lower()
         created = task.get("created_at")
-
         if sev not in by_severity:
             sev = "medium"
         by_severity[sev]["total"] += 1
-
-        if status in ("resolved", "closed", "completed"):
+        if st in ("resolved", "closed", "completed"):
             by_severity[sev]["compliant"] += 1
             compliant += 1
             continue
-
-        # Check if breached based on creation time vs SLA target
         if created:
             try:
                 created_dt = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
@@ -107,7 +325,6 @@ async def sla_dashboard() -> Dict[str, Any]:
             by_severity[sev]["compliant"] += 1
 
     compliance_rate = round(compliant / max(total, 1) * 100, 1)
-
     return {
         "status": "ok",
         "compliance_rate": compliance_rate,
@@ -132,22 +349,19 @@ async def sla_dashboard() -> Dict[str, Any]:
 async def sla_metrics() -> Dict[str, Any]:
     """Detailed SLA metrics — MTTR, team breakdown, escalations."""
     targets = _compute_sla_targets()
-
-    # Get real data if available
     tasks: List[Dict[str, Any]] = []
     try:
         db = _get_remediation_db()
         if db:
             raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError):
         pass
 
-    # Calculate MTTR from resolved tasks
     resolved_times: List[float] = []
     for task in tasks:
-        status = (task.get("status") or "").lower()
-        if status in ("resolved", "closed", "completed"):
+        st = (task.get("status") or "").lower()
+        if st in ("resolved", "closed", "completed"):
             created = task.get("created_at")
             resolved = task.get("resolved_at") or task.get("updated_at")
             if created and resolved:
@@ -168,7 +382,6 @@ async def sla_metrics() -> Dict[str, Any]:
     p50_mttr = round(sorted(resolved_times)[len(resolved_times) // 2], 1) if resolved_times else 0
     p90_mttr = round(sorted(resolved_times)[int(len(resolved_times) * 0.9)], 1) if resolved_times else 0
 
-    # Team breakdown
     by_team: Dict[str, int] = {}
     for task in tasks:
         team = task.get("team") or task.get("assigned_team") or "unassigned"
@@ -191,7 +404,7 @@ async def sla_metrics() -> Dict[str, Any]:
 
 @router.get("/breaches")
 async def sla_breaches() -> Dict[str, Any]:
-    """List current SLA breaches."""
+    """List current SLA breaches (task-level, legacy view)."""
     now = datetime.now(timezone.utc)
     targets = _compute_sla_targets()
     tasks: List[Dict[str, Any]] = []
@@ -200,13 +413,13 @@ async def sla_breaches() -> Dict[str, Any]:
         if db:
             raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError):
         pass
 
     breaches = []
     for task in tasks:
-        status = (task.get("status") or "").lower()
-        if status in ("resolved", "closed", "completed"):
+        st = (task.get("status") or "").lower()
+        if st in ("resolved", "closed", "completed"):
             continue
         sev = (task.get("severity") or "medium").lower()
         created = task.get("created_at")
@@ -232,7 +445,6 @@ async def sla_breaches() -> Dict[str, Any]:
             continue
 
     breaches.sort(key=lambda x: x["overdue_hours"], reverse=True)
-
     return {
         "status": "ok",
         "breaches": breaches[:50],
@@ -243,21 +455,7 @@ async def sla_breaches() -> Dict[str, Any]:
 @router.get("/health")
 async def sla_health(org_id: str = Depends(get_org_id)):
     """SLA service health check."""
-    return {"status": "healthy", "engine": "sla", "version": "1.0.0"}
-
-
-def _task_age_hours(task: Dict[str, Any], now: datetime) -> float:
-    """Calculate task age in hours."""
-    created = task.get("created_at")
-    if not created:
-        return 0
-    try:
-        dt = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return (now - dt).total_seconds() / 3600
-    except (ValueError, TypeError):
-        return 0
+    return {"status": "healthy", "engine": "sla_manager", "version": "2.0.0"}
 
 
 __all__ = ["router"]
