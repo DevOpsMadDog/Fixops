@@ -180,6 +180,13 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "SBOM",
+    icon: Package,
+    items: [
+      { label: "SBOM Management", to: "/sbom", icon: Package, badge: "NEW" },
+    ],
+  },
+  {
     label: "Attack Surface",
     icon: Globe,
     items: [
