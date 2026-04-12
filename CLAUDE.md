@@ -1,9 +1,10 @@
-# ALdeci (FixOps) — Project Guide
+# ALDECI (Fixops) — Beast Mode v6 Project Guide
 
-> **Last verified**: 2026-03-08 by context-engineer (v34.0)
-> **Platform**: CTEM+ Decision Intelligence for Application Security
-> **Identity**: docs/CTEM_PLUS_IDENTITY.md | **Vision**: docs/CEO_VISION.md
-> **Sprint**: 2 — Enterprise Demo (2026-03-06) | 11/12 done (Post-Demo Day 2)
+> **Last verified**: 2026-04-12 by code-review-graph v2.2.2 (34,301 nodes, 216,476 edges, 1,624 files)
+> **Platform**: ASPM + CTEM + CSPM — TrustGraph-native with LLM Consensus
+> **Architecture**: `ALDECI_REARCHITECTURE_v2.md` (v2.5, 2,800+ lines) — **READ THIS FIRST FOR ANY TASK**
+> **Default branch**: `features/intermediate-stage` (NOT main)
+> **Mode**: Beast Mode v6-v12 — autonomous execution, `--dangerously-skip-permissions`
 
 ---
 
@@ -216,16 +217,44 @@ Reusable domain expertise for any agent or session. Read the relevant skill befo
 
 ---
 
-## Known Issues
+## Beast Mode Rules
 
-1. ~~**New UI is missing**~~ — RESOLVED: `suite-ui/aldeci-ui-new/` exists with 60+ pages, React 19, RBAC, 5-space routing
-2. **Test coverage at 19.19%** — Below 25% gate, CI failing (DEMO-006 config fix applied but still below gate)
-3. **Non-standard endpoint files at non-obvious paths** — decisions.py (suite-core/api/), nerve_center.py (suite-core/api/), business_context*.py (suite-evidence-risk/api/) are conditionally mounted
-4. **Single-process monolith** — No horizontal scaling (OK for demo/POC)
-5. **No external message queue** — EventBus is in-process only
-6. **Brain pipeline runs synchronously** — O(n) at graph step (optimized from O(n^2)), LLM calls block
-7. **No git commits since 2026-03-03** — 5 days of uncommitted working directory changes
+1. **Read `ALDECI_REARCHITECTURE_v2.md` Part 14** for current phase tasks — this is your execution plan
+2. **No manual approval needed** — execute autonomously
+3. **Run tests after every module change** — `python -m pytest tests/ -x --tb=short`
+4. **Commit after each phase** with: `beast-mode(phase-N): description`
+5. **If tests fail, fix them BEFORE moving to next task** — zero regressions
+6. **Update architecture doc** if you discover anything that contradicts it
+7. **Every feature must serve at least one of the 30 personas** (see Part 12)
+8. **Use existing code — EXTEND, don't rebuild** (especially the 13 PULL connectors, 7 bidirectional, 32 normalizers)
+
+## Connector Inventory (DO NOT REBUILD)
+
+- **13 PULL connectors** in `suite-core/core/security_connectors.py` (1,932 lines): Snyk, SonarQube, Dependabot, AWS Security Hub, Azure Defender, Wiz, PrismaCloud, Orca, Lacework, ThreatMapper, DependencyTrack
+- **7 bidirectional connectors** in `suite-core/core/connectors.py` (3,620 lines): Jira, Confluence, Slack, ServiceNow, GitLab, Azure DevOps, GitHub
+- **32 scanner normalizers** in `suite-core/core/scanner_parsers.py` (2,395 lines)
+- **New PullConnector framework** in `suite-core/connectors/` (pull_connector.py, connector_registry.py, sdlc_connectors.py, trustgraph_mcp_bridge.py, defectdojo_parser.py)
+- **Connector API** in `suite-api/apps/api/connector_routes.py` (887 lines, 8 endpoints)
+
+## 30 Personas (defined in suite-ui/aldeci-ui-new/e2e/helpers/auth.ts)
+
+P01 CISO, P02 VP Engineering, P03 SOC T1, P04 SOC T2, P05 Security Engineer,
+P06 DevSecOps, P07 Compliance Officer, P08 Pen Tester, P09 Risk Manager,
+P10 IT Director, P11 AppSec Lead, P12 Cloud Architect, P13 Audit Manager,
+P14 IR Lead, P15 Data Scientist, P16 Platform Engineer, P17 Threat Intel,
+P18 GRC Analyst, P19 SecOps Manager, P20 Developer Champion, P21 Security Architect,
+P22 Supply Chain, P23 QA Tester, P24 Board Member, P25 External Auditor,
+P26 SRE (new), P27 DPO (new), P28 API Security (new), P29 Threat Modeler (new), P30 MSSP (new)
+
+## Known Issues (updated 2026-04-12)
+
+1. ~~**New UI is missing**~~ — RESOLVED: `suite-ui/aldeci-ui-new/` exists with 60+ pages
+2. **Test coverage at 19.19%** — Below 25% gate, needs improvement during Beast Mode
+3. **Single-process monolith** — Phase 5 adds horizontal scaling via Helm + queue mode
+4. **No external message queue** — TrustGraph Pulsar replaces EventBus in rearchitecture
+5. **Brain pipeline runs synchronously** — LLM Council (Phase 3) replaces with async 3-stage consensus
+6. **Merge not pushed to GitHub** — run `git push origin features/intermediate-stage` from Mac first
 
 ---
 
-*Maintained by context-engineer. Full architecture: `.claude/team-state/architecture-context.md`*
+*Beast Mode source of truth: `ALDECI_REARCHITECTURE_v2.md` (v2.5). Maintained by Shiva (CEO) + Claude Opus (CTO).*

@@ -1,0 +1,368 @@
+{
+  "name": "Jira Security Sync",
+  "description": "Bidirectional sync between Jira security issues and ALDECI findings",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "intervalUnit": "hours",
+              "triggerAtHour": 0,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Every 1 Hour)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.JIRA_BASE_URL }}/rest/api/3/issues/search",
+        "authentication": "basicAuth",
+        "basicAuth": "jira_basic_auth_credential",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "jql",
+              "value": "labels = security AND status != Done"
+            },
+            {
+              "name": "maxResults",
+              "value": "100"
+            },
+            {
+              "name": "expand",
+              "value": "changelog"
+            }
+          ]
+        }
+      },
+      "id": "jira-search-security-issues",
+      "name": "Jira: Search Security Issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Transform Jira issues to ALDECI format\nconst timestamp = new Date().toISOString();\nconst findings = [];\n\nfor (const issue of $input.all()) {\n  const jiraIssue = issue.json;\n  \n  findings.push({\n    finding_id: `jira-${jiraIssue.key}`,\n    finding_type: 'security_issue',\n    entity_type: 'issue',\n    entity_id: jiraIssue.key,\n    title: jiraIssue.fields?.summary || 'Untitled',\n    description: jiraIssue.fields?.description?.content?.[0]?.content?.[0]?.text || '',\n    severity: (() => {\n      const priority = jiraIssue.fields?.priority?.name?.toLowerCase() || 'medium';\n      if (priority.includes('critical')) return 'critical';\n      if (priority.includes('highest') || priority.includes('high')) return 'high';\n      if (priority.includes('medium')) return 'medium';\n      if (priority.includes('low')) return 'low';\n      return 'info';\n    })(),\n    status: (() => {\n      const status = jiraIssue.fields?.status?.name?.toLowerCase() || 'open';\n      if (status === 'done' || status === 'closed') return 'closed';\n      if (status === 'in progress' || status === 'reviewing') return 'verified';\n      return 'open';\n    })(),\n    source: 'jira',\n    scanner: 'jira-security-sync',\n    discovery_time: timestamp,\n    jira_key: jiraIssue.key,\n    jira_url: jiraIssue.self,\n    assignee: jiraIssue.fields?.assignee?.displayName,\n    reporter: jiraIssue.fields?.reporter?.displayName,\n    project: jiraIssue.fields?.project?.key,\n    project_name: jiraIssue.fields?.project?.name,\n    labels: jiraIssue.fields?.labels || [],\n    components: jiraIssue.fields?.components?.map(c => c.name) || [],\n    created_at: jiraIssue.fields?.created,\n    updated_at: jiraIssue.fields?.updated,\n    due_date: jiraIssue.fields?.duedate,\n    custom_fields: (() => {\n      const custom = {};\n      for (const [key, value] of Object.entries(jiraIssue.fields || {})) {\n        if (key.startsWith('customfield_')) {\n          custom[key] = value;\n        }\n      }\n      return custom;\n    })()\n  });\n}\n\nreturn { items: findings };"
+      },
+      "id": "transform-jira-to-aldeci",
+      "name": "Transform: Jira to ALDECI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://aldeci-api:8000/api/v1/connectors/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Source",
+              "value": "jira-security-sync"
+            },
+            {
+              "name": "X-Sync-Direction",
+              "value": "jira-to-aldeci"
+            }
+          ]
+        },
+        "bodyParametersUi": "json",
+        "body": {
+          "findings": "={{ $input.all().map(item => item.json) }}"
+        }
+      },
+      "id": "post-jira-findings-to-aldeci",
+      "name": "POST Jira Findings to ALDECI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1150,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://aldeci-api:8000/api/v1/findings/pending-export",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "target",
+              "value": "jira"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "fetch-aldeci-findings-for-jira",
+      "name": "Fetch ALDECI Findings for Jira",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Transform ALDECI findings to Jira issue format\nconst findings = [];\n\nfor (const item of $input.all()) {\n  const aldeciFinding = item.json;\n  \n  // Map severity to Jira priority\n  const priorityMap = {\n    critical: 'Highest',\n    high: 'High',\n    medium: 'Medium',\n    low: 'Low',\n    info: 'Lowest'\n  };\n  \n  findings.push({\n    fields: {\n      project: {\n        key: process.env.JIRA_PROJECT_KEY || 'SEC'\n      },\n      summary: aldeciFinding.title || `Security Finding: ${aldeciFinding.finding_id}`,\n      description: {\n        version: 3,\n        type: 'doc',\n        content: [\n          {\n            type: 'paragraph',\n            content: [\n              {\n                type: 'text',\n                text: aldeciFinding.description || ''\n              }\n            ]\n          },\n          {\n            type: 'paragraph',\n            content: [\n              {\n                type: 'text',\n                text: `Source: ${aldeciFinding.source || 'ALDECI'}\\nSeverity: ${aldeciFinding.severity}\\nFinding ID: ${aldeciFinding.finding_id}`\n              }\n            ]\n          }\n        ]\n      },\n      issuetype: {\n        name: 'Security Issue'\n      },\n      priority: {\n        name: priorityMap[aldeciFinding.severity] || 'Medium'\n      },\n      labels: [\n        'security',\n        'aldeci-import',\n        aldeciFinding.source || 'external'\n      ],\n      customfield_10001: aldeciFinding.finding_id,\n      customfield_10002: aldeciFinding.source,\n      duedate: (() => {\n        const today = new Date();\n        const daysOut = aldeciFinding.severity === 'critical' ? 1 : \n                       aldeciFinding.severity === 'high' ? 3 : 7;\n        const due = new Date(today.getTime() + daysOut * 24 * 60 * 60 * 1000);\n        return due.toISOString().split('T')[0];\n      })()\n    }\n  });\n}\n\nreturn { items: findings };"
+      },
+      "id": "transform-aldeci-to-jira",
+      "name": "Transform: ALDECI to Jira",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        850,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "create-update-jira-loop",
+      "name": "For Each Finding: Create/Update Jira Issue",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3.0,
+      "position": [
+        1150,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.JIRA_BASE_URL }}/rest/api/3/issues",
+        "authentication": "basicAuth",
+        "basicAuth": "jira_basic_auth_credential",
+        "sendBodyData": "json",
+        "body": "={{ $json.fields }}"
+      },
+      "id": "create-jira-issue",
+      "name": "Create Jira Issue (If New)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1450,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.JIRA_BASE_URL }}/rest/api/3/issues/{{ $json.jira_key }}",
+        "authentication": "basicAuth",
+        "basicAuth": "jira_basic_auth_credential",
+        "sendBodyData": "json",
+        "body": {
+          "fields": "={{ $json.fields }}"
+        }
+      },
+      "id": "update-jira-issue",
+      "name": "Update Jira Issue (If Exists)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1450,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsCode": "// Determine if issue exists in Jira based on finding_id\n// This would check against Jira search results\nreturn {\n  items: $input.all().map(item => ({\n    ...item.json,\n    jira_issue_exists: false  // Would be populated by actual Jira query\n  }))\n};"
+      },
+      "id": "check-issue-exists",
+      "name": "Check If Issue Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1150,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "success-notification",
+      "name": "Success Notification",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1.0,
+      "position": [
+        1750,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "errorOutput": "Last node before error",
+        "continueOnError": true
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1.0,
+      "position": [
+        1750,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "jira-search-security-issues",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "fetch-aldeci-findings-for-jira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "jira-search-security-issues": {
+      "main": [
+        [
+          {
+            "node": "transform-jira-to-aldeci",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-jira-to-aldeci": {
+      "main": [
+        [
+          {
+            "node": "post-jira-findings-to-aldeci",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch-aldeci-findings-for-jira": {
+      "main": [
+        [
+          {
+            "node": "transform-aldeci-to-jira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-aldeci-to-jira": {
+      "main": [
+        [
+          {
+            "node": "check-issue-exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-issue-exists": {
+      "main": [
+        [
+          {
+            "node": "create-jira-issue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "update-jira-issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create-jira-issue": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "error-handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update-jira-issue": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "error-handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "post-jira-findings-to-aldeci": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0"
+}

@@ -111,8 +111,10 @@ export const PERSONA_WORKFLOWS: PersonaWorkflow[] = [
       validate: { isObject: true, description: "Policies returns policy list" } },
     { name: "Check workflows", method: "GET", path: "/api/v1/workflows",
       validate: { isObject: true, description: "Workflows returns workflow definitions" } },
-    { name: "View connector types", method: "GET", path: "/api/v1/connectors/types",
-      validate: { isObject: true, description: "Connectors returns available types" } },
+    { name: "List connectors (registry)", method: "GET", path: "/api/v1/connectors/registry",
+      validate: { isObject: true, description: "Registry returns all registered connectors with SDLC stage and health" } },
+    { name: "Connector metrics", method: "GET", path: "/api/v1/connectors/metrics",
+      validate: { isObject: true, description: "Metrics returns pull/push stats per connector" } },
   ]},
   // P07: Compliance Officer
   { personaId: 7, steps: [
@@ -251,6 +253,10 @@ export const PERSONA_WORKFLOWS: PersonaWorkflow[] = [
       validate: { isObject: true, description: "Version returns build info" } },
     { name: "Ready probe", method: "GET", path: "/api/v1/ready",
       validate: { isObject: true, description: "Ready returns Kubernetes readiness" } },
+    { name: "Connector registry", method: "GET", path: "/api/v1/connectors/registry",
+      validate: { isObject: true, description: "Registry returns connector status for infrastructure monitoring" } },
+    { name: "Connector SDLC stages", method: "GET", path: "/api/v1/connectors/stages/DEPLOY",
+      validate: { isObject: true, description: "Stage filter returns deploy-stage connectors" } },
   ]},
   // P17: Threat Intel Analyst
   { personaId: 17, steps: [

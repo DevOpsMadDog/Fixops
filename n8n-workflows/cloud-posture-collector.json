@@ -1,0 +1,396 @@
+{
+  "name": "Cloud Posture Collector",
+  "description": "Multi-cloud security posture collection from AWS, Azure, and GCP",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "intervalUnit": "hours",
+              "triggerAtHour": 0,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Every 4 Hours)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://securityhub.{{ $env.AWS_REGION }}.amazonaws.com/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Amz-Target",
+              "value": "SecurityHubAPIV20180701.GetFindings"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParametersUi": "json",
+        "body": {
+          "Filters": {
+            "RecordState": [
+              {
+                "Value": "ACTIVE",
+                "Comparison": "EQUALS"
+              }
+            ],
+            "ComplianceStatus": [
+              {
+                "Value": "FAILED",
+                "Comparison": "EQUALS"
+              },
+              {
+                "Value": "WARNING",
+                "Comparison": "EQUALS"
+              }
+            ]
+          },
+          "MaxResults": 100
+        },
+        "authentication": "awsSigv4",
+        "awsSigv4": "aws_credentials"
+      },
+      "id": "aws-security-hub-findings",
+      "name": "AWS Security Hub: Get Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://management.azure.com/subscriptions/{{ $env.AZURE_SUBSCRIPTION_ID }}/providers/Microsoft.Security/assessments",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api-version",
+              "value": "2021-06-01"
+            }
+          ]
+        },
+        "authentication": "oAuth2",
+        "oAuth2": "azure_oauth2_credential"
+      },
+      "id": "azure-defender-assessments",
+      "name": "Azure Defender: Get Assessments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://securitycenter.googleapis.com/v1/organizations/{{ $env.GCP_ORG_ID }}/assets",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filter",
+              "value": "security_center_properties.resource_type:\"compute.googleapis.com/Instance\" OR security_center_properties.resource_type:\"container.googleapis.com/Cluster\""
+            },
+            {
+              "name": "pageSize",
+              "value": "100"
+            }
+          ]
+        },
+        "authentication": "oAuth2",
+        "oAuth2": "gcp_oauth2_credential"
+      },
+      "id": "gcp-scc-assets",
+      "name": "GCP Security Command Center: Get Assets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Transform AWS Security Hub findings to ALDECI format\nconst timestamp = new Date().toISOString();\nconst findings = [];\n\nif ($input.all()[0]?.json?.Findings) {\n  for (const awsFinding of $input.all()[0].json.Findings) {\n    findings.push({\n      finding_id: `aws-${awsFinding.Id}`,\n      finding_type: 'aws_security_hub',\n      entity_type: 'resource',\n      entity_id: awsFinding.Resources?.[0]?.Id || 'unknown',\n      title: awsFinding.Title,\n      description: awsFinding.Description,\n      severity: (() => {\n        const severity = awsFinding.Severity?.Label?.toLowerCase() || 'medium';\n        if (severity === 'critical') return 'critical';\n        if (severity === 'high') return 'high';\n        if (severity === 'medium') return 'medium';\n        if (severity === 'low') return 'low';\n        if (severity === 'informational') return 'info';\n        return 'medium';\n      })(),\n      cvss_score: awsFinding.Severity?.Original,\n      status: awsFinding.RecordState === 'ACTIVE' ? 'open' : 'closed',\n      source: 'aws',\n      scanner: 'aws-security-hub',\n      discovery_time: timestamp,\n      aws_region: awsFinding.Resources?.[0]?.Region,\n      aws_account_id: awsFinding.AwsAccountId,\n      resource_type: awsFinding.Resources?.[0]?.Type,\n      remediation: awsFinding.Remediation?.Recommendation?.Text,\n      references: awsFinding.References?.map(r => r.Url) || [],\n      compliance_status: awsFinding.Compliance?.Status,\n      standards: awsFinding.Types || [],\n      first_observed_at: awsFinding.FirstObservedAt,\n      last_observed_at: awsFinding.LastObservedAt\n    });\n  }\n}\n\nreturn { items: findings };"
+      },
+      "id": "transform-aws-findings",
+      "name": "Transform: AWS Security Hub",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Transform Azure Defender assessments to ALDECI format\nconst timestamp = new Date().toISOString();\nconst findings = [];\n\nif ($input.all()[0]?.json?.value) {\n  for (const assessment of $input.all()[0].json.value) {\n    const properties = assessment.properties || {};\n    const displayData = properties.displayData || {};\n    \n    findings.push({\n      finding_id: `azure-${assessment.id}`,\n      finding_type: 'azure_defender',\n      entity_type: 'resource',\n      entity_id: properties.resourceDetails?.Id || 'unknown',\n      title: displayData.title || assessment.name,\n      description: displayData.description || '',\n      severity: (() => {\n        const severity = properties.metadata?.severity?.toLowerCase() || 'medium';\n        if (severity === 'high') return 'high';\n        if (severity === 'medium') return 'medium';\n        if (severity === 'low') return 'low';\n        return 'medium';\n      })(),\n      status: properties.status?.firstEvaluationDate ? 'open' : 'pending',\n      source: 'azure',\n      scanner: 'azure-defender',\n      discovery_time: timestamp,\n      azure_subscription: properties.resourceDetails?.SubscriptionId,\n      azure_resource_type: properties.resourceDetails?.ResourceType,\n      remediation_steps: displayData.remediationDescription,\n      references: properties.metadata?.url ? [properties.metadata.url] : [],\n      control_id: properties.metadata?.assessmentType,\n      last_scan_date: properties.status?.lastEvaluationDate\n    });\n  }\n}\n\nreturn { items: findings };"
+      },
+      "id": "transform-azure-findings",
+      "name": "Transform: Azure Defender",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Transform GCP Security Command Center findings to ALDECI format\nconst timestamp = new Date().toISOString();\nconst findings = [];\n\nif ($input.all()[0]?.json?.listAssetsResponse?.assets) {\n  for (const asset of $input.all()[0].json.listAssetsResponse.assets) {\n    const securityMarks = asset.securityMarks?.marks || {};\n    const resourceProperties = asset.resourceProperties || {};\n    \n    findings.push({\n      finding_id: `gcp-${asset.name}`,\n      finding_type: 'gcp_scc',\n      entity_type: 'resource',\n      entity_id: asset.name,\n      title: asset.displayName || resourceProperties.displayName || 'GCP Asset Finding',\n      description: `GCP Asset: ${resourceProperties.name}`,\n      severity: (() => {\n        const riskLevel = securityMarks['risk-level']?.toLowerCase() || 'medium';\n        if (riskLevel === 'critical') return 'critical';\n        if (riskLevel === 'high') return 'high';\n        if (riskLevel === 'medium') return 'medium';\n        if (riskLevel === 'low') return 'low';\n        return 'info';\n      })(),\n      status: asset.state === 'ACTIVE' ? 'open' : 'closed',\n      source: 'gcp',\n      scanner: 'gcp-security-command-center',\n      discovery_time: timestamp,\n      gcp_project_id: resourceProperties.projectId,\n      gcp_resource_type: asset.resourceType,\n      gcp_asset_type: resourceProperties.type || asset.assetType,\n      location: resourceProperties.location,\n      security_marks: securityMarks,\n      create_time: asset.createTime,\n      update_time: asset.updateTime\n    });\n  }\n}\n\nreturn { items: findings };"
+      },
+      "id": "transform-gcp-findings",
+      "name": "Transform: GCP Security Command Center",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        850,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Merge all cloud findings from parallel branches\nconst allFindings = [];\n\n// Collect from all input items (merged from AWS, Azure, GCP branches)\nfor (const item of $input.all()) {\n  if (Array.isArray(item.json)) {\n    allFindings.push(...item.json);\n  } else if (item.json && typeof item.json === 'object') {\n    allFindings.push(item.json);\n  }\n}\n\nreturn { items: allFindings };"
+      },
+      "id": "merge-findings",
+      "name": "Merge All Cloud Findings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1150,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://aldeci-api:8000/api/v1/connectors/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Source",
+              "value": "cloud-posture-collector"
+            },
+            {
+              "name": "X-Cloud-Platforms",
+              "value": "aws,azure,gcp"
+            }
+          ]
+        },
+        "bodyParametersUi": "json",
+        "body": {
+          "findings": "={{ $input.all().map(item => item.json) }}"
+        }
+      },
+      "id": "post-to-aldeci",
+      "name": "POST to ALDECI Ingest API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1450,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Generate summary statistics\nconst findings = $input.all().flatMap(item => Array.isArray(item.json) ? item.json : [item.json]);\nconst timestamp = new Date().toISOString();\n\nconst summary = {\n  timestamp: timestamp,\n  total_findings: findings.length,\n  by_severity: {\n    critical: findings.filter(f => f.severity === 'critical').length,\n    high: findings.filter(f => f.severity === 'high').length,\n    medium: findings.filter(f => f.severity === 'medium').length,\n    low: findings.filter(f => f.severity === 'low').length,\n    info: findings.filter(f => f.severity === 'info').length\n  },\n  by_source: {\n    aws: findings.filter(f => f.source === 'aws').length,\n    azure: findings.filter(f => f.source === 'azure').length,\n    gcp: findings.filter(f => f.source === 'gcp').length\n  },\n  by_status: {\n    open: findings.filter(f => f.status === 'open').length,\n    closed: findings.filter(f => f.status === 'closed').length,\n    pending: findings.filter(f => f.status === 'pending').length\n  }\n};\n\nreturn { items: [summary] };"
+      },
+      "id": "generate-summary",
+      "name": "Generate Summary Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1450,
+        600
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "success-notification",
+      "name": "Success Notification",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1.0,
+      "position": [
+        1750,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "errorOutput": "Last node before error",
+        "continueOnError": true
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1.0,
+      "position": [
+        1750,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "aws-security-hub-findings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "azure-defender-assessments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "gcp-scc-assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aws-security-hub-findings": {
+      "main": [
+        [
+          {
+            "node": "transform-aws-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "azure-defender-assessments": {
+      "main": [
+        [
+          {
+            "node": "transform-azure-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gcp-scc-assets": {
+      "main": [
+        [
+          {
+            "node": "transform-gcp-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-aws-findings": {
+      "main": [
+        [
+          {
+            "node": "merge-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-azure-findings": {
+      "main": [
+        [
+          {
+            "node": "merge-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-gcp-findings": {
+      "main": [
+        [
+          {
+            "node": "merge-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "merge-findings": {
+      "main": [
+        [
+          {
+            "node": "post-to-aldeci",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "generate-summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "post-to-aldeci": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "error-handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate-summary": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0"
+}

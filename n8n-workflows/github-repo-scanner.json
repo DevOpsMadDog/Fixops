@@ -1,0 +1,361 @@
+{
+  "name": "GitHub Repo Scanner",
+  "description": "Scans GitHub organization repositories for PRs and commits, ingests findings to ALDECI",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "intervalUnit": "hours",
+              "triggerAtHour": 0,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Every 6 Hours)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "repo",
+        "operation": "getAll",
+        "owner": "={{ $env.GITHUB_ORG_NAME }}",
+        "paginate": true,
+        "limit": 100,
+        "sort": "updated",
+        "direction": "desc"
+      },
+      "id": "github-list-repos",
+      "name": "GitHub: List Repositories",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.0,
+      "position": [
+        550,
+        300
+      ],
+      "credentials": {
+        "githubApi": "github_api_credential"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "repo",
+        "operation": "get",
+        "owner": "={{ $json.owner }}",
+        "repository": "={{ $json.name }}"
+      },
+      "id": "github-get-repo-details",
+      "name": "GitHub: Get Repository Details",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.0,
+      "position": [
+        850,
+        150
+      ],
+      "credentials": {
+        "githubApi": "github_api_credential"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "pullRequest",
+        "operation": "getAll",
+        "owner": "={{ $json.owner.login }}",
+        "repository": "={{ $json.name }}",
+        "state": "open",
+        "paginate": true,
+        "limit": 50,
+        "sort": "updated"
+      },
+      "id": "github-list-prs",
+      "name": "GitHub: List Open PRs",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.0,
+      "position": [
+        850,
+        350
+      ],
+      "credentials": {
+        "githubApi": "github_api_credential"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "release",
+        "operation": "getAll",
+        "owner": "={{ $json.owner.login }}",
+        "repository": "={{ $json.name }}",
+        "paginate": true,
+        "limit": 10,
+        "getReleaseFields": true
+      },
+      "id": "github-list-releases",
+      "name": "GitHub: List Recent Releases",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.0,
+      "position": [
+        850,
+        550
+      ],
+      "credentials": {
+        "githubApi": "github_api_credential"
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return {\n  items: $input.all().map((item, index) => ({\n    repository_name: item.json.name,\n    full_name: item.json.full_name,\n    owner: item.json.owner?.login,\n    url: item.json.html_url,\n    language: item.json.language,\n    stars: item.json.stargazers_count,\n    watchers: item.json.watchers_count,\n    forks: item.json.forks_count,\n    open_issues: item.json.open_issues_count,\n    created_at: item.json.created_at,\n    updated_at: item.json.updated_at,\n    pushed_at: item.json.pushed_at,\n    size_kb: item.json.size,\n    is_private: item.json.private,\n    is_fork: item.json.fork,\n    topics: item.json.topics || [],\n    description: item.json.description,\n    homepage: item.json.homepage,\n    license: item.json.license?.name,\n    last_activity_days_ago: Math.floor((new Date() - new Date(item.json.pushed_at)) / (1000 * 60 * 60 * 24))\n  }))\n};"
+      },
+      "id": "transform-repo-metadata",
+      "name": "Transform: Repository Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1150,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Flatten PRs from nested GitHub response\nconst prs = [];\nfor (const item of $input.all()) {\n  if (item.json.results && Array.isArray(item.json.results)) {\n    for (const pr of item.json.results) {\n      prs.push({\n        repository: item.json.owner || item.json.repository,\n        pr_number: pr.number,\n        pr_title: pr.title,\n        pr_url: pr.html_url,\n        author: pr.user?.login,\n        author_avatar: pr.user?.avatar_url,\n        state: pr.state,\n        created_at: pr.created_at,\n        updated_at: pr.updated_at,\n        additions: pr.additions,\n        deletions: pr.deletions,\n        changed_files: pr.changed_files,\n        labels: pr.labels?.map(l => l.name) || [],\n        draft: pr.draft,\n        mergeable: pr.mergeable,\n        reviews_requested: pr.requested_reviewers?.length || 0\n      });\n    }\n  }\n}\nreturn { items: prs };"
+      },
+      "id": "transform-prs",
+      "name": "Transform: Pull Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1150,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Flatten releases from nested GitHub response\nconst releases = [];\nfor (const item of $input.all()) {\n  if (item.json.results && Array.isArray(item.json.results)) {\n    for (const release of item.json.results) {\n      releases.push({\n        repository: item.json.owner || item.json.repository,\n        version: release.tag_name,\n        name: release.name,\n        url: release.html_url,\n        author: release.author?.login,\n        published_at: release.published_at,\n        created_at: release.created_at,\n        is_draft: release.draft,\n        is_prerelease: release.prerelease,\n        body: release.body,\n        assets_count: release.assets?.length || 0\n      });\n    }\n  }\n}\nreturn { items: releases };"
+      },
+      "id": "transform-releases",
+      "name": "Transform: Releases",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1150,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build consolidated ALDECI findings payload\nconst timestamp = new Date().toISOString();\nconst org = process.env.GITHUB_ORG_NAME || 'unknown-org';\n\nconst findings = [];\n\n// Create findings from metadata\nfor (const repo of $input.all()) {\n  findings.push({\n    finding_type: 'repository_metadata',\n    entity_type: 'repository',\n    entity_id: repo.json.full_name,\n    severity: 'info',\n    source: 'github',\n    scanner: 'github-repo-scanner',\n    discovery_time: timestamp,\n    data: {\n      organization: org,\n      repository_name: repo.json.repository_name,\n      full_name: repo.json.full_name,\n      url: repo.json.url,\n      description: repo.json.description,\n      language: repo.json.language,\n      topics: repo.json.topics,\n      stars: repo.json.stars,\n      watchers: repo.json.watchers,\n      forks: repo.json.forks,\n      open_issues: repo.json.open_issues,\n      is_private: repo.json.is_private,\n      is_fork: repo.json.is_fork,\n      last_activity_days_ago: repo.json.last_activity_days_ago,\n      license: repo.json.license\n    }\n  });\n\n  // Flag inactive repositories\n  if (repo.json.last_activity_days_ago > 180) {\n    findings.push({\n      finding_type: 'inactive_repository',\n      entity_type: 'repository',\n      entity_id: repo.json.full_name,\n      severity: 'medium',\n      title: `Repository ${repo.json.repository_name} inactive for ${repo.json.last_activity_days_ago} days`,\n      source: 'github',\n      scanner: 'github-repo-scanner',\n      discovery_time: timestamp,\n      data: {\n        last_pushed: repo.json.pushed_at,\n        days_inactive: repo.json.last_activity_days_ago\n      }\n    });\n  }\n}\n\nreturn { items: findings };"
+      },
+      "id": "normalize-findings",
+      "name": "Normalize to ALDECI Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2.0,
+      "position": [
+        1450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://aldeci-api:8000/api/v1/connectors/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Source",
+              "value": "github-repo-scanner"
+            },
+            {
+              "name": "X-Timestamp",
+              "value": "={{ $now.toIso() }}"
+            }
+          ]
+        },
+        "bodyParametersUi": "json",
+        "body": {
+          "findings": "={{ $input.all().map(item => item.json) }}"
+        }
+      },
+      "id": "post-to-aldeci",
+      "name": "POST to ALDECI Ingest API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1750,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "success-notification",
+      "name": "Success Notification",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1.0,
+      "position": [
+        2050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "errorOutput": "Last node before error",
+        "continueOnError": true
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1.0,
+      "position": [
+        1750,
+        550
+      ]
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "github-list-repos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "github-list-repos": {
+      "main": [
+        [
+          {
+            "node": "github-get-repo-details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "github-list-prs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "github-list-releases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "github-get-repo-details": {
+      "main": [
+        [
+          {
+            "node": "transform-repo-metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "github-list-prs": {
+      "main": [
+        [
+          {
+            "node": "transform-prs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "github-list-releases": {
+      "main": [
+        [
+          {
+            "node": "transform-releases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-repo-metadata": {
+      "main": [
+        [
+          {
+            "node": "normalize-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-prs": {
+      "main": [
+        [
+          {
+            "node": "normalize-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform-releases": {
+      "main": [
+        [
+          {
+            "node": "normalize-findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normalize-findings": {
+      "main": [
+        [
+          {
+            "node": "post-to-aldeci",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "post-to-aldeci": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "error-handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0"
+}

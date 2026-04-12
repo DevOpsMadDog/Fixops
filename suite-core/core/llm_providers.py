@@ -551,6 +551,292 @@ class GeminiProvider(BaseLLMProvider):
         return None
 
 
+OPENROUTER_FREE_MODELS = [
+    "deepseek/deepseek-chat-v3-0324:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "google/gemma-2-9b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "nousresearch/nous-hermes-3-llama-3.1-405b:free",
+    "openchat/openchat-3.6-8b:free",
+    "gryphe/mythomist-7b:free",
+    "mistralai/mistral-7b-instruct:free",
+]
+
+
+class OpenRouterProvider(BaseLLMProvider):
+    """Adapter for OpenRouter API aggregator (openrouter.ai).
+
+    OpenRouter provides unified access to 200+ models through an OpenAI-compatible
+    endpoint. Enables cost-effective operation using free/cheap models for the
+    ALDECI LLM Council without cloud API fees.
+
+    Supported models include:
+    - DeepSeek V3 (free tier)
+    - Qwen 2.5 (free tier)
+    - Gemma 2 (free tier)
+    - Llama 3.3 (free tier)
+
+    Environment variables:
+    - OPENROUTER_API_KEY or FIXOPS_OPENROUTER_KEY: API key for openrouter.ai
+    - FIXOPS_OPENROUTER_MODEL: Model name (default: deepseek/deepseek-chat-v3-0324:free)
+    - FIXOPS_URL: Used for HTTP-Referer header (optional)
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        model: str = "deepseek/deepseek-chat-v3-0324:free",
+        api_key_envs: Sequence[str] | None = None,
+        timeout: float = 30.0,
+        focus: Sequence[str] | None = None,
+        style: str = "consensus",
+    ) -> None:
+        super().__init__(name, style=style, focus=focus)
+        # Allow env-var override for model selection
+        self.model = os.environ.get("FIXOPS_OPENROUTER_MODEL", model)
+        self.api_key_envs = list(
+            api_key_envs or ("OPENROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY")
+        )
+        self.timeout = timeout
+        self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
+
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant. Return JSON with keys "
+        "recommended_action, confidence, reasoning, mitre_techniques, "
+        "compliance_concerns, attack_vectors."
+    )
+
+    def analyse(
+        self,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str,
+        default_confidence: float,
+        default_reasoning: str,
+        mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
+    ) -> LLMResponse:
+        if not self.api_key:
+            return super().analyse(
+                prompt=prompt,
+                context=context,
+                default_action=default_action,
+                default_confidence=default_confidence,
+                default_reasoning=default_reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt or self._DEFAULT_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("FIXOPS_URL", "https://fixops.local"),
+            "X-Title": "ALDECI",
+        }
+        start = time.perf_counter()
+        try:
+            response = self._session.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            response_json = response.json()
+
+            if "choices" not in response_json or not response_json["choices"]:
+                raise ValueError("OpenRouter response missing choices")
+
+            message = response_json["choices"][0].get("message", {})
+            content = message.get("content")
+
+            if not content:
+                raise ValueError("OpenRouter response missing message content")
+
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as json_exc:
+                raise ValueError(
+                    f"OpenRouter returned non-JSON content: {content[:100]}"
+                ) from json_exc
+        except requests.Timeout as exc:
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": f"Timeout after {self.timeout}s",
+                "model": self.model,
+                "error_type": "timeout",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenRouter timeout: {exc}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except requests.HTTPError as exc:
+            error_detail = "HTTP error"
+            if exc.response is not None:
+                try:
+                    error_json = exc.response.json()
+                    # Extract structured error message, never raw exception string — may contain API keys
+                    error_detail = error_json.get("error", {}).get("message", f"HTTP {exc.response.status_code}")
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+                    error_detail = f"HTTP {exc.response.status_code}" if exc.response else type(exc).__name__
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": error_detail,
+                "model": self.model,
+                "error_type": "http_error",
+                "status_code": exc.response.status_code if exc.response else None,  # type: ignore[dict-item]
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenRouter error: {error_detail}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except (json.JSONDecodeError, KeyError, ValueError) as exc:
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": f"Invalid response format: {exc}",
+                "model": self.model,
+                "error_type": "parse_error",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenRouter parse error: {exc}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except Exception as exc:  # noqa: BLE001 - capture provider error
+            logger.warning(
+                "OpenRouter provider %s failed, falling back to deterministic: %s",
+                self.name,
+                type(exc).__name__,
+            )
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": type(exc).__name__,
+                "model": self.model,
+                "error_type": type(exc).__name__,
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenRouter fallback: {type(exc).__name__}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        duration = (time.perf_counter() - start) * 1000
+        return _response_from_payload(
+            parsed,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+            metadata={
+                "mode": "remote",
+                "provider": self.name,
+                "model": self.model,
+                "duration_ms": round(duration, 2),
+            },
+        )
+
+    def is_available(self) -> bool:
+        """Check if the OpenRouter API is available."""
+        if not self.api_key:
+            return False
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
+            resp = self._session.get(
+                "https://openrouter.ai/api/v1/models",
+                headers=headers,
+                timeout=5,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    def model_info(self) -> Dict[str, Any]:
+        """Return metadata about the configured OpenRouter model."""
+        is_free = ":free" in self.model
+        return {
+            "backend": "openrouter",
+            "url": "https://openrouter.ai",
+            "model": self.model,
+            "cost": "$0/month (free tier)" if is_free else "$0.01-1.00/million tokens",
+            "available": self.is_available(),
+            "free_tier": is_free,
+            "models_available": len(OPENROUTER_FREE_MODELS),
+        }
+
+    def _resolve_api_key(self) -> Optional[str]:
+        for env_name in self.api_key_envs:
+            value = os.getenv(env_name)
+            if value:
+                token = value.strip()
+                if token:
+                    return token
+        return None
+
+
 class VLLMSelfHostedProvider(BaseLLMProvider):
     """Adapter for self-hosted vLLM inference servers (OpenAI-compatible API).
 
@@ -1050,12 +1336,13 @@ class LLMProviderManager:
         """Initialize the LLM provider manager with default providers.
 
         Includes self-hosted providers (vLLM, Ollama) for air-gapped
-        deployments alongside cloud providers (OpenAI, Anthropic, Gemini).
+        deployments alongside cloud providers (OpenAI, Anthropic, Gemini, OpenRouter).
         """
         self.providers: Dict[str, BaseLLMProvider] = {
             "openai": OpenAIChatProvider("openai"),
             "anthropic": AnthropicMessagesProvider("anthropic"),
             "gemini": GeminiProvider("gemini"),
+            "openrouter": OpenRouterProvider("openrouter"),
             "sentinel": SentinelCyberProvider("sentinel"),
             "vllm": VLLMSelfHostedProvider("vllm"),
             "ollama": OllamaSelfHostedProvider("ollama"),
@@ -1101,6 +1388,7 @@ __all__ = [
     "LLMResponse",
     "OllamaSelfHostedProvider",
     "OpenAIChatProvider",
+    "OpenRouterProvider",
     "SentinelCyberProvider",
     "VLLMSelfHostedProvider",
 ]

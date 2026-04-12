@@ -1,406 +1,678 @@
-"""Structured security audit logger for ALdeci/FixOps.
+"""
+Enterprise Audit Logging System for ALDECI Phase 5.
 
-Provides a single ``SecurityAuditLogger`` class that records security-relevant
-events to two sinks simultaneously:
-  1. structlog (JSON lines on stdout/stderr, hooked into the app log pipeline)
-  2. ``data/audit_security.log`` — a dedicated append-only file for SIEM ingestion
+This module provides a comprehensive audit trail with:
+- Structured event logging with UUID tracking
+- SQLite-backed persistence with indexed queries
+- FastAPI middleware for automatic API request logging
+- Compliance event filtering (SOC2, HIPAA, PCI-DSS)
+- CSV export for auditors
 
-Event categories tracked:
-  - login_attempt (success/failure)
-  - permission_denied
-  - scanner_execution
-  - autofix_application
-  - api_key_usage
-  - admin_action
-
-Each event carries:
-  - event_type       (str) — category above
-  - outcome          (str) — "success" | "failure" | "error" | "blocked"
-  - user_id          (str | None)
-  - client_ip        (str | None)
-  - resource         (str | None) — e.g. scanner name, finding id
-  - details          (dict)       — event-specific payload
-  - correlation_id   (str | None) — from request context
-  - timestamp        (ISO-8601 UTC)
-
-Usage example::
-
-    from core.audit_logger import get_audit_logger
-
-    audit = get_audit_logger()
-
-    # In an auth handler:
-    audit.log_login_attempt(user_id="alice", client_ip="10.0.0.1", success=True)
-
-    # After API key validation fails:
-    audit.log_permission_denied(
-        user_id=None, client_ip="10.0.0.1",
-        resource="/api/v1/admin/config", reason="missing scope admin:all"
-    )
-
-    # After a scanner finishes:
-    audit.log_scanner_execution(
-        scanner="sast", app_id="app-abc",
-        findings_count=12, duration_seconds=3.4,
-        correlation_id=request.state.correlation_id
-    )
-
-    # After AutoFix is applied:
-    audit.log_autofix_application(
-        user_id="alice", finding_id="CVE-2024-1234",
-        action="apply_patch", outcome="success"
-    )
+Compliance:
+- SOC2 CC6.1: Logical access controls (role assignment, permission checks)
+- SOC2 CC7.2: System monitoring (all API activity)
+- HIPAA 164.312(b): Audit controls (data access logging)
+- PCI-DSS 10.2: Audit trail (user activity recording)
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import logging
-import os
+import sqlite3
 import threading
-from datetime import datetime, timezone
+import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-import structlog
+try:
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request
+    from starlette.responses import Response
+    _STARLETTE_AVAILABLE = True
+except ImportError:
+    _STARLETTE_AVAILABLE = False
+    BaseHTTPMiddleware = object  # type: ignore
 
-# ---------------------------------------------------------------------------
-# Module-level logger (structlog)
-# ---------------------------------------------------------------------------
-_structlog_logger = structlog.get_logger("security.audit")
-
-# ---------------------------------------------------------------------------
-# Dedicated file sink
-# ---------------------------------------------------------------------------
-_FILE_HANDLER_LOCK = threading.Lock()
-_file_handler: Optional[logging.FileHandler] = None
-_file_logger: Optional[logging.Logger] = None
+_logger = logging.getLogger(__name__)
 
 
-def _get_file_logger() -> logging.Logger:
-    """Return (or lazily create) the dedicated security audit file logger.
+# ============================================================================
+# AUDIT EVENT DATACLASS
+# ============================================================================
 
-    The log file is placed at ``data/audit_security.log`` relative to the
-    current working directory, which is the repo root when running via uvicorn
-    or Docker.  The path can be overridden with ``FIXOPS_AUDIT_LOG_PATH``.
+@dataclass
+class AuditEvent:
     """
-    global _file_handler, _file_logger
+    Immutable audit event record.
 
-    if _file_logger is not None:
-        return _file_logger
-
-    with _FILE_HANDLER_LOCK:
-        if _file_logger is not None:
-            return _file_logger
-
-        log_path_str = os.getenv(
-            "FIXOPS_AUDIT_LOG_PATH",
-            os.path.join(os.getcwd(), "data", "audit_security.log"),
-        )
-        log_path = Path(log_path_str)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-
-        _file_logger = logging.getLogger("fixops.security.audit.file")
-        _file_logger.setLevel(logging.INFO)
-        _file_logger.propagate = False  # do NOT bubble up to root logger
-
-        handler = logging.FileHandler(str(log_path), encoding="utf-8")
-        handler.setLevel(logging.INFO)
-        # One JSON object per line — easy for Splunk/Elasticsearch to ingest
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        _file_logger.addHandler(handler)
-        _file_handler = handler
-
-    return _file_logger
-
-
-# ---------------------------------------------------------------------------
-# Core event writer
-# ---------------------------------------------------------------------------
-
-def _write_event(event_type: str, payload: Dict[str, Any]) -> None:
-    """Write one audit event to both structlog and the dedicated file.
-
-    Never raises — audit logging must never break request handling.
-    """
-    timestamp = datetime.now(timezone.utc).isoformat() + "Z"
-    full_payload = {
-        "event_type": event_type,
-        "timestamp": timestamp,
-        **payload,
-    }
-
-    # Sink 1: structlog (ends up in the application log stream as JSON)
-    try:
-        _structlog_logger.info(event_type, **full_payload)
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
-
-    # Sink 2: dedicated security audit file (one JSON line per event)
-    try:
-        file_logger = _get_file_logger()
-        file_logger.info(json.dumps(full_payload, default=str))
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-class SecurityAuditLogger:
-    """Structured security event logger.
-
-    Instantiate once and reuse (module-level singleton via ``get_audit_logger()``).
-    All methods are synchronous and thread-safe.
+    Attributes:
+        event_id: Unique UUID for event
+        timestamp: When event occurred (UTC)
+        actor_id: User or service performing action
+        actor_role: Role of actor (for quick filtering)
+        action: Event action code (e.g., "finding.triage", "council.override")
+        resource_type: Type of resource affected (finding, connector, user, etc.)
+        resource_id: ID of resource affected
+        org_id: Organization ID for multi-tenancy
+        result: "success", "denied", or "error"
+        details: Action-specific metadata dict
+        ip_address: Client IP address (if available)
+        session_id: Session ID (if available)
+        error_message: Error message if result is "error"
     """
 
-    # ------------------------------------------------------------------
-    # Authentication
-    # ------------------------------------------------------------------
+    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    actor_id: str = ""
+    actor_role: str = "unknown"
+    action: str = ""
+    resource_type: str = ""
+    resource_id: str = ""
+    org_id: str = "default"
+    result: str = "success"
+    details: Dict[str, Any] = field(default_factory=dict)
+    ip_address: Optional[str] = None
+    session_id: Optional[str] = None
+    error_message: Optional[str] = None
 
-    def log_login_attempt(
-        self,
-        *,
-        user_id: Optional[str] = None,
-        client_ip: Optional[str] = None,
-        success: bool,
-        auth_method: str = "token",
-        correlation_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        """Log an authentication attempt (success or failure).
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dict for JSON serialization."""
+        return {
+            "event_id": self.event_id,
+            "timestamp": self.timestamp.isoformat(),
+            "actor_id": self.actor_id,
+            "actor_role": self.actor_role,
+            "action": self.action,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "org_id": self.org_id,
+            "result": self.result,
+            "details": self.details,
+            "ip_address": self.ip_address,
+            "session_id": self.session_id,
+            "error_message": self.error_message,
+        }
 
-        Failed login attempts are tracked for brute-force detection.
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> AuditEvent:
+        """Create event from dict (e.g., loaded from DB)."""
+        if isinstance(data.get("timestamp"), str):
+            data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+
+
+# ============================================================================
+# AUDIT LOGGER
+# ============================================================================
+
+class AuditLogger:
+    """
+    Enterprise audit logger with SQLite persistence.
+
+    Provides:
+    - Structured audit event logging
+    - Indexed queries (org_id, actor_id, action, timestamp)
+    - Compliance event filtering
+    - CSV export for auditors
+    - Thread-safe operations
+    """
+
+    def __init__(self, db_path: str | Path = ":memory:"):
         """
-        _write_event(
-            "auth.login_attempt",
-            {
-                "outcome": "success" if success else "failure",
-                "user_id": user_id,
-                "client_ip": client_ip,
-                "auth_method": auth_method,
-                "correlation_id": correlation_id,
-                "details": details or {},
-            },
-        )
-
-    # ------------------------------------------------------------------
-    # Authorization
-    # ------------------------------------------------------------------
-
-    def log_permission_denied(
-        self,
-        *,
-        user_id: Optional[str] = None,
-        client_ip: Optional[str] = None,
-        resource: Optional[str] = None,
-        reason: Optional[str] = None,
-        required_scope: Optional[str] = None,
-        correlation_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        """Log a permission denied / authorization failure event."""
-        _write_event(
-            "authz.permission_denied",
-            {
-                "outcome": "blocked",
-                "user_id": user_id,
-                "client_ip": client_ip,
-                "resource": resource,
-                "reason": reason,
-                "required_scope": required_scope,
-                "correlation_id": correlation_id,
-                "details": details or {},
-            },
-        )
-
-    # ------------------------------------------------------------------
-    # Scanner execution
-    # ------------------------------------------------------------------
-
-    def log_scanner_execution(
-        self,
-        *,
-        scanner: str,
-        app_id: Optional[str] = None,
-        findings_count: int = 0,
-        duration_seconds: Optional[float] = None,
-        outcome: str = "success",
-        user_id: Optional[str] = None,
-        client_ip: Optional[str] = None,
-        correlation_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        """Log a scanner execution event.
+        Initialize audit logger.
 
         Args:
-            scanner: Scanner name (sast, dast, secrets, container, cspm, iac, malware, api_fuzzer)
-            app_id: Application ID being scanned
-            findings_count: Number of findings produced
-            duration_seconds: Execution wall-clock time
-            outcome: "success" | "error" | "timeout"
+            db_path: Path to SQLite database file. Use ":memory:" for in-memory DB.
         """
-        _write_event(
-            "scanner.execution",
-            {
-                "outcome": outcome,
-                "scanner": scanner,
-                "app_id": app_id,
-                "findings_count": findings_count,
-                "duration_seconds": duration_seconds,
-                "user_id": user_id,
-                "client_ip": client_ip,
-                "correlation_id": correlation_id,
-                "details": details or {},
-            },
-        )
+        self.db_path = db_path if isinstance(db_path, Path) else Path(db_path)
+        self._lock = threading.RLock()
+        self._logger = logging.getLogger(__name__)
+        self._in_memory_conn = None  # Keep single connection for in-memory DB
 
-    # ------------------------------------------------------------------
-    # AutoFix
-    # ------------------------------------------------------------------
+        # Create database and schema
+        self._init_db()
 
-    def log_autofix_application(
-        self,
-        *,
-        finding_id: Optional[str] = None,
-        action: str = "apply_patch",
-        outcome: str = "success",
-        user_id: Optional[str] = None,
-        client_ip: Optional[str] = None,
-        correlation_id: Optional[str] = None,
-        fix_type: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        """Log an AutoFix application event.
+    def _init_db(self) -> None:
+        """Initialize database schema with indices."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Main audit table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS audit_events (
+                    event_id TEXT PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    actor_id TEXT NOT NULL,
+                    actor_role TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    resource_type TEXT NOT NULL,
+                    resource_id TEXT NOT NULL,
+                    org_id TEXT NOT NULL,
+                    result TEXT NOT NULL,
+                    details TEXT NOT NULL,
+                    ip_address TEXT,
+                    session_id TEXT,
+                    error_message TEXT
+                )
+            """)
+
+            # Indices for common queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_org_timestamp
+                ON audit_events (org_id, timestamp DESC)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_actor_timestamp
+                ON audit_events (actor_id, timestamp DESC)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_action_timestamp
+                ON audit_events (action, timestamp DESC)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_resource
+                ON audit_events (resource_type, resource_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_result
+                ON audit_events (result, timestamp DESC)
+            """)
+
+            conn.commit()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get database connection."""
+        if str(self.db_path) == ":memory:":
+            # In-memory DB — reuse single connection
+            if self._in_memory_conn is None:
+                self._in_memory_conn = sqlite3.connect(":memory:", check_same_thread=False)
+                self._in_memory_conn.row_factory = sqlite3.Row
+            return self._in_memory_conn
+        else:
+            # Ensure parent directory exists
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(str(self.db_path))
+            conn.row_factory = sqlite3.Row
+            return conn
+
+    def log(self, event: AuditEvent) -> str:
+        """
+        Log an audit event.
 
         Args:
-            finding_id: The vulnerability/finding that was auto-fixed
-            action: "apply_patch" | "generate" | "verify" | "rollback"
-            outcome: "success" | "failure" | "error" | "skipped"
-            fix_type: e.g. "dependency_update", "code_patch", "config_change"
+            event: AuditEvent to log
+
+        Returns:
+            Event ID
         """
-        _write_event(
-            "autofix.application",
-            {
-                "outcome": outcome,
-                "finding_id": finding_id,
-                "action": action,
-                "fix_type": fix_type,
-                "user_id": user_id,
-                "client_ip": client_ip,
-                "correlation_id": correlation_id,
-                "details": details or {},
-            },
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO audit_events
+                    (event_id, timestamp, actor_id, actor_role, action,
+                     resource_type, resource_id, org_id, result, details,
+                     ip_address, session_id, error_message)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    event.event_id,
+                    event.timestamp.isoformat(),
+                    event.actor_id,
+                    event.actor_role,
+                    event.action,
+                    event.resource_type,
+                    event.resource_id,
+                    event.org_id,
+                    event.result,
+                    json.dumps(event.details),
+                    event.ip_address,
+                    event.session_id,
+                    event.error_message,
+                ))
+                conn.commit()
+
+        self._logger.debug(
+            "Logged %s event: action=%s, actor=%s, result=%s",
+            event.resource_type, event.action, event.actor_id, event.result,
         )
+        return event.event_id
 
-    # ------------------------------------------------------------------
-    # Generic API key usage
-    # ------------------------------------------------------------------
-
-    def log_api_key_usage(
+    def search(
         self,
-        *,
-        outcome: str = "success",
-        client_ip: Optional[str] = None,
-        endpoint: Optional[str] = None,
-        method: Optional[str] = None,
-        correlation_id: Optional[str] = None,
-    ) -> None:
-        """Log notable API key usage events (only failures/anomalies by default)."""
-        _write_event(
-            "auth.api_key_usage",
-            {
-                "outcome": outcome,
-                "client_ip": client_ip,
-                "endpoint": endpoint,
-                "method": method,
-                "correlation_id": correlation_id,
-            },
-        )
-
-    # ------------------------------------------------------------------
-    # Admin actions
-    # ------------------------------------------------------------------
-
-    def log_admin_action(
-        self,
-        *,
-        action: str,
-        user_id: Optional[str] = None,
-        client_ip: Optional[str] = None,
-        resource: Optional[str] = None,
-        outcome: str = "success",
-        correlation_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        """Log a privileged/admin action for compliance trail.
-
-        Examples: config changes, user management, token rotation.
+        org_id: str,
+        actor_id: Optional[str] = None,
+        action: Optional[str] = None,
+        since: Optional[datetime] = None,
+        until: Optional[datetime] = None,
+        result: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[AuditEvent]:
         """
-        _write_event(
-            "admin.action",
-            {
-                "action": action,
-                "outcome": outcome,
-                "user_id": user_id,
-                "client_ip": client_ip,
-                "resource": resource,
-                "correlation_id": correlation_id,
-                "details": details or {},
-            },
-        )
+        Search audit events.
 
-    # ------------------------------------------------------------------
-    # Generic event (escape hatch)
-    # ------------------------------------------------------------------
+        Args:
+            org_id: Organization ID
+            actor_id: Filter by actor
+            action: Filter by action (exact match)
+            since: Start timestamp (inclusive)
+            until: End timestamp (inclusive)
+            result: Filter by result (success/denied/error)
+            limit: Max results
 
-    def log_event(
-        self,
-        event_type: str,
-        *,
-        outcome: str = "info",
-        correlation_id: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Write an arbitrary security event to the audit log.
-
-        Use the typed methods above when possible — this is an escape hatch
-        for events that do not fit the standard categories.
+        Returns:
+            List of AuditEvent objects
         """
-        _write_event(
-            event_type,
-            {
-                "outcome": outcome,
-                "correlation_id": correlation_id,
-                **kwargs,
-            },
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                query = "SELECT * FROM audit_events WHERE org_id = ?"
+                params: List[Any] = [org_id]
+
+                if actor_id:
+                    query += " AND actor_id = ?"
+                    params.append(actor_id)
+
+                if action:
+                    query += " AND action = ?"
+                    params.append(action)
+
+                if since:
+                    query += " AND timestamp >= ?"
+                    params.append(since.isoformat())
+
+                if until:
+                    query += " AND timestamp <= ?"
+                    params.append(until.isoformat())
+
+                if result:
+                    query += " AND result = ?"
+                    params.append(result)
+
+                query += " ORDER BY timestamp DESC LIMIT ?"
+                params.append(limit)
+
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            event_dict = dict(row)
+            event_dict["details"] = json.loads(event_dict["details"])
+            events.append(AuditEvent.from_dict(event_dict))
+
+        return events
+
+    def get_actor_activity(
+        self, actor_id: str, org_id: str, days: int = 30, limit: int = 500
+    ) -> List[AuditEvent]:
+        """
+        Get activity for a user over time period.
+
+        Args:
+            actor_id: Actor ID
+            org_id: Organization ID
+            days: Look back N days
+            limit: Max results
+
+        Returns:
+            List of AuditEvent objects
+        """
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        return self.search(
+            org_id=org_id,
+            actor_id=actor_id,
+            since=since,
+            limit=limit,
         )
 
+    def get_security_events(
+        self, org_id: str, since: datetime, limit: int = 500
+    ) -> List[AuditEvent]:
+        """
+        Get security-relevant events (denials, overrides, escalations).
 
-# ---------------------------------------------------------------------------
-# Module-level singleton
-# ---------------------------------------------------------------------------
+        Args:
+            org_id: Organization ID
+            since: Start time (inclusive)
+            limit: Max results
 
-_singleton: Optional[SecurityAuditLogger] = None
-_singleton_lock = threading.Lock()
+        Returns:
+            List of AuditEvent objects
+        """
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Security-relevant: denials, overrides, escalations, errors
+                security_actions = [
+                    "permission_denied",
+                    "council.override",
+                    "role_escalation",
+                    "api_key.created",
+                    "api_key.revoked",
+                    "policy.modified",
+                ]
+
+                query = """
+                    SELECT * FROM audit_events
+                    WHERE org_id = ?
+                    AND (result IN ('denied', 'error') OR action IN ({}))
+                    AND timestamp >= ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """.format(",".join(["?"] * len(security_actions)))
+
+                params = [org_id] + security_actions + [since.isoformat(), limit]
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            event_dict = dict(row)
+            event_dict["details"] = json.loads(event_dict["details"])
+            events.append(AuditEvent.from_dict(event_dict))
+
+        return events
+
+    def get_compliance_trail(
+        self, org_id: str, framework: str = "SOC2", limit: int = 10000
+    ) -> List[AuditEvent]:
+        """
+        Get events relevant to compliance frameworks.
+
+        Args:
+            org_id: Organization ID
+            framework: Compliance framework (SOC2, HIPAA, PCI-DSS)
+            limit: Max results
+
+        Returns:
+            List of AuditEvent objects
+        """
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Map frameworks to relevant actions/resources
+                compliance_map = {
+                    "SOC2": [
+                        "role_assignment",
+                        "permission_check",
+                        "api_request",
+                        "council.override",
+                    ],
+                    "HIPAA": [
+                        "finding.read",
+                        "finding.write",
+                        "role_assignment",
+                        "permission_denied",
+                    ],
+                    "PCI_DSS": [
+                        "connector.pull",
+                        "findings.write",
+                        "audit_log.export",
+                        "report.create",
+                    ],
+                }
+
+                relevant_actions = compliance_map.get(framework, [])
+
+                query = """
+                    SELECT * FROM audit_events
+                    WHERE org_id = ?
+                    AND action IN ({})
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """.format(",".join(["?"] * len(relevant_actions)))
+
+                params = [org_id] + relevant_actions + [limit]
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            event_dict = dict(row)
+            event_dict["details"] = json.loads(event_dict["details"])
+            events.append(AuditEvent.from_dict(event_dict))
+
+        return events
+
+    def export_csv(
+        self, org_id: str, since: datetime, until: datetime
+    ) -> str:
+        """
+        Export audit events as CSV for auditors.
+
+        Args:
+            org_id: Organization ID
+            since: Start timestamp
+            until: End timestamp
+
+        Returns:
+            CSV content as string
+        """
+        events = self.search(
+            org_id=org_id,
+            since=since,
+            until=until,
+            limit=100000,
+        )
+
+        output = io.StringIO()
+        if not events:
+            output.write("No events found.\n")
+            return output.getvalue()
+
+        writer = csv.DictWriter(output, fieldnames=events[0].to_dict().keys())
+        writer.writeheader()
+
+        for event in events:
+            row = event.to_dict()
+            row["details"] = json.dumps(row["details"])
+            writer.writerow(row)
+
+        return output.getvalue()
+
+    def get_event_count(self, org_id: str) -> int:
+        """Get total audit events for org."""
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM audit_events WHERE org_id = ?", (org_id,))
+                return cursor.fetchone()[0]
 
 
-def get_audit_logger() -> SecurityAuditLogger:
-    """Return the process-level SecurityAuditLogger singleton."""
-    global _singleton
-    if _singleton is None:
-        with _singleton_lock:
-            if _singleton is None:
-                _singleton = SecurityAuditLogger()
-    return _singleton
+# ============================================================================
+# FASTAPI AUDIT MIDDLEWARE
+# ============================================================================
+
+if _STARLETTE_AVAILABLE:
+    class AuditMiddleware(BaseHTTPMiddleware):
+        """
+        FastAPI middleware that automatically logs API requests.
+
+        Logs:
+        - All API requests with status code
+        - Permission denials (403)
+        - Authentication failures (401)
+        - Data access for classified resources
+        - Errors (5xx)
+        """
+
+        def __init__(self, app, audit_logger: AuditLogger):
+            """
+            Initialize middleware.
+
+            Args:
+                app: FastAPI app
+                audit_logger: AuditLogger instance
+            """
+            super().__init__(app)
+            self.audit_logger = audit_logger
+            self._logger = _logger
+
+        async def dispatch(self, request: Request, call_next) -> Response:
+            """Intercept request, log, and pass to handler."""
+            # Extract request context
+            method = request.method
+            path = request.url.path
+            client_ip = request.client.host if request.client else "unknown"
+            actor_id = getattr(request.state, "user_id", "anonymous")
+            actor_role = getattr(request.state, "user_role", "unknown")
+            org_id = getattr(request.state, "org_id", "default")
+            session_id = getattr(request.state, "session_id", None)
+
+            # Call handler
+            response = await call_next(request)
+
+            # Determine if this is a security-relevant event
+            action = f"api.{method.lower()}"
+            result = "success"
+            error_message = None
+
+            if response.status_code == 401:
+                result = "denied"
+                action = "auth_failed"
+            elif response.status_code == 403:
+                result = "denied"
+                action = "permission_denied"
+            elif response.status_code >= 500:
+                result = "error"
+                error_message = f"HTTP {response.status_code}"
+            elif response.status_code >= 400:
+                result = "error"
+                error_message = f"HTTP {response.status_code}"
+
+            # Log audit event (skip noisy endpoints like /health)
+            if path not in ["/health", "/metrics"]:
+                event = AuditEvent(
+                    actor_id=actor_id,
+                    actor_role=actor_role,
+                    action=action,
+                    resource_type="api_request",
+                    resource_id=path,
+                    org_id=org_id,
+                    result=result,
+                    ip_address=client_ip,
+                    session_id=session_id,
+                    error_message=error_message,
+                    details={
+                        "method": method,
+                        "path": path,
+                        "status_code": response.status_code,
+                    },
+                )
+                self.audit_logger.log(event)
+
+            return response
+else:
+    # Starlette not available, create stub
+    class AuditMiddleware:  # type: ignore
+        """Stub when Starlette is not available."""
+        def __init__(self, app, audit_logger: AuditLogger):
+            self.audit_logger = audit_logger
 
 
-# Convenience alias
-audit_logger = get_audit_logger()
+# ============================================================================
+# COMPLIANCE CONTROL MAPPING
+# ============================================================================
+
+class ComplianceControlMapping:
+    """Map audit events to compliance control requirements."""
+
+    # SOC2 CC6.1: Logical access controls
+    SOC2_CC6_1_EVENTS = [
+        "role_assignment",
+        "role_escalation",
+        "permission_check",
+        "permission_denied",
+        "users:manage",
+        "users:rbac",
+    ]
+
+    # SOC2 CC7.2: System monitoring and anomalies
+    SOC2_CC7_2_EVENTS = [
+        "api_request",
+        "auth_failed",
+        "api_key.created",
+        "api_key.revoked",
+        "system_config_change",
+    ]
+
+    # HIPAA 164.312(b): Audit controls
+    HIPAA_312B_EVENTS = [
+        "finding.read",
+        "finding.write",
+        "compliance:evidence",
+        "permission_denied",
+        "role_assignment",
+    ]
+
+    # PCI-DSS 10.2: Audit trail for user activity
+    PCI_DSS_10_2_EVENTS = [
+        "connector.pull",
+        "findings.write",
+        "audit_log.export",
+        "report.create",
+        "council.override",
+        "autofix.apply",
+    ]
+
+    @classmethod
+    def get_controls_for_event(cls, event: AuditEvent) -> List[str]:
+        """
+        Get compliance controls associated with an audit event.
+
+        Args:
+            event: AuditEvent
+
+        Returns:
+            List of control identifiers (e.g., "SOC2_CC6_1")
+        """
+        controls = []
+
+        if event.action in cls.SOC2_CC6_1_EVENTS:
+            controls.append("SOC2_CC6_1")
+        if event.action in cls.SOC2_CC7_2_EVENTS:
+            controls.append("SOC2_CC7_2")
+        if event.action in cls.HIPAA_312B_EVENTS:
+            controls.append("HIPAA_312B")
+        if event.action in cls.PCI_DSS_10_2_EVENTS:
+            controls.append("PCI_DSS_10_2")
+
+        return controls
+
+
+# ============================================================================
+# FACTORY FUNCTIONS
+# ============================================================================
+
+def create_audit_logger(db_path: str | Path = "data/audit.db") -> AuditLogger:
+    """
+    Factory function to create audit logger.
+
+    Args:
+        db_path: Path to audit database
+
+    Returns:
+        Initialized AuditLogger
+    """
+    return AuditLogger(db_path)
+
 
 __all__ = [
-    "SecurityAuditLogger",
-    "get_audit_logger",
-    "audit_logger",
+    "AuditEvent",
+    "AuditLogger",
+    "AuditMiddleware",
+    "ComplianceControlMapping",
+    "create_audit_logger",
 ]

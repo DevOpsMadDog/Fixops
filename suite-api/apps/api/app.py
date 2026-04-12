@@ -3515,6 +3515,20 @@ def create_app() -> FastAPI:
         return entry
 
     # ------------------------------------------------------------------
+    # Universal Connector Framework — router + scheduler (Phase 1)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.connector_routes import router as connector_router
+
+        app.include_router(
+            connector_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Connector Gateway router at /api/v1/connectors")
+    except ImportError as exc:
+        _logger.warning("Connector Gateway router not loaded: %s", exc)
+
+    # ------------------------------------------------------------------
     # MCP Auto-Discovery router (must be mounted after all other routers
     # so that the startup hook can introspect the full route table)
     # ------------------------------------------------------------------
@@ -3668,6 +3682,45 @@ def create_app() -> FastAPI:
                 sys.exit(1)
         else:
             _logger.info("All %d critical route prefixes verified OK", len(critical))
+
+    # ------------------------------------------------------------------
+    # Connector Scheduler — PULL connectors on cron-based schedules
+    # ------------------------------------------------------------------
+    @app.on_event("startup")
+    async def _start_connector_scheduler():
+        """Register existing connectors and start the background pull scheduler."""
+        try:
+            from connectors.connector_bridge import (
+                ConnectorScheduler,
+                register_all_existing_connectors,
+            )
+
+            count = register_all_existing_connectors()
+            _logger.info(
+                "Connector framework: registered %d existing connectors", count
+            )
+
+            scheduler = ConnectorScheduler()
+            # Store on app state so shutdown hook can stop it
+            app.state.connector_scheduler = scheduler
+            await scheduler.start()
+            _logger.info("ConnectorScheduler started (background pull loop)")
+        except ImportError as exc:
+            _logger.info("ConnectorScheduler skipped (module not available): %s", exc)
+        except Exception as exc:
+            _logger.warning(
+                "ConnectorScheduler startup failed: %s — pull connectors will "
+                "only run on-demand via /api/v1/connectors/{name}/pull",
+                exc,
+            )
+
+    @app.on_event("shutdown")
+    async def _stop_connector_scheduler():
+        """Gracefully stop the connector pull scheduler."""
+        scheduler = getattr(app.state, "connector_scheduler", None)
+        if scheduler is not None:
+            await scheduler.stop()
+            _logger.info("ConnectorScheduler stopped")
 
     # -----------------------------------------------------------------------
     # OpenTelemetry — OTLP exporter + custom spans for critical operations
