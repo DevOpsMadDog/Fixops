@@ -109,6 +109,7 @@ const navGroups: NavGroup[] = [
     icon: Target,
     items: [
       { label: "Command Dashboard", to: "/mission-control", icon: LayoutDashboard },
+      { label: "SOC Alert Triage", to: "/mission-control/soc", icon: AlertTriangle, badge: "P03" },
       { label: "Executive View", to: "/mission-control/executive", icon: Crown, roles: ["admin", "security_analyst"] },
       { label: "SLA Dashboard", to: "/mission-control/sla", icon: Clock, roles: ["admin", "security_analyst"] },
       { label: "Live Feed", to: "/mission-control/live-feed", icon: Activity },
