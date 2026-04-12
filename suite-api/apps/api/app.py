@@ -160,6 +160,310 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Correlation Engine router not available: %s", e)
 
+# ---------------------------------------------------------------------------
+# Additional apps/api routers (wired in this session)
+# ---------------------------------------------------------------------------
+analytics_dashboard_router: Optional[APIRouter] = None
+try:
+    from apps.api.analytics_dashboard_router import router as analytics_dashboard_router
+    logging.getLogger(__name__).info("Loaded Analytics Dashboard router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Analytics Dashboard router not available: %s", e)
+
+analytics_routes_router: Optional[APIRouter] = None
+try:
+    from apps.api.analytics_routes import router as analytics_routes_router
+    logging.getLogger(__name__).info("Loaded Analytics Routes router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Analytics Routes router not available: %s", e)
+
+apikey_router: Optional[APIRouter] = None
+try:
+    from apps.api.apikey_router import router as apikey_router
+    logging.getLogger(__name__).info("Loaded API Key management router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("API Key router not available: %s", e)
+
+asset_inventory_router: Optional[APIRouter] = None
+try:
+    from apps.api.asset_inventory_router import router as asset_inventory_router
+    logging.getLogger(__name__).info("Loaded Asset Inventory router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Asset Inventory router not available: %s", e)
+
+backup_router: Optional[APIRouter] = None
+try:
+    from apps.api.backup_router import router as backup_router
+    logging.getLogger(__name__).info("Loaded Backup router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Backup router not available: %s", e)
+
+bulk_operations_router: Optional[APIRouter] = None
+try:
+    from apps.api.bulk_operations_router import router as bulk_operations_router
+    logging.getLogger(__name__).info("Loaded Bulk Operations router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Bulk Operations router not available: %s", e)
+
+changelog_router: Optional[APIRouter] = None
+try:
+    from apps.api.changelog_router import router as changelog_router
+    logging.getLogger(__name__).info("Loaded Changelog router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Changelog router not available: %s", e)
+
+cicd_router: Optional[APIRouter] = None
+try:
+    from apps.api.cicd_router import router as cicd_router
+    logging.getLogger(__name__).info("Loaded CI/CD router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("CI/CD router not available: %s", e)
+
+compliance_planner_router: Optional[APIRouter] = None
+try:
+    from apps.api.compliance_planner_router import router as compliance_planner_router
+    logging.getLogger(__name__).info("Loaded Compliance Planner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Compliance Planner router not available: %s", e)
+
+container_scanner_router: Optional[APIRouter] = None
+try:
+    from apps.api.container_scanner_router import router as container_scanner_router
+    logging.getLogger(__name__).info("Loaded Container Scanner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Container Scanner router not available: %s", e)
+
+cspm_engine_router: Optional[APIRouter] = None
+try:
+    from apps.api.cspm_engine_router import router as cspm_engine_router
+    logging.getLogger(__name__).info("Loaded CSPM Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("CSPM Engine router not available: %s", e)
+
+dashboard_builder_router: Optional[APIRouter] = None
+try:
+    from apps.api.dashboard_builder_router import router as dashboard_builder_router
+    logging.getLogger(__name__).info("Loaded Dashboard Builder router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Dashboard Builder router not available: %s", e)
+
+developer_portal_router: Optional[APIRouter] = None
+try:
+    from apps.api.developer_portal_router import router as developer_portal_router
+    logging.getLogger(__name__).info("Loaded Developer Portal router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Developer Portal router not available: %s", e)
+
+drift_router: Optional[APIRouter] = None
+try:
+    from apps.api.drift_router import router as drift_router
+    logging.getLogger(__name__).info("Loaded Drift router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Drift router not available: %s", e)
+
+evidence_collector_router: Optional[APIRouter] = None
+try:
+    from apps.api.evidence_collector_router import router as evidence_collector_router
+    logging.getLogger(__name__).info("Loaded Evidence Collector router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Evidence Collector router not available: %s", e)
+
+exception_policy_router: Optional[APIRouter] = None
+try:
+    from apps.api.exception_policy_router import router as exception_policy_router
+    logging.getLogger(__name__).info("Loaded Exception Policy router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Exception Policy router not available: %s", e)
+
+executive_report_router: Optional[APIRouter] = None
+try:
+    from apps.api.executive_report_router import router as executive_report_router
+    logging.getLogger(__name__).info("Loaded Executive Report router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Executive Report router not available: %s", e)
+
+feed_manager_router: Optional[APIRouter] = None
+try:
+    from apps.api.feed_manager_router import router as feed_manager_router
+    logging.getLogger(__name__).info("Loaded Feed Manager router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Feed Manager router not available: %s", e)
+
+fix_engine_router: Optional[APIRouter] = None
+try:
+    from apps.api.fix_engine_router import router as fix_engine_router
+    logging.getLogger(__name__).info("Loaded Fix Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Fix Engine router not available: %s", e)
+
+incident_response_router: Optional[APIRouter] = None
+try:
+    from apps.api.incident_response_router import router as incident_response_router
+    logging.getLogger(__name__).info("Loaded Incident Response router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Incident Response router not available: %s", e)
+
+integration_health_router: Optional[APIRouter] = None
+try:
+    from apps.api.integration_health_router import router as integration_health_router
+    logging.getLogger(__name__).info("Loaded Integration Health router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Integration Health router not available: %s", e)
+
+ip_reputation_router: Optional[APIRouter] = None
+try:
+    from apps.api.ip_reputation_router import router as ip_reputation_router
+    logging.getLogger(__name__).info("Loaded IP Reputation router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("IP Reputation router not available: %s", e)
+
+metrics_aggregator_router: Optional[APIRouter] = None
+try:
+    from apps.api.metrics_aggregator_router import router as metrics_aggregator_router
+    logging.getLogger(__name__).info("Loaded Metrics Aggregator router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Metrics Aggregator router not available: %s", e)
+
+notification_router: Optional[APIRouter] = None
+try:
+    from apps.api.notification_router import router as notification_router
+    logging.getLogger(__name__).info("Loaded Notification router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Notification router not available: %s", e)
+
+pentest_router: Optional[APIRouter] = None
+try:
+    from apps.api.pentest_router import router as pentest_router
+    logging.getLogger(__name__).info("Loaded Pentest router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Pentest router not available: %s", e)
+
+posture_router: Optional[APIRouter] = None
+try:
+    from apps.api.posture_router import router as posture_router
+    logging.getLogger(__name__).info("Loaded Posture router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Posture router not available: %s", e)
+
+pr_generator_router: Optional[APIRouter] = None
+try:
+    from apps.api.pr_generator_router import router as pr_generator_router
+    logging.getLogger(__name__).info("Loaded PR Generator router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("PR Generator router not available: %s", e)
+
+prioritizer_router: Optional[APIRouter] = None
+try:
+    from apps.api.prioritizer_router import router as prioritizer_router
+    logging.getLogger(__name__).info("Loaded Prioritizer router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Prioritizer router not available: %s", e)
+
+rate_limit_router: Optional[APIRouter] = None
+try:
+    from apps.api.rate_limit_router import router as rate_limit_router
+    logging.getLogger(__name__).info("Loaded Rate Limit router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Rate Limit router not available: %s", e)
+
+retention_router: Optional[APIRouter] = None
+try:
+    from apps.api.retention_router import router as retention_router
+    logging.getLogger(__name__).info("Loaded Retention router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Retention router not available: %s", e)
+
+risk_acceptance_router: Optional[APIRouter] = None
+try:
+    from apps.api.risk_acceptance_router import router as risk_acceptance_router
+    logging.getLogger(__name__).info("Loaded Risk Acceptance router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Risk Acceptance router not available: %s", e)
+
+sbom_router: Optional[APIRouter] = None
+try:
+    from apps.api.sbom_router import router as sbom_router
+    logging.getLogger(__name__).info("Loaded SBOM router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("SBOM router not available: %s", e)
+
+secret_scanner_router: Optional[APIRouter] = None
+try:
+    from apps.api.secret_scanner_router import router as secret_scanner_router
+    logging.getLogger(__name__).info("Loaded Secret Scanner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Secret Scanner router not available: %s", e)
+
+security_kb_router: Optional[APIRouter] = None
+try:
+    from apps.api.security_kb_router import router as security_kb_router
+    logging.getLogger(__name__).info("Loaded Security KB router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Security KB router not available: %s", e)
+
+slack_bot_router: Optional[APIRouter] = None
+try:
+    from apps.api.slack_bot_router import router as slack_bot_router
+    logging.getLogger(__name__).info("Loaded Slack Bot router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Slack Bot router not available: %s", e)
+
+system_health_router: Optional[APIRouter] = None
+try:
+    from apps.api.system_health_router import router as system_health_router
+    logging.getLogger(__name__).info("Loaded System Health router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("System Health router not available: %s", e)
+
+tag_router: Optional[APIRouter] = None
+try:
+    from apps.api.tag_router import router as tag_router
+    logging.getLogger(__name__).info("Loaded Tag router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Tag router not available: %s", e)
+
+threat_hunting_router: Optional[APIRouter] = None
+try:
+    from apps.api.threat_hunting_router import router as threat_hunting_router
+    logging.getLogger(__name__).info("Loaded Threat Hunting router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Threat Hunting router not available: %s", e)
+
+user_analytics_router: Optional[APIRouter] = None
+try:
+    from apps.api.user_analytics_router import router as user_analytics_router
+    logging.getLogger(__name__).info("Loaded User Analytics router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("User Analytics router not available: %s", e)
+
+vendor_scorecard_router: Optional[APIRouter] = None
+try:
+    from apps.api.vendor_scorecard_router import router as vendor_scorecard_router
+    logging.getLogger(__name__).info("Loaded Vendor Scorecard router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Vendor Scorecard router not available: %s", e)
+
+versioning_router: Optional[APIRouter] = None
+try:
+    from apps.api.versioning_router import router as versioning_router
+    logging.getLogger(__name__).info("Loaded Versioning router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Versioning router not available: %s", e)
+
+webhook_events_router: Optional[APIRouter] = None
+try:
+    from apps.api.webhook_events_router import router as webhook_events_router
+    logging.getLogger(__name__).info("Loaded Webhook Events router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Webhook Events router not available: %s", e)
+
+workflow_engine_router: Optional[APIRouter] = None
+try:
+    from apps.api.workflow_engine_router import router as workflow_engine_router
+    logging.getLogger(__name__).info("Loaded Workflow Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Workflow Engine router not available: %s", e)
+
 from fastapi import (
     APIRouter,
     Body,
@@ -2232,6 +2536,62 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Detailed Logs router at /api/v1/logs")
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as _lr_err:
         _logger.warning("Detailed Logs router not available: %s", _lr_err)
+
+    # -------------------------------------------------------------------
+    # Additional apps/api routers (wired in this session)
+    # -------------------------------------------------------------------
+    _extra_apps_routers = [
+        (analytics_dashboard_router, "Analytics Dashboard", "read:findings"),
+        (analytics_routes_router, "Analytics Routes", "read:findings"),
+        (apikey_router, "API Key Management", "admin:all"),
+        (asset_inventory_router, "Asset Inventory", "read:findings"),
+        (backup_router, "Backup", "admin:all"),
+        (bulk_operations_router, "Bulk Operations", "write:findings"),
+        (changelog_router, "Changelog", "read:findings"),
+        (cicd_router, "CI/CD", "write:findings"),
+        (compliance_planner_router, "Compliance Planner", "read:evidence"),
+        (container_scanner_router, "Container Scanner", "read:findings"),
+        (cspm_engine_router, "CSPM Engine", "read:findings"),
+        (dashboard_builder_router, "Dashboard Builder", "read:findings"),
+        (developer_portal_router, "Developer Portal", "read:findings"),
+        (drift_router, "Drift", "read:findings"),
+        (evidence_collector_router, "Evidence Collector", "read:evidence"),
+        (exception_policy_router, "Exception Policy", "write:findings"),
+        (executive_report_router, "Executive Report", "read:evidence"),
+        (feed_manager_router, "Feed Manager", "read:feeds"),
+        (fix_engine_router, "Fix Engine", "write:findings"),
+        (incident_response_router, "Incident Response", "write:findings"),
+        (integration_health_router, "Integration Health", "read:findings"),
+        (ip_reputation_router, "IP Reputation", "read:feeds"),
+        (metrics_aggregator_router, "Metrics Aggregator", "read:findings"),
+        (notification_router, "Notifications", "read:findings"),
+        (pentest_router, "Pentest", "attack:execute"),
+        (posture_router, "Posture", "read:findings"),
+        (pr_generator_router, "PR Generator", "write:findings"),
+        (prioritizer_router, "Prioritizer", "read:findings"),
+        (rate_limit_router, "Rate Limits", "admin:all"),
+        (retention_router, "Retention", "admin:all"),
+        (risk_acceptance_router, "Risk Acceptance", "write:findings"),
+        (sbom_router, "SBOM", "read:sbom"),
+        (secret_scanner_router, "Secret Scanner", "read:findings"),
+        (security_kb_router, "Security KB", "read:findings"),
+        (slack_bot_router, "Slack Bot", "write:integrations"),
+        (system_health_router, "System Health", "admin:all"),
+        (tag_router, "Tags", "read:findings"),
+        (threat_hunting_router, "Threat Hunting", "read:findings"),
+        (user_analytics_router, "User Analytics", "read:findings"),
+        (vendor_scorecard_router, "Vendor Scorecard", "read:findings"),
+        (versioning_router, "Versioning", "read:findings"),
+        (webhook_events_router, "Webhook Events", "read:findings"),
+        (workflow_engine_router, "Workflow Engine", "write:findings"),
+    ]
+    for _r, _name, _scope in _extra_apps_routers:
+        if _r:
+            app.include_router(
+                _r,
+                dependencies=[Depends(_verify_api_key), Depends(_require_scope(_scope))],
+            )
+            _logger.info("Mounted %s router", _name)
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024

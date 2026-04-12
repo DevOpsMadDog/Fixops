@@ -28,12 +28,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from apps.api.dependencies import get_org_id
-from core.audit_logger import get_audit_logger
+from core.audit_logger import create_audit_logger
 from core.user_db import UserDB
 from core.user_models import Team, User, UserRole, UserStatus
 
 logger = logging.getLogger(__name__)
-_audit = get_audit_logger()
+_audit = create_audit_logger()
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 

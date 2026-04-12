@@ -145,7 +145,7 @@ class StatusUpdateRequest(BaseModel):
 
     status: str = Field(
         ...,
-        regex="^(open|in_progress|remediated|suppressed|false_positive|accepted_risk)$",
+        pattern="^(open|in_progress|remediated|suppressed|false_positive|accepted_risk)$",
     )
     reason: Optional[str] = Field(None, max_length=500)
     evidence: Optional[Dict[str, Any]] = None
@@ -206,7 +206,7 @@ class BulkStatusUpdateResponse(BaseModel):
 class ExportRequest(BaseModel):
     """Request to export findings."""
 
-    format: str = Field(..., regex="^(json|csv)$")
+    format: str = Field(..., pattern="^(json|csv)$")
     filters: Optional[FindingListFilter] = None
     include_fields: Optional[List[str]] = None
 
@@ -226,7 +226,7 @@ async def list_findings(
     assigned_to: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
-    sort_by: str = Query("severity", regex="^(severity|created_at|risk_score|last_seen)$"),
+    sort_by: str = Query("severity", pattern="^(severity|created_at|risk_score|last_seen)$"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
