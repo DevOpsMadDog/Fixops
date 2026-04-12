@@ -54,6 +54,7 @@ import {
   Rss,
   GitMerge,
   Database,
+  Globe,
   Crosshair,
   Swords,
   Flame,
@@ -83,6 +84,7 @@ import {
   TrendingUp,
   Scale,
   Code2,
+  Wifi,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -171,6 +173,20 @@ const navGroups: NavGroup[] = [
       { label: "Audit Trail", to: "/comply/audit", icon: ScrollText, roles: ["admin", "security_analyst"] },
       { label: "Reports", to: "/comply/reports", icon: FileText },
       { label: "Analytics", to: "/comply/analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Attack Surface",
+    icon: Globe,
+    items: [
+      { label: "Surface Overview", to: "/attack-surface", icon: Globe, badge: "CTEM" },
+    ],
+  },
+  {
+    label: "Integrations",
+    icon: Wifi,
+    items: [
+      { label: "Integration Health", to: "/integrations", icon: Activity },
     ],
   },
   {

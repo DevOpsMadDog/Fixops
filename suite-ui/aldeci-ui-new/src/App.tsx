@@ -79,8 +79,17 @@ const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"
 // Developer Portal
 const DeveloperPortal = lazy(() => import("@/pages/developer/DeveloperPortal"));
 
+// Attack Surface
+const AttackSurface = lazy(() => import("@/pages/attack-surface/AttackSurface"));
+
+// Integration Health
+const IntegrationHealth = lazy(() => import("@/pages/integrations/IntegrationHealth"));
+
 // Threat Hunting
 const ThreatHunting = lazy(() => import("@/pages/hunting/ThreatHunting"));
+
+// Vendor Management
+const VendorManagement = lazy(() => import("@/pages/vendors/VendorManagement"));
 
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
@@ -172,11 +181,20 @@ export default function App() {
             <Route path="/ai/ml" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MLDashboard /></RequireRole>} />
             <Route path="/ai/predictions" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Predictions /></RequireRole>} />
 
+            {/* Attack Surface */}
+            <Route path="/attack-surface" element={<AttackSurface />} />
+
+            {/* Integration Health */}
+            <Route path="/integrations" element={<IntegrationHealth />} />
+
             {/* Threat Hunting */}
             <Route path="/hunting" element={<ThreatHunting />} />
 
             {/* Developer Portal */}
             <Route path="/developer" element={<DeveloperPortal />} />
+
+            {/* Vendor Management */}
+            <Route path="/vendors" element={<VendorManagement />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
