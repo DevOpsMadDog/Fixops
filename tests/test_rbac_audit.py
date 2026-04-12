@@ -210,7 +210,7 @@ class TestGetCurrentUserRole:
 class TestRequirePermission:
     def _run(self, coro):
         import asyncio
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_admin_passes_any_permission(self):
         dep = require_permission(RBACPermission.DELETE_FINDINGS)
@@ -254,7 +254,7 @@ class TestRequirePermission:
 class TestRequireRole:
     def _run(self, coro):
         import asyncio
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_admin_passes_all_role_checks(self):
         for role in RBACRole:
@@ -567,9 +567,7 @@ class TestAuditMiddlewareIntegration:
         auth.role = "security_analyst"
         req.state.auth = auth
 
-        asyncio.get_event_loop().run_until_complete(
-            middleware.dispatch(req, _fake_handler)
-        )
+        asyncio.run(middleware.dispatch(req, _fake_handler))
 
         entries = self.audit.query()
         assert len(entries) == 1
@@ -596,9 +594,7 @@ class TestAuditMiddlewareIntegration:
         auth.role = "admin"
         req.state.auth = auth
 
-        asyncio.get_event_loop().run_until_complete(
-            middleware.dispatch(req, _fake_handler)
-        )
+        asyncio.run(middleware.dispatch(req, _fake_handler))
 
         entries = self.audit.query(filters={"action": "delete"})
         assert len(entries) == 1
@@ -620,9 +616,7 @@ class TestAuditMiddlewareIntegration:
         req.headers = {}
         req.state.auth = None
 
-        asyncio.get_event_loop().run_until_complete(
-            middleware.dispatch(req, _fake_handler)
-        )
+        asyncio.run(middleware.dispatch(req, _fake_handler))
 
         entries = self.audit.query()
         assert len(entries) == 0
@@ -644,9 +638,7 @@ class TestAuditMiddlewareIntegration:
         req.headers = {}
         req.state.auth = None
 
-        asyncio.get_event_loop().run_until_complete(
-            middleware.dispatch(req, _fake_handler)
-        )
+        asyncio.run(middleware.dispatch(req, _fake_handler))
 
         entries = self.audit.query()
         assert len(entries) == 0

@@ -250,8 +250,8 @@ class TestCacheResponseDecorator:
             return {"data": "value"}
 
         req = self._make_request("/test")
-        asyncio.get_event_loop().run_until_complete(handler(req))
-        asyncio.get_event_loop().run_until_complete(handler(req))
+        asyncio.run(handler(req))
+        asyncio.run(handler(req))
         assert call_count == 1  # second call served from cache
 
     def test_cache_miss_calls_handler(self):
@@ -266,8 +266,8 @@ class TestCacheResponseDecorator:
 
         req1 = self._make_request("/path1")
         req2 = self._make_request("/path2")
-        asyncio.get_event_loop().run_until_complete(handler(req1))
-        asyncio.get_event_loop().run_until_complete(handler(req2))
+        asyncio.run(handler(req1))
+        asyncio.run(handler(req2))
         assert call_count == 2  # different keys → different cache entries
 
     def test_ttl_expiry_triggers_refetch(self):
@@ -281,9 +281,9 @@ class TestCacheResponseDecorator:
             return {"data": call_count}
 
         req = self._make_request("/test")
-        asyncio.get_event_loop().run_until_complete(handler(req))
+        asyncio.run(handler(req))
         time.sleep(0.1)  # let cache expire
-        asyncio.get_event_loop().run_until_complete(handler(req))
+        asyncio.run(handler(req))
         assert call_count == 2  # fetched again after TTL
 
 
