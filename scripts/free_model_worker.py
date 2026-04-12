@@ -25,7 +25,7 @@ OPENROUTER_KEY = os.environ.get(
     "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",
 )
 
-OLLAMA_MODELS = ["gemma3:4b", "gemma:7b"]
+OLLAMA_MODELS = ["gemma4", "gemma3:4b", "gemma:7b"]
 OPENROUTER_MODELS = [
     "qwen/qwen3-coder:free",
     "qwen/qwen3-next-80b-a3b-instruct:free",
