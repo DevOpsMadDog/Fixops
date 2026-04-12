@@ -1,0 +1,66 @@
+# Beast Mode .gitignore
+
+# Logs and state
+logs/*.json
+logs/*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Credentials and secrets
+*.key
+*.pem
+*.p12
+credentials.json
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# OS
+.DS_Store
+Thumbs.db

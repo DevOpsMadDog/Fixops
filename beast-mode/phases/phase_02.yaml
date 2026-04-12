@@ -1,0 +1,187 @@
+name: "PULL Activation"
+description: "Activate bidirectional sync, integrate all 20 PULL connectors, deploy n8n orchestration"
+days: "4-6"
+tasks:
+  - id: "2.1"
+    name: "Implement bidirectional sync protocol"
+    prompt: |
+      In ~/Fixops/suite-core/sync/, create `bidirectional.py`:
+      1. Define BidirectionalSync class with:
+         - pull_from_source(connector, filter)
+         - push_to_source(connector, records, mode='upsert')
+         - conflict_resolution_policy (last-write-wins, source-preferred, manual)
+      2. Implement change detection: track last_modified, hash-based diff
+      3. Add batch operations: pull_batch(), push_batch() with 10k record chunks
+      4. Create idempotency keys to prevent duplicate writes
+      5. Implement retry logic with exponential backoff
+      6. Write tests in suite-core/tests/test_bidirectional_sync.py
+      Test bidirectional sync with 2+ connectors to verify consistency.
+    parallel_group: "a"
+    timeout_minutes: 50
+
+  - id: "2.2"
+    name: "Activate 20 PULL connectors"
+    prompt: |
+      Wire all 20 PULL connectors (Salesforce, HubSpot, Marketo, Klaviyo, Zendesk, Stripe,
+      Intercom, Twilio, Segment, Mixpanel, Amplitude, Braze, Iterable, Mailchimp, Salesforce
+      Commerce, Shopify, WooCommerce, Magento, BigCommerce, Klaviyo Flows) to production.
+
+      For each connector in ~/Fixops/suite-core/connectors/:
+      1. Implement poll() to fetch records from source API
+      2. Implement push_record() to write back to source
+      3. Add credential validation and error handling
+      4. Create fixtures with mock data
+      5. Write connector-specific tests
+
+      Create a connectors_status.py that lists all 20 with:
+      - Activation status (active/inactive)
+      - Last sync timestamp
+      - Record count
+      - Error summary
+
+      Verify all 20 connectors pass activation tests.
+    parallel_group: "a"
+    timeout_minutes: 90
+
+  - id: "2.3"
+    name: "Build n8n integration layer"
+    prompt: |
+      In ~/Fixops/suite-core/orchestration/, create `n8n_integration.py`:
+      1. Define N8nWorkflow class to represent n8n workflows
+      2. Implement methods:
+         - create_workflow(name, connectors, sync_config)
+         - update_workflow(workflow_id, config)
+         - execute_workflow(workflow_id)
+         - get_execution_status(execution_id)
+      3. Create workflow templates for common patterns:
+         - simple_sync: single connector -> TrustGraph
+         - bidirectional_sync: connector <-> connector
+         - enrichment: connector1 -> enrich -> connector2
+      4. Implement webhook receiver for n8n -> ALDECI notifications
+      5. Add error handling and automatic retry logic
+      6. Write tests in suite-core/tests/test_n8n_integration.py
+      Deploy n8n locally and test workflow creation/execution.
+    parallel_group: "a"
+    timeout_minutes: 60
+
+  - id: "2.4"
+    name: "Create connector configuration UI"
+    prompt: |
+      In ~/Fixops/suite-frontend/src/, create React components:
+      1. ConnectorSetup.tsx: wizard for connecting new connector
+         - Select connector type
+         - Enter credentials (OAuth or API key)
+         - Test connection
+         - Configure sync schedule
+      2. ConnectorList.tsx: table of all connected connectors
+         - Status indicator (green/yellow/red)
+         - Last sync timestamp
+         - Next scheduled sync
+         - Edit/delete buttons
+      3. ConnectorDetail.tsx: detailed view of single connector
+         - Sync history
+         - Recent records
+         - Error logs
+         - Advanced settings
+      4. Add Redux actions for connector CRUD
+      5. Write component tests
+      Verify UI works and connects to backend API.
+    parallel_group: "b"
+    timeout_minutes: 45
+
+  - id: "2.5"
+    name: "Implement sync monitoring dashboard"
+    prompt: |
+      In ~/Fixops/suite-frontend/src/, create SyncDashboard.tsx:
+      1. Real-time sync status board showing:
+         - Currently running syncs (progress bar)
+         - Completed syncs (last 24h)
+         - Failed syncs with error details
+         - Sync queue (pending syncs)
+      2. Metrics: total records synced, avg sync duration, error rate
+      3. WebSocket/SSE connection to backend for real-time updates
+      4. Filters: connector type, date range, status
+      5. Export sync logs as CSV
+      6. Add Tailwind styling for polished look
+      Write tests for dashboard data binding and updates.
+    parallel_group: "b"
+    timeout_minutes: 40
+
+  - id: "2.6"
+    name: "Build webhook event system"
+    prompt: |
+      In ~/Fixops/suite-core/events/, create `webhook_handler.py`:
+      1. Define WebhookEvent dataclass with: id, type, source, data, timestamp
+      2. Implement WebhookRegistry to register handlers for events
+      3. Create common handlers:
+         - on_sync_started
+         - on_sync_completed
+         - on_sync_failed
+         - on_record_created
+         - on_record_updated
+         - on_record_deleted
+      4. Add webhook endpoint in suite-core/api/routes/webhooks.py
+      5. Implement event queuing and async dispatch
+      6. Add signing/verification for webhook payloads
+      7. Write tests in suite-core/tests/test_webhooks.py
+      Test webhook delivery and event propagation.
+    parallel_group: "b"
+    timeout_minutes: 40
+
+  - id: "2.7"
+    name: "Create sync scheduling engine"
+    prompt: |
+      In ~/Fixops/suite-core/scheduler/, create `sync_scheduler.py`:
+      1. Define SyncSchedule: cron expression, frequency, timezone
+      2. Implement APScheduler integration:
+         - add_scheduled_sync(connector_id, schedule)
+         - remove_scheduled_sync(connector_id)
+         - pause_scheduled_sync()
+         - resume_scheduled_sync()
+      3. Track scheduled vs actual sync times
+      4. Add jitter to prevent thundering herd
+      5. Persist schedules to database
+      6. Write tests in suite-core/tests/test_sync_scheduler.py
+      Test scheduling and verify syncs execute on schedule.
+    parallel_group: "c"
+    timeout_minutes: 40
+
+  - id: "2.8"
+    name: "Integration tests for Phase 2 (all 20 connectors)"
+    prompt: |
+      In ~/Fixops/tests/test_phase2_connectors.py, create integration tests:
+      1. Test all 20 PULL connectors:
+         - Instantiate with test credentials
+         - Poll sample data
+         - Normalize to canonical schema
+         - Push back changes
+      2. Test bidirectional sync: round-trip data between 2 connectors
+      3. Test n8n workflows: create, execute, monitor workflows
+      4. Test webhook events: trigger events and verify handlers fire
+      5. Test sync scheduler: schedule sync and verify execution
+      6. Test UI: render connector setup, list, detail views
+      7. Add performance test: sync 10k records, measure throughput
+
+      Run full test suite; all 20 connectors must pass with >99% success rate.
+    parallel_group: "c"
+    timeout_minutes: 90
+
+  - id: "2.9"
+    name: "Deployment and performance baseline"
+    prompt: |
+      1. In ~/Fixops/deploy/, create docker-compose.yml for local development:
+         - ALDECI backend (FastAPI)
+         - PostgreSQL database
+         - n8n orchestration
+         - Redis for caching
+      2. Create deployment documentation in docs/deployment.md
+      3. Run performance baseline:
+         - Sync 10k records from each of 5 connectors
+         - Measure latency, throughput, CPU/memory usage
+         - Record baseline metrics in metrics/phase2_baseline.json
+      4. Create health check endpoint
+      5. Verify all services start cleanly
+
+      Verify deployment works and baseline metrics are reasonable.
+    parallel_group: "c"
+    timeout_minutes: 50

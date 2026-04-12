@@ -1,0 +1,317 @@
+name: "Launch"
+description: "Production deployment, DNS/SSL, CDN, support workflow, launch communications"
+days: "50-56"
+tasks:
+  - id: "10.1"
+    name: "Set up production infrastructure"
+    prompt: |
+      In ~/Fixops/deploy/production/, provision production infrastructure:
+      1. Provision production environment:
+         - Cloud infrastructure: multi-region (primary + backup)
+         - Primary region: auto-scaling groups, load balancers
+         - Backup region: standby, ready for failover
+         - Network: VPCs, subnets, security groups
+      2. Set up production databases:
+         - Primary PostgreSQL with streaming replication
+         - 2 read replicas (one in backup region)
+         - Automated daily backups to S3
+         - Point-in-time recovery enabled (30 days)
+      3. Set up caching:
+         - Redis cluster (3 nodes minimum)
+         - Failover and auto-recovery
+      4. Configure load balancing:
+         - Application load balancer (ALB)
+         - Health checks every 5 seconds
+         - Connection draining timeout: 30 seconds
+      5. Set up VPN/bastion for admin access
+      6. Create infrastructure-as-code (Terraform) for reproducibility
+      Verify all production infrastructure operational and meets HA requirements.
+    parallel_group: "a"
+    timeout_minutes: 100
+
+  - id: "10.2"
+    name: "Configure DNS and SSL/TLS"
+    prompt: |
+      In ~/Fixops/deploy/networking/, set up DNS and security:
+      1. Configure DNS:
+         - Register domain name
+         - Create DNS records: A, CNAME, MX, TXT
+         - Set up CNAME for CDN
+         - Create subdomains: api.aldeci.io, admin.aldeci.io, etc.
+         - Implement DNS redundancy (multiple providers)
+      2. Obtain and configure SSL/TLS:
+         - Get certificate from Let's Encrypt (free) or commercial CA
+         - Set up auto-renewal (90-day validity)
+         - Configure HSTS (HTTP Strict Transport Security)
+         - Disable old TLS versions (require TLS 1.2+)
+         - Configure cipher suites (modern, strong)
+      3. Test DNS and SSL:
+         - Verify DNS resolution
+         - Verify SSL certificate validity
+         - Test HTTPS redirects
+         - Run SSL Labs test (target: A+ rating)
+      4. Set up certificate monitoring:
+         - Alert 30 days before expiration
+         - Alert on certificate errors
+      Create phase_10_dns_ssl_validation.md with test results.
+    parallel_group: "a"
+    timeout_minutes: 70
+
+  - id: "10.3"
+    name: "Deploy and configure CDN"
+    prompt: |
+      In ~/Fixops/deploy/cdn/, set up content delivery network:
+      1. Choose CDN provider: CloudFront, Cloudflare, or similar
+      2. Configure CDN:
+         - Origin: primary application load balancer
+         - Origin shield: enable for additional caching
+         - Compression: enable gzip for text
+         - Cache headers: aggressive for static assets
+         - TTL: 1 day for static content, 0 for dynamic
+      3. Set up edge caching:
+         - Cache static assets (JS, CSS, images)
+         - Cache API responses (for short TTL)
+         - Invalidate cache on deploys
+      4. Configure DDoS protection at CDN level
+      5. Set up monitoring:
+         - CDN hit rate (target: >80% for static)
+         - CDN latency
+         - Cache misses
+      6. Test CDN performance:
+         - Verify assets served from edge
+         - Verify cache invalidation works
+         - Measure performance improvement
+      Create phase_10_cdn_validation.md with performance metrics.
+    parallel_group: "a"
+    timeout_minutes: 60
+
+  - id: "10.4"
+    name: "Execute production deployment"
+    prompt: |
+      In ~/Fixops/deploy/, execute production deployment:
+      1. Create deployment checklist in deploy/DEPLOY_CHECKLIST.md:
+         - Code: all changes merged, tests passing
+         - Database: migrations tested, backups ready
+         - Configuration: all secrets configured
+         - Monitoring: dashboards and alerts active
+         - Support: team briefed and on-call
+         - Communication: announcement ready
+      2. Create deployment runbook in deploy/DEPLOY_RUNBOOK.md:
+         - Pre-deployment steps (backup DB, verify backups)
+         - Deployment steps (rolling update, verify)
+         - Post-deployment steps (verify logs, test endpoints)
+         - Rollback procedure (if needed)
+      3. Execute deployment:
+         - Blue-green deployment (zero downtime)
+         - Monitor deployment progress
+         - Verify all endpoints responsive
+         - Run smoke tests
+         - Monitor error rate for 1 hour
+      4. Create deployment automation:
+         - Use CI/CD pipeline to automate deployment
+         - Require approval gate before production
+         - Automatic rollback on health check failure
+      Verify production deployment successful and all systems operational.
+    parallel_group: "a"
+    timeout_minutes: 120
+
+  - id: "10.5"
+    name: "Build production support workflow"
+    prompt: |
+      In ~/Fixops/docs/, create support operations:
+      1. Set up support infrastructure:
+         - Support platform (Zendesk, Intercom, etc.)
+         - Support team training
+         - First response templates
+         - Escalation procedures
+      2. Create customer support policy:
+         - SLAs (response time, resolution time)
+         - Support hours (24/7, business hours, etc.)
+         - Support channels (email, chat, phone)
+         - Escalation matrix
+      3. Create common response templates:
+         - Welcome email for new customers
+         - Sync issue troubleshooting
+         - API integration help
+         - Feature request acknowledgment
+      4. Set up support metrics dashboard:
+         - Response time (target: <1hr)
+         - Resolution time (target: <24hr)
+         - Customer satisfaction (target: >90%)
+         - Ticket volume by category
+      5. Create support team runbook:
+         - How to handle different ticket types
+         - When to escalate to engineering
+         - How to use knowledge base
+      Verify support infrastructure ready for launch.
+    parallel_group: "b"
+    timeout_minutes: 50
+
+  - id: "10.6"
+    name: "Create launch communications and marketing"
+    prompt: |
+      In ~/Fixops/marketing/, create launch materials:
+      1. Create press release:
+         - Headline: ALDECI GA announcement
+         - Body: Key features, benefits, use cases
+         - Quotes from executives
+         - Call to action
+      2. Create launch announcement:
+         - Blog post: What is ALDECI, how it helps
+         - Email: send to prospect/customer list
+         - Social media: LinkedIn, Twitter posts
+         - Webinar: live demo and Q&A
+      3. Create customer onboarding series:
+         - Welcome email
+         - Getting started email
+         - Feature spotlight emails (weekly)
+         - Success stories (after 1 month)
+      4. Create marketing collateral:
+         - One-pager (product overview)
+         - Case studies (if customer willing)
+         - Pricing page
+         - FAQ page
+      5. Create launch timeline:
+         - Day 0: deploy to production
+         - Day 1: announce publicly
+         - Day 3-7: customer outreach
+         - Week 2: measure traction, adjust messaging
+      Review all communications with marketing and exec team.
+    parallel_group: "b"
+    timeout_minutes: 50
+
+  - id: "10.7"
+    name: "Implement production monitoring and alerting"
+    prompt: |
+      In ~/Fixops/deploy/monitoring/, set up production monitoring:
+      1. Verify all monitoring in place:
+         - Application metrics: latency, throughput, errors
+         - Infrastructure metrics: CPU, memory, disk, network
+         - Database metrics: connections, queries, replication
+         - Business metrics: users online, transactions, revenue
+      2. Verify all critical alerts configured:
+         - API errors >1% -> page on-call
+         - Database down -> page on-call
+         - High latency (>1s p95) -> alert
+         - Disk full -> alert
+         - Certificate expiring -> alert
+      3. Test alerting:
+         - Trigger test alerts
+         - Verify notifications received
+         - Verify escalation works
+         - Document false positives
+      4. Set up status page (statuspage.io):
+         - Public status of all services
+         - Incident tracking
+         - Maintenance windows
+      5. Create monitoring runbook:
+         - How to understand graphs
+         - How to drill down on issues
+         - When to escalate
+      Verify all monitoring and alerting operational.
+    parallel_group: "b"
+    timeout_minutes: 60
+
+  - id: "10.8"
+    name: "Execute post-launch validation"
+    prompt: |
+      In ~/Fixops/tests/production/, create post-launch tests:
+      1. Run production smoke tests:
+         - Create test account
+         - Connect test connector
+         - Run test sync
+         - Query TrustGraph
+         - Get AI decision
+         - Verify all steps succeed
+      2. Run production E2E tests:
+         - Run subset of 30 persona tests against production
+         - Verify all major workflows work
+         - Measure production latency
+      3. Monitor production metrics:
+         - Error rate (<0.1%)
+         - Latency (p95 <500ms)
+         - Uptime (>99.9%)
+         - User count tracking
+      4. Collect customer feedback:
+         - Contact pilot customers
+         - Ask about experience
+         - Document any issues
+         - Plan improvements
+      5. Create launch report:
+         - Deployment status: ✓
+         - Monitoring: ✓
+         - Support: ✓
+         - Initial customer feedback: good/issues
+         - Metrics: error rate, latency, uptime
+      All tests must pass; error rate must be <0.1%.
+    parallel_group: "b"
+    timeout_minutes: 80
+
+  - id: "10.9"
+    name: "Plan post-launch optimization and iteration"
+    prompt: |
+      In ~/Fixops/docs/, create post-launch roadmap:
+      1. Analyze launch metrics:
+         - Customer adoption rate
+         - Feature adoption
+         - Common issues/bugs
+         - Performance bottlenecks
+      2. Identify quick wins (bugs, performance):
+         - Prioritize by customer impact
+         - Plan fixes for next week
+      3. Create feature improvement roadmap:
+         - Customer feature requests
+         - Identified gaps from pilot
+         - Performance optimizations
+         - Prioritize by value/effort
+      4. Plan next phases:
+         - Phase 11: Feature expansion (planned features not in GA)
+         - Phase 12: Performance optimization
+         - Phase 13: Advanced features (custom workflows, etc.)
+      5. Create customer engagement plan:
+         - Weekly check-ins with pilot customers
+         - Monthly feature releases
+         - Quarterly business reviews
+      Review roadmap with exec team and set investment priorities.
+    parallel_group: "c"
+    timeout_minutes: 50
+
+  - id: "10.10"
+    name: "Final launch validation and GA approval"
+    prompt: |
+      Perform comprehensive launch readiness assessment:
+      1. Verify production deployment:
+         - All services operational
+         - Monitoring and alerting active
+         - Error rate <0.1%, latency <500ms p95
+         - DNS/SSL configured and working
+         - CDN serving content
+      2. Verify support readiness:
+         - Support team trained and on-call
+         - Support system operational
+         - Documentation complete
+         - FAQ and knowledge base populated
+      3. Verify customer readiness:
+         - Pilot customers successful
+         - Customer success team ready
+         - Onboarding process validated
+      4. Verify communications:
+         - Press release ready
+         - Customer announcements ready
+         - Marketing collateral ready
+      5. Create final_launch_checklist.md:
+         - Infrastructure: ✓
+         - Deployment: ✓
+         - Monitoring: ✓
+         - Support: ✓
+         - Customer success: ✓
+         - Communications: ✓
+         - Success metrics: on track
+      6. Get sign-off from:
+         - VP Engineering
+         - VP Customer Success
+         - VP Marketing/BD
+         - CEO
+      Verify all launch criteria met; obtain executive sign-off for GA announcement.
+    parallel_group: "c"
+    timeout_minutes: 100

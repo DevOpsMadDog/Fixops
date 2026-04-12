@@ -1,0 +1,39 @@
+# Beast Mode v6 Configuration
+#
+# Main orchestrator configuration for autonomous ALDECI development
+
+# Path to ALDECI (Fixops) codebase
+fixops_path: ~/Fixops
+
+# Claude model to use for all agents
+# Options: haiku, sonnet, opus
+claude_model: opus
+
+# Maximum number of retries for failed tasks
+max_retries: 3
+
+# Per-task timeout in minutes
+task_timeout_minutes: 30
+
+# Per-phase timeout in minutes (includes all tasks + gates)
+phase_timeout_minutes: 120
+
+# Maximum number of tasks to run in parallel
+# Increase for faster execution, decrease for lower resource usage
+parallel_tasks: 4
+
+# Logging level
+# Options: DEBUG, INFO, WARNING, ERROR
+log_level: INFO
+
+# Gate validation enabled
+validate_gates: true
+
+# Resume from last completed phase on startup
+resume_on_startup: true
+
+# Notify on phase completion (via logger)
+notify_on_phase_complete: true
+
+# Store detailed task logs
+store_task_logs: true

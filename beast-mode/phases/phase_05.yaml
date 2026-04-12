@@ -1,0 +1,250 @@
+name: "Enterprise Hardening"
+description: "RBAC matrix, multi-tenancy, audit logging, encryption at rest"
+days: "15-21"
+tasks:
+  - id: "5.1"
+    name: "Design and implement RBAC matrix"
+    prompt: |
+      In ~/Fixops/suite-core/rbac/, create `models.py` and `enforcer.py`:
+      1. Define RBAC data model:
+         - Role: Admin, Manager, Analyst, Viewer (extensible)
+         - Permission: read, write, delete, manage, escalate
+         - Resource: Connector, TrustGraph, Sync, AI, Report
+         - Action: create, read, update, delete, execute
+      2. Create RBAC matrix (role x resource x action):
+         Example: Admin can [create,read,update,delete,execute] on all resources
+                  Manager can [read,update] on Connectors, [read] on TrustGraph
+                  Analyst can [read] on Connectors, [read] on TrustGraph/Reports
+      3. Implement RBACEnforcer class:
+         - check_permission(user_id, resource, action) -> bool
+         - get_user_role(user_id) -> Role
+         - grant_role(user_id, role)
+         - revoke_role(user_id)
+      4. Add audit logging for all permission checks
+      5. Write tests in suite-core/tests/test_rbac.py
+      Test all permission checks across matrix.
+    parallel_group: "a"
+    timeout_minutes: 60
+
+  - id: "5.2"
+    name: "Implement multi-tenancy isolation"
+    prompt: |
+      In ~/Fixops/suite-core/tenancy/, create multi-tenancy layer:
+      1. Define Tenant model:
+         - tenant_id (UUID)
+         - name, status (active/suspended)
+         - resource quotas (connector count, sync frequency, AI budget)
+         - billing info (subscription tier)
+      2. Implement TenantContext middleware:
+         - Extract tenant_id from JWT token
+         - Inject into all requests
+         - Verify user belongs to tenant
+      3. Add tenant isolation filters:
+         - All queries automatically filter by tenant_id
+         - TrustGraph query filtered by tenant
+         - Connector/sync data scoped to tenant
+      4. Implement quota enforcement:
+         - Track resource usage per tenant
+         - Reject operations when quota exceeded
+         - Warn when approaching limits
+      5. Create tenant management API:
+         - POST /admin/tenants (create)
+         - GET /admin/tenants (list)
+         - PUT /admin/tenants/{id} (update quotas/status)
+      6. Write tests in suite-core/tests/test_multitenancy.py
+      Test isolation with 3+ tenants sharing resources.
+    parallel_group: "a"
+    timeout_minutes: 70
+
+  - id: "5.3"
+    name: "Build comprehensive audit logging"
+    prompt: |
+      In ~/Fixops/suite-core/audit/, create `audit_logger.py`:
+      1. Define AuditLog model:
+         - user_id, tenant_id, timestamp
+         - resource_type, resource_id
+         - action (create/read/update/delete)
+         - before_state, after_state (for changes)
+         - reason/comment
+      2. Implement AuditLogger class:
+         - log_action(user, resource, action, state)
+         - log_permission_denied(user, resource, action)
+         - log_api_request(method, endpoint, user)
+      3. Add middleware to log all API requests/responses
+      4. Create audit query API:
+         - GET /audit/logs (with filtering, pagination)
+         - GET /audit/logs/{resource_id}
+         - GET /audit/logs/user/{user_id}
+      5. Store audit logs immutably (write-once)
+      6. Retention: keep for 3 years minimum
+      7. Write tests in suite-core/tests/test_audit_log.py
+      Test audit logging with various operations.
+    parallel_group: "a"
+    timeout_minutes: 60
+
+  - id: "5.4"
+    name: "Implement encryption at rest"
+    prompt: |
+      In ~/Fixops/suite-core/crypto/, create encryption layer:
+      1. Design encryption strategy:
+         - Sensitive fields: credentials, API keys, PII
+         - Encrypt in database (AES-256-GCM)
+         - Store encryption keys in secure vault (env var for dev, KMS for prod)
+      2. Define EncryptedField SQLAlchemy type:
+         - Automatic encryption on write
+         - Automatic decryption on read
+         - Support for key rotation
+      3. Create KeyManager class:
+         - Generate/store encryption keys
+         - Rotate keys (re-encrypt data)
+         - Track key versions
+      4. Encrypt sensitive fields in models:
+         - Connector.credentials
+         - User.api_keys
+         - Account.billing_info
+      5. Implement data migration script to encrypt existing data
+      6. Add key rotation workflow
+      7. Write tests in suite-core/tests/test_encryption.py
+      Test encryption/decryption and key rotation.
+    parallel_group: "b"
+    timeout_minutes: 60
+
+  - id: "5.5"
+    name: "Create user access management UI"
+    prompt: |
+      In ~/Fixops/suite-frontend/src/admin/, create admin components:
+      1. UserManagement.tsx:
+         - List all users with role and permissions
+         - Add/remove users
+         - Grant/revoke roles
+         - Suspend/reactivate users
+         - View user audit log
+      2. RoleEditor.tsx:
+         - Display RBAC matrix
+         - Allow editing roles and permissions (for admins)
+         - Preview permission changes
+      3. TenantManagement.tsx:
+         - List tenants with resource usage
+         - Edit quotas
+         - Suspend/activate tenants
+         - View tenant audit log
+      4. Add Tailwind styling and form validation
+      5. Write component tests
+      Test admin UI with various permission levels.
+    parallel_group: "b"
+    timeout_minutes: 50
+
+  - id: "5.6"
+    name: "Implement single sign-on (SSO) integration"
+    prompt: |
+      In ~/Fixops/suite-core/auth/, create SSO integration:
+      1. Support OAuth2/OIDC providers: Google, GitHub, Microsoft
+      2. Implement OAuth2 flow in auth/routes.py:
+         - /auth/login/{provider} (initiate)
+         - /auth/callback/{provider} (handle callback)
+         - /auth/logout (revoke token)
+      3. Map SSO identity to internal User model
+      4. Auto-provision users on first login
+      5. Link multiple SSO providers to single account
+      6. Create SSO configuration UI
+      7. Write tests in suite-core/tests/test_sso.py
+      Test SSO flow with multiple providers.
+    parallel_group: "b"
+    timeout_minutes: 50
+
+  - id: "5.7"
+    name: "Build rate limiting and DDoS protection"
+    prompt: |
+      In ~/Fixops/suite-core/security/, create rate limiting:
+      1. Implement RateLimiter using Redis:
+         - Per-user rate limit (e.g., 100 req/min)
+         - Per-endpoint rate limit (e.g., /sync: 10 req/min)
+         - Per-IP rate limit (e.g., 1000 req/min)
+         - Adaptive limits based on tier
+      2. Add rate limit headers to responses:
+         - X-RateLimit-Limit
+         - X-RateLimit-Remaining
+         - X-RateLimit-Reset
+      3. Implement burst allowance with token bucket
+      4. Create whitelist/blacklist for IPs and users
+      5. Add DDoS detection (unusual patterns)
+      6. Write tests in suite-core/tests/test_rate_limiting.py
+      Test rate limits with simulated traffic spikes.
+    parallel_group: "b"
+    timeout_minutes: 50
+
+  - id: "5.8"
+    name: "Create backup and disaster recovery procedures"
+    prompt: |
+      In ~/Fixops/deploy/, create backup infrastructure:
+      1. Design backup strategy:
+         - Daily incremental backups to S3
+         - Weekly full backups
+         - RPO: 24 hours, RTO: 4 hours
+      2. Create backup script (deploy/scripts/backup.sh):
+         - Backup PostgreSQL database
+         - Backup Redis state
+         - Backup user-uploaded files
+         - Verify backup integrity
+         - Upload to S3 with encryption
+      3. Create restore script (deploy/scripts/restore.sh):
+         - Restore from specific backup
+         - Verify data consistency
+         - Run smoke tests
+      4. Test backup/restore quarterly
+      5. Document procedures in docs/disaster_recovery.md
+      6. Create monitoring alerts for backup failures
+      Run full backup/restore cycle to verify it works.
+    parallel_group: "c"
+    timeout_minutes: 60
+
+  - id: "5.9"
+    name: "Implement secrets management"
+    prompt: |
+      In ~/Fixops/deploy/, create secrets management:
+      1. Support external secret storage:
+         - AWS Secrets Manager / Parameter Store
+         - HashiCorp Vault
+         - Environment variables (for dev/test)
+      2. Create SecretsManager class:
+         - load_secret(name) -> value
+         - rotate_secret(name)
+      3. Implement automatic credential rotation:
+         - DB credentials every 90 days
+         - API keys every 180 days
+      4. Create secret rotation workflows
+      5. Never log secrets (implement secret masking)
+      6. Document secret management in docs/
+      Test secret loading and rotation.
+    parallel_group: "c"
+    timeout_minutes: 50
+
+  - id: "5.10"
+    name: "Enterprise hardening validation and testing"
+    prompt: |
+      In ~/Fixops/tests/enterprise/, create comprehensive tests:
+      1. Test RBAC:
+         - Users with different roles have correct permissions
+         - Permission denials are logged
+      2. Test multi-tenancy:
+         - Users from different tenants can't see each other's data
+         - Quotas enforced per tenant
+      3. Test audit logging:
+         - All actions logged correctly
+         - Logs are immutable
+      4. Test encryption:
+         - Sensitive fields are encrypted in DB
+         - Decryption works correctly
+         - Key rotation doesn't break access
+      5. Test rate limiting:
+         - Users are throttled at limits
+         - Whitelist/blacklist work
+      6. Test SSO:
+         - SSO flow works with multiple providers
+         - Users auto-provisioned correctly
+      7. Test backup/restore:
+         - Full backup/restore cycle succeeds
+         - No data loss
+      Run all enterprise tests; all must pass.
+    parallel_group: "c"
+    timeout_minutes: 120

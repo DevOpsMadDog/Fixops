@@ -1,0 +1,273 @@
+# Phase Validation Gates — Quality checks between phases
+#
+# Each phase must pass all gates before progression to the next phase.
+# Gates run after phase tasks complete.
+
+phase_1:
+  - name: "Connector Framework Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_connector_framework.py -v --tb=short --timeout=30"
+    timeout_seconds: 300
+    description: "Verify connector base classes and bridge implementation"
+
+  - name: "TrustGraph Schema Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_trustgraph.py -v --tb=short --timeout=30"
+    timeout_seconds: 300
+    description: "Verify TrustGraph schema definitions and queries"
+
+  - name: "Code Linting"
+    type: lint
+    command: "cd ~/Fixops && ruff check suite-core/connectors/ --select=E,W,F"
+    timeout_seconds: 120
+    description: "Ensure code quality and style compliance"
+
+  - name: "Type Checking"
+    type: type
+    command: "cd ~/Fixops && python -m mypy suite-core/connectors/ --ignore-missing-imports --no-implicit-optional"
+    timeout_seconds: 180
+    description: "Verify type annotations and type safety"
+
+phase_2:
+  - name: "PULL Connector Integration Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_pull_connectors.py -v --tb=short --timeout=60"
+    timeout_seconds: 600
+    description: "Test all 20 PULL connectors with bidirectional sync"
+
+  - name: "n8n Deployment Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_n8n_integration.py -v --tb=short --timeout=45"
+    timeout_seconds: 600
+    description: "Verify n8n orchestration and webhook connectivity"
+
+  - name: "Code Linting"
+    type: lint
+    command: "cd ~/Fixops && ruff check suite-core/ --select=E,W,F"
+    timeout_seconds: 120
+
+  - name: "Type Checking"
+    type: type
+    command: "cd ~/Fixops && python -m mypy suite-core/ --ignore-missing-imports --no-implicit-optional"
+    timeout_seconds: 180
+
+phase_3:
+  - name: "LLM Provider Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-ai/tests/test_llm_providers.py -v --tb=short --timeout=60"
+    timeout_seconds: 600
+    description: "Test OllamaProvider and OpenRouterProvider implementations"
+
+  - name: "Council Engine Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-ai/tests/test_council.py -v --tb=short --timeout=45"
+    timeout_seconds: 600
+    description: "Verify 3-stage decision council and escalation logic"
+
+  - name: "AI Pipeline Integration Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-ai/tests/test_pipeline.py -v --tb=short --timeout=60"
+    timeout_seconds: 600
+    description: "Test end-to-end AI pipeline with Opus CTO escalation"
+
+  - name: "Code Linting"
+    type: lint
+    command: "cd ~/Fixops && ruff check suite-ai/ --select=E,W,F"
+    timeout_seconds: 120
+
+  - name: "Type Checking"
+    type: type
+    command: "cd ~/Fixops && python -m mypy suite-ai/ --ignore-missing-imports --no-implicit-optional"
+    timeout_seconds: 180
+
+phase_4:
+  - name: "Core Connector Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/ -v --tb=short --timeout=60 -k 'not e2e'"
+    timeout_seconds: 900
+
+  - name: "AI Engine Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-ai/tests/ -v --tb=short --timeout=60 -k 'not e2e'"
+    timeout_seconds: 900
+
+  - name: "Persona E2E Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/e2e/personas/ -v --tb=short --timeout=90"
+    timeout_seconds: 1200
+    description: "Run 30 persona validation tests"
+
+  - name: "Performance Benchmarks"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/perf/ -v --tb=short --timeout=120"
+    timeout_seconds: 1200
+
+  - name: "Code Coverage"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/ --cov=suite-core --cov=suite-ai --cov-fail-under=75"
+    timeout_seconds: 1200
+
+  - name: "Full Type Checking"
+    type: type
+    command: "cd ~/Fixops && python -m mypy . --ignore-missing-imports --no-implicit-optional --exclude venv"
+    timeout_seconds: 300
+
+phase_5:
+  - name: "RBAC Matrix Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_rbac.py -v --tb=short --timeout=60"
+    timeout_seconds: 600
+
+  - name: "Multi-tenancy Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_multitenancy.py -v --tb=short --timeout=60"
+    timeout_seconds: 600
+
+  - name: "Encryption Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_encryption.py -v --tb=short --timeout=45"
+    timeout_seconds: 600
+
+  - name: "Audit Logging Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_audit_log.py -v --tb=short --timeout=45"
+    timeout_seconds: 600
+
+  - name: "Security Linting"
+    type: lint
+    command: "cd ~/Fixops && ruff check suite-core/ --select=S,E,W,F"
+    timeout_seconds: 120
+
+phase_6:
+  - name: "Load Test Execution"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/load/ -v --tb=short --timeout=300"
+    timeout_seconds: 1800
+    description: "Run k6 load tests with performance validation"
+
+  - name: "Connection Pool Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_connection_pool.py -v --tb=short --timeout=120"
+    timeout_seconds: 600
+
+  - name: "Query Optimization Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_query_optimization.py -v --tb=short --timeout=120"
+    timeout_seconds: 600
+
+  - name: "Caching Layer Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest suite-core/tests/test_caching.py -v --tb=short --timeout=60"
+    timeout_seconds: 600
+
+phase_7:
+  - name: "Security Scan (OWASP ZAP)"
+    type: custom
+    command: "cd ~/Fixops && bash scripts/owasp_zap_scan.sh"
+    timeout_seconds: 1200
+    description: "Run OWASP ZAP security scan"
+
+  - name: "Dependency Audit"
+    type: custom
+    command: "cd ~/Fixops && pip audit --strict"
+    timeout_seconds: 300
+    description: "Check for known vulnerabilities in dependencies"
+
+  - name: "Security Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/security/ -v --tb=short --timeout=120"
+    timeout_seconds: 900
+
+  - name: "SOC2 Controls Validation"
+    type: custom
+    command: "cd ~/Fixops && python scripts/validate_soc2_controls.py"
+    timeout_seconds: 300
+
+  - name: "HIPAA Compliance Check"
+    type: custom
+    command: "cd ~/Fixops && python scripts/validate_hipaa_compliance.py"
+    timeout_seconds: 300
+
+phase_8:
+  - name: "Onboarding Flow E2E Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/e2e/onboarding/ -v --tb=short --timeout=90"
+    timeout_seconds: 900
+
+  - name: "Setup Wizard Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/e2e/setup_wizard/ -v --tb=short --timeout=90"
+    timeout_seconds: 900
+
+  - name: "Copilot Integration Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/e2e/copilot/ -v --tb=short --timeout=90"
+    timeout_seconds: 900
+
+  - name: "Dashboard E2E Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/e2e/dashboard/ -v --tb=short --timeout=90"
+    timeout_seconds: 900
+
+  - name: "Documentation Link Validation"
+    type: custom
+    command: "cd ~/Fixops && python scripts/validate_docs_links.py"
+    timeout_seconds: 300
+
+phase_9:
+  - name: "Staging Deployment Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/staging/ -v --tb=short --timeout=120"
+    timeout_seconds: 1200
+    description: "Validate staging environment deployment"
+
+  - name: "Data Migration Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/migration/ -v --tb=short --timeout=120"
+    timeout_seconds: 1200
+
+  - name: "Monitoring Dashboard Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/monitoring/ -v --tb=short --timeout=90"
+    timeout_seconds: 900
+
+  - name: "Runbook Validation"
+    type: custom
+    command: "cd ~/Fixops && python scripts/validate_runbooks.py"
+    timeout_seconds: 300
+
+  - name: "Disaster Recovery Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/disaster_recovery/ -v --tb=short --timeout=180"
+    timeout_seconds: 1200
+
+phase_10:
+  - name: "Production Deployment Readiness"
+    type: custom
+    command: "cd ~/Fixops && python scripts/validate_production_readiness.py"
+    timeout_seconds: 300
+
+  - name: "DNS and SSL Validation"
+    type: custom
+    command: "cd ~/Fixops && bash scripts/validate_dns_ssl.sh"
+    timeout_seconds: 300
+
+  - name: "CDN Configuration Tests"
+    type: custom
+    command: "cd ~/Fixops && python scripts/validate_cdn_config.py"
+    timeout_seconds: 300
+
+  - name: "Production E2E Smoke Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/production/smoke/ -v --tb=short --timeout=120"
+    timeout_seconds: 900
+
+  - name: "Support Workflow Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/support_workflow/ -v --tb=short --timeout=90"
+    timeout_seconds: 900
+
+  - name: "Performance Regression Tests"
+    type: test
+    command: "cd ~/Fixops && python -m pytest tests/perf/regression/ -v --tb=short --timeout=120"
+    timeout_seconds: 900
