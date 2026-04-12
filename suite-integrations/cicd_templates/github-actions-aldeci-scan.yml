@@ -1,0 +1,159 @@
+# ALDECI Security Scan — GitHub Actions Workflow
+#
+# Copy this file to .github/workflows/aldeci-scan.yml in your repository.
+#
+# Required secrets (Settings → Secrets and variables → Actions):
+#   ALDECI_API_URL   — e.g. https://aldeci.example.com
+#   ALDECI_API_TOKEN — your ALDECI API key (X-API-Key)
+#   ALDECI_POLICY_ID — policy UUID from POST /api/v1/cicd/policies
+#
+# Optional secrets:
+#   GITHUB_TOKEN     — automatically provided by Actions for PR comments
+
+name: ALDECI Security Scan
+
+on:
+  pull_request:
+    branches: ["main", "master", "develop"]
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+  pull-requests: write   # needed to post PR comments
+
+jobs:
+  aldeci-scan:
+    name: Security Policy Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history for accurate diff analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install ALDECI CLI
+        run: |
+          pip install requests
+
+      - name: Run ALDECI scan
+        id: scan
+        env:
+          ALDECI_API_URL: ${{ secrets.ALDECI_API_URL }}
+          ALDECI_API_TOKEN: ${{ secrets.ALDECI_API_TOKEN }}
+          ALDECI_POLICY_ID: ${{ secrets.ALDECI_POLICY_ID }}
+        run: |
+          python - <<'PYEOF'
+          import json, os, sys, time, requests
+
+          api_url   = os.environ["ALDECI_API_URL"].rstrip("/")
+          api_token = os.environ["ALDECI_API_TOKEN"]
+          policy_id = os.environ.get("ALDECI_POLICY_ID", "")
+          repo      = os.environ.get("GITHUB_REPOSITORY", "unknown/repo")
+          branch    = os.environ.get("GITHUB_HEAD_REF") or os.environ.get("GITHUB_REF_NAME", "main")
+          sha       = os.environ.get("GITHUB_SHA", "")
+
+          headers = {"X-API-Key": api_token, "Content-Type": "application/json"}
+
+          # Submit scan
+          t0 = time.time()
+          resp = requests.post(
+              f"{api_url}/api/v1/cicd/scan",
+              headers=headers,
+              json={
+                  "repo": repo,
+                  "branch": branch,
+                  "commit_sha": sha,
+                  "policy_id": policy_id,
+              },
+              timeout=60,
+          )
+          resp.raise_for_status()
+          result = resp.json()
+          elapsed_ms = int((time.time() - t0) * 1000)
+
+          print(json.dumps(result, indent=2))
+
+          action = result.get("policy_action", "pass")
+          critical = result.get("critical", 0)
+          high = result.get("high", 0)
+
+          # Write outputs for downstream steps
+          with open(os.environ.get("GITHUB_OUTPUT", "/dev/null"), "a") as fh:
+              fh.write(f"policy_action={action}\n")
+              fh.write(f"critical={critical}\n")
+              fh.write(f"high={high}\n")
+              fh.write(f"findings_count={result.get('findings_count', 0)}\n")
+              scan_id = result.get("scan_id", "")
+              fh.write(f"scan_id={scan_id}\n")
+
+          # Save full result for comment step
+          with open("aldeci_scan_result.json", "w") as fh:
+              json.dump(result, fh)
+
+          if action == "block":
+              print(f"::error::ALDECI policy gate BLOCKED: {critical} critical, {high} high findings")
+              sys.exit(1)
+          elif action == "warn":
+              print(f"::warning::ALDECI policy gate WARNING: {critical} critical, {high} high findings")
+          else:
+              print(f"::notice::ALDECI policy gate PASSED")
+          PYEOF
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request' && always()
+        env:
+          ALDECI_API_URL: ${{ secrets.ALDECI_API_URL }}
+          ALDECI_API_TOKEN: ${{ secrets.ALDECI_API_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python - <<'PYEOF'
+          import json, os, sys, requests
+
+          api_url   = os.environ["ALDECI_API_URL"].rstrip("/")
+          api_token = os.environ["ALDECI_API_TOKEN"]
+          headers   = {"X-API-Key": api_token, "Content-Type": "application/json"}
+          repo      = os.environ.get("GITHUB_REPOSITORY", "")
+          pr_number = int(os.environ.get("PR_NUMBER", "0"))
+
+          if not os.path.exists("aldeci_scan_result.json"):
+              print("No scan result found, skipping comment")
+              sys.exit(0)
+
+          with open("aldeci_scan_result.json") as fh:
+              result = json.load(fh)
+
+          resp = requests.post(
+              f"{api_url}/api/v1/cicd/evaluate",
+              headers=headers,
+              json={"scan_result": result, "repo": repo, "pr_number": pr_number},
+              timeout=30,
+          )
+          if resp.ok:
+              comment_body = resp.json().get("comment", "")
+              if comment_body and pr_number:
+                  gh_token = os.environ.get("GH_TOKEN", "")
+                  requests.post(
+                      f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments",
+                      headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"},
+                      json={"body": comment_body},
+                      timeout=15,
+                  )
+          PYEOF
+
+      - name: Policy gate check
+        if: steps.scan.outputs.policy_action == 'block'
+        run: |
+          echo "::error::Merge blocked by ALDECI security policy."
+          echo "Critical: ${{ steps.scan.outputs.critical }}"
+          echo "High:     ${{ steps.scan.outputs.high }}"
+          exit 1
