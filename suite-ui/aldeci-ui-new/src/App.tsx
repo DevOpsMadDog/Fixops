@@ -79,6 +79,9 @@ const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"
 // Developer Portal
 const DeveloperPortal = lazy(() => import("@/pages/developer/DeveloperPortal"));
 
+// Threat Hunting
+const ThreatHunting = lazy(() => import("@/pages/hunting/ThreatHunting"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -168,6 +171,9 @@ export default function App() {
             <Route path="/ai/algorithms" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><AlgorithmicLab /></RequireRole>} />
             <Route path="/ai/ml" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MLDashboard /></RequireRole>} />
             <Route path="/ai/predictions" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Predictions /></RequireRole>} />
+
+            {/* Threat Hunting */}
+            <Route path="/hunting" element={<ThreatHunting />} />
 
             {/* Developer Portal */}
             <Route path="/developer" element={<DeveloperPortal />} />

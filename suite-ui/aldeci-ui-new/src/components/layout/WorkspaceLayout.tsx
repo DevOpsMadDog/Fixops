@@ -174,6 +174,13 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Threat Hunting",
+    icon: Crosshair,
+    items: [
+      { label: "Hunt Operations", to: "/hunting", icon: Crosshair, badge: "P04" },
+    ],
+  },
+  {
     label: "AI Engine",
     icon: Brain,
     items: [
