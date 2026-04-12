@@ -152,6 +152,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("CTEM Pipeline router not available: %s", e)
 
+# Finding Correlation Engine — groups findings into Exposure Cases
+correlation_router: Optional[APIRouter] = None
+try:
+    from apps.api.correlation_router import router as correlation_router
+    logging.getLogger(__name__).info("Loaded Correlation Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Correlation Engine router not available: %s", e)
+
 from fastapi import (
     APIRouter,
     Body,
@@ -1848,6 +1856,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted CTEM Pipeline router")
+
+    # Finding Correlation Engine — Exposure Cases, alert fatigue reduction
+    if correlation_router:
+        app.include_router(
+            correlation_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Correlation Engine router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
