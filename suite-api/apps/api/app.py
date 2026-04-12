@@ -120,6 +120,30 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Playbook automation router not available: %s", e)
 
+# TrustGraph knowledge graph router (5 Knowledge Cores, MCP tools, entity management)
+trustgraph_router: Optional[APIRouter] = None
+try:
+    from apps.api.trustgraph_routes import router as trustgraph_router
+    logging.getLogger(__name__).info("Loaded TrustGraph router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("TrustGraph router not available: %s", e)
+
+# Findings lifecycle management router (status, assignment, SLA, bulk ops, export)
+findings_router: Optional[APIRouter] = None
+try:
+    from apps.api.findings_routes import router as findings_router
+    logging.getLogger(__name__).info("Loaded Findings management router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Findings management router not available: %s", e)
+
+# CTEM 15-stage pipeline REST API (ingest, batch processing, stage monitoring)
+ctem_pipeline_router: Optional[APIRouter] = None
+try:
+    from apps.api.pipeline_routes import router as ctem_pipeline_router
+    logging.getLogger(__name__).info("Loaded CTEM Pipeline router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("CTEM Pipeline router not available: %s", e)
+
 from fastapi import (
     APIRouter,
     Body,
@@ -1730,6 +1754,30 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted Playbook automation router")
+
+    # TrustGraph knowledge graph — 5 Knowledge Cores, entity management, MCP tools
+    if trustgraph_router:
+        app.include_router(
+            trustgraph_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
+        )
+        _logger.info("Mounted TrustGraph router")
+
+    # Findings lifecycle management — status, assignment, SLA, bulk ops, export
+    if findings_router:
+        app.include_router(
+            findings_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Findings management router")
+
+    # CTEM 15-stage pipeline — ingest, batch processing, stage monitoring
+    if ctem_pipeline_router:
+        app.include_router(
+            ctem_pipeline_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted CTEM Pipeline router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:

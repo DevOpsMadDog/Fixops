@@ -3169,160 +3169,88 @@ class BrainPipeline:
     # Replaces legacy consensus when FIXOPS_USE_COUNCIL=1
     # ------------------------------------------------------------------
 
+    # Singleton council adapter — reuse across pipeline runs for session history
+    _council_adapter = None
+    _council_adapter_lock = __import__('threading').Lock()
+
+    @classmethod
+    def _get_council_adapter(cls):
+        """Get or create the singleton CouncilPipelineAdapter."""
+        if cls._council_adapter is None:
+            with cls._council_adapter_lock:
+                if cls._council_adapter is None:
+                    from core.council_pipeline_adapter import create_consensus_engine_replacement
+                    cls._council_adapter = create_consensus_engine_replacement()
+                    logger.info("CouncilPipelineAdapter singleton initialized")
+        return cls._council_adapter
+
     def _step_llm_council(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
         """Get LLM Council verdict on critical findings.
 
-        [V4] Council Architecture — Karpathy 3-stage pattern:
+        [V4] Council Architecture — Karpathy 3-stage pattern via CouncilPipelineAdapter:
         Stage 1: Independent Analysis (each member analyzes without seeing others)
         Stage 2: Anonymous Peer Review (members can update position based on peers)
         Stage 3: Chairman Synthesis (strongest model synthesizes into final verdict)
-        Optional: Escalate to Opus if confidence < 0.7 or disagreement > 2 members
+        Optional: Escalate to Opus CTO if confidence < 0.7 or disagreement > 2 members
+
+        Integrated features (via CouncilPipelineAdapter):
+        - Decision memory: learns from past decisions and analyst overrides
+        - Analyst feedback loop: continuous improvement from SOC team
+        - Opus CTO escalation: cost-guarded (max 10/hour) for high-uncertainty cases
+        - Session history: full audit trail for compliance
 
         Composition: Qwen, DeepSeek, Gemma, Llama (via OpenRouter/Ollama/vLLM)
-        Plus optional Claude Opus escalation for disputes.
         """
         critical = [f for f in ctx["findings"] if f.get("risk_score", 0) >= 0.6]
         if not critical:
             return {"analyzed": 0, "reason": "no critical findings"}
 
-        # Sort by risk and cap
-        critical = sorted(
-            critical, key=lambda f: f.get("risk_score", 0), reverse=True
-        )[: self.MAX_LLM_FINDINGS]
-
         try:
-            from core.llm_council import LLMCouncilEngine, CouncilMember
-            from core.openrouter_provider import OpenRouterProvider
-            from core.llm_providers import (
-                AnthropicMessagesProvider,
-                DeterministicLLMProvider,
-            )
+            adapter = self._get_council_adapter()
 
-            # Assemble council members (prefer OpenRouter for easy multi-model access)
-            members = []
+            # Build analysis prompt for context
+            critical_sorted = sorted(
+                critical, key=lambda f: f.get("risk_score", 0), reverse=True
+            )[: self.MAX_LLM_FINDINGS]
 
-            # Member 1: Qwen for vulnerability assessment
-            qwen = OpenRouterProvider(
-                "openrouter_qwen",
-                model="qwen/qwen-2.5-72b-instruct",
+            prompt = (
+                f"Analyze {len(critical_sorted)} security findings for risk decision.\n"
+                f"Service: {inp.org_id or 'unknown'}\n"
             )
-            members.append(
-                CouncilMember(
-                    provider=qwen,
-                    expertise="vulnerability_assessment",
-                    weight=1.0,
-                )
-            )
-
-            # Member 2: DeepSeek for code/threat analysis
-            deepseek = OpenRouterProvider(
-                "openrouter_deepseek",
-                model="deepseek/deepseek-v3",
-            )
-            members.append(
-                CouncilMember(
-                    provider=deepseek,
-                    expertise="code_analysis",
-                    weight=1.0,
-                )
-            )
-
-            # Member 3: Gemma for compliance
-            gemma = OpenRouterProvider(
-                "openrouter_gemma",
-                model="google/gemma-3-27b-it",
-            )
-            members.append(
-                CouncilMember(
-                    provider=gemma,
-                    expertise="compliance_mapping",
-                    weight=1.0,
-                )
-            )
-
-            # Member 4: Llama for threat modeling
-            llama = OpenRouterProvider(
-                "openrouter_llama",
-                model="meta-llama/llama-2-70b-chat",
-            )
-            members.append(
-                CouncilMember(
-                    provider=llama,
-                    expertise="threat_modeling",
-                    weight=1.0,
-                )
-            )
-
-            # Chairman: Claude Anthropic (if available, else strongest member)
-            chairman = None
-            if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("FIXOPS_ANTHROPIC_KEY"):
-                chairman = AnthropicMessagesProvider("anthropic_chairman")
-            else:
-                chairman = members[0].provider  # Fallback to first member
-
-            # Escalation: Claude Opus (if available)
-            escalation_provider = None
-            if os.environ.get("ANTHROPIC_API_KEY"):
-                escalation_provider = AnthropicMessagesProvider(
-                    "claude-opus-cto",
-                    model="claude-opus-4-1-20250805",
+            for f in critical_sorted[:10]:
+                prompt += (
+                    f"- {f.get('title', 'Unknown')}: severity={f.get('severity', 'medium')}, "
+                    f"risk={f.get('risk_score', 0):.2f}, cve={f.get('cve_id', 'N/A')}\n"
                 )
 
-            # Create council and convene
-            council = LLMCouncilEngine(
-                members=members,
-                chairman=chairman,
-                escalation_provider=escalation_provider,
-                confidence_threshold=0.7,
-                max_disagreement=2,
-            )
-
-            # Analyze top finding as representative sample
-            # (In production, could analyze all with async batching)
-            top_finding = critical[0]
-            context_data = {
-                "service_name": inp.org_id or "unknown_service",
-                "finding_count": len(critical),
-                "risk_range": (
-                    f"{min(f.get('risk_score', 0) for f in critical):.2f}-"
-                    f"{max(f.get('risk_score', 0) for f in critical):.2f}"
-                ),
-            }
-
-            council_verdict = council.convene(
-                finding=top_finding,
-                context=context_data,
+            # Use council adapter (handles 3-stage convene, escalation, memory)
+            result = adapter.analyse(
+                prompt=prompt,
+                context={
+                    "service_name": inp.org_id or "unknown_service",
+                    "org_id": inp.org_id or "default",
+                    "findings": critical_sorted,
+                },
+                findings=critical_sorted,
             )
 
             # Store verdict in context for downstream steps
-            ctx["council_verdict"] = council_verdict.to_dict()
-            ctx["council_stats"] = council.stats()
+            ctx["council_verdict"] = result
+            ctx["council_stats"] = adapter.get_council_stats()
 
-            return {
-                "analyzed": len(critical),
-                "decision": council_verdict.action,
-                "method": "llm_council_3stage",
-                "confidence": round(council_verdict.confidence, 3),
-                "escalated": council_verdict.escalated,
-                "escalation_reason": council_verdict.escalation_reason,
-                "cost_usd": round(council_verdict.cost_usd, 6),
-                "member_votes": len(council_verdict.member_votes),
-                "peer_review_changes": len(council_verdict.peer_review_changes),
-            }
+            return result
 
-        except (ImportError, TimeoutError, concurrent.futures.TimeoutError) as e:
+        except (ImportError, TimeoutError) as e:
             logger.warning(
                 "LLM Council unavailable (%s), falling back to consensus: %s",
                 type(e).__name__,
                 e,
             )
-            # Fall back to legacy consensus
             return self._step_llm_consensus(ctx, inp)
         except (OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
             logger.warning("LLM Council failed: %s", type(e).__name__)
-            # Fall back to legacy consensus
             return self._step_llm_consensus(ctx, inp)
 
     # ------------------------------------------------------------------
