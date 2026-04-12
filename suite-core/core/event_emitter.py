@@ -171,6 +171,16 @@ class EventEmitter:
         if not event_types:
             raise ConnectorError("At least one event_type must be provided")
 
+        # SSRF protection: validate the target URL before persisting
+        try:
+            from core.ssrf_protection import validate_url
+            from core.exceptions import SSRFError
+            validate_url(url)
+        except ImportError:
+            pass  # ssrf_protection not available — degrade gracefully
+        except SSRFError as exc:
+            raise ConnectorError(f"Webhook URL rejected (SSRF): {exc}") from exc
+
         webhook_id = str(uuid.uuid4())
         effective_secret = secret if secret else secrets.token_urlsafe(32)
         now = datetime.now(timezone.utc).isoformat()

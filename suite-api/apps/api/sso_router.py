@@ -18,9 +18,12 @@ from __future__ import annotations
 import logging
 import os
 import secrets
+import time
+from collections import defaultdict
+from threading import Lock
 from typing import Any, Dict, List, Optional
 
-from core.exceptions import AuthorizationError, ValidationError
+from core.exceptions import AuthorizationError, SSRFError, ValidationError
 from core.sso_provider import (
     OIDCProvider,
     SAMLProvider,
@@ -42,6 +45,31 @@ router = APIRouter(prefix="/api/v1/auth/sso", tags=["sso"])
 # In-memory state store for OIDC state/nonce (replace with Redis in prod)
 # ---------------------------------------------------------------------------
 _STATE_STORE: Dict[str, Dict[str, str]] = {}
+
+# ---------------------------------------------------------------------------
+# Rate limiting for SSO callback (10 req/min per IP)
+# ---------------------------------------------------------------------------
+
+_SSO_RATE_LIMIT = 10
+_SSO_RATE_WINDOW = 60
+
+_sso_rate_store: Dict[str, List[float]] = defaultdict(list)
+_sso_rate_lock = Lock()
+
+
+def _check_sso_rate_limit(request: Request) -> None:
+    """Raise HTTP 429 if the caller IP exceeds the SSO callback rate limit."""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    with _sso_rate_lock:
+        cutoff = now - _SSO_RATE_WINDOW
+        _sso_rate_store[client_ip] = [t for t in _sso_rate_store[client_ip] if t > cutoff]
+        if len(_sso_rate_store[client_ip]) >= _SSO_RATE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded: max 10 SSO callback requests per minute",
+            )
+        _sso_rate_store[client_ip].append(now)
 
 # ---------------------------------------------------------------------------
 # Response models
@@ -166,6 +194,15 @@ async def sso_login(
     """Initiate SSO flow — redirect user to IdP."""
     cfg = _load_config(provider)
 
+    # Validate relay_state as a redirect target if it is an absolute URL
+    if relay_state and relay_state.startswith(("http://", "https://")):
+        try:
+            from core.ssrf_protection import sanitize_redirect_url
+            allowed = list(cfg.allowed_domains) if cfg.allowed_domains else []
+            sanitize_redirect_url(relay_state, allowed)
+        except SSRFError as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid relay_state URL: {exc}")
+
     if provider == "generic_saml":
         saml = SAMLProvider(cfg)
         try:
@@ -215,7 +252,19 @@ async def sso_callback(
     RelayState: Optional[str] = Form(None),
 ) -> CallbackResponse:
     """Handle IdP callback. Issues an ALDECI JWT on success."""
+    # Rate limiting
+    _check_sso_rate_limit(request)
+
     cfg = _load_config(provider)
+
+    # Validate RelayState redirect target (SAML) for SSRF
+    if RelayState and RelayState.startswith(("http://", "https://")):
+        try:
+            from core.ssrf_protection import sanitize_redirect_url
+            allowed = list(cfg.allowed_domains) if cfg.allowed_domains else []
+            sanitize_redirect_url(RelayState, allowed)
+        except SSRFError as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid RelayState URL: {exc}")
 
     # ---- SAML path ----
     if provider == "generic_saml":
