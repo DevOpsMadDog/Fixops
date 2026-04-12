@@ -1,295 +1,427 @@
-# ALDECI (Fixops) — Beast Mode v6 Project Guide
+# ALDECI (Fixops) — Beast Mode v6 CTO Operating Manual
 
-> **Last verified**: 2026-04-12 by code-review-graph v2.2.2 (34,301 nodes, 216,476 edges, 1,624 files)
-> **Platform**: ASPM + CTEM + CSPM — TrustGraph-native with LLM Consensus
-> **Architecture**: `ALDECI_REARCHITECTURE_v2.md` (v2.5, 2,800+ lines) — **READ THIS FIRST FOR ANY TASK**
-> **Default branch**: `features/intermediate-stage` (NOT main)
-> **Mode**: Beast Mode v6-v12 — autonomous execution, `--dangerously-skip-permissions`
+> **Branch**: `features/intermediate-stage` (NOT main)
+> **Mode**: Beast Mode v6 — autonomous CTO mode
 
 ---
 
-## Quick Start
+## YOU ARE THE CTO — NOT A CODER
 
+You (Claude Code) are the CTO. You PLAN, REVIEW, and DELEGATE.
+You do NOT write code yourself except for small config changes (<10 lines).
+
+### How You Operate:
+
+**If OMC is installed** (check: `which omc`):
+- `/team "task description"` — delegates to cheaper models via OMC pipeline (PLAN → PRD → EXEC → VERIFY → FIX)
+- `omc autoresearch "question"` — autonomous investigation
+- `omc ask "quick question"` — routes to cheapest model
+
+**If OMC is NOT installed** (fallback):
+- Use Claude Code's built-in Task/Agent tool to spawn subagents for implementation
+- You review what they produce, run tests, commit
+- Still: delegate, don't write code yourself
+
+**Token budget**: You are Opus ($15/M tokens). Haiku is $0.25/M. That's 60x. Delegate.
+
+### Auto-Save Rule (CRITICAL):
+
+**Every 15-20 minutes, you MUST save your work to git:**
 ```bash
-# Backend (Python 3.10+)
-pip install -r requirements.txt
-python -m uvicorn apps.api.app:create_app --factory --port 8000
+git add -A && git commit -m "beast-mode(wip): [brief description of what changed]" && git push origin features/intermediate-stage
+```
+This is non-negotiable. Work that isn't committed doesn't exist. Set a mental timer.
+If a task takes longer than 20 minutes, commit the partial progress anyway.
 
-# Frontend (legacy, FROZEN — do NOT modify)
-cd suite-ui/aldeci && npm install && npm run dev  # Port 3001
+### Session Routine:
 
-# Tests
-python -m pytest tests/ --timeout=10 -x -q
+**Start:**
+1. `git pull origin features/intermediate-stage`
+2. `code-review-graph stats` — load codebase structure into context (46x cheaper than reading files)
+3. Run Beast Mode tests only: `python -m pytest tests/test_phase*.py tests/test_connector_framework.py tests/test_trustgraph.py tests/test_pipeline_api.py tests/test_persona_workflows.py -x --tb=short --timeout=10 -q`
+4. Read "What To Build Next" below
+5. Delegate the highest priority task
 
-# Docker
-docker compose -f docker/docker-compose.yml up
+**Every 15-20 minutes:**
+- `git add -A && git commit -m "beast-mode(wip): progress on [task]" && git push origin features/intermediate-stage`
+
+**End of session (Nightly Handoff to SwarmClaw):**
+- Update "Recent Changes" at bottom of this file
+- Queue remaining tasks to SwarmClaw for overnight agents (see SwarmClaw API below)
+- Final commit: `beast-mode(status): summary of today's work + queued N tasks to SwarmClaw`
+
+**Morning (Pull SwarmClaw overnight results):**
+- Check what SwarmClaw agents did: `curl -s http://localhost:3456/api/tasks | python3 -m json.tool`
+- Review any PRs agents created: `gh pr list --state open`
+- Pull latest: `git pull origin features/intermediate-stage`
+- Rebuild graph if stale: `code-review-graph build`
+
+---
+
+## YOU CONTROL SWARMCLAW (Orchestrator API)
+
+SwarmClaw is your nighttime workforce. You (Claude Code) queue tasks, agents execute overnight.
+
+### SwarmClaw API (http://localhost:3456):
+
+**List agents:**
+```bash
+curl -s http://localhost:3456/api/agents | python3 -m json.tool
+```
+
+**Create a task for an agent:**
+```bash
+curl -s -X POST http://localhost:3456/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title": "TASK TITLE", "agent_id": "AGENT_ID", "prompt": "Detailed instructions...", "status": "ready", "priority": "high"}'
+```
+
+**Check task status:**
+```bash
+curl -s http://localhost:3456/api/tasks | python3 -m json.tool
+```
+
+**Create a schedule:**
+```bash
+swarmclaw schedules create --base-url http://localhost:3456 \
+  --name "Schedule Name" --agent-id AGENT_ID \
+  --task-prompt "What to do" --schedule-type cron --cron "0 22 * * *"
+```
+
+**Check schedules:**
+```bash
+curl -s http://localhost:3456/api/schedules | python3 -m json.tool
+```
+
+### Model routing (all FREE via OpenRouter):
+| Agent | Model | Use for |
+|-------|-------|---------|
+| Code Builder | `qwen/qwen3.6-plus:free` | Implementation, features, bug fixes |
+| Test Writer | `qwen/qwen3.6-plus:free` | Unit, integration, e2e tests |
+| Doc Generator | `gemma4` (local Ollama) | API docs, guides, changelogs |
+| Security Reviewer | Council: Qwen 3.6+ + Kimi K2 | Vulnerability scanning, OWASP |
+| Code Reviewer | Council: Qwen 3.6+ + Kimi K2 | Quality, patterns, best practices |
+
+### Nightly handoff workflow:
+1. At end of day, identify tasks you didn't finish
+2. Queue each to SwarmClaw via API (use Code Builder agent for implementation tasks)
+3. Agents pick up tasks, write code, commit to `features/intermediate-stage`
+4. Morning: you review what they did, run tests, approve or fix
+
+### Example — queue a task before signing off:
+```bash
+curl -s -X POST http://localhost:3456/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add tests for brain_pipeline.py error handling",
+    "prompt": "Write pytest tests covering all error paths in core/brain_pipeline.py. Use code-review-graph impact to find callers. Commit with beast-mode(nightly): prefix.",
+    "status": "ready",
+    "priority": "high"
+  }'
 ```
 
 ---
 
-## Project Structure
+## WHAT IS BEAST MODE v6
+
+Beast Mode is NOT custom code. It's a configuration/integration layer that wires together 7 existing open-source tools to build ALDECI autonomously.
+
+**Rule #1: Don't build what already exists.**
+
+### The 8-Tool Stack:
+
+| Tool | Purpose | Stars |
+|------|---------|-------|
+| **code-review-graph** | **AST codebase map — 46x token reduction. ALWAYS use before reading files.** | — |
+| oh-my-claudecode (OMC) | 19 agents, team pipeline, autoresearch, smart routing | 15K+ |
+| everything-claude-code | 156+ skills, 38 subagents, continuous learning | 140K+ |
+| SwarmClaw | Kanban control plane, scheduling, agent lifecycle | 21K+ |
+| TrustGraph (MCP) | Knowledge graph, GraphRAG, 5 Context Cores | — |
+| OMNI | CLI token compression (90% reduction) | — |
+| Context7 (MCP) | Live library documentation | — |
+| Ollama | Local free models (Gemma 4) | — |
+
+### code-review-graph — WHY IT'S TOOL #1:
+- Parses entire codebase via Tree-sitter AST → SQLite graph (34,301 nodes, 216,476 edges for ALDECI)
+- Graph DB lives at `.code-review-graph/graph.db` (169 MB)
+- **BEFORE reading any file**, query the graph: `code-review-graph query "what calls brain_pipeline.py"`
+- **For blast radius**: `code-review-graph impact "core/connectors.py"` → shows all affected files
+- **For understanding structure**: `code-review-graph stats` → function count, class hierarchy, import map
+- **Rebuilt nightly at 6am** via SwarmClaw schedule (after agents finish, before Opus review)
+- Install: `pip install code-review-graph` → Build: `code-review-graph build` (runs in project root)
+
+### Two Layers:
+
+**Layer 1 — Claude Code Supercharged (Daytime):**
+Claude Code + OMC + everything-claude-code + TrustGraph + OMNI + Context7.
+You (CTO) review and approve. OMC agents do the coding.
+
+**Layer 2 — SwarmClaw Autonomous (Nighttime, 10pm-8am):**
+SwarmClaw + OpenClaw agents (Qwen 3.6 Plus, Kimi K2, Gemma 4 local) + Hermes.
+Free models write code. Opus reviews via quality gate.
+
+### Beast Mode Framework Repo:
+
+Location: **`../best-mode-dev-framework/`** (sibling to this Fixops repo)
+GitHub: `DevOpsMadDog/best-mode-dev-framework`
+
+```
+best-mode-dev-framework/
+├── setup.sh                          # One-command installer for all 7 tools
+├── layer1-claude-supercharged/       # OMC config, Claude settings, install script
+├── layer2-swarmclaw-autonomous/      # Docker compose, agent YAMLs, schedules
+│   ├── docker-compose.yml            # SwarmClaw + TrustGraph + Ollama + Redis + PostgreSQL
+│   ├── agents/                       # code-builder, test-writer, doc-generator, security-reviewer, code-reviewer
+│   └── schedules/                    # nightly-build (10pm), morning-review (7am), weekly-health (Sun 3am)
+├── quality-gate/                     # Opus CTO review config, checklist, escalation rules
+├── project-templates/                # python-fastapi, react-frontend, fullstack templates
+├── examples/aldeci/                  # ALDECI-specific kanban seed, trustgraph cores, nightly priorities
+└── docs/                             # architecture.md, daily-workflow.md
+```
+
+---
+
+## WHAT IS ALDECI
+
+ALDECI is an **ASPM + CTEM + CSPM platform** — a unified, self-hosted, AI-native security intelligence platform.
+- Replaces $50K-500K/yr enterprise tools with $35-60/month self-hosted stack
+- TrustGraph (5 Knowledge Cores) for versioned security knowledge
+- Karpathy LLM Consensus (4 free models + Opus escalation) for decisions
+- 28+ threat intelligence feeds, 32 scanner normalizers, 13 PULL + 7 bidirectional connectors
+- 30 personas, 6 RBAC roles, 7 compliance frameworks
+- Full architecture: `docs/ALDECI_REARCHITECTURE_v2.md`
+
+---
+
+## TESTING STRATEGY
+
+There are ~327 test files. **Only run Beast Mode tests** for day-to-day work:
+
+### Beast Mode Tests (run these — ~137 files, ~709 tests):
+```bash
+python -m pytest \
+  tests/test_phase1_intake.py tests/test_phase2_connectors.py tests/test_phase3_llm_council.py \
+  tests/test_phase4_integration.py tests/test_phase5_enterprise.py tests/test_phase6_streaming.py \
+  tests/test_phase7_analytics.py tests/test_phase8_mcp.py tests/test_phase9_playbooks.py \
+  tests/test_phase10_e2e.py tests/test_connector_framework.py tests/test_trustgraph.py \
+  tests/test_pipeline_api.py tests/test_persona_workflows.py \
+  -x --tb=short --timeout=10 -q -o "addopts="
+```
+
+### Legacy Tests (~190 files — DO NOT run routinely):
+These test older modules (CLI, evidence, compliance, scanners, risk scoring, etc.).
+Only run if you're modifying legacy code. They may have outdated assumptions.
+
+### Full Suite (only for release validation):
+```bash
+python -m pytest tests/ --timeout=10 -x -q
+```
+
+---
+
+## PROJECT STRUCTURE
 
 ```
 .
-├── suite-api/          # FastAPI gateway — 20 routers, JWT auth, CORS (22.6K LOC)
-│   └── apps/api/app.py # Entry point — 34 router mounts, 2893 LOC
-├── suite-core/         # Core engines — brain pipeline, scanners, CLI (140.1K LOC)
-│   ├── core/           # Business logic (engines, scanners, connectors)
-│   └── api/            # 21 core routers
-├── suite-attack/       # Offensive security — MPTE, attack sim, scanner routers (6.7K LOC)
-├── suite-feeds/        # Threat intel feeds — NVD, KEV, EPSS, OSV (4.4K LOC)
+├── suite-api/          # FastAPI gateway — 34 router mounts (22.6K LOC)
+├── suite-core/         # Core engines — brain pipeline, connectors, CLI (140.1K LOC)
+│   ├── core/           # Business logic
+│   ├── connectors/     # New PullConnector framework
+│   └── trustgraph/     # TrustGraph MCP server + KnowledgeStore
+├── suite-attack/       # Offensive security — MPTE, attack sim (6.7K LOC)
+├── suite-feeds/        # Threat intel feeds — 28+ sources (4.4K LOC)
 ├── suite-evidence-risk/# Evidence, risk scoring, compliance (20.3K LOC)
-├── suite-integrations/ # External integrations — MCP, webhooks, IaC, OSS tools (6.8K LOC)
+├── suite-integrations/ # External integrations — MCP, webhooks (6.8K LOC)
 ├── suite-ui/
-│   ├── aldeci/         # Legacy React UI (ACTIVE — wiring to real APIs) 101 src TS/TSX files, 45.5K LOC
-│   └── aldeci-ui-new/  # New UI (ACTIVE — React 19 + Vite 6 + Tailwind v4, 60+ pages, 5-space CTEM routing)
-├── tests/              # 386 test files, 194K LOC, 14,133 tests collected
-├── docker/             # Dockerfiles + compose files + Kubernetes Helm chart
-├── docs/               # Vision docs, debate transcript, identity docs
-├── scripts/            # Shell scripts for orchestration, demos, CI/CD
-├── .claude/            # Agent system — definitions, team state, knowledge index
-│   ├── agents/         # 19 agent definitions (.md files) — incl. ux-architect, persona-api-validator
-│   ├── team-state/     # Shared state — codebase-map, briefings, sprint board
-│   └── knowledge-index/# Compact codebase digests (SQLite + JSON)
-├── sitecustomize.py    # Auto-injects all suite paths into sys.path
-└── requirements.txt    # Python dependencies
+│   ├── aldeci/         # Legacy React UI (FROZEN — do NOT modify)
+│   └── aldeci-ui-new/  # Active UI (React 19 + Vite 6 + Tailwind v4)
+├── tests/              # 327 test files (137 Beast Mode + 190 legacy)
+├── docker/             # Docker + Kubernetes configs
+├── docs/               # ALDECI_REARCHITECTURE_v2.md (source of truth)
+├── sitecustomize.py    # Auto-injects suite paths into sys.path
+└── requirements.txt
 ```
 
----
-
-## Import Mechanism
-
-`sitecustomize.py` at repo root auto-prepends all suite directories to `sys.path` at Python startup:
+### Import Mechanism
+`sitecustomize.py` auto-prepends all suite directories to `sys.path`:
 ```python
-# Any file can do:
-from core.brain_pipeline import BrainPipeline
-from api.mpte_router import router
-from core.connectors import AutomationConnectors
+from core.brain_pipeline import BrainPipeline  # just works
 ```
 
-No `pip install -e` needed. Cross-suite imports "just work".
+---
+
+## WHAT TO BUILD NEXT (Priority Order)
+
+### HIGH PRIORITY
+1. **Increase Beast Mode test coverage** — Add tests for brain_pipeline.py, connectors.py, scanner_parsers.py
+2. **Docker compose for full stack** — Single `docker compose up` runs API + UI + TrustGraph
+3. **Wire Copilot to TrustGraph GraphRAG** — semantic graph queries instead of keyword search (P03, P04, P20)
+4. **Error handling audit** — Replace bare `except Exception` with proper error hierarchy
+
+### MEDIUM PRIORITY
+5. **API documentation** — Auto-generate OpenAPI spec for all endpoints
+6. **Material Change Detector** — Git webhook → blast radius → LLM Council risk assessment
+7. **Frontend: SOC T1 Dashboard** — Alert triage view with LLM Council verdicts (P03)
+8. **Frontend: Compliance Dashboard** — Framework status + evidence collection (P07)
+
+### LOWER PRIORITY
+9. Horizontal scaling (Redis queue mode)
+10. SAML/OIDC auth (Enterprise SSO)
+11. n8n connector orchestration (400+ integrations)
+12. OpenClaw pentest swarm
 
 ---
 
-## Architecture
+## OPERATING RULES
 
-**Modular monolith**: 6 Python suites mounted on a single FastAPI app (port 8000).
-
-### Core Pillars (Active Engineering)
-| Pillar | What | Key Files |
-|--------|------|-----------|
-| **V3 — Decision Intelligence** | Brain pipeline, FAIL scoring, triage, AutoFix | brain_pipeline.py (1,878 LOC), autofix_engine.py (1,534 LOC), fail_engine.py (717 LOC) |
-| **V5 — MPTE Verification** | Prove exploitability via micro-pentests | micro_pentest.py (2,054 LOC), mpte_advanced.py (1,089 LOC) |
-| **V7 — MCP-Native Platform** | AI agent-consumable security tools | mcp_server.py (978 LOC), mcp_router.py (977 LOC auto-discovery), 771 endpoints |
-
-### Design Constraints (Maintained, Not Actively Built)
-- **V1**: APP_ID-centric data model
-- **V2**: 10-phase lifecycle
-- **V9**: Air-gapped deployment (works today)
-- **V10**: CTEM + cryptographic evidence (crypto.py, 582 LOC)
-
-### Deferred (Do Not Build This Sprint)
-- V4 (Multi-LLM), V6 (Quantum-Secure), V8 (Self-Learning)
+1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
+2. **AUTO-SAVE every 15-20 minutes** — commit + push, no exceptions
+3. **Run Beast Mode tests only** — not the full 14K test suite
+4. **Zero regressions** — if Beast Mode tests fail, fix before moving on
+5. **Extend existing code, don't rebuild** — 52 native tools already exist
+6. **Every feature serves at least one of the 30 personas**
+7. **Commit format**: `beast-mode(feature): description` with `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
 
 ---
 
-## Key Files
+## GIT CONFIG
 
-| File | LOC | Purpose |
-|------|-----|---------|
-| `suite-api/apps/api/app.py` | 2,893 | FastAPI entry point, 34 router mounts |
-| `suite-core/core/brain_pipeline.py` | 1,878 | 12-step CTEM decision pipeline |
-| `suite-core/core/autofix_engine.py` | 1,534 | LLM-powered auto-remediation (10 fix types) |
-| `suite-core/core/micro_pentest.py` | 2,054 | MPTE core engine |
-| `suite-core/core/connectors.py` | 3,029 | 7 integration connectors (Jira, Confluence, Slack, ServiceNow, GitLab, AzureDevOps, GitHub) |
-| `suite-core/core/security_connectors.py` | 1,335 | 10 security tool connectors (Snyk, SonarQube, Dependabot, AWS SecurityHub, Azure Defender, Wiz, Prisma Cloud, Orca, Lacework, ThreatMapper) |
-| `suite-core/core/cli.py` | 5,929 | CLI with 22 commands |
-| `suite-core/core/crypto.py` | 582 | RSA-SHA256 evidence signing |
-| `suite-integrations/api/mcp_router.py` | 468 | MCP gateway for AI agents |
+- **Repo**: `DevOpsMadDog/Fixops`
+- **Branch**: `features/intermediate-stage`
+- **User**: DevOpsMadDog | Email: info@devopsai.co
 
 ---
 
-## API Surface
+## CONVENTIONS
 
-- **771 endpoints** across 64 router files + 8 non-standard files (699 @router + 47 non-standard + 25 @app direct)
-- **Auth**: API key header (`X-API-Key`) + JWT tokens
-- **Base path**: `/api/v1/`
-- **Test token**: `FIXOPS_API_TOKEN` from environment (enterprise key required)
-
-### Key API Prefixes
-| Prefix | Router | Pillar |
-|--------|--------|--------|
-| `/api/v1/brain` | brain_router.py (24 endpoints) | V3 |
-| `/api/v1/mpte` | mpte_router.py (23 endpoints) | V5 |
-| `/api/v1/micro-pentest` | micro_pentest_router.py (19 endpoints) | V5 |
-| `/api/v1/mcp-server` | mcp_router.py (10 endpoints) | V7 |
-| `/api/v1/mcp` | mcp_router.py (8 endpoints, auto-discovery) | V7 |
-| `/api/v1/scanner-ingest` | scanner_ingest_router.py (7 endpoints) | V7 |
-| `/api/v1/mcp-protocol` | mcp_protocol_router.py (10 endpoints) | V7 |
-| `/api/v1/autofix` | autofix_router.py (13 endpoints) | V3 |
-| `/api/v1/feeds` | feeds_router.py (31 endpoints) | — |
-| `/api/v1/agents` | agents_router.py (32 endpoints) | — |
+- **Python**: FastAPI + Pydantic v2. Type hints. structlog logging.
+- **Routers**: `*_router.py` with `router = APIRouter(prefix=...)`.
+- **Auth**: `Depends(_verify_api_key)` or `require_auth`.
+- **DB**: SQLite per domain. `PersistentDict` pattern.
+- **Tests**: `test_*.py` in `tests/`. pytest-asyncio. 10s timeout.
+- **UI**: Work in `suite-ui/aldeci-ui-new/` only. React 19, Vite 6, Tailwind v4.
 
 ---
 
-## Database
+## EXISTING INVENTORY (DO NOT REBUILD)
 
-SQLite WAL — 56 domain-specific `.db` files across `data/`, `.fixops_data/`, `suite-api/data/`. No shared schema, no migration system. Uses `PersistentDict` pattern for persistence.
+| Component | Count | Location |
+|-----------|-------|----------|
+| PULL connectors | 13 | suite-core/core/security_connectors.py |
+| Bidirectional connectors | 7 | suite-core/core/connectors.py |
+| Scanner normalizers | 32 | suite-core/core/scanner_parsers.py |
+| Threat intel feeds | 28+ | suite-feeds/ |
+| API endpoints | 771 | 64 router files |
+| Beast Mode tests | ~709 | tests/test_phase*.py + related |
 
 ---
 
-## Testing
+## RECENT CHANGES (2026-04-12)
 
+- Wired 3 new routers into app.py (trustgraph, findings, pipeline)
+- Connected LLM Council to brain_pipeline.py (env: FIXOPS_USE_COUNCIL=1)
+- Connected PipelineOrchestrator to 32 real scanner normalizers
+- TrustGraph indexed with 162 entities across 5 Knowledge Cores
+- CISO Dashboard built (React 19, /mission-control/ciso)
+- 709 Beast Mode tests passing
+
+---
+
+## BEAST MODE TOOL INSTALLATION & LOCATIONS
+
+### Prerequisites
+- Docker + Docker Compose
+- Node.js (for npm)
+- Homebrew (macOS) or apt (Linux)
+
+### One-Shot Setup
 ```bash
-# Full test suite
-python -m pytest tests/ --timeout=10 -x -q
-
-# With coverage
-python -m pytest tests/ --cov=. --cov-report=term --timeout=10
-
-# Specific suite
-python -m pytest tests/test_brain_pipeline.py -v
+cd ../best-mode-dev-framework
+chmod +x setup.sh && ./setup.sh
 ```
 
-- **14,133 tests collected** (0 collection errors, 15.46s collection time)
-- **19.19% coverage** (gate: 25% — currently FAILING, gap 5.81pp. DEMO-006 config fix applied but coverage still below gate.)
-- **pytest-timeout**: 10s per test (prevents hanging)
+### Start Beast Mode (from beast-mode-dev-framework, NOT from Fixops)
+```bash
+cd ../best-mode-dev-framework
+./start.sh ../Fixops
+```
+This starts Layer 2 Docker services, rebuilds code-review-graph if stale, then launches Claude Code pointing at Fixops. Claude reads this CLAUDE.md and operates as CTO.
+
+### Setup Details
+This runs 11 steps:
+1. Checks prerequisites (docker, docker-compose)
+2. Installs Layer 1 (OMC, everything-claude-code skills, OMNI, Context7)
+3. Installs Ollama (local LLM inference)
+4. Pulls Gemma 7B model (~4GB download)
+5. Prompts for OpenRouter API key (free — for Qwen 3.6+, DeepSeek V3)
+6. Installs Layer 2 (SwarmClaw config)
+7. Starts Docker containers (SwarmClaw, TrustGraph, Ollama, Redis, PostgreSQL)
+8. Indexes codebase into TrustGraph
+9. Seeds Kanban board with tasks
+10. Prints summary with URLs
+
+### Where Tools Live After Install
+
+| Tool | Install Location | How To Access | Port |
+|------|-----------------|---------------|------|
+| **code-review-graph** | `pip install code-review-graph` | `code-review-graph stats/query/impact` — **USE FIRST** | — |
+| OMC (oh-my-claudecode) | Claude Code plugin marketplace | `/team`, `omc autoresearch`, `omc ask` | — |
+| everything-claude-code | `~/.claude-skills/ecc/` | Auto-loads based on context | — |
+| OMNI | `npm -g` or `pip` global | `omni` CLI | — |
+| Context7 MCP | Claude MCP config | Auto-available in Claude Code | — |
+| SwarmClaw | Docker: `beast-swarmclaw` | Dashboard: http://localhost:3456 | 3456 |
+| TrustGraph | `pip install trustgraph-cli` | Config: https://config-ui.demo.trustgraph.ai | 8888 |
+| Ollama | Docker: `beast-ollama` OR native install | API: http://localhost:11434 | 11434 |
+| Redis | Docker: `beast-redis` | localhost:6379 | 6379 |
+| PostgreSQL | Docker: `beast-postgres` | localhost:5432 (user: swarmclaw) | 5432 |
+
+### Docker Services (Layer 2)
+```bash
+cd ../best-mode-dev-framework/layer2-swarmclaw-autonomous
+
+# Start all services
+docker compose up -d
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+### OpenRouter API Key (FREE models)
+Sign up at https://openrouter.ai — free tier gives access to:
+- Qwen 3.6 Plus (code-builder + test-writer agents) — qwen/qwen3.6-plus:free
+- Kimi K2 (security + code reviewer council) — moonshotai/kimi-k2:free
+- Gemma 4 (doc-generator, local via Ollama)
+- Llama 4 (general tasks)
+
+Save key in: `../best-mode-dev-framework/layer2-swarmclaw-autonomous/.env`
+```
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+```
+
+### Quick Verify Everything Works
+```bash
+# Check Layer 1
+which omc && echo "OMC: OK" || echo "OMC: NOT INSTALLED"
+ls ~/.claude-skills/ecc/ && echo "ECC: OK" || echo "ECC: NOT INSTALLED"
+ollama --version && echo "Ollama: OK" || echo "Ollama: NOT INSTALLED"
+
+# Check Layer 2 (Docker)
+docker ps --format "{{.Names}}: {{.Status}}" | grep beast
+# Should show: beast-swarmclaw, beast-ollama, beast-redis, beast-postgres
+
+# Check SwarmClaw API
+curl -s http://localhost:3456/api/healthz | head -1
+
+# Check TrustGraph CLI
+tg --version 2>/dev/null || echo "Install: pip install trustgraph-cli"
+```
 
 ---
 
-## Environment Variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `FIXOPS_MODE` | `enterprise` | Operating mode |
-| `FIXOPS_API_TOKEN` | — | API authentication key |
-| `FIXOPS_JWT_SECRET` | auto-generated | JWT signing secret |
-| `FIXOPS_DATA_DIR` | `.fixops_data` | Data storage directory |
-| `FIXOPS_DISABLE_RATE_LIMIT` | `0` | Disable rate limiting |
-| `FIXOPS_ALLOWED_ORIGINS` | — | CORS allowed origins |
-| `MPTE_BASE_URL` | `https://localhost:8443` | MPTE service URL |
-| `OPENAI_API_KEY` | — | OpenAI LLM provider |
-| `ANTHROPIC_API_KEY` | — | Anthropic LLM provider |
-
----
-
-## Conventions
-
-- **Python**: FastAPI + Pydantic v2. Type hints required. structlog for logging.
-- **Routers**: Each domain gets its own `*_router.py` with `router = APIRouter(prefix=...)`.
-- **Auth**: Wrap sensitive endpoints with `Depends(_verify_api_key)` or `require_auth`.
-- **DB**: Each domain creates its own SQLite file. Use `PersistentDict` or raw SQLAlchemy.
-- **Events**: Use `core/event_bus.py` for cross-module communication.
-- **Tests**: `test_*.py` in `tests/`. Use `pytest-asyncio` for async tests. 10s timeout.
-- **UI**: New UI in `suite-ui/aldeci-ui-new/` (ACTIVE — React 19, Vite 6, Tailwind v4, Zustand, Recharts, RBAC). Legacy in `suite-ui/aldeci/` (FROZEN).
-- **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
-
----
-
-## Agent System
-
-19 AI agents operate as a virtual company. See `.claude/agents/` for definitions.
-- **Shared state**: `.claude/team-state/` (codebase-map, sprint board, briefings)
-- **Coordination**: `.claude/team-state/coordination-notes.md`
-- **Debates**: `.claude/team-state/debates/`
-- **Run order**: Phase 0 (doctor) → Phase 1 (context) → Phase 2-3 (build) → Phase 4 (validate) → Phase 5-9 (deploy/market)
-
----
-
-## Skills (`.claude/skills/`)
-
-Reusable domain expertise for any agent or session. Read the relevant skill before starting a task.
-
-| Skill | File | When to Use |
-|-------|------|-------------|
-| **Codebase Navigation** | `.claude/skills/codebase-navigation.md` | First time in repo, finding files, understanding imports |
-| **Database Migration** | `.claude/skills/database-migration.md` | Migrating sqlite3/PersistentDict → DatabaseManager |
-| **Multi-Tenancy** | `.claude/skills/multi-tenancy.md` | Adding org_id isolation to any endpoint |
-| **Error Handling** | `.claude/skills/error-handling.md` | Replacing bare `except Exception`, custom exception hierarchy |
-| **Endpoint Hardening** | `.claude/skills/endpoint-hardening.md` | 8-point checklist for every API endpoint |
-| **Testing Patterns** | `.claude/skills/testing-patterns.md` | Writing tests, fixing collection errors, growing coverage |
-| **Knowledge Graph** | `.claude/skills/knowledge-graph.md` | Extending the security graph, attack path analysis |
-| **Scanner Development** | `.claude/skills/scanner-development.md` | Hardening/extending the 8 native scanners |
-| **Observability** | `.claude/skills/observability.md` | Metrics, tracing, structured logging, health checks |
-| **Acquisition Readiness** | `.claude/skills/acquisition-readiness.md` | Due diligence prep, documentation, compliance |
-
-**Rule**: Before working on a task, check if a matching skill exists. Load it. Follow its patterns.
-
----
-
-## Beast Mode Rules
-
-1. **Read `ALDECI_REARCHITECTURE_v2.md` Part 14** for current phase tasks — this is your execution plan
-2. **No manual approval needed** — execute autonomously
-3. **Run tests after every module change** — `python -m pytest tests/ -x --tb=short`
-4. **Commit after each phase** with: `beast-mode(phase-N): description`
-5. **If tests fail, fix them BEFORE moving to next task** — zero regressions
-6. **Update architecture doc** if you discover anything that contradicts it
-7. **Every feature must serve at least one of the 30 personas** (see Part 12)
-8. **Use existing code — EXTEND, don't rebuild** (especially the 13 PULL connectors, 7 bidirectional, 32 normalizers)
-
-## Connector Inventory (DO NOT REBUILD)
-
-- **13 PULL connectors** in `suite-core/core/security_connectors.py` (1,932 lines): Snyk, SonarQube, Dependabot, AWS Security Hub, Azure Defender, Wiz, PrismaCloud, Orca, Lacework, ThreatMapper, DependencyTrack
-- **7 bidirectional connectors** in `suite-core/core/connectors.py` (3,620 lines): Jira, Confluence, Slack, ServiceNow, GitLab, Azure DevOps, GitHub
-- **32 scanner normalizers** in `suite-core/core/scanner_parsers.py` (2,395 lines)
-- **New PullConnector framework** in `suite-core/connectors/` (pull_connector.py, connector_registry.py, sdlc_connectors.py, trustgraph_mcp_bridge.py, defectdojo_parser.py)
-- **Connector API** in `suite-api/apps/api/connector_routes.py` (887 lines, 8 endpoints)
-
-## 30 Personas (defined in suite-ui/aldeci-ui-new/e2e/helpers/auth.ts)
-
-P01 CISO, P02 VP Engineering, P03 SOC T1, P04 SOC T2, P05 Security Engineer,
-P06 DevSecOps, P07 Compliance Officer, P08 Pen Tester, P09 Risk Manager,
-P10 IT Director, P11 AppSec Lead, P12 Cloud Architect, P13 Audit Manager,
-P14 IR Lead, P15 Data Scientist, P16 Platform Engineer, P17 Threat Intel,
-P18 GRC Analyst, P19 SecOps Manager, P20 Developer Champion, P21 Security Architect,
-P22 Supply Chain, P23 QA Tester, P24 Board Member, P25 External Auditor,
-P26 SRE (new), P27 DPO (new), P28 API Security (new), P29 Threat Modeler (new), P30 MSSP (new)
-
-## Recent Changes (2026-04-12 Beast Mode Session)
-
-### HIGH PRIORITY — All 5 tasks complete, 709 tests passing
-
-1. **Wired 3 new routers into app.py** (`568d2885`)
-   - `trustgraph_routes.py` → `/api/v1/trustgraph/*` (Knowledge Cores, entity management, MCP tools)
-   - `findings_routes.py` → `/api/v1/findings/*` (finding lifecycle, SLA, bulk ops, export)
-   - `pipeline_routes.py` → `/api/v1/pipeline/*` (CTEM 15-stage ingest, batch, monitoring)
-   - All with try/except ImportError pattern + RBAC scope guards
-
-2. **Connected LLM Council to brain_pipeline.py** (`568d2885`)
-   - `_step_llm_council()` now uses `CouncilPipelineAdapter` (singleton)
-   - Adds: decision memory, analyst feedback loop, cost-guarded Opus CTO escalation, session history
-   - Env var `FIXOPS_USE_COUNCIL=1` activates council; falls back to legacy consensus
-
-3. **Connected PipelineOrchestrator to real normalizers** (`568d2885`)
-   - `_normalize` stage uses 32 scanner normalizers via `parse_scanner_output()` + auto-detection
-   - `_enrich` stage uses real `EnrichmentEvidence` (EPSS, KEV, CVSS) when available
-   - `_score` stage uses Bayesian forecasting when available, falls back to heuristic
-
-4. **TrustGraph indexed with 162 entities** (`f3469559`)
-   - Core 1: 48 entities (18 connectors + 30 scanners)
-   - Core 2: 43 entities (28 threat feeds + 10 MITRE ATT&CK TTPs)
-   - Core 3: 47 entities (7 compliance frameworks + 40 controls)
-   - Core 4: 8 decision patterns (seed data for LLM Council)
-   - Core 5: 30 entities (9 competitors + 20 capabilities + ALDECI positioning)
-   - 141 cross-core relationships
-   - Indexer: `suite-core/core/trustgraph_indexer.py`
-
-5. **CISO Dashboard built** (`448f3958`)
-   - React 19 page at `/mission-control/ciso` (admin-only, P01 persona)
-   - Risk posture gauge, 6 KPIs (MTTD/MTTR/SLA/remediation/accuracy/daily)
-   - Top 5 risks, 6 compliance framework cards, 30-day trajectory chart
-   - Pipeline health metrics, connected to analytics API with mock fallback
-
-## Known Issues (updated 2026-04-12)
-
-1. ~~**New UI is missing**~~ — RESOLVED: `suite-ui/aldeci-ui-new/` exists with 60+ pages
-2. **Test coverage at 19.19%** — Below 25% gate, needs improvement during Beast Mode
-3. **Single-process monolith** — Phase 5 adds horizontal scaling via Helm + queue mode
-4. **No external message queue** — TrustGraph Pulsar replaces EventBus in rearchitecture
-5. ~~**Brain pipeline runs synchronously**~~ — RESOLVED: LLM Council adapter now wired with async 3-stage consensus
-6. ~~**Merge not pushed to GitHub**~~ — RESOLVED: pushed to origin/features/intermediate-stage
-
----
-
-*Beast Mode source of truth: `ALDECI_REARCHITECTURE_v2.md` (v2.5). Maintained by Shiva (CEO) + Claude Opus (CTO).*
+*Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md` (v2.5). Beast Mode framework: `../best-mode-dev-framework/`*
