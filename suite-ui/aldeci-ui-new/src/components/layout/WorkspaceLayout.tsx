@@ -82,6 +82,7 @@ import {
   FlaskConical,
   TrendingUp,
   Scale,
+  Code2,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -182,6 +183,13 @@ const navGroups: NavGroup[] = [
       { label: "Algorithmic Lab", to: "/ai/algorithms", icon: FlaskConical, roles: ["admin", "security_analyst"] },
       { label: "ML Dashboard", to: "/ai/ml", icon: Cpu, roles: ["admin", "security_analyst"] },
       { label: "Predictions", to: "/ai/predictions", icon: TrendingUp, roles: ["admin", "security_analyst"] },
+    ],
+  },
+  {
+    label: "Developer",
+    icon: Code2,
+    items: [
+      { label: "Security Portal", to: "/developer", icon: Code2, badge: "P10" },
     ],
   },
 ];
