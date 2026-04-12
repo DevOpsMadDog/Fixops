@@ -85,6 +85,7 @@ import {
   Scale,
   Code2,
   Wifi,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -213,6 +214,13 @@ const navGroups: NavGroup[] = [
     icon: Code2,
     items: [
       { label: "Security Portal", to: "/developer", icon: Code2, badge: "P10" },
+    ],
+  },
+  {
+    label: "Vendors",
+    icon: Building2,
+    items: [
+      { label: "Vendor Management", to: "/vendors", icon: Building2, badge: "TPRM" },
     ],
   },
 ];
