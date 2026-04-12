@@ -17,6 +17,8 @@ import os
 import time
 from typing import Any, Dict, List, Mapping, Optional
 
+import requests
+
 from core.connectors import ConnectorHealth, ConnectorOutcome, _BaseConnector
 
 logger = logging.getLogger(__name__)
@@ -1499,7 +1501,7 @@ class DependencyTrackConnector(_BaseConnector):
                 healthy=False, latency_ms=elapsed,
                 message=f"HTTP {resp.status_code}",
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             elapsed = (_time.time() - start) * 1000
             return ConnectorHealth(
                 healthy=False, latency_ms=elapsed, message=str(exc),
@@ -1601,7 +1603,7 @@ class DependencyTrackConnector(_BaseConnector):
                         "error": resp.text[:500],
                     },
                 )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack SBOM upload error")
             return ConnectorOutcome(
                 status="error", details={"error": str(exc)},
@@ -1667,7 +1669,7 @@ class DependencyTrackConnector(_BaseConnector):
                     "page_size": page_size,
                 },
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack fetch_findings error")
             return ConnectorOutcome(
                 status="error", details={"error": str(exc)},
@@ -1705,7 +1707,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="fetched",
                 details={"data": licenses, "total": len(licenses)},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack fetch_licenses error")
             return ConnectorOutcome(
                 status="error", details={"error": str(exc)},
@@ -1729,7 +1731,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="fetched",
                 details={"data": violations, "total": len(violations)},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack fetch_policy_violations error")
             return ConnectorOutcome(
                 status="error", details={"error": str(exc)},
@@ -1748,7 +1750,7 @@ class DependencyTrackConnector(_BaseConnector):
             return ConnectorOutcome(
                 status="fetched", details={"data": resp.json()},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack fetch_portfolio_metrics error")
             return ConnectorOutcome(
                 status="error", details={"error": str(exc)},
@@ -1765,7 +1767,7 @@ class DependencyTrackConnector(_BaseConnector):
             return ConnectorOutcome(
                 status="fetched", details={"data": resp.json()},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack fetch_project_metrics error")
             return ConnectorOutcome(
                 status="error", details={"error": str(exc)},
@@ -1790,7 +1792,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="fetched",
                 details={"data": components, "total": total, "query": query},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack search_components error")
             return ConnectorOutcome(status="error", details={"error": str(exc)})
 
@@ -1830,7 +1832,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="fetched",
                 details={"data": normalized, "total": total},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack fetch_project_components error")
             return ConnectorOutcome(status="error", details={"error": str(exc)})
 
@@ -1868,7 +1870,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="error",
                 details={"http_status": resp.status_code, "error": resp.text[:500]},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack VEX upload error")
             return ConnectorOutcome(status="error", details={"error": str(exc)})
 
@@ -1891,7 +1893,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="error",
                 details={"http_status": resp.status_code, "error": resp.text[:500]},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             return ConnectorOutcome(status="error", details={"error": str(exc)})
 
     # ── Export BOM ─────────────────────────────────────────────
@@ -1912,7 +1914,7 @@ class DependencyTrackConnector(_BaseConnector):
                 status="fetched",
                 details={"data": resp.text, "format": f"cyclonedx-{fmt}"},
             )
-        except Exception as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.exception("DTrack export_sbom error")
             return ConnectorOutcome(status="error", details={"error": str(exc)})
 

@@ -146,7 +146,7 @@ async def websocket_events(
             for event in replay_events:
                 try:
                     await websocket.send_json(event.to_dict())
-                except Exception as e:
+                except (ConnectionResetError, RuntimeError, OSError) as e:
                     _logger.warning(f"Failed to send replay event: {e}")
 
         # Subscribe to event stream
@@ -167,7 +167,7 @@ async def websocket_events(
 
     except WebSocketDisconnect:
         _logger.info(f"WebSocket disconnected: {connection_id}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - WebSocket top-level handler; any error (including asyncio internals) must close connection cleanly
         _logger.error(f"WebSocket error: {e}")
     finally:
         _active_connections.pop(connection_id, None)
@@ -200,12 +200,12 @@ async def _event_stream(
 
             try:
                 await websocket.send_json(event.to_dict())
-            except Exception as e:
+            except (ConnectionResetError, RuntimeError, OSError) as e:
                 _logger.error(f"Failed to send event to WebSocket: {e}")
                 break
     except asyncio.CancelledError:
         _logger.debug(f"Event stream cancelled for {connection_id}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - event stream guard; asyncio.CancelledError already handled above, remaining errors may be from event bus
         _logger.error(f"Error in event stream: {e}")
     finally:
         await _event_bus.unsubscribe(subscriber_id)
@@ -234,7 +234,7 @@ async def _heartbeat(
             }
             try:
                 await websocket.send_json(ping)
-            except Exception:
+            except (ConnectionResetError, RuntimeError, OSError):
                 break
     except asyncio.CancelledError:
         pass
@@ -282,7 +282,7 @@ async def websocket_pipeline_stage(
                         _event_history.add(event)
                         try:
                             await websocket.send_json(event.to_dict())
-                        except Exception as e:
+                        except (ConnectionResetError, RuntimeError, OSError) as e:
                             _logger.error(f"Failed to send stage event: {e}")
                             break
             finally:
@@ -301,7 +301,7 @@ async def websocket_pipeline_stage(
 
     except WebSocketDisconnect:
         _logger.info(f"WebSocket stage disconnected: {connection_id}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - WebSocket stage handler top-level boundary; must catch all to close connection
         _logger.error(f"WebSocket stage error: {e}")
     finally:
         _active_connections.pop(connection_id, None)
@@ -360,7 +360,7 @@ async def get_recent_events(
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - REST endpoint error boundary; any unhandled error must become HTTP 500
         _logger.error(f"Error fetching recent events: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -413,7 +413,7 @@ async def get_event_stats(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - REST endpoint error boundary; any unhandled error must become HTTP 500
         _logger.error(f"Error fetching event stats: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

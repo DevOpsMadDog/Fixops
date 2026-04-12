@@ -731,7 +731,7 @@ async def bulk_update_status(
 
             updated += 1
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - bulk update iterates findings; any per-finding error must be collected, not abort the batch
             errors.append(f"Error updating {finding_id}: {str(e)}")
             failed += 1
 

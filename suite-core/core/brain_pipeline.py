@@ -1204,7 +1204,10 @@ class BrainPipeline:
             conn.commit()
             conn.close()
             return synced
-        except Exception as e:
+        except ImportError as e:
+            logger.warning("Analytics sync failed (non-fatal): %s", type(e).__name__)
+            return 0
+        except Exception as e:  # noqa: BLE001 - sqlite3 may raise beyond sqlite3.Error (e.g. OperationalError subclasses); never break the pipeline
             logger.warning("Analytics sync failed (non-fatal): %s", type(e).__name__)
             return 0
 
@@ -2467,7 +2470,7 @@ class BrainPipeline:
                         else:
                             reachability_stats["unreachable"] += 1
                     logger.info("Reachability: %s", reachability_stats)
-            except Exception as _reach_err:  # never break the pipeline
+            except Exception as _reach_err:  # noqa: BLE001 - reachability is optional; ImportError, OSError, or library errors must never halt the pipeline
                 logger.warning("Reachability analysis skipped: %s", _reach_err)
 
         scores = []

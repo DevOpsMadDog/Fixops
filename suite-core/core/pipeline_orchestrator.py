@@ -137,7 +137,7 @@ class PipelineEventEmitter:
             for callback in self.listeners[event_type]:
                 try:
                     callback(payload)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - listener callbacks are caller-supplied and may raise anything; isolate failures per callback
                     logger.error(f"Event listener error for {event_type}: {e}")
 
 
@@ -332,7 +332,7 @@ class PipelineOrchestrator:
                 result = self._execute_stage(stage, finding, state)
                 state.completed_stages.append(result)
                 finding = result.metrics.get("finding", finding)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - stage handlers may raise any error; pipeline continues to next stage by design
                 logger.error(f"Stage {stage.value} failed: {e}")
                 state.processing_errors.append(f"{stage.value}: {str(e)}")
                 # Continue to next stage (non-critical error)

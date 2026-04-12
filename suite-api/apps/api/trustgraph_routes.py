@@ -190,7 +190,7 @@ async def query_trustgraph(
 
         return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Query failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -230,7 +230,7 @@ async def search_trustgraph(
 
         return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Search failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -275,7 +275,7 @@ async def ingest_entity(
 
         return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Ingestion failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -301,7 +301,7 @@ async def get_entity(entity_id: str) -> Dict[str, Any]:
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Get entity failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -339,7 +339,7 @@ async def create_relationship(req: RelateRequest) -> Dict[str, Any]:
 
         return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Relationship creation failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -365,7 +365,7 @@ async def list_cores() -> Dict[str, Any]:
 
         return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"List cores failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -392,7 +392,7 @@ async def get_core_stats(core_id: int) -> Dict[str, Any]:
 
         return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Get core stats failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -414,7 +414,7 @@ async def list_mcp_tools() -> List[Dict[str, Any]]:
         tools = server.list_tools()
         return tools
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"List MCP tools failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -434,6 +434,6 @@ async def get_audit_log(limit: int = Query(100, ge=1, le=1000)) -> List[Dict[str
         logs = server.get_audit_log(limit=limit)
         return logs
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - router error boundary; any exception must become HTTP 500, not leak to ASGI
         logger.error(f"Get audit log failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

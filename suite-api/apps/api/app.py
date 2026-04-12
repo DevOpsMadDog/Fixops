@@ -1056,9 +1056,37 @@ def create_app() -> FastAPI:
     from apps.api.health import router as health_v1_router
 
     app = FastAPI(
-        title=f"{branding['product_name']} Enterprise API",
-        description=f"Security decision engine by {branding['org_name']}",
-        version="1.0.0",
+        title="ALDECI Security Intelligence Platform",
+        description=(
+            "Unified ASPM + CTEM + CSPM platform API. "
+            f"Security decision engine by {branding['org_name']}. "
+            "Provides 771+ endpoints for vulnerability management, threat intelligence, "
+            "compliance, connectors, and AI-driven security analysis."
+        ),
+        version="2.5.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/api/v1/openapi.json",
+        openapi_tags=[
+            {"name": "health", "description": "Health checks and readiness probes"},
+            {"name": "findings", "description": "Vulnerability findings lifecycle management"},
+            {"name": "pipeline", "description": "CTEM 15-stage pipeline ingestion and processing"},
+            {"name": "connectors", "description": "Security tool connectors (Jira, GitHub, Slack, etc.)"},
+            {"name": "feeds", "description": "Threat intelligence feeds (NVD, KEV, EPSS, 28+ sources)"},
+            {"name": "inventory", "description": "Asset inventory and SBOM management"},
+            {"name": "analytics", "description": "Security metrics and analytics"},
+            {"name": "compliance", "description": "Compliance frameworks and evidence collection"},
+            {"name": "policies", "description": "Security policies and gate rules"},
+            {"name": "remediation", "description": "Remediation tracking and playbooks"},
+            {"name": "reports", "description": "Report generation and export"},
+            {"name": "users", "description": "User management and authentication"},
+            {"name": "teams", "description": "Team and organization management"},
+            {"name": "admin", "description": "Administrative operations"},
+            {"name": "trustgraph", "description": "TrustGraph knowledge graph and GraphRAG"},
+            {"name": "mcp", "description": "MCP tool registry and AI integrations"},
+            {"name": "attack", "description": "Offensive security and attack simulation"},
+            {"name": "audit", "description": "Audit logs and compliance trails"},
+        ],
     )
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):

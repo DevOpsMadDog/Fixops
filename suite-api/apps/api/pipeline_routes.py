@@ -304,7 +304,7 @@ async def _process_batch_async(
 
                 logger.debug(f"Finding {finding_data['id']} processed in batch {batch_id}")
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - batch processor catches all errors per-finding to ensure other findings continue processing
             logger.error(f"Error processing finding in batch {batch_id}: {e}")
             if batch_id in _batch_states:
                 state = _batch_states[batch_id]

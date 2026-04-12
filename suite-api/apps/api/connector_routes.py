@@ -487,7 +487,7 @@ async def ingest_findings(
                 )
             else:
                 accepted.append(finding)
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError, TypeError) as e:
             error_detail = {
                 "finding_id": finding.finding_id,
                 "error": str(e),
