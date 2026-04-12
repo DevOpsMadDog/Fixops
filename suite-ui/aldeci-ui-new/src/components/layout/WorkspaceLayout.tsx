@@ -226,6 +226,13 @@ const navGroups: NavGroup[] = [
       { label: "Vendor Management", to: "/vendors", icon: Building2, badge: "TPRM" },
     ],
   },
+  {
+    label: "Incidents",
+    icon: Siren,
+    items: [
+      { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
+    ],
+  },
 ];
 
 // ── User identity badge for sidebar ──
