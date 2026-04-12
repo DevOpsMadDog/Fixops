@@ -262,11 +262,16 @@ class BrainPipeline:
     # Pipeline timeout in seconds (prevent infinite blocking)
     PIPELINE_TIMEOUT_S = 300  # 5 minutes
 
+    # Steps offloaded to workers when FIXOPS_QUEUE_MODE=redis
+    _REMOTE_STEPS = frozenset(["enrich_threats", "score_risk", "llm_consensus", "llm_council"])
+
     def __init__(self) -> None:
         self._runs: Dict[str, PipelineResult] = {}
         self._metrics: List[Dict[str, Any]] = []
         self._lock = threading.Lock()  # Thread-safe access to _runs/_metrics
         self._cancelled: set = set()  # Run IDs that have been cancelled
+        # Queue mode: "local" (default) or "redis" (FIXOPS_QUEUE_MODE env var)
+        self._queue_mode: str = os.environ.get("FIXOPS_QUEUE_MODE", "local").lower().strip()
 
     # Maximum depth for nested sanitization to prevent stack overflow
     MAX_SANITIZE_DEPTH = 5
@@ -437,7 +442,11 @@ class BrainPipeline:
             result.progress_percent = round((idx / len(step_funcs)) * 100, 1)
 
             try:
-                step.output = func(ctx, inp) or {}
+                # In redis queue mode, offload heavy steps to workers
+                if self._queue_mode == "redis" and step.name in self._REMOTE_STEPS:
+                    step.output = self._dispatch_step_to_queue(step.name, ctx, inp) or {}
+                else:
+                    step.output = func(ctx, inp) or {}
                 step.status = StepStatus.COMPLETED
             except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 step.status = StepStatus.FAILED
@@ -551,6 +560,85 @@ class BrainPipeline:
             logger.info("Synced %d findings to analytics.db", synced)
 
         return result
+
+    def _dispatch_step_to_queue(
+        self, step_name: str, ctx: Dict[str, Any], inp: "PipelineInput"
+    ) -> Dict[str, Any]:
+        """Enqueue a heavy step to a Redis worker and wait for the result.
+
+        Used when ``FIXOPS_QUEUE_MODE=redis``.  Falls back to direct
+        in-process execution if the queue manager is unavailable or returns
+        an error.
+
+        Args:
+            step_name: One of ``_REMOTE_STEPS`` (e.g. ``"enrich_threats"``).
+            ctx: Current pipeline context dict.
+            inp: Original ``PipelineInput``.
+
+        Returns:
+            Updated context dict with the step result merged in.
+        """
+        try:
+            from core.queue_manager import get_queue_manager
+
+            qm = get_queue_manager()
+            run_id = ctx.get("org_id", "unknown") + "-" + step_name
+            payload = {
+                "ctx": {k: v for k, v in ctx.items() if k != "metrics"},
+                "inp": {"org_id": inp.org_id},
+            }
+            qm.enqueue_step(run_id, step_name, payload)
+            logger.info(
+                "Dispatched step %s to queue (run_id=%s)", step_name, run_id
+            )
+
+            # Wait for result via pub/sub (timeout = STEP_TIMEOUT_S)
+            sub = qm.subscribe_results(run_id)
+            deadline = time.monotonic() + self.STEP_TIMEOUT_S
+            try:
+                for message in sub:
+                    if message.get("step_name") == step_name:
+                        result_data = message.get("result", {})
+                        if result_data.get("status") == "ok":
+                            merged = result_data.get("data", {})
+                            # Merge returned context keys back
+                            if isinstance(merged, dict):
+                                ctx.update(
+                                    {k: v for k, v in merged.items() if k != "metrics"}
+                                )
+                        else:
+                            logger.warning(
+                                "Queue step %s returned error: %s",
+                                step_name,
+                                result_data.get("error"),
+                            )
+                        return ctx
+                    if time.monotonic() > deadline:
+                        logger.warning(
+                            "Queue step %s timed out — running in-process", step_name
+                        )
+                        break
+            finally:
+                sub.close()
+
+        except Exception as exc:
+            logger.warning(
+                "Queue dispatch for step %s failed (%s) — running in-process",
+                step_name,
+                exc,
+            )
+
+        # Fallback: run the step in-process
+        step_func_map = {
+            "enrich_threats": self._step_enrich_threats,
+            "score_risk": self._step_score_risk,
+            "llm_consensus": self._step_llm_consensus,
+            "llm_council": self._step_llm_council,
+        }
+        fallback = step_func_map.get(step_name)
+        if fallback is not None:
+            return fallback(ctx, inp) or ctx
+        return ctx
 
     async def run_async(self, inp: PipelineInput) -> PipelineResult:
         """Execute the pipeline asynchronously (non-blocking).

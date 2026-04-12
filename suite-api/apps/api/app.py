@@ -95,6 +95,14 @@ from apps.api.users_router import router as users_router
 from apps.api.users_router import public_router as users_public_router
 from apps.api.workflows_router import router as workflows_router
 
+# Enterprise SSO router (SAML 2.0 + OIDC — Okta, Azure AD, Google)
+sso_router: Optional[APIRouter] = None
+try:
+    from apps.api.sso_router import router as sso_router
+    logging.getLogger(__name__).info("Loaded Enterprise SSO router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("SSO router not available: %s", e)
+
 # Phase 10: New routers for E2E pipeline
 # WebSocket router for real-time event streaming
 websocket_router: Optional[APIRouter] = None
@@ -1854,6 +1862,12 @@ def create_app() -> FastAPI:
         auth_router,
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
     )
+
+    # Enterprise SSO — public endpoints (part of login flow, no auth dependency)
+    if sso_router:
+        app.include_router(sso_router)
+        _logger.info("Mounted Enterprise SSO router (SAML 2.0 + OIDC)")
+
     app.include_router(
         bulk_router,
         dependencies=[
@@ -1961,6 +1975,15 @@ def create_app() -> FastAPI:
             ],
         )
         _logger.info("Mounted AutoFix router with write:findings scope guard")
+
+    # Queue status router (horizontal scaling visibility)
+    try:
+        from apps.api.queue_router import router as queue_router
+
+        app.include_router(queue_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Loaded Queue status router")
+    except ImportError as e:
+        _logger.warning("Queue router not available: %s", e)
 
     _core_routers = [
         (nerve_center_router, "Nerve Center", None, "read:findings"),
