@@ -490,6 +490,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Vendor Scorecard router not available: %s", e)
 
+questionnaire_router: Optional[APIRouter] = None
+try:
+    from apps.api.questionnaire_router import router as questionnaire_router
+    logging.getLogger(__name__).info("Loaded Questionnaire Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Questionnaire Engine router not available: %s", e)
+
 versioning_router: Optional[APIRouter] = None
 try:
     from apps.api.versioning_router import router as versioning_router
@@ -2682,6 +2689,7 @@ def create_app() -> FastAPI:
         (tag_router, "Tags", "read:findings"),
         (threat_hunting_router, "Threat Hunting", "read:findings"),
         (user_analytics_router, "User Analytics", "read:findings"),
+        (questionnaire_router, "Questionnaire Engine", "read:findings"),
         (vendor_scorecard_router, "Vendor Scorecard", "read:findings"),
         (versioning_router, "Versioning", "read:findings"),
         (webhook_events_router, "Webhook Events", "read:findings"),
