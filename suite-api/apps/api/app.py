@@ -4936,6 +4936,16 @@ def create_app() -> FastAPI:
         _logger.warning("DAST Scanner router not available: %s", _dast_err)
 
     # -----------------------------------------------------------------------
+    # Self-Scan Dogfooding — ALDECI scans itself as its own test subject
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.self_scan_router import router as self_scan_router
+        app.include_router(self_scan_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Self-Scan Dogfooding router")
+    except ImportError as _self_scan_err:
+        _logger.warning("Self-Scan router not available: %s", _self_scan_err)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
@@ -4982,6 +4992,17 @@ def create_app() -> FastAPI:
         _logger.info("Mounted React SPA from %s", _ui_dist)
     else:
         _logger.warning("React UI dist not found at %s — SPA not served", _ui_dist)
+
+    # WAF Rule Generator — auto-generate WAF rules from vulnerability findings
+    try:
+        from apps.api.waf_router import router as waf_router
+        app.include_router(
+            waf_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted WAF Rule Generator router at /api/v1/waf")
+    except ImportError as e:
+        _logger.warning("WAF Rule Generator router not available: %s", e)
 
     return app
 
