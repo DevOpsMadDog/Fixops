@@ -74,6 +74,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Anomaly Detection router not available: %s", e)
 
+# AI Orchestrator router (multi-agent LLM coordination for security decisions)
+ai_orchestrator_router: Optional[APIRouter] = None
+try:
+    from apps.api.ai_orchestrator_router import router as ai_orchestrator_router
+    logging.getLogger(__name__).info("Loaded AI Orchestrator router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("AI Orchestrator router not available: %s", e)
+
 # Universal Connectors router (Jira + GitHub + Slack fan-out)
 connectors_router: Optional[APIRouter] = None
 try:
@@ -127,6 +135,14 @@ try:
     logging.getLogger(__name__).info("Loaded MCP/GraphRAG router")
 except ImportError as e:
     logging.getLogger(__name__).warning("MCP/GraphRAG router not available: %s", e)
+
+# MCP Gateway — external AI agent interface (search_findings, get_posture_score, etc.)
+mcp_gateway_router: Optional[APIRouter] = None
+try:
+    from apps.api.mcp_gateway_router import router as mcp_gateway_router
+    logging.getLogger(__name__).info("Loaded MCP Gateway router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("MCP Gateway router not available: %s", e)
 
 # Playbook automation router
 playbook_router: Optional[APIRouter] = None
@@ -2207,6 +2223,13 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Anomaly Detection router")
+
+    if ai_orchestrator_router:
+        app.include_router(
+            ai_orchestrator_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted AI Orchestrator router")
 
     # Phase 10: New E2E pipeline routers
     # WebSocket router for real-time event streaming (EventBus, pipeline events)
