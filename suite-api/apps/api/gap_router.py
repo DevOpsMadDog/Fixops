@@ -463,6 +463,43 @@ async def copilot_chat(req: ChatRequest):
         )
         context_summary += f"Top critical: {crit_summary}\n"
 
+    # ── TrustGraph GraphRAG enrichment ──
+    graphrag_context = ""
+    graphrag_meta: Dict[str, Any] = {}
+    try:
+        from core.copilot_trustgraph_bridge import get_bridge
+        bridge = get_bridge()
+        # Map gap-router agent_id strings to bridge agent_type convention
+        _agent_map = {
+            "security-analyst": "security_analyst",
+            "pentest-advisor": "pentest",
+            "compliance-expert": "compliance",
+            "remediation-engineer": "remediation",
+            "threat-intel": "security_analyst",
+        }
+        bridge_agent_type = _agent_map.get(req.agent_id, "general")
+        copilot_ctx = bridge.enrich_query(
+            req.message,
+            user_context={"agent_type": bridge_agent_type},
+        )
+        if copilot_ctx.available and copilot_ctx.context_text:
+            graphrag_context = copilot_ctx.context_text
+            graphrag_meta = {
+                "intent": copilot_ctx.intent,
+                "entity_count": copilot_ctx.entity_count,
+                "sources": copilot_ctx.sources,
+            }
+            logger.debug(
+                "copilot_chat: TrustGraph enriched with %d entities (intent=%s)",
+                copilot_ctx.entity_count,
+                copilot_ctx.intent,
+            )
+    except (OSError, ValueError, KeyError, RuntimeError, ImportError) as e:
+        logger.debug("copilot_chat: TrustGraph enrichment unavailable: %s", e)
+
+    if graphrag_context:
+        context_summary += f"\n{graphrag_context}\n"
+
     # ── Priority 1: Try MindsDB RAG pipeline ──
     try:
         from agents.mindsdb_agents import get_rag_service
