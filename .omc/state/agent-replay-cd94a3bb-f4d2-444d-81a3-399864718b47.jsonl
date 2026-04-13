@@ -381,3 +381,4 @@
 {"t":0,"agent":"a5221a7","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"adcda16","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"af22ec9","agent_type":"debugger","event":"agent_stop","success":true}
+{"t":0,"agent":"ac97d67","agent_type":"executor","event":"agent_start","parent_mode":"none"}

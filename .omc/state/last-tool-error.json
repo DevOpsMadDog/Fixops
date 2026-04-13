@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python -c \\\"import sys; print(sys.path[:5])\\\" 2>&1 && python -c \\\"import apps; print('apps ok')\\\" 2>&1\",\"description\":\"Check if sitecustomize is loading suite paths\"}",
-  "error": "Exit code 1\n['', '/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python311.zip', '/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11', '/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/lib-dynload', '/opt/homebrew/lib/python3.11/site-packages']\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'apps'\n[...",
-  "timestamp": "2026-04-13T12:57:13.503Z",
-  "retry_count": 4
+  "tool_input_preview": "{\"command\":\"python -c \\\"\\nfrom core.security_training import (\\n    SecurityAwarenessTracker, TrainingAssignment, PhishingCampaign, ComplianceReport,\\n    _CWE_MODULE_MAP, _PHISHING_TEMPLATES\\n)\\nt = ...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 2, in <module>\nModuleNotFoundError: No module named 'core'\n[rerun: b13]",
+  "timestamp": "2026-04-13T12:58:21.842Z",
+  "retry_count": 7
 }

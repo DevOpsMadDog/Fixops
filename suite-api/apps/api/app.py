@@ -250,6 +250,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("IR Playbook Engine router not available: %s", e)
 
+# IR Playbook Runner — 5 built-in playbooks with real automated actions
+ir_playbook_runner_router: Optional[APIRouter] = None
+try:
+    from apps.api.ir_playbook_runner_router import router as ir_playbook_runner_router
+    logging.getLogger(__name__).info("Loaded IR Playbook Runner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("IR Playbook Runner router not available: %s", e)
+
 # Security Policy Document Generator — auto-generate policies from platform config
 policy_generator_router: Optional[APIRouter] = None
 try:
@@ -2630,6 +2638,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted IR Playbook Engine router")
+
+    # IR Playbook Runner — 5 built-in playbooks, real actions (block_ip, quarantine, ntfy.sh, GitHub Issues)
+    if ir_playbook_runner_router:
+        app.include_router(
+            ir_playbook_runner_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted IR Playbook Runner router")
 
     # Security Policy Document Generator — generate, approve, archive, export policies
     if policy_generator_router:

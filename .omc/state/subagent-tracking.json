@@ -1452,10 +1452,17 @@
       "started_at": "2026-04-13T12:56:31.461Z",
       "parent_mode": "none",
       "status": "running"
+    },
+    {
+      "agent_id": "ac97d67fdc7e98601",
+      "agent_type": "oh-my-claudecode:executor",
+      "started_at": "2026-04-13T12:58:15.434Z",
+      "parent_mode": "none",
+      "status": "running"
     }
   ],
-  "total_spawned": 165,
+  "total_spawned": 166,
   "total_completed": 149,
   "total_failed": 0,
-  "last_updated": "2026-04-13T12:57:28.474Z"
+  "last_updated": "2026-04-13T12:58:15.537Z"
 }

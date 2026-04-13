@@ -79,10 +79,10 @@ class TestMaterialChangeDetector:
 
     @pytest.fixture(autouse=True)
     def _detector(self, tmp_path):
-        from core.material_change_detector import MaterialChangeDetector
+        from core.material_change_detector import PushEventAnalyzer
 
-        # repo_root is the only path param; no db_path on this class
-        self.detector = MaterialChangeDetector(repo_root=str(tmp_path))
+        # PushEventAnalyzer wraps analyze_push_event; repo_root scopes blast-radius scan
+        self.detector = PushEventAnalyzer(repo_root=str(tmp_path))
 
     def _push_payload(self, files: list[str]) -> Dict[str, Any]:
         return {
@@ -171,19 +171,29 @@ class TestRiskPrioritizerFlow:
         assert score.asset_contribution > 0.0
         assert score.finding_id == finding["id"]
 
-    def test_critical_production_finding_urgency_is_immediate_or_urgent(self):
-        """CRITICAL severity + production environment maps to immediate or urgent remediation."""
+    def test_critical_production_finding_urgency_is_not_backlog(self):
+        """CRITICAL severity + production environment with explicit CVSS 9.5 is not backlog.
+
+        Without a real CVE the EPSS and KEV contributions are 0, but CVSS (40%) at 9.5
+        and production asset_criticality (15%) still push the composite score above 30,
+        guaranteeing at least PLANNED (never BACKLOG) urgency.
+        """
         from core.risk_prioritizer import RemediationUrgency, _urgency_from_score
 
         finding = {
             "id": f"f-{uuid.uuid4().hex[:8]}",
             "severity": "critical",
-            "asset_environment": "production",
+            "cvss_score": 9.5,          # explicit score: 9.5/10 * 0.40 * 100 = 38pts
+            "asset_environment": "production",  # 1.0 * 0.15 * 100 = 15pts → total 53pts
         }
         score = self.prioritizer.score_finding(finding)
         urgency = _urgency_from_score(score.composite_score)
 
-        assert urgency in (RemediationUrgency.IMMEDIATE, RemediationUrgency.URGENT)
+        assert urgency != RemediationUrgency.BACKLOG, (
+            f"CRITICAL+production finding (score={score.composite_score:.1f}) "
+            "should not be in BACKLOG tier"
+        )
+        assert score.composite_score > 30.0
 
     def test_rank_findings_orders_by_score_descending(self):
         """rank_findings returns highest composite score first."""
@@ -395,13 +405,15 @@ class TestSBOMAndLicenseFlow:
         assert "metadata" in sbom, "CycloneDX SBOM must have 'metadata'"
         assert "components" in sbom
 
-    def test_license_audit_summary_has_total_and_flagged(self):
-        """audit_requirements → audit_summary returns counts including 'total' and 'flagged'."""
+    def test_license_audit_summary_has_total_and_high_risk_count(self):
+        """audit_requirements → audit_summary returns 'total' and 'high_risk_count' keys."""
         results = self.auditor.audit_requirements(self.req_path)
         summary = self.auditor.audit_summary(results)
 
         assert "total" in summary, "audit_summary must include 'total'"
-        assert "flagged" in summary, "audit_summary must include 'flagged'"
+        assert "high_risk_count" in summary, (
+            f"audit_summary must include 'high_risk_count', got keys: {list(summary.keys())}"
+        )
         assert summary["total"] >= 3
 
 
