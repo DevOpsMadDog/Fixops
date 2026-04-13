@@ -425,3 +425,318 @@ def test_webhook_highest_risk_aggregation(detector):
         if tier_order.get(c.value, 0) > tier_order.get(highest, 0):
             highest = c.value
     assert highest == "MATERIAL"
+
+
+# ---------------------------------------------------------------------------
+# 9. PushEventAnalyzer — blast radius categorization
+# ---------------------------------------------------------------------------
+
+from core.material_change_detector import (  # noqa: E402
+    BlastRadius,
+    BlastRadiusCategory,
+    MaterialChangeResult,
+    PushEventAnalyzer,
+)
+
+
+@pytest.fixture
+def analyzer() -> PushEventAnalyzer:
+    return PushEventAnalyzer(webhook_secret="test-secret")
+
+
+def test_blast_radius_critical_auth_file(analyzer):
+    br = analyzer._get_blast_radius(["core/auth_middleware.py"])
+    assert br.category == BlastRadiusCategory.CRITICAL
+    assert "core/auth_middleware.py" in br.critical_files
+
+
+def test_blast_radius_critical_crypto_file(analyzer):
+    br = analyzer._get_blast_radius(["core/crypto_utils.py"])
+    assert br.category == BlastRadiusCategory.CRITICAL
+
+
+def test_blast_radius_critical_payment_file(analyzer):
+    br = analyzer._get_blast_radius(["billing/payment_processor.py"])
+    assert br.category == BlastRadiusCategory.CRITICAL
+
+
+def test_blast_radius_high_router_file(analyzer):
+    br = analyzer._get_blast_radius(["apps/api/findings_router.py"])
+    assert br.category == BlastRadiusCategory.HIGH
+    assert "apps/api/findings_router.py" in br.high_files
+
+
+def test_blast_radius_high_database_file(analyzer):
+    br = analyzer._get_blast_radius(["core/database_models.py"])
+    assert br.category == BlastRadiusCategory.HIGH
+
+
+def test_blast_radius_medium_business_logic(analyzer):
+    br = analyzer._get_blast_radius(["core/risk_engine.py"])
+    assert br.category == BlastRadiusCategory.MEDIUM
+    assert "core/risk_engine.py" in br.medium_files
+
+
+def test_blast_radius_low_test_file(analyzer):
+    br = analyzer._get_blast_radius(["tests/test_something.py"])
+    assert br.category == BlastRadiusCategory.LOW
+    assert "tests/test_something.py" in br.low_files
+
+
+def test_blast_radius_low_markdown(analyzer):
+    br = analyzer._get_blast_radius(["docs/README.md"])
+    assert br.category == BlastRadiusCategory.LOW
+
+
+def test_blast_radius_mixed_uses_highest(analyzer):
+    """When critical + low files present, category is CRITICAL."""
+    br = analyzer._get_blast_radius(["docs/notes.md", "core/auth_manager.py"])
+    assert br.category == BlastRadiusCategory.CRITICAL
+
+
+def test_blast_radius_security_critical_ratio(analyzer):
+    """auth files count toward security_critical_ratio."""
+    br = analyzer._get_blast_radius(["core/auth.py", "core/auth2.py", "README.md"])
+    assert br.security_critical_ratio > 0.0
+
+
+def test_blast_radius_to_dict(analyzer):
+    br = analyzer._get_blast_radius(["core/auth.py"])
+    d = br.to_dict()
+    assert d["category"] == "CRITICAL"
+    assert "critical_files" in d
+    assert "security_critical_ratio" in d
+
+
+# ---------------------------------------------------------------------------
+# 10. PushEventAnalyzer — materiality assessment
+# ---------------------------------------------------------------------------
+
+
+def test_assess_materiality_critical_blast_radius(analyzer):
+    br = BlastRadius(
+        category=BlastRadiusCategory.CRITICAL,
+        changed_files=["core/auth.py"],
+        critical_files=["core/auth.py"],
+    )
+    is_mat, reasons = analyzer._assess_materiality([], br)
+    assert is_mat is True
+    assert any("blast_radius_critical" in r for r in reasons)
+
+
+def test_assess_materiality_high_blast_radius(analyzer):
+    br = BlastRadius(
+        category=BlastRadiusCategory.HIGH,
+        changed_files=["api/router.py"],
+        high_files=["api/router.py"],
+    )
+    is_mat, reasons = analyzer._assess_materiality([], br)
+    assert is_mat is True
+    assert any("blast_radius_high" in r for r in reasons)
+
+
+def test_assess_materiality_medium_no_sast_not_material(analyzer):
+    br = BlastRadius(
+        category=BlastRadiusCategory.MEDIUM,
+        changed_files=["core/service.py"],
+        medium_files=["core/service.py"],
+    )
+    is_mat, reasons = analyzer._assess_materiality([], br)
+    assert is_mat is False
+    assert reasons == []
+
+
+def test_assess_materiality_high_sast_finding(analyzer):
+    br = BlastRadius(
+        category=BlastRadiusCategory.LOW,
+        changed_files=["tests/test_x.py"],
+        low_files=["tests/test_x.py"],
+    )
+    findings = [{"severity": "HIGH", "title": "Hardcoded credential", "tool": "regex_sast"}]
+    is_mat, reasons = analyzer._assess_materiality(findings, br)
+    assert is_mat is True
+    assert any("sast" in r for r in reasons)
+
+
+def test_assess_materiality_20pct_threshold(analyzer):
+    """If ≥20% of changed files are security-critical, change is material."""
+    br = BlastRadius(
+        category=BlastRadiusCategory.MEDIUM,
+        changed_files=["core/auth.py", "core/service.py", "core/other.py"],
+        medium_files=["core/service.py", "core/other.py"],
+        security_critical_ratio=0.33,
+    )
+    is_mat, reasons = analyzer._assess_materiality([], br)
+    assert is_mat is True
+    assert any("security_critical_ratio" in r for r in reasons)
+
+
+# ---------------------------------------------------------------------------
+# 11. PushEventAnalyzer — HMAC webhook verification
+# ---------------------------------------------------------------------------
+
+
+def test_hmac_verification_valid(analyzer):
+    import hashlib
+    import hmac as _hmac
+
+    payload = b'{"ref": "refs/heads/main"}'
+    sig = "sha256=" + _hmac.new(b"test-secret", payload, hashlib.sha256).hexdigest()
+    assert analyzer.verify_webhook_signature(payload, sig) is True
+
+
+def test_hmac_verification_invalid(analyzer):
+    payload = b'{"ref": "refs/heads/main"}'
+    assert analyzer.verify_webhook_signature(payload, "sha256=badhash") is False
+
+
+def test_hmac_verification_no_secret():
+    """Without a secret, all signatures are accepted (dev mode)."""
+    a = PushEventAnalyzer(webhook_secret="")
+    assert a.verify_webhook_signature(b"any payload", "sha256=whatever") is True
+
+
+def test_hmac_verification_missing_prefix(analyzer):
+    payload = b"payload"
+    # Missing sha256= prefix
+    assert analyzer.verify_webhook_signature(payload, "badhashwithoutprefix") is False
+
+
+# ---------------------------------------------------------------------------
+# 12. PushEventAnalyzer — analyze_push_event integration
+# ---------------------------------------------------------------------------
+
+
+def _make_push_payload(files: List[str], sha: str = "abc123") -> dict:
+    return {
+        "after": sha,
+        "ref": "refs/heads/main",
+        "repository": {"full_name": "org/repo"},
+        "pusher": {"name": "dev"},
+        "commits": [
+            {"id": sha, "added": files, "modified": [], "removed": []}
+        ],
+    }
+
+
+def test_analyze_push_event_no_commits(analyzer):
+    payload = {"after": "abc", "ref": "refs/heads/main", "repository": {"full_name": "org/repo"}, "commits": []}
+    result = analyzer.analyze_push_event(payload)
+    assert isinstance(result, MaterialChangeResult)
+    assert result.changed_files == []
+    assert result.is_material is False
+
+
+def test_analyze_push_event_low_risk_not_material(tmp_path):
+    """Low-risk files with no SAST findings → not material."""
+    a = PushEventAnalyzer(repo_root=str(tmp_path), webhook_secret="s")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "guide.md").write_text("# Guide\nSome docs.\n")
+    (tmp_path / "README.md").write_text("# README\nHello world.\n")
+    payload = _make_push_payload(["docs/guide.md", "README.md"])
+    result = a.analyze_push_event(payload)
+    assert result.blast_radius is not None
+    assert result.blast_radius.category == BlastRadiusCategory.LOW
+    assert result.is_material is False
+
+
+def test_analyze_push_event_critical_is_material(analyzer):
+    payload = _make_push_payload(["core/auth_service.py"])
+    result = analyzer.analyze_push_event(payload)
+    assert result.is_material is True
+    assert result.blast_radius.category == BlastRadiusCategory.CRITICAL
+    assert result.incident_id is None or isinstance(result.incident_id, str)
+
+
+def test_analyze_push_event_deduplicates_files(analyzer):
+    payload = {
+        "after": "abc",
+        "ref": "refs/heads/main",
+        "repository": {"full_name": "org/repo"},
+        "pusher": {"name": "dev"},
+        "commits": [
+            {"id": "c1", "added": ["core/auth.py"], "modified": [], "removed": []},
+            {"id": "c2", "added": ["core/auth.py"], "modified": [], "removed": []},
+        ],
+    }
+    result = analyzer.analyze_push_event(payload)
+    assert result.changed_files.count("core/auth.py") == 1
+
+
+def test_analyze_push_event_result_has_id(analyzer):
+    payload = _make_push_payload(["README.md"])
+    result = analyzer.analyze_push_event(payload)
+    assert result.id and len(result.id) > 0
+
+
+def test_analyze_push_event_to_dict(analyzer):
+    payload = _make_push_payload(["core/auth.py"])
+    result = analyzer.analyze_push_event(payload)
+    d = result.to_dict()
+    assert "id" in d
+    assert "is_material" in d
+    assert "blast_radius" in d
+    assert "sast_findings" in d
+
+
+# ---------------------------------------------------------------------------
+# 13. PushEventAnalyzer — list_recent / get_by_id
+# ---------------------------------------------------------------------------
+
+
+def test_list_recent_returns_list(analyzer, tmp_path, monkeypatch):
+    import core.material_change_detector as mcd
+    monkeypatch.setattr(mcd, "_MC_DB_PATH", tmp_path / "mc_test.db")
+    payload = _make_push_payload(["README.md"])
+    analyzer.analyze_push_event(payload)
+    items = analyzer.list_recent(limit=10)
+    assert isinstance(items, list)
+    assert len(items) >= 1
+
+
+def test_get_by_id_returns_record(analyzer, tmp_path, monkeypatch):
+    import core.material_change_detector as mcd
+    monkeypatch.setattr(mcd, "_MC_DB_PATH", tmp_path / "mc_test2.db")
+    payload = _make_push_payload(["README.md"])
+    result = analyzer.analyze_push_event(payload)
+    fetched = analyzer.get_by_id(result.id)
+    assert fetched is not None
+    assert fetched["id"] == result.id
+
+
+def test_get_by_id_missing_returns_none(analyzer):
+    item = analyzer.get_by_id("nonexistent-id-xyz")
+    assert item is None
+
+
+# ---------------------------------------------------------------------------
+# 14. PushEventAnalyzer — regex SAST heuristics
+# ---------------------------------------------------------------------------
+
+
+def test_regex_sast_detects_hardcoded_credential(analyzer, tmp_path):
+    f = tmp_path / "config.py"
+    f.write_text('password = "supersecret123"\n')
+    findings = analyzer._run_regex_sast(["config.py"], str(tmp_path))
+    assert any(r["title"] == "Hardcoded credential" for r in findings)
+    assert any(r["severity"] == "HIGH" for r in findings)
+
+
+def test_regex_sast_detects_eval(analyzer, tmp_path):
+    f = tmp_path / "handler.py"
+    f.write_text("result = eval(user_input)\n")
+    findings = analyzer._run_regex_sast(["handler.py"], str(tmp_path))
+    assert any("eval" in r["title"].lower() for r in findings)
+
+
+def test_regex_sast_clean_file_no_findings(analyzer, tmp_path):
+    f = tmp_path / "clean.py"
+    f.write_text("def hello():\n    return 'world'\n")
+    findings = analyzer._run_regex_sast(["clean.py"], str(tmp_path))
+    assert findings == []
+
+
+def test_regex_sast_missing_file_skipped(analyzer, tmp_path):
+    """Non-existent files are skipped gracefully."""
+    findings = analyzer._run_regex_sast(["does_not_exist.py"], str(tmp_path))
+    assert findings == []

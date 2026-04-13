@@ -1,0 +1,1137 @@
+{
+  "audit_date": "2026-04-13",
+  "total_routers": 226,
+  "connected_count": 5,
+  "producing_disconnected_count": 204,
+  "consuming_only_count": 17,
+  "connected": [
+    {
+      "router": "deployment_router.py",
+      "prefix": "/api/v1/deployment"
+    },
+    {
+      "router": "event_bus_router.py",
+      "prefix": "/api/v1/event-bus"
+    },
+    {
+      "router": "trustgraph_backbone_router.py",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "router": "trustgraph_integration_router.py",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "router": "trustgraph_migrator_router.py",
+      "prefix": "/api/v1/trustgraph/migrate"
+    }
+  ],
+  "producing_disconnected": [
+    {
+      "router": "asset_inventory_router.py",
+      "prefix": "/api/v1/assets",
+      "priority": "CRITICAL"
+    },
+    {
+      "router": "compliance_engine_router.py",
+      "prefix": "/compliance-engine",
+      "priority": "CRITICAL"
+    },
+    {
+      "router": "feed_manager_router.py",
+      "prefix": "/api/v1/feeds",
+      "priority": "CRITICAL"
+    },
+    {
+      "router": "incident_response_router.py",
+      "prefix": "/api/v1/incidents",
+      "priority": "CRITICAL"
+    },
+    {
+      "router": "scanner_ingest_router.py",
+      "prefix": "/api/v1/scanner-ingest",
+      "priority": "CRITICAL"
+    },
+    {
+      "router": "container_router.py",
+      "prefix": "/api/v1/container",
+      "priority": "HIGH"
+    },
+    {
+      "router": "container_runtime_router.py",
+      "prefix": "/api/v1/containers",
+      "priority": "HIGH"
+    },
+    {
+      "router": "container_scanner_router.py",
+      "prefix": "/api/v1/containers",
+      "priority": "HIGH"
+    },
+    {
+      "router": "cspm_engine_router.py",
+      "prefix": "/api/v1/cspm-engine",
+      "priority": "HIGH"
+    },
+    {
+      "router": "cspm_router.py",
+      "prefix": "/api/v1/cspm",
+      "priority": "HIGH"
+    },
+    {
+      "router": "sast_router.py",
+      "prefix": "/api/v1/sast",
+      "priority": "HIGH"
+    },
+    {
+      "router": "secret_scanner_router.py",
+      "prefix": "/api/v1/secrets",
+      "priority": "HIGH"
+    },
+    {
+      "router": "secrets_router.py",
+      "prefix": "/api/v1/secrets",
+      "priority": "HIGH"
+    },
+    {
+      "router": "vuln_discovery_router.py",
+      "prefix": "/api/v1/vulns",
+      "priority": "HIGH"
+    },
+    {
+      "router": "vuln_lifecycle_router.py",
+      "prefix": "/api/v1/vuln-lifecycle",
+      "priority": "HIGH"
+    },
+    {
+      "router": "vuln_prioritizer_router.py",
+      "prefix": "/api/v1/vulns",
+      "priority": "HIGH"
+    },
+    {
+      "router": "access_matrix_router.py",
+      "prefix": "/api/v1/access-matrix",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "admin_router.py",
+      "prefix": "/api/v1/admin",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "agents_router.py",
+      "prefix": "/api/v1/copilot/agents",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "ai_orchestrator_router.py",
+      "prefix": "/api/v1/ai-orchestrator",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "airgap_router.py",
+      "prefix": "/api/v1/airgap",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "algorithmic_router.py",
+      "prefix": "/api/v1/algorithms",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "analytics_router.py",
+      "prefix": "/api/v1/analytics",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "anomaly_ml_router.py",
+      "prefix": "/api/v1/anomaly-ml",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "anomaly_router.py",
+      "prefix": "/api/v1/anomalies",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "api_analytics_router.py",
+      "prefix": "/api/v1/api-analytics",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "api_gateway_router.py",
+      "prefix": "/api/v1/gateway",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "api_security_router.py",
+      "prefix": "/api/v1/api-security",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "apikey_router.py",
+      "prefix": "/api/v1/auth/keys",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "app_config_router.py",
+      "prefix": "/api/v1/apps",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "attack_sim_router.py",
+      "prefix": "/api/v1/attack-sim",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "attack_surface_manager_router.py",
+      "prefix": "/api/v1/attack-surface",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "attack_surface_router.py",
+      "prefix": "/api/v1/attack-surface",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "audit_analytics_router.py",
+      "prefix": "/api/v1/audit-analytics",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "audit_router.py",
+      "prefix": "/api/v1/audit",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "auth_router.py",
+      "prefix": "/api/v1/auth",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "auto_evidence_router.py",
+      "prefix": "/api/v1/auto-evidence",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "auto_pentest_router.py",
+      "prefix": "/api/v1/auto-pentest",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "autofix_router.py",
+      "prefix": "/api/v1/autofix",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "autofix_verify_router.py",
+      "prefix": "/api/v1/autofix/verify",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "aws_security_hub_router.py",
+      "prefix": "/api/v1/scan/aws-security-hub",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "azure_defender_router.py",
+      "prefix": "/api/v1/scan/azure-defender",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "backup_router.py",
+      "prefix": "/api/v1/backups",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "backup_validator_router.py",
+      "prefix": "/api/v1/backup-dr",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "brain_router.py",
+      "prefix": "/api/v1/brain",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "breach_simulation_router.py",
+      "prefix": "/api/v1/breach-sim",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "bug_bounty_router.py",
+      "prefix": "/api/v1/bounty",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "bulk_operations_router.py",
+      "prefix": "/api/v1/bulk",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "bulk_router.py",
+      "prefix": "/api/v1/bulk",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "cache_router.py",
+      "prefix": "/api/v1/cache",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "change_management_router.py",
+      "prefix": "/api/v1/changes",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "change_tracker_router.py",
+      "prefix": "/api/v1/change-tracker",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "changelog_router.py",
+      "prefix": "/api/v1/changelog",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "cicd_router.py",
+      "prefix": "/api/v1/cicd",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "cloud_connectors_router.py",
+      "prefix": "/api/v1/cloud-connectors",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "cloud_discovery_router.py",
+      "prefix": "/api/v1/cloud",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "cloud_graph_router.py",
+      "prefix": "/api/v1/cloud-graph",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "code_ownership_router.py",
+      "prefix": "/api/v1/ownership",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "code_to_cloud_router.py",
+      "prefix": "/api/v1/code-to-cloud",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "collaboration_router.py",
+      "prefix": "/api/v1/collaboration",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "compliance_automation_router.py",
+      "prefix": "/api/v1/compliance",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "compliance_calendar_router.py",
+      "prefix": "/api/v1/compliance-calendar",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "compliance_planner_router.py",
+      "prefix": "/api/v1/compliance-planner",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "compliance_reports_router.py",
+      "prefix": "/api/v1/compliance-reports",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "connectors_router.py",
+      "prefix": "/api/v1/connectors",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "copilot_router.py",
+      "prefix": "/api/v1/copilot",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "correlation_router.py",
+      "prefix": "/api/v1/correlations",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "ctem_engine_router.py",
+      "prefix": "/api/v1/ctem",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "dashboard_builder_router.py",
+      "prefix": "/api/v1/dashboards",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "dast_router.py",
+      "prefix": "/api/v1/dast",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "data_classification_router.py",
+      "prefix": "/api/v1/classification",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "data_security_router.py",
+      "prefix": "/api/v1/data",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "db_security_router.py",
+      "prefix": "/api/v1/db-security",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "deduplication_router.py",
+      "prefix": "/api/v1/deduplication",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "dep_scanner_router.py",
+      "prefix": "/api/v1/dep-scanner",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "developer_portal_router.py",
+      "prefix": "/api/v1/developer",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "drift_router.py",
+      "prefix": "/api/v1/drift",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "evidence_chain_router.py",
+      "prefix": "/api/v1/evidence-chain",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "evidence_collector_router.py",
+      "prefix": "/api/v1/evidence-collector",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "evidence_router.py",
+      "prefix": "/evidence",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "exception_policy_router.py",
+      "prefix": "/api/v1/exceptions",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "executive_dashboard_router.py",
+      "prefix": "/api/v1/executive",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "executive_report_router.py",
+      "prefix": "/api/v1/reports/executive",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "exposure_case_router.py",
+      "prefix": "/api/v1/cases",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "fail_router.py",
+      "prefix": "/api/v1/fail",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "fedramp_router.py",
+      "prefix": "/api/v1/fedramp",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "fix_engine_router.py",
+      "prefix": "/api/v1/remediation",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "fuzzy_identity_router.py",
+      "prefix": "/api/v1/identity",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "gate_router.py",
+      "prefix": "/api/v1/gate",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "gcp_scc_router.py",
+      "prefix": "/api/v1/scan/gcp-scc",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "github_issues_router.py",
+      "prefix": "/api/v1/github/issues",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "github_security_router.py",
+      "prefix": "/api/v1/security/github",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "graphql_router.py",
+      "prefix": "/api/v1/graphql",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "iac_scanner_router.py",
+      "prefix": "/api/v1/iac",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "ide_router.py",
+      "prefix": "/api/v1/ide",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "insider_threat_router.py",
+      "prefix": "/api/v1/insider-threat",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "integration_health_router.py",
+      "prefix": "/api/v1/integrations",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "integration_hub_router.py",
+      "prefix": "/api/v1/integrations",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "integration_marketplace_router.py",
+      "prefix": "/api/v1/integrations",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "inventory_router.py",
+      "prefix": "/api/v1/inventory",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "iot_security_router.py",
+      "prefix": "/api/v1/iot",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "ip_reputation_router.py",
+      "prefix": "/api/v1/reputation",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "ir_playbook_router.py",
+      "prefix": "/api/v1/ir",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "jira_sync_router.py",
+      "prefix": "/api/v1/jira-sync",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "k8s_security_router.py",
+      "prefix": "/api/v1/k8s",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "kpi_router.py",
+      "prefix": "/api/v1/kpis",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "license_compliance_router.py",
+      "prefix": "/api/v1/licenses",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "license_scanner_router.py",
+      "prefix": "/api/v1/license-scanner",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "llm_monitor_router.py",
+      "prefix": "/api/v1/llm-monitor",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "llm_router.py",
+      "prefix": "/api/v1/llm",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "malware_router.py",
+      "prefix": "/api/v1/malware",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "marketplace_router.py",
+      "prefix": "",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "material_change_router.py",
+      "prefix": "/api/v1/changes",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mcp_gateway_router.py",
+      "prefix": "/api/v1/mcp-gateway",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mcp_protocol_router.py",
+      "prefix": "/api/v1/mcp-protocol",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mcp_router.py",
+      "prefix": "/api/v1/mcp",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mindsdb_router.py",
+      "prefix": "/api/v1/ml",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mitre_mapper_router.py",
+      "prefix": "/api/v1/mitre",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mitre_navigator_router.py",
+      "prefix": "/api/v1/mitre",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mpte_orchestrator_router.py",
+      "prefix": "/api/v1/mpte-orchestrator",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "mpte_router.py",
+      "prefix": "/api/v1/mpte",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "network_analyzer_router.py",
+      "prefix": "/api/v1/network",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "network_security_router.py",
+      "prefix": "/api/v1/network",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "notification_router.py",
+      "prefix": "/api/v1/notifications",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "observability_router.py",
+      "prefix": "/api/v1/observability",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "onboarding_router.py",
+      "prefix": "/api/v1/onboarding",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "pagerduty_router.py",
+      "prefix": "/api/v1/pagerduty",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "pam_router.py",
+      "prefix": "/api/v1/pam",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "patch_manager_router.py",
+      "prefix": "/api/v1/patches",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "pentest_router.py",
+      "prefix": "/api/v1/pentest",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "phishing_router.py",
+      "prefix": "/api/v1/phishing",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "pipeline_router.py",
+      "prefix": "/api/v1/brain",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "playbook_marketplace_router.py",
+      "prefix": "/playbook-marketplace",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "policies_router.py",
+      "prefix": "/api/v1/policies",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "policy_engine_router.py",
+      "prefix": "/api/v1/policy-engine",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "policy_generator_router.py",
+      "prefix": "/api/v1/policy-generator",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "postfix_verify_router.py",
+      "prefix": "/api/v1/verify",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "posture_benchmark_router.py",
+      "prefix": "/api/v1/posture-benchmark",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "posture_router.py",
+      "prefix": "/api/v1/posture",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "pr_gate_router.py",
+      "prefix": "/api/v1/pr-gate",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "pr_generator_router.py",
+      "prefix": "/api/v1/remediation/prs",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "predictions_router.py",
+      "prefix": "/api/v1/predictions",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "prioritizer_router.py",
+      "prefix": "/api/v1/prioritize",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "purple_team_router.py",
+      "prefix": "/api/v1/purple-team",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "quantum_crypto_router.py",
+      "prefix": "/api/v1/quantum-crypto",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "questionnaire_router.py",
+      "prefix": "/api/v1/questionnaires",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "rasp_router.py",
+      "prefix": "/api/v1/rasp",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "rate_limit_router.py",
+      "prefix": "/api/v1/rate-limits",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "regulatory_tracker_router.py",
+      "prefix": "/api/v1/regulatory",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "remediation_board_router.py",
+      "prefix": "/api/v1/remediation-board",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "remediation_router.py",
+      "prefix": "/api/v1/remediation",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "report_builder_router.py",
+      "prefix": "/api/v1/report-builder",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "reports_router.py",
+      "prefix": "/api/v1/reports",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "retention_router.py",
+      "prefix": "/api/v1/retention",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "risk_acceptance_router.py",
+      "prefix": "/api/v1/risk-acceptance",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "risk_quantifier_router.py",
+      "prefix": "/api/v1/risk-quantifier",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "risk_register_router.py",
+      "prefix": "/api/v1/risks",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "runtime_protection_router.py",
+      "prefix": "/api/v1/runtime",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "sbom_router.py",
+      "prefix": "/api/v1/sbom",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "security_kb_router.py",
+      "prefix": "/api/v1/kb",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "security_metrics_router.py",
+      "prefix": "/api/v1/metrics",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "security_roi_router.py",
+      "prefix": "/api/v1/security-roi",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "security_scorecard_router.py",
+      "prefix": "/api/v1/scorecard",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "self_learning_router.py",
+      "prefix": "/api/v1/self-learning",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "self_scan_router.py",
+      "prefix": "/api/v1/self-scan",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "semgrep_router.py",
+      "prefix": "/api/v1/scan/semgrep",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "servicenow_sync_router.py",
+      "prefix": "/api/v1/servicenow-sync",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "session_router.py",
+      "prefix": "/api/v1/sessions",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "single_agent_router.py",
+      "prefix": "/api/v1/ai-agent",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "sla_management_router.py",
+      "prefix": "/api/v1/sla-management",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "sla_router.py",
+      "prefix": "/api/v1/sla",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "slack_bot_router.py",
+      "prefix": "/api/v1/slack",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "snyk_router.py",
+      "prefix": "/api/v1/scan/snyk",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "soar_router.py",
+      "prefix": "/api/v1/soar",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "soc_automation_router.py",
+      "prefix": "/api/v1/soc-automation",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "sso_router.py",
+      "prefix": "/api/v1/auth/sso",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "stream_router.py",
+      "prefix": "/api/v1/stream",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "supply_chain_router.py",
+      "prefix": "/api/v1/supply-chain",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "tag_router.py",
+      "prefix": "/api/v1/tags",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "teams_router.py",
+      "prefix": "/api/v1/teams",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "tenant_rate_limiter_router.py",
+      "prefix": "/api/v1/rate-limits",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "threat_hunter_router.py",
+      "prefix": "/api/v1/hunt",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "threat_hunting_router.py",
+      "prefix": "/api/v1/hunting",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "threat_intel_router.py",
+      "prefix": "/api/v1/threat-intel",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "threat_model_router.py",
+      "prefix": "/api/v1/threat-models",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "training_router.py",
+      "prefix": "/api/v1/training",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "triage_router.py",
+      "prefix": "/api/v1/triage",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "trivy_router.py",
+      "prefix": "/api/v1/scan/trivy",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "trust_center_router.py",
+      "prefix": "/api/v1/trust",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "user_analytics_router.py",
+      "prefix": "/api/v1/analytics/users",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "users_router.py",
+      "prefix": "/api/v1/users",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "validation_router.py",
+      "prefix": "/api/v1/validate",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "vendor_risk_router.py",
+      "prefix": "/api/v1/vendors",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "vendor_scorecard_router.py",
+      "prefix": "/api/v1/vendors",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "vllm_router.py",
+      "prefix": "/api/v1/vllm",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "waf_router.py",
+      "prefix": "/api/v1/waf",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "webhook_dlq_router.py",
+      "prefix": "/api/v1/webhooks/dlq",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "webhook_events_router.py",
+      "prefix": "/api/v1/events",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "webhook_subscriptions_router.py",
+      "prefix": "/api/v1/webhook-subscriptions",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "webhook_verifier_router.py",
+      "prefix": "/api/v1/webhooks/verify",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "workflow_engine_router.py",
+      "prefix": "/api/v1/workflows",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "workflows_router.py",
+      "prefix": "/api/v1/workflows",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "zero_gravity_router.py",
+      "prefix": "/api/v1/zero-gravity",
+      "priority": "MEDIUM"
+    },
+    {
+      "router": "zero_trust_router.py",
+      "prefix": "/api/v1/zero-trust",
+      "priority": "MEDIUM"
+    }
+  ],
+  "consuming_only": [
+    {
+      "router": "analytics_dashboard_router.py",
+      "prefix": "/api/v1/analytics"
+    },
+    {
+      "router": "api_fuzzer_router.py",
+      "prefix": "/api/v1/api-fuzzer"
+    },
+    {
+      "router": "feeds_router.py",
+      "prefix": "/api/v1/feeds"
+    },
+    {
+      "router": "gap_router.py",
+      "prefix": "/api/v1/audit"
+    },
+    {
+      "router": "graph_router.py",
+      "prefix": "/graph"
+    },
+    {
+      "router": "knowledge_graph_router.py",
+      "prefix": "/api/v1/knowledge-graph"
+    },
+    {
+      "router": "metrics_aggregator_router.py",
+      "prefix": "/api/v1/metrics"
+    },
+    {
+      "router": "micro_pentest_router.py",
+      "prefix": "/api/v1/micro-pentest"
+    },
+    {
+      "router": "provenance_router.py",
+      "prefix": "/provenance"
+    },
+    {
+      "router": "queue_router.py",
+      "prefix": "/api/v1/queue"
+    },
+    {
+      "router": "risk_router.py",
+      "prefix": "/risk"
+    },
+    {
+      "router": "streaming_router.py",
+      "prefix": "/api/v1/stream"
+    },
+    {
+      "router": "system_health_router.py",
+      "prefix": "/api/v1/system"
+    },
+    {
+      "router": "system_router.py",
+      "prefix": "/api/v1/system"
+    },
+    {
+      "router": "tenant_router.py",
+      "prefix": "/api/v1/tenants"
+    },
+    {
+      "router": "unified_dashboard_router.py",
+      "prefix": "/api/v1/unified-dashboard"
+    },
+    {
+      "router": "versioning_router.py",
+      "prefix": "/api/versions"
+    }
+  ],
+  "summary": {
+    "total_routers": 226,
+    "connected_to_trustgraph": 5,
+    "connected_pct": 2.2,
+    "producing_disconnected": 204,
+    "producing_disconnected_pct": 90.3,
+    "consuming_only": 17,
+    "consuming_only_pct": 7.5,
+    "priority_breakdown": {
+      "CRITICAL": 5,
+      "HIGH": 11,
+      "MEDIUM": 188
+    },
+    "gap_assessment": "204 of 226 routers (90.3%) are producing security data but NOT connected to TrustGraph",
+    "immediate_action": "5 CRITICAL routers generating findings with zero TrustGraph indexing"
+  }
+}

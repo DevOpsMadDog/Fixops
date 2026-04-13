@@ -397,3 +397,153 @@ def get_provenance(
     except Exception as exc:
         _logger.exception("get_provenance failed component=%s", component_name)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ============================================================================
+# NEW: SBOM Generation, OSV Scanning, License Audit
+# ============================================================================
+
+
+class SBOMGenerateRequest(BaseModel):
+    """Request body for generating a CycloneDX SBOM from a local manifest."""
+
+    manifest_path: str = Field(
+        ...,
+        description="Filesystem path to requirements.txt or package.json",
+    )
+    project_name: str = Field("unknown", description="Project name for SBOM metadata")
+    project_version: str = Field("0.0.0", description="Project version for SBOM metadata")
+
+
+class OSVScanRequest(BaseModel):
+    """Request body for an OSV vulnerability scan of listed packages."""
+
+    packages: List[Dict[str, str]] = Field(
+        ...,
+        description="List of {name, version, ecosystem} dicts. ecosystem: PyPI|npm|Go|Maven",
+    )
+
+
+class LicenseAuditRequest(BaseModel):
+    """Request body for a license audit of a manifest file."""
+
+    manifest_path: str = Field(
+        ...,
+        description="Filesystem path to requirements.txt or package.json",
+    )
+    fetch_pypi: bool = Field(
+        True,
+        description="Fetch live license data from PyPI API for Python packages",
+    )
+
+
+@router.post(
+    "/sbom",
+    summary="Generate a CycloneDX 1.4 SBOM from a local manifest file",
+    status_code=200,
+)
+def generate_sbom(body: SBOMGenerateRequest) -> Dict[str, Any]:
+    """
+    Generate a CycloneDX 1.4 SBOM JSON from a requirements.txt or package.json.
+
+    Parses the manifest at the given path and returns the SBOM document.
+    Does not persist the SBOM — use /sbom/upload to store it.
+    """
+    try:
+        from core.sbom_generator import SBOMGenerator
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail=f"SBOMGenerator not available: {exc}") from exc
+
+    gen = SBOMGenerator(
+        project_name=body.project_name,
+        project_version=body.project_version,
+    )
+    path = body.manifest_path
+    try:
+        if path.endswith("package.json"):
+            sbom = gen.generate_from_package_json(path)
+        else:
+            sbom = gen.generate_from_requirements(path)
+        return sbom
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("generate_sbom failed path=%s", path)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/osv-scan",
+    summary="Query OSV for vulnerabilities in a list of packages",
+    status_code=200,
+)
+def osv_scan(body: OSVScanRequest) -> List[Dict[str, Any]]:
+    """
+    Query https://api.osv.dev/v1/querybatch for vulnerabilities.
+
+    Accepts a list of packages with name, version, and ecosystem.
+    Returns OSV vulnerability findings mapped to the ALDECI finding schema.
+    No authentication required — OSV is a free public API.
+    """
+    try:
+        from core.sbom_generator import SBOMGenerator
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail=f"SBOMGenerator not available: {exc}") from exc
+
+    gen = SBOMGenerator()
+    try:
+        raw = gen.query_osv(body.packages)
+        return gen.map_osv_to_findings(raw)
+    except Exception as exc:
+        _logger.exception("osv_scan failed packages=%s", body.packages)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/license-audit",
+    summary="Audit dependency licenses from a manifest file",
+    status_code=200,
+)
+def license_audit(
+    manifest_path: str = Query(..., description="Path to requirements.txt or package.json"),
+    fetch_pypi: bool = Query(True, description="Fetch live PyPI license data"),
+) -> Dict[str, Any]:
+    """
+    Classify dependency licenses as PERMISSIVE, COPYLEFT, PROPRIETARY, or UNKNOWN.
+
+    Flags COPYLEFT and PROPRIETARY dependencies as HIGH risk for commercial projects.
+    For Python packages, optionally enriches license data via the PyPI JSON API.
+
+    Returns a summary dict with per-category counts, risk score, and a list
+    of flagged high-risk packages.
+    """
+    try:
+        from core.license_auditor import LicenseAuditor
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail=f"LicenseAuditor not available: {exc}") from exc
+
+    auditor = LicenseAuditor(fetch_pypi=fetch_pypi)
+    try:
+        if manifest_path.endswith("package.json"):
+            results = auditor.audit_package_json(manifest_path)
+        else:
+            results = auditor.audit_requirements(manifest_path)
+        summary = auditor.audit_summary(results)
+        summary["details"] = [
+            {
+                "name": r.name,
+                "version": r.version,
+                "ecosystem": r.ecosystem,
+                "license": r.license_id,
+                "category": r.category.value,
+                "is_high_risk": r.is_high_risk,
+                "risk_reason": r.risk_reason,
+            }
+            for r in results
+        ]
+        return summary
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("license_audit failed path=%s", manifest_path)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

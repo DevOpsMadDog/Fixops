@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls -la scripts/enterprise_simulation.py tests/test_enterprise_simulation.py 2>&1\",\"description\":\"Check simulation files\"}",
-  "error": "Exit code 1\nls: scripts/enterprise_simulation.py: No such file or directory\nls: tests/test_enterprise_simulation.py: No such file or directory\n[rerun: b744]",
-  "timestamp": "2026-04-13T12:32:31.931Z",
+  "tool_input_preview": "{\"command\":\"ls /Users/devops.ai/fixops/Fixops/suite-api/ | grep -i council && grep -rn \\\"council\\\" /Users/devops.ai/fixops/Fixops/suite-api/ --include=\\\"*.py\\\" -l | head -5\",\"description\":\"Find counci...",
+  "error": "Exit code 1\n[rerun: b3]",
+  "timestamp": "2026-04-13T12:50:23.561Z",
   "retry_count": 1
 }

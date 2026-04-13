@@ -83,9 +83,26 @@ async def map_findings(
         from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         mappings = engine.map_findings_to_controls(req.findings)
-        return {"mappings": mappings, "total": len(mappings), "org_id": org_id}
+        result = {"mappings": mappings, "total": len(mappings), "org_id": org_id}
     except ImportError as e:
         raise HTTPException(status_code=500, detail=type(e).__name__)
+    # TrustGraph async indexing (fire-and-forget, non-blocking)
+    try:
+        from core.trustgraph_event_bus import EVENT_CONTROL_ASSESSED, get_event_bus
+        import asyncio
+        bus = get_event_bus()
+        if bus and bus.enabled:
+            asyncio.ensure_future(bus.emit(EVENT_CONTROL_ASSESSED, {
+                "control_id": f"compliance-map-{org_id}",
+                "type": "compliance_mapping",
+                "severity": "info",
+                "source": "compliance_engine_router",
+                "org_id": org_id,
+                "total": result["total"],
+            }))
+    except Exception:
+        pass  # event bus is best-effort
+    return result
 
 
 @router.post("/assess")

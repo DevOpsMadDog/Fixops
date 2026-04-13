@@ -20,6 +20,7 @@ const SLADashboard = lazy(() => import("@/pages/mission-control/SLADashboard"));
 const LiveFeed = lazy(() => import("@/pages/mission-control/LiveFeed"));
 const RiskOverview = lazy(() => import("@/pages/mission-control/RiskOverview"));
 const SOCDashboard = lazy(() => import("@/pages/mission-control/SOCDashboard"));
+const MissionControlComplianceDashboard = lazy(() => import("@/pages/mission-control/ComplianceDashboard"));
 
 // Findings Explorer (universal — all personas)
 const FindingsExplorer = lazy(() => import("@/pages/findings/FindingsExplorer"));
@@ -132,6 +133,7 @@ export default function App() {
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
             <Route path="/mission-control/risk" element={<RiskOverview />} />
             <Route path="/mission-control/soc" element={<SOCDashboard />} />
+            <Route path="/mission-control/compliance" element={<MissionControlComplianceDashboard />} />
 
             {/* Space 2: Discover */}
             <Route path="/discover" element={<FindingExplorer />} />

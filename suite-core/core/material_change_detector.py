@@ -489,3 +489,590 @@ class MaterialChangeDetector:
             "Breaking change: public function/class deleted, "
             "signature changed, API route removed, or __init__.py export removed"
         )
+
+
+# ---------------------------------------------------------------------------
+# Push-event blast radius (CRITICAL / HIGH / MEDIUM / LOW)
+# ---------------------------------------------------------------------------
+
+import hashlib  # noqa: E402 — stdlib, already imported by CPython
+import hmac as _hmac  # noqa: E402
+import json as _json  # noqa: E402
+import os as _os  # noqa: E402
+import sqlite3 as _sqlite3  # noqa: E402
+import uuid as _uuid  # noqa: E402
+from dataclasses import dataclass as _dataclass, field as _field  # noqa: E402
+from datetime import datetime as _datetime, timezone as _timezone  # noqa: E402
+from enum import Enum as _Enum  # noqa: E402
+from typing import Any as _Any, Dict as _Dict, List as _List, Optional as _Optional  # noqa: E402
+
+
+class BlastRadiusCategory(str, _Enum):
+    """Security blast-radius tier for a set of changed files."""
+
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
+# File path patterns → blast radius tier
+_BR_CRITICAL = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"auth[_\-/]", r"[_\-/]auth\.", r"authentication", r"authorization",
+        r"crypto[_\-/]", r"[_\-/]crypto\.", r"encrypt", r"decrypt",
+        r"payment", r"billing", r"stripe",
+        r"secret[_\-/]", r"[_\-/]secret\.", r"vault",
+        r"key[_\-]manager", r"jwt", r"oauth", r"sso", r"saml", r"password",
+    ]
+]
+_BR_HIGH = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"router\.py$", r"routes\.py$", r"_router\.py$",
+        r"api[_\-/]", r"endpoint",
+        r"model[_s]\.py$", r"db[_\-/]", r"database", r"migration",
+        r"middleware", r"security", r"firewall", r"rbac", r"permission", r"access_matrix",
+    ]
+]
+_BR_LOW = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"test[_\-/]", r"[_\-/]test\.", r"spec[_\-/]",
+        r"\.md$", r"\.rst$", r"\.txt$",
+        r"\.yml$", r"\.yaml$", r"\.json$", r"\.toml$", r"\.cfg$", r"\.ini$",
+        r"Makefile", r"Dockerfile", r"docker-compose",
+    ]
+]
+_BR_SECURITY_CRITICAL = _BR_CRITICAL + [
+    re.compile(p, re.IGNORECASE)
+    for p in [r"router\.py$", r"routes\.py$", r"_router\.py$", r"middleware", r"security", r"rbac"]
+]
+
+
+@_dataclass
+class BlastRadius:
+    """Blast radius for a push event's changed files."""
+
+    category: BlastRadiusCategory
+    changed_files: _List[str] = _field(default_factory=list)
+    critical_files: _List[str] = _field(default_factory=list)
+    high_files: _List[str] = _field(default_factory=list)
+    medium_files: _List[str] = _field(default_factory=list)
+    low_files: _List[str] = _field(default_factory=list)
+    security_critical_ratio: float = 0.0
+
+    def to_dict(self) -> _Dict[str, _Any]:
+        return {
+            "category": self.category.value,
+            "changed_files_count": len(self.changed_files),
+            "critical_files": self.critical_files,
+            "high_files": self.high_files,
+            "medium_files": self.medium_files,
+            "low_files": self.low_files,
+            "security_critical_ratio": round(self.security_critical_ratio, 3),
+        }
+
+
+@_dataclass
+class MaterialChangeResult:
+    """Full result of analyzing a GitHub push event."""
+
+    id: str = _field(default_factory=lambda: str(_uuid.uuid4()))
+    commit_sha: str = ""
+    repository: str = ""
+    branch: str = ""
+    author: str = ""
+    changed_files: _List[str] = _field(default_factory=list)
+    blast_radius: _Optional[BlastRadius] = None
+    sast_findings: _List[_Dict[str, _Any]] = _field(default_factory=list)
+    is_material: bool = False
+    materiality_reasons: _List[str] = _field(default_factory=list)
+    council_verdict: _Optional[_Dict[str, _Any]] = None
+    incident_id: _Optional[str] = None
+    analyzed_at: str = _field(
+        default_factory=lambda: _datetime.now(_timezone.utc).isoformat()
+    )
+
+    def to_dict(self) -> _Dict[str, _Any]:
+        return {
+            "id": self.id,
+            "commit_sha": self.commit_sha,
+            "repository": self.repository,
+            "branch": self.branch,
+            "author": self.author,
+            "changed_files_count": len(self.changed_files),
+            "blast_radius": self.blast_radius.to_dict() if self.blast_radius else None,
+            "sast_findings_count": len(self.sast_findings),
+            "sast_findings": self.sast_findings,
+            "is_material": self.is_material,
+            "materiality_reasons": self.materiality_reasons,
+            "council_verdict": self.council_verdict,
+            "incident_id": self.incident_id,
+            "analyzed_at": self.analyzed_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------------------------
+
+_MC_DB_PATH = Path(
+    _os.environ.get("FIXOPS_DATA_DIR", "/tmp/fixops")
+) / "material_changes.db"
+
+
+def _mc_get_db() -> _sqlite3.Connection:
+    _MC_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = _sqlite3.connect(str(_MC_DB_PATH), check_same_thread=False)
+    conn.row_factory = _sqlite3.Row
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS material_changes (
+            id TEXT PRIMARY KEY,
+            commit_sha TEXT,
+            repository TEXT,
+            branch TEXT,
+            author TEXT,
+            is_material INTEGER DEFAULT 0,
+            data TEXT NOT NULL,
+            analyzed_at TEXT
+        )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_mc_at ON material_changes(analyzed_at DESC)"
+    )
+    conn.commit()
+    return conn
+
+
+# ---------------------------------------------------------------------------
+# Regex SAST rules (tool, severity, title)
+# ---------------------------------------------------------------------------
+
+_SAST_RULES: _List[tuple] = [
+    (re.compile(r"(password|secret|api_key|token)\s*=\s*['\"][^'\"]{4,}", re.I), "HIGH", "Hardcoded credential"),
+    (re.compile(r"\beval\s*\(", re.I), "HIGH", "Use of eval()"),
+    (re.compile(r"\bexec\s*\(", re.I), "MEDIUM", "Use of exec()"),
+    (re.compile(r"subprocess\.call\(.*shell\s*=\s*True", re.I), "HIGH", "Shell injection risk"),
+    (re.compile(r"pickle\.loads?\(", re.I), "HIGH", "Unsafe pickle deserialization"),
+    (re.compile(r"yaml\.load\([^)]*\)", re.I), "MEDIUM", "Unsafe yaml.load()"),
+    (re.compile(r"hashlib\.(md5|sha1)\(", re.I), "MEDIUM", "Weak hash algorithm"),
+    (re.compile(r"(SSL_VERIFY|verify)\s*=\s*False", re.I), "HIGH", "TLS verification disabled"),
+    (re.compile(r"\bDEBUG\s*=\s*True", re.I), "LOW", "Debug mode enabled"),
+]
+
+
+# ---------------------------------------------------------------------------
+# PushEventAnalyzer — the new webhook-centric detector
+# ---------------------------------------------------------------------------
+
+
+class PushEventAnalyzer:
+    """Analyze GitHub push webhook payloads for security-material changes.
+
+    This class is the push-event-centric surface of MaterialChangeDetector.
+    It exposes the interface specified by the task:
+
+        analyzer = PushEventAnalyzer()
+        result = analyzer.analyze_push_event(payload)
+
+    The existing ``MaterialChangeDetector`` class (diff/commit analysis) is
+    preserved unchanged so no existing callers break.
+    """
+
+    def __init__(
+        self,
+        repo_root: _Optional[str] = None,
+        webhook_secret: _Optional[str] = None,
+    ) -> None:
+        self._repo_root = Path(repo_root) if repo_root else Path.cwd()
+        self._webhook_secret = webhook_secret or _os.environ.get(
+            "GITHUB_WEBHOOK_SECRET", ""
+        )
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def analyze_push_event(self, payload: dict) -> MaterialChangeResult:
+        """Analyze a GitHub push webhook payload end-to-end."""
+        result = MaterialChangeResult(
+            commit_sha=payload.get("after", ""),
+            repository=payload.get("repository", {}).get("full_name", ""),
+            branch=payload.get("ref", "").replace("refs/heads/", ""),
+            author=(
+                payload.get("pusher", {}).get("name", "")
+                or (payload.get("head_commit") or {}).get("author", {}).get("name", "")
+            ),
+        )
+
+        # Collect all changed files across commits
+        seen: set = set()
+        changed: _List[str] = []
+        for commit in payload.get("commits", []):
+            for f in (
+                commit.get("added", [])
+                + commit.get("modified", [])
+                + commit.get("removed", [])
+            ):
+                if f not in seen:
+                    seen.add(f)
+                    changed.append(f)
+        result.changed_files = changed
+
+        if not result.changed_files:
+            logger.info(
+                "material_change.no_files commit=%s repo=%s",
+                result.commit_sha,
+                result.repository,
+            )
+            self._persist(result)
+            return result
+
+        result.blast_radius = self._get_blast_radius(result.changed_files)
+        result.sast_findings = self._run_sast_on_changes(
+            result.changed_files, str(self._repo_root)
+        )
+        result.is_material, result.materiality_reasons = self._assess_materiality(
+            result.sast_findings, result.blast_radius
+        )
+        result.council_verdict = self._ask_council(result)
+        if result.council_verdict and result.council_verdict.get("is_material"):
+            if not result.is_material:
+                result.is_material = True
+                result.materiality_reasons.append("llm_council_override")
+
+        result.incident_id = self._create_incident_if_material(result)
+        logger.info(
+            "material_change.analyzed commit=%s repo=%s material=%s",
+            result.commit_sha,
+            result.repository,
+            result.is_material,
+        )
+        self._persist(result)
+        return result
+
+    # ------------------------------------------------------------------
+    # Blast radius
+    # ------------------------------------------------------------------
+
+    def _get_blast_radius(self, changed_files: _List[str]) -> BlastRadius:
+        """Categorize changed files and compute overall blast radius."""
+        critical: _List[str] = []
+        high: _List[str] = []
+        medium: _List[str] = []
+        low: _List[str] = []
+        security_critical: _List[str] = []
+
+        for f in changed_files:
+            if any(p.search(f) for p in _BR_CRITICAL):
+                critical.append(f)
+            elif any(p.search(f) for p in _BR_HIGH):
+                high.append(f)
+            elif any(p.search(f) for p in _BR_LOW):
+                low.append(f)
+            else:
+                medium.append(f)
+
+            if any(p.search(f) for p in _BR_SECURITY_CRITICAL):
+                security_critical.append(f)
+
+        ratio = len(security_critical) / len(changed_files) if changed_files else 0.0
+
+        if critical:
+            category = BlastRadiusCategory.CRITICAL
+        elif high:
+            category = BlastRadiusCategory.HIGH
+        elif medium:
+            category = BlastRadiusCategory.MEDIUM
+        else:
+            category = BlastRadiusCategory.LOW
+
+        return BlastRadius(
+            category=category,
+            changed_files=changed_files,
+            critical_files=critical,
+            high_files=high,
+            medium_files=medium,
+            low_files=low,
+            security_critical_ratio=ratio,
+        )
+
+    # ------------------------------------------------------------------
+    # SAST
+    # ------------------------------------------------------------------
+
+    def _run_sast_on_changes(
+        self, files: _List[str], repo_path: str
+    ) -> _List[_Dict[str, _Any]]:
+        """Run SAST on changed files: Bandit (if available) + regex heuristics."""
+        findings: _List[_Dict[str, _Any]] = []
+        py_files = [f for f in files if f.endswith(".py")]
+        if py_files:
+            findings.extend(self._run_bandit(py_files, repo_path))
+        findings.extend(self._run_regex_sast(files, repo_path))
+        return findings
+
+    def _run_bandit(
+        self, py_files: _List[str], repo_path: str
+    ) -> _List[_Dict[str, _Any]]:
+        """Run Bandit on Python files; return [] if unavailable."""
+        import subprocess
+
+        abs_files = [
+            str(Path(repo_path) / f)
+            for f in py_files
+            if (Path(repo_path) / f).is_file()
+        ]
+        if not abs_files:
+            return []
+        try:
+            result = subprocess.run(
+                ["bandit", "-f", "json", "-q", "--"] + abs_files,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode not in (0, 1):
+                return []
+            data = _json.loads(result.stdout or "{}")
+            out: _List[_Dict[str, _Any]] = []
+            for r in data.get("results", []):
+                sev = r.get("issue_severity", "LOW").upper()
+                if sev in ("HIGH", "CRITICAL", "MEDIUM"):
+                    out.append({
+                        "id": str(_uuid.uuid4()),
+                        "tool": "bandit",
+                        "severity": sev,
+                        "title": r.get("issue_text", ""),
+                        "file": r.get("filename", ""),
+                        "line": r.get("line_number", 0),
+                        "cwe": r.get("issue_cwe", {}).get("id", ""),
+                    })
+            return out
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("material_change.bandit_unavailable: %s", exc)
+            return []
+
+    def _run_regex_sast(
+        self, files: _List[str], repo_path: str
+    ) -> _List[_Dict[str, _Any]]:
+        """Regex SAST heuristics for all file types."""
+        findings: _List[_Dict[str, _Any]] = []
+        for rel_path in files:
+            abs_path = Path(repo_path) / rel_path
+            if not abs_path.is_file():
+                continue
+            try:
+                content = abs_path.read_text(errors="replace")
+            except OSError:
+                continue
+            for lineno, line in enumerate(content.splitlines(), start=1):
+                for pattern, severity, title in _SAST_RULES:
+                    if pattern.search(line):
+                        findings.append({
+                            "id": str(_uuid.uuid4()),
+                            "tool": "regex_sast",
+                            "severity": severity,
+                            "title": title,
+                            "file": rel_path,
+                            "line": lineno,
+                            "snippet": line.strip()[:120],
+                        })
+        return findings
+
+    # ------------------------------------------------------------------
+    # Materiality assessment
+    # ------------------------------------------------------------------
+
+    def _assess_materiality(
+        self,
+        sast_findings: _List[_Dict],
+        blast_radius: BlastRadius,
+    ) -> tuple:
+        """Return (is_material: bool, reasons: List[str])."""
+        reasons: _List[str] = []
+
+        # Rule 1: blast radius tier
+        if blast_radius.category in (BlastRadiusCategory.CRITICAL, BlastRadiusCategory.HIGH):
+            reasons.append(f"blast_radius_{blast_radius.category.value.lower()}")
+
+        # Rule 2: SAST high/critical findings
+        high_crit = [
+            f for f in sast_findings
+            if f.get("severity", "").upper() in ("HIGH", "CRITICAL")
+        ]
+        if high_crit:
+            reasons.append(f"sast_{len(high_crit)}_high_or_critical_findings")
+
+        # Rule 3: ≥20% security-critical file ratio
+        if blast_radius.security_critical_ratio >= 0.20:
+            reasons.append(
+                f"security_critical_ratio_{blast_radius.security_critical_ratio:.0%}"
+            )
+
+        return bool(reasons), reasons
+
+    # ------------------------------------------------------------------
+    # LLM Council
+    # ------------------------------------------------------------------
+
+    def _ask_council(
+        self, result: MaterialChangeResult
+    ) -> _Optional[_Dict[str, _Any]]:
+        """Ask LLM Council whether this change is material. Returns None if unavailable."""
+        try:
+            from core.council_pipeline_adapter import create_consensus_engine_replacement
+
+            adapter = create_consensus_engine_replacement()
+            br_cat = result.blast_radius.category.value if result.blast_radius else "UNKNOWN"
+            prompt = (
+                f"A developer pushed {len(result.changed_files)} files to "
+                f"{result.repository} ({result.branch} branch), commit {result.commit_sha}. "
+                f"Blast radius: {br_cat}. "
+                f"SAST findings: {len(result.sast_findings)} total, "
+                f"{sum(1 for f in result.sast_findings if f.get('severity','').upper() in ('HIGH','CRITICAL'))} HIGH/CRITICAL. "
+                "Is this change 'material' from a security perspective? "
+                'Respond with JSON: {"is_material": true/false, "confidence": 0.0-1.0, "reasoning": "..."}.'
+            )
+            council_result = adapter.analyse(
+                prompt=prompt, context={"source": "material_change_detector"}
+            )
+            raw = getattr(council_result, "reasoning", "") or str(council_result)
+            match = re.search(r'\{[^}]*"is_material"[^}]*\}', raw, re.DOTALL)
+            if match:
+                return _json.loads(match.group())
+            decision = getattr(council_result, "final_decision", "") or ""
+            return {
+                "is_material": "block" in decision or "remediate" in decision,
+                "confidence": getattr(council_result, "confidence", 0.5),
+                "reasoning": raw[:500],
+            }
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("material_change.council_unavailable: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # Incident creation
+    # ------------------------------------------------------------------
+
+    def _create_incident_if_material(
+        self, result: MaterialChangeResult
+    ) -> _Optional[str]:
+        """Open an incident when the change is material. Returns incident ID or None."""
+        if not result.is_material:
+            return None
+        try:
+            from core.incident_response import (
+                IncidentResponseStore,
+                IncidentSeverity,
+                IncidentType,
+            )
+
+            store = IncidentResponseStore()
+            br_cat = result.blast_radius.category if result.blast_radius else BlastRadiusCategory.MEDIUM
+            severity_map = {
+                BlastRadiusCategory.CRITICAL: IncidentSeverity.SEV1,
+                BlastRadiusCategory.HIGH: IncidentSeverity.SEV2,
+                BlastRadiusCategory.MEDIUM: IncidentSeverity.SEV3,
+                BlastRadiusCategory.LOW: IncidentSeverity.SEV4,
+            }
+            severity = severity_map.get(br_cat, IncidentSeverity.SEV2)
+            title = (
+                f"Material change detected: {result.commit_sha[:8]} "
+                f"on {result.repository}/{result.branch}"
+            )
+            incident = store.create_incident(
+                title=title,
+                type=IncidentType.SUPPLY_CHAIN,
+                severity=severity,
+                reported_by="material_change_detector",
+                org_id="default",
+            )
+            logger.info(
+                "material_change.incident_created id=%s commit=%s",
+                incident.id,
+                result.commit_sha,
+            )
+            return incident.id
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("material_change.incident_creation_failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # HMAC webhook verification
+    # ------------------------------------------------------------------
+
+    def verify_webhook_signature(
+        self, payload_bytes: bytes, signature_header: str
+    ) -> bool:
+        """Verify GitHub HMAC-SHA256 webhook signature.
+
+        Returns True if valid (or no secret configured — dev mode).
+        """
+        if not self._webhook_secret:
+            return True
+        if not signature_header.startswith("sha256="):
+            return False
+        expected = _hmac.new(
+            self._webhook_secret.encode(),
+            payload_bytes,
+            hashlib.sha256,
+        ).hexdigest()
+        provided = signature_header[len("sha256="):]
+        return _hmac.compare_digest(expected, provided)
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+
+    def _persist(self, result: MaterialChangeResult) -> None:
+        try:
+            conn = _mc_get_db()
+            conn.execute(
+                """INSERT OR REPLACE INTO material_changes
+                       (id, commit_sha, repository, branch, author, is_material, data, analyzed_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    result.id,
+                    result.commit_sha,
+                    result.repository,
+                    result.branch,
+                    result.author,
+                    1 if result.is_material else 0,
+                    _json.dumps(result.to_dict()),
+                    result.analyzed_at,
+                ),
+            )
+            conn.commit()
+            conn.close()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("material_change.persist_failed: %s", exc)
+
+    def list_recent(self, limit: int = 50) -> _List[_Dict[str, _Any]]:
+        """Return recent analyses, newest first."""
+        try:
+            conn = _mc_get_db()
+            rows = conn.execute(
+                "SELECT data FROM material_changes ORDER BY analyzed_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            conn.close()
+            return [_json.loads(r["data"]) for r in rows]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("material_change.list_failed: %s", exc)
+            return []
+
+    def get_by_id(self, change_id: str) -> _Optional[_Dict[str, _Any]]:
+        """Fetch a specific analysis by ID."""
+        try:
+            conn = _mc_get_db()
+            row = conn.execute(
+                "SELECT data FROM material_changes WHERE id = ?", (change_id,)
+            ).fetchone()
+            conn.close()
+            return _json.loads(row["data"]) if row else None
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("material_change.get_failed: %s", exc)
+            return None

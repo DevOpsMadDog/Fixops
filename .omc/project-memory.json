@@ -400,8 +400,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 232,
-      "lastAccessed": 1776083532222,
+      "accessCount": 255,
+      "lastAccessed": 1776084659109,
       "type": "directory"
     },
     {
@@ -412,14 +412,26 @@
     },
     {
       "path": "suite-core/core/supply_chain_security.py",
-      "accessCount": 15,
-      "lastAccessed": 1776082228647,
+      "accessCount": 17,
+      "lastAccessed": 1776084475831,
       "type": "file"
     },
     {
       "path": "tests/test_pipeline_api.py",
+      "accessCount": 15,
+      "lastAccessed": 1776084356058,
+      "type": "file"
+    },
+    {
+      "path": "",
       "accessCount": 14,
-      "lastAccessed": 1776082116071,
+      "lastAccessed": 1776084500373,
+      "type": "directory"
+    },
+    {
+      "path": "suite-api/apps/api/asset_inventory_router.py",
+      "accessCount": 13,
+      "lastAccessed": 1776084345741,
       "type": "file"
     },
     {
@@ -441,22 +453,10 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/asset_inventory_router.py",
-      "accessCount": 11,
-      "lastAccessed": 1776083505114,
-      "type": "file"
-    },
-    {
       "path": "tests/test_phase2_connectors.py",
       "accessCount": 8,
       "lastAccessed": 1776081474496,
       "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 8,
-      "lastAccessed": 1776082981095,
-      "type": "directory"
     },
     {
       "path": "suite-api/apps/api/api_fuzzer_router.py",
@@ -471,15 +471,27 @@
       "type": "file"
     },
     {
-      "path": "tests/test_trustgraph.py",
-      "accessCount": 5,
-      "lastAccessed": 1776081267328,
+      "path": "tests/test_supply_chain.py",
+      "accessCount": 6,
+      "lastAccessed": 1776084474432,
       "type": "file"
     },
     {
-      "path": "tests/test_supply_chain.py",
+      "path": "tests/test_trustgraph.py",
+      "accessCount": 6,
+      "lastAccessed": 1776084504803,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/supply_chain_router.py",
       "accessCount": 5,
-      "lastAccessed": 1776082382019,
+      "lastAccessed": 1776084622740,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/threat_intel_router.py",
+      "accessCount": 5,
+      "lastAccessed": 1776084645232,
       "type": "file"
     },
     {
@@ -492,6 +504,12 @@
       "path": "tests/test_compliance_automation.py",
       "accessCount": 4,
       "lastAccessed": 1776082366491,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/attack_surface_manager_router.py",
+      "accessCount": 4,
+      "lastAccessed": 1776084595501,
       "type": "file"
     },
     {
@@ -519,27 +537,39 @@
       "type": "file"
     },
     {
+      "path": "suite-core/core/soar_engine.py",
+      "accessCount": 3,
+      "lastAccessed": 1776083735737,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/compliance_engine_router.py",
+      "accessCount": 3,
+      "lastAccessed": 1776084355032,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/attack_surface_router.py",
+      "accessCount": 3,
+      "lastAccessed": 1776084499980,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/attack_surface_manager.py",
+      "accessCount": 3,
+      "lastAccessed": 1776084508190,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/phishing_router.py",
       "accessCount": 2,
       "lastAccessed": 1776077770630,
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/supply_chain_router.py",
-      "accessCount": 2,
-      "lastAccessed": 1776078053571,
-      "type": "file"
-    },
-    {
       "path": "tests/test_code_to_cloud_tracer.py",
       "accessCount": 2,
       "lastAccessed": 1776078089574,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/soar_engine.py",
-      "accessCount": 2,
-      "lastAccessed": 1776078167781,
       "type": "file"
     },
     {
@@ -579,15 +609,15 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/attack_surface_router.py",
+      "path": "suite-api/apps/api/soar_router.py",
       "accessCount": 2,
-      "lastAccessed": 1776082922537,
+      "lastAccessed": 1776083726171,
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/threat_intel_router.py",
+      "path": "suite-core/core/attack_surface_discovery.py",
       "accessCount": 2,
-      "lastAccessed": 1776082930339,
+      "lastAccessed": 1776084504093,
       "type": "file"
     },
     {
@@ -621,12 +651,6 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/soar_router.py",
-      "accessCount": 1,
-      "lastAccessed": 1776077753830,
-      "type": "file"
-    },
-    {
       "path": "suite-api/apps/api/policy_generator_router.py",
       "accessCount": 1,
       "lastAccessed": 1776077754374,
@@ -645,33 +669,9 @@
       "type": "file"
     },
     {
-      "path": "suite-core/core/attack_surface_discovery.py",
-      "accessCount": 1,
-      "lastAccessed": 1776077779741,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/attack_surface_manager.py",
-      "accessCount": 1,
-      "lastAccessed": 1776077983600,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/attack_surface_manager_router.py",
-      "accessCount": 1,
-      "lastAccessed": 1776078043908,
-      "type": "file"
-    },
-    {
       "path": "suite-core/core/compliance_automation.py",
       "accessCount": 1,
       "lastAccessed": 1776078080169,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/compliance_engine_router.py",
-      "accessCount": 1,
-      "lastAccessed": 1776078087440,
       "type": "file"
     },
     {

@@ -38,6 +38,12 @@ for _suite in (
 
 # Force dev mode so auth passes without a configured token
 os.environ.setdefault("FIXOPS_MODE", "dev")
+# Disable rate limiting so simulation can exercise all 60+ API calls without 429s
+os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
+# Set a known API token so the simulation's X-API-Key header is accepted.
+# This must be set BEFORE create_app() loads the overlay config.
+_SIM_TOKEN = "aldeci-sim-key-2026"
+os.environ["FIXOPS_API_TOKEN"] = _SIM_TOKEN
 
 # ---------------------------------------------------------------------------
 # Lazy TestClient construction — happens once when simulation runs
@@ -173,7 +179,7 @@ class SimulationReport:
 # ---------------------------------------------------------------------------
 # Per-stage helpers
 # ---------------------------------------------------------------------------
-AUTH_HEADERS = {"X-API-Key": "test-simulation-key"}
+AUTH_HEADERS = {"X-API-Key": _SIM_TOKEN}
 
 
 def _call(

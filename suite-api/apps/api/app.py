@@ -1300,6 +1300,17 @@ except ImportError as e:
     _logger.warning("Attack Surface Manager router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Attack Surface Monitor router (continuous monitoring — snapshots, diffs, scoring)
+# ---------------------------------------------------------------------------
+attack_surface_monitor_router: Optional[APIRouter] = None
+try:
+    from apps.api.attack_surface_monitor_router import router as attack_surface_monitor_router
+
+    _logger.info("Loaded Attack Surface Monitor router")
+except ImportError as e:
+    _logger.warning("Attack Surface Monitor router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Dependency-Track router (SBOM analysis — from suite-core/api/)
 # ---------------------------------------------------------------------------
 dtrack_router: Optional[APIRouter] = None
@@ -2956,6 +2967,7 @@ def create_app() -> FastAPI:
         (ai_code_guardian_router, "AI Code Guardian", None, "read:findings"),
         (attack_surface_router, "Attack Surface Discovery", None, "read:findings"),
         (attack_surface_manager_router, "Attack Surface Manager", None, "read:findings"),
+        (attack_surface_monitor_router, "Attack Surface Monitor", None, "read:findings"),
     ]
     for _r, _name, _prefix, _scope in _core_routers:
         if _r:
@@ -5059,8 +5071,8 @@ def create_app() -> FastAPI:
 
     # DAST Scanner — Dynamic Application Security Testing (OWASP Top 10)
     try:
-        from apps.api.dast_router import router as dast_router
-        app.include_router(dast_router, dependencies=[Depends(_verify_api_key)])
+        from apps.api.dast_router import router as _dast_inner_router
+        app.include_router(_dast_inner_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted DAST Scanner router")
     except ImportError as _dast_err:
         _logger.warning("DAST Scanner router not available: %s", _dast_err)

@@ -450,3 +450,204 @@ async def risk_profile(repo_id: str) -> Dict[str, Any]:
         "cosmetic_changes_30d": 0,
         "message": "Risk profiling requires historical change data",
     }
+
+
+# ---------------------------------------------------------------------------
+# Push-event webhook + incident pipeline endpoints
+# ---------------------------------------------------------------------------
+
+_push_analyzer = None
+
+
+def _get_push_analyzer():
+    global _push_analyzer
+    if _push_analyzer is None:
+        try:
+            from core.material_change_detector import PushEventAnalyzer
+            _push_analyzer = PushEventAnalyzer()
+        except ImportError as exc:
+            logger.warning("PushEventAnalyzer not available: %s", exc)
+            raise HTTPException(
+                status_code=503,
+                detail="Push-event analyzer not available",
+            ) from exc
+    return _push_analyzer
+
+
+class CommitAnalyzeRequest(BaseModel):
+    """Request body for manual commit analysis."""
+
+    commit_sha: str = Field(..., description="Commit SHA to analyze")
+    repository: str = Field(default="", description="Repository full name (owner/repo)")
+    branch: str = Field(default="main", description="Branch name")
+    changed_files: List[str] = Field(
+        default_factory=list,
+        description="List of changed file paths (relative to repo root)",
+    )
+
+
+class MaterialChangeResponse(BaseModel):
+    """Response from push-event analysis."""
+
+    id: str
+    commit_sha: str
+    repository: str
+    branch: str
+    author: str
+    changed_files_count: int
+    blast_radius: Optional[Dict[str, Any]]
+    sast_findings_count: int
+    is_material: bool
+    materiality_reasons: List[str]
+    incident_id: Optional[str]
+    analyzed_at: str
+
+
+@router.post(
+    "/material-change/webhook",
+    response_model=MaterialChangeResponse,
+    summary="Receive GitHub push webhook → SAST → LLM Council → incident",
+)
+async def push_webhook(
+    request: Request,
+    x_github_event: Optional[str] = Header(None),
+    x_hub_signature_256: Optional[str] = Header(None),
+) -> MaterialChangeResponse:
+    """Accept a GitHub push webhook, run SAST on changed files, assess materiality,
+    and open an incident if the change is security-material.
+
+    Security:
+    - HMAC-SHA256 verified when GITHUB_WEBHOOK_SECRET is set
+    - Rate-limited: 10 requests/minute per IP
+    - Payload capped at 1 MB
+    """
+    _check_webhook_rate_limit(request)
+
+    _MAX_BODY = 1 * 1024 * 1024
+    raw_body = b""
+    async for chunk in request.stream():
+        raw_body += chunk
+        if len(raw_body) > _MAX_BODY:
+            raise HTTPException(status_code=413, detail="Webhook payload exceeds 1 MB limit")
+
+    # HMAC verification
+    secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+    if secret and x_hub_signature_256:
+        import hashlib
+        import hmac as _hmac_mod
+        expected = "sha256=" + _hmac_mod.new(
+            secret.encode(), raw_body, hashlib.sha256
+        ).hexdigest()
+        if not _hmac_mod.compare_digest(expected, x_hub_signature_256):
+            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    try:
+        import json as _json
+        payload: Dict[str, Any] = _json.loads(raw_body)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    # Only process push events
+    if x_github_event and x_github_event != "push":
+        return MaterialChangeResponse(
+            id="",
+            commit_sha="",
+            repository="",
+            branch="",
+            author="",
+            changed_files_count=0,
+            blast_radius=None,
+            sast_findings_count=0,
+            is_material=False,
+            materiality_reasons=[],
+            incident_id=None,
+            analyzed_at="",
+        )
+
+    analyzer = _get_push_analyzer()
+    result = analyzer.analyze_push_event(payload)
+    d = result.to_dict()
+    return MaterialChangeResponse(
+        id=d["id"],
+        commit_sha=d["commit_sha"],
+        repository=d["repository"],
+        branch=d["branch"],
+        author=d["author"],
+        changed_files_count=d["changed_files_count"],
+        blast_radius=d["blast_radius"],
+        sast_findings_count=d["sast_findings_count"],
+        is_material=d["is_material"],
+        materiality_reasons=d["materiality_reasons"],
+        incident_id=d["incident_id"],
+        analyzed_at=d["analyzed_at"],
+    )
+
+
+@router.post(
+    "/material-change/analyze",
+    response_model=MaterialChangeResponse,
+    summary="Manually analyze a commit SHA for materiality",
+)
+async def analyze_commit_manual(body: CommitAnalyzeRequest) -> MaterialChangeResponse:
+    """Manually trigger push-event materiality analysis for a given commit.
+
+    Useful for CI/CD pipelines and manual investigation.
+    """
+    analyzer = _get_push_analyzer()
+    # Build a synthetic push payload from the request
+    payload = {
+        "after": body.commit_sha,
+        "ref": f"refs/heads/{body.branch}",
+        "repository": {"full_name": body.repository},
+        "pusher": {"name": "manual"},
+        "commits": [
+            {
+                "id": body.commit_sha,
+                "added": [],
+                "modified": body.changed_files,
+                "removed": [],
+            }
+        ],
+    }
+    result = analyzer.analyze_push_event(payload)
+    d = result.to_dict()
+    return MaterialChangeResponse(
+        id=d["id"],
+        commit_sha=d["commit_sha"],
+        repository=d["repository"],
+        branch=d["branch"],
+        author=d["author"],
+        changed_files_count=d["changed_files_count"],
+        blast_radius=d["blast_radius"],
+        sast_findings_count=d["sast_findings_count"],
+        is_material=d["is_material"],
+        materiality_reasons=d["materiality_reasons"],
+        incident_id=d["incident_id"],
+        analyzed_at=d["analyzed_at"],
+    )
+
+
+@router.get(
+    "/material-change/recent",
+    summary="List recent material change analyses",
+)
+async def list_recent_material_changes(
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """Return the most recent push-event analyses, newest first."""
+    analyzer = _get_push_analyzer()
+    items = analyzer.list_recent(limit=limit)
+    return {"total": len(items), "items": items}
+
+
+@router.get(
+    "/material-change/{change_id}",
+    summary="Get a specific push-event analysis by ID",
+)
+async def get_material_change(change_id: str) -> Dict[str, Any]:
+    """Fetch a single push-event analysis record by its UUID."""
+    analyzer = _get_push_analyzer()
+    item = analyzer.get_by_id(change_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail=f"Material change {change_id!r} not found")
+    return item
