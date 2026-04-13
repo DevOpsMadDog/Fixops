@@ -92,6 +92,7 @@ _CWE_TO_CVE: Dict[str, List[str]] = {
 _kev_cache: Dict[str, str] = {}
 _kev_cache_lock = threading.Lock()
 _kev_cache_ts: float = 0.0
+_kev_cache_loaded: bool = False  # True once a successful fetch has occurred
 _KEV_CACHE_TTL = 3600  # 1 hour
 
 
@@ -318,7 +319,8 @@ class VulnerabilityEnricher:
 
         if missing:
             fetched = self._call_epss_api(missing)
-            for cve, score in fetched.items():
+            for cve in missing:
+                score = fetched.get(cve, 0.0)
                 self._epss_cache[cve] = (score, now)
                 result[cve] = score
 
@@ -345,7 +347,7 @@ class VulnerabilityEnricher:
 
     def _load_kev_cache(self) -> None:
         """Fetch CISA KEV JSON and populate the module-level cache."""
-        global _kev_cache, _kev_cache_ts
+        global _kev_cache, _kev_cache_ts, _kev_cache_loaded
         try:
             with urlopen(_KEV_FEED_URL, timeout=self._timeout) as resp:
                 data = json.loads(resp.read().decode())
@@ -356,18 +358,21 @@ class VulnerabilityEnricher:
                 if cve_id:
                     new_cache[cve_id] = due_date
             with _kev_cache_lock:
+                _kev_cache.clear()
                 _kev_cache.update(new_cache)
                 _kev_cache_ts = time.time()
+                _kev_cache_loaded = True
             _logger.debug("kev_cache_loaded: %d entries", len(_kev_cache))
         except (URLError, OSError, json.JSONDecodeError) as exc:
             _logger.debug("kev_feed_unavailable: %s", exc)
 
     def _ensure_kev_cache(self) -> None:
-        """Refresh KEV cache if stale or empty."""
+        """Refresh KEV cache if stale or not yet loaded."""
         now = time.time()
         with _kev_cache_lock:
             stale = (now - _kev_cache_ts) > _KEV_CACHE_TTL
-        if stale or not _kev_cache:
+            loaded = _kev_cache_loaded
+        if stale or not loaded:
             self._load_kev_cache()
 
     def _check_kev(self, cves: List[str]) -> tuple[bool, Optional[str]]:
