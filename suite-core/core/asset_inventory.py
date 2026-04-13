@@ -213,6 +213,7 @@ class _InventoryDB:
         if dir_part:
             os.makedirs(dir_part, exist_ok=True)
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
         self._lock = threading.Lock()
@@ -618,44 +619,35 @@ class _InventoryDB:
     # ---- Row converters ----
 
     @staticmethod
-    def _row_to_asset(row: tuple) -> ManagedAsset:
-        (
-            id_, name, asset_type, hostname, ip_address,
-            cloud_provider, region, cloud_resource_id,
-            owner_email, owner_name, team, business_unit, cost_center,
-            criticality, criticality_tier, data_classification,
-            compliance_scope_json, environment, lifecycle, discovery_source,
-            tags_json, metadata_json, first_discovered, last_seen,
-            finding_count, risk_score, org_id,
-        ) = row
+    def _row_to_asset(row) -> ManagedAsset:
         return ManagedAsset(
-            id=id_,
-            name=name,
-            asset_type=asset_type,
-            hostname=hostname,
-            ip_address=ip_address,
-            cloud_provider=cloud_provider,
-            region=region,
-            cloud_resource_id=cloud_resource_id,
-            owner_email=owner_email,
-            owner_name=owner_name,
-            team=team,
-            business_unit=business_unit,
-            cost_center=cost_center,
-            criticality=AssetCriticality(criticality),
-            criticality_tier=CriticalityTier(criticality_tier),
-            data_classification=DataClassification(data_classification),
-            compliance_scope=json.loads(compliance_scope_json),
-            environment=Environment(environment),
-            lifecycle=AssetLifecycle(lifecycle),
-            discovery_source=discovery_source,
-            tags=json.loads(tags_json),
-            metadata=json.loads(metadata_json),
-            first_discovered=first_discovered,
-            last_seen=last_seen,
-            finding_count=finding_count,
-            risk_score=risk_score,
-            org_id=org_id,
+            id=row["id"],
+            name=row["name"],
+            asset_type=row["asset_type"],
+            hostname=row["hostname"],
+            ip_address=row["ip_address"],
+            cloud_provider=row["cloud_provider"],
+            region=row["region"],
+            cloud_resource_id=row["cloud_resource_id"],
+            owner_email=row["owner_email"],
+            owner_name=row["owner_name"],
+            team=row["team"],
+            business_unit=row["business_unit"],
+            cost_center=row["cost_center"],
+            criticality=AssetCriticality(row["criticality"]),
+            criticality_tier=CriticalityTier(row["criticality_tier"] or "T3"),
+            data_classification=DataClassification(row["data_classification"] or "internal"),
+            compliance_scope=json.loads(row["compliance_scope"] or "[]"),
+            environment=Environment(row["environment"]),
+            lifecycle=AssetLifecycle(row["lifecycle"]),
+            discovery_source=row["discovery_source"],
+            tags=json.loads(row["tags"] or "[]"),
+            metadata=json.loads(row["metadata"] or "{}"),
+            first_discovered=row["first_discovered"],
+            last_seen=row["last_seen"],
+            finding_count=row["finding_count"],
+            risk_score=row["risk_score"],
+            org_id=row["org_id"],
         )
 
     @staticmethod
