@@ -2573,6 +2573,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Threat Intel router")
 
+    # Database Security Scanner — CIS benchmarks, privilege audit, data exposure, query audit
+    if db_security_router:
+        app.include_router(
+            db_security_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Database Security Scanner router")
+
     # API Analytics — usage monitoring
     if api_analytics_router:
         app.include_router(
