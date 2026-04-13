@@ -4491,6 +4491,16 @@ def create_app() -> FastAPI:
         _logger.warning("Network Segmentation Analyzer router not available: %s", _e)
 
     # -----------------------------------------------------------------------
+    # Access Control Matrix router — who can access what
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.access_matrix_router import router as _access_matrix_router
+        app.include_router(_access_matrix_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Loaded Access Control Matrix router")
+    except ImportError as _e:
+        _logger.warning("Access Control Matrix router not available: %s", _e)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
