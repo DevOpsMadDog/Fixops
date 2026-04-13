@@ -4977,6 +4977,66 @@ def create_app() -> FastAPI:
         _logger.warning("Self-Scan router not available: %s", _self_scan_err)
 
     # -----------------------------------------------------------------------
+    # Threat Hunting — proactive threat detection with MITRE ATT&CK
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.threat_hunter_router import router as threat_hunter_router
+        app.include_router(threat_hunter_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Hunter router")
+    except ImportError as _th_err:
+        _logger.warning("Threat Hunter router not available: %s", _th_err)
+
+    # -----------------------------------------------------------------------
+    # Container Runtime Security — image analysis, CIS Docker Benchmark
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.container_runtime_router import router as container_runtime_router
+        app.include_router(container_runtime_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Container Runtime Security router")
+    except ImportError as _cr_err:
+        _logger.warning("Container Runtime router not available: %s", _cr_err)
+
+    # -----------------------------------------------------------------------
+    # Bug Bounty / VDP — vulnerability disclosure program management
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.bug_bounty_router import router as bug_bounty_router
+        app.include_router(bug_bounty_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Bug Bounty router")
+    except ImportError as _bb_err:
+        _logger.warning("Bug Bounty router not available: %s", _bb_err)
+
+    # -----------------------------------------------------------------------
+    # Vendor Risk Management — third-party risk assessment
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.vendor_risk_router import router as vendor_risk_router
+        app.include_router(vendor_risk_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Vendor Risk router")
+    except ImportError as _vr_err:
+        _logger.warning("Vendor Risk router not available: %s", _vr_err)
+
+    # -----------------------------------------------------------------------
+    # Data Security / DLP — classification, masking, residency
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.data_security_router import router as data_security_router
+        app.include_router(data_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Data Security router")
+    except ImportError as _ds_err:
+        _logger.warning("Data Security router not available: %s", _ds_err)
+
+    # -----------------------------------------------------------------------
+    # TrustGraph Integration — universal finding indexer, GraphRAG queries
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.trustgraph_integration_router import router as trustgraph_integration_router
+        app.include_router(trustgraph_integration_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted TrustGraph Integration router")
+    except ImportError as _tgi_err:
+        _logger.warning("TrustGraph Integration router not available: %s", _tgi_err)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
