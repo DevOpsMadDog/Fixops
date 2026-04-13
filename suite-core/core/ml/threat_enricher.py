@@ -570,6 +570,67 @@ class ThreatEnricher:
             self._load_kev_catalog(skip_api=True)
         return self._kev_details.get(cve_id)
 
+    def enrich(
+        self,
+        cve_ids: List[str],
+        skip_api: bool = False,
+    ) -> Dict[str, Dict[str, Any]]:
+        """Enrich a list of CVE IDs with EPSS and KEV data.
+
+        Lightweight companion to :meth:`enrich_findings` that accepts raw CVE
+        ID strings and returns a per-CVE enrichment dict.  Used by the AutoFix
+        engine and other callers that have CVE IDs but no full finding objects.
+
+        Parameters
+        ----------
+        cve_ids : list of str
+            CVE identifiers to enrich (e.g. ``["CVE-2021-44228"]``).
+        skip_api : bool
+            If ``True``, skip live API calls and rely solely on cached/local
+            data.  Required when running in air-gap mode.
+
+        Returns
+        -------
+        dict
+            Mapping of CVE ID → ``{"epss": float | None, "kev": bool,
+            "cvss": float | None, "kev_details": dict | None}``.
+        """
+        if not cve_ids:
+            return {}
+
+        # Ensure KEV catalog is loaded
+        if not self._kev_loaded:
+            self._load_kev_catalog(skip_api=skip_api)
+
+        # Ensure EPSS cache is populated from disk
+        self._load_epss_cache()
+
+        # Attempt to load CVSS from cached feeds
+        if not self._cvss_cache:
+            self._load_cvss_from_nvd_cache()
+            self._load_cvss_from_daily_intel()
+
+        # Batch-fetch EPSS for any CVEs not yet cached
+        if not skip_api:
+            missing = [c for c in cve_ids if c not in self._epss_cache]
+            if missing:
+                self._batch_fetch_epss(missing)
+
+        result: Dict[str, Dict[str, Any]] = {}
+        for cve_id in cve_ids:
+            epss = self._epss_cache.get(cve_id)
+            in_kev = cve_id in self._kev_set
+            cvss = self._cvss_cache.get(cve_id)
+            kev_details = self._kev_details.get(cve_id) if in_kev else None
+            result[cve_id] = {
+                "epss": epss,
+                "kev": in_kev,
+                "cvss": cvss,
+                "kev_details": kev_details,
+            }
+
+        return result
+
     @property
     def kev_count(self) -> int:
         """Total number of CVEs in KEV catalog."""

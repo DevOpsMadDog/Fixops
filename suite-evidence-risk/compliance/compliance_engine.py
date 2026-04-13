@@ -1005,18 +1005,25 @@ class ComplianceEngine:
         trend = self.db.get_posture_trend(framework.value, limit=10)
 
         # Gather evidence per control
+        fw_controls = self._framework_controls.get(framework, {})
         controls_with_evidence = []
         for assessment in assessments:
+            ctrl_id = assessment["control_id"]
+            ctrl_def = fw_controls.get(ctrl_id, {})
             evidence = self.db.get_evidence_for_control(
-                assessment["control_id"], framework.value
+                ctrl_id, framework.value
             )
             controls_with_evidence.append({
-                "control_id": assessment["control_id"],
+                "control_id": ctrl_id,
+                "title": ctrl_def.get("title", assessment.get("title", "")),
+                "category": ctrl_def.get("category", assessment.get("category", "General")),
                 "status": assessment["status"],
                 "score": assessment.get("score", 0.0),
                 "evidence_count": len(evidence),
                 "evidence_items": evidence[:5],  # Top 5 per control
                 "notes": assessment.get("notes", ""),
+                "automated": ctrl_def.get("automated", True),
+                "related_cwes": ctrl_def.get("cwes", []),
             })
 
         bundle = {
