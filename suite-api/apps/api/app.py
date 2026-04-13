@@ -128,6 +128,7 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("PR Gate router not available: %s", e)
 from apps.api.policies_router import router as policies_router
+from apps.api.policy_engine_router import router as policy_engine_router
 from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
 from apps.api.admin_router import router as admin_router
@@ -2839,6 +2840,8 @@ def create_app() -> FastAPI:
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(sla_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(sla_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+    app.include_router(policy_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+    _logger.info("Mounted Policy Engine router at /api/v1/policy-engine")
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
