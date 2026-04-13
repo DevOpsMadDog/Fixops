@@ -574,7 +574,7 @@ class TestGatewayAnalytics:
     def test_latency_percentiles_empty(self, analytics):
         percs = analytics.get_latency_percentiles(hours=24)
         assert percs["total_calls"] == 0
-        assert percs["p95"] == 0.0
+        assert percs["p95_ms"] == 0.0
 
     def test_cleanup_old(self, analytics):
         analytics.record_call("/old", "GET", 200, 1.0)

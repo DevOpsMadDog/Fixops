@@ -1016,7 +1016,7 @@ class GatewayAnalytics:
         times = sorted(r["response_ms"] for r in rows)
         n = len(times)
         if n == 0:
-            return {"endpoint": endpoint, "total_calls": 0, "p50": 0.0, "p95": 0.0, "p99": 0.0}
+            return {"endpoint": endpoint or "all", "total_calls": 0, "p50_ms": 0.0, "p95_ms": 0.0, "p99_ms": 0.0, "avg_ms": 0.0, "min_ms": 0.0, "max_ms": 0.0, "window_hours": hours}
 
         return {
             "endpoint": endpoint or "all",
