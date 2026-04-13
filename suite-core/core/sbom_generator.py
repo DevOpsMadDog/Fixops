@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import sqlite3
 import subprocess
 import uuid
 from datetime import datetime, timezone
@@ -134,6 +135,17 @@ def _cyclonedx_envelope(
     }
 
 
+def _ecosystem_from_purl(purl: str) -> str:
+    """Infer ecosystem string from a package URL for _make_component."""
+    if purl.startswith("pkg:npm"):
+        return "npm"
+    if purl.startswith("pkg:golang"):
+        return "golang"
+    if purl.startswith("pkg:maven"):
+        return "maven"
+    return "pypi"
+
+
 def _http_post_json(url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     """POST JSON to url, return parsed response. Raises URLError / ValueError on failure."""
     body = json.dumps(payload).encode()
@@ -156,9 +168,277 @@ class SBOMGenerator:
     OSV calls are best-effort — network errors are logged and return empty lists.
     """
 
-    def __init__(self, project_name: str = "unknown", project_version: str = "0.0.0") -> None:
+    def __init__(
+        self,
+        project_name: str = "unknown",
+        project_version: str = "0.0.0",
+        db_path: str = "data/sbom.db",
+    ) -> None:
         self.project_name = project_name
         self.project_version = project_version
+        self._db_path = Path(db_path)
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # SQLite persistence
+    # ------------------------------------------------------------------
+
+    def _get_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(self._db_path))
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sboms (
+                    id TEXT PRIMARY KEY,
+                    format TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    org_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    content TEXT NOT NULL
+                )
+                """
+            )
+            conn.commit()
+
+    # ------------------------------------------------------------------
+    # Parsing helpers (instance-method wrappers)
+    # ------------------------------------------------------------------
+
+    def parse_requirements_txt(self, content: str) -> List[Dict[str, Any]]:
+        """Parse Python requirements.txt text. Returns list of {name, version, purl}."""
+        components = []
+        for name, version in _parse_requirements_txt(content):
+            if name:
+                components.append(
+                    {"name": name, "version": version, "purl": _make_purl("pypi", name, version)}
+                )
+        return components
+
+    def parse_package_json(self, content: str) -> List[Dict[str, Any]]:
+        """Parse Node.js package.json text. Returns list of {name, version, purl}."""
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            return []
+        components = []
+        for name, version in _parse_package_json_deps(data):
+            if name:
+                components.append(
+                    {"name": name, "version": version, "purl": _make_purl("npm", name, version)}
+                )
+        return components
+
+    def parse_go_mod(self, content: str) -> List[Dict[str, Any]]:
+        """Parse Go go.mod require block. Returns list of {name, version, purl}."""
+        components = []
+        in_require = False
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("//"):
+                continue
+            if line == "require (":
+                in_require = True
+                continue
+            if in_require and line == ")":
+                in_require = False
+                continue
+            # Single-line: require module/path v1.2.3
+            if line.startswith("require ") and not line.endswith("("):
+                parts = line[len("require "):].split()
+                if len(parts) >= 2:
+                    name, version = parts[0], parts[1]
+                    components.append(
+                        {"name": name, "version": version, "purl": _make_purl("golang", name, version)}
+                    )
+                continue
+            if in_require:
+                # Strip inline comments
+                line = line.split("//")[0].strip()
+                if not line:
+                    continue
+                parts = line.split()
+                if len(parts) >= 2:
+                    name, version = parts[0], parts[1]
+                    components.append(
+                        {"name": name, "version": version, "purl": _make_purl("golang", name, version)}
+                    )
+        return components
+
+    # ------------------------------------------------------------------
+    # SBOM document generation
+    # ------------------------------------------------------------------
+
+    def generate_cyclonedx(
+        self, components: List[Dict[str, Any]], metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Generate CycloneDX 1.4 JSON SBOM from a component list."""
+        cdx_components = []
+        for comp in components:
+            cdx_components.append(
+                _make_component(
+                    name=comp.get("name", ""),
+                    version=comp.get("version", ""),
+                    ecosystem=_ecosystem_from_purl(comp.get("purl", "")),
+                    licenses=comp.get("licenses"),
+                    hashes=comp.get("hashes"),
+                )
+            )
+        project_name = (metadata or {}).get("project_name", self.project_name)
+        project_version = (metadata or {}).get("project_version", self.project_version)
+        return _cyclonedx_envelope(project_name, project_version, cdx_components)
+
+    def generate_spdx(
+        self, components: List[Dict[str, Any]], metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Generate SPDX 2.3 JSON SBOM from a component list."""
+        project_name = (metadata or {}).get("project_name", self.project_name)
+        packages = []
+        for comp in components:
+            packages.append(
+                {
+                    "SPDXID": f"SPDXRef-Package-{comp.get('name', 'unknown')}",
+                    "name": comp.get("name", ""),
+                    "versionInfo": comp.get("version", ""),
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "PACKAGE-MANAGER",
+                            "referenceType": "purl",
+                            "referenceLocator": comp.get("purl", ""),
+                        }
+                    ]
+                    if comp.get("purl")
+                    else [],
+                    "licenseConcluded": "NOASSERTION",
+                    "licenseDeclared": "NOASSERTION",
+                    "downloadLocation": "NOASSERTION",
+                    "filesAnalyzed": False,
+                }
+            )
+        return {
+            "spdxVersion": "SPDX-2.3",
+            "dataLicense": "CC0-1.0",
+            "SPDXID": "SPDXRef-DOCUMENT",
+            "name": project_name,
+            "documentNamespace": f"https://aldeci.local/sbom/{uuid.uuid4()}",
+            "creationInfo": {
+                "created": datetime.now(timezone.utc).isoformat(),
+                "creators": ["Tool: ALDECI SBOMGenerator-1.0"],
+            },
+            "packages": packages,
+        }
+
+    # ------------------------------------------------------------------
+    # Directory scanning
+    # ------------------------------------------------------------------
+
+    def scan_directory(self, directory: str) -> List[Dict[str, Any]]:
+        """Scan a directory for dependency files and parse all found."""
+        base = Path(directory)
+        components: List[Dict[str, Any]] = []
+        for req_file in base.rglob("requirements*.txt"):
+            try:
+                content = req_file.read_text(encoding="utf-8", errors="replace")
+                components.extend(self.parse_requirements_txt(content))
+            except OSError as exc:
+                logger.warning("Could not read %s: %s", req_file, exc)
+        for pkg_file in base.rglob("package.json"):
+            try:
+                content = pkg_file.read_text(encoding="utf-8", errors="replace")
+                components.extend(self.parse_package_json(content))
+            except OSError as exc:
+                logger.warning("Could not read %s: %s", pkg_file, exc)
+        for go_file in base.rglob("go.mod"):
+            try:
+                content = go_file.read_text(encoding="utf-8", errors="replace")
+                components.extend(self.parse_go_mod(content))
+            except OSError as exc:
+                logger.warning("Could not read %s: %s", go_file, exc)
+        # Deduplicate by purl
+        seen: set = set()
+        unique: List[Dict[str, Any]] = []
+        for comp in components:
+            key = comp.get("purl") or f"{comp['name']}@{comp.get('version','')}"
+            if key not in seen:
+                seen.add(key)
+                unique.append(comp)
+        return unique
+
+    # ------------------------------------------------------------------
+    # Storage
+    # ------------------------------------------------------------------
+
+    def store_sbom(
+        self,
+        sbom: Dict[str, Any],
+        format: str,
+        target: str,
+        org_id: str = "default",
+    ) -> str:
+        """Store SBOM in SQLite. Returns sbom_id."""
+        sbom_id = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc).isoformat()
+        with self._get_conn() as conn:
+            conn.execute(
+                "INSERT INTO sboms (id, format, target, org_id, created_at, content) VALUES (?,?,?,?,?,?)",
+                (sbom_id, format, target, org_id, created_at, json.dumps(sbom)),
+            )
+            conn.commit()
+        return sbom_id
+
+    def get_sbom(self, sbom_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve stored SBOM by ID. Returns None if not found."""
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT content FROM sboms WHERE id = ?", (sbom_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        return json.loads(row["content"])
+
+    def list_sboms(self, org_id: str = "default") -> List[Dict[str, Any]]:
+        """List SBOM records (without full content) for an org."""
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT id, format, target, org_id, created_at FROM sboms WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def diff_sboms(self, sbom_id_a: str, sbom_id_b: str) -> Dict[str, Any]:
+        """Compare two SBOMs. Returns {added: [...], removed: [...], changed: [...]}."""
+        sbom_a = self.get_sbom(sbom_id_a)
+        sbom_b = self.get_sbom(sbom_id_b)
+        if sbom_a is None:
+            raise KeyError(f"SBOM not found: {sbom_id_a}")
+        if sbom_b is None:
+            raise KeyError(f"SBOM not found: {sbom_id_b}")
+
+        def _index(sbom: Dict[str, Any]) -> Dict[str, str]:
+            """Build name -> version index from CycloneDX or SPDX doc."""
+            # CycloneDX
+            comps = sbom.get("components", [])
+            if comps:
+                return {c["name"]: c.get("version", "") for c in comps}
+            # SPDX
+            pkgs = sbom.get("packages", [])
+            return {p["name"]: p.get("versionInfo", "") for p in pkgs}
+
+        idx_a = _index(sbom_a)
+        idx_b = _index(sbom_b)
+
+        added = [{"name": n, "version": v} for n, v in idx_b.items() if n not in idx_a]
+        removed = [{"name": n, "version": v} for n, v in idx_a.items() if n not in idx_b]
+        changed = [
+            {"name": n, "version_a": idx_a[n], "version_b": idx_b[n]}
+            for n in idx_a
+            if n in idx_b and idx_a[n] != idx_b[n]
+        ]
+        return {"added": added, "removed": removed, "changed": changed}
 
     # ------------------------------------------------------------------
     # SBOM generation

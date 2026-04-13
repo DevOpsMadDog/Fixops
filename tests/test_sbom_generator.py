@@ -332,3 +332,182 @@ def test_map_osv_to_findings_schema(gen):
 
 def test_map_osv_to_findings_empty(gen):
     assert gen.map_osv_to_findings([]) == []
+
+
+# ---------------------------------------------------------------------------
+# Instance-method parse_requirements_txt
+# ---------------------------------------------------------------------------
+
+
+def test_instance_parse_requirements_txt_two_components(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0\nflask>=2.0.0")
+    assert len(comps) == 2
+    names = [c["name"] for c in comps]
+    assert "requests" in names
+    assert "flask" in names
+
+
+def test_instance_parse_requirements_txt_empty_string(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("")
+    assert comps == []
+
+
+def test_instance_parse_requirements_txt_skips_comments(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("# comment\nrequests==1.0")
+    assert len(comps) == 1
+    assert comps[0]["name"] == "requests"
+
+
+def test_instance_parse_requirements_txt_purl_format(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0")
+    assert comps[0]["purl"] == "pkg:pypi/requests@2.28.0"
+
+
+# ---------------------------------------------------------------------------
+# Instance-method parse_package_json
+# ---------------------------------------------------------------------------
+
+
+def test_instance_parse_package_json_with_dependencies(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    content = json.dumps({"dependencies": {"lodash": "^4.17.21"}, "devDependencies": {"jest": "29.0.0"}})
+    comps = g.parse_package_json(content)
+    names = [c["name"] for c in comps]
+    assert "lodash" in names
+    assert "jest" in names
+
+
+def test_instance_parse_package_json_empty_dependencies(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_package_json(json.dumps({}))
+    assert comps == []
+
+
+# ---------------------------------------------------------------------------
+# parse_go_mod
+# ---------------------------------------------------------------------------
+
+
+def test_parse_go_mod_require_block(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    content = "module example.com/myapp\n\nrequire (\n\tgithub.com/gin-gonic/gin v1.9.0\n\tgolang.org/x/net v0.10.0\n)\n"
+    comps = g.parse_go_mod(content)
+    names = [c["name"] for c in comps]
+    assert "github.com/gin-gonic/gin" in names
+    assert "golang.org/x/net" in names
+
+
+def test_parse_go_mod_purl_format(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    content = "require (\n\tgithub.com/pkg/errors v0.9.1\n)\n"
+    comps = g.parse_go_mod(content)
+    assert comps[0]["purl"].startswith("pkg:golang/")
+
+
+# ---------------------------------------------------------------------------
+# generate_cyclonedx
+# ---------------------------------------------------------------------------
+
+
+def test_generate_cyclonedx_returns_bomformat(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0")
+    sbom = g.generate_cyclonedx(comps)
+    assert sbom["bomFormat"] == "CycloneDX"
+
+
+def test_generate_cyclonedx_components_list(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0\nflask>=2.0")
+    sbom = g.generate_cyclonedx(comps)
+    assert len(sbom["components"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# generate_spdx
+# ---------------------------------------------------------------------------
+
+
+def test_generate_spdx_returns_spdxversion(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0")
+    sbom = g.generate_spdx(comps)
+    assert "spdxVersion" in sbom
+    assert sbom["spdxVersion"].startswith("SPDX-")
+
+
+# ---------------------------------------------------------------------------
+# store_sbom / get_sbom / list_sboms
+# ---------------------------------------------------------------------------
+
+
+def test_store_sbom_returns_nonempty_id(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0")
+    sbom = g.generate_cyclonedx(comps)
+    sbom_id = g.store_sbom(sbom, "cyclonedx", "myproject")
+    assert sbom_id and isinstance(sbom_id, str)
+
+
+def test_get_sbom_retrieves_stored(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("flask==2.0.0")
+    sbom = g.generate_cyclonedx(comps)
+    sbom_id = g.store_sbom(sbom, "cyclonedx", "myproject")
+    retrieved = g.get_sbom(sbom_id)
+    assert retrieved is not None
+    assert retrieved["bomFormat"] == "CycloneDX"
+
+
+def test_get_sbom_unknown_id_returns_none(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    result = g.get_sbom("nonexistent-id-xyz")
+    assert result is None
+
+
+def test_list_sboms_returns_list(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    result = g.list_sboms()
+    assert isinstance(result, list)
+
+
+def test_list_sboms_after_store(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("numpy==1.24.0")
+    sbom = g.generate_cyclonedx(comps)
+    g.store_sbom(sbom, "cyclonedx", "project-a", "org-1")
+    records = g.list_sboms("org-1")
+    assert len(records) == 1
+    assert records[0]["target"] == "project-a"
+
+
+# ---------------------------------------------------------------------------
+# diff_sboms
+# ---------------------------------------------------------------------------
+
+
+def test_diff_sboms_identical_returns_empty(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    comps = g.parse_requirements_txt("requests==2.28.0")
+    sbom = g.generate_cyclonedx(comps)
+    id_a = g.store_sbom(sbom, "cyclonedx", "proj")
+    id_b = g.store_sbom(sbom, "cyclonedx", "proj")
+    diff = g.diff_sboms(id_a, id_b)
+    assert diff["added"] == []
+    assert diff["removed"] == []
+    assert diff["changed"] == []
+
+
+def test_diff_sboms_added_component(tmp_path):
+    g = SBOMGenerator(db_path=str(tmp_path / "sbom.db"))
+    sbom_a = g.generate_cyclonedx(g.parse_requirements_txt("requests==2.28.0"))
+    sbom_b = g.generate_cyclonedx(g.parse_requirements_txt("requests==2.28.0\nflask==2.0.0"))
+    id_a = g.store_sbom(sbom_a, "cyclonedx", "proj")
+    id_b = g.store_sbom(sbom_b, "cyclonedx", "proj")
+    diff = g.diff_sboms(id_a, id_b)
+    assert len(diff["added"]) == 1
+    assert diff["added"][0]["name"] == "flask"

@@ -38,10 +38,11 @@ router = APIRouter(
 
 
 # ---------------------------------------------------------------------------
-# Lazy manager singleton (avoids import-time SQLite init during tests)
+# Lazy singletons (avoids import-time SQLite init during tests)
 # ---------------------------------------------------------------------------
 
 _manager = None
+_generator = None
 
 
 def _get_manager():
@@ -52,6 +53,14 @@ def _get_manager():
     return _manager
 
 
+def _get_generator():
+    global _generator
+    if _generator is None:
+        from core.sbom_generator import SBOMGenerator
+        _generator = SBOMGenerator()
+    return _generator
+
+
 # ---------------------------------------------------------------------------
 # Request models
 # ---------------------------------------------------------------------------
@@ -60,6 +69,23 @@ class ImportRequest(BaseModel):
     content: str = Field(..., description="Raw SBOM JSON content")
     format: str = Field(..., description="cyclonedx, spdx, or custom")
     project_name: str = Field(..., description="Name of the project")
+    org_id: str = Field(default="default", description="Organisation ID")
+
+
+class GenerateRequest(BaseModel):
+    content: str = Field(..., description="Raw dependency file content")
+    file_type: str = Field(
+        ...,
+        description="requirements.txt, package.json, or go.mod",
+    )
+    format: str = Field(default="cyclonedx", description="cyclonedx or spdx")
+    target: str = Field(default="", description="Target project / repo name")
+    org_id: str = Field(default="default", description="Organisation ID")
+
+
+class ScanDirectoryRequest(BaseModel):
+    directory: str = Field(..., description="Absolute path to scan for dependency files")
+    format: str = Field(default="cyclonedx", description="cyclonedx or spdx")
     org_id: str = Field(default="default", description="Organisation ID")
 
 
@@ -221,3 +247,79 @@ async def delete_sbom(sbom_id: str) -> Dict[str, Any]:
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return {"deleted": True, "sbom_id": sbom_id}
+
+
+# ---------------------------------------------------------------------------
+# Generation endpoints (use SBOMGenerator)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/generate", summary="Generate SBOM from dependency file content")
+async def generate_sbom(req: GenerateRequest) -> Dict[str, Any]:
+    """Parse dependency file content and return a CycloneDX or SPDX SBOM."""
+    gen = _get_generator()
+    file_type = req.file_type.lower().strip()
+
+    if file_type == "requirements.txt":
+        components = gen.parse_requirements_txt(req.content)
+    elif file_type == "package.json":
+        components = gen.parse_package_json(req.content)
+    elif file_type == "go.mod":
+        components = gen.parse_go_mod(req.content)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file_type {req.file_type!r}. Use requirements.txt, package.json, or go.mod.",
+        )
+
+    fmt = req.format.lower()
+    if fmt == "cyclonedx":
+        sbom = gen.generate_cyclonedx(components)
+    elif fmt == "spdx":
+        sbom = gen.generate_spdx(components)
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown format {req.format!r}. Use cyclonedx or spdx.")
+
+    target = req.target or file_type
+    sbom_id = gen.store_sbom(sbom, fmt, target, req.org_id)
+    return {"sbom_id": sbom_id, "format": fmt, "component_count": len(components), "sbom": sbom}
+
+
+@router.post("/scan-directory", summary="Scan directory for dependency files and generate SBOM")
+async def scan_directory(req: ScanDirectoryRequest) -> Dict[str, Any]:
+    """Scan a directory for requirements.txt / package.json / go.mod and produce a unified SBOM."""
+    from pathlib import Path as _Path
+
+    if not _Path(req.directory).is_dir():
+        raise HTTPException(status_code=400, detail=f"Directory not found or not accessible: {req.directory}")
+
+    gen = _get_generator()
+    components = gen.scan_directory(req.directory)
+
+    fmt = req.format.lower()
+    if fmt == "cyclonedx":
+        sbom = gen.generate_cyclonedx(components)
+    elif fmt == "spdx":
+        sbom = gen.generate_spdx(components)
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown format {fmt!r}. Use cyclonedx or spdx.")
+
+    sbom_id = gen.store_sbom(sbom, fmt, req.directory, req.org_id)
+    return {
+        "sbom_id": sbom_id,
+        "format": fmt,
+        "directory": req.directory,
+        "component_count": len(components),
+        "sbom": sbom,
+    }
+
+
+@router.get("/{sbom_id}/diff/{other_id}", summary="Diff two generated SBOMs")
+async def diff_generated_sboms(sbom_id: str, other_id: str) -> Dict[str, Any]:
+    """Compare two SBOMs stored via the generate endpoint."""
+    gen = _get_generator()
+    try:
+        result = gen.diff_sboms(sbom_id, other_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"sbom_id_a": sbom_id, "sbom_id_b": other_id, **result}
