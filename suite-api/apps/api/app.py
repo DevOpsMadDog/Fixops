@@ -192,6 +192,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("AWS Security Hub router not available: %s", e)
 
+# Azure Defender — pull alerts/score/recommendations from Microsoft Defender for Cloud
+azure_defender_router: Optional[APIRouter] = None
+try:
+    from apps.api.azure_defender_router import router as azure_defender_router
+    logging.getLogger(__name__).info("Loaded Azure Defender router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Azure Defender router not available: %s", e)
+
 # ---------------------------------------------------------------------------
 # Additional apps/api routers (wired in this session)
 # ---------------------------------------------------------------------------
@@ -2243,6 +2251,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted AWS Security Hub router")
+
+    # Azure Defender — pull alerts/score/recommendations from Microsoft Defender for Cloud
+    if azure_defender_router:
+        app.include_router(
+            azure_defender_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Azure Defender router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
