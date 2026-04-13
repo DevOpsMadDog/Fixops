@@ -5216,6 +5216,17 @@ def create_app() -> FastAPI:
     except ImportError as e:
         _logger.warning("Audit Log Analytics router not available: %s", e)
 
+    # GitHub Issues ALM — create/list/sync/metrics for findings as GitHub Issues
+    try:
+        from apps.api.github_issues_router import router as github_issues_router
+        app.include_router(
+            github_issues_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted GitHub Issues ALM router at /api/v1/github/issues")
+    except ImportError as e:
+        _logger.warning("GitHub Issues router not available: %s", e)
+
     return app
 
 
