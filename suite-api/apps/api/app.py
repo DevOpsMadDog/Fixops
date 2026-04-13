@@ -168,6 +168,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Trivy Scanner router not available: %s", e)
 
+# Semgrep Scanner — SAST scanning via semgrep CLI
+semgrep_router: Optional[APIRouter] = None
+try:
+    from apps.api.semgrep_router import router as semgrep_router
+    logging.getLogger(__name__).info("Loaded Semgrep Scanner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Semgrep Scanner router not available: %s", e)
+
 # Snyk Scanner — Snyk REST API vulnerability data ingestion
 snyk_router: Optional[APIRouter] = None
 try:
@@ -175,6 +183,14 @@ try:
     logging.getLogger(__name__).info("Loaded Snyk Scanner router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Snyk Scanner router not available: %s", e)
+
+# AWS Security Hub — pull findings from AWS Security Hub (ASFF normalization)
+aws_security_hub_router: Optional[APIRouter] = None
+try:
+    from apps.api.aws_security_hub_router import router as aws_security_hub_router
+    logging.getLogger(__name__).info("Loaded AWS Security Hub router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("AWS Security Hub router not available: %s", e)
 
 # ---------------------------------------------------------------------------
 # Additional apps/api routers (wired in this session)
@@ -2204,6 +2220,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Trivy Scanner router")
 
+    # Semgrep Scanner — SAST scanning via semgrep CLI
+    if semgrep_router:
+        app.include_router(
+            semgrep_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Semgrep Scanner router")
+
     # Snyk Scanner — Snyk REST API vulnerability data ingestion
     if snyk_router:
         app.include_router(
@@ -2211,6 +2235,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted Snyk Scanner router")
+
+    # AWS Security Hub — pull findings from AWS Security Hub (ASFF normalization)
+    if aws_security_hub_router:
+        app.include_router(
+            aws_security_hub_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted AWS Security Hub router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
