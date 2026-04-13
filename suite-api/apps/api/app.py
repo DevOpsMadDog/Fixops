@@ -4723,6 +4723,16 @@ def create_app() -> FastAPI:
         _logger.warning("Training router not available: %s", _e)
 
     # -----------------------------------------------------------------------
+    # Breach Simulation Engine
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.breach_simulation_router import router as _breach_sim_router
+        app.include_router(_breach_sim_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Loaded Breach Simulation router")
+    except ImportError as _e:
+        _logger.warning("Breach Simulation router not available: %s", _e)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
