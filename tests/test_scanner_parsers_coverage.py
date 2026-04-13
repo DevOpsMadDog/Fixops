@@ -884,3 +884,1088 @@ class TestDependabotNormalizer:
         payload = []
         n = _make_normalizer(DependabotScannerNormalizer)
         assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# Import remaining normalizers not covered above
+# ---------------------------------------------------------------------------
+
+from core.scanner_parsers import (  # noqa: E402
+    BurpNormalizer,
+    NessusNormalizer,
+    OpenVASNormalizer,
+    NmapNormalizer,
+    NiktoNormalizer,
+    CheckmarxNormalizer,
+    FortifyNormalizer,
+    VeracodeNormalizer,
+    QualysScannerNormalizer,
+    TenableScannerNormalizer,
+    Rapid7ScannerNormalizer,
+    AcunetixScannerNormalizer,
+    AWSInspectorNormalizer,
+    GitLabSASTNormalizer,
+    SARIFUniversalNormalizer,
+    CycloneDXUniversalNormalizer,
+    SPDXUniversalNormalizer,
+    ClaudeCodeSecurityNormalizer,
+    CombobulatorNormalizer,
+)
+
+
+# ---------------------------------------------------------------------------
+# Burp Suite
+# ---------------------------------------------------------------------------
+
+class TestBurpNormalizer:
+
+    def _make_xml_content(self):
+        xml = b"""<issues burpVersion="2023.1">
+  <issue>
+    <name>Cross-site scripting (reflected)</name>
+    <host>https://example.com</host>
+    <path>/search</path>
+    <severity>High</severity>
+    <issueDetail>Input reflected in response.</issueDetail>
+    <remediationDetail>Encode output.</remediationDetail>
+    <vulnerabilityClassifications>CWE-79</vulnerabilityClassifications>
+  </issue>
+</issues>"""
+        return xml
+
+    def _make_json_content(self):
+        payload = {
+            "issues": [
+                {
+                    "name": "SQL injection",
+                    "severity": "high",
+                    "description": "User input used directly in SQL query.",
+                    "origin": "https://example.com",
+                    "path": "/login",
+                }
+            ]
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_xml_with_burp_version(self):
+        n = _make_normalizer(BurpNormalizer)
+        assert n.can_handle(self._make_xml_content()) >= 0.85
+
+    def test_can_handle_json_with_issues(self):
+        n = _make_normalizer(BurpNormalizer)
+        assert n.can_handle(self._make_json_content()) == 0.0  # no burpVersion marker
+
+    def test_normalize_xml_returns_findings(self):
+        n = _make_normalizer(BurpNormalizer)
+        findings = n.normalize(self._make_xml_content())
+        assert len(findings) == 1
+
+    def test_normalize_xml_sets_source_tool_to_burp(self):
+        n = _make_normalizer(BurpNormalizer)
+        f = n.normalize(self._make_xml_content())[0]
+        assert _get(f, "source_tool") == "burp"
+
+    def test_normalize_json_returns_findings(self):
+        n = _make_normalizer(BurpNormalizer)
+        findings = n.normalize(self._make_json_content())
+        assert len(findings) == 1
+
+    def test_normalize_json_sets_source_tool_to_burp(self):
+        n = _make_normalizer(BurpNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "source_tool") == "burp"
+
+    def test_normalize_empty_bytes_returns_empty(self):
+        n = _make_normalizer(BurpNormalizer)
+        assert n.normalize(b"") == []
+
+
+# ---------------------------------------------------------------------------
+# Nessus
+# ---------------------------------------------------------------------------
+
+class TestNessusNormalizer:
+
+    def _make_content(self):
+        xml = b"""<NessusClientData_v2>
+  <Report name="My Scan">
+    <ReportHost name="192.168.1.1">
+      <ReportItem pluginID="12345" pluginName="SSL Certificate Expiry" severity="2">
+        <description>The SSL certificate will expire soon.</description>
+        <solution>Renew the SSL certificate.</solution>
+        <cvss3_base_score>6.5</cvss3_base_score>
+        <cve>CVE-2022-99999</cve>
+        <plugin_output>Certificate expires 2024-01-01</plugin_output>
+      </ReportItem>
+    </ReportHost>
+  </Report>
+</NessusClientData_v2>"""
+        return xml
+
+    def test_can_handle_returns_high_confidence_for_nessus_xml(self):
+        n = _make_normalizer(NessusNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.9
+
+    def test_can_handle_returns_zero_for_unrelated_content(self):
+        n = _make_normalizer(NessusNormalizer)
+        assert n.can_handle(b"<html><body>hello</body></html>") == 0.0
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(NessusNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_nessus(self):
+        n = _make_normalizer(NessusNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "nessus"
+
+    def test_normalize_extracts_cve_id(self):
+        n = _make_normalizer(NessusNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cve_id") == "CVE-2022-99999"
+
+    def test_normalize_sets_asset_name_to_host_ip(self):
+        n = _make_normalizer(NessusNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "asset_name") == "192.168.1.1"
+
+    def test_normalize_skips_severity_zero_items(self):
+        xml = b"""<NessusClientData_v2>
+  <Report name="Scan">
+    <ReportHost name="10.0.0.1">
+      <ReportItem pluginID="99999" pluginName="Info Plugin" severity="0">
+        <description>Informational only.</description>
+        <solution>No action needed.</solution>
+      </ReportItem>
+    </ReportHost>
+  </Report>
+</NessusClientData_v2>"""
+        n = _make_normalizer(NessusNormalizer)
+        assert n.normalize(xml) == []
+
+    def test_normalize_malformed_xml_returns_empty(self):
+        n = _make_normalizer(NessusNormalizer)
+        assert n.normalize(b"<broken>") == []
+
+
+# ---------------------------------------------------------------------------
+# OpenVAS
+# ---------------------------------------------------------------------------
+
+class TestOpenVASNormalizer:
+
+    def _make_content(self):
+        xml = b"""<report>
+  <results>
+    <result>
+      <threat>High</threat>
+      <name>OpenVAS Finding</name>
+      <description>SSH weak cipher detected.</description>
+      <host>10.0.0.2</host>
+      <nvt oid="1.3.6.1.4.1.25623.1.0.12345">
+        <name>SSH Weak Ciphers</name>
+        <solution>Disable weak SSH ciphers.</solution>
+        <cve>CVE-2023-00001</cve>
+        <cvss_base>7.5</cvss_base>
+      </nvt>
+    </result>
+  </results>
+</report>"""
+        return xml
+
+    def test_can_handle_returns_high_confidence_for_openvas_xml(self):
+        n = _make_normalizer(OpenVASNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.9
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(OpenVASNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_openvas(self):
+        n = _make_normalizer(OpenVASNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "openvas"
+
+    def test_normalize_extracts_cve_id(self):
+        n = _make_normalizer(OpenVASNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cve_id") == "CVE-2023-00001"
+
+    def test_normalize_malformed_xml_returns_empty(self):
+        n = _make_normalizer(OpenVASNormalizer)
+        assert n.normalize(b"<bad>") == []
+
+
+# ---------------------------------------------------------------------------
+# Nmap
+# ---------------------------------------------------------------------------
+
+class TestNmapNormalizer:
+
+    def _make_content_open_port(self):
+        xml = b"""<?xml version="1.0"?>
+<nmaprun scanner="nmap" version="7.94">
+  <host>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="8.2"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>"""
+        return xml
+
+    def _make_content_with_vuln_script(self):
+        xml = b"""<?xml version="1.0"?>
+<nmaprun scanner="nmap" version="7.94">
+  <host>
+    <address addr="10.0.0.5" addrtype="ipv4"/>
+    <ports>
+      <port protocol="tcp" portid="443">
+        <state state="open"/>
+        <service name="https"/>
+        <script id="ssl-heartbleed" output="VULNERABLE: CVE-2014-0160 Heartbleed"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>"""
+        return xml
+
+    def test_can_handle_returns_high_confidence_for_nmap_xml(self):
+        n = _make_normalizer(NmapNormalizer)
+        assert n.can_handle(self._make_content_open_port()) >= 0.9
+
+    def test_can_handle_returns_zero_for_unrelated_xml(self):
+        n = _make_normalizer(NmapNormalizer)
+        assert n.can_handle(b"<html><body>not nmap</body></html>") == 0.0
+
+    def test_normalize_open_port_produces_info_finding(self):
+        n = _make_normalizer(NmapNormalizer)
+        findings = n.normalize(self._make_content_open_port())
+        assert len(findings) == 1
+        sev = str(_get(findings[0], "severity", "")).lower()
+        assert "info" in sev
+
+    def test_normalize_open_port_sets_source_tool_to_nmap(self):
+        n = _make_normalizer(NmapNormalizer)
+        f = n.normalize(self._make_content_open_port())[0]
+        assert _get(f, "source_tool") == "nmap"
+
+    def test_normalize_vuln_script_produces_high_severity_finding(self):
+        n = _make_normalizer(NmapNormalizer)
+        findings = n.normalize(self._make_content_with_vuln_script())
+        assert len(findings) >= 1
+        sevs = [str(_get(f, "severity", "")).lower() for f in findings]
+        assert any("high" in s for s in sevs)
+
+    def test_normalize_vuln_script_extracts_cve(self):
+        n = _make_normalizer(NmapNormalizer)
+        findings = n.normalize(self._make_content_with_vuln_script())
+        cve_ids = [_get(f, "cve_id") for f in findings]
+        assert "CVE-2014-0160" in cve_ids
+
+    def test_normalize_empty_bytes_returns_empty(self):
+        n = _make_normalizer(NmapNormalizer)
+        assert n.normalize(b"") == []
+
+
+# ---------------------------------------------------------------------------
+# Nikto
+# ---------------------------------------------------------------------------
+
+class TestNiktoNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "host": "192.168.1.100",
+            "port": 80,
+            "vulnerabilities": [
+                {
+                    "id": "000001",
+                    "OSVDB": "0",
+                    "msg": "Server may leak inodes via ETags.",
+                    "url": "/",
+                }
+            ],
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_nikto_json(self):
+        n = _make_normalizer(NiktoNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.75
+
+    def test_can_handle_returns_zero_for_unrelated_content(self):
+        n = _make_normalizer(NiktoNormalizer)
+        assert n.can_handle(b'{"foo": "bar"}') == 0.0
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(NiktoNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_nikto(self):
+        n = _make_normalizer(NiktoNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "nikto"
+
+    def test_normalize_includes_host_in_asset_name(self):
+        n = _make_normalizer(NiktoNormalizer)
+        f = n.normalize(self._make_content())[0]
+        asset = str(_get(f, "asset_name", ""))
+        assert "192.168.1.100" in asset
+
+    def test_normalize_empty_vulnerabilities_returns_empty(self):
+        payload = {"host": "10.0.0.1", "port": 80, "vulnerabilities": []}
+        n = _make_normalizer(NiktoNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# Checkmarx
+# ---------------------------------------------------------------------------
+
+class TestCheckmarxNormalizer:
+
+    def _make_json_content(self):
+        payload = [
+            {
+                "queryName": "SQL_Injection",
+                "queryId": "1",
+                "severity": "high",
+                "sourceFile": "src/db.py",
+                "sourceLine": 42,
+                "cweId": "89",
+                "description": "SQL injection via user input.",
+                "recommendation": "Use parameterized queries.",
+            }
+        ]
+        return json.dumps(payload).encode()
+
+    def _make_xml_content(self):
+        xml = b"""<CxXMLResults ProjectName="MyApp">
+  <Query name="XSS" cweId="79" Severity="Medium">
+    <Result NodeId="1" DeepLink="https://cx.example.com/1">
+      <Path>
+        <PathNode>
+          <FileName>app/views.py</FileName>
+          <Line>15</Line>
+        </PathNode>
+      </Path>
+    </Result>
+  </Query>
+</CxXMLResults>"""
+        return xml
+
+    def test_can_handle_returns_high_confidence_for_json_with_query_name(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        payload = b'{"queryName": "SQL_Injection", "resultSeverity": "high"}'
+        assert n.can_handle(payload) >= 0.85
+
+    def test_can_handle_returns_high_confidence_for_cx_xml(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        assert n.can_handle(self._make_xml_content()) >= 0.9
+
+    def test_normalize_json_returns_findings(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        findings = n.normalize(self._make_json_content())
+        assert len(findings) == 1
+
+    def test_normalize_json_sets_source_tool_to_checkmarx(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "source_tool") == "checkmarx"
+
+    def test_normalize_json_extracts_cwe(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "cwe_id") == "CWE-89"
+
+    def test_normalize_xml_returns_findings(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        findings = n.normalize(self._make_xml_content())
+        assert len(findings) == 1
+
+    def test_normalize_xml_sets_source_tool_to_checkmarx(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        f = n.normalize(self._make_xml_content())[0]
+        assert _get(f, "source_tool") == "checkmarx"
+
+    def test_normalize_malformed_returns_empty(self):
+        n = _make_normalizer(CheckmarxNormalizer)
+        assert n.normalize(b"{bad json}") == []
+
+
+# ---------------------------------------------------------------------------
+# Fortify
+# ---------------------------------------------------------------------------
+
+class TestFortifyNormalizer:
+
+    def _make_json_content(self):
+        payload = {
+            "vulnerabilities": [
+                {
+                    "category": "SQL Injection",
+                    "description": "User data flows into SQL query.",
+                    "severity": "high",
+                    "cwe": "89",
+                    "primaryLocation": {
+                        "filePath": "src/database.py",
+                        "startLine": 100,
+                    },
+                }
+            ]
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_zero_for_unrelated_content(self):
+        n = _make_normalizer(FortifyNormalizer)
+        assert n.can_handle(b'{"random": "data"}') == 0.0
+
+    def test_normalize_json_returns_findings(self):
+        n = _make_normalizer(FortifyNormalizer)
+        findings = n.normalize(self._make_json_content())
+        assert len(findings) == 1
+
+    def test_normalize_json_sets_source_tool_to_fortify(self):
+        n = _make_normalizer(FortifyNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "source_tool") == "fortify"
+
+    def test_normalize_empty_bytes_returns_empty(self):
+        n = _make_normalizer(FortifyNormalizer)
+        assert n.normalize(b"") == []
+
+
+# ---------------------------------------------------------------------------
+# Veracode
+# ---------------------------------------------------------------------------
+
+class TestVeracodeNormalizer:
+
+    def _make_json_content(self):
+        payload = {
+            "findings": [
+                {
+                    "title": "SQL Injection",
+                    "description": "Input not sanitized.",
+                    "finding_details": {
+                        "finding_category": {"name": "SQL Injection"},
+                        "cwe": {"id": 89},
+                        "file_path": "src/query.py",
+                        "file_line_number": 55,
+                    },
+                    "finding_status": {"severity": 3},
+                }
+            ]
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_veracode_findings_json(self):
+        n = _make_normalizer(VeracodeNormalizer)
+        assert n.can_handle(b'{"finding_details": "x", "finding_status": "y"}') >= 0.8
+
+    def test_normalize_json_returns_findings(self):
+        n = _make_normalizer(VeracodeNormalizer)
+        findings = n.normalize(self._make_json_content())
+        assert len(findings) == 1
+
+    def test_normalize_json_sets_source_tool_to_veracode(self):
+        n = _make_normalizer(VeracodeNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "source_tool") == "veracode"
+
+    def test_normalize_json_extracts_cwe(self):
+        n = _make_normalizer(VeracodeNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "cwe_id") == "CWE-89"
+
+    def test_normalize_empty_findings_returns_empty(self):
+        payload = {"findings": []}
+        n = _make_normalizer(VeracodeNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# Qualys
+# ---------------------------------------------------------------------------
+
+class TestQualysNormalizer:
+
+    def _make_json_content(self):
+        payload = [
+            {
+                "ip": "10.0.0.1",
+                "detections": [
+                    {
+                        "qid": "38170",
+                        "title": "SSL Certificate - Self-Signed Certificate",
+                        "severity": 3,
+                        "cve_list": "CVE-2022-12345",
+                        "results": "Self-signed certificate detected.",
+                        "solution": "Replace with CA-signed certificate.",
+                    }
+                ],
+            }
+        ]
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_qualys_json(self):
+        n = _make_normalizer(QualysScannerNormalizer)
+        assert n.can_handle(b'{"qid": "123", "severity": 3, "ip": "10.0.0.1"}') >= 0.8
+
+    def test_normalize_json_returns_findings(self):
+        n = _make_normalizer(QualysScannerNormalizer)
+        findings = n.normalize(self._make_json_content())
+        assert len(findings) == 1
+
+    def test_normalize_json_sets_source_tool_to_qualys(self):
+        n = _make_normalizer(QualysScannerNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "source_tool") == "qualys"
+
+    def test_normalize_empty_detections_returns_empty(self):
+        payload = [{"ip": "10.0.0.1", "detections": []}]
+        n = _make_normalizer(QualysScannerNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# Tenable
+# ---------------------------------------------------------------------------
+
+class TestTenableNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "target": "192.168.1.50",
+            "vulnerabilities": [
+                {
+                    "plugin_id": "10863",
+                    "plugin_name": "SSL Self-Signed Certificate",
+                    "severity_index": 2,
+                    "synopsis": "The remote host uses a self-signed SSL certificate.",
+                    "solution": "Purchase or generate a proper certificate.",
+                    "cve": "CVE-2021-99999",
+                    "cvss3_base_score": 5.4,
+                }
+            ],
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_tenable_json(self):
+        n = _make_normalizer(TenableScannerNormalizer)
+        assert n.can_handle(b'{"plugin_id": "123", "severity_index": 2}') >= 0.9
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(TenableScannerNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_tenable(self):
+        n = _make_normalizer(TenableScannerNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "tenable"
+
+    def test_normalize_extracts_cve(self):
+        n = _make_normalizer(TenableScannerNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cve_id") == "CVE-2021-99999"
+
+    def test_normalize_empty_vulnerabilities_returns_empty(self):
+        payload = {"target": "10.0.0.1", "vulnerabilities": []}
+        n = _make_normalizer(TenableScannerNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# Rapid7
+# ---------------------------------------------------------------------------
+
+class TestRapid7Normalizer:
+
+    def _make_json_content(self):
+        payload = [
+            {
+                "address": "10.0.0.20",
+                "tests": [
+                    {
+                        "vulnerability-id": "ssl-cve-2014-0224-ccs-injection",
+                        "title": "CCS Injection",
+                        "severity": "high",
+                        "description": "OpenSSL CCS injection vulnerability.",
+                        "solution": "Upgrade OpenSSL.",
+                    }
+                ],
+            }
+        ]
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_rapid7_json(self):
+        n = _make_normalizer(Rapid7ScannerNormalizer)
+        assert n.can_handle(b'{"vulnerability-id": "x", "tests": []}') >= 0.9
+
+    def test_normalize_json_returns_findings(self):
+        n = _make_normalizer(Rapid7ScannerNormalizer)
+        findings = n.normalize(self._make_json_content())
+        assert len(findings) == 1
+
+    def test_normalize_json_sets_source_tool_to_rapid7(self):
+        n = _make_normalizer(Rapid7ScannerNormalizer)
+        f = n.normalize(self._make_json_content())[0]
+        assert _get(f, "source_tool") == "rapid7"
+
+    def test_normalize_empty_tests_returns_empty(self):
+        payload = [{"address": "10.0.0.1", "tests": []}]
+        n = _make_normalizer(Rapid7ScannerNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# Acunetix
+# ---------------------------------------------------------------------------
+
+class TestAcunetixNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "vulnerabilities": [
+                {
+                    "vt_name": "Cross-site Scripting",
+                    "affects_url": "https://example.com/search?q=test",
+                    "severity": "high",
+                    "description": "XSS in search input.",
+                    "recommendation": "Encode user output.",
+                    "cvelist": "CVE-2020-12345",
+                }
+            ]
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_acunetix_json(self):
+        n = _make_normalizer(AcunetixScannerNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.9
+
+    def test_can_handle_returns_zero_for_unrelated_content(self):
+        n = _make_normalizer(AcunetixScannerNormalizer)
+        assert n.can_handle(b'{"foo": "bar"}') == 0.0
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(AcunetixScannerNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_acunetix(self):
+        n = _make_normalizer(AcunetixScannerNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "acunetix"
+
+    def test_normalize_empty_vulnerabilities_returns_empty(self):
+        payload = {"vulnerabilities": []}
+        n = _make_normalizer(AcunetixScannerNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# AWS Inspector
+# ---------------------------------------------------------------------------
+
+class TestAWSInspectorNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "findings": [
+                {
+                    "awsAccountId": "123456789012",
+                    "region": "us-east-1",
+                    "severity": "HIGH",
+                    "inspectorScore": 8.5,
+                    "title": "CVE-2023-00001 found in libssl",
+                    "description": "Critical OpenSSL vulnerability.",
+                    "packageVulnerabilityDetails": {
+                        "vulnerabilityId": "CVE-2023-00001",
+                        "vulnerablePackages": [
+                            {"name": "libssl", "version": "1.1.1", "fixedInVersion": "1.1.1t"}
+                        ],
+                    },
+                    "resources": [{"id": "i-0abc123def456", "type": "AWS_EC2_INSTANCE"}],
+                    "remediation": {"recommendation": {"text": "Update libssl to 1.1.1t."}},
+                }
+            ]
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_very_high_confidence(self):
+        n = _make_normalizer(AWSInspectorNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.9
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(AWSInspectorNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_aws_inspector(self):
+        n = _make_normalizer(AWSInspectorNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "aws_inspector"
+
+    def test_normalize_extracts_cve_id(self):
+        n = _make_normalizer(AWSInspectorNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cve_id") == "CVE-2023-00001"
+
+    def test_normalize_extracts_cloud_account(self):
+        n = _make_normalizer(AWSInspectorNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cloud_account") == "123456789012"
+
+    def test_normalize_empty_findings_returns_empty(self):
+        payload = {"findings": []}
+        n = _make_normalizer(AWSInspectorNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# GitLab SAST
+# ---------------------------------------------------------------------------
+
+class TestGitLabSASTNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "version": "15.0.0",
+            "vulnerabilities": [
+                {
+                    "name": "Improper Neutralization of Special Elements",
+                    "description": "User input used in SQL query.",
+                    "severity": "High",
+                    "location": {"file": "app/models.py", "start_line": 25},
+                    "identifiers": [
+                        {"type": "cwe", "name": "CWE-89", "value": "CWE-89"},
+                        {"type": "rule_id", "name": "python.sqlinjection", "value": "python.sqlinjection"},
+                    ],
+                    "scanner": {"name": "Semgrep", "id": "semgrep"},
+                }
+            ],
+            "scan": {"scanner": {"name": "Semgrep"}},
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence(self):
+        n = _make_normalizer(GitLabSASTNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.85
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(GitLabSASTNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_gitlab_sast(self):
+        n = _make_normalizer(GitLabSASTNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "gitlab_sast"
+
+    def test_normalize_extracts_file_path(self):
+        n = _make_normalizer(GitLabSASTNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "file_path") == "app/models.py"
+
+    def test_normalize_maps_high_severity(self):
+        n = _make_normalizer(GitLabSASTNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert str(_get(f, "severity", "")).lower() in ("high", "findingseverity.high")
+
+    def test_normalize_empty_vulnerabilities_returns_empty(self):
+        payload = {"version": "15.0.0", "vulnerabilities": []}
+        n = _make_normalizer(GitLabSASTNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# SARIF Universal
+# ---------------------------------------------------------------------------
+
+class TestSARIFNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "ESLint",
+                            "rules": [
+                                {
+                                    "id": "no-eval",
+                                    "shortDescription": {"text": "Disallow eval()"},
+                                    "fullDescription": {"text": "Using eval() is dangerous."},
+                                    "properties": {"security-severity": "7.5", "tags": ["CWE-95"]},
+                                }
+                            ],
+                        }
+                    },
+                    "results": [
+                        {
+                            "ruleId": "no-eval",
+                            "level": "error",
+                            "message": {"text": "eval() call detected"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/utils.js"},
+                                        "region": {"startLine": 42},
+                                    }
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_very_high_confidence_for_sarif(self):
+        n = _make_normalizer(SARIFUniversalNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.9
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(SARIFUniversalNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_extracts_file_path(self):
+        n = _make_normalizer(SARIFUniversalNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "file_path") == "src/utils.js"
+
+    def test_normalize_extracts_line_number(self):
+        n = _make_normalizer(SARIFUniversalNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "line_number") == 42
+
+    def test_normalize_security_severity_maps_to_high(self):
+        n = _make_normalizer(SARIFUniversalNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert str(_get(f, "severity", "")).lower() in ("high", "findingseverity.high")
+
+    def test_normalize_empty_runs_returns_empty(self):
+        payload = {"$schema": "sarif-schema", "version": "2.1.0", "runs": []}
+        n = _make_normalizer(SARIFUniversalNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# CycloneDX
+# ---------------------------------------------------------------------------
+
+class TestCycloneDXNormalizer:
+
+    def _make_content(self):
+        payload = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "version": 1,
+            "vulnerabilities": [
+                {
+                    "id": "CVE-2021-44228",
+                    "description": "Apache Log4j2 JNDI injection",
+                    "detail": "Remote code execution via JNDI lookup.",
+                    "ratings": [{"severity": "critical", "score": 10.0}],
+                    "cwes": [502],
+                    "affects": [{"ref": "log4j-core-2.14.1.jar"}],
+                    "advisories": [{"title": "Upgrade to Log4j 2.15.0+"}],
+                }
+            ],
+            "components": [],
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_cyclonedx(self):
+        n = _make_normalizer(CycloneDXUniversalNormalizer)
+        assert n.can_handle(self._make_content()) >= 0.9
+
+    def test_can_handle_returns_zero_for_unrelated_json(self):
+        n = _make_normalizer(CycloneDXUniversalNormalizer)
+        assert n.can_handle(b'{"foo": "bar"}') == 0.0
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(CycloneDXUniversalNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_cyclonedx(self):
+        n = _make_normalizer(CycloneDXUniversalNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "cyclonedx"
+
+    def test_normalize_extracts_cwe(self):
+        n = _make_normalizer(CycloneDXUniversalNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cwe_id") == "CWE-502"
+
+    def test_normalize_empty_vulnerabilities_returns_empty(self):
+        payload = {"bomFormat": "CycloneDX", "specVersion": "1.4", "vulnerabilities": []}
+        n = _make_normalizer(CycloneDXUniversalNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# SPDX
+# ---------------------------------------------------------------------------
+
+class TestSPDXNormalizer:
+
+    def _make_content_with_security_ref(self):
+        payload = {
+            "spdxVersion": "SPDX-2.3",
+            "dataLicense": "CC0-1.0",
+            "packages": [
+                {
+                    "name": "vulnerable-lib",
+                    "versionInfo": "1.0.0",
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "SECURITY",
+                            "referenceType": "cpe23Type",
+                            "referenceLocator": "cpe:2.3:a:vulnerable:lib:1.0.0:*:*:*:*:*:*:*",
+                        }
+                    ],
+                }
+            ],
+        }
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_spdx_json(self):
+        n = _make_normalizer(SPDXUniversalNormalizer)
+        assert n.can_handle(self._make_content_with_security_ref()) >= 0.85
+
+    def test_can_handle_returns_zero_for_unrelated_json(self):
+        n = _make_normalizer(SPDXUniversalNormalizer)
+        assert n.can_handle(b'{"foo": "bar"}') == 0.0
+
+    def test_normalize_security_ref_produces_finding(self):
+        n = _make_normalizer(SPDXUniversalNormalizer)
+        findings = n.normalize(self._make_content_with_security_ref())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_spdx(self):
+        n = _make_normalizer(SPDXUniversalNormalizer)
+        f = n.normalize(self._make_content_with_security_ref())[0]
+        assert _get(f, "source_tool") == "spdx"
+
+    def test_normalize_packages_without_security_refs_returns_empty(self):
+        payload = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {"name": "safe-lib", "versionInfo": "2.0", "externalRefs": []}
+            ],
+        }
+        n = _make_normalizer(SPDXUniversalNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
+
+
+# ---------------------------------------------------------------------------
+# ClaudeCodeSecurity
+# ---------------------------------------------------------------------------
+
+class TestClaudeCodeSecurityNormalizer:
+
+    def _make_content(self):
+        payload = [
+            {
+                "title": "Insecure Direct Object Reference",
+                "description": "User ID not validated before use.",
+                "severity": "high",
+                "reasoning": "Attacker can access another user's data.",
+                "confidence": 0.95,
+                "rule_id": "IDOR-001",
+                "cwe": "639",
+                "file_path": "api/users.py",
+                "line": 88,
+            }
+        ]
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_ai_sast_json(self):
+        n = _make_normalizer(ClaudeCodeSecurityNormalizer)
+        data = b'{"reasoning": "x", "suggested_patch": "y", "confidence": 0.9}'
+        assert n.can_handle(data) >= 0.85
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(ClaudeCodeSecurityNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_claude_code_security(self):
+        n = _make_normalizer(ClaudeCodeSecurityNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "claude_code_security"
+
+    def test_normalize_extracts_cwe(self):
+        n = _make_normalizer(ClaudeCodeSecurityNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cwe_id") == "CWE-639"
+
+    def test_normalize_extracts_file_path(self):
+        n = _make_normalizer(ClaudeCodeSecurityNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "file_path") == "api/users.py"
+
+    def test_normalize_empty_list_returns_empty(self):
+        n = _make_normalizer(ClaudeCodeSecurityNormalizer)
+        assert n.normalize(b"[]") == []
+
+
+# ---------------------------------------------------------------------------
+# Combobulator (supply chain)
+# ---------------------------------------------------------------------------
+
+class TestCombobulatorNormalizer:
+
+    def _make_content(self):
+        payload = [
+            {
+                "package_name": "internal-utils",
+                "risk_type": "dependency_confusion",
+                "severity": "high",
+                "registry": "pypi",
+                "private_registry": "private.pypi.example.com",
+                "manifest_file": "requirements.txt",
+                "description": "Package exists on public registry with higher version.",
+            }
+        ]
+        return json.dumps(payload).encode()
+
+    def test_can_handle_returns_high_confidence_for_combobulator_json(self):
+        n = _make_normalizer(CombobulatorNormalizer)
+        data = b'{"package_name": "x", "risk_type": "dependency_confusion", "registry": "pypi"}'
+        assert n.can_handle(data) >= 0.85
+
+    def test_can_handle_returns_zero_for_unrelated_content(self):
+        n = _make_normalizer(CombobulatorNormalizer)
+        assert n.can_handle(b'{"foo": "bar"}') == 0.0
+
+    def test_normalize_returns_findings(self):
+        n = _make_normalizer(CombobulatorNormalizer)
+        findings = n.normalize(self._make_content())
+        assert len(findings) == 1
+
+    def test_normalize_sets_source_tool_to_combobulator(self):
+        n = _make_normalizer(CombobulatorNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "source_tool") == "combobulator"
+
+    def test_normalize_sets_cwe_427_for_supply_chain(self):
+        n = _make_normalizer(CombobulatorNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cwe_id") == "CWE-427"
+
+    def test_normalize_empty_list_returns_empty(self):
+        n = _make_normalizer(CombobulatorNormalizer)
+        assert n.normalize(b"[]") == []

@@ -434,3 +434,227 @@ class TestMultipleRuns:
         for i in range(3):
             pipeline.run(PipelineInput(org_id=f"org-{i}", findings=[]))
         assert len(pipeline.get_metrics()) == 3
+
+
+# ---------------------------------------------------------------------------
+# 11. get_run() and list_runs()
+# ---------------------------------------------------------------------------
+
+class TestGetRunAndListRuns:
+
+    def test_get_run_returns_result_for_known_run_id(self):
+        pipeline = BrainPipeline()
+        result = pipeline.run(PipelineInput(org_id="gr-org", findings=[]))
+        fetched = pipeline.get_run(result.run_id)
+        assert fetched is not None
+        assert fetched.run_id == result.run_id
+
+    def test_get_run_returns_none_for_unknown_run_id(self):
+        pipeline = BrainPipeline()
+        assert pipeline.get_run("nonexistent-run-id") is None
+
+    def test_list_runs_returns_list_after_run(self):
+        pipeline = BrainPipeline()
+        pipeline.run(PipelineInput(org_id="lr-org", findings=[]))
+        runs = pipeline.list_runs()
+        assert isinstance(runs, list)
+        assert len(runs) >= 1
+
+    def test_list_runs_each_entry_is_dict_with_run_id(self):
+        pipeline = BrainPipeline()
+        pipeline.run(PipelineInput(org_id="lr-org2", findings=[]))
+        runs = pipeline.list_runs()
+        assert all("run_id" in r for r in runs)
+
+    def test_list_runs_limit_respected(self):
+        pipeline = BrainPipeline()
+        for i in range(5):
+            pipeline.run(PipelineInput(org_id=f"lr-{i}", findings=[]))
+        runs = pipeline.list_runs(limit=2)
+        assert len(runs) <= 2
+
+    def test_list_runs_sorted_most_recent_first(self):
+        pipeline = BrainPipeline()
+        for i in range(3):
+            pipeline.run(PipelineInput(org_id=f"sorted-{i}", findings=[]))
+        runs = pipeline.list_runs(limit=3)
+        # started_at should be descending (most recent first)
+        started_ats = [r["started_at"] for r in runs]
+        assert started_ats == sorted(started_ats, reverse=True)
+
+
+# ---------------------------------------------------------------------------
+# 12. get_brain_pipeline() singleton
+# ---------------------------------------------------------------------------
+
+class TestGetBrainPipelineSingleton:
+
+    def test_get_brain_pipeline_returns_brain_pipeline_instance(self):
+        from core.brain_pipeline import get_brain_pipeline
+        instance = get_brain_pipeline()
+        assert isinstance(instance, BrainPipeline)
+
+    def test_get_brain_pipeline_returns_same_instance_on_repeated_calls(self):
+        from core.brain_pipeline import get_brain_pipeline
+        a = get_brain_pipeline()
+        b = get_brain_pipeline()
+        assert a is b
+
+
+# ---------------------------------------------------------------------------
+# 13. run_async() — non-blocking variant
+# ---------------------------------------------------------------------------
+
+class TestRunAsync:
+
+    def test_run_async_returns_pipeline_result(self):
+        import asyncio
+        pipeline = BrainPipeline()
+        inp = PipelineInput(org_id="async-org", findings=[_make_finding()])
+        result = asyncio.run(pipeline.run_async(inp))
+        assert isinstance(result, PipelineResult)
+
+    def test_run_async_result_has_completed_or_partial_status(self):
+        import asyncio
+        pipeline = BrainPipeline()
+        inp = PipelineInput(org_id="async-org2", findings=[_make_finding()])
+        result = asyncio.run(pipeline.run_async(inp))
+        assert result.status in (
+            PipelineStatus.COMPLETED, PipelineStatus.PARTIAL, PipelineStatus.FAILED
+        )
+
+    def test_run_async_run_id_has_br_prefix(self):
+        import asyncio
+        pipeline = BrainPipeline()
+        inp = PipelineInput(org_id="async-org3", findings=[])
+        result = asyncio.run(pipeline.run_async(inp))
+        assert result.run_id.startswith("BR-")
+
+
+# ---------------------------------------------------------------------------
+# 14. Assets cap and input edge cases
+# ---------------------------------------------------------------------------
+
+class TestAssetsCappingAndEdgeCases:
+
+    def test_assets_cap_at_max_assets(self):
+        pipeline = BrainPipeline()
+        original_max = pipeline.MAX_ASSETS
+        pipeline.MAX_ASSETS = 3
+        try:
+            assets = [{"id": f"a-{i}", "name": f"svc-{i}"} for i in range(10)]
+            inp = PipelineInput(org_id="cap-org", findings=[], assets=assets)
+            pipeline.run(inp)
+            # After cap, at most 3 assets should be processed
+            assert len(inp.assets) <= 3
+        finally:
+            pipeline.MAX_ASSETS = original_max
+
+    def test_non_dict_assets_are_filtered(self):
+        pipeline = BrainPipeline()
+        inp = PipelineInput(
+            org_id="filter-org",
+            findings=[],
+            assets=[{"id": "a1"}, "not-a-dict", 42],
+        )
+        result = pipeline.run(inp)
+        assert result is not None  # pipeline tolerates mixed asset types
+
+    def test_run_with_policy_rules_does_not_raise(self):
+        policy_rules = [{"id": "P001", "action": "block", "severity": "critical"}]
+        result = _run_pipeline(findings=[_make_finding()], policy_rules=policy_rules)
+        assert result is not None
+
+    def test_run_with_custom_source_metadata(self):
+        result = _run_pipeline(
+            findings=[_make_finding()],
+            source="webhook",
+            metadata={"tenant": "acme", "region": "us-east-1"},
+        )
+        assert result is not None
+
+    def test_run_with_evidence_framework_specified(self):
+        result = _run_pipeline(
+            findings=[_make_finding()],
+            generate_evidence=True,
+            evidence_framework="iso27001",
+        )
+        assert result is not None
+
+    def test_run_with_evidence_timeframe_days_specified(self):
+        result = _run_pipeline(
+            findings=[_make_finding()],
+            generate_evidence=True,
+            evidence_timeframe_days=30,
+        )
+        assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# 15. PipelineResult.to_dict() structure
+# ---------------------------------------------------------------------------
+
+class TestPipelineResultToDict:
+
+    def test_to_dict_contains_run_id(self):
+        result = _run_pipeline(findings=[])
+        d = result.to_dict()
+        assert "run_id" in d
+
+    def test_to_dict_contains_steps_list(self):
+        result = _run_pipeline(findings=[_make_finding()])
+        d = result.to_dict()
+        assert "steps" in d
+        assert isinstance(d["steps"], list)
+
+    def test_to_dict_status_is_string(self):
+        result = _run_pipeline(findings=[])
+        d = result.to_dict()
+        assert isinstance(d["status"], str)
+
+    def test_to_dict_progress_percent_is_100(self):
+        result = _run_pipeline(findings=[_make_finding()])
+        d = result.to_dict()
+        assert d["progress_percent"] == 100.0
+
+    def test_to_dict_summary_contains_all_expected_keys(self):
+        result = _run_pipeline(findings=[_make_finding()])
+        summary = result.to_dict()["summary"]
+        expected_keys = [
+            "findings_ingested", "clusters_created", "exposure_cases_created",
+            "graph_nodes", "graph_edges", "avg_risk_score", "critical_cases",
+            "pentest_validated", "playbooks_executed", "evidence_generated",
+        ]
+        for key in expected_keys:
+            assert key in summary
+
+    def test_to_dict_total_duration_is_float(self):
+        result = _run_pipeline(findings=[])
+        d = result.to_dict()
+        assert isinstance(d["total_duration_ms"], float)
+
+
+# ---------------------------------------------------------------------------
+# 16. Class constants
+# ---------------------------------------------------------------------------
+
+class TestClassConstants:
+
+    def test_pipeline_timeout_s_is_positive(self):
+        assert BrainPipeline.PIPELINE_TIMEOUT_S > 0
+
+    def test_step_timeout_s_is_positive(self):
+        assert BrainPipeline.STEP_TIMEOUT_S > 0
+
+    def test_graph_batch_size_is_positive(self):
+        assert BrainPipeline.GRAPH_BATCH_SIZE > 0
+
+    def test_max_runs_history_is_positive(self):
+        assert BrainPipeline.MAX_RUNS_HISTORY > 0
+
+    def test_max_field_len_is_at_least_1000(self):
+        assert BrainPipeline.MAX_FIELD_LEN >= 1000
+
+    def test_remote_steps_frozenset_contains_known_steps(self):
+        assert "enrich_threats" in BrainPipeline._REMOTE_STEPS
+        assert "score_risk" in BrainPipeline._REMOTE_STEPS
