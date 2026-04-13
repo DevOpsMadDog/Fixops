@@ -38,6 +38,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from core.errors import ExternalServiceError  # noqa: F401 - re-exported for callers
+
 logger = logging.getLogger(__name__)
 
 
@@ -278,7 +280,7 @@ class OpusCTOEscalation:
                 council_session_id=council_session_id,
                 escalated=False
             )
-        except Exception as e:
+        except (ExternalServiceError, RuntimeError, ValueError, OSError) as e:
             logger.error("Opus escalation failed: %s", type(e).__name__)
             return ConsensusResult(
                 final_decision="review",
@@ -531,7 +533,7 @@ class CouncilPipelineAdapter:
                     )
                     store.record(record)
                     logger.debug("Decision recorded in memory: %s", session_id)
-                except Exception as e:
+                except (ValueError, KeyError, TypeError) as e:
                     logger.warning("Failed to record decision in memory: %s", e)
 
             # Record in session history
@@ -567,7 +569,7 @@ class CouncilPipelineAdapter:
                 "compliance_concerns": result.compliance_concerns,
             }
 
-        except Exception as e:
+        except (ExternalServiceError, RuntimeError, ValueError, KeyError, TypeError) as e:
             logger.error("Council analysis failed: %s; using fallback", type(e).__name__)
             return {
                 "analyzed": len(critical) if critical else 0,
@@ -620,7 +622,7 @@ class CouncilPipelineAdapter:
                 analyst_id
             )
             return record_id
-        except Exception as e:
+        except (ValueError, RuntimeError, TypeError) as e:
             logger.error("Failed to record analyst feedback: %s", e)
             return ""
 
@@ -668,7 +670,7 @@ class CouncilPipelineAdapter:
                     "override_rate": accuracy.override_rate,
                     "false_positive_rate": accuracy.false_positive_rate,
                 })
-            except Exception as e:
+            except (ValueError, KeyError, TypeError) as e:
                 logger.warning("Failed to fetch accuracy stats: %s", e)
 
         return stats

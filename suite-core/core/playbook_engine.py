@@ -27,6 +27,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable, Coroutine
 
+from core.errors import ALDECIError
+
 _logger = logging.getLogger(__name__)
 
 
@@ -429,7 +431,7 @@ class PlaybookEngine:
             run.status = PlaybookStatus.COMPLETED
             _logger.info(f"Playbook {playbook_id} completed successfully")
 
-        except Exception as e:
+        except (ALDECIError, RuntimeError, ValueError, KeyError, TypeError) as e:
             run.status = PlaybookStatus.FAILED
             run.error = str(e)
             _logger.error(f"Playbook {playbook_id} failed: {e}", exc_info=True)
@@ -486,7 +488,7 @@ class PlaybookEngine:
             elif step.step_type == PlaybookStepType.LLM_EVALUATE:
                 result = self._step_llm_evaluate(step, context, result)
 
-        except Exception as e:
+        except (ALDECIError, RuntimeError, ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
             _logger.error(f"Step {step.step_id} failed: {e}", exc_info=True)
@@ -516,7 +518,7 @@ class PlaybookEngine:
                 result.status = "failed"
                 result.output = {"condition_met": False}
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -542,7 +544,7 @@ class PlaybookEngine:
             output = handler(step.config, context)
             result.status = "success"
             result.output = output
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -570,7 +572,7 @@ class PlaybookEngine:
             result.status = "success"
             result.output = {"recipients": recipients, "channel": channel}
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -596,7 +598,7 @@ class PlaybookEngine:
                 "status": "pending",
             }
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -614,7 +616,7 @@ class PlaybookEngine:
             result.status = "success"
             result.output = {"delay_seconds": delay_seconds}
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -660,7 +662,7 @@ class PlaybookEngine:
             result.status = "success"
             result.output = {"loop_iterations": len(items), "results": loop_results}
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -691,7 +693,7 @@ class PlaybookEngine:
             result.status = "success"
             result.output = {"parallel_steps": len(step_ids), "results": parallel_results}
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 
@@ -717,7 +719,7 @@ class PlaybookEngine:
                 "reasoning": "LLM council would evaluate this",
             }
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             result.status = "failed"
             result.error = str(e)
 

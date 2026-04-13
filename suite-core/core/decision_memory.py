@@ -53,6 +53,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.errors import TrustGraphError  # noqa: F401 - re-exported for callers
+
 logger = logging.getLogger(__name__)
 
 
@@ -265,7 +267,7 @@ class DecisionMemoryStore:
             )
             conn.commit()
             logger.info(f"Decision memory tables initialized: {self.db_path}")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error(f"Failed to initialize decision memory tables: {e}")
             raise
         finally:
@@ -867,7 +869,7 @@ class DecisionMemoryTrustGraphBridge:
                 f"with action={record.action}, confidence={record.confidence}"
             )
             return True
-        except Exception as e:
+        except (TrustGraphError, OSError, RuntimeError) as e:
             logger.error(f"Failed to sync decision to TrustGraph: {e}")
             return False
 

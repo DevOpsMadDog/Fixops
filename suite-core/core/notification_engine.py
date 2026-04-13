@@ -25,6 +25,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable, Coroutine
 
+from core.errors import ExternalServiceError  # noqa: F401 - re-exported for callers
 from core.event_streaming import StreamEvent, EventBus, EventSeverity
 
 _logger = logging.getLogger(__name__)
@@ -387,7 +388,7 @@ class NotificationEngine:
             conn.commit()
             conn.close()
             self._logger.info(f"Notification database initialized at {self._db_path}")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Failed to initialize notification database: {e}")
 
     def _register_default_adapters(self) -> None:
@@ -581,7 +582,7 @@ class NotificationEngine:
                 action, "sent" if success else "failed", "Sent successfully"
             )
             return success
-        except Exception as e:
+        except (ExternalServiceError, OSError, RuntimeError) as e:
             self._logger.error(f"Failed to send notification: {e}")
             await self._record_history(action, "failed", str(e))
             return False
@@ -635,7 +636,7 @@ class NotificationEngine:
 
             conn.commit()
             conn.close()
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Failed to record notification history: {e}")
 
     def get_history(
@@ -679,6 +680,6 @@ class NotificationEngine:
             conn.close()
 
             return [dict(row) for row in rows]
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Failed to retrieve notification history: {e}")
             return []

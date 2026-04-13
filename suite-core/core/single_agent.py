@@ -211,7 +211,7 @@ class OllamaBackend(BaseInferenceBackend):
                 text = result.get("response", "")
                 tokens = result.get("eval_count", 0) + result.get("prompt_eval_count", 0)
                 return text, tokens
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError) as e:
             raise RuntimeError(f"Ollama generation failed: {e}")
 
     def is_available(self) -> bool:
