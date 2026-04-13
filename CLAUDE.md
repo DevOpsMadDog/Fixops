@@ -253,24 +253,22 @@ from core.brain_pipeline import BrainPipeline  # just works
 ## WHAT TO BUILD NEXT (Priority Order)
 
 ### HIGH PRIORITY
-1. **Horizontal scaling** — Redis queue mode for multi-worker API
-2. **SAML/OIDC auth** — Enterprise SSO (Okta, Azure AD, Google Workspace)
-3. **n8n connector orchestration** — 400+ integrations via n8n webhook bridge
-4. **Wire graph_rag_router to Copilot** — connect `/api/v1/graphrag/retrieve` to chat endpoint
+1. **Real live threat intel feeds** — Wire EPSS + Shodan InternetDB + CISA KEV into CVE enrichment (no auth needed, APIs verified live). Fix OSV bug in threat_intel_aggregator.py (line 479, missing package name field).
+2. **n8n real workflow provisioning** — Add `N8nAPIClient` class with `create_workflow()` + `activate_workflow()` via `/api/v1/workflows`. n8n NOT running in Docker — add to docker-compose first.
+3. **SCIM 2.0 server** — Implement `/scim/v2/Users` + `/scim/v2/Groups` so Okta/Azure can provision users into ALDECI automatically (RFC 7644 spec researched)
+4. **Okta event hook receiver** — `POST /api/v1/webhooks/okta/events` for user lifecycle events (user.session.start, user.lifecycle.create, etc.)
+5. **OpenClaw pentest swarm** — autonomous red team via attack sim
 
 ### MEDIUM PRIORITY
-5. **Frontend: Threat Intelligence Dashboard** — Feed status, IOC browser, trend charts (P14)
-6. **Frontend: Asset Inventory page** — CMDB view with risk scores (P05)
-7. **Frontend: Vulnerability Lifecycle page** — lifecycle tracker UI with state transitions (P01)
-8. **OpenClaw pentest swarm** — autonomous red team via attack sim
+6. **Wire live APIs into existing services** — AbuseIPDB (free 1k/day), URLhaus (free auth.abuse.ch key), OTX AlienVault (free key)
+7. **Multi-tenant data isolation hardening**
+8. **Scheduled report delivery** (email/Slack via n8n workflows)
 
 ### LOWER PRIORITY
-9. SBOM generation endpoint
-10. Risk acceptance workflow UI
-11. Scheduled report delivery (email/Slack)
-12. Multi-tenant data isolation hardening
+9. Risk acceptance workflow UI
+10. SBOM generation endpoint
 
-### DONE (this session — 2026-04-13)
+### DONE (sessions 2026-04-13 and 2026-04-14)
 - ✅ Beast Mode test coverage +138 tests (brain_pipeline + 19 scanner normalizers) → 285 tests
 - ✅ TrustGraph GraphRAG retriever (BFS traversal, semantic search, neighborhood) — 31 tests
 - ✅ Error handling auditor (AST-based, 652 findings, fixed top 6 critical bare-except)
@@ -282,6 +280,18 @@ from core.brain_pipeline import BrainPipeline  # just works
 - ✅ Frontend: SOC T1 Dashboard already existed at /mission-control/soc-t1 — 1604 lines
 - ✅ OpenAPI developer portal (spec export, Postman, endpoint explorer) — 34 tests
 - ✅ CIEM engine (IAM entitlement, privilege escalation) — 35 tests
+- ✅ Redis Queue (horizontal scaling, /api/v1/queue) — 25 tests
+- ✅ SAML/OIDC SSO Bridge + PyJWKClient RS256 validation (no more verify_signature=False) — 70+68 tests
+- ✅ Frontend: Threat Intel Dashboard (/threat-intel), Asset Inventory (/assets), Vuln Lifecycle (/vuln-lifecycle)
+- ✅ GraphRAG wired to Copilot chat — 80 tests
+- ✅ Attack Path Analysis (BFS lateral movement, /api/v1/attack-paths) — 23 tests
+- ✅ Security Posture Advisor (/api/v1/posture-advisor) — 35 tests
+- ✅ Insider Threat Detection (/api/v1/insider-threat) — 52 tests
+- ✅ CVE Enrichment (NVD+EPSS+KEV, /api/v1/cve) — 37 tests
+- ✅ Security KPI Tracker (MTTD/MTTR/scorecard, /api/v1/kpi) — 43 tests
+- ✅ STRIDE Threat Modeling (/api/v1/threat-modeling) — 33 tests
+- ✅ Vendor Risk Assessment (/api/v1/vendor-risk) — 25 tests
+- ✅ Compliance Evidence Auto-Collector — 35 tests
 - ✅ All new routers wired into app.py
 
 ---
@@ -330,16 +340,38 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
-## RECENT CHANGES (2026-04-14)
+## RECENT CHANGES (2026-04-14, Night Session)
 
-- GraphRAG retriever wired (BFS traversal over TrustGraph, /api/v1/graphrag)
-- SLA auto-escalation engine (tiered breach actions, /api/v1/sla-escalation)
-- Vulnerability lifecycle tracker (8-state machine, /api/v1/vuln-lifecycle)
-- Digital Risk Protection + Deception Engine routers live
-- Error handling auditor (AST, 652 findings found, 22 fixed)
-- Compliance Dashboard frontend at /compliance
-- +138 new tests → ~850+ Beast Mode tests passing
-- All new routers wired into app.py
+### PRD Stories (Ralph loop — all 6 VERIFIED by architect):
+- ✅ Redis Queue Mode (RedisQueue + fallback to in-memory, /api/v1/queue) — 25 tests
+- ✅ SAML/OIDC SSO Bridge (SSOBridge, Okta/Auth0/Azure/Google, /api/v1/sso) — 70 tests
+- ✅ Threat Intel Dashboard frontend at /threat-intel
+- ✅ Asset Inventory frontend at /assets
+- ✅ Vulnerability Lifecycle UI at /vuln-lifecycle
+- ✅ GraphRAG wired to Copilot chat (/api/v1/graphrag) — 80 tests
+
+### Security Fix (CRITICAL):
+- 🔒 JWT signature verification fix in sso_provider.py — replaced `verify_signature=False` with PyJWKClient RS256 validation against live JWKS endpoint (commit af425506)
+
+### Beast Mode Extra Engines (parallel agents):
+- Attack Path Analysis (BFS lateral movement, /api/v1/attack-paths) — 23 tests
+- Security Posture Advisor (virtual CISO recommendations, /api/v1/posture-advisor) — 35 tests
+- Insider Threat Detection (behavioral analytics, /api/v1/insider-threat) — 52 tests
+- CVE Enrichment Service (NVD+EPSS+KEV offline cache, /api/v1/cve) — 37 tests
+- Security KPI Tracker (MTTD/MTTR/benchmarks/scorecard, /api/v1/kpi) — 43 tests
+- STRIDE Threat Modeling (auto-threat detection, /api/v1/threat-modeling) — 33 tests
+- Vendor Risk Assessment (questionnaire scoring, /api/v1/vendor-risk) — 25 tests
+- Compliance Evidence Auto-Collector (6-framework coverage, /api/v1/evidence) — 35 tests
+- Attack Path Analysis (BFS crown-jewel paths) — 23 tests
+
+### Real-World API Research (live-tested):
+- EPSS: https://api.first.org/data/v1/epss — no auth, live scoring
+- CISA KEV: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json — no auth
+- Shodan InternetDB: https://internetdb.shodan.io/{ip} — no auth, 1 req/sec
+- NVD CVE API v2 — rate limited (5/30s free, 50/30s with free API key)
+- abuse.ch (URLhaus/ThreatFox) now requires free auth.abuse.ch key
+
+### Git state: pushed to af425506 on features/intermediate-stage
 
 ---
 
