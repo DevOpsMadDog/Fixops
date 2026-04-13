@@ -168,6 +168,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Trivy Scanner router not available: %s", e)
 
+# Snyk Scanner — Snyk REST API vulnerability data ingestion
+snyk_router: Optional[APIRouter] = None
+try:
+    from apps.api.snyk_router import router as snyk_router
+    logging.getLogger(__name__).info("Loaded Snyk Scanner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Snyk Scanner router not available: %s", e)
+
 # ---------------------------------------------------------------------------
 # Additional apps/api routers (wired in this session)
 # ---------------------------------------------------------------------------
@@ -2195,6 +2203,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted Trivy Scanner router")
+
+    # Snyk Scanner — Snyk REST API vulnerability data ingestion
+    if snyk_router:
+        app.include_router(
+            snyk_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Snyk Scanner router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
