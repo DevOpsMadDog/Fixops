@@ -1,0 +1,450 @@
+"""
+ALDECI ServiceNow Bidirectional Sync API Router.
+
+Provides REST endpoints for configuring and operating the ServiceNow sync engine.
+
+Endpoints:
+  POST /api/v1/servicenow-sync/configure        — set ServiceNow connection + sync config
+  POST /api/v1/servicenow-sync/sync-all         — sync all provided findings to ServiceNow
+  POST /api/v1/servicenow-sync/sync-finding     — sync a single finding to ServiceNow
+  POST /api/v1/servicenow-sync/sync-status      — propagate a finding status to ServiceNow
+  GET  /api/v1/servicenow-sync/field-mapping    — retrieve field mapping config
+  PUT  /api/v1/servicenow-sync/field-mapping    — update field mapping config
+  GET  /api/v1/servicenow-sync/history          — paginated sync history
+  GET  /api/v1/servicenow-sync/stats            — sync statistics
+  POST /api/v1/servicenow-sync/webhooks         — receive ServiceNow webhook events
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
+
+from apps.api.auth_deps import api_key_auth
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/v1/servicenow-sync",
+    tags=["servicenow-sync"],
+    dependencies=[Depends(api_key_auth)],
+)
+
+# Webhook endpoint intentionally has NO auth dependency — ServiceNow signs its
+# own payloads. The engine validates the secret if configured.
+webhook_router = APIRouter(
+    prefix="/api/v1/servicenow-sync",
+    tags=["servicenow-sync"],
+)
+
+# ---------------------------------------------------------------------------
+# Lazy singleton
+# ---------------------------------------------------------------------------
+
+
+def _get_engine():
+    from core.servicenow_sync import get_servicenow_sync_engine
+    return get_servicenow_sync_engine()
+
+
+# ---------------------------------------------------------------------------
+# Request / Response models
+# ---------------------------------------------------------------------------
+
+
+class FieldMappingItem(BaseModel):
+    finding_field: str = Field(..., description="Field name in the ALDECI finding dict")
+    sn_field: str = Field(..., description="Field name in the ServiceNow incident record")
+    transform: Optional[str] = Field(
+        None,
+        description="Optional transform key: severity_to_urgency | severity_to_impact | status_to_state",
+    )
+
+
+class ConfigureRequest(BaseModel):
+    """Configure the ServiceNow sync engine."""
+    instance_url: str = Field(
+        ..., description="ServiceNow instance URL, e.g. https://mycompany.service-now.com"
+    )
+    username: str = Field(..., description="ServiceNow username for basic auth")
+    password: str = Field(..., description="ServiceNow password or API token")
+    assignment_group: str = Field(
+        "", description="ServiceNow assignment group name for created incidents"
+    )
+    category: str = Field("Security", description="Incident category")
+    subcategory: str = Field("Vulnerability", description="Incident subcategory")
+    sync_direction: str = Field(
+        "bidirectional",
+        description="bidirectional | finding_to_servicenow | servicenow_to_finding",
+    )
+    conflict_resolution: str = Field(
+        "newest_wins",
+        description="newest_wins | servicenow_wins | finding_wins | manual",
+    )
+    tags: List[str] = Field(default_factory=lambda: ["aldeci", "security"])
+    webhook_secret: Optional[str] = Field(
+        None, description="Secret for validating ServiceNow webhook calls"
+    )
+    field_mappings: List[FieldMappingItem] = Field(default_factory=list)
+    sn_state_to_finding_status: Optional[Dict[str, str]] = Field(
+        None, description="Override ServiceNow state → finding status mapping"
+    )
+    finding_to_sn_state: Optional[Dict[str, str]] = Field(
+        None, description="Override finding status → ServiceNow state code mapping"
+    )
+    severity_to_urgency: Optional[Dict[str, str]] = Field(
+        None, description="Override severity → ServiceNow urgency mapping"
+    )
+    severity_to_impact: Optional[Dict[str, str]] = Field(
+        None, description="Override severity → ServiceNow impact mapping"
+    )
+
+
+class SyncFindingRequest(BaseModel):
+    finding_id: str = Field(..., description="Unique finding identifier")
+    finding_data: Dict[str, Any] = Field(
+        ...,
+        description="Finding fields: title, severity, description, cve_id, source, etc.",
+    )
+
+
+class SyncAllRequest(BaseModel):
+    findings: List[Dict[str, Any]] = Field(
+        ..., description="List of finding dicts, each with a finding_id or id field"
+    )
+
+
+class SyncStatusRequest(BaseModel):
+    finding_id: str = Field(..., description="Finding to update")
+    new_status: str = Field(
+        ...,
+        description="New finding status, e.g. resolved, closed, in_progress",
+    )
+
+
+class FieldMappingUpdateRequest(BaseModel):
+    mappings: List[FieldMappingItem] = Field(
+        ..., description="New field mapping list (replaces existing)"
+    )
+
+
+class ConfigureResponse(BaseModel):
+    success: bool
+    configured: bool
+    instance_url: str
+    sync_direction: str
+    conflict_resolution: str
+
+
+class SyncResultResponse(BaseModel):
+    finding_id: str
+    sn_incident_number: Optional[str]
+    sn_sys_id: Optional[str]
+    status: str
+    direction: str
+    detail: Dict[str, Any]
+    synced_at: str
+
+
+class SyncAllResponse(BaseModel):
+    total: int
+    succeeded: int
+    failed: int
+    skipped: int
+    results: List[SyncResultResponse]
+
+
+class HistoryEntry(BaseModel):
+    record_id: str
+    finding_id: str
+    sn_incident_number: Optional[str]
+    sn_sys_id: Optional[str]
+    direction: str
+    status: str
+    detail: Dict[str, Any]
+    synced_at: str
+
+
+class StatsResponse(BaseModel):
+    total_links: int
+    total_sync_events: int
+    by_status: Dict[str, int]
+    by_direction: Dict[str, int]
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/configure",
+    response_model=ConfigureResponse,
+    summary="Configure ServiceNow sync engine",
+)
+def configure(req: ConfigureRequest):
+    """
+    Set (and persist) the ServiceNow connection configuration and sync policy.
+
+    The configuration is stored in the sync engine's SQLite database and
+    survives process restarts.
+    """
+    from core.servicenow_sync import (
+        ConflictResolution,
+        FieldMapping,
+        ServiceNowSyncConfig,
+        SyncDirection,
+        _DEFAULT_FINDING_TO_SN_STATE,
+        _DEFAULT_SEVERITY_TO_IMPACT,
+        _DEFAULT_SEVERITY_TO_URGENCY,
+        _DEFAULT_SN_STATE_TO_FINDING_STATUS,
+    )
+
+    try:
+        sync_dir = SyncDirection(req.sync_direction)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Invalid sync_direction: '{req.sync_direction}'. "
+                f"Valid values: {[d.value for d in SyncDirection]}"
+            ),
+        )
+
+    try:
+        conflict = ConflictResolution(req.conflict_resolution)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Invalid conflict_resolution: '{req.conflict_resolution}'. "
+                f"Valid values: {[c.value for c in ConflictResolution]}"
+            ),
+        )
+
+    cfg = ServiceNowSyncConfig(
+        instance_url=req.instance_url,
+        username=req.username,
+        password=req.password,
+        assignment_group=req.assignment_group,
+        category=req.category,
+        subcategory=req.subcategory,
+        sync_direction=sync_dir,
+        conflict_resolution=conflict,
+        tags=req.tags,
+        webhook_secret=req.webhook_secret,
+        field_mappings=[
+            FieldMapping(
+                finding_field=fm.finding_field,
+                sn_field=fm.sn_field,
+                transform=fm.transform,
+            )
+            for fm in req.field_mappings
+        ],
+        sn_state_to_finding_status=req.sn_state_to_finding_status
+        or dict(_DEFAULT_SN_STATE_TO_FINDING_STATUS),
+        finding_to_sn_state=req.finding_to_sn_state
+        or dict(_DEFAULT_FINDING_TO_SN_STATE),
+        severity_to_urgency=req.severity_to_urgency
+        or dict(_DEFAULT_SEVERITY_TO_URGENCY),
+        severity_to_impact=req.severity_to_impact
+        or dict(_DEFAULT_SEVERITY_TO_IMPACT),
+    )
+
+    engine = _get_engine()
+    engine.configure(cfg)
+
+    return ConfigureResponse(
+        success=True,
+        configured=cfg.configured,
+        instance_url=cfg.instance_url,
+        sync_direction=cfg.sync_direction.value,
+        conflict_resolution=cfg.conflict_resolution.value,
+    )
+
+
+@router.post(
+    "/sync-all",
+    response_model=SyncAllResponse,
+    summary="Sync a batch of findings to ServiceNow",
+)
+def sync_all(req: SyncAllRequest):
+    """
+    Push a list of findings to ServiceNow, creating or updating incidents as needed.
+
+    Each finding dict must contain a ``finding_id`` or ``id`` field.
+    Returns per-finding results and aggregate counters.
+    """
+    engine = _get_engine()
+    results = engine.sync_all(req.findings)
+
+    succeeded = sum(1 for r in results if r.status.value == "success")
+    failed = sum(1 for r in results if r.status.value == "failed")
+    skipped = sum(
+        1 for r in results if r.status.value in ("skipped", "conflict")
+    )
+
+    return SyncAllResponse(
+        total=len(results),
+        succeeded=succeeded,
+        failed=failed,
+        skipped=skipped,
+        results=[SyncResultResponse(**r.to_dict()) for r in results],
+    )
+
+
+@router.post(
+    "/sync-finding",
+    response_model=SyncResultResponse,
+    summary="Sync a single finding to ServiceNow",
+)
+def sync_finding(req: SyncFindingRequest):
+    """
+    Create or update the ServiceNow incident that corresponds to the given finding.
+
+    If a ServiceNow link already exists for this finding the incident is updated.
+    If no link exists a new incident is created and the link is recorded.
+    """
+    engine = _get_engine()
+    result = engine.sync_finding(req.finding_id, req.finding_data)
+    return SyncResultResponse(**result.to_dict())
+
+
+@router.post(
+    "/sync-status",
+    response_model=SyncResultResponse,
+    summary="Propagate finding status change to ServiceNow",
+)
+def sync_status(req: SyncStatusRequest):
+    """
+    Update the linked ServiceNow incident state to reflect the finding's new status.
+
+    Requires a pre-existing link between ``finding_id`` and a ServiceNow incident
+    (established via ``sync-finding``). Uses the configured
+    ``finding_to_sn_state`` mapping to determine the ServiceNow state code.
+    """
+    engine = _get_engine()
+    result = engine.sync_status(req.finding_id, req.new_status)
+    return SyncResultResponse(**result.to_dict())
+
+
+@router.get(
+    "/field-mapping",
+    response_model=List[FieldMappingItem],
+    summary="Retrieve current field mapping configuration",
+)
+def get_field_mapping():
+    """
+    Return the list of custom finding-field → ServiceNow-field mappings.
+
+    These mappings supplement the built-in ones (title, severity, description).
+    """
+    engine = _get_engine()
+    mappings = engine.get_field_mapping()
+    return [FieldMappingItem(**m) for m in mappings]
+
+
+@router.put(
+    "/field-mapping",
+    response_model=List[FieldMappingItem],
+    summary="Replace field mapping configuration",
+)
+def update_field_mapping(req: FieldMappingUpdateRequest):
+    """
+    Replace the entire custom field mapping list.
+
+    The new list is persisted immediately and takes effect on the next sync.
+    """
+    engine = _get_engine()
+    try:
+        engine.set_field_mapping(
+            [
+                {
+                    "finding_field": m.finding_field,
+                    "sn_field": m.sn_field,
+                    "transform": m.transform,
+                }
+                for m in req.mappings
+            ]
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return req.mappings
+
+
+@router.get(
+    "/history",
+    response_model=List[HistoryEntry],
+    summary="Paginated sync history",
+)
+def get_history(
+    finding_id: Optional[str] = Query(None, description="Filter by finding ID"),
+    limit: int = Query(100, ge=1, le=1000, description="Max records to return"),
+    offset: int = Query(0, ge=0, description="Number of records to skip"),
+):
+    """
+    Return the sync audit history, newest first.
+
+    Optionally filter to a specific ``finding_id``. Supports pagination via
+    ``limit`` and ``offset``.
+    """
+    engine = _get_engine()
+    rows = engine.get_history(finding_id=finding_id, limit=limit, offset=offset)
+    return [HistoryEntry(**r) for r in rows]
+
+
+@router.get(
+    "/stats",
+    response_model=StatsResponse,
+    summary="Sync engine statistics",
+)
+def get_stats():
+    """
+    Return aggregate statistics: total links, event counts by status and direction.
+    """
+    engine = _get_engine()
+    return StatsResponse(**engine.get_stats())
+
+
+# ---------------------------------------------------------------------------
+# Webhook endpoint (no API-key auth — ServiceNow calls this directly)
+# ---------------------------------------------------------------------------
+
+
+@webhook_router.post(
+    "/webhooks",
+    response_model=SyncResultResponse,
+    summary="Receive ServiceNow webhook events",
+)
+async def handle_webhook(request: Request):
+    """
+    Receive and process ServiceNow webhook ``POST`` callbacks.
+
+    ServiceNow Business Rules or Flow Designer POST a JSON payload for every
+    incident event (insert, update, delete). The engine translates the
+    ServiceNow state into an ALDECI finding status and records the event in
+    sync history.
+
+    Expected payload keys:
+      - ``sys_id``        — ServiceNow sys_id of the incident
+      - ``number``        — incident number (e.g. INC0010042)
+      - ``state``         — state code (1=New, 2=In Progress, 6=Resolved, 7=Closed)
+      - ``table_name``    — should be ``incident``
+      - ``action``        — ``insert`` | ``update`` | ``delete``
+      - ``sys_updated_on``— ISO timestamp of the last update
+
+    If ``webhook_secret`` is configured the engine validates it against the
+    ``X-ServiceNow-Webhook-Secret`` request header.
+    """
+    try:
+        payload: Dict[str, Any] = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    engine = _get_engine()
+    result = engine.handle_webhook(payload)
+    return SyncResultResponse(**result.to_dict())
