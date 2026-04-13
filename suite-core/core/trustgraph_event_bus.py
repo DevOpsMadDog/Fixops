@@ -138,7 +138,7 @@ class EventBusMetrics:
     latency_total_ms: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
     latency_count: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
 
-    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+    _lock: threading.RLock = field(default_factory=threading.RLock, repr=False, compare=False)
 
     def record_emit(self, event_type: str) -> None:
         with self._lock:
