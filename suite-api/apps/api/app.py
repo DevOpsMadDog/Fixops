@@ -37,6 +37,14 @@ import jwt
 from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
 
+# Evidence Chain router — tamper-proof cryptographic audit trail
+evidence_chain_router: Optional[APIRouter] = None
+try:
+    from apps.api.evidence_chain_router import router as evidence_chain_router
+    logging.getLogger(__name__).info("Loaded Evidence Chain router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Evidence Chain router not available: %s", e)
+
 # Unified Triage router (crown jewel — finding + attack path + compliance + SLA in one call)
 triage_router: Optional[APIRouter] = None
 try:
@@ -2452,6 +2460,9 @@ def create_app() -> FastAPI:
 
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    if evidence_chain_router:
+        app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+        _logger.info("Mounted Evidence Chain router")
     app.include_router(workflows_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
 
     app.include_router(
