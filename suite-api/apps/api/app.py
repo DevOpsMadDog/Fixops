@@ -671,6 +671,15 @@ except ImportError as e:
         f"Enterprise marketplace router not available: {e}"
     )
 
+# Integration Marketplace router (scanner, ticketing, notification, cloud, CI/CD, SIEM installs)
+integration_marketplace_router: Optional[APIRouter] = None
+try:
+    from apps.api.integration_marketplace_router import router as integration_marketplace_router
+
+    logging.getLogger(__name__).info("Loaded Integration Marketplace router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Integration Marketplace router not available: %s", e)
+
 # Customer onboarding wizard router
 onboarding_wizard_router: Optional[APIRouter] = None
 try:
@@ -2384,6 +2393,11 @@ def create_app() -> FastAPI:
             prefix="/api/v1/marketplace",
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
         )
+
+    # Integration Marketplace API (scanner/ticketing/notification/cloud installs)
+    if integration_marketplace_router:
+        app.include_router(integration_marketplace_router)
+        _logger.info("Mounted Integration Marketplace router at /api/v1/integrations")
 
     # Customer onboarding wizard
     if onboarding_wizard_router:
