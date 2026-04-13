@@ -4481,6 +4481,16 @@ def create_app() -> FastAPI:
         return await call_next(request)
 
     # -----------------------------------------------------------------------
+    # Network Segmentation Analyzer router
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.network_analyzer_router import router as _network_analyzer_router
+        app.include_router(_network_analyzer_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+        _logger.info("Loaded Network Segmentation Analyzer router")
+    except ImportError as _e:
+        _logger.warning("Network Segmentation Analyzer router not available: %s", _e)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
