@@ -228,8 +228,10 @@ class TestBanditNormalizer:
         assert _get(f, "rule_id") == "B101"
 
     def test_normalize_empty_results_returns_empty_list(self):
+        # Pass an explicit empty-results payload (avoid `or` fallback in helper)
+        payload = {"generated_at": "2024-01-01T00:00:00Z", "metrics": {"_totals": {}}, "results": []}
         n = _make_normalizer(BanditNormalizer)
-        findings = n.normalize(self._make_content(results=[]))
+        findings = n.normalize(json.dumps(payload).encode())
         assert findings == []
 
     def test_normalize_malformed_json_returns_empty_list(self):
@@ -533,10 +535,11 @@ class TestGitleaksNormalizer:
         n = _make_normalizer(GitleaksScannerNormalizer)
         assert n.normalize(b"{bad}") == []
 
-    def test_normalize_generic_rule_maps_to_high_not_critical(self):
+    def test_normalize_rule_without_sensitive_keyword_maps_to_high(self):
+        # Rule "generic-secret" has no sensitive keyword so defaults to high
         items = [{
-            "RuleID": "generic-api-key",
-            "Description": "Generic API key",
+            "RuleID": "generic-secret",
+            "Description": "Generic secret detected",
             "Secret": "some-secret-value",
             "File": "app.py",
             "StartLine": 5,

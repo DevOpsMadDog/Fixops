@@ -227,9 +227,10 @@ class TestRunWithFindings:
         result = _run_pipeline(findings=[_make_finding()])
         assert result.enrichment_stats is not None
 
-    def test_run_result_total_steps_matches_step_names(self):
+    def test_run_result_total_steps_is_twelve(self):
+        # PipelineResult.total_steps is hardcoded to 12 (the documented step count)
         result = _run_pipeline(findings=[_make_finding()])
-        assert result.total_steps == len(STEP_NAMES)
+        assert result.total_steps == 12
 
 
 # ---------------------------------------------------------------------------

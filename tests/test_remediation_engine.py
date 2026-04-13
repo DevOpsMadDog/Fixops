@@ -24,11 +24,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
 
 from core.remediation_engine import (
     ApprovalGate,
+    CodeFix,
+    EffortLevel,
     ExecutionStatus,
+    PlanState,
     PlaybookStep,
     PlaybookType,
     RemediationEngine,
     RemediationExecution,
+    RemediationPlan,
+    RemediationPlanEngine,
     RemediationPlaybook,
 )
 

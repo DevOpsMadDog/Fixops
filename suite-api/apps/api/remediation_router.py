@@ -842,3 +842,154 @@ def _status_to_phase(status: str) -> str:
         "deferred": "triage",
     }
     return mapping.get(status, "discovery")
+
+
+# ---------------------------------------------------------------------------
+# CWE-based Remediation Plan endpoints
+# ---------------------------------------------------------------------------
+
+try:
+    from core.remediation_engine import (
+        CodeFix,
+        EffortLevel,
+        PlanState,
+        RemediationPlan,
+        RemediationPlanEngine,
+    )
+
+    _HAS_PLAN_ENGINE = True
+except ImportError:
+    _HAS_PLAN_ENGINE = False
+
+_plan_engine: Optional["RemediationPlanEngine"] = None
+
+
+def _get_plan_engine() -> "RemediationPlanEngine":
+    global _plan_engine
+    if _plan_engine is None:
+        _plan_engine = RemediationPlanEngine(_DATA_DIR / "plans.db")
+    return _plan_engine
+
+
+class CreatePlanRequest(BaseModel):
+    """Request to create a CWE-based remediation plan."""
+
+    id: str
+    cwe_id: str
+    severity: str = "MEDIUM"
+    title: Optional[str] = None
+
+
+class UpdatePlanStateRequest(BaseModel):
+    """Request to advance a plan's state."""
+
+    state: str
+
+
+class SuggestFixRequest(BaseModel):
+    """Request to get a code fix suggestion."""
+
+    id: str
+    cwe_id: str
+    code_snippet: str = ""
+
+
+class VerifyFixRequest(BaseModel):
+    """Request to verify a fix via re-scan results."""
+
+    finding_id: str
+    new_scan_results: List[Dict[str, Any]]
+
+
+@router.post("/plan", summary="Create CWE-based remediation plan")
+def create_plan(req: CreatePlanRequest) -> Dict[str, Any]:
+    """Generate a step-by-step remediation plan for a finding based on its CWE ID."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    plan = engine.create_remediation_plan(req.model_dump())
+    return plan.model_dump(mode="json")
+
+
+@router.get("/plans", summary="List all remediation plans")
+def list_plans(
+    finding_id: Optional[str] = None,
+    state: Optional[str] = None,
+) -> Dict[str, Any]:
+    """List remediation plans with optional filters."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    state_filter = None
+    if state:
+        try:
+            state_filter = PlanState(state.upper())
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid state: {state}")
+    plans = engine.list_plans(finding_id=finding_id, state_filter=state_filter)
+    return {"plans": [p.model_dump(mode="json") for p in plans], "count": len(plans)}
+
+
+@router.put("/{plan_id}/status", summary="Update plan state")
+def update_plan_state(plan_id: str, req: UpdatePlanStateRequest) -> Dict[str, Any]:
+    """Advance a remediation plan through its state machine."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    try:
+        new_state = PlanState(req.state.upper())
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid state: {req.state}")
+    try:
+        plan = engine.update_state(plan_id, new_state)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return plan.model_dump(mode="json")
+
+
+@router.post("/suggest-fix", summary="Get code fix suggestion for a finding")
+def suggest_fix(req: SuggestFixRequest) -> Dict[str, Any]:
+    """Return a safe code fix suggestion based on the finding's CWE ID."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    fix = engine.suggest_code_fix(req.model_dump(), req.code_snippet)
+    return fix.model_dump(mode="json")
+
+
+@router.post("/verify", summary="Verify fix via re-scan results")
+def verify_fix(req: VerifyFixRequest) -> Dict[str, Any]:
+    """Check whether a finding still appears in new scan results."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    fixed = engine.verify_fix(req.finding_id, req.new_scan_results)
+    return {
+        "finding_id": req.finding_id,
+        "verified": fixed,
+        "message": "Finding no longer detected — fix verified." if fixed else "Finding still present — fix incomplete.",
+    }
+
+
+@router.get("/cwe-templates", summary="List CWE remediation templates")
+def list_cwe_templates() -> Dict[str, Any]:
+    """Return all built-in CWE remediation templates with effort and step counts."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    templates = engine.list_cwe_templates()
+    return {"templates": templates, "count": len(templates)}
+
+
+@router.get("/sla", summary="Get SLA deadline for a severity")
+def get_sla(severity: str = "MEDIUM") -> Dict[str, Any]:
+    """Return the SLA timedelta and hours for a given severity level."""
+    if not _HAS_PLAN_ENGINE:
+        raise HTTPException(status_code=501, detail="Remediation plan engine not available")
+    engine = _get_plan_engine()
+    sla = engine.calculate_remediation_sla(severity)
+    return {
+        "severity": severity.upper(),
+        "sla_hours": int(sla.total_seconds() / 3600),
+        "sla_days": round(sla.total_seconds() / 86400, 1),
+    }

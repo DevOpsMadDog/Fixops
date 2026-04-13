@@ -680,3 +680,498 @@ class RemediationEngine:
             "original_output": step_data.get("output"),
             "reverted": True,
         }
+
+
+# ---------------------------------------------------------------------------
+# CWE-based Remediation Plan Engine
+# ---------------------------------------------------------------------------
+
+
+class PlanState(str, Enum):
+    IDENTIFIED = "IDENTIFIED"
+    PLANNED = "PLANNED"
+    IN_PROGRESS = "IN_PROGRESS"
+    FIXED = "FIXED"
+    VERIFIED = "VERIFIED"
+
+
+class EffortLevel(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+
+class RemediationPlan(BaseModel):
+    plan_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    finding_id: str
+    cwe_id: str
+    steps: List[str] = Field(default_factory=list)
+    effort: EffortLevel = EffortLevel.MEDIUM
+    auto_fixable: bool = False
+    references: List[str] = Field(default_factory=list)
+    state: PlanState = PlanState.IDENTIFIED
+    priority: str = "MEDIUM"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    sla_deadline: Optional[datetime] = None
+
+
+class CodeFix(BaseModel):
+    fix_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    finding_id: str
+    cwe_id: str
+    description: str
+    before_snippet: str = ""
+    after_snippet: str = ""
+    language: str = "python"
+    confidence: float = 0.8
+
+
+# CWE remediation templates: cwe_id → (steps, effort, auto_fixable, references)
+_CWE_TEMPLATES: Dict[str, Dict[str, Any]] = {
+    "CWE-89": {
+        "name": "SQL Injection",
+        "steps": [
+            "Identify all SQL query construction points in the codebase",
+            "Replace string-concatenated queries with parameterized queries / prepared statements",
+            "Use an ORM or query builder that escapes inputs by default",
+            "Add input validation to reject unexpected characters where applicable",
+            "Run SAST scan to verify no remaining injection points",
+            "Add integration test with malicious payloads to confirm fix",
+        ],
+        "effort": EffortLevel.MEDIUM,
+        "auto_fixable": True,
+        "references": [
+            "https://owasp.org/www-community/attacks/SQL_Injection",
+            "https://cwe.mitre.org/data/definitions/89.html",
+            "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+        ],
+        "before_snippet": 'query = "SELECT * FROM users WHERE id = " + user_id',
+        "after_snippet": 'cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))',
+    },
+    "CWE-79": {
+        "name": "Cross-Site Scripting (XSS)",
+        "steps": [
+            "Audit all locations where user-supplied data is rendered in HTML",
+            "Apply context-aware output encoding (HTML, JS, CSS, URL) at every output point",
+            "Use a templating engine that auto-escapes by default (e.g., Jinja2 with autoescape=True)",
+            "Implement Content Security Policy (CSP) headers",
+            "Sanitize rich-text HTML with an allowlist library (e.g., bleach)",
+            "Run DAST scan to confirm XSS vectors are closed",
+        ],
+        "effort": EffortLevel.MEDIUM,
+        "auto_fixable": True,
+        "references": [
+            "https://owasp.org/www-community/attacks/xss/",
+            "https://cwe.mitre.org/data/definitions/79.html",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+        ],
+        "before_snippet": "return f'<p>Hello {username}</p>'",
+        "after_snippet": "from markupsafe import escape\nreturn f'<p>Hello {escape(username)}</p>'",
+    },
+    "CWE-798": {
+        "name": "Hardcoded Credentials",
+        "steps": [
+            "Search codebase for hardcoded secrets using secret-scanning tools (trufflehog, gitleaks)",
+            "Rotate all exposed credentials immediately",
+            "Move secrets to environment variables or a secrets manager (Vault, AWS Secrets Manager)",
+            "Update code to read credentials from os.environ or secrets manager SDK",
+            "Add pre-commit hook to prevent future secret commits",
+            "Audit git history and purge secrets if committed (git-filter-repo)",
+        ],
+        "effort": EffortLevel.LOW,
+        "auto_fixable": True,
+        "references": [
+            "https://cwe.mitre.org/data/definitions/798.html",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html",
+        ],
+        "before_snippet": "DB_PASSWORD = 'supersecret123'",
+        "after_snippet": "import os\nDB_PASSWORD = os.environ['DB_PASSWORD']",
+    },
+    "CWE-22": {
+        "name": "Path Traversal",
+        "steps": [
+            "Identify all file-path construction points that incorporate user input",
+            "Validate paths against an allowlist of permitted base directories",
+            "Use os.path.realpath() / pathlib.Path.resolve() and confirm the result is within the allowed root",
+            "Reject paths containing '..' or null bytes",
+            "Apply least-privilege file-system permissions",
+            "Add unit tests with traversal payloads (../../etc/passwd)",
+        ],
+        "effort": EffortLevel.LOW,
+        "auto_fixable": True,
+        "references": [
+            "https://owasp.org/www-community/attacks/Path_Traversal",
+            "https://cwe.mitre.org/data/definitions/22.html",
+        ],
+        "before_snippet": "open(base_dir + '/' + user_filename)",
+        "after_snippet": (
+            "from pathlib import Path\n"
+            "resolved = (Path(base_dir) / user_filename).resolve()\n"
+            "if not str(resolved).startswith(str(Path(base_dir).resolve())):\n"
+            "    raise ValueError('Path traversal detected')\n"
+            "open(resolved)"
+        ),
+    },
+    "CWE-78": {
+        "name": "OS Command Injection",
+        "steps": [
+            "Identify all subprocess/os.system/exec calls that include user input",
+            "Replace shell=True with shell=False and pass arguments as a list",
+            "Avoid passing user input to shell commands entirely; use Python APIs instead",
+            "Apply input allowlisting if shell execution is unavoidable",
+            "Run SAST to detect remaining injection sinks",
+        ],
+        "effort": EffortLevel.MEDIUM,
+        "auto_fixable": True,
+        "references": [
+            "https://owasp.org/www-community/attacks/Command_Injection",
+            "https://cwe.mitre.org/data/definitions/78.html",
+        ],
+        "before_snippet": "subprocess.run(f'ls {user_dir}', shell=True)",
+        "after_snippet": "subprocess.run(['ls', user_dir], shell=False)",
+    },
+    "CWE-311": {
+        "name": "Missing Encryption of Sensitive Data",
+        "steps": [
+            "Identify all sensitive data stored or transmitted in plaintext",
+            "Enforce TLS 1.2+ for all network communication; disable older protocols",
+            "Encrypt sensitive data at rest using AES-256-GCM or equivalent",
+            "Use a KMS or HSM for key management; never hardcode encryption keys",
+            "Set HSTS headers and enforce HTTPS redirects",
+            "Audit database columns storing PII/secrets and apply column-level encryption",
+        ],
+        "effort": EffortLevel.HIGH,
+        "auto_fixable": False,
+        "references": [
+            "https://cwe.mitre.org/data/definitions/311.html",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html",
+        ],
+        "before_snippet": "# Storing password in plaintext\ndb.save(user_id, password=password)",
+        "after_snippet": (
+            "import bcrypt\n"
+            "hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())\n"
+            "db.save(user_id, password_hash=hashed)"
+        ),
+    },
+    "CWE-306": {
+        "name": "Missing Authentication for Critical Function",
+        "steps": [
+            "Identify all endpoints/functions that perform sensitive operations without authentication",
+            "Add authentication middleware or decorator to every sensitive route",
+            "Implement session/token validation before executing critical logic",
+            "Apply role-based access control (RBAC) to restrict access by role",
+            "Add authorization tests covering unauthenticated and under-privileged access",
+            "Review all API endpoints against OWASP API Security Top 10",
+        ],
+        "effort": EffortLevel.HIGH,
+        "auto_fixable": False,
+        "references": [
+            "https://cwe.mitre.org/data/definitions/306.html",
+            "https://owasp.org/www-project-api-security/",
+        ],
+        "before_snippet": "@app.route('/admin/delete_user')\ndef delete_user(): ...",
+        "after_snippet": (
+            "@app.route('/admin/delete_user')\n"
+            "@require_auth\n"
+            "@require_role('admin')\n"
+            "def delete_user(): ..."
+        ),
+    },
+}
+
+# SLA hours by severity
+_SLA_HOURS: Dict[str, int] = {
+    "CRITICAL": 24,
+    "HIGH": 72,
+    "MEDIUM": 168,   # 7 days
+    "LOW": 720,      # 30 days
+}
+
+# Plan state DDL
+_PLAN_DDL = """
+CREATE TABLE IF NOT EXISTS remediation_plans (
+    plan_id     TEXT PRIMARY KEY,
+    finding_id  TEXT NOT NULL,
+    cwe_id      TEXT NOT NULL,
+    state       TEXT NOT NULL,
+    data        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+"""
+
+
+class RemediationPlanEngine:
+    """CWE-driven remediation plan engine with SLA tracking and state machine.
+
+    States: IDENTIFIED → PLANNED → IN_PROGRESS → FIXED → VERIFIED
+    """
+
+    def __init__(self, db_path: Optional[str] = None) -> None:
+        if db_path is None:
+            db_path = "data/remediation_plans.db"
+        self._db_path = str(db_path)
+        Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.executescript(_PLAN_DDL)
+
+    def _save_plan(self, plan: RemediationPlan) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO remediation_plans "
+                "(plan_id, finding_id, cwe_id, state, data, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    plan.plan_id,
+                    plan.finding_id,
+                    plan.cwe_id,
+                    plan.state.value,
+                    plan.model_dump_json(),
+                    plan.created_at.isoformat(),
+                    plan.updated_at.isoformat(),
+                ),
+            )
+
+    def _load_plan(self, row: sqlite3.Row) -> RemediationPlan:
+        return RemediationPlan.model_validate_json(row["data"])
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def create_remediation_plan(self, finding: Dict[str, Any]) -> RemediationPlan:
+        """Generate a step-by-step remediation plan based on CWE ID.
+
+        Args:
+            finding: dict with keys: id, cwe_id, severity (optional), title (optional)
+
+        Returns:
+            Persisted RemediationPlan with steps, effort, SLA deadline, etc.
+        """
+        finding_id = str(finding.get("id", str(uuid.uuid4())))
+        cwe_id = str(finding.get("cwe_id", "")).upper().strip()
+        severity = str(finding.get("severity", "MEDIUM")).upper()
+
+        template = _CWE_TEMPLATES.get(cwe_id)
+        if template:
+            steps = list(template["steps"])
+            effort = template["effort"]
+            auto_fixable = bool(template["auto_fixable"])
+            references = list(template["references"])
+        else:
+            # Generic fallback for unknown CWEs
+            steps = [
+                f"Research {cwe_id} vulnerability class and affected code",
+                "Identify all affected code paths",
+                "Apply targeted fix per MITRE CWE guidance",
+                "Run SAST/DAST scan to verify remediation",
+                "Update security documentation",
+            ]
+            effort = EffortLevel.MEDIUM
+            auto_fixable = False
+            references = [
+                f"https://cwe.mitre.org/data/definitions/{cwe_id.replace('CWE-', '')}.html"
+            ]
+
+        sla_hours = _SLA_HOURS.get(severity, _SLA_HOURS["MEDIUM"])
+        now = datetime.now(timezone.utc)
+        sla_deadline = now + timedelta(hours=sla_hours)
+
+        plan = RemediationPlan(
+            finding_id=finding_id,
+            cwe_id=cwe_id,
+            steps=steps,
+            effort=effort,
+            auto_fixable=auto_fixable,
+            references=references,
+            state=PlanState.IDENTIFIED,
+            priority=severity,
+            sla_deadline=sla_deadline,
+        )
+        self._save_plan(plan)
+        _logger.info(
+            "remediation_plan.created plan_id=%s finding_id=%s cwe=%s",
+            plan.plan_id, finding_id, cwe_id,
+        )
+        return plan
+
+    def suggest_code_fix(self, finding: Dict[str, Any], code_snippet: str = "") -> CodeFix:
+        """Return a safe code fix suggestion for the finding based on CWE.
+
+        Args:
+            finding: dict with keys: id, cwe_id
+            code_snippet: optional vulnerable code snippet for context
+
+        Returns:
+            CodeFix with before/after snippets and description.
+        """
+        finding_id = str(finding.get("id", str(uuid.uuid4())))
+        cwe_id = str(finding.get("cwe_id", "")).upper().strip()
+
+        template = _CWE_TEMPLATES.get(cwe_id)
+        if template:
+            description = (
+                f"Fix for {template['name']} ({cwe_id}): "
+                f"{template['steps'][0] if template['steps'] else 'Apply secure coding practice'}"
+            )
+            before = code_snippet or template.get("before_snippet", "")
+            after = template.get("after_snippet", "")
+            confidence = 0.9 if template.get("auto_fixable") else 0.7
+        else:
+            description = (
+                f"Manual review required for {cwe_id}. "
+                "Consult MITRE CWE guidance and apply principle of least privilege."
+            )
+            before = code_snippet
+            after = "# Implement secure alternative per CWE guidance"
+            confidence = 0.5
+
+        return CodeFix(
+            finding_id=finding_id,
+            cwe_id=cwe_id,
+            description=description,
+            before_snippet=before,
+            after_snippet=after,
+            confidence=confidence,
+        )
+
+    def track_remediation(self, finding_id: str, plan_id: str) -> RemediationPlan:
+        """Retrieve the current plan for tracking.
+
+        Args:
+            finding_id: ID of the finding
+            plan_id: ID of the plan to track
+
+        Returns:
+            RemediationPlan with current state.
+        """
+        plan = self.get_plan(plan_id)
+        if plan is None:
+            raise ValueError(f"Plan {plan_id} not found")
+        return plan
+
+    def update_state(self, plan_id: str, new_state: PlanState) -> RemediationPlan:
+        """Advance the plan through the remediation state machine.
+
+        Valid transitions:
+          IDENTIFIED → PLANNED → IN_PROGRESS → FIXED → VERIFIED
+
+        Args:
+            plan_id: ID of the plan to update
+            new_state: Target state
+
+        Returns:
+            Updated RemediationPlan.
+
+        Raises:
+            ValueError: if plan not found or transition is invalid.
+        """
+        _valid_transitions: Dict[PlanState, List[PlanState]] = {
+            PlanState.IDENTIFIED: [PlanState.PLANNED],
+            PlanState.PLANNED: [PlanState.IN_PROGRESS],
+            PlanState.IN_PROGRESS: [PlanState.FIXED],
+            PlanState.FIXED: [PlanState.VERIFIED],
+            PlanState.VERIFIED: [],
+        }
+        plan = self.get_plan(plan_id)
+        if plan is None:
+            raise ValueError(f"Plan {plan_id} not found")
+        allowed = _valid_transitions.get(plan.state, [])
+        if new_state not in allowed:
+            raise ValueError(
+                f"Invalid transition {plan.state.value} → {new_state.value}. "
+                f"Allowed: {[s.value for s in allowed]}"
+            )
+        plan.state = new_state
+        plan.updated_at = datetime.now(timezone.utc)
+        self._save_plan(plan)
+        _logger.info(
+            "remediation_plan.state_updated plan_id=%s state=%s",
+            plan_id, new_state.value,
+        )
+        return plan
+
+    def verify_fix(self, finding_id: str, new_scan_results: List[Dict[str, Any]]) -> bool:
+        """Check whether a finding_id still appears in new scan results.
+
+        Args:
+            finding_id: ID of the finding that was fixed
+            new_scan_results: list of finding dicts from a re-scan
+
+        Returns:
+            True if the finding is NOT present (fix verified), False otherwise.
+        """
+        for result in new_scan_results:
+            result_id = str(result.get("id", ""))
+            if result_id == finding_id:
+                _logger.info(
+                    "remediation_plan.verify_fix finding_id=%s STILL_PRESENT", finding_id
+                )
+                return False
+        _logger.info(
+            "remediation_plan.verify_fix finding_id=%s VERIFIED_FIXED", finding_id
+        )
+        return True
+
+    def calculate_remediation_sla(self, severity: str) -> timedelta:
+        """Return the SLA timedelta for a given severity.
+
+        Args:
+            severity: CRITICAL | HIGH | MEDIUM | LOW (case-insensitive)
+
+        Returns:
+            timedelta representing the SLA window.
+        """
+        hours = _SLA_HOURS.get(severity.upper(), _SLA_HOURS["MEDIUM"])
+        return timedelta(hours=hours)
+
+    def get_plan(self, plan_id: str) -> Optional[RemediationPlan]:
+        """Fetch a plan by ID."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM remediation_plans WHERE plan_id = ?", (plan_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        return self._load_plan(row)
+
+    def list_plans(
+        self,
+        finding_id: Optional[str] = None,
+        state_filter: Optional[PlanState] = None,
+    ) -> List[RemediationPlan]:
+        """List plans with optional filters."""
+        query = "SELECT * FROM remediation_plans WHERE 1=1"
+        params: List[Any] = []
+        if finding_id:
+            query += " AND finding_id = ?"
+            params.append(finding_id)
+        if state_filter:
+            query += " AND state = ?"
+            params.append(state_filter.value)
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._load_plan(r) for r in rows]
+
+    def list_cwe_templates(self) -> List[Dict[str, Any]]:
+        """Return the built-in CWE remediation templates (metadata only)."""
+        return [
+            {
+                "cwe_id": cwe_id,
+                "name": tmpl["name"],
+                "effort": tmpl["effort"].value,
+                "auto_fixable": tmpl["auto_fixable"],
+                "step_count": len(tmpl["steps"]),
+                "references": tmpl["references"],
+            }
+            for cwe_id, tmpl in _CWE_TEMPLATES.items()
+        ]
