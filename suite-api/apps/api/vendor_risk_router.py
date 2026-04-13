@@ -52,6 +52,7 @@ from core.vendor_risk import (
     VendorTier,
     get_engine,
 )
+from core.vendor_risk_engine import get_vendor_risk_engine
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,7 @@ router = APIRouter(
 )
 
 _engine = get_engine()
+_risk_engine = get_vendor_risk_engine()
 
 
 # ============================================================================
@@ -447,3 +449,225 @@ def get_vendor(vendor_id: str) -> VendorResponse:
     """Return a single vendor by ID."""
     vendor = _require_vendor(vendor_id)
     return _to_vendor_response(vendor)
+
+
+# ============================================================================
+# ENGINE-BACKED ENDPOINTS (VendorRiskEngine — automated assessment layer)
+# ============================================================================
+
+
+class AutoAssessRequest(BaseModel):
+    """Request body for automated vendor risk assessment."""
+
+    name: str = Field(..., min_length=1, description="Vendor name")
+    domain: Optional[str] = Field(None, description="Vendor domain (e.g. acme.com)")
+    data_access_level: str = Field(
+        "none",
+        description="Data access level: none/public/internal/confidential/restricted/secret",
+    )
+    fourth_party_vendors: List[str] = Field(
+        default_factory=list,
+        description="List of fourth-party vendor IDs used by this vendor",
+    )
+    vendor_id: Optional[str] = Field(None, description="Existing vendor ID (optional)")
+
+
+class AutoAssessResponse(BaseModel):
+    """Automated vendor risk assessment result."""
+
+    vendor_id: str
+    name: str
+    domain: Optional[str]
+    risk_score: float
+    risk_level: str
+    findings: List[Dict[str, Any]]
+    last_assessed: str
+    recommendations: List[str]
+    cves: List[Dict[str, Any]]
+    breach_matches: List[Dict[str, Any]]
+
+
+class EngineScorecardResponse(BaseModel):
+    """Engine-generated vendor scorecard."""
+
+    vendor_id: str
+    vendor_name: str
+    overall_score: float
+    risk_level: str
+    grade: str
+    domain_score: float
+    cve_score: float
+    breach_score: float
+    data_handling_score: float
+    fourth_party_score: float
+    findings_count: int
+    critical_findings: int
+    calculated_at: str
+    recommendations: List[str]
+
+
+class QuestionnaireTrackRequest(BaseModel):
+    """Request body for tracking a vendor security questionnaire."""
+
+    questions: Dict[str, Any] = Field(
+        ..., description="Map of question_id -> question text or response data"
+    )
+
+
+class QuestionnaireTrackResponse(BaseModel):
+    """Response after creating a questionnaire tracking record."""
+
+    questionnaire_id: str
+    vendor_id: str
+    status: str
+    question_count: int
+
+
+class FourthPartyRiskResponse(BaseModel):
+    """Fourth-party risk score for a vendor."""
+
+    vendor_id: str
+    fourth_party_risk_score: float
+    risk_label: str
+
+
+@router.post(
+    "/assess",
+    response_model=AutoAssessResponse,
+    status_code=200,
+    summary="Auto-assess a vendor (engine)",
+    description=(
+        "Runs automated risk assessment for a vendor: domain reputation, NVD CVE lookup, "
+        "known breach database, data handling classification, supply chain depth analysis. "
+        "Returns composite risk score 0-100 (higher = safer)."
+    ),
+)
+def auto_assess_vendor(body: AutoAssessRequest) -> AutoAssessResponse:
+    """Run automated VendorRiskEngine assessment for a vendor."""
+    vendor_dict: Dict[str, Any] = {
+        "name": body.name,
+        "domain": body.domain,
+        "data_access_level": body.data_access_level,
+        "fourth_party_vendors": body.fourth_party_vendors,
+    }
+    if body.vendor_id:
+        vendor_dict["id"] = body.vendor_id
+
+    result = _risk_engine.assess_vendor(vendor_dict)
+    return AutoAssessResponse(
+        vendor_id=result.vendor_id,
+        name=result.name,
+        domain=result.domain,
+        risk_score=result.risk_score,
+        risk_level=result.risk_level.value,
+        findings=[f.to_dict() for f in result.findings],
+        last_assessed=result.last_assessed,
+        recommendations=result.recommendations,
+        cves=result.cves,
+        breach_matches=result.breach_matches,
+    )
+
+
+@router.get(
+    "/high-risk",
+    response_model=List[Dict[str, Any]],
+    summary="List high-risk vendors (engine)",
+    description=(
+        "Returns all auto-assessed vendors with a risk score below the threshold "
+        "(default 60). Higher score = safer — scores below 60 are high-risk."
+    ),
+)
+def list_high_risk_vendors(
+    threshold: float = Query(60.0, ge=0.0, le=100.0, description="Risk score threshold (0-100)"),
+) -> List[Dict[str, Any]]:
+    """Return all auto-assessed vendors flagged as high-risk."""
+    return _risk_engine.list_high_risk_vendors(threshold=threshold)
+
+
+@router.post(
+    "/{vendor_id}/questionnaire-track",
+    response_model=QuestionnaireTrackResponse,
+    status_code=201,
+    summary="Send and track security questionnaire (engine)",
+    description=(
+        "Creates a questionnaire tracking record for a vendor in the engine's SQLite store. "
+        "Returns a questionnaire_id for status updates via PATCH."
+    ),
+)
+def track_questionnaire(
+    vendor_id: str,
+    body: QuestionnaireTrackRequest,
+) -> QuestionnaireTrackResponse:
+    """Create a questionnaire record for tracking completion status."""
+    if not body.questions:
+        raise HTTPException(status_code=422, detail="Questionnaire must contain at least one question.")
+
+    qid = _risk_engine.track_questionnaire(vendor_id, body.questions)
+    return QuestionnaireTrackResponse(
+        questionnaire_id=qid,
+        vendor_id=vendor_id,
+        status="pending",
+        question_count=len(body.questions),
+    )
+
+
+@router.get(
+    "/{vendor_id}/engine-scorecard",
+    response_model=EngineScorecardResponse,
+    summary="Get engine-generated vendor scorecard",
+    description=(
+        "Generates a composite vendor security scorecard from the automated assessment: "
+        "domain score, CVE score, breach score, data handling score, fourth-party score. "
+        "Requires assess endpoint to have been called first for this vendor."
+    ),
+)
+def get_engine_scorecard(vendor_id: str) -> EngineScorecardResponse:
+    """Generate and return the engine scorecard for an assessed vendor."""
+    try:
+        scorecard = _risk_engine.generate_vendor_scorecard(vendor_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return EngineScorecardResponse(
+        vendor_id=scorecard.vendor_id,
+        vendor_name=scorecard.vendor_name,
+        overall_score=scorecard.overall_score,
+        risk_level=scorecard.risk_level.value,
+        grade=scorecard.grade,
+        domain_score=scorecard.domain_score,
+        cve_score=scorecard.cve_score,
+        breach_score=scorecard.breach_score,
+        data_handling_score=scorecard.data_handling_score,
+        fourth_party_score=scorecard.fourth_party_score,
+        findings_count=scorecard.findings_count,
+        critical_findings=scorecard.critical_findings,
+        calculated_at=scorecard.calculated_at,
+        recommendations=scorecard.recommendations,
+    )
+
+
+@router.get(
+    "/{vendor_id}/fourth-party-risk",
+    response_model=FourthPartyRiskResponse,
+    summary="Fourth-party risk score (engine)",
+    description=(
+        "Returns a 0.0-1.0 fourth-party risk score for the vendor based on supply chain "
+        "depth analysis from the automated assessment. 0 = no exposure, 1 = maximum risk."
+    ),
+)
+def get_fourth_party_risk(vendor_id: str) -> FourthPartyRiskResponse:
+    """Return fourth-party risk score derived from engine assessment data."""
+    score = _risk_engine.calculate_fourth_party_risk(vendor_id)
+    if score < 0.3:
+        label = "low"
+    elif score < 0.6:
+        label = "medium"
+    elif score < 0.8:
+        label = "high"
+    else:
+        label = "critical"
+    return FourthPartyRiskResponse(
+        vendor_id=vendor_id,
+        fourth_party_risk_score=score,
+        risk_label=label,
+    )
