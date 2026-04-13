@@ -2049,6 +2049,39 @@ class SASTEngine:
 
         return result
 
+    def scan_path(
+        self,
+        path: str,
+        file_list: Optional[List[str]] = None,
+        incremental: bool = False,
+    ) -> "SastScanResult":
+        """Scan all supported files under ``path``.
+
+        Args:
+            path: Root directory to walk recursively.
+            file_list: If provided, scan only these specific file paths.
+            incremental: Skip files whose SHA-256 hash is unchanged.
+        """
+        base = Path(path)
+        if file_list:
+            targets = [Path(f) for f in file_list]
+        else:
+            targets = [
+                p for p in base.rglob("*")
+                if p.is_file() and p.suffix.lower() in EXT_TO_LANG
+            ]
+
+        file_contents: Dict[str, str] = {}
+        for target in targets:
+            try:
+                code = target.read_text(encoding="utf-8", errors="replace")
+                if len(code) <= self.MAX_CODE_SIZE:
+                    file_contents[str(target)] = code
+            except OSError:
+                continue
+
+        return self.scan_files(file_contents, incremental=incremental)
+
     def scan_files(
         self,
         file_contents: Dict[str, str],

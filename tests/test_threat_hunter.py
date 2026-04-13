@@ -560,7 +560,7 @@ class TestHuntTriggers:
 
 @pytest.fixture
 def client(tmp_db: str):
-    """FastAPI TestClient with isolated DB."""
+    """FastAPI TestClient with isolated DB and no auth."""
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
@@ -571,6 +571,13 @@ def client(tmp_db: str):
 
     app = FastAPI()
     app.include_router(router_module.router)
+
+    # Bypass auth by overriding the dependency if it loaded
+    try:
+        from apps.api.auth_deps import api_key_auth
+        app.dependency_overrides[api_key_auth] = lambda: None
+    except ImportError:
+        pass
 
     return TestClient(app)
 
@@ -695,9 +702,10 @@ class TestSigmaRulesEndpoint:
         assert data["name"] == "Suspicious PowerShell Encoded Command"
 
     def test_import_sigma_rule_invalid(self, client) -> None:
+        # A YAML list (not a mapping) should raise 422
         resp = client.post(
             "/api/v1/hunt/sigma-rules/import",
-            json={"yaml_content": ":::invalid:::"},
+            json={"yaml_content": "- item1\n- item2\n- item3"},
         )
         assert resp.status_code == 422
 

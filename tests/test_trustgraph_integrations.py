@@ -809,16 +809,15 @@ class TestRouterIndexEndpoint:
         assert resp.status_code == 422  # pydantic min_length=1
 
     def test_index_batch_mode(self):
-        with patch("core.trustgraph_integrations.BatchIndexer._indexer") as _:
-            with patch("core.trustgraph_integrations.UniversalFindingIndexer._get_backbone") as mock_bb:
-                mock_bb.return_value = _patched_backbone()
-                resp = self.client.post("/api/v1/graph/index", json={
-                    "findings": [
-                        {"engine": "sca", "cve_id": "CVE-2024-1", "severity": "high"},
-                        {"engine": "sca", "cve_id": "CVE-2024-1", "severity": "high"},
-                    ],
-                    "batch": True,
-                })
+        with patch("core.trustgraph_integrations.UniversalFindingIndexer._get_backbone") as mock_bb:
+            mock_bb.return_value = _patched_backbone()
+            resp = self.client.post("/api/v1/graph/index", json={
+                "findings": [
+                    {"engine": "sca", "cve_id": "CVE-2024-1", "severity": "high"},
+                    {"engine": "sca", "cve_id": "CVE-2024-1", "severity": "high"},
+                ],
+                "batch": True,
+            })
         assert resp.status_code == 200
         data = resp.json()
         assert "deduplicated" in data
@@ -856,23 +855,20 @@ class TestRouterImpactEndpoint:
         self.client = TestClient(app, raise_server_exceptions=False)
 
     def test_impact_unavailable_backbone(self):
-        with patch("core.trustgraph_integrations.GraphRAGEnhanced") as mock_cls:
-            mock_cls.return_value.MagicMock(_available=False, _store=None)
-            mock_graphrag = MagicMock()
-            mock_graphrag._available = False
-            mock_graphrag._store = None
-            mock_cls.return_value = mock_graphrag
+        mock_graphrag = MagicMock()
+        mock_graphrag._available = False
+        mock_graphrag._store = None
+        with patch("core.trustgraph_backbone.GraphRAGEnhanced", return_value=mock_graphrag):
             resp = self.client.get("/api/v1/graph/impact/finding_001")
         assert resp.status_code == 200
         data = resp.json()
         assert "entity_id" in data
 
     def test_impact_returns_required_fields(self):
-        with patch("core.trustgraph_integrations.GraphRAGEnhanced") as mock_cls:
-            mock_graphrag = MagicMock()
-            mock_graphrag._available = False
-            mock_graphrag._store = None
-            mock_cls.return_value = mock_graphrag
+        mock_graphrag = MagicMock()
+        mock_graphrag._available = False
+        mock_graphrag._store = None
+        with patch("core.trustgraph_backbone.GraphRAGEnhanced", return_value=mock_graphrag):
             resp = self.client.get("/api/v1/graph/impact/asset_prod?depth=2")
         data = resp.json()
         assert "blast_radius" in data
@@ -934,18 +930,17 @@ class TestRouterAttackPathsEndpoint:
         assert resp.status_code == 200
 
     def test_attack_paths_with_enrich(self):
+        mock_graphrag = MagicMock()
+        mock_graphrag._available = False
+        mock_graphrag._store = None
+        mock_graphrag.query_attack_path.return_value = {
+            "available": False,
+            "paths": [],
+            "path_count": 0,
+        }
         with patch("core.trustgraph_integrations.AttackPathEnricher._get_backbone") as mock_bb:
             mock_bb.return_value = _patched_backbone(available=False)
-            with patch("core.trustgraph_integrations.GraphRAGEnhanced") as mock_cls:
-                mock_graphrag = MagicMock()
-                mock_graphrag._available = False
-                mock_graphrag._store = None
-                mock_graphrag.query_attack_path.return_value = {
-                    "available": False,
-                    "paths": [],
-                    "path_count": 0,
-                }
-                mock_cls.return_value = mock_graphrag
+            with patch("core.trustgraph_backbone.GraphRAGEnhanced", return_value=mock_graphrag):
                 resp = self.client.get(
                     "/api/v1/graph/attack-paths?source=asset_a&target=asset_b&enrich=true"
                 )
