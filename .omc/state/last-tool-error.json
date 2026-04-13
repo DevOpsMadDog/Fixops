@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python -c \\\"from apps.api.change_management_router import router; print('Router import OK:', router.prefix)\\\"\",\"description\":\"Verify router imports cleanly\"}",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'apps'\n[rerun: b21]",
-  "timestamp": "2026-04-13T12:01:45.040Z",
-  "retry_count": 5
+  "tool_input_preview": "{\"command\":\"ls -la scripts/enterprise_simulation.py tests/test_enterprise_simulation.py 2>&1\",\"description\":\"Check simulation files\"}",
+  "error": "Exit code 1\nls: scripts/enterprise_simulation.py: No such file or directory\nls: tests/test_enterprise_simulation.py: No such file or directory\n[rerun: b744]",
+  "timestamp": "2026-04-13T12:32:31.931Z",
+  "retry_count": 1
 }
