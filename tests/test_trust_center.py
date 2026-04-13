@@ -623,3 +623,478 @@ def test_badges_endpoint_requires_configured_org(client):
         json={"framework": "SOC2", "status": "planned"},
     )
     assert resp.status_code == 404
+
+
+# ============================================================================
+# ExtendedTrustCenterManager — fixtures
+# ============================================================================
+
+import pytest
+from core.trust_center import (
+    ExtendedTrustCenterManager,
+    SecurityPractice,
+    TrustDocument,
+    FAQItem,
+    DocumentRequest,
+    SignedAgreement,
+    _DEFAULT_SECURITY_PRACTICES,
+    _DEFAULT_TRUST_DOCUMENTS,
+    _DEFAULT_FAQ_ITEMS,
+)
+
+
+@pytest.fixture
+def emgr():
+    """Fresh in-memory ExtendedTrustCenterManager for each test."""
+    return ExtendedTrustCenterManager(db_path=":memory:")
+
+
+@pytest.fixture
+def ext_app(emgr):
+    """FastAPI test app using ExtendedTrustCenterManager, auth bypassed."""
+    from fastapi import FastAPI
+    from apps.api.trust_center_router import router, _get_manager
+    from apps.api.auth_deps import api_key_auth
+
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[_get_manager] = lambda: emgr
+    app.dependency_overrides[api_key_auth] = lambda: None
+    return app
+
+
+@pytest.fixture
+def ext_client(ext_app):
+    from fastapi.testclient import TestClient
+    return TestClient(ext_app)
+
+
+# ============================================================================
+# ExtendedTrustCenterManager — Security Practices
+# ============================================================================
+
+
+def test_get_security_practices_returns_list(emgr):
+    practices = emgr.get_security_practices()
+    assert isinstance(practices, list)
+    assert len(practices) > 0
+    assert all(isinstance(p, SecurityPractice) for p in practices)
+
+
+def test_security_practices_have_expected_areas(emgr):
+    practices = emgr.get_security_practices()
+    areas = {p.area for p in practices}
+    assert "Encryption" in areas
+    assert "Access Control" in areas
+    assert "Incident Response" in areas
+    assert "Vulnerability Management" in areas
+    assert "Business Continuity" in areas
+
+
+def test_get_practices_by_area_found(emgr):
+    p = emgr.get_practices_by_area("Encryption")
+    assert p is not None
+    assert p.area == "Encryption"
+    assert "AES-256" in p.details.get("at_rest", "")
+
+
+def test_get_practices_by_area_case_insensitive(emgr):
+    p = emgr.get_practices_by_area("access control")
+    assert p is not None
+    assert p.area == "Access Control"
+
+
+def test_get_practices_by_area_not_found(emgr):
+    assert emgr.get_practices_by_area("Nonexistent Area") is None
+
+
+def test_get_practices_summary_structure(emgr):
+    summary = emgr.get_practices_summary()
+    assert "areas" in summary
+    assert "highlights" in summary
+    assert summary["highlights"]["mfa_required"] is True
+    assert summary["highlights"]["annual_pentest"] is True
+
+
+# ============================================================================
+# ExtendedTrustCenterManager — Document Repository
+# ============================================================================
+
+
+def test_list_documents_seeded_on_init(emgr):
+    docs = emgr.list_documents(public_only=False)
+    assert len(docs) > 0
+    assert all(isinstance(d, TrustDocument) for d in docs)
+
+
+def test_list_documents_public_only_excludes_auth_gated(emgr):
+    public = emgr.list_documents(public_only=True)
+    assert all(not d.requires_auth for d in public)
+
+
+def test_list_documents_all_includes_restricted(emgr):
+    all_docs = emgr.list_documents(public_only=False)
+    restricted = [d for d in all_docs if d.requires_auth]
+    assert len(restricted) > 0
+
+
+def test_add_document_custom(emgr):
+    doc = TrustDocument(
+        doc_type="security_whitepaper",
+        title="Custom Whitepaper",
+        description="A custom security whitepaper.",
+        version="1.0",
+    )
+    saved = emgr.add_document(doc)
+    assert saved.id == doc.id
+    retrieved = emgr.get_document(doc.id)
+    assert retrieved is not None
+    assert retrieved.title == "Custom Whitepaper"
+
+
+def test_get_document_not_found(emgr):
+    assert emgr.get_document("nonexistent-id") is None
+
+
+def test_add_document_upserts(emgr):
+    doc = TrustDocument(doc_type="privacy_policy", title="Old Title", description="D")
+    emgr.add_document(doc)
+    updated = doc.model_copy(update={"title": "New Title"})
+    emgr.add_document(updated)
+    retrieved = emgr.get_document(doc.id)
+    assert retrieved.title == "New Title"
+
+
+# ============================================================================
+# ExtendedTrustCenterManager — NDA/DPA Generation
+# ============================================================================
+
+
+def test_generate_nda_returns_agreement_id(emgr):
+    result = emgr.generate_nda("Jane Doe", "jane@acme.com", "Acme Corp")
+    assert "agreement_id" in result
+    assert result["agreement_type"] == "NDA"
+    assert "document_text" in result
+    assert "Acme Corp" in result["document_text"]
+    assert "Jane Doe" in result["document_text"]
+
+
+def test_generate_dpa_returns_agreement_id(emgr):
+    result = emgr.generate_dpa("John Smith", "john@corp.com", "Corp Ltd")
+    assert result["agreement_type"] == "DPA"
+    assert "Corp Ltd" in result["document_text"]
+    assert result["agreement_id"] is not None
+
+
+def test_list_agreements_tracks_generated(emgr):
+    emgr.generate_nda("A", "a@a.com", "A Corp")
+    emgr.generate_dpa("B", "b@b.com", "B Corp")
+    agreements = emgr.list_agreements()
+    assert len(agreements) == 2
+    types = {a.agreement_type for a in agreements}
+    assert "NDA" in types
+    assert "DPA" in types
+
+
+def test_check_agreement_status_found(emgr):
+    emgr.generate_nda("Jane", "jane@test.com", "TestCo")
+    found = emgr.check_agreement_status("jane@test.com", "NDA")
+    assert found is not None
+    assert found.prospect_company == "TestCo"
+
+
+def test_check_agreement_status_not_found(emgr):
+    assert emgr.check_agreement_status("nobody@test.com", "NDA") is None
+
+
+def test_check_agreement_status_case_insensitive(emgr):
+    emgr.generate_nda("Test", "Test@CORP.com", "Corp")
+    found = emgr.check_agreement_status("test@corp.com", "NDA")
+    assert found is not None
+
+
+def test_record_signature_marks_signed(emgr):
+    result = emgr.generate_nda("Signer", "signer@co.com", "Co Ltd")
+    aid = result["agreement_id"]
+    signed = emgr.record_signature(aid, ip_address="1.2.3.4")
+    assert signed is not None
+    assert signed.signed_at is not None
+    assert signed.ip_address == "1.2.3.4"
+
+
+def test_record_signature_unknown_id_returns_none(emgr):
+    assert emgr.record_signature("nonexistent-id") is None
+
+
+# ============================================================================
+# ExtendedTrustCenterManager — FAQ Management
+# ============================================================================
+
+
+def test_faq_seeded_on_init(emgr):
+    items = emgr.get_faq(public_only=True)
+    assert len(items) > 0
+    assert all(isinstance(i, FAQItem) for i in items)
+
+
+def test_faq_category_filter(emgr):
+    items = emgr.get_faq(category="compliance", public_only=True)
+    assert len(items) > 0
+    assert all(i.category == "compliance" for i in items)
+
+
+def test_faq_by_category_groups_correctly(emgr):
+    grouped = emgr.get_faq_by_category()
+    assert "compliance" in grouped
+    assert "data_handling" in grouped
+    assert all(i.category == cat for cat, items in grouped.items() for i in items)
+
+
+def test_add_faq_item_custom(emgr):
+    item = FAQItem(
+        category="infrastructure",
+        question="Do you use Kubernetes?",
+        answer="Yes, EKS on AWS.",
+        order=99,
+    )
+    saved = emgr.add_faq_item(item)
+    assert saved.id == item.id
+    all_items = emgr.get_faq(category="infrastructure", public_only=True)
+    ids = [i.id for i in all_items]
+    assert item.id in ids
+
+
+def test_add_faq_item_upserts(emgr):
+    item = FAQItem(category="encryption", question="Q?", answer="Old answer.")
+    emgr.add_faq_item(item)
+    updated = item.model_copy(update={"answer": "New answer."})
+    emgr.add_faq_item(updated)
+    items = emgr.get_faq(category="encryption")
+    matching = [i for i in items if i.id == item.id]
+    assert matching[0].answer == "New answer."
+
+
+# ============================================================================
+# ExtendedTrustCenterManager — Request Portal
+# ============================================================================
+
+
+def test_submit_request(emgr):
+    req = DocumentRequest(
+        request_type="security_questionnaire",
+        requester_name="Alice",
+        requester_email="alice@bigco.com",
+        requester_company="BigCo",
+    )
+    saved = emgr.submit_request(req)
+    assert saved.request_id == req.request_id
+    assert saved.status == "pending"
+
+
+def test_list_requests_returns_submitted(emgr):
+    req = DocumentRequest(
+        request_type="additional_docs",
+        requester_name="Bob",
+        requester_email="bob@co.com",
+        requester_company="Co",
+    )
+    emgr.submit_request(req)
+    reqs = emgr.list_requests()
+    assert len(reqs) == 1
+    assert reqs[0].request_id == req.request_id
+
+
+def test_list_requests_status_filter(emgr):
+    emgr.submit_request(DocumentRequest(
+        request_type="additional_docs", requester_name="A",
+        requester_email="a@a.com", requester_company="A",
+    ))
+    emgr.submit_request(DocumentRequest(
+        request_type="custom_dpa", requester_name="B",
+        requester_email="b@b.com", requester_company="B",
+        status="fulfilled",
+    ))
+    pending = emgr.list_requests(status="pending")
+    assert all(r.status == "pending" for r in pending)
+
+
+def test_update_request_status_to_fulfilled(emgr):
+    req = DocumentRequest(
+        request_type="architecture_diagram",
+        requester_name="C", requester_email="c@c.com", requester_company="C",
+    )
+    emgr.submit_request(req)
+    updated = emgr.update_request_status(
+        req.request_id, status="fulfilled",
+        fulfilled_by="security@aldeci.io", notes="Sent via email"
+    )
+    assert updated is not None
+    assert updated.status == "fulfilled"
+    assert updated.fulfilled_by == "security@aldeci.io"
+    assert updated.fulfilled_at is not None
+
+
+def test_update_request_status_not_found(emgr):
+    assert emgr.update_request_status("bad-id", status="fulfilled") is None
+
+
+# ============================================================================
+# New API endpoints — /public, /compliance, /sub-processors, /practices,
+#                     /documents, POST /request, /faq, /nda, /dpa
+# ============================================================================
+
+
+def test_public_endpoint(ext_client):
+    resp = ext_client.get("/api/v1/trust/public")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "org_name" in data
+    assert "certifications" in data
+    assert "contact_email" in data
+
+
+def test_compliance_endpoint(ext_client):
+    resp = ext_client.get("/api/v1/trust/compliance")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "frameworks" in data
+    frameworks = [f["framework"] for f in data["frameworks"]]
+    assert "SOC 2 Type II" in frameworks
+    assert "ISO 27001:2022" in frameworks
+    assert "GDPR" in frameworks
+
+
+def test_sub_processors_endpoint(ext_client):
+    resp = ext_client.get("/api/v1/trust/sub-processors")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "sub_processors" in data
+    assert data["total"] > 0
+    names = [sp["name"] for sp in data["sub_processors"]]
+    assert any("AWS" in n or "Amazon" in n for n in names)
+
+
+def test_practices_endpoint_all(ext_client):
+    resp = ext_client.get("/api/v1/trust/practices")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "practices" in data
+    assert data["total"] > 0
+    areas = [p["area"] for p in data["practices"]]
+    assert "Encryption" in areas
+
+
+def test_practices_endpoint_area_filter(ext_client):
+    resp = ext_client.get("/api/v1/trust/practices?area=Encryption")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "practice" in data
+    assert data["practice"]["area"] == "Encryption"
+
+
+def test_practices_endpoint_area_not_found(ext_client):
+    resp = ext_client.get("/api/v1/trust/practices?area=Nonexistent")
+    assert resp.status_code == 404
+
+
+def test_documents_endpoint_public(ext_client):
+    resp = ext_client.get("/api/v1/trust/documents")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "documents" in data
+    assert data["total"] > 0
+    assert all(not d.get("requires_auth", True) for d in data["documents"])
+
+
+def test_documents_endpoint_all(ext_client):
+    resp = ext_client.get("/api/v1/trust/documents?public_only=false")
+    assert resp.status_code == 200
+    data = resp.json()
+    # All docs including NDA-gated ones
+    assert data["total"] >= ext_client.get("/api/v1/trust/documents").json()["total"]
+
+
+def test_request_endpoint_valid(ext_client):
+    resp = ext_client.post("/api/v1/trust/request", json={
+        "request_type": "security_questionnaire",
+        "requester_name": "Test User",
+        "requester_email": "test@example.com",
+        "requester_company": "Example Corp",
+        "message": "We need your CAIQ.",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "request_id" in data
+    assert data["status"] == "pending"
+
+
+def test_request_endpoint_invalid_type(ext_client):
+    resp = ext_client.post("/api/v1/trust/request", json={
+        "request_type": "invalid_type",
+        "requester_name": "X",
+        "requester_email": "x@x.com",
+        "requester_company": "X",
+    })
+    assert resp.status_code == 422
+
+
+def test_faq_endpoint_all(ext_client):
+    resp = ext_client.get("/api/v1/trust/faq")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "faq" in data
+    assert data["total"] > 0
+
+
+def test_faq_endpoint_category_filter(ext_client):
+    resp = ext_client.get("/api/v1/trust/faq?category=compliance")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert all(item["category"] == "compliance" for item in data["faq"])
+
+
+def test_faq_endpoint_grouped(ext_client):
+    resp = ext_client.get("/api/v1/trust/faq?grouped=true")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "faq" in data
+    assert isinstance(data["faq"], dict)
+    assert "categories" in data
+
+
+def test_faq_endpoint_invalid_category(ext_client):
+    resp = ext_client.get("/api/v1/trust/faq?category=invalid_cat")
+    assert resp.status_code == 422
+
+
+def test_nda_endpoint(ext_client):
+    resp = ext_client.post("/api/v1/trust/nda", json={
+        "prospect_name": "Alice Smith",
+        "prospect_email": "alice@prospects.com",
+        "prospect_company": "Prospect Inc",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["agreement_type"] == "NDA"
+    assert "agreement_id" in data
+    assert "Prospect Inc" in data["document_text"]
+
+
+def test_dpa_endpoint(ext_client):
+    resp = ext_client.post("/api/v1/trust/dpa", json={
+        "prospect_name": "Bob Jones",
+        "prospect_email": "bob@eu-corp.com",
+        "prospect_company": "EU Corp GmbH",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["agreement_type"] == "DPA"
+    assert "EU Corp GmbH" in data["document_text"]
+
+
+def test_extended_singleton_pattern():
+    ExtendedTrustCenterManager.reset_extended_instance()
+    m1 = ExtendedTrustCenterManager.get_extended_instance()
+    m2 = ExtendedTrustCenterManager.get_extended_instance()
+    assert m1 is m2
+    ExtendedTrustCenterManager.reset_extended_instance()
