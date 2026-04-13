@@ -1,10 +1,10 @@
 # ============================================
 # ALdeci CTEM+ Platform — Docker Compose
 # ============================================
-# Quick start:     docker compose up
-# Full stack:      docker compose --profile ui up
-# With DTrack:     docker compose --profile dtrack up
+# Quick start:      docker compose up          (API + UI always)
+# With DTrack:      docker compose --profile dtrack up
 # Index TrustGraph: docker compose run --rm trustgraph-init
+# One-command:      bash scripts/quick-start.sh
 # ============================================
 
 services:
@@ -17,17 +17,20 @@ services:
     ports:
       - "${ALDECI_PORT:-8000}:8000"
     environment:
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-aldeci-demo-token}
       - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:-}
       - FIXOPS_MODE=enterprise
       - FIXOPS_DISABLE_RATE_LIMIT=${FIXOPS_DISABLE_RATE_LIMIT:-0}
       - FIXOPS_USE_COUNCIL=${FIXOPS_USE_COUNCIL:-0}
+      - ALDECI_SEED_DEMO=${ALDECI_SEED_DEMO:-1}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     volumes:
       - aldeci-data:/app/data
       - aldeci-state:/app/.fixops_data
+    networks:
+      - aldeci-net
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
       interval: 10s
@@ -40,22 +43,25 @@ services:
         limits:
           memory: 4G
 
-  # New UI dev server (React 19 + Vite 6)
+  # New UI (React 19 + Vite 6) — always starts, no profile required
   aldeci-ui:
     build:
       context: suite-ui/aldeci-ui-new
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=http://localhost:${ALDECI_PORT:-8000}
+    image: ${ALDECI_UI_IMAGE:-aldeci-ui:latest}
     container_name: aldeci-ui
     ports:
       - "${ALDECI_UI_PORT:-3000}:80"
+    volumes:
+      - ./docker/nginx-ui.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       aldeci:
         condition: service_healthy
+    networks:
+      - aldeci-net
     restart: unless-stopped
-    profiles:
-      - ui
 
   # TrustGraph indexer (one-shot: populates Knowledge Cores)
   trustgraph-init:
@@ -65,10 +71,12 @@ services:
     container_name: aldeci-trustgraph-init
     command: ["python", "-c", "from core.trustgraph_indexer import run_indexer; stats = run_indexer(); print(f'Indexed {stats[\"total\"]} entities')"]
     environment:
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-aldeci-demo-token}
       - FIXOPS_MODE=enterprise
     volumes:
       - aldeci-data:/app/data
+    networks:
+      - aldeci-net
     profiles:
       - init
 
@@ -80,6 +88,8 @@ services:
       - "${DTRACK_API_PORT:-8080}:8080"
     volumes:
       - dtrack-data:/data
+    networks:
+      - aldeci-net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/version"]
       interval: 15s
@@ -104,9 +114,15 @@ services:
     depends_on:
       dtrack-api:
         condition: service_healthy
+    networks:
+      - aldeci-net
     restart: unless-stopped
     profiles:
       - dtrack
+
+networks:
+  aldeci-net:
+    driver: bridge
 
 volumes:
   aldeci-data:
