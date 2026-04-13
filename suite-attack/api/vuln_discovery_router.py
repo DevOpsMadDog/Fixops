@@ -469,6 +469,21 @@ async def report_discovered_vulnerability(
             )
         )
 
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": vuln_id,
+                "type": "vuln_discovery", "severity": str(request.severity.value),
+                "source": "vuln_discovery_router",
+                "data": {"internal_id": internal_id, "title": request.title},
+            }))
+    except Exception:
+        pass
+
     logger.info("Reported discovered vulnerability: %s", internal_id)
 
     return DiscoveredVulnResponse(

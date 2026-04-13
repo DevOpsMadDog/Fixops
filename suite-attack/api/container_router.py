@@ -104,7 +104,21 @@ async def scan_dockerfile(req: ScanDockerfileRequest) -> Dict[str, Any]:
     try:
         scanner = get_container_scanner()
         result = scanner.scan_dockerfile(req.content, safe_filename)
-        return result.to_dict()
+        result_dict = result.to_dict()
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": f"container-dockerfile-{safe_filename}",
+                    "type": "container_finding", "severity": "medium",
+                    "source": "container_router", "data": result_dict,
+                }))
+        except Exception:
+            pass
+        return result_dict
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Container Dockerfile scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"Scan failed: {type(e).__name__}")
@@ -116,7 +130,21 @@ async def scan_image(req: ScanImageRequest) -> Dict[str, Any]:
     try:
         scanner = get_container_scanner()
         result = await scanner.scan_image(req.image_ref)
-        return result.to_dict()
+        result_dict = result.to_dict()
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": f"container-image-{req.image_ref}",
+                    "type": "container_vuln", "severity": "high",
+                    "source": "container_router", "data": result_dict,
+                }))
+        except Exception:
+            pass
+        return result_dict
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Container image scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"Image scan failed: {type(e).__name__}")

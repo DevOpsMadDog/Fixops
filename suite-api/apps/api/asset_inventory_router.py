@@ -263,16 +263,27 @@ def register_asset(req: RegisterAssetRequest) -> ManagedAsset:
     try:
         from core.trustgraph_event_bus import EVENT_ASSET_DISCOVERED, get_event_bus
         import asyncio
+        import threading
         bus = get_event_bus()
         if bus and bus.enabled:
             result = registered.model_dump(mode="json") if hasattr(registered, "model_dump") else {}
-            asyncio.ensure_future(bus.emit(EVENT_ASSET_DISCOVERED, {
+            payload = {
                 "asset_id": str(result.get("id", "")),
                 "type": result.get("asset_type", "asset"),
                 "severity": result.get("criticality", "medium"),
                 "source": "asset_inventory_router",
                 "data": result,
-            }))
+            }
+            # Run async emit in a background thread to avoid coroutine-never-awaited
+            # warning when called from a sync FastAPI route handler.
+            def _emit_in_thread(b=bus, e=EVENT_ASSET_DISCOVERED, p=payload) -> None:
+                try:
+                    loop = asyncio.new_event_loop()
+                    loop.run_until_complete(b.emit(e, p))
+                    loop.close()
+                except Exception:
+                    pass
+            threading.Thread(target=_emit_in_thread, daemon=True).start()
     except Exception:
         pass  # event bus is best-effort
     return registered

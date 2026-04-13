@@ -201,6 +201,19 @@ async def trigger_scan(req: ScanRequest) -> Dict[str, Any]:
     result_dict = result.to_dict()
     persisted = _persist_sast_findings(result_dict.get("findings", []))
     result_dict["persisted_count"] = persisted
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"sast-scan-{result_dict.get('total_findings', 0)}",
+                "type": "sast_finding", "severity": "medium",
+                "source": "sast_router", "data": result_dict,
+            }))
+    except Exception:
+        pass
     return result_dict
 
 
@@ -251,6 +264,19 @@ async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
     # Persist findings to analytics DB for triage/risk pipeline
     persisted = _persist_sast_findings(result_dict.get("findings", []), app_id=req.app_id)
     result_dict["persisted_count"] = persisted
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"sast-code-{req.filename}",
+                "type": "sast_finding", "severity": "medium",
+                "source": "sast_router", "data": result_dict,
+            }))
+    except Exception:
+        pass
     return result_dict
 
 
@@ -278,6 +304,19 @@ async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
     # Persist findings to analytics DB for triage/risk pipeline
     persisted = _persist_sast_findings(result_dict.get("findings", []))
     result_dict["persisted_count"] = persisted
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"sast-files-{len(sanitized)}",
+                "type": "sast_finding", "severity": "medium",
+                "source": "sast_router", "data": result_dict,
+            }))
+    except Exception:
+        pass
     return result_dict
 
 
