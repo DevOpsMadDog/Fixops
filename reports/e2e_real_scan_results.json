@@ -1,0 +1,79 @@
+{
+  "aldeci_version": "beast-mode-v6",
+  "scan_run_id": "b7b0e8a4-719f-4f9b-9b57-0e7b800ffac9",
+  "generated_at": "2026-04-13T12:12:54.570549+00:00",
+  "repos_requested": [
+    "nanoGPT"
+  ],
+  "repos_scanned": 1,
+  "results": [
+    {
+      "repo": "nanoGPT",
+      "url": "https://github.com/karpathy/nanoGPT.git",
+      "clone_ok": true,
+      "clone_error": null,
+      "scanned_at": "2026-04-13T12:12:54.567026+00:00",
+      "scanners": {
+        "sast": {
+          "engine": "sast",
+          "files_scanned": 15,
+          "total_findings": 45,
+          "by_severity": {
+            "medium": 10,
+            "critical": 16,
+            "low": 18,
+            "high": 1
+          },
+          "cwe_ids_found": [
+            "CWE-134",
+            "CWE-190",
+            "CWE-502",
+            "CWE-755",
+            "CWE-770",
+            "CWE-95"
+          ],
+          "duration_s": 0.08,
+          "error": null
+        },
+        "secrets": {
+          "engine": "secrets",
+          "files_scanned": 24,
+          "total_findings": 0,
+          "by_severity": {},
+          "categories_found": [],
+          "duration_s": 0.16,
+          "error": null
+        },
+        "iac": {
+          "engine": "iac",
+          "files_scanned": 0,
+          "total_findings": 0,
+          "by_severity": {},
+          "formats_found": [],
+          "duration_s": 0.0,
+          "error": null
+        },
+        "dependency": {
+          "engine": "dependency",
+          "dependencies_found": 0,
+          "risk_by_level": {},
+          "high_risk_packages": [],
+          "duration_s": 0.0,
+          "error": null
+        },
+        "license": {
+          "engine": "license",
+          "license_files_found": 1,
+          "spdx_ids_detected": [
+            "MIT"
+          ],
+          "violations": [],
+          "compliant": true,
+          "duration_s": 0.0,
+          "error": null
+        }
+      },
+      "risk_score": 40.0
+    }
+  ]
+}

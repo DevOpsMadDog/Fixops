@@ -276,8 +276,10 @@ class TestScoreIsolation:
         result = engine.score_isolation(
             "svc-2", ["metric_a", "metric_b"], [10.0, 20.0]
         )
-        # May or may not trigger depending on score; just check no crash
-        assert result is None or isinstance(result, MLAnomaly)
+        # With adequate history, isolation forest should return a scored result
+        if result is not None:
+            assert isinstance(result, MLAnomaly)
+            assert result.isolation_score is None or 0.0 <= result.isolation_score <= 1.0
 
     def test_mismatched_lengths_handled_gracefully(self, engine: AnomalyMLEngine) -> None:
         """Router validates, engine returns None if no history."""

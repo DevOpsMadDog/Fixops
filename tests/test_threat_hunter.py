@@ -524,7 +524,8 @@ class TestHuntTriggers:
             context={"matched_value": "1.2.3.4", "ioc_type": "ip"},
         )
         # Should auto-start a hunt
-        assert workflow is not None or True  # may be None if no hypothesis matched
+        # workflow may be None if no hypothesis matched the IOC trigger
+        assert workflow is None or workflow.trigger_type == HuntTriggerType.IOC_MATCH
 
     def test_fire_network_anomaly_trigger(self, hunter: ThreatHunter) -> None:
         workflow = hunter.fire_trigger(

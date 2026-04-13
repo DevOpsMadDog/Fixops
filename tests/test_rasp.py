@@ -581,10 +581,9 @@ class TestConfig:
 
 class TestTrustGraphStubs:
     def test_index_in_trustgraph_stub_does_not_raise(self, engine):
-        """_index_in_trustgraph is a no-op stub — must not raise."""
+        """_index_in_trustgraph is a no-op stub — must not raise and must still detect the threat."""
         _, events = _inspect(engine, params={"q": "' UNION SELECT 1--"})
-        # If we got here without exception, stub works
-        assert True
+        assert len(events) >= 1, "SQLi payload should still be detected even with TrustGraph stub"
 
     def test_trustgraph_query_attacker_returns_dict(self, engine):
         result = engine.trustgraph_query_attacker("1.2.3.4")
