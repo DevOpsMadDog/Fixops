@@ -583,6 +583,20 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Posture router not available: %s", e)
 
+rasp_router: Optional[APIRouter] = None
+try:
+    from apps.api.rasp_router import router as rasp_router
+    logging.getLogger(__name__).info("Loaded RASP router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("RASP router not available: %s", e)
+
+runtime_protection_router: Optional[APIRouter] = None
+try:
+    from apps.api.runtime_protection_router import router as runtime_protection_router
+    logging.getLogger(__name__).info("Loaded Runtime Protection router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Runtime Protection router not available: %s", e)
+
 posture_benchmark_router: Optional[APIRouter] = None
 try:
     from apps.api.posture_benchmark_router import router as posture_benchmark_router
@@ -3115,6 +3129,8 @@ def create_app() -> FastAPI:
         (auto_pentest_router, "Auto Pentest", "attack:execute"),
         (posture_router, "Posture", "read:findings"),
         (posture_benchmark_router, "Posture Benchmark", "read:findings"),
+        (rasp_router, "RASP", "read:findings"),
+        (runtime_protection_router, "Runtime Protection", "read:findings"),
         (pr_generator_router, "PR Generator", "write:findings"),
         (prioritizer_router, "Prioritizer", "read:findings"),
         (rate_limit_router, "Rate Limits", "admin:all"),

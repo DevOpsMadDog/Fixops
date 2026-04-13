@@ -903,7 +903,7 @@ def stage6_cmdb(
         "org_id": "default",
     }
     status1, body1 = _call(
-        client, "post", "/api/v1/assets/register", report,
+        client, "post", "/api/v1/assets", report,
         json=asset_payload, headers=AUTH_HEADERS,
     )
     local_calls += 1
@@ -915,8 +915,8 @@ def stage6_cmdb(
 
     # 6b: List assets to confirm registration
     status2, body2 = _call(
-        client, "get", "/api/v1/assets/search", report,
-        params={"q": f"sim-{state.run_id}", "limit": 5},
+        client, "get", "/api/v1/assets", report,
+        params={"search": f"sim-{state.run_id}", "limit": 5},
         headers=AUTH_HEADERS,
     )
     local_calls += 1
