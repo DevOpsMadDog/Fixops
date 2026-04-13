@@ -5383,6 +5383,17 @@ def create_app() -> FastAPI:
     except ImportError as _eb_err:
         _logger.warning("TrustGraph Event Bus not available: %s", _eb_err)
 
+    # CIEM — Cloud Infrastructure Entitlement Management (IAM analysis, privilege escalation)
+    try:
+        from apps.api.ciem_router import router as ciem_router
+        app.include_router(
+            ciem_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted CIEM router at /api/v1/ciem")
+    except ImportError as _ciem_err:
+        _logger.warning("CIEM router not available: %s", _ciem_err)
+
     # Composite Risk Scorer — ML-powered multi-signal 0-100 risk scoring
     try:
         from apps.api.composite_risk_router import router as composite_risk_router
@@ -5393,6 +5404,17 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Composite Risk Scorer router at /api/v1/risk")
     except ImportError as _crs_err:
         _logger.warning("Composite Risk Scorer router not available: %s", _crs_err)
+
+    # Digital Risk Protection — external exposure monitoring
+    try:
+        from apps.api.drp_router import router as drp_router
+        app.include_router(
+            drp_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Digital Risk Protection router at /api/v1/drp")
+    except ImportError as _drp_err:
+        _logger.warning("Digital Risk Protection router not available: %s", _drp_err)
 
     return app
 
