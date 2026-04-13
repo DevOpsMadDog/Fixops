@@ -202,7 +202,8 @@ class ExecutiveReportEngine:
         try:
             from core.vulnerability_analytics import VulnerabilityAnalytics
             return VulnerabilityAnalytics()
-        except Exception:
+        except Exception as e:
+            _logger.debug("executive_reports: VulnerabilityAnalytics unavailable", error=str(e))
             return None
 
     def _build_security_posture(
@@ -226,8 +227,8 @@ class ExecutiveReportEngine:
                     2,
                 )
                 risk_delta = round(-0.3, 2)
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: risk score unavailable, using default", error=str(e))
 
         sections.append(
             ReportSection(
@@ -252,8 +253,8 @@ class ExecutiveReportEngine:
         if analytics:
             try:
                 dist_data = analytics.get_severity_distribution(org_id, date=end)
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: severity distribution unavailable", error=str(e))
 
         trend_chart: List[Dict[str, Any]] = []
         if analytics:
@@ -268,8 +269,8 @@ class ExecutiveReportEngine:
                     org_id, granularity=granularity, period_days=period_days
                 )
                 trend_chart = raw_trend
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: trend chart unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -299,8 +300,8 @@ class ExecutiveReportEngine:
                     }
                     for f in top
                 ]
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: top findings unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -319,8 +320,8 @@ class ExecutiveReportEngine:
             try:
                 mttr = analytics.get_mttr(org_id, period_days=period_days)
                 mttd = analytics.get_mttd(org_id, period_days=period_days)
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: mttr/mttd unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -358,8 +359,8 @@ class ExecutiveReportEngine:
                     }
                     for s in scanners
                 ]
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: scanner coverage unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -483,8 +484,8 @@ class ExecutiveReportEngine:
                 trajectory = analytics.get_risk_trajectory(
                     org_id, period_days=period_days
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: risk trajectory unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -513,8 +514,8 @@ class ExecutiveReportEngine:
                     end_date=end,
                 )
                 trend_data = [t.model_dump() for t in raw]
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: new vs resolved trend unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -536,8 +537,8 @@ class ExecutiveReportEngine:
                     granularity=TimeGranularity.WEEKLY,
                     period_days=period_days,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: severity shift unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -556,8 +557,8 @@ class ExecutiveReportEngine:
                 sla_rate = analytics.get_sla_compliance_rate(
                     org_id, period_days=period_days
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: SLA compliance rate unavailable", error=str(e))
 
         sections.append(
             ReportSection(
@@ -807,8 +808,8 @@ class ExecutiveReportEngine:
                     }
                     for s in scanners
                 ]
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug("executive_reports: scanner performance unavailable", error=str(e))
 
         sections.append(
             ReportSection(

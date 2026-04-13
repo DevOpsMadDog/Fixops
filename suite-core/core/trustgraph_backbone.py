@@ -1167,8 +1167,8 @@ class GraphRAGEnhanced:
                                 "confidence": rel.confidence,
                                 "properties": rel.properties,
                             })
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("trustgraph_backbone: relationship serialization failed", exc_info=exc)
 
             return {
                 "available": True,

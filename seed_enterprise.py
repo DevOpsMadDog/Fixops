@@ -245,7 +245,7 @@ def seed_knowledge_graph():
             c.execute("INSERT OR REPLACE INTO brain_nodes (node_id, node_type, org_id, properties, created_at, updated_at) VALUES (?,?,?,?,?,?)",
                       (nid, ntype, "enterprise", json.dumps(props), ts, ts))
             node_count += 1
-        except:
+        except Exception:
             pass
     
     edges = [
@@ -280,7 +280,7 @@ def seed_knowledge_graph():
             c.execute("INSERT OR REPLACE INTO brain_edges (source_id, target_id, edge_type, properties, confidence, created_at) VALUES (?,?,?,?,?,?)",
                       (src, tgt, etype, "{}", round(random.uniform(0.8, 1.0), 2), ts))
             edge_count += 1
-        except:
+        except Exception:
             pass
     
     conn.commit()
@@ -354,7 +354,7 @@ def seed_metrics():
             c.execute("INSERT INTO metrics (id, metric_type, metric_name, value, unit, timestamp, metadata) VALUES (?,?,?,?,?,?,?)",
                       (mid, mtype, mname, value, unit, NOW.isoformat(), json.dumps({"period": "30d"})))
             count += 1
-        except:
+        except Exception:
             pass
     conn.commit()
     print(f"✓ Seeded {count} metrics")
@@ -392,7 +392,7 @@ def seed_audit_log():
             c.execute("INSERT OR IGNORE INTO audit_log VALUES (?,?,?,?,?,?,?,?,?)",
                       (eid, actor, action, rtype, rid, details, "10.0.1.42", ts, chain))
             count += 1
-        except:
+        except Exception:
             pass
     conn.commit()
     print(f"✓ Seeded {count} audit entries")

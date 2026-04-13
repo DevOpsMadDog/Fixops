@@ -497,8 +497,8 @@ def resolve_findings(args: Dict[str, Any]) -> List[Dict[str, Any]]:
             if org_id and f.get("org_id", "default") != org_id:
                 continue
             results.append(_serialize_finding(f))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("graphql_schema: finding store read failed", error=str(exc))
 
     # Fallback to local store
     if not results:
@@ -752,8 +752,8 @@ def resolve_vendors(args: Dict[str, Any]) -> List[Dict[str, Any]]:
                         "expires_at": str(getattr(assessment, "expires_at", _now_iso())),
                         "status": str(getattr(assessment, "status", "completed")),
                     }
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("graphql_schema: vendor assessment serialization failed", error=str(exc))
             results.append(serialized)
     except Exception as exc:
         logger.warning("vendor_scorecard unavailable", error=str(exc))
@@ -828,8 +828,8 @@ def resolve_acknowledge_finding(args: Dict[str, Any]) -> Dict[str, Any]:
             if comment:
                 store[finding_id]["comment"] = comment
             updated = True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("graphql_schema: acknowledge finding store update failed", error=str(exc))
 
     # Update local store as fallback
     if not updated and finding_id in _findings_store:
@@ -953,8 +953,8 @@ def resolve_accept_risk(args: Dict[str, Any]) -> Dict[str, Any]:
             store[finding_id]["risk_accepted_by"] = accepted_by
             store[finding_id]["risk_acceptance_reason"] = reason
             store[finding_id]["risk_acceptance_expiry"] = expiry
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("graphql_schema: risk acceptance store update failed", error=str(exc))
 
     _risk_acceptances[finding_id] = {
         "finding_id": finding_id,

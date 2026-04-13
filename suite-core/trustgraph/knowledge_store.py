@@ -267,8 +267,8 @@ class KnowledgeStore:
                 "DELETE FROM entities_fts WHERE rowid IN (SELECT rowid FROM entities_fts WHERE name = ?)",
                 (entity.name,),
             )
-        except:
-            pass  # Ignore errors for non-existent entries
+        except Exception:
+            pass  # Ignore errors for non-existent FTS entries
 
         cursor.execute(
             "INSERT INTO entities_fts(name, properties) VALUES (?, ?)",
