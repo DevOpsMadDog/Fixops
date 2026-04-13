@@ -58,6 +58,7 @@ from apps.api.bulk_router import router as bulk_router
 from apps.api.collaboration_router import router as collaboration_router
 from apps.api.fail_router import router as fail_router
 from apps.api.sla_router import router as sla_router
+from apps.api.sla_engine_router import router as sla_engine_router
 
 # APP_ID Configuration router (app registration, classification, lifecycle)
 app_config_router: Optional[APIRouter] = None
@@ -2807,6 +2808,7 @@ def create_app() -> FastAPI:
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     app.include_router(sla_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
+    app.include_router(sla_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
