@@ -460,6 +460,14 @@ class ServiceNowSyncStore:
                 "finding_to_sn_state": config.finding_to_sn_state,
                 "severity_to_urgency": config.severity_to_urgency,
                 "severity_to_impact": config.severity_to_impact,
+                "field_mappings": [
+                    {
+                        "finding_field": fm.finding_field,
+                        "sn_field": fm.sn_field,
+                        "transform": fm.transform,
+                    }
+                    for fm in config.field_mappings
+                ],
             }
         )
         with self._lock, self._connect() as conn:
@@ -502,6 +510,14 @@ class ServiceNowSyncStore:
             severity_to_impact=data.get(
                 "severity_to_impact", dict(_DEFAULT_SEVERITY_TO_IMPACT)
             ),
+            field_mappings=[
+                FieldMapping(
+                    finding_field=m["finding_field"],
+                    sn_field=m["sn_field"],
+                    transform=m.get("transform"),
+                )
+                for m in data.get("field_mappings", [])
+            ],
         )
         return cfg
 

@@ -488,8 +488,9 @@ class TestSOARFlow:
         mock_resp = MagicMock()
         mock_resp.status_code = 201
 
+        import requests as _requests
         with patch("requests.post", return_value=mock_resp) as mock_post:
-            with patch("requests.get", side_effect=Exception("no polling")):
+            with patch("requests.get", side_effect=_requests.RequestException("no polling")):
                 check_soar_flow(_API_URL)
 
         if mock_post.called:

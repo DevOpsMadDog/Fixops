@@ -411,15 +411,21 @@ class TestGetDetectionStats:
         assert stats.total_activities == 3
 
     def test_stats_reflects_high_risk_users(self, detector: InsiderThreatDetector) -> None:
+        # privilege_abuse(25) + data_hoarding(20) + policy_violation(20) = 65 → HIGH
         _record(detector, "frank@example.com", "privilege_escalation")
         _record(detector, "frank@example.com", "policy_violation")
+        for _ in range(5):
+            _record(detector, "frank@example.com", "data_download")
         detector.assess_user_risk("frank@example.com", org_id="test-org")
         stats = detector.get_detection_stats(org_id="test-org")
         assert stats.total_alerts >= 1
 
     def test_stats_reviewed_alerts(self, detector: InsiderThreatDetector) -> None:
+        # privilege_abuse(25) + data_hoarding(20) + policy_violation(20) = 65 → HIGH
         _record(detector, "grace@example.com", "privilege_escalation")
         _record(detector, "grace@example.com", "policy_violation")
+        for _ in range(5):
+            _record(detector, "grace@example.com", "data_download")
         detector.assess_user_risk("grace@example.com", org_id="test-org")
         detector.acknowledge_alert("grace@example.com", "sec@example.com", org_id="test-org")
         stats = detector.get_detection_stats(org_id="test-org")
@@ -439,107 +445,25 @@ class TestGetDetectionStats:
 
 @pytest.fixture
 def client(tmp_db: str):
-    """FastAPI TestClient with isolated InsiderThreatDetector and no auth."""
+    """FastAPI TestClient using the real router with auth dependency overridden."""
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     import apps.api.insider_threat_router as itr
-    from core.insider_threat import InsiderThreatDetector as _ITD
 
-    # Inject a fresh detector for this test
-    fresh = _ITD(db_path=tmp_db, org_id="default")
+    # Inject a fresh isolated detector for this test
+    fresh = InsiderThreatDetector(db_path=tmp_db, org_id="default")
     itr._detector = fresh
 
-    # Build app without auth dependencies so tests don't need API keys
-    from fastapi import APIRouter
-    from core.insider_threat import (
-        ActivityRecord,
-        AlertLevel,
-        DetectionStats,
-        RiskDistribution,
-        ThreatIndicator,
-        UserRiskProfile,
-    )
-    from typing import Any, Dict, List, Optional
-    from fastapi import Query
-    from pydantic import BaseModel, Field
-
     app = FastAPI()
+    app.include_router(itr.router)
 
-    # Re-register the router without auth
-    test_router = APIRouter(prefix="/api/v1/insider-threat", tags=["insider-threat"])
+    # Override auth dependency with a no-op so tests don't need API keys
+    try:
+        from apps.api.auth_deps import api_key_auth
+        app.dependency_overrides[api_key_auth] = lambda: None
+    except ImportError:
+        pass
 
-    class _RecordReq(BaseModel):
-        user_email: str
-        activity_type: str
-        details: Dict[str, Any] = Field(default_factory=dict)
-        org_id: str = "default"
-
-    class _RecordResp(BaseModel):
-        activity_id: str
-        message: str = "Activity recorded"
-
-    class _DetectReq(BaseModel):
-        org_id: str = "default"
-
-    class _DetectResp(BaseModel):
-        users_flagged: int
-        profiles: List[UserRiskProfile]
-
-    class _AckReq(BaseModel):
-        reviewer: str
-        org_id: str = "default"
-
-    class _AckResp(BaseModel):
-        acknowledged: bool
-        user_email: str
-        reviewer: str
-
-    @test_router.post("/activities", response_model=_RecordResp)
-    def _record(body: _RecordReq) -> _RecordResp:
-        aid = itr._detector.record_activity(
-            user_email=body.user_email,
-            activity_type=body.activity_type,
-            details=body.details,
-            org_id=body.org_id,
-        )
-        return _RecordResp(activity_id=aid)
-
-    @test_router.post("/assess/{user_email}", response_model=UserRiskProfile)
-    def _assess(user_email: str, org_id: str = Query("default")) -> UserRiskProfile:
-        return itr._detector.assess_user_risk(user_email=user_email, org_id=org_id)
-
-    @test_router.post("/detect", response_model=_DetectResp)
-    def _detect(body: _DetectReq) -> _DetectResp:
-        profiles = itr._detector.detect_anomalies(org_id=body.org_id)
-        return _DetectResp(users_flagged=len(profiles), profiles=profiles)
-
-    @test_router.get("/high-risk", response_model=List[UserRiskProfile])
-    def _high_risk(org_id: str = Query("default"), threshold: float = Query(60.0)) -> List[UserRiskProfile]:
-        return itr._detector.get_high_risk_users(org_id=org_id, threshold=threshold)
-
-    @test_router.get("/timeline/{user_email}", response_model=List[ActivityRecord])
-    def _timeline(user_email: str, org_id: str = Query("default"), limit: int = Query(200)) -> List[ActivityRecord]:
-        return itr._detector.get_user_timeline(user_email=user_email, org_id=org_id, limit=limit)
-
-    @test_router.get("/distribution", response_model=RiskDistribution)
-    def _dist(org_id: str = Query("default")) -> RiskDistribution:
-        return itr._detector.get_risk_distribution(org_id=org_id)
-
-    @test_router.post("/acknowledge/{user_email}", response_model=_AckResp)
-    def _ack(user_email: str, body: _AckReq) -> _AckResp:
-        from fastapi import HTTPException
-        updated = itr._detector.acknowledge_alert(
-            user_email=user_email, reviewer=body.reviewer, org_id=body.org_id
-        )
-        if not updated:
-            raise HTTPException(status_code=404, detail="No unacknowledged alerts")
-        return _AckResp(acknowledged=True, user_email=user_email, reviewer=body.reviewer)
-
-    @test_router.get("/stats", response_model=DetectionStats)
-    def _stats(org_id: str = Query("default")) -> DetectionStats:
-        return itr._detector.get_detection_stats(org_id=org_id)
-
-    app.include_router(test_router)
     return TestClient(app)
 
 

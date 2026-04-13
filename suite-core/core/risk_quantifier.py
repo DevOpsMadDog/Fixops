@@ -845,7 +845,7 @@ class RiskQuantifier:
         effective_org = org_id or self.org_id
 
         with self._lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             conn.row_factory = sqlite3.Row
             try:
                 cursor = conn.cursor()
@@ -855,7 +855,7 @@ class RiskQuantifier:
                 )
                 rows = cursor.fetchall()
             finally:
-                conn.close()
+                self._close(conn)
 
         return [
             RiskScenario(

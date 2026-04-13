@@ -200,6 +200,46 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("SOAR Engine router not available: %s", e)
 
+# Security Policy Document Generator — auto-generate policies from platform config
+policy_generator_router: Optional[APIRouter] = None
+try:
+    from apps.api.policy_generator_router import router as policy_generator_router
+    logging.getLogger(__name__).info("Loaded Policy Generator router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Policy Generator router not available: %s", e)
+
+# Cloud Discovery — multi-cloud asset inventory (AWS, Azure, GCP)
+cloud_discovery_router: Optional[APIRouter] = None
+try:
+    from apps.api.cloud_discovery_router import router as cloud_discovery_router
+    logging.getLogger(__name__).info("Loaded Cloud Discovery router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Cloud Discovery router not available: %s", e)
+
+# Compliance Reports — multi-framework compliance reporting
+compliance_reports_router: Optional[APIRouter] = None
+try:
+    from apps.api.compliance_reports_router import router as compliance_reports_router
+    logging.getLogger(__name__).info("Loaded Compliance Reports router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Compliance Reports router not available: %s", e)
+
+# Threat Intelligence Correlation — threat actor profiles and campaign data
+threat_intel_router: Optional[APIRouter] = None
+try:
+    from apps.api.threat_intel_router import router as threat_intel_router
+    logging.getLogger(__name__).info("Loaded Threat Intel router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Threat Intel router not available: %s", e)
+
+# API Analytics — usage monitoring and rate limit tracking
+api_analytics_router: Optional[APIRouter] = None
+try:
+    from apps.api.api_analytics_router import router as api_analytics_router
+    logging.getLogger(__name__).info("Loaded API Analytics router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("API Analytics router not available: %s", e)
+
 # Finding Correlation Engine — groups findings into Exposure Cases
 correlation_router: Optional[APIRouter] = None
 try:
@@ -2409,6 +2449,46 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted SOAR Engine router")
+
+    # Security Policy Document Generator — generate, approve, archive, export policies
+    if policy_generator_router:
+        app.include_router(
+            policy_generator_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Policy Generator router")
+
+    # Cloud Discovery — multi-cloud asset inventory
+    if cloud_discovery_router:
+        app.include_router(
+            cloud_discovery_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Cloud Discovery router")
+
+    # Compliance Reports — multi-framework reporting
+    if compliance_reports_router:
+        app.include_router(
+            compliance_reports_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Compliance Reports router")
+
+    # Threat Intel Correlation — threat actors and campaigns
+    if threat_intel_router:
+        app.include_router(
+            threat_intel_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Threat Intel router")
+
+    # API Analytics — usage monitoring
+    if api_analytics_router:
+        app.include_router(
+            api_analytics_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted API Analytics router")
 
     # Finding Correlation Engine — Exposure Cases, alert fatigue reduction
     if correlation_router:

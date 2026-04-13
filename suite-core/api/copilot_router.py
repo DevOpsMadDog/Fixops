@@ -53,6 +53,14 @@ try:
 except ImportError:
     _HAS_FEEDS = False
 
+# TrustGraph GraphRAG adapter (graceful degradation)
+try:
+    from core.copilot_graphrag import get_graphrag_adapter
+
+    _HAS_GRAPHRAG = True
+except ImportError:
+    _HAS_GRAPHRAG = False
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/copilot", tags=["copilot"])
@@ -307,10 +315,32 @@ async def _call_llm_agent(
         except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
+    # Enrich with TrustGraph GraphRAG context (semantic graph query)
+    graphrag_context = ""
+    graphrag_result = None
+    if _HAS_GRAPHRAG:
+        try:
+            adapter = get_graphrag_adapter()
+            graphrag_result = adapter.query(
+                query_text=message,
+                agent_type=agent_type.value,
+            )
+            if graphrag_result.available and graphrag_result.context_text:
+                graphrag_context = graphrag_result.context_text
+                logger.debug(
+                    "GraphRAG enriched query with %d entities from cores %s",
+                    graphrag_result.entity_count,
+                    graphrag_result.sources,
+                )
+        except Exception as exc:
+            logger.warning("GraphRAG query failed, continuing without graph context: %s", exc)
+
     full_prompt = f"{system_prompt}\n\n" f"User query: {message}\n"
     if context:
         ctx_str = json.dumps(context, default=str)[:2000]
         full_prompt += f"\nSession context: {ctx_str}\n"
+    if graphrag_context:
+        full_prompt += f"\n{graphrag_context}\n"
     if brain_context:
         full_prompt += brain_context
 
@@ -402,6 +432,8 @@ async def _call_llm_agent(
             "provider": provider_used,
             "mode": llm_response.metadata.get("mode", "unknown"),
             "recommended_action": llm_response.recommended_action,
+            "graphrag_entities": graphrag_result.entity_count if graphrag_result and graphrag_result.available else 0,
+            "graphrag_cores": graphrag_result.sources if graphrag_result and graphrag_result.available else [],
         },
     }
 

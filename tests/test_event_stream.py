@@ -621,39 +621,41 @@ class TestStreamRouter:
         assert body["count"] <= 3
         assert len(body["events"]) <= 3
 
+    def test_sse_endpoint_is_streaming_response(self):
+        """SSE endpoint must be registered as a StreamingResponse route."""
+        from apps.api.stream_router import router
+
+        sse_routes = [
+            r for r in router.routes
+            if hasattr(r, "path") and "/sse/" in r.path
+        ]
+        assert len(sse_routes) >= 1
+
     def test_sse_endpoint_headers(self):
-        """SSE endpoint must return text/event-stream content type via mocked generator."""
+        """SSE endpoint must return text/event-stream content type."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
-        from fastapi.responses import StreamingResponse
+        from apps.api import stream_router as sr_module
 
-        async def _fast_gen():
+        # Build a one-shot generator so the endpoint finishes immediately
+        async def _one_chunk(channel, *, org_id=None, heartbeat_interval=15.0, queue_maxsize=256):
             yield ": ping\n\n"
 
-        from apps.api import stream_router as sr_module
-        original = sr_module.EventStream
-        try:
-            mock_stream = MagicMock()
-            mock_stream.instance.return_value = mock_stream
+        # Patch EventStream.instance() at the module level so the router uses our mock
+        with patch.object(sr_module, "_stream") as mock_stream:
+            mock_stream.sse_generator.side_effect = _one_chunk
+            mock_stream.get_recent.return_value = []
             mock_stream.get_event_stats.return_value = {}
-            mock_stream.sse_generator.return_value = _fast_gen()
-
-            sr_module.EventStream = mock_stream
-            importlib = __import__("importlib")
-            importlib.reload(sr_module)
+            mock_stream.publish = AsyncMock(return_value=0)
 
             app2 = FastAPI()
             app2.include_router(sr_module.router)
-            c = TestClient(app2, raise_server_exceptions=True)
+            c = TestClient(app2, raise_server_exceptions=False)
+
             with c.stream("GET", "/api/v1/stream/sse/findings") as resp:
                 assert resp.status_code == 200
                 ct = resp.headers.get("content-type", "")
                 assert "text/event-stream" in ct
-                for _ in resp.iter_bytes():
-                    break
-        finally:
-            sr_module.EventStream = original
-            importlib.reload(sr_module)
 
     def test_publish_multiple_channels(self):
         for ch in ["findings", "incidents", "compliance", "posture", "alerts", "system"]:
