@@ -146,7 +146,24 @@ def transition_finding(
         logger.exception("lifecycle_transition_error: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error during transition") from exc
 
-    return _event_to_response(event)
+    response = _event_to_response(event)
+    # TrustGraph async indexing (fire-and-forget, non-blocking)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_UPDATED, get_event_bus
+        import asyncio
+        bus = get_event_bus()
+        if bus and bus.enabled:
+            asyncio.ensure_future(bus.emit(EVENT_FINDING_UPDATED, {
+                "finding_id": finding_id,
+                "type": "vulnerability",
+                "severity": "medium",
+                "source": "vuln_lifecycle_router",
+                "to_stage": body.to_stage.value,
+                "org_id": org_id,
+            }))
+    except Exception:
+        pass  # event bus is best-effort
+    return response
 
 
 @router.get(

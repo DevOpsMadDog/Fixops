@@ -145,7 +145,23 @@ def create_incident(request: CreateIncidentRequest) -> Dict[str, Any]:
         reported_by=request.reported_by,
         org_id=request.org_id,
     )
-    return incident.model_dump(mode="json")
+    result = incident.model_dump(mode="json")
+    # TrustGraph async indexing (fire-and-forget, non-blocking)
+    try:
+        from core.trustgraph_event_bus import EVENT_INCIDENT_CREATED, get_event_bus
+        import asyncio
+        bus = get_event_bus()
+        if bus and bus.enabled:
+            asyncio.ensure_future(bus.emit(EVENT_INCIDENT_CREATED, {
+                "incident_id": str(result.get("id", "")),
+                "type": "incident",
+                "severity": result.get("severity", "medium"),
+                "source": "incident_response_router",
+                "data": result,
+            }))
+    except Exception:
+        pass  # event bus is best-effort
+    return result
 
 
 @router.get("/stats")

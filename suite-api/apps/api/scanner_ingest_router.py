@@ -241,6 +241,23 @@ async def upload_scanner_output(
             logger.warning("Pipeline execution failed: %s", type(e).__name__)
             pipeline_result = {"error": type(e).__name__}
 
+    # TrustGraph async indexing (fire-and-forget, non-blocking)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus
+        bus = get_event_bus()
+        if bus and bus.enabled and findings:
+            import asyncio
+            asyncio.ensure_future(bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"scanner-upload-{detected}-{app_id or 'default'}",
+                "type": "scanner_finding",
+                "severity": "medium",
+                "source": f"scanner_ingest_router:{detected}",
+                "scanner": detected,
+                "findings_count": len(findings),
+                "app_id": app_id or None,
+            }))
+    except Exception:
+        pass  # event bus is best-effort
     return {
         "status": "success",
         "org_id": org_id,
@@ -342,6 +359,23 @@ async def webhook_ingest(
             logger.warning("Webhook pipeline failed: %s", type(e).__name__)
             pipeline_result = {"error": type(e).__name__}
 
+    # TrustGraph async indexing (fire-and-forget, non-blocking)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus
+        bus = get_event_bus()
+        if bus and bus.enabled and findings:
+            import asyncio
+            asyncio.ensure_future(bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"scanner-webhook-{scanner}-{app_id or 'default'}",
+                "type": "scanner_finding",
+                "severity": "medium",
+                "source": f"scanner_ingest_router:webhook:{scanner}",
+                "scanner": scanner,
+                "findings_count": len(findings),
+                "app_id": app_id or None,
+            }))
+    except Exception:
+        pass  # event bus is best-effort
     return {
         "status": "success",
         "org_id": org_id,

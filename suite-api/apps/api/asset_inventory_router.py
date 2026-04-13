@@ -255,10 +255,27 @@ def register_asset(req: RegisterAssetRequest) -> ManagedAsset:
         org_id=req.org_id,
     )
     try:
-        return _inv().register_asset(asset)
+        registered = _inv().register_asset(asset)
     except Exception as exc:
         logger.exception("Failed to register asset: %s", exc)
         raise HTTPException(status_code=500, detail=f"Failed to register asset: {exc}") from exc
+    # TrustGraph async indexing (fire-and-forget, non-blocking)
+    try:
+        from core.trustgraph_event_bus import EVENT_ASSET_DISCOVERED, get_event_bus
+        import asyncio
+        bus = get_event_bus()
+        if bus and bus.enabled:
+            result = registered.model_dump(mode="json") if hasattr(registered, "model_dump") else {}
+            asyncio.ensure_future(bus.emit(EVENT_ASSET_DISCOVERED, {
+                "asset_id": str(result.get("id", "")),
+                "type": result.get("asset_type", "asset"),
+                "severity": result.get("criticality", "medium"),
+                "source": "asset_inventory_router",
+                "data": result,
+            }))
+    except Exception:
+        pass  # event bus is best-effort
+    return registered
 
 
 @router.post("/discover", response_model=List[ManagedAsset], summary="Discover assets from findings")
