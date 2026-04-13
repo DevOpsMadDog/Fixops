@@ -273,6 +273,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Threat Intel router not available: %s", e)
 
+# Database Security Scanner — CIS benchmarks, privilege audit, data exposure, query audit
+db_security_router: Optional[APIRouter] = None
+try:
+    from apps.api.db_security_router import router as db_security_router
+    logging.getLogger(__name__).info("Loaded Database Security Scanner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Database Security Scanner router not available: %s", e)
+
 # API Analytics — usage monitoring and rate limit tracking
 api_analytics_router: Optional[APIRouter] = None
 try:
