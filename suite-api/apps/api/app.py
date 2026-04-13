@@ -481,6 +481,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("CSPM Engine router not available: %s", e)
 
+cspm_deep_router: Optional[APIRouter] = None
+try:
+    from apps.api.cspm_deep_router import router as cspm_deep_router
+    logging.getLogger(__name__).info("Loaded CSPM Deep Scan router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("CSPM Deep Scan router not available: %s", e)
+
 dashboard_builder_router: Optional[APIRouter] = None
 try:
     from apps.api.dashboard_builder_router import router as dashboard_builder_router
@@ -3146,6 +3153,7 @@ def create_app() -> FastAPI:
         (compliance_planner_router, "Compliance Planner", "read:evidence"),
         (container_scanner_router, "Container Scanner", "read:findings"),
         (cspm_engine_router, "CSPM Engine", "read:findings"),
+        (cspm_deep_router, "CSPM Deep Scan", "read:findings"),
         (dashboard_builder_router, "Dashboard Builder", "read:findings"),
         (developer_portal_router, "Developer Portal", "read:findings"),
         (drift_router, "Drift", "read:findings"),
