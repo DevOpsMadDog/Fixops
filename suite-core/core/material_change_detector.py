@@ -965,12 +965,12 @@ class PushEventAnalyzer:
             return None
         try:
             from core.incident_response import (
-                IncidentResponseStore,
+                IncidentResponseManager,
                 IncidentSeverity,
                 IncidentType,
             )
 
-            store = IncidentResponseStore()
+            store = IncidentResponseManager()
             br_cat = result.blast_radius.category if result.blast_radius else BlastRadiusCategory.MEDIUM
             severity_map = {
                 BlastRadiusCategory.CRITICAL: IncidentSeverity.SEV1,
