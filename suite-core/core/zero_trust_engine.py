@@ -1,217 +1,108 @@
-"""
-Zero-Trust Network Policy Engine for ALDECI.
-
-Implements access evaluation, micro-segmentation, lateral movement detection,
-and entity trust scoring under the "never trust, always verify" model.
-
-Compliance: NIST SP 800-207 (Zero Trust Architecture), SOC2 CC6.x
-"""
-
+"""Zero-trust policy engine — continuous verification for all access requests."""
 from __future__ import annotations
 
 import json
-import logging
 import sqlite3
 import uuid
-from datetime import datetime, timezone, timedelta
-from enum import Enum
+from datetime import datetime, timezone
+from ipaddress import ip_address, ip_network
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+import structlog
 
-_logger = logging.getLogger(__name__)
+_logger = structlog.get_logger()
 
-# ---------------------------------------------------------------------------
-# ENUMS
-# ---------------------------------------------------------------------------
+TRUST_LEVELS = ["untrusted", "low", "medium", "high", "trusted"]
+POLICY_ACTIONS = ["allow", "deny", "step_up_auth", "quarantine", "monitor"]
+RISK_SIGNALS = [
+    "device_compliance",
+    "user_behavior",
+    "network_location",
+    "time_of_access",
+    "data_sensitivity",
+]
 
+_SCORE_TO_LEVEL_THRESHOLDS = [
+    (80.0, "trusted"),
+    (60.0, "high"),
+    (40.0, "medium"),
+    (20.0, "low"),
+    (0.0, "untrusted"),
+]
 
-class Decision(str, Enum):
-    ALLOW = "ALLOW"
-    DENY = "DENY"
-    CHALLENGE = "CHALLENGE"  # MFA / step-up required
-
-
-class AlertSeverity(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-
-# ---------------------------------------------------------------------------
-# CORE MODELS
-# ---------------------------------------------------------------------------
-
-
-class AccessRequest(BaseModel):
-    """A zero-trust access request submitted by a user, device, or service."""
-
-    user_id: str
-    device_id: str
-    resource: str
-    action: str = "read"
-    location: str = ""           # IP address or geo tag
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    mfa_verified: bool = False
-    device_trust_score: Optional[float] = None   # 0.0–1.0, None = unknown
-    behaviour_score: Optional[float] = None      # 0.0–1.0, None = unknown
-    extra: Dict[str, Any] = Field(default_factory=dict)
-
-
-class AccessDecision(BaseModel):
-    """Result of a zero-trust access evaluation."""
-
-    decision_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    decision: Decision
-    reasons: List[str] = Field(default_factory=list)
-    trust_score: float = Field(default=0.0, ge=0.0, le=1.0)
-    policy_applied: str = ""
-    mfa_required: bool = False
-    evaluated_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "decision_id": self.decision_id,
-            "decision": self.decision.value,
-            "reasons": self.reasons,
-            "trust_score": self.trust_score,
-            "policy_applied": self.policy_applied,
-            "mfa_required": self.mfa_required,
-            "evaluated_at": self.evaluated_at,
-        }
-
-
-class NetworkPolicy(BaseModel):
-    """A micro-segmentation network policy."""
-
-    policy_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: str = ""
-    segments: List[Dict[str, Any]] = Field(default_factory=list)
-    allow_rules: List[Dict[str, Any]] = Field(default_factory=list)
-    deny_all: bool = True
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "policy_id": self.policy_id,
-            "name": self.name,
-            "description": self.description,
-            "segments": self.segments,
-            "allow_rules": self.allow_rules,
-            "deny_all": self.deny_all,
-            "created_at": self.created_at,
-        }
-
-
-class Policy(BaseModel):
-    """A zero-trust access policy for a specific resource."""
-
-    policy_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    resource: str
-    rules: List[Dict[str, Any]] = Field(default_factory=list)
-    default_decision: Decision = Decision.DENY
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    updated_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "policy_id": self.policy_id,
-            "resource": self.resource,
-            "rules": self.rules,
-            "default_decision": self.default_decision.value,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-        }
-
-
-class Alert(BaseModel):
-    """A lateral movement or anomaly alert."""
-
-    alert_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    alert_type: str
-    severity: AlertSeverity
-    description: str
-    source_entity: str = ""
-    target_entity: str = ""
-    evidence: List[str] = Field(default_factory=list)
-    detected_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "alert_id": self.alert_id,
-            "alert_type": self.alert_type,
-            "severity": self.severity.value,
-            "description": self.description,
-            "source_entity": self.source_entity,
-            "target_entity": self.target_entity,
-            "evidence": self.evidence,
-            "detected_at": self.detected_at,
-        }
-
-
-# ---------------------------------------------------------------------------
-# INTERNAL CONSTANTS
-# ---------------------------------------------------------------------------
-
-# Resource sensitivity tiers; higher = more sensitive
-_CRITICAL_RESOURCES = {
-    "admin", "secrets", "credentials", "api_keys", "root", "iam",
-    "encryption_keys", "ca_cert", "private_key",
-}
-_SENSITIVE_RESOURCES = {
-    "users", "config", "audit_log", "billing", "compliance",
-    "pii", "health_data", "financial",
+_ACTION_PRECEDENCE = {
+    "deny": 5,
+    "quarantine": 4,
+    "step_up_auth": 3,
+    "monitor": 2,
+    "allow": 1,
 }
 
-# Trust-score thresholds
-_SCORE_ALLOW = 0.65
-_SCORE_CHALLENGE = 0.40
 
-# Business hours (UTC) for off-hours detection
-_BIZ_HOUR_START = 6
-_BIZ_HOUR_END = 22
-
-# Lateral movement patterns
-_SCAN_PORT_THRESHOLD = 5          # distinct destination ports → port scan
-_NEW_HOST_THRESHOLD = 4           # distinct hosts in window → host enumeration
-_RAPID_AUTH_THRESHOLD = 10        # auth attempts per minute → brute force
+def _score_to_level(score: float) -> str:
+    for threshold, level in _SCORE_TO_LEVEL_THRESHOLDS:
+        if score >= threshold:
+            return level
+    return "untrusted"
 
 
-# ---------------------------------------------------------------------------
-# ZERO TRUST ENGINE
-# ---------------------------------------------------------------------------
+def _level_to_index(level: str) -> int:
+    try:
+        return TRUST_LEVELS.index(level)
+    except ValueError:
+        return 0
+
+
+def _ip_in_networks(ip: str, networks: List[str]) -> bool:
+    """Return True if ip falls within any CIDR range in networks."""
+    if not networks:
+        return True
+    try:
+        addr = ip_address(ip)
+        for cidr in networks:
+            try:
+                if addr in ip_network(cidr, strict=False):
+                    return True
+            except ValueError:
+                pass
+    except ValueError:
+        pass
+    return False
+
+
+def _time_in_ranges(ts: str, ranges: List[str]) -> bool:
+    """Return True if the HH:MM portion of ts falls within any 'HH:MM-HH:MM' range."""
+    if not ranges:
+        return True
+    try:
+        dt = datetime.fromisoformat(ts)
+        hhmm = dt.hour * 60 + dt.minute
+        for r in ranges:
+            parts = r.split("-")
+            if len(parts) != 2:
+                continue
+            start_h, start_m = map(int, parts[0].split(":"))
+            end_h, end_m = map(int, parts[1].split(":"))
+            start_min = start_h * 60 + start_m
+            end_min = end_h * 60 + end_m
+            if start_min <= hhmm <= end_min:
+                return True
+    except (ValueError, AttributeError):
+        pass
+    return False
 
 
 class ZeroTrustEngine:
-    """
-    Zero-trust network policy evaluation and enforcement.
+    """SQLite-backed zero-trust policy engine — never trust, always verify."""
 
-    Backed by SQLite for policy and trust-score persistence.
-    Stateless for evaluation so it is safe to call from async handlers.
-    """
-
-    def __init__(self, db_path: str = "data/zero_trust_engine.db") -> None:
+    def __init__(self, db_path: str = "data/zero_trust.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_db()
+        self._init_tables()
 
     # ------------------------------------------------------------------
-    # DB helpers
+    # Internal helpers
     # ------------------------------------------------------------------
 
     def _connect(self) -> sqlite3.Connection:
@@ -220,734 +111,538 @@ class ZeroTrustEngine:
         conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
-    def _init_db(self) -> None:
+    def _init_tables(self) -> None:
         conn = self._connect()
         try:
             conn.executescript(
                 """
-                CREATE TABLE IF NOT EXISTS policies (
-                    policy_id    TEXT PRIMARY KEY,
-                    resource     TEXT NOT NULL UNIQUE,
-                    rules        TEXT NOT NULL DEFAULT '[]',
-                    default_decision TEXT NOT NULL DEFAULT 'DENY',
-                    created_at   TEXT NOT NULL,
-                    updated_at   TEXT NOT NULL
+                CREATE TABLE IF NOT EXISTS zt_policies (
+                    policy_id   TEXT PRIMARY KEY,
+                    name        TEXT NOT NULL,
+                    conditions  TEXT NOT NULL DEFAULT '{}',
+                    action      TEXT NOT NULL,
+                    priority    INTEGER NOT NULL DEFAULT 50,
+                    org_id      TEXT NOT NULL DEFAULT 'default',
+                    active      INTEGER NOT NULL DEFAULT 1,
+                    created_at  TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
                 );
 
-                CREATE TABLE IF NOT EXISTS entity_trust (
-                    entity_id    TEXT PRIMARY KEY,
-                    entity_type  TEXT NOT NULL DEFAULT 'user',
-                    trust_score  REAL NOT NULL DEFAULT 0.5,
-                    factors      TEXT NOT NULL DEFAULT '{}',
-                    updated_at   TEXT NOT NULL
+                CREATE TABLE IF NOT EXISTS zt_access_log (
+                    request_id       TEXT PRIMARY KEY,
+                    user_id          TEXT,
+                    org_id           TEXT NOT NULL DEFAULT 'default',
+                    resource         TEXT,
+                    device_id        TEXT,
+                    network_ip       TEXT,
+                    decision         TEXT NOT NULL,
+                    trust_level      TEXT NOT NULL,
+                    trust_score      REAL NOT NULL DEFAULT 0,
+                    policies_matched TEXT NOT NULL DEFAULT '[]',
+                    risk_factors     TEXT NOT NULL DEFAULT '[]',
+                    reasoning        TEXT NOT NULL DEFAULT '',
+                    evaluated_at     TEXT NOT NULL
                 );
 
-                CREATE TABLE IF NOT EXISTS access_log (
-                    id           TEXT PRIMARY KEY,
-                    user_id      TEXT NOT NULL,
-                    device_id    TEXT NOT NULL,
-                    resource     TEXT NOT NULL,
-                    action       TEXT NOT NULL,
-                    decision     TEXT NOT NULL,
-                    trust_score  REAL NOT NULL,
-                    reasons      TEXT NOT NULL DEFAULT '[]',
-                    evaluated_at TEXT NOT NULL
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_access_log_user
-                    ON access_log(user_id, evaluated_at);
-                CREATE INDEX IF NOT EXISTS idx_access_log_resource
-                    ON access_log(resource, evaluated_at);
-                CREATE INDEX IF NOT EXISTS idx_entity_trust_type
-                    ON entity_trust(entity_type);
+                CREATE INDEX IF NOT EXISTS idx_zt_policies_org
+                    ON zt_policies(org_id, active);
+                CREATE INDEX IF NOT EXISTS idx_zt_policies_priority
+                    ON zt_policies(priority);
+                CREATE INDEX IF NOT EXISTS idx_zt_log_user
+                    ON zt_access_log(user_id);
+                CREATE INDEX IF NOT EXISTS idx_zt_log_org
+                    ON zt_access_log(org_id);
+                CREATE INDEX IF NOT EXISTS idx_zt_log_decision
+                    ON zt_access_log(decision);
+                CREATE INDEX IF NOT EXISTS idx_zt_log_evaluated
+                    ON zt_access_log(evaluated_at);
                 """
             )
             conn.commit()
         finally:
             conn.close()
 
+    @staticmethod
+    def _row_to_policy(row: sqlite3.Row) -> Dict[str, Any]:
+        return {
+            "policy_id": row["policy_id"],
+            "name": row["name"],
+            "conditions": json.loads(row["conditions"]),
+            "action": row["action"],
+            "priority": row["priority"],
+            "org_id": row["org_id"],
+            "active": bool(row["active"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    @staticmethod
+    def _row_to_log(row: sqlite3.Row) -> Dict[str, Any]:
+        return {
+            "request_id": row["request_id"],
+            "user_id": row["user_id"],
+            "org_id": row["org_id"],
+            "resource": row["resource"],
+            "device_id": row["device_id"],
+            "network_ip": row["network_ip"],
+            "decision": row["decision"],
+            "trust_level": row["trust_level"],
+            "trust_score": row["trust_score"],
+            "policies_matched": json.loads(row["policies_matched"]),
+            "risk_factors": json.loads(row["risk_factors"]),
+            "reasoning": row["reasoning"],
+            "evaluated_at": row["evaluated_at"],
+        }
+
     # ------------------------------------------------------------------
-    # Public API — access evaluation
+    # Policy CRUD
     # ------------------------------------------------------------------
 
-    def evaluate_access_request(self, request: AccessRequest) -> AccessDecision:
+    def create_policy(
+        self,
+        name: str,
+        conditions: dict,
+        action: str,
+        priority: int = 50,
+        org_id: str = "default",
+    ) -> dict:
+        """Create a zero-trust access policy.
+
+        conditions keys (all optional):
+            min_trust_level: str — one of TRUST_LEVELS
+            require_mfa: bool
+            allowed_networks: list[str]  — CIDR ranges
+            allowed_time_ranges: list[str]  — "HH:MM-HH:MM"
+            require_compliant_device: bool
+            max_risk_score: float  — deny if user_risk_score > this value
+
+        action: allow | deny | step_up_auth | quarantine | monitor
         """
-        Evaluate if access should be granted based on zero-trust principles.
+        if action not in POLICY_ACTIONS:
+            raise ValueError(
+                f"Invalid action '{action}'. Must be one of: {POLICY_ACTIONS}"
+            )
 
-        Factors evaluated (in order):
-        1. Device trust score (posture)
-        2. Resource sensitivity vs. trust score
-        3. Network location (private vs. public)
-        4. Behaviour baseline score
-        5. Time of access (business hours)
-        6. MFA status for critical resources
-
-        Returns: AccessDecision with decision ALLOW | DENY | CHALLENGE.
-        """
-        reasons: List[str] = []
-        trust_score = self._compute_request_trust(request, reasons)
-        mfa_required = self._is_mfa_required(request.resource)
-        policy_applied = "default"
-
-        # Check resource-specific policy first
-        policy = self._load_policy_for_resource(request.resource)
-        if policy:
-            policy_applied = policy["policy_id"]
-            rule_decision = self._evaluate_policy_rules(policy["rules"], request)
-            if rule_decision is not None:
-                decision = rule_decision
-                reasons.append(f"matched_policy_rule resource={request.resource}")
-                return self._finalize(
-                    decision, reasons, trust_score, policy_applied, mfa_required, request
-                )
-
-        # Default scoring logic
-        resource_key = request.resource.lower().split("/")[0].split(":")[0]
-        is_critical = resource_key in _CRITICAL_RESOURCES
-        is_sensitive = resource_key in _SENSITIVE_RESOURCES
-
-        if is_critical:
-            if not request.mfa_verified:
-                reasons.append("critical_resource_requires_mfa")
-                decision = Decision.CHALLENGE
-                mfa_required = True
-            elif trust_score >= _SCORE_ALLOW:
-                decision = Decision.ALLOW
-                reasons.append(f"critical_resource_mfa_verified trust={trust_score:.2f}")
-            else:
-                decision = Decision.DENY
-                reasons.append(f"critical_resource_trust_insufficient trust={trust_score:.2f}")
-        elif is_sensitive:
-            if trust_score >= _SCORE_ALLOW:
-                decision = Decision.ALLOW
-                reasons.append(f"sensitive_resource_allowed trust={trust_score:.2f}")
-            elif trust_score >= _SCORE_CHALLENGE:
-                decision = Decision.CHALLENGE
-                mfa_required = True
-                reasons.append(f"sensitive_resource_step_up trust={trust_score:.2f}")
-            else:
-                decision = Decision.DENY
-                reasons.append(f"sensitive_resource_trust_too_low trust={trust_score:.2f}")
-        else:
-            # Standard resource
-            if trust_score >= _SCORE_CHALLENGE:
-                decision = Decision.ALLOW
-                reasons.append(f"standard_resource_allowed trust={trust_score:.2f}")
-            else:
-                decision = Decision.DENY
-                reasons.append(f"standard_resource_trust_too_low trust={trust_score:.2f}")
-
-        return self._finalize(decision, reasons, trust_score, policy_applied, mfa_required, request)
-
-    def _compute_request_trust(
-        self, request: AccessRequest, reasons: List[str]
-    ) -> float:
-        """Combine all trust signals into a composite score 0.0–1.0."""
-        score = 0.5  # baseline for known entity
-
-        # Device posture signal (weight 0.30)
-        if request.device_trust_score is not None:
-            device_contrib = request.device_trust_score * 0.30
-            score = score - 0.15 + device_contrib  # replace baseline device portion
-            if request.device_trust_score < 0.30:
-                reasons.append(f"device_trust_low score={request.device_trust_score:.2f}")
-            else:
-                reasons.append(f"device_trust_ok score={request.device_trust_score:.2f}")
-
-        # Behaviour signal (weight 0.20)
-        if request.behaviour_score is not None:
-            behav_contrib = (request.behaviour_score - 0.5) * 0.20
-            score += behav_contrib
-            if request.behaviour_score < 0.40:
-                reasons.append(f"anomalous_behaviour score={request.behaviour_score:.2f}")
-
-        # Network location signal (weight 0.15)
-        loc = request.location
-        if loc.startswith(("127.", "10.", "192.168.", "::1")):
-            score += 0.10
-            reasons.append("private_network")
-        elif loc.startswith("172."):
-            parts = loc.split(".")
-            try:
-                if len(parts) >= 2 and 16 <= int(parts[1]) <= 31:
-                    score += 0.10
-                    reasons.append("private_network")
-            except ValueError:
-                pass
-        elif loc:
-            reasons.append("public_network")
-
-        # Time-of-access signal
+        now = datetime.now(timezone.utc).isoformat()
+        policy_id = str(uuid.uuid4())
+        conn = self._connect()
         try:
-            ts = datetime.fromisoformat(request.timestamp.replace("Z", "+00:00"))
-            hour = ts.hour
-            if _BIZ_HOUR_START <= hour < _BIZ_HOUR_END:
-                score += 0.05
-                reasons.append("business_hours_access")
-            else:
-                score -= 0.10
-                reasons.append("off_hours_access")
-        except (ValueError, AttributeError):
-            pass
+            conn.execute(
+                """
+                INSERT INTO zt_policies
+                    (policy_id, name, conditions, action, priority, org_id, active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                """,
+                (
+                    policy_id,
+                    name,
+                    json.dumps(conditions),
+                    action,
+                    priority,
+                    org_id,
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
-        # MFA already verified bonus
-        if request.mfa_verified:
-            score += 0.15
-            reasons.append("mfa_verified")
+        _logger.info("zero_trust.policy_created", policy_id=policy_id, name=name, action=action)
+        return {
+            "policy_id": policy_id,
+            "name": name,
+            "conditions": conditions,
+            "action": action,
+            "priority": priority,
+            "org_id": org_id,
+            "active": True,
+            "created_at": now,
+            "updated_at": now,
+        }
 
-        # Clamp
-        return round(max(0.0, min(score, 1.0)), 4)
-
-    def _is_mfa_required(self, resource: str) -> bool:
-        resource_key = resource.lower().split("/")[0].split(":")[0]
-        return resource_key in _CRITICAL_RESOURCES | _SENSITIVE_RESOURCES
-
-    def _load_policy_for_resource(self, resource: str) -> Optional[Dict[str, Any]]:
+    def get_policy(self, policy_id: str) -> Optional[dict]:
         conn = self._connect()
         try:
             row = conn.execute(
-                "SELECT * FROM policies WHERE resource = ?", (resource,)
+                "SELECT * FROM zt_policies WHERE policy_id = ?", (policy_id,)
             ).fetchone()
-            if row:
-                return {
-                    "policy_id": row["policy_id"],
-                    "resource": row["resource"],
-                    "rules": json.loads(row["rules"]),
-                    "default_decision": row["default_decision"],
-                }
-            return None
+            return self._row_to_policy(row) if row else None
         finally:
             conn.close()
 
-    def _evaluate_policy_rules(
-        self, rules: List[Dict[str, Any]], request: AccessRequest
-    ) -> Optional[Decision]:
-        """Evaluate ordered policy rules. Returns first matching Decision or None."""
-        for rule in rules:
-            if self._rule_matches(rule, request):
-                d = rule.get("decision", "DENY").upper()
-                try:
-                    return Decision(d)
-                except ValueError:
-                    return Decision.DENY
-        return None
+    def list_policies(
+        self, org_id: str = "default", active_only: bool = True
+    ) -> List[dict]:
+        conn = self._connect()
+        try:
+            if active_only:
+                rows = conn.execute(
+                    "SELECT * FROM zt_policies WHERE org_id = ? AND active = 1 ORDER BY priority ASC",
+                    (org_id,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM zt_policies WHERE org_id = ? ORDER BY priority ASC",
+                    (org_id,),
+                ).fetchall()
+            return [self._row_to_policy(r) for r in rows]
+        finally:
+            conn.close()
 
-    def _rule_matches(self, rule: Dict[str, Any], request: AccessRequest) -> bool:
-        """Check if a rule matches the request. All conditions must hold."""
-        if "user_id" in rule and rule["user_id"] != request.user_id:
-            return False
-        if "action" in rule and rule["action"] != request.action:
-            return False
-        if "min_trust_score" in rule:
-            score = request.device_trust_score or 0.0
-            if score < rule["min_trust_score"]:
-                return False
-        if "require_mfa" in rule and rule["require_mfa"] and not request.mfa_verified:
-            return False
-        return True
+    def update_policy(self, policy_id: str, **kwargs) -> dict:
+        policy = self.get_policy(policy_id)
+        if policy is None:
+            raise ValueError(f"Policy {policy_id} not found")
 
-    def _finalize(
-        self,
-        decision: Decision,
-        reasons: List[str],
-        trust_score: float,
-        policy_applied: str,
-        mfa_required: bool,
-        request: AccessRequest,
-    ) -> AccessDecision:
-        ad = AccessDecision(
-            decision=decision,
-            reasons=reasons,
-            trust_score=trust_score,
-            policy_applied=policy_applied,
-            mfa_required=mfa_required,
-        )
-        self._log_access(request, ad)
-        return ad
+        allowed_fields = {"name", "conditions", "action", "priority", "org_id", "active"}
+        updates: Dict[str, Any] = {}
+        for key, val in kwargs.items():
+            if key not in allowed_fields:
+                continue
+            if key == "action" and val not in POLICY_ACTIONS:
+                raise ValueError(f"Invalid action '{val}'")
+            updates[key] = val
 
-    def _log_access(self, request: AccessRequest, decision: AccessDecision) -> None:
+        if not updates:
+            return policy
+
+        now = datetime.now(timezone.utc).isoformat()
+        updates["updated_at"] = now
+
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        values: List[Any] = []
+        for k, v in updates.items():
+            if k == "conditions" and isinstance(v, dict):
+                values.append(json.dumps(v))
+            elif k == "active" and isinstance(v, bool):
+                values.append(1 if v else 0)
+            else:
+                values.append(v)
+        values.append(policy_id)
+
         conn = self._connect()
         try:
             conn.execute(
-                """
-                INSERT INTO access_log
-                    (id, user_id, device_id, resource, action,
-                     decision, trust_score, reasons, evaluated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    decision.decision_id,
-                    request.user_id,
-                    request.device_id,
-                    request.resource,
-                    request.action,
-                    decision.decision.value,
-                    decision.trust_score,
-                    json.dumps(decision.reasons),
-                    decision.evaluated_at,
-                ),
+                f"UPDATE zt_policies SET {set_clause} WHERE policy_id = ?", values
             )
             conn.commit()
         finally:
             conn.close()
 
+        return self.get_policy(policy_id)  # type: ignore[return-value]
+
+    def delete_policy(self, policy_id: str) -> bool:
+        conn = self._connect()
+        try:
+            cur = conn.execute(
+                "DELETE FROM zt_policies WHERE policy_id = ?", (policy_id,)
+            )
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            conn.close()
+
     # ------------------------------------------------------------------
-    # Public API — micro-segmentation
+    # Trust scoring
     # ------------------------------------------------------------------
 
-    def generate_micro_segmentation_policy(
-        self, assets: List[Dict[str, Any]]
-    ) -> NetworkPolicy:
-        """
-        Generate network segmentation rules based on asset relationships.
+    def compute_trust_score(self, request: dict) -> dict:
+        """Compute trust level for a request context.
 
-        Groups assets by sensitivity level and creates allow-list rules
-        between groups. Denies all else by default.
+        Returns {trust_level: str, trust_score: float 0-100, signals: dict}
         """
-        segments: Dict[str, List[str]] = {
-            "critical": [],
-            "sensitive": [],
-            "standard": [],
+        signals: Dict[str, Any] = {}
+        score = 50.0  # neutral baseline
+
+        # MFA verification — strong positive signal
+        mfa_verified = bool(request.get("mfa_verified", False))
+        signals["mfa_verified"] = mfa_verified
+        if mfa_verified:
+            score += 20.0
+        else:
+            score -= 15.0
+
+        # Device compliance
+        device_compliant = bool(request.get("device_compliant", False))
+        signals["device_compliant"] = device_compliant
+        if device_compliant:
+            score += 15.0
+        else:
+            score -= 20.0
+
+        # User risk score (0-100, higher = riskier)
+        user_risk_score = float(request.get("user_risk_score", 0.0))
+        signals["user_risk_score"] = user_risk_score
+        # 0 risk adds nothing, 100 risk subtracts 30 pts
+        score -= (user_risk_score / 100.0) * 30.0
+
+        # Clamp to [0, 100]
+        score = max(0.0, min(100.0, score))
+        trust_level = _score_to_level(score)
+
+        return {
+            "trust_level": trust_level,
+            "trust_score": round(score, 2),
+            "signals": signals,
         }
 
-        for asset in assets:
-            name = asset.get("name", asset.get("id", "unknown"))
-            sensitivity = asset.get("sensitivity", "standard").lower()
-            tags = [t.lower() for t in asset.get("tags", [])]
-
-            # Infer sensitivity from name/tags if not explicit
-            if sensitivity == "standard":
-                if any(k in name.lower() for k in _CRITICAL_RESOURCES):
-                    sensitivity = "critical"
-                elif any(k in name.lower() for k in _SENSITIVE_RESOURCES):
-                    sensitivity = "sensitive"
-                elif any(k in tags for k in _CRITICAL_RESOURCES):
-                    sensitivity = "critical"
-                elif any(k in tags for k in _SENSITIVE_RESOURCES):
-                    sensitivity = "sensitive"
-
-            segments[sensitivity].append(name)
-
-        # Build allow rules: lower tier can reach higher tier (read-only)
-        # but critical assets can only be reached from critical segment
-        allow_rules: List[Dict[str, Any]] = []
-
-        # Standard → Standard: full mesh allowed
-        if segments["standard"]:
-            allow_rules.append({
-                "from_segment": "standard",
-                "to_segment": "standard",
-                "ports": [80, 443, 8080, 8443],
-                "protocols": ["tcp"],
-                "description": "Standard-to-standard mesh traffic",
-            })
-
-        # Standard → Sensitive: restricted ports only
-        if segments["standard"] and segments["sensitive"]:
-            allow_rules.append({
-                "from_segment": "standard",
-                "to_segment": "sensitive",
-                "ports": [443],
-                "protocols": ["tcp"],
-                "description": "Standard to sensitive: HTTPS only",
-            })
-
-        # Sensitive → Sensitive: allowed on secure ports
-        if segments["sensitive"]:
-            allow_rules.append({
-                "from_segment": "sensitive",
-                "to_segment": "sensitive",
-                "ports": [443, 5432, 6379],
-                "protocols": ["tcp"],
-                "description": "Sensitive-to-sensitive secure traffic",
-            })
-
-        # Sensitive → Critical: restricted
-        if segments["sensitive"] and segments["critical"]:
-            allow_rules.append({
-                "from_segment": "sensitive",
-                "to_segment": "critical",
-                "ports": [443],
-                "protocols": ["tcp"],
-                "description": "Sensitive to critical: HTTPS only with MFA",
-                "require_mfa": True,
-            })
-
-        # Critical → Critical: any (already hardened)
-        if segments["critical"]:
-            allow_rules.append({
-                "from_segment": "critical",
-                "to_segment": "critical",
-                "ports": [443, 22],
-                "protocols": ["tcp"],
-                "description": "Critical internal traffic",
-            })
-
-        segment_list = [
-            {"segment": tier, "assets": names}
-            for tier, names in segments.items()
-            if names
-        ]
-
-        return NetworkPolicy(
-            name=f"micro_seg_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
-            description="Auto-generated micro-segmentation policy",
-            segments=segment_list,
-            allow_rules=allow_rules,
-            deny_all=True,
-        )
-
     # ------------------------------------------------------------------
-    # Public API — lateral movement detection
+    # Access evaluation
     # ------------------------------------------------------------------
 
-    def detect_lateral_movement(
-        self, network_events: List[Dict[str, Any]]
-    ) -> List[Alert]:
+    def _policy_fires(self, policy: dict, request: dict, trust_info: dict) -> bool:
+        """Return True if any policy condition is violated (policy should trigger)."""
+        cond = policy.get("conditions", {})
+
+        # min_trust_level: fires if trust is below minimum
+        min_level = cond.get("min_trust_level")
+        if min_level:
+            req_idx = _level_to_index(trust_info["trust_level"])
+            min_idx = _level_to_index(min_level)
+            if req_idx < min_idx:
+                return True
+
+        # require_mfa: fires if MFA not verified
+        if cond.get("require_mfa") and not request.get("mfa_verified", False):
+            return True
+
+        # allowed_networks: fires if IP not in allowed ranges
+        allowed_nets = cond.get("allowed_networks", [])
+        if allowed_nets:
+            ip = request.get("network_ip", "")
+            if not _ip_in_networks(ip, allowed_nets):
+                return True
+
+        # allowed_time_ranges: fires if timestamp outside ranges
+        time_ranges = cond.get("allowed_time_ranges", [])
+        if time_ranges:
+            ts = request.get("timestamp", datetime.now(timezone.utc).isoformat())
+            if not _time_in_ranges(ts, time_ranges):
+                return True
+
+        # require_compliant_device: fires if device not compliant
+        if cond.get("require_compliant_device") and not request.get("device_compliant", False):
+            return True
+
+        # max_risk_score: fires if user risk exceeds threshold
+        max_risk = cond.get("max_risk_score")
+        if max_risk is not None:
+            user_risk = float(request.get("user_risk_score", 0.0))
+            if user_risk > float(max_risk):
+                return True
+
+        return False
+
+    def evaluate_access(self, request: dict) -> dict:
+        """Evaluate an access request against all active policies.
+
+        request keys:
+            user_id, org_id, resource, device_id, device_compliant,
+            network_ip, mfa_verified, user_risk_score, timestamp
+
+        Returns:
+            decision: allow | deny | step_up_auth | quarantine
+            trust_level: str
+            policies_matched: list[str]
+            risk_factors: list[str]
+            reasoning: str
+            request_id: str
         """
-        Detect lateral movement patterns in network traffic.
+        request_id = str(uuid.uuid4())
+        org_id = request.get("org_id", "default")
+        trust_info = self.compute_trust_score(request)
 
-        Patterns detected:
-        - Port scanning (many distinct ports from one source)
-        - Host enumeration (one source → many distinct hosts)
-        - Off-hours access from unusual source
-        - Impossible travel (same user, distant locations, short time)
-        - Brute-force / rapid auth attempts
-        - Unusual protocol usage
-        """
-        alerts: List[Alert] = []
-        if not network_events:
-            return alerts
+        # Policies sorted by priority ASC (lower number = higher priority)
+        policies = self.list_policies(org_id=org_id, active_only=True)
 
-        # Build per-source index
-        by_source: Dict[str, List[Dict[str, Any]]] = {}
-        by_user: Dict[str, List[Dict[str, Any]]] = {}
+        matched_policies: List[str] = []
+        risk_factors: List[str] = []
+        decision = "allow"
+        reasoning_parts: List[str] = []
 
-        for ev in network_events:
-            src = ev.get("source_ip", ev.get("source", "unknown"))
-            by_source.setdefault(src, []).append(ev)
-            uid = ev.get("user_id", "")
-            if uid:
-                by_user.setdefault(uid, []).append(ev)
+        for policy in policies:
+            if self._policy_fires(policy, request, trust_info):
+                matched_policies.append(policy["policy_id"])
+                action = policy["action"]
+                cond = policy.get("conditions", {})
 
-        for src, events in by_source.items():
-            # Port scan detection
-            dest_ports = {
-                ev.get("dest_port") for ev in events if ev.get("dest_port")
-            }
-            if len(dest_ports) >= _SCAN_PORT_THRESHOLD:
-                alerts.append(Alert(
-                    alert_type="port_scan",
-                    severity=AlertSeverity.HIGH,
-                    description=(
-                        f"Port scan detected from {src}: "
-                        f"{len(dest_ports)} distinct ports probed"
-                    ),
-                    source_entity=src,
-                    evidence=[f"ports={sorted(dest_ports)[:20]}"],
-                ))
+                # Collect risk factors
+                if cond.get("require_mfa") and not request.get("mfa_verified", False):
+                    risk_factors.append("mfa_not_verified")
+                if cond.get("require_compliant_device") and not request.get("device_compliant", False):
+                    risk_factors.append("non_compliant_device")
+                allowed_nets = cond.get("allowed_networks", [])
+                if allowed_nets and not _ip_in_networks(request.get("network_ip", ""), allowed_nets):
+                    risk_factors.append("untrusted_network")
+                max_risk = cond.get("max_risk_score")
+                if max_risk is not None and float(request.get("user_risk_score", 0)) > float(max_risk):
+                    risk_factors.append("high_user_risk_score")
+                min_level = cond.get("min_trust_level")
+                if min_level:
+                    if _level_to_index(trust_info["trust_level"]) < _level_to_index(min_level):
+                        risk_factors.append("insufficient_trust_level")
 
-            # Host enumeration
-            dest_hosts = {
-                ev.get("dest_ip", ev.get("destination", "")) for ev in events
-            } - {""}
-            if len(dest_hosts) >= _NEW_HOST_THRESHOLD:
-                alerts.append(Alert(
-                    alert_type="host_enumeration",
-                    severity=AlertSeverity.MEDIUM,
-                    description=(
-                        f"Host enumeration from {src}: "
-                        f"{len(dest_hosts)} distinct hosts contacted"
-                    ),
-                    source_entity=src,
-                    evidence=[f"hosts={list(dest_hosts)[:10]}"],
-                ))
-
-            # Off-hours access from external source
-            is_internal = src.startswith(("10.", "192.168.", "172.", "127."))
-            if not is_internal:
-                for ev in events:
-                    ts_raw = ev.get("timestamp", "")
-                    try:
-                        ts = datetime.fromisoformat(
-                            ts_raw.replace("Z", "+00:00")
-                        )
-                        if not (_BIZ_HOUR_START <= ts.hour < _BIZ_HOUR_END):
-                            alerts.append(Alert(
-                                alert_type="off_hours_external_access",
-                                severity=AlertSeverity.MEDIUM,
-                                description=(
-                                    f"Off-hours external access from {src} "
-                                    f"at {ts.strftime('%H:%M')} UTC"
-                                ),
-                                source_entity=src,
-                                evidence=[f"timestamp={ts_raw}"],
-                            ))
-                            break  # one alert per source per batch
-                    except (ValueError, AttributeError):
-                        pass
-
-            # Unusual protocol (non-HTTP/HTTPS/SSH)
-            unusual_protos = {"telnet", "ftp", "rsh", "rlogin", "vnc"}
-            for ev in events:
-                proto = str(ev.get("protocol", "")).lower()
-                if proto in unusual_protos:
-                    alerts.append(Alert(
-                        alert_type="unusual_protocol",
-                        severity=AlertSeverity.HIGH,
-                        description=(
-                            f"Unusual protocol '{proto}' detected from {src}"
-                        ),
-                        source_entity=src,
-                        target_entity=ev.get("dest_ip", ""),
-                        evidence=[f"protocol={proto}", f"event={json.dumps(ev)[:200]}"],
-                    ))
-
-        # Rapid auth / brute-force (per user)
-        for uid, events in by_user.items():
-            auth_events = [
-                ev for ev in events if ev.get("event_type") in
-                ("auth_attempt", "login", "auth_failure", "failed_login")
-            ]
-            if len(auth_events) >= _RAPID_AUTH_THRESHOLD:
-                alerts.append(Alert(
-                    alert_type="brute_force",
-                    severity=AlertSeverity.CRITICAL,
-                    description=(
-                        f"Brute-force detected for user '{uid}': "
-                        f"{len(auth_events)} auth attempts"
-                    ),
-                    source_entity=uid,
-                    evidence=[f"attempt_count={len(auth_events)}"],
-                ))
-
-        # Impossible travel (per user — detect large location jumps)
-        for uid, events in by_user.items():
-            locations = [
-                ev.get("location", ev.get("source_ip", ""))
-                for ev in events
-                if ev.get("location") or ev.get("source_ip")
-            ]
-            unique_locs = set(locations)
-            if len(unique_locs) >= 3:
-                alerts.append(Alert(
-                    alert_type="impossible_travel",
-                    severity=AlertSeverity.HIGH,
-                    description=(
-                        f"Impossible travel for user '{uid}': "
-                        f"{len(unique_locs)} distinct locations in window"
-                    ),
-                    source_entity=uid,
-                    evidence=[f"locations={list(unique_locs)[:5]}"],
-                ))
-
-        _logger.info(
-            "lateral_movement_scan events=%d alerts=%d",
-            len(network_events), len(alerts),
-        )
-        return alerts
-
-    # ------------------------------------------------------------------
-    # Public API — trust scoring
-    # ------------------------------------------------------------------
-
-    def calculate_trust_score(self, entity: Dict[str, Any]) -> float:
-        """
-        Calculate trust score 0.0–1.0 for a user, device, or service.
-
-        Factors:
-        - known:         entity is registered (vs. unknown)
-        - compliant:     passes policy checks
-        - location:      private / trusted vs. public
-        - behaviour:     recent anomaly history
-        - auth_strength: MFA, certificate, password-only
-        - last_seen:     recency of last verified activity
-        """
-        score = 0.30  # baseline for unknown entity
-
-        # Known/registered entity
-        if entity.get("known", False) or entity.get("registered", False):
-            score += 0.20
-
-        # Compliance (patch level, policy adherence)
-        compliant = entity.get("compliant", entity.get("policy_compliant", False))
-        if compliant:
-            score += 0.15
-
-        # Location
-        loc = entity.get("location", entity.get("ip", ""))
-        if loc.startswith(("10.", "192.168.", "172.16.", "127.", "::1")):
-            score += 0.10
-
-        # Behaviour (anomaly score — lower anomaly → higher trust)
-        anomaly = float(entity.get("anomaly_score", 0.5))
-        score += (1.0 - anomaly) * 0.15
-
-        # Auth strength
-        auth = str(entity.get("auth_method", "password")).lower()
-        if auth in ("certificate", "pki", "hardware_token"):
-            score += 0.10
-        elif auth in ("mfa", "totp", "fido2", "webauthn"):
-            score += 0.08
-        elif auth == "password":
-            score += 0.02
-
-        # Recency — last_seen within 24 hours adds confidence
-        last_seen_raw = entity.get("last_seen", "")
-        if last_seen_raw:
-            try:
-                last_seen = datetime.fromisoformat(
-                    last_seen_raw.replace("Z", "+00:00")
+                reasoning_parts.append(
+                    f"Policy '{policy['name']}' (priority={policy['priority']}) matched -> {action}"
                 )
-                hours_ago = (
-                    datetime.now(timezone.utc) - last_seen
-                ).total_seconds() / 3600
-                if hours_ago <= 1:
-                    score += 0.05
-                elif hours_ago <= 24:
-                    score += 0.02
-                else:
-                    score -= 0.05
-            except (ValueError, AttributeError):
-                pass
 
-        result = round(max(0.0, min(score, 1.0)), 4)
+                # Higher-precedence action wins
+                if _ACTION_PRECEDENCE.get(action, 0) > _ACTION_PRECEDENCE.get(decision, 0):
+                    decision = action
 
-        # Persist to DB
-        self._upsert_entity_trust(
-            entity_id=entity.get("id", entity.get("user_id", str(uuid.uuid4()))),
-            entity_type=entity.get("type", "user"),
-            trust_score=result,
-            factors=entity,
-        )
-        return result
-
-    def _upsert_entity_trust(
-        self,
-        entity_id: str,
-        entity_type: str,
-        trust_score: float,
-        factors: Dict[str, Any],
-    ) -> None:
-        now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
-        try:
-            conn.execute(
-                """
-                INSERT INTO entity_trust
-                    (entity_id, entity_type, trust_score, factors, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(entity_id) DO UPDATE SET
-                    trust_score = excluded.trust_score,
-                    factors     = excluded.factors,
-                    updated_at  = excluded.updated_at
-                """,
-                (entity_id, entity_type, trust_score, json.dumps(factors), now),
+        if not matched_policies:
+            reasoning_parts.append(
+                f"No policies matched. Trust level: {trust_info['trust_level']} "
+                f"(score={trust_info['trust_score']}). Default: allow."
             )
-            conn.commit()
-        finally:
-            conn.close()
+        else:
+            reasoning_parts.append(
+                f"Final decision: {decision}. Trust level: {trust_info['trust_level']} "
+                f"(score={trust_info['trust_score']})."
+            )
 
-    def get_all_trust_scores(self) -> List[Dict[str, Any]]:
-        """Return trust scores for all known entities."""
-        conn = self._connect()
-        try:
-            rows = conn.execute(
-                "SELECT entity_id, entity_type, trust_score, updated_at "
-                "FROM entity_trust ORDER BY trust_score DESC"
-            ).fetchall()
-            return [
-                {
-                    "entity_id": r["entity_id"],
-                    "entity_type": r["entity_type"],
-                    "trust_score": r["trust_score"],
-                    "updated_at": r["updated_at"],
-                }
-                for r in rows
-            ]
-        finally:
-            conn.close()
+        reasoning = " | ".join(reasoning_parts)
+        # Deduplicate risk factors, preserve order
+        risk_factors = list(dict.fromkeys(risk_factors))
 
-    # ------------------------------------------------------------------
-    # Public API — policy management
-    # ------------------------------------------------------------------
-
-    def create_access_policy(
-        self, resource: str, rules: List[Dict[str, Any]]
-    ) -> Policy:
-        """
-        Create or replace a zero-trust access policy for a resource.
-
-        Rules are evaluated in order; first match wins.
-        Each rule dict may contain: user_id, action, min_trust_score,
-        require_mfa, decision (ALLOW/DENY/CHALLENGE).
-        """
+        # Persist evaluation
         now = datetime.now(timezone.utc).isoformat()
-        policy = Policy(
-            resource=resource,
-            rules=rules,
-            created_at=now,
-            updated_at=now,
-        )
         conn = self._connect()
         try:
             conn.execute(
                 """
-                INSERT INTO policies
-                    (policy_id, resource, rules, default_decision,
-                     created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT(resource) DO UPDATE SET
-                    policy_id        = excluded.policy_id,
-                    rules            = excluded.rules,
-                    default_decision = excluded.default_decision,
-                    updated_at       = excluded.updated_at
+                INSERT INTO zt_access_log
+                    (request_id, user_id, org_id, resource, device_id, network_ip,
+                     decision, trust_level, trust_score, policies_matched,
+                     risk_factors, reasoning, evaluated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    policy.policy_id,
-                    policy.resource,
-                    json.dumps(policy.rules),
-                    policy.default_decision.value,
-                    policy.created_at,
-                    policy.updated_at,
+                    request_id,
+                    request.get("user_id"),
+                    org_id,
+                    request.get("resource"),
+                    request.get("device_id"),
+                    request.get("network_ip"),
+                    decision,
+                    trust_info["trust_level"],
+                    trust_info["trust_score"],
+                    json.dumps(matched_policies),
+                    json.dumps(risk_factors),
+                    reasoning,
+                    now,
                 ),
             )
             conn.commit()
         finally:
             conn.close()
-        _logger.info("policy_created resource=%s policy_id=%s", resource, policy.policy_id)
-        return policy
 
-    def list_policies(self) -> List[Dict[str, Any]]:
-        """Return all stored access policies."""
+        _logger.info(
+            "zero_trust.evaluated",
+            request_id=request_id,
+            user_id=request.get("user_id"),
+            decision=decision,
+            trust_level=trust_info["trust_level"],
+        )
+
+        return {
+            "request_id": request_id,
+            "decision": decision,
+            "trust_level": trust_info["trust_level"],
+            "policies_matched": matched_policies,
+            "risk_factors": risk_factors,
+            "reasoning": reasoning,
+        }
+
+    # ------------------------------------------------------------------
+    # Access log
+    # ------------------------------------------------------------------
+
+    def get_access_log(
+        self,
+        user_id: Optional[str] = None,
+        org_id: str = "default",
+        decision: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[dict]:
+        clauses = ["org_id = ?"]
+        params: List[Any] = [org_id]
+
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        if decision is not None:
+            clauses.append("decision = ?")
+            params.append(decision)
+
+        where = " AND ".join(clauses)
+        params.append(limit)
+
         conn = self._connect()
         try:
             rows = conn.execute(
-                "SELECT policy_id, resource, rules, default_decision, "
-                "created_at, updated_at FROM policies ORDER BY resource"
+                f"SELECT * FROM zt_access_log WHERE {where} ORDER BY evaluated_at DESC LIMIT ?",
+                params,
             ).fetchall()
-            return [
-                {
-                    "policy_id": r["policy_id"],
-                    "resource": r["resource"],
-                    "rules": json.loads(r["rules"]),
-                    "default_decision": r["default_decision"],
-                    "created_at": r["created_at"],
-                    "updated_at": r["updated_at"],
-                }
-                for r in rows
-            ]
+            return [self._row_to_log(r) for r in rows]
         finally:
             conn.close()
 
+    # ------------------------------------------------------------------
+    # Analytics
+    # ------------------------------------------------------------------
+
+    def get_trust_analytics(self, org_id: str = "default") -> dict:
+        """Return trust analytics for the org."""
+        conn = self._connect()
+        try:
+            total = conn.execute(
+                "SELECT COUNT(*) FROM zt_access_log WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+
+            if total == 0:
+                return {
+                    "total_evaluations": 0,
+                    "allow_rate": 0.0,
+                    "deny_rate": 0.0,
+                    "step_up_rate": 0.0,
+                    "by_decision": {},
+                    "avg_trust_score": 0.0,
+                }
+
+            rows = conn.execute(
+                "SELECT decision, COUNT(*) as cnt FROM zt_access_log WHERE org_id = ? GROUP BY decision",
+                (org_id,),
+            ).fetchall()
+            by_decision: Dict[str, int] = {r["decision"]: r["cnt"] for r in rows}
+
+            avg_row = conn.execute(
+                "SELECT AVG(trust_score) FROM zt_access_log WHERE org_id = ?", (org_id,)
+            ).fetchone()
+            avg_score = float(avg_row[0]) if avg_row[0] is not None else 0.0
+        finally:
+            conn.close()
+
+        return {
+            "total_evaluations": total,
+            "allow_rate": round(by_decision.get("allow", 0) / total, 4),
+            "deny_rate": round(by_decision.get("deny", 0) / total, 4),
+            "step_up_rate": round(by_decision.get("step_up_auth", 0) / total, 4),
+            "by_decision": by_decision,
+            "avg_trust_score": round(avg_score, 2),
+        }
+
 
 # ---------------------------------------------------------------------------
-# FACTORY
+# Module-level singleton
 # ---------------------------------------------------------------------------
 
+_engine_singleton: Optional[ZeroTrustEngine] = None
 
-def create_zero_trust_engine(
-    db_path: str = "data/zero_trust_engine.db",
-) -> ZeroTrustEngine:
-    """Return a configured ZeroTrustEngine instance."""
-    return ZeroTrustEngine(db_path=db_path)
+
+def get_zero_trust_engine() -> ZeroTrustEngine:
+    global _engine_singleton
+    if _engine_singleton is None:
+        _engine_singleton = ZeroTrustEngine()
+    return _engine_singleton
