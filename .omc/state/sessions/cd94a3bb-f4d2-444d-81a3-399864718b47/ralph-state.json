@@ -1,0 +1,11 @@
+{
+  "active": true,
+  "iteration": 1,
+  "max_iterations": 100,
+  "started_at": "2026-04-13T14:16:08.608Z",
+  "prompt": "Swarm claw is not authenticating right ? use max plan again and spin agents with api calls with OH my clawcode /ralph mode",
+  "session_id": "cd94a3bb-f4d2-444d-81a3-399864718b47",
+  "project_path": "/Users/devops.ai/fixops/Fixops",
+  "linked_ultrawork": true,
+  "last_checked_at": "2026-04-13T14:16:08.610Z"
+}

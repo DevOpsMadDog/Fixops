@@ -5467,6 +5467,61 @@ def create_app() -> FastAPI:
     except ImportError as _ea_err:
         _logger.warning("Error Audit router not available: %s", _ea_err)
 
+    # Attack Path Analysis — BFS-based lateral movement path discovery
+    try:
+        from apps.api.attack_path_router import router as attack_path_router
+        app.include_router(
+            attack_path_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Attack Path Analysis router at /api/v1/attack-paths")
+    except ImportError as _ap_err:
+        _logger.warning("Attack Path router not available: %s", _ap_err)
+
+    # Security Posture Improvement Advisor — virtual CISO recommendations
+    try:
+        from apps.api.posture_advisor_router import router as posture_advisor_router
+        app.include_router(
+            posture_advisor_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Posture Advisor router at /api/v1/posture-advisor")
+    except ImportError as _pa_err:
+        _logger.warning("Posture Advisor router not available: %s", _pa_err)
+
+    # Insider Threat Detection — behavioral analytics for internal user risk
+    try:
+        from apps.api.insider_threat_router import router as insider_threat_router
+        app.include_router(
+            insider_threat_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Insider Threat router at /api/v1/insider-threat")
+    except ImportError as _it_err:
+        _logger.warning("Insider Threat router not available: %s", _it_err)
+
+    # CVE Enrichment Service — NVD + EPSS + KEV unified enrichment with offline cache
+    try:
+        from apps.api.cve_enrichment_router import router as cve_enrichment_router
+        app.include_router(
+            cve_enrichment_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted CVE Enrichment router at /api/v1/cve")
+    except ImportError as _cve_err:
+        _logger.warning("CVE Enrichment router not available: %s", _cve_err)
+
+    # Security KPI Metrics Tracker — MTTD/MTTR/compliance scoring with benchmarks
+    try:
+        from apps.api.security_kpi_router import router as security_kpi_router
+        app.include_router(
+            security_kpi_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Security KPI router at /api/v1/kpi")
+    except ImportError as _kpi_err:
+        _logger.warning("Security KPI router not available: %s", _kpi_err)
+
     return app
 
 

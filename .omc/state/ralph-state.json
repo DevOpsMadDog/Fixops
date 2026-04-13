@@ -1,0 +1,14 @@
+{
+  "active": true,
+  "iteration": 1,
+  "max_iterations": 20,
+  "current_phase": "prd_setup",
+  "task_description": "Build next wave: Redis queue, SAML/OIDC, Threat Intel Dashboard, Asset Inventory UI, Vuln Lifecycle UI, GraphRAG-Copilot bridge",
+  "started_at": "2026-04-14T00:00:00Z",
+  "_meta": {
+    "mode": "ralph",
+    "sessionId": null,
+    "updatedAt": "2026-04-13T14:16:28.250Z",
+    "updatedBy": "state_write_tool"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "title": "ALDECI Beast Mode — Next Wave Features",
+  "created": "2026-04-14",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Redis Queue Mode for Horizontal API Scaling",
+      "priority": 1,
+      "passes": false,
+      "acceptanceCriteria": [
+        "suite-core/core/redis_queue.py exists with RedisQueue class",
+        "RedisQueue.enqueue(task_dict) returns a task_id string",
+        "RedisQueue.dequeue() returns next task or None when empty",
+        "RedisQueue falls back gracefully to in-memory queue when Redis unavailable",
+        "suite-api/apps/api/queue_router.py exists with prefix /api/v1/queue",
+        "tests/test_redis_queue.py exists with 20+ tests all passing"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "SAML/OIDC Auth Bridge for Enterprise SSO",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "suite-core/core/sso_bridge.py exists with SSOBridge class",
+        "suite-api/apps/api/sso_router.py exists",
+        "tests/test_sso_bridge.py exists with 20+ tests all passing"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Threat Intelligence Dashboard Frontend",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "suite-ui/aldeci-ui-new/src/pages/ThreatIntelDashboard.tsx exists",
+        "Route /threat-intel registered in App.tsx"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Asset Inventory Frontend Page",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "suite-ui/aldeci-ui-new/src/pages/AssetInventory.tsx exists",
+        "Route /assets registered in App.tsx"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Vulnerability Lifecycle UI",
+      "priority": 5,
+      "passes": false,
+      "acceptanceCriteria": [
+        "suite-ui/aldeci-ui-new/src/pages/VulnLifecycle.tsx exists",
+        "Route /vuln-lifecycle registered in App.tsx"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Wire GraphRAG to Copilot Chat Endpoint",
+      "priority": 6,
+      "passes": true,
+      "acceptanceCriteria": [
+        "suite-core/core/copilot_graphrag_bridge.py exists — DONE (47 tests, commit 55eb57e1)",
+        "bridge.enrich_query returns enriched context — DONE",
+        "bridge.answer_with_context returns answer with sources — DONE",
+        "tests/test_copilot_graphrag_bridge.py 47 tests passing — DONE"
+      ]
+    }
+  ]
+}

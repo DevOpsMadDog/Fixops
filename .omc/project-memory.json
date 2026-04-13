@@ -400,26 +400,44 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 283,
-      "lastAccessed": 1776085100557,
+      "accessCount": 381,
+      "lastAccessed": 1776090730320,
       "type": "directory"
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 24,
-      "lastAccessed": 1776084932743,
+      "accessCount": 33,
+      "lastAccessed": 1776090098286,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_pipeline_api.py",
+      "accessCount": 29,
+      "lastAccessed": 1776090556714,
       "type": "file"
     },
     {
       "path": "suite-core/core/asset_inventory.py",
-      "accessCount": 24,
-      "lastAccessed": 1776085095848,
+      "accessCount": 28,
+      "lastAccessed": 1776085138291,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/anomaly_router.py",
+      "accessCount": 27,
+      "lastAccessed": 1776090564654,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/anomaly_detector.py",
+      "accessCount": 22,
+      "lastAccessed": 1776090471300,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/asset_inventory_router.py",
-      "accessCount": 18,
-      "lastAccessed": 1776085004258,
+      "accessCount": 21,
+      "lastAccessed": 1776085225870,
       "type": "file"
     },
     {
@@ -429,33 +447,27 @@
       "type": "file"
     },
     {
-      "path": "tests/test_pipeline_api.py",
-      "accessCount": 15,
-      "lastAccessed": 1776084356058,
-      "type": "file"
-    },
-    {
       "path": "",
-      "accessCount": 15,
-      "lastAccessed": 1776084869444,
+      "accessCount": 17,
+      "lastAccessed": 1776090127495,
       "type": "directory"
     },
     {
-      "path": "suite-api/apps/api/anomaly_router.py",
+      "path": "tests/test_trustgraph.py",
       "accessCount": 13,
-      "lastAccessed": 1776085006791,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/anomaly_detector.py",
-      "accessCount": 13,
-      "lastAccessed": 1776085012291,
+      "lastAccessed": 1776090565345,
       "type": "file"
     },
     {
       "path": "tests/test_phase2_connectors.py",
-      "accessCount": 8,
-      "lastAccessed": 1776081474496,
+      "accessCount": 9,
+      "lastAccessed": 1776089988035,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/ai_code_guardian.py",
+      "accessCount": 9,
+      "lastAccessed": 1776090447495,
       "type": "file"
     },
     {
@@ -466,32 +478,26 @@
     },
     {
       "path": "suite-api/apps/api/api_fuzzer_router.py",
-      "accessCount": 6,
-      "lastAccessed": 1776078221773,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/ai_code_guardian.py",
-      "accessCount": 6,
-      "lastAccessed": 1776078423841,
+      "accessCount": 7,
+      "lastAccessed": 1776089983843,
       "type": "file"
     },
     {
       "path": "tests/test_supply_chain.py",
-      "accessCount": 6,
-      "lastAccessed": 1776084474432,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_trustgraph.py",
-      "accessCount": 6,
-      "lastAccessed": 1776084504803,
+      "accessCount": 7,
+      "lastAccessed": 1776090272443,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/supply_chain_router.py",
-      "accessCount": 5,
-      "lastAccessed": 1776084622740,
+      "accessCount": 6,
+      "lastAccessed": 1776090268233,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/attack_surface_router.py",
+      "accessCount": 6,
+      "lastAccessed": 1776090389451,
       "type": "file"
     },
     {
@@ -519,15 +525,21 @@
       "type": "file"
     },
     {
-      "path": "suite-core/core/api_fuzzer.py",
-      "accessCount": 3,
-      "lastAccessed": 1776078220355,
+      "path": "tests/test_phase5_enterprise.py",
+      "accessCount": 4,
+      "lastAccessed": 1776086105710,
       "type": "file"
     },
     {
-      "path": "tests/test_phase5_enterprise.py",
+      "path": "suite-core/core/api_key_manager.py",
+      "accessCount": 4,
+      "lastAccessed": 1776089874655,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/api_fuzzer.py",
       "accessCount": 3,
-      "lastAccessed": 1776078349298,
+      "lastAccessed": 1776078220355,
       "type": "file"
     },
     {
@@ -552,12 +564,6 @@
       "path": "suite-api/apps/api/compliance_engine_router.py",
       "accessCount": 3,
       "lastAccessed": 1776084355032,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/attack_surface_router.py",
-      "accessCount": 3,
-      "lastAccessed": 1776084499980,
       "type": "file"
     },
     {
@@ -588,12 +594,6 @@
       "path": "suite-api/apps/api/compliance_automation_router.py",
       "accessCount": 2,
       "lastAccessed": 1776078390808,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/api_key_manager.py",
-      "accessCount": 2,
-      "lastAccessed": 1776081448143,
       "type": "file"
     },
     {
@@ -633,6 +633,12 @@
       "type": "file"
     },
     {
+      "path": "tests/test_attack_surface.py",
+      "accessCount": 2,
+      "lastAccessed": 1776090389602,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/cloud_discovery_router.py",
       "accessCount": 1,
       "lastAccessed": 1776077673406,
@@ -660,12 +666,6 @@
       "path": "suite-api/apps/api/policy_generator_router.py",
       "accessCount": 1,
       "lastAccessed": 1776077754374,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_attack_surface.py",
-      "accessCount": 1,
-      "lastAccessed": 1776077773627,
       "type": "file"
     },
     {
