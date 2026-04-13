@@ -240,6 +240,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Azure Defender router not available: %s", e)
 
+# Unified Security Metrics Dashboard router (single-call, all personas)
+unified_dashboard_router: Optional[APIRouter] = None
+try:
+    from apps.api.unified_dashboard_router import router as unified_dashboard_router
+    logging.getLogger(__name__).info("Loaded Unified Dashboard router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Unified Dashboard router not available: %s", e)
+
 # ---------------------------------------------------------------------------
 # Additional apps/api routers (wired in this session)
 # ---------------------------------------------------------------------------
@@ -4422,6 +4430,20 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Security KPI router at /api/v1/kpis")
     except ImportError as exc:
         _logger.warning("Security KPI router not loaded: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Unified Security Metrics Dashboard — single-call all personas
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.unified_dashboard_router import router as _unified_dashboard_router
+
+        app.include_router(
+            _unified_dashboard_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Unified Dashboard router at /api/v1/unified-dashboard")
+    except ImportError as exc:
+        _logger.warning("Unified Dashboard router not loaded: %s", exc)
 
     # ------------------------------------------------------------------
     # Automated Evidence Collection router (SOC2/PCI/HIPAA auto-collect)
