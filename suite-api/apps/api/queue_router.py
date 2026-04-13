@@ -1,24 +1,16 @@
+"""Queue management API endpoints.
+
+Exposes the RedisQueue (with in-memory fallback) via REST so operators
+can monitor depth, enqueue tasks programmatically, and drain/clear the
+queue without direct Redis access.
 """
-ALdeci Queue Status REST API.
-
-Exposes read-only visibility into the Redis task queue used for
-horizontal pipeline scaling.
-
-Endpoints:
-    GET /api/v1/queue/status   — queue depths + worker count + rates
-    GET /api/v1/queue/workers  — list active workers with last heartbeat
-"""
-
 from __future__ import annotations
 
-import logging
-import time
-from typing import Any, Dict, List
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 
 from apps.api.auth_deps import api_key_auth
-from fastapi import APIRouter, Depends
-
-logger = logging.getLogger(__name__)
+from core.redis_queue import RedisQueue
 
 router = APIRouter(
     prefix="/api/v1/queue",
@@ -26,17 +18,41 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_DEFAULT_QUEUE = "aldeci:pipeline:default"
+# ---------------------------------------------------------------------------
+# Singleton queue instance (shared across all requests in one worker process)
+# ---------------------------------------------------------------------------
+_queue = RedisQueue()
+
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Request / response models
 # ---------------------------------------------------------------------------
 
-def _get_qm():
-    """Lazy-import to avoid circular imports at module load time."""
-    from core.queue_manager import get_queue_manager
 
-    return get_queue_manager()
+class EnqueueRequest(BaseModel):
+    task_type: str = Field(..., description="Category / type of task (e.g. 'scan', 'alert')")
+    payload: dict = Field(default_factory=dict, description="Arbitrary task payload")
+    priority: int = Field(default=5, ge=1, le=10, description="Priority 1=highest, 10=lowest")
+
+
+class EnqueueResponse(BaseModel):
+    task_id: str
+    priority: int
+    backend: str
+
+
+class QueueStatus(BaseModel):
+    backend: str
+    depth: int
+    workers: int
+
+
+class PeekResponse(BaseModel):
+    tasks: list[dict]
+
+
+class ClearResponse(BaseModel):
+    cleared: int
 
 
 # ---------------------------------------------------------------------------
@@ -44,53 +60,33 @@ def _get_qm():
 # ---------------------------------------------------------------------------
 
 
-@router.get("/status", summary="Queue depths, worker count, and processing rates")
-async def get_queue_status() -> Dict[str, Any]:
-    """Return current queue depth and worker count.
-
-    Returns:
-        JSON object with:
-        - ``queue_depth``: number of items waiting in the default pipeline queue.
-        - ``worker_count``: number of workers with a live heartbeat.
-        - ``queue_name``: the queue being monitored.
-        - ``backend``: ``"redis"`` or ``"local"`` — which backend is active.
-        - ``timestamp``: Unix epoch of the snapshot.
-    """
-    qm = _get_qm()
-    from core.queue_manager import RedisQueueManager
-
-    backend = "redis" if isinstance(qm, RedisQueueManager) else "local"
-    depth = qm.get_queue_depth(_DEFAULT_QUEUE)
-    worker_count = qm.get_worker_count()
-
-    return {
-        "queue_name": _DEFAULT_QUEUE,
-        "queue_depth": depth,
-        "worker_count": worker_count,
-        "backend": backend,
-        "timestamp": time.time(),
-    }
+@router.get("/status", response_model=QueueStatus, summary="Queue depth and backend info")
+async def queue_status() -> QueueStatus:
+    """Return current backend type, queue depth, and connected worker count."""
+    return QueueStatus(
+        backend=_queue.backend,
+        depth=_queue.depth(),
+        workers=_queue.workers(),
+    )
 
 
-@router.get("/workers", summary="List active workers with last heartbeat")
-async def get_workers() -> Dict[str, Any]:
-    """Return a list of currently active pipeline workers.
+@router.post("/enqueue", response_model=EnqueueResponse, summary="Add a task to the queue")
+async def enqueue_task(body: EnqueueRequest) -> EnqueueResponse:
+    """Push a task onto the queue at the given priority level."""
+    task = {"task_type": body.task_type, **body.payload}
+    task_id = _queue.enqueue(task, priority=body.priority)
+    return EnqueueResponse(task_id=task_id, priority=body.priority, backend=_queue.backend)
 
-    Workers are identified by their heartbeat keys in Redis (or in-process
-    registry when using the local fallback).
 
-    Returns:
-        JSON object with:
-        - ``workers``: list of worker dicts (``worker_id``, ``registered_at``,
-          ``last_heartbeat``).
-        - ``count``: total number of active workers.
-        - ``timestamp``: Unix epoch of the snapshot.
-    """
-    qm = _get_qm()
-    workers: List[Dict[str, Any]] = qm.list_workers()
+@router.get("/peek", response_model=PeekResponse, summary="Preview next tasks without removing")
+async def peek_queue(limit: int = 10) -> PeekResponse:
+    """Return up to *limit* next tasks without dequeuing them."""
+    limit = max(1, min(100, limit))
+    return PeekResponse(tasks=_queue.peek(limit=limit))
 
-    return {
-        "workers": workers,
-        "count": len(workers),
-        "timestamp": time.time(),
-    }
+
+@router.delete("/clear", response_model=ClearResponse, summary="Clear all queued tasks")
+async def clear_queue() -> ClearResponse:
+    """Drain the entire queue. Returns count of tasks removed."""
+    count = _queue.clear()
+    return ClearResponse(cleared=count)
