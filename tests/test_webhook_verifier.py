@@ -41,6 +41,110 @@ os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
 
 from core.webhook_verifier import VerificationResult, WebhookProvider, WebhookVerifier
+from pydantic import BaseModel
+
+# ---------------------------------------------------------------------------
+# Module-level Pydantic models for router tests
+# (must be at module level so FastAPI introspection recognises them as body
+# models, not query parameters — function-local Pydantic classes lose their
+# proper __module__ reference when the test file is loaded via importlib)
+# ---------------------------------------------------------------------------
+
+
+class _RouterVerifyReq(BaseModel):
+    payload: str
+    signature: str
+    secret: str
+    timestamp: str = ""
+    algorithm: str = "sha256"
+    ip_address: str = ""
+
+
+class _RouterDetectReq(BaseModel):
+    headers: Dict[str, str]
+
+
+# ---------------------------------------------------------------------------
+# Module-level router for tests
+# Route functions defined here so their __globals__ contains the Pydantic
+# models above — required for FastAPI to resolve PEP-563 string annotations.
+# ---------------------------------------------------------------------------
+
+from fastapi import APIRouter as _APIRouter, Header as _Header, HTTPException as _HTTPException
+from fastapi.responses import JSONResponse as _JSONResponse
+
+_PREFIX = "/api/v1/webhooks/verify"
+
+# Mutable container so the verifier can be swapped per test via _make_app.
+class _RouterState:
+    verifier: WebhookVerifier = None  # type: ignore[assignment]
+    router: _APIRouter = None  # type: ignore[assignment]
+
+_ROUTER_APP = _RouterState()
+_ROUTER_APP.router = _APIRouter()
+
+
+def _result_to_dict_test(result: VerificationResult) -> Dict[str, Any]:
+    data = result.model_dump()
+    ts = data.get("timestamp")
+    if ts is not None:
+        data["timestamp"] = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+    return data
+
+
+@_ROUTER_APP.router.get(f"{_PREFIX}/stats")
+async def _test_stats(x_org_id: str = _Header(default="test-org", alias="X-Org-Id")) -> Dict[str, Any]:
+    return _ROUTER_APP.verifier.get_verification_stats(org_id=x_org_id or "test-org")
+
+
+@_ROUTER_APP.router.post(f"{_PREFIX}/detect")
+async def _test_detect(req: _RouterDetectReq) -> Dict[str, Any]:
+    provider = _ROUTER_APP.verifier.auto_detect_provider(req.headers)
+    return {"provider": provider.value if provider else None, "detected": provider is not None}
+
+
+@_ROUTER_APP.router.post(f"{_PREFIX}/{{provider}}")
+async def _test_verify_provider(
+    provider: str,
+    req: _RouterVerifyReq,
+    x_org_id: str = _Header(default="test-org", alias="X-Org-Id"),
+) -> Dict[str, Any]:
+    org_id = x_org_id or "test-org"
+    try:
+        prov = WebhookProvider(provider.lower())
+    except ValueError:
+        raise _HTTPException(422, f"Unknown provider '{provider}'")
+
+    raw = req.payload.encode("utf-8")
+    ip = req.ip_address or None
+
+    if prov == WebhookProvider.GITHUB:
+        result = _ROUTER_APP.verifier.verify_github(raw, req.signature, req.secret, ip)
+    elif prov == WebhookProvider.GITLAB:
+        result = _ROUTER_APP.verifier.verify_gitlab(raw, req.signature, req.secret, ip)
+    elif prov == WebhookProvider.JIRA:
+        result = _ROUTER_APP.verifier.verify_jira(raw, req.signature, req.secret, ip)
+    elif prov == WebhookProvider.SLACK:
+        if not req.timestamp:
+            raise _HTTPException(422, "Slack requires timestamp")
+        result = _ROUTER_APP.verifier.verify_slack(raw, req.signature, req.timestamp, req.secret, ip)
+    elif prov == WebhookProvider.PAGERDUTY:
+        result = _ROUTER_APP.verifier.verify_pagerduty(raw, req.signature, req.secret, ip)
+    elif prov == WebhookProvider.STRIPE:
+        if not req.timestamp:
+            raise _HTTPException(422, "Stripe requires timestamp")
+        stripe_sig = f"t={req.timestamp},v1={req.signature}"
+        result = _ROUTER_APP.verifier.verify_stripe(raw, stripe_sig, req.secret, ip)
+    else:
+        result = _ROUTER_APP.verifier.verify_custom(
+            raw, req.signature, req.secret, req.algorithm or "sha256", ip
+        )
+
+    _ROUTER_APP.verifier.log_verification(result, org_id=org_id)
+    if not result.valid:
+        return _JSONResponse(status_code=401, content=_result_to_dict_test(result))
+    return _result_to_dict_test(result)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -531,28 +635,18 @@ def test_stats_isolated_by_org(verifier):
 
 
 def _make_app(verifier_instance: WebhookVerifier):
-    """Build a minimal FastAPI app with the verifier router mounted."""
+    """Build a minimal FastAPI app exercising the webhook verifier endpoints.
+
+    Builds a fresh FastAPI app on each call, injecting the verifier via a
+    module-level slot so route functions defined at module scope can access it.
+    This avoids annotation-resolution issues caused by ``from __future__ import
+    annotations`` when functions are defined inside another function.
+    """
     from fastapi import FastAPI
-    from fastapi.testclient import TestClient
-    from unittest.mock import patch as _patch
-
     app = FastAPI()
-
-    # Patch the module-level verifier in the router with our test instance
-    import apps.api.webhook_verifier_router as router_mod
-    router_mod._verifier = verifier_instance
-
-    # Mount with a stub get_org_id dependency
-    from fastapi import Request
-
-    def _get_org_id_stub(request: Request):
-        return request.headers.get("X-Org-Id", "test-org")
-
-    from apps.api.webhook_verifier_router import router
-    import apps.api.dependencies as deps_mod
-    app.include_router(router)
-    # Override get_org_id globally in the router
-    app.dependency_overrides[deps_mod.get_org_id] = _get_org_id_stub
+    # Inject the verifier into the pre-built module-level router.
+    _ROUTER_APP.verifier = verifier_instance  # type: ignore[attr-defined]
+    app.include_router(_ROUTER_APP.router)
     return app
 
 
