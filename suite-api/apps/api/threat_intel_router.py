@@ -152,3 +152,94 @@ async def get_active_threats(
     Return all currently active threat actors relevant to the organisation.
     """
     return _correlator.get_active_threats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# CVE / EPSS / KEV aggregation endpoints (ThreatIntelAggregator)
+# ---------------------------------------------------------------------------
+
+import logging as _logging  # noqa: E402
+
+from threat_intel_aggregator import ThreatIntelAggregator  # noqa: E402
+
+_agg_logger = _logging.getLogger(__name__)
+_aggregator = ThreatIntelAggregator()
+
+
+@router.get("/cves/recent", response_model=List[Dict[str, Any]])
+async def get_recent_cves(
+    limit: int = Query(100, ge=1, le=500, description="Max CVEs to return"),
+) -> List[Dict[str, Any]]:
+    """
+    Return the most recently cached CVEs enriched with EPSS scores.
+
+    CVEs are served from the local SQLite cache. Call ``/refresh`` to
+    pull the latest data from NVD / EPSS / CISA KEV.
+    """
+    records = _aggregator.get_cached_cves(limit=limit)
+    if not records:
+        raise HTTPException(
+            status_code=404,
+            detail="No CVE data cached yet — call POST /api/v1/threat-intel/refresh first",
+        )
+    # Enrich with latest EPSS if missing
+    missing_epss = [r.cve_id for r in records if r.epss_score == 0.0]
+    if missing_epss:
+        try:
+            epss_map = _aggregator.enrich_with_epss(missing_epss[:50])
+            for rec in records:
+                if rec.cve_id in epss_map:
+                    rec.epss_score = epss_map[rec.cve_id]
+        except Exception as exc:  # noqa: BLE001
+            _agg_logger.warning("EPSS enrichment failed: %s", exc)
+
+    return [r.to_dict() for r in records]
+
+
+@router.get("/kev", response_model=Dict[str, Any])
+async def get_kev_catalog() -> Dict[str, Any]:
+    """
+    Return the current CISA Known Exploited Vulnerabilities catalog from cache.
+
+    The catalog is refreshed on each call to ``/refresh``.
+    """
+    kev_map = _aggregator._load_kev_from_cache()
+    if not kev_map:
+        raise HTTPException(
+            status_code=404,
+            detail="KEV catalog not yet cached — call POST /api/v1/threat-intel/refresh",
+        )
+    return {
+        "count": len(kev_map),
+        "entries": [
+            {"cve_id": cve_id, "due_date": due_date}
+            for cve_id, due_date in sorted(kev_map.items())
+        ],
+    }
+
+
+@router.post("/refresh", response_model=Dict[str, Any])
+async def trigger_refresh() -> Dict[str, Any]:
+    """
+    Trigger a fresh pull from NVD, EPSS, and CISA KEV.
+
+    This is a synchronous operation — it blocks until all feeds
+    are fetched and cached. For large date ranges this may take
+    up to 60 seconds due to NVD rate limits.
+    """
+    try:
+        report = _aggregator.aggregate_daily()
+        return {
+            "status": "ok",
+            "generated_at": report.generated_at,
+            "total_cves": report.total_cves,
+            "kev_count": report.kev_count,
+            "critical_count": report.critical_count,
+            "high_count": report.high_count,
+            "avg_epss": report.avg_epss,
+            "osv_count": report.osv_count,
+            "otx_pulses": report.otx_pulses,
+        }
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.error("Threat intel refresh failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Refresh failed: {exc}") from exc
