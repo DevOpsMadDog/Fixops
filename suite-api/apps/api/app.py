@@ -5252,6 +5252,13 @@ def create_app() -> FastAPI:
     except ImportError as _vr_err:
         _logger.warning("Vendor Risk router not available: %s", _vr_err)
 
+    try:
+        from apps.api.vendor_risk_router import vra_router as vendor_risk_assessment_router
+        app.include_router(vendor_risk_assessment_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Vendor Risk Assessment (VRA) router")
+    except ImportError as _vra_err:
+        _logger.warning("Vendor Risk Assessment router not available: %s", _vra_err)
+
     # -----------------------------------------------------------------------
     # Data Security / DLP — classification, masking, residency
     # -----------------------------------------------------------------------

@@ -671,3 +671,163 @@ def get_fourth_party_risk(vendor_id: str) -> FourthPartyRiskResponse:
         fourth_party_risk_score=score,
         risk_label=label,
     )
+
+
+# ============================================================================
+# QUESTIONNAIRE-BASED VRA ROUTER  —  prefix /api/v1/vendor-risk
+# ============================================================================
+
+from typing import Optional as _Optional
+
+vra_router = APIRouter(
+    prefix="/api/v1/vendor-risk",
+    tags=["Vendor Risk Assessment"],
+    dependencies=_AUTH_DEP,
+)
+
+
+# ---------------------------------------------------------------------------
+# Request / response models
+# ---------------------------------------------------------------------------
+
+
+class VRARegisterVendorRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    tier: str = Field(..., description="critical | high | medium | low")
+    contact_email: str = Field("")
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    org_id: str = Field("default")
+
+
+class VRARespondRequest(BaseModel):
+    question_id: str = Field(..., description="Question ID from the questionnaire template")
+    answer: bool = Field(..., description="True = Yes, False = No")
+    notes: str = Field("")
+
+
+# ---------------------------------------------------------------------------
+# Static routes first (before parameterised /{vendor_id})
+# ---------------------------------------------------------------------------
+
+
+@vra_router.get(
+    "/questionnaire",
+    response_model=List[Dict[str, Any]],
+    summary="Get questionnaire template",
+)
+def vra_get_questionnaire() -> List[Dict[str, Any]]:
+    """Return the standard 10-question security questionnaire."""
+    return _risk_engine.get_questionnaire_template()
+
+
+@vra_router.get(
+    "/risk-register",
+    response_model=List[Dict[str, Any]],
+    summary="Risk register — all vendors with latest scores",
+)
+def vra_get_risk_register(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+    """Return all vendors with their latest completed risk scores."""
+    return _risk_engine.get_risk_register(org_id=org_id)
+
+
+@vra_router.get(
+    "/assessments/{assessment_id}",
+    response_model=Dict[str, Any],
+    summary="Get assessment by ID",
+)
+def vra_get_assessment(assessment_id: str) -> Dict[str, Any]:
+    """Return a VRA assessment record."""
+    result = _risk_engine.get_assessment_by_id(assessment_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Assessment '{assessment_id}' not found")
+    return result
+
+
+@vra_router.post(
+    "/assessments/{assessment_id}/respond",
+    response_model=Dict[str, Any],
+    summary="Submit a questionnaire response",
+)
+def vra_submit_response(assessment_id: str, body: VRARespondRequest) -> Dict[str, Any]:
+    """Submit a yes/no answer to a questionnaire question."""
+    return _risk_engine.submit_response(
+        assessment_id=assessment_id,
+        question_id=body.question_id,
+        answer=body.answer,
+        notes=body.notes,
+    )
+
+
+@vra_router.post(
+    "/assessments/{assessment_id}/complete",
+    response_model=Dict[str, Any],
+    summary="Finalize assessment and calculate risk score",
+)
+def vra_complete_assessment(assessment_id: str) -> Dict[str, Any]:
+    """Finalize the assessment and calculate the composite risk score."""
+    return _risk_engine.complete_assessment(assessment_id)
+
+
+# ---------------------------------------------------------------------------
+# Vendor collection routes
+# ---------------------------------------------------------------------------
+
+
+@vra_router.get(
+    "/vendors",
+    response_model=List[Dict[str, Any]],
+    summary="List vendors",
+)
+def vra_list_vendors(
+    org_id: str = Query("default"),
+    tier: _Optional[str] = Query(None, description="Filter by tier: critical | high | medium | low"),
+) -> List[Dict[str, Any]]:
+    """List all registered vendors, optionally filtered by tier."""
+    return _risk_engine.list_vendors(org_id=org_id, tier=tier)
+
+
+@vra_router.post(
+    "/vendors",
+    response_model=Dict[str, Any],
+    status_code=201,
+    summary="Register a vendor",
+)
+def vra_register_vendor(body: VRARegisterVendorRequest) -> Dict[str, Any]:
+    """Register a new vendor for questionnaire-based assessment."""
+    try:
+        return _risk_engine.register_vendor(
+            name=body.name,
+            tier=body.tier,
+            contact_email=body.contact_email,
+            metadata=body.metadata,
+            org_id=body.org_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@vra_router.get(
+    "/vendors/{vendor_id}",
+    response_model=Dict[str, Any],
+    summary="Get vendor",
+)
+def vra_get_vendor(vendor_id: str) -> Dict[str, Any]:
+    """Return a registered vendor record."""
+    result = _risk_engine.get_vendor(vendor_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Vendor '{vendor_id}' not found")
+    return result
+
+
+@vra_router.post(
+    "/vendors/{vendor_id}/assess",
+    response_model=Dict[str, Any],
+    status_code=201,
+    summary="Start a questionnaire assessment for a vendor",
+)
+def vra_start_assessment(vendor_id: str, assessor: str = Query("system")) -> Dict[str, Any]:
+    """Create a new assessment for the vendor and return the questionnaire."""
+    try:
+        return _risk_engine.start_assessment(vendor_id=vendor_id, assessor=assessor)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

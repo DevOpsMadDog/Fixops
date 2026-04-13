@@ -255,6 +255,65 @@ class VendorScorecard(object):
 
 
 # ---------------------------------------------------------------------------
+# Questionnaire-based VRA constants
+# ---------------------------------------------------------------------------
+
+RISK_DOMAINS = [
+    "data_security",
+    "access_control",
+    "incident_response",
+    "compliance",
+    "business_continuity",
+    "supply_chain",
+]
+
+VENDOR_TIERS = ["critical", "high", "medium", "low"]
+
+QUESTIONNAIRE_TEMPLATE = [
+    {"id": "q1",  "domain": "data_security",       "question": "Does vendor encrypt data at rest?",                        "weight": 10},
+    {"id": "q2",  "domain": "data_security",       "question": "Does vendor encrypt data in transit (TLS 1.2+)?",          "weight": 10},
+    {"id": "q3",  "domain": "access_control",      "question": "Does vendor enforce MFA for all admin access?",            "weight": 15},
+    {"id": "q4",  "domain": "access_control",      "question": "Does vendor follow least-privilege principle?",            "weight": 10},
+    {"id": "q5",  "domain": "incident_response",   "question": "Does vendor have a documented IR plan?",                  "weight": 10},
+    {"id": "q6",  "domain": "incident_response",   "question": "Does vendor notify customers within 72h of breach?",      "weight": 10},
+    {"id": "q7",  "domain": "compliance",          "question": "Is vendor SOC 2 Type II certified?",                      "weight": 15},
+    {"id": "q8",  "domain": "compliance",          "question": "Does vendor conduct annual penetration testing?",         "weight": 10},
+    {"id": "q9",  "domain": "business_continuity", "question": "Does vendor have a BCP/DR plan tested annually?",         "weight": 5},
+    {"id": "q10", "domain": "supply_chain",        "question": "Does vendor assess their own third-party vendors?",       "weight": 5},
+]
+
+_VRA_TOTAL_WEIGHT: float = sum(q["weight"] for q in QUESTIONNAIRE_TEMPLATE)
+
+
+def _vra_risk_level(score: float) -> str:
+    """Convert 0-100 score (higher = better) to risk level string."""
+    if score >= 80:
+        return "low"
+    if score >= 60:
+        return "medium"
+    if score >= 40:
+        return "high"
+    return "critical"
+
+
+def _vra_recommendations(responses: Dict[str, bool]) -> List[str]:
+    """Return remediation recommendations for each unanswered/no question."""
+    recs_map = {
+        "q1":  "Implement encryption at rest (AES-256) for all stored data.",
+        "q2":  "Enforce TLS 1.2+ for all data in transit; disable older protocols.",
+        "q3":  "Require MFA for all administrative and privileged access.",
+        "q4":  "Implement least-privilege access controls and periodic access reviews.",
+        "q5":  "Document and test an Incident Response plan at least annually.",
+        "q6":  "Establish contractual obligations for 72-hour breach notification.",
+        "q7":  "Pursue SOC 2 Type II certification to demonstrate security maturity.",
+        "q8":  "Schedule annual penetration testing by a qualified third party.",
+        "q9":  "Create and annually test Business Continuity and Disaster Recovery plans.",
+        "q10": "Implement a third-party risk management program for sub-vendors.",
+    }
+    return [recs_map[qid] for qid, yes in responses.items() if not yes and qid in recs_map]
+
+
+# ---------------------------------------------------------------------------
 # SQLite persistence for assessments + questionnaires
 # ---------------------------------------------------------------------------
 
@@ -327,6 +386,48 @@ class _EngineDB:
         conn.execute(_CREATE_ASSESSMENTS_TABLE)
         conn.execute(_CREATE_QUESTIONNAIRES_TABLE)
         conn.execute(_CREATE_SCORECARDS_TABLE)
+        # VRA questionnaire-based tables
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS vra_vendors (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                tier TEXT NOT NULL,
+                contact_email TEXT NOT NULL DEFAULT '',
+                metadata TEXT NOT NULL DEFAULT '{}',
+                org_id TEXT NOT NULL DEFAULT 'default',
+                state TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_vra_vendor_org ON vra_vendors(org_id);
+            CREATE INDEX IF NOT EXISTS idx_vra_vendor_tier ON vra_vendors(tier);
+
+            CREATE TABLE IF NOT EXISTS vra_assessments (
+                id TEXT PRIMARY KEY,
+                vendor_id TEXT NOT NULL,
+                org_id TEXT NOT NULL DEFAULT 'default',
+                assessor TEXT NOT NULL DEFAULT 'system',
+                state TEXT NOT NULL DEFAULT 'in_progress',
+                risk_score REAL,
+                risk_level TEXT,
+                by_domain TEXT NOT NULL DEFAULT '{}',
+                recommendations TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                completed_at TEXT NOT NULL DEFAULT ''
+            );
+            CREATE INDEX IF NOT EXISTS idx_vra_assess_vendor ON vra_assessments(vendor_id);
+
+            CREATE TABLE IF NOT EXISTS vra_responses (
+                id TEXT PRIMARY KEY,
+                assessment_id TEXT NOT NULL,
+                question_id TEXT NOT NULL,
+                answer INTEGER NOT NULL DEFAULT 0,
+                notes TEXT NOT NULL DEFAULT '',
+                submitted_at TEXT NOT NULL,
+                UNIQUE(assessment_id, question_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_vra_resp_assess ON vra_responses(assessment_id);
+        """)
         conn.commit()
 
     # --- Assessments ---
@@ -452,6 +553,159 @@ class _EngineDB:
             "SELECT * FROM engine_scorecards WHERE vendor_id = ?", (vendor_id,)
         ).fetchone()
         return dict(row) if row else None
+
+    # --- VRA vendor registry ---
+
+    def vra_insert_vendor(
+        self,
+        vendor_id: str,
+        name: str,
+        tier: str,
+        contact_email: str,
+        metadata: str,
+        org_id: str,
+        now: str,
+    ) -> None:
+        self._conn().execute(
+            """
+            INSERT INTO vra_vendors (id, name, tier, contact_email, metadata, org_id, state, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+            """,
+            (vendor_id, name, tier, contact_email, metadata, org_id, now, now),
+        )
+        self._conn().commit()
+
+    def vra_get_vendor(self, vendor_id: str) -> Optional[Dict[str, Any]]:
+        row = self._conn().execute(
+            "SELECT * FROM vra_vendors WHERE id = ?", (vendor_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def vra_list_vendors(self, org_id: str, tier: Optional[str]) -> List[Dict[str, Any]]:
+        if tier is not None:
+            rows = self._conn().execute(
+                "SELECT * FROM vra_vendors WHERE org_id = ? AND tier = ? ORDER BY created_at DESC",
+                (org_id, tier),
+            ).fetchall()
+        else:
+            rows = self._conn().execute(
+                "SELECT * FROM vra_vendors WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def vra_update_vendor(self, vendor_id: str, set_clause: str, values: tuple) -> None:
+        self._conn().execute(
+            f"UPDATE vra_vendors SET {set_clause} WHERE id = ?",
+            values + (vendor_id,),
+        )
+        self._conn().commit()
+
+    # --- VRA assessments ---
+
+    def vra_insert_assessment(
+        self,
+        assessment_id: str,
+        vendor_id: str,
+        org_id: str,
+        assessor: str,
+        now: str,
+    ) -> None:
+        self._conn().execute(
+            """
+            INSERT INTO vra_assessments (id, vendor_id, org_id, assessor, state, by_domain, recommendations, created_at)
+            VALUES (?, ?, ?, ?, 'in_progress', '{}', '[]', ?)
+            """,
+            (assessment_id, vendor_id, org_id, assessor, now),
+        )
+        self._conn().commit()
+
+    def vra_get_assessment(self, assessment_id: str) -> Optional[Dict[str, Any]]:
+        row = self._conn().execute(
+            "SELECT * FROM vra_assessments WHERE id = ?", (assessment_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def vra_list_assessments(self, vendor_id: Optional[str], org_id: str) -> List[Dict[str, Any]]:
+        if vendor_id is not None:
+            rows = self._conn().execute(
+                "SELECT * FROM vra_assessments WHERE vendor_id = ? ORDER BY created_at DESC",
+                (vendor_id,),
+            ).fetchall()
+        else:
+            rows = self._conn().execute(
+                "SELECT * FROM vra_assessments WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def vra_complete_assessment(
+        self,
+        assessment_id: str,
+        risk_score: float,
+        risk_level: str,
+        by_domain: str,
+        recommendations: str,
+        completed_at: str,
+    ) -> None:
+        self._conn().execute(
+            """
+            UPDATE vra_assessments
+            SET state='completed', risk_score=?, risk_level=?, by_domain=?, recommendations=?, completed_at=?
+            WHERE id=?
+            """,
+            (risk_score, risk_level, by_domain, recommendations, completed_at, assessment_id),
+        )
+        self._conn().commit()
+
+    def vra_latest_completed_assessment(self, vendor_id: str) -> Optional[Dict[str, Any]]:
+        row = self._conn().execute(
+            """
+            SELECT * FROM vra_assessments
+            WHERE vendor_id = ? AND state = 'completed'
+            ORDER BY completed_at DESC LIMIT 1
+            """,
+            (vendor_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    # --- VRA responses ---
+
+    def vra_upsert_response(
+        self,
+        response_id: str,
+        assessment_id: str,
+        question_id: str,
+        answer: int,
+        notes: str,
+        now: str,
+    ) -> None:
+        self._conn().execute(
+            """
+            INSERT INTO vra_responses (id, assessment_id, question_id, answer, notes, submitted_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(assessment_id, question_id) DO UPDATE SET
+                answer = excluded.answer,
+                notes = excluded.notes,
+                submitted_at = excluded.submitted_at
+            """,
+            (response_id, assessment_id, question_id, answer, notes, now),
+        )
+        self._conn().commit()
+
+    def vra_get_response(self, assessment_id: str, question_id: str) -> Optional[Dict[str, Any]]:
+        row = self._conn().execute(
+            "SELECT * FROM vra_responses WHERE assessment_id = ? AND question_id = ?",
+            (assessment_id, question_id),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def vra_list_responses(self, assessment_id: str) -> List[Dict[str, Any]]:
+        rows = self._conn().execute(
+            "SELECT question_id, answer FROM vra_responses WHERE assessment_id = ?",
+            (assessment_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 # ---------------------------------------------------------------------------
@@ -1069,6 +1323,266 @@ class VendorRiskEngine:
     def _assess_fourth_party_penalty(self, fourth_parties: List[str]) -> float:
         """5 points per fourth-party vendor, capped at 20."""
         return min(20.0, len(fourth_parties) * 5.0)
+
+    # ------------------------------------------------------------------ #
+    # Questionnaire-based VRA public API                                   #
+    # ------------------------------------------------------------------ #
+
+    def register_vendor(
+        self,
+        name: str,
+        tier: str,
+        contact_email: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+        org_id: str = "default",
+    ) -> Dict[str, Any]:
+        """Register a vendor for assessment.
+
+        Returns ``{vendor_id, name, tier, state: 'pending'}``.
+        Raises ``ValueError`` for invalid tier.
+        """
+        if tier not in VENDOR_TIERS:
+            raise ValueError(f"Invalid tier '{tier}'. Must be one of: {VENDOR_TIERS}")
+        vendor_id = f"vendor-{uuid.uuid4().hex[:12]}"
+        now = datetime.now(timezone.utc).isoformat()
+        self._db.vra_insert_vendor(
+            vendor_id=vendor_id,
+            name=name,
+            tier=tier,
+            contact_email=contact_email,
+            metadata=json.dumps(metadata or {}),
+            org_id=org_id,
+            now=now,
+        )
+        _logger.info("vra.register_vendor", vendor_id=vendor_id, name=name, tier=tier)
+        return self._vra_vendor_to_dict(self._db.vra_get_vendor(vendor_id))  # type: ignore[arg-type]
+
+    def get_vendor(self, vendor_id: str) -> Optional[Dict[str, Any]]:
+        """Return vendor record or None."""
+        row = self._db.vra_get_vendor(vendor_id)
+        return self._vra_vendor_to_dict(row) if row else None
+
+    def list_vendors(
+        self, org_id: str = "default", tier: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Return vendors, optionally filtered by tier."""
+        rows = self._db.vra_list_vendors(org_id=org_id, tier=tier)
+        return [self._vra_vendor_to_dict(r) for r in rows]
+
+    def update_vendor(self, vendor_id: str, **kwargs: Any) -> Dict[str, Any]:
+        """Update vendor fields. Returns updated record."""
+        allowed = {"name", "tier", "contact_email", "metadata", "state"}
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+        if not updates:
+            return self.get_vendor(vendor_id)  # type: ignore[return-value]
+        if "tier" in updates and updates["tier"] not in VENDOR_TIERS:
+            raise ValueError(f"Invalid tier '{updates['tier']}'. Must be one of: {VENDOR_TIERS}")
+        if "metadata" in updates and isinstance(updates["metadata"], dict):
+            updates["metadata"] = json.dumps(updates["metadata"])
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        values = tuple(updates.values())
+        self._db.vra_update_vendor(vendor_id, set_clause, values)
+        return self.get_vendor(vendor_id)  # type: ignore[return-value]
+
+    def start_assessment(self, vendor_id: str, assessor: str = "system") -> Dict[str, Any]:
+        """Create a new assessment for a vendor.
+
+        Returns ``{assessment_id, vendor_id, questions: list, state: 'in_progress'}``.
+        """
+        vendor = self.get_vendor(vendor_id)
+        if vendor is None:
+            raise ValueError(f"Vendor '{vendor_id}' not found")
+        assessment_id = f"assess-{uuid.uuid4().hex[:12]}"
+        now = datetime.now(timezone.utc).isoformat()
+        self._db.vra_insert_assessment(
+            assessment_id=assessment_id,
+            vendor_id=vendor_id,
+            org_id=vendor["org_id"],
+            assessor=assessor,
+            now=now,
+        )
+        _logger.info("vra.start_assessment", assessment_id=assessment_id, vendor_id=vendor_id)
+        return {
+            "assessment_id": assessment_id,
+            "vendor_id": vendor_id,
+            "assessor": assessor,
+            "state": "in_progress",
+            "questions": list(QUESTIONNAIRE_TEMPLATE),
+            "created_at": now,
+        }
+
+    def submit_response(
+        self,
+        assessment_id: str,
+        question_id: str,
+        answer: bool,
+        notes: str = "",
+    ) -> Dict[str, Any]:
+        """Submit a yes/no answer to a question. Returns updated response record."""
+        response_id = f"resp-{uuid.uuid4().hex[:12]}"
+        now = datetime.now(timezone.utc).isoformat()
+        self._db.vra_upsert_response(
+            response_id=response_id,
+            assessment_id=assessment_id,
+            question_id=question_id,
+            answer=int(answer),
+            notes=notes,
+            now=now,
+        )
+        row = self._db.vra_get_response(assessment_id, question_id)
+        return {
+            "response_id": row["id"] if row else response_id,
+            "assessment_id": assessment_id,
+            "question_id": question_id,
+            "answer": bool(row["answer"]) if row else answer,
+            "notes": row["notes"] if row else notes,
+            "submitted_at": row["submitted_at"] if row else now,
+        }
+
+    def complete_assessment(self, assessment_id: str) -> Dict[str, Any]:
+        """Finalize assessment and calculate risk score.
+
+        Returns: assessment_id, risk_score (0-100), risk_level, by_domain, recommendations, completed_at.
+        """
+        rows = self._db.vra_list_responses(assessment_id)
+        response_map: Dict[str, bool] = {r["question_id"]: bool(r["answer"]) for r in rows}
+
+        domain_max: Dict[str, float] = {d: 0.0 for d in RISK_DOMAINS}
+        domain_earned: Dict[str, float] = {d: 0.0 for d in RISK_DOMAINS}
+        total_earned = 0.0
+
+        for q in QUESTIONNAIRE_TEMPLATE:
+            domain = q["domain"]
+            weight = float(q["weight"])
+            domain_max[domain] = domain_max.get(domain, 0.0) + weight
+            if response_map.get(q["id"], False):
+                domain_earned[domain] = domain_earned.get(domain, 0.0) + weight
+                total_earned += weight
+
+        risk_score = round((total_earned / _VRA_TOTAL_WEIGHT) * 100, 2)
+        risk_level = _vra_risk_level(risk_score)
+
+        by_domain: Dict[str, float] = {}
+        for domain in RISK_DOMAINS:
+            max_w = domain_max.get(domain, 0.0)
+            earned = domain_earned.get(domain, 0.0)
+            by_domain[domain] = round((earned / max_w) * 100, 2) if max_w > 0 else 0.0
+
+        recommendations = _vra_recommendations(response_map)
+        completed_at = datetime.now(timezone.utc).isoformat()
+
+        self._db.vra_complete_assessment(
+            assessment_id=assessment_id,
+            risk_score=risk_score,
+            risk_level=risk_level,
+            by_domain=json.dumps(by_domain),
+            recommendations=json.dumps(recommendations),
+            completed_at=completed_at,
+        )
+        _logger.info(
+            "vra.complete_assessment",
+            assessment_id=assessment_id,
+            risk_score=risk_score,
+            risk_level=risk_level,
+        )
+        return {
+            "assessment_id": assessment_id,
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "by_domain": by_domain,
+            "recommendations": recommendations,
+            "completed_at": completed_at,
+        }
+
+    def get_assessment_by_id(self, assessment_id: str) -> Optional[Dict[str, Any]]:
+        """Return a VRA assessment record by ID, or None."""
+        row = self._db.vra_get_assessment(assessment_id)
+        return self._vra_assessment_to_dict(row) if row else None
+
+    def list_assessments_by_vendor(
+        self, vendor_id: Optional[str] = None, org_id: str = "default"
+    ) -> List[Dict[str, Any]]:
+        """Return VRA assessments, optionally filtered by vendor."""
+        rows = self._db.vra_list_assessments(vendor_id=vendor_id, org_id=org_id)
+        return [self._vra_assessment_to_dict(r) for r in rows]
+
+    def get_risk_register(self, org_id: str = "default") -> List[Dict[str, Any]]:
+        """Return all vendors with their latest completed risk scores."""
+        vendors = self.list_vendors(org_id=org_id)
+        result: List[Dict[str, Any]] = []
+        for vendor in vendors:
+            entry = dict(vendor)
+            row = self._db.vra_latest_completed_assessment(vendor["vendor_id"])
+            if row:
+                a = self._vra_assessment_to_dict(row)
+                entry["latest_risk_score"] = a.get("risk_score")
+                entry["latest_risk_level"] = a.get("risk_level")
+                entry["latest_assessment_id"] = a.get("assessment_id")
+                entry["latest_assessed_at"] = a.get("completed_at")
+            else:
+                entry["latest_risk_score"] = None
+                entry["latest_risk_level"] = None
+                entry["latest_assessment_id"] = None
+                entry["latest_assessed_at"] = None
+            result.append(entry)
+        return result
+
+    def get_questionnaire_template(self) -> List[Dict[str, Any]]:
+        """Return the standard questionnaire questions."""
+        return list(QUESTIONNAIRE_TEMPLATE)
+
+    # ------------------------------------------------------------------ #
+    # Internal VRA helpers                                                 #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _vra_vendor_to_dict(row: Dict[str, Any]) -> Dict[str, Any]:
+        meta = row.get("metadata", "{}")
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except (json.JSONDecodeError, TypeError):
+                meta = {}
+        return {
+            "vendor_id": row["id"],
+            "name": row["name"],
+            "tier": row["tier"],
+            "contact_email": row["contact_email"],
+            "metadata": meta,
+            "org_id": row["org_id"],
+            "state": row["state"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    @staticmethod
+    def _vra_assessment_to_dict(row: Dict[str, Any]) -> Dict[str, Any]:
+        by_domain = row.get("by_domain", "{}")
+        recommendations = row.get("recommendations", "[]")
+        if isinstance(by_domain, str):
+            try:
+                by_domain = json.loads(by_domain)
+            except (json.JSONDecodeError, TypeError):
+                by_domain = {}
+        if isinstance(recommendations, str):
+            try:
+                recommendations = json.loads(recommendations)
+            except (json.JSONDecodeError, TypeError):
+                recommendations = []
+        return {
+            "assessment_id": row["id"],
+            "vendor_id": row["vendor_id"],
+            "org_id": row["org_id"],
+            "assessor": row["assessor"],
+            "state": row["state"],
+            "risk_score": row.get("risk_score"),
+            "risk_level": row.get("risk_level"),
+            "by_domain": by_domain,
+            "recommendations": recommendations,
+            "created_at": row["created_at"],
+            "completed_at": row.get("completed_at") or "",
+        }
 
 
 # ---------------------------------------------------------------------------
