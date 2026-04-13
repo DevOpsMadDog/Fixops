@@ -97,6 +97,7 @@ filterwarnings = [
     "ignore:Unclosed.*MemoryObject.*:ResourceWarning",
     "ignore::ResourceWarning",
     "ignore:Duplicate Operation ID:UserWarning",
+    "ignore:Field name .* shadows an attribute in parent:UserWarning",
     "ignore:Module .* was never imported\\.:coverage.exceptions.CoverageWarning",
 ]
 

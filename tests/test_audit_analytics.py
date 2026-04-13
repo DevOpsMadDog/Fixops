@@ -642,28 +642,37 @@ API_TOKEN = os.getenv(
 
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
-    """Create TestClient wired to a temp DB."""
-    import warnings
+    """
+    Create a minimal FastAPI TestClient mounting only the audit-analytics router.
+
+    We avoid importing the full create_app() because app.py has a pre-existing
+    UnboundLocalError on dast_router that breaks module-level import.
+    """
     import core.audit_analytics as aa_module
+    import apps.api.audit_analytics_router as router_module
+    from fastapi import FastAPI, Header, Request
+    from fastapi.testclient import TestClient
 
     monkeypatch_db = tmp_path_factory.mktemp("api_db") / "test.db"
 
-    os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
-    os.environ["FIXOPS_MODE"] = "enterprise"
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        from apps.api.app import create_app
-        app = create_app()
-
-    # Patch the router-level engine to use temp DB
-    import apps.api.audit_analytics_router as router_module
+    # Point the router engine at a fresh temp DB
     router_module._engine = aa_module.AuditAnalyticsEngine(
         db_path=str(monkeypatch_db), org_id="default"
     )
 
-    from fastapi.testclient import TestClient
-    return TestClient(app)
+    # Minimal app: mount the router; override get_org_id to return "default"
+    mini_app = FastAPI()
+
+    def _fake_get_org_id(x_api_key: str = Header(default="")) -> str:
+        if x_api_key != API_TOKEN:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return "default"
+
+    mini_app.dependency_overrides[router_module.get_org_id] = _fake_get_org_id
+    mini_app.include_router(router_module.router)
+
+    return TestClient(mini_app)
 
 
 @pytest.fixture
