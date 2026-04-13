@@ -177,6 +177,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Playbook automation router not available: %s", e)
 
+# Purple Team Exercise Engine (red+blue collaborative exercises, MITRE ATT&CK, after-action reports)
+purple_team_router: Optional[APIRouter] = None
+try:
+    from apps.api.purple_team_router import router as purple_team_router
+    logging.getLogger(__name__).info("Loaded Purple Team router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Purple Team router not available: %s", e)
+
 # TrustGraph knowledge graph router (5 Knowledge Cores, MCP tools, entity management)
 trustgraph_router: Optional[APIRouter] = None
 try:
@@ -352,6 +360,14 @@ try:
     logging.getLogger(__name__).info("Loaded Azure Defender router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Azure Defender router not available: %s", e)
+
+# Backup & Disaster Recovery Validator router
+backup_validator_router: Optional[APIRouter] = None
+try:
+    from apps.api.backup_validator_router import router as backup_validator_router
+    logging.getLogger(__name__).info("Loaded Backup Validator router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Backup Validator router not available: %s", e)
 
 # Unified Security Metrics Dashboard router (single-call, all personas)
 unified_dashboard_router: Optional[APIRouter] = None
@@ -2501,6 +2517,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Playbook automation router")
 
+    # Purple Team Exercise Engine — red+blue exercises, MITRE ATT&CK, after-action reports
+    if purple_team_router:
+        app.include_router(
+            purple_team_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Purple Team router")
+
     # TrustGraph knowledge graph — 5 Knowledge Cores, entity management, MCP tools
     if trustgraph_router:
         app.include_router(
@@ -3054,6 +3078,7 @@ def create_app() -> FastAPI:
         (apikey_router, "API Key Management", "admin:all"),
         (asset_inventory_router, "Asset Inventory", "read:findings"),
         (backup_router, "Backup", "admin:all"),
+        (backup_validator_router, "Backup DR Validator", "admin:all"),
         (patch_manager_router, "Patch Management", "read:findings"),
         (bulk_operations_router, "Bulk Operations", "write:findings"),
         (changelog_router, "Changelog", "read:findings"),

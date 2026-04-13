@@ -735,7 +735,8 @@ class BackupValidator:
 
         systems_with_backup = {j.system_name for j in jobs if j.status == BackupStatus.ACTIVE}
         systems_with_plan = {p.system_name for p in dr_plans}
-        all_systems = systems_with_backup | systems_with_plan | {r.system_name for r in rpo_configs}
+        all_job_systems = {j.system_name for j in jobs}
+        all_systems = all_job_systems | systems_with_plan | {r.system_name for r in rpo_configs}
 
         # Backup coverage: fraction of known systems with active backup
         backup_coverage = (
