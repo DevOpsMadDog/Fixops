@@ -192,6 +192,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("CTEM Pipeline router not available: %s", e)
 
+# SOAR Engine — Security Orchestration, Automation and Response
+soar_router: Optional[APIRouter] = None
+try:
+    from apps.api.soar_router import router as soar_router
+    logging.getLogger(__name__).info("Loaded SOAR Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("SOAR Engine router not available: %s", e)
+
 # Finding Correlation Engine — groups findings into Exposure Cases
 correlation_router: Optional[APIRouter] = None
 try:
@@ -2393,6 +2401,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted CTEM Pipeline router")
+
+    # SOAR Engine — automated playbook execution and security response
+    if soar_router:
+        app.include_router(
+            soar_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted SOAR Engine router")
 
     # Finding Correlation Engine — Exposure Cases, alert fatigue reduction
     if correlation_router:

@@ -1,0 +1,155 @@
+# =============================================================================
+# ALDECI End-to-End Test Environment
+# =============================================================================
+# Spins up LocalStack (free AWS emulator) + ALDECI API + test runner
+# against real intentionally-vulnerable apps for full-pipeline validation.
+#
+# Usage:
+#   docker compose -f docker/e2e-test-env/docker-compose.e2e.yml up --build
+#   docker compose -f docker/e2e-test-env/docker-compose.e2e.yml run --rm e2e-runner
+#
+# Services:
+#   localstack    - free AWS: S3, IAM, Lambda, Security Hub, CloudTrail
+#   aldeci-api    - ALDECI FastAPI backend
+#   e2e-runner    - test runner (clones vulnerable repos, runs scans, verifies)
+# =============================================================================
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # LocalStack — free AWS emulator (S3, IAM, Lambda, Security Hub, CloudTrail)
+  # ─────────────────────────────────────────────────────────────────────────
+  localstack:
+    image: localstack/localstack:3.4
+    container_name: aldeci-e2e-localstack
+    ports:
+      - "4566:4566"         # LocalStack unified gateway
+      - "4510-4559:4510-4559"  # legacy service ports
+    environment:
+      - SERVICES=s3,iam,lambda,securityhub,cloudtrail,events,logs,sts
+      - DEBUG=${LOCALSTACK_DEBUG:-0}
+      - PERSISTENCE=1
+      - DATA_DIR=/var/lib/localstack/data
+      # Seed script runs on first start
+      - LOCALSTACK_VOLUME_DIR=/var/lib/localstack
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./init-localstack.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - e2e-net
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # ALDECI API — full backend (reads from suite-core, suite-api, etc.)
+  # ─────────────────────────────────────────────────────────────────────────
+  aldeci-api:
+    image: python:3.11-slim
+    container_name: aldeci-e2e-api
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    environment:
+      - FIXOPS_MODE=enterprise
+      - FIXOPS_API_TOKEN=e2e-test-token-aldeci-real-scan-2024
+      - FIXOPS_JWT_SECRET=e2e-test-jwt-secret-min32chars-aldeci
+      - FIXOPS_DISABLE_RATE_LIMIT=1
+      - FIXOPS_DISABLE_TELEMETRY=1
+      - FIXOPS_USE_COUNCIL=0
+      # LocalStack AWS endpoints
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - ALDECI_S3_BUCKET=aldeci-scan-results
+      - ALDECI_SECURITY_HUB_ENABLED=1
+    volumes:
+      - ../../..:/app:ro        # mount repo root read-only
+      - aldeci-db:/app/data     # persistent DBs
+    command: >
+      bash -c "
+        pip install -q fastapi uvicorn[standard] pydantic structlog &&
+        pip install -q -r /app/requirements.txt 2>/dev/null || true &&
+        cd /app &&
+        python -m uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level warning
+      "
+    depends_on:
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - e2e-net
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # E2E Test Runner
+  # Clones vulnerable repos, runs ALDECI scans, feeds results into pipeline,
+  # verifies API findings, validates LocalStack integrations.
+  # ─────────────────────────────────────────────────────────────────────────
+  e2e-runner:
+    image: python:3.11-slim
+    container_name: aldeci-e2e-runner
+    working_dir: /workspace
+    environment:
+      - ALDECI_API_URL=http://aldeci-api:8000
+      - ALDECI_API_TOKEN=e2e-test-token-aldeci-real-scan-2024
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - ALDECI_S3_BUCKET=aldeci-scan-results
+      - E2E_CLONE_DIR=/workspace/vulnerable-apps
+      - E2E_RESULTS_DIR=/workspace/results
+      - PYTHONPATH=/app
+    volumes:
+      - ../../..:/app:ro
+      - e2e-workspace:/workspace
+    command: >
+      bash -c "
+        apt-get update -qq && apt-get install -y -qq git curl wget &&
+        pip install -q pytest pytest-asyncio httpx boto3 requests gitpython &&
+        pip install -q -r /app/requirements.txt 2>/dev/null || true &&
+        mkdir -p /workspace/vulnerable-apps /workspace/results &&
+        cd /app &&
+        python -m pytest tests/test_e2e_real.py -x --tb=short --timeout=60 -q -v
+      "
+    depends_on:
+      aldeci-api:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - e2e-net
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  localstack-data:
+    driver: local
+  aldeci-db:
+    driver: local
+  e2e-workspace:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  e2e-net:
+    driver: bridge
+    name: aldeci-e2e-network
