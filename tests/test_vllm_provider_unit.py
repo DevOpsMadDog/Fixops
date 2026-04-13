@@ -532,7 +532,7 @@ class TestLLMProviderManagerSelfHosted:
     def test_all_six_providers_present(self):
         from core.llm_providers import LLMProviderManager
         manager = LLMProviderManager()
-        expected = {"openai", "anthropic", "gemini", "sentinel", "vllm", "ollama"}
+        expected = {"openai", "anthropic", "gemini", "openrouter", "sentinel", "vllm", "ollama"}
         assert set(manager.providers.keys()) == expected
 
 

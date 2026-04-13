@@ -507,6 +507,7 @@ def snyk_client():
     async def _no_auth():
         return None
 
+    auth_deps.api_key_auth = _no_auth
     app.dependency_overrides[original] = _no_auth
     return TestClient(app)
 

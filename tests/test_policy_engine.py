@@ -23,9 +23,9 @@ import os
 import pytest
 
 # ── env must be set before any app import ──────────────────────────────────
-os.environ.setdefault("FIXOPS_MODE", "dev")
-os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
-os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret-key-32chars-minimum!!")
+os.environ["FIXOPS_MODE"] = "dev"
+os.environ["FIXOPS_API_TOKEN"] = "test-token"
+os.environ["FIXOPS_JWT_SECRET"] = "test-secret-key-that-is-32chars!!"
 os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
 
@@ -68,14 +68,17 @@ def sample_policy() -> Policy:
 
 @pytest.fixture()
 def api_client():
-    """FastAPI TestClient wired to the policy engine router."""
+    """FastAPI TestClient wired to the policy engine router with auth bypassed."""
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from apps.api.policy_engine_router import router
+    from apps.api.auth_deps import api_key_auth
 
     app = FastAPI()
+    # Override auth so tests don't depend on env-loaded token caches
+    app.dependency_overrides[api_key_auth] = lambda: None
     app.include_router(router)
-    return TestClient(app, headers={"X-API-Key": "test-token"})
+    return TestClient(app)
 
 
 # ---------------------------------------------------------------------------
