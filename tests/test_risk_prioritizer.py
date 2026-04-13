@@ -87,12 +87,7 @@ def tmp_scorer(tmp_path):
 
 @pytest.fixture()
 def api_client(tmp_path):
-    """TestClient wired to the risk_scoring_router with mocked engines."""
-    from apps.api.risk_scoring_router import router as risk_router
-
-    app = FastAPI()
-    app.include_router(risk_router)
-
+    """TestClient wired to the risk_scoring_router with auth and engines mocked."""
     db = str(tmp_path / "api_rp.db")
     es_db = str(tmp_path / "api_es.db")
     os.environ["RISK_PRIORITIZER_DB"] = db
@@ -105,10 +100,19 @@ def api_client(tmp_path):
     _rp_mod._instance = None
     _es_mod._instance = None
 
+    # Patch auth dep to a no-op so tests are not coupled to token config
+    async def _no_auth():
+        return None
+
     with (
+        patch("apps.api.risk_scoring_router._AUTH_DEP", []),
         patch.object(RiskPrioritizer, "_warm_kev_cache", return_value=None),
         patch.object(RiskPrioritizer, "_get_epss", return_value=0.05),
     ):
+        from apps.api.risk_scoring_router import router as risk_router
+
+        app = FastAPI()
+        app.include_router(risk_router)
         client = TestClient(app, raise_server_exceptions=True)
         yield client
 

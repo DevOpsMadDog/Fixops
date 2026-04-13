@@ -547,7 +547,7 @@ def stage3_siem(
 
     # 3a: Append an audit log entry about the critical findings
     audit_payload = {
-        "event_type": "finding_created",
+        "event_type": "decision_made",
         "severity": "critical",
         "user_id": f"scanner-bot-{state.run_id}",
         "resource_type": "finding",
@@ -893,7 +893,7 @@ def stage6_cmdb(
         "business_unit": "engineering",
         "criticality": "high",
         "environment": "production",
-        "compliance_scope": ["SOC2", "PCI"],
+        "compliance_scope": ["sox", "pci"],
         "tags": ["python", "api", "customer-facing", f"sim-{state.run_id}"],
         "metadata": {
             "finding_id": state.finding_id,

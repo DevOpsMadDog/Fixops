@@ -1,7 +1,7 @@
 {
   "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/devops.ai/fixops/Fixops/suite-core/core/vuln_intelligence.py\"}",
-  "error": "File content (12520 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
-  "timestamp": "2026-04-13T12:54:56.807Z",
-  "retry_count": 5
+  "tool_input_preview": "{\"file_path\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/reports_router.py\"}",
+  "error": "File content (10270 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
+  "timestamp": "2026-04-13T12:55:56.460Z",
+  "retry_count": 2
 }
