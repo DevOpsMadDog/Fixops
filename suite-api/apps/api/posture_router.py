@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.posture_scoring import PostureScore, PostureScorer, get_posture_scorer
+from core.posture_tracker import PostureDiff, PostureSnapshot, PostureTracker, get_posture_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,10 @@ class CompareOrgsRequest(BaseModel):
 
 def _get_scorer() -> PostureScorer:
     return get_posture_scorer()
+
+
+def _get_tracker() -> PostureTracker:
+    return get_posture_tracker()
 
 
 # ---------------------------------------------------------------------------
@@ -123,4 +128,64 @@ def compare_orgs(req: CompareOrgsRequest) -> List[PostureScore]:
         return scorer.compare_orgs(req.org_ids)
     except Exception as exc:
         logger.exception("Failed to compare orgs: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Tracker endpoints (time-series snapshots + diff)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/tracker/calculate", response_model=PostureSnapshot, summary="Calculate + record posture snapshot")
+def tracker_calculate(
+    org_id: str = Query("default", description="Organisation identifier"),
+) -> PostureSnapshot:
+    """Calculate current posture from live data and persist a snapshot."""
+    tracker = _get_tracker()
+    try:
+        return tracker.calculate_posture(org_id)
+    except Exception as exc:
+        logger.exception("Failed to calculate posture snapshot: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Calculation failed: {exc}") from exc
+
+
+@router.get("/tracker/current", response_model=PostureSnapshot, summary="Get current posture snapshot")
+def tracker_current(
+    org_id: str = Query("default", description="Organisation identifier"),
+) -> PostureSnapshot:
+    """Return the most recent posture snapshot for an org."""
+    tracker = _get_tracker()
+    snap = tracker.get_current_posture(org_id)
+    if snap is None:
+        raise HTTPException(status_code=404, detail=f"No snapshot found for org_id={org_id!r}")
+    return snap
+
+
+@router.get("/tracker/trend", response_model=List[PostureSnapshot], summary="30-day posture trend")
+def tracker_trend(
+    org_id: str = Query("default", description="Organisation identifier"),
+    days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
+) -> List[PostureSnapshot]:
+    """Return all posture snapshots within the last N days, oldest first."""
+    tracker = _get_tracker()
+    try:
+        return tracker.get_trend(days=days, org_id=org_id)
+    except Exception as exc:
+        logger.exception("Failed to retrieve posture trend: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Trend retrieval failed: {exc}") from exc
+
+
+@router.get("/tracker/compare", response_model=PostureDiff, summary="Compare two posture snapshots")
+def tracker_compare(
+    snapshot_id_1: str = Query(..., description="First snapshot ID"),
+    snapshot_id_2: str = Query(..., description="Second snapshot ID"),
+) -> PostureDiff:
+    """Diff two posture snapshots and return score/finding deltas with a trend label."""
+    tracker = _get_tracker()
+    try:
+        return tracker.compare_posture(snapshot_id_1, snapshot_id_2)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to compare snapshots: %s", exc)
         raise HTTPException(status_code=500, detail=f"Comparison failed: {exc}") from exc

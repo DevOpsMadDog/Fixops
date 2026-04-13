@@ -400,8 +400,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 265,
-      "lastAccessed": 1776084770158,
+      "accessCount": 270,
+      "lastAccessed": 1776084878501,
       "type": "directory"
     },
     {
@@ -417,6 +417,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/asset_inventory_router.py",
+      "accessCount": 17,
+      "lastAccessed": 1776084888732,
+      "type": "file"
+    },
+    {
       "path": "tests/test_pipeline_api.py",
       "accessCount": 15,
       "lastAccessed": 1776084356058,
@@ -424,15 +430,9 @@
     },
     {
       "path": "",
-      "accessCount": 14,
-      "lastAccessed": 1776084500373,
+      "accessCount": 15,
+      "lastAccessed": 1776084869444,
       "type": "directory"
-    },
-    {
-      "path": "suite-api/apps/api/asset_inventory_router.py",
-      "accessCount": 13,
-      "lastAccessed": 1776084345741,
-      "type": "file"
     },
     {
       "path": "suite-core/core/anomaly_detector.py",
@@ -621,6 +621,12 @@
       "type": "file"
     },
     {
+      "path": "suite-core/core/attack_surface.py",
+      "accessCount": 2,
+      "lastAccessed": 1776084894776,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/cloud_discovery_router.py",
       "accessCount": 1,
       "lastAccessed": 1776077673406,
@@ -654,12 +660,6 @@
       "path": "suite-api/apps/api/policy_generator_router.py",
       "accessCount": 1,
       "lastAccessed": 1776077754374,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/attack_surface.py",
-      "accessCount": 1,
-      "lastAccessed": 1776077764227,
       "type": "file"
     },
     {
