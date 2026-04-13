@@ -211,6 +211,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("TrustGraph Quality router not available: %s", e)
 
+# TrustGraph Maintenance router (integrity sweep, core health, auto-fix, issues)
+trustgraph_maintenance_router: Optional[APIRouter] = None
+try:
+    from apps.api.trustgraph_maintenance_router import router as trustgraph_maintenance_router
+    logging.getLogger(__name__).info("Loaded TrustGraph Maintenance router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("TrustGraph Maintenance router not available: %s", e)
+
 # Findings lifecycle management router (status, assignment, SLA, bulk ops, export)
 findings_router: Optional[APIRouter] = None
 try:
@@ -518,6 +526,14 @@ try:
     logging.getLogger(__name__).info("Loaded Developer Portal router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Developer Portal router not available: %s", e)
+
+# API Documentation & Developer Portal — OpenAPI spec, Postman export, endpoint explorer
+api_docs_router: Optional[APIRouter] = None
+try:
+    from apps.api.api_docs_router import router as api_docs_router
+    logging.getLogger(__name__).info("Loaded API Docs router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("API Docs router not available: %s", e)
 
 drift_router: Optional[APIRouter] = None
 try:
@@ -2621,6 +2637,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted TrustGraph Quality router")
 
+    # TrustGraph Maintenance — integrity sweep, core health, auto-fix, issues
+    if trustgraph_maintenance_router:
+        app.include_router(
+            trustgraph_maintenance_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
+        )
+        _logger.info("Mounted TrustGraph Maintenance router")
+
     # Findings lifecycle management — status, assignment, SLA, bulk ops, export
     if findings_router:
         app.include_router(
@@ -3197,6 +3221,7 @@ def create_app() -> FastAPI:
         (cspm_deep_router, "CSPM Deep Scan", "read:findings"),
         (dashboard_builder_router, "Dashboard Builder", "read:findings"),
         (developer_portal_router, "Developer Portal", "read:findings"),
+        (api_docs_router, "API Docs", "read:findings"),
         (drift_router, "Drift", "read:findings"),
         (evidence_collector_router, "Evidence Collector", "read:evidence"),
         (exception_policy_router, "Exception Policy", "write:findings"),
