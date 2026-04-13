@@ -1,0 +1,406 @@
+"""
+TrustGraph Backbone API Router.
+
+Exposes HTTP endpoints for entity indexing, relationship management,
+impact analysis, root cause tracing, attack path queries, and
+semantic search over the TrustGraph knowledge graph.
+
+Routes:
+- POST /api/v1/graph/index         — index any entity
+- POST /api/v1/graph/link          — create relationship
+- GET  /api/v1/graph/impact/{id}   — impact analysis
+- GET  /api/v1/graph/root-cause/{id} — root cause trace
+- GET  /api/v1/graph/attack-path   — attack path query
+- GET  /api/v1/graph/related/{id}  — neighborhood
+- GET  /api/v1/graph/search        — semantic search
+- GET  /api/v1/graph/stats         — graph statistics
+- GET  /api/v1/graph/visualize/{id} — graph data for visualization
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/v1/graph", tags=["trustgraph-backbone"])
+
+
+# ============================================================================
+# Request / Response Models
+# ============================================================================
+
+
+class IndexEntityRequest(BaseModel):
+    """Index any ALDECI entity into TrustGraph."""
+
+    entity_type: str = Field(
+        ...,
+        description="One of: finding, asset, incident, compliance_control, vendor, threat_actor",
+    )
+    data: Dict[str, Any] = Field(..., description="Entity data payload")
+    org_id: Optional[str] = Field(default="default", description="Tenant org ID")
+
+
+class IndexEntityResponse(BaseModel):
+    """Response after indexing an entity."""
+
+    entity_id: str
+    entity_type: str
+    status: str
+
+
+class LinkEntitiesRequest(BaseModel):
+    """Create a typed relationship between two entities."""
+
+    entity_a_id: str = Field(..., description="Source entity ID")
+    entity_b_id: str = Field(..., description="Target entity ID")
+    relationship_type: str = Field(..., description="Relationship type (see RelationshipType constants)")
+    confidence: float = Field(default=0.95, ge=0.0, le=1.0, description="Edge confidence score")
+    properties: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional edge properties")
+    org_id: Optional[str] = Field(default="default", description="Tenant org ID")
+
+
+class LinkEntitiesResponse(BaseModel):
+    """Response after creating a relationship."""
+
+    rel_id: str
+    entity_a_id: str
+    entity_b_id: str
+    relationship_type: str
+    status: str
+
+
+class GraphQueryResponse(BaseModel):
+    """Generic graph query response."""
+
+    available: bool
+    data: Dict[str, Any]
+
+
+# ============================================================================
+# Dependency: backbone singleton
+# ============================================================================
+
+
+def _get_backbone(org_id: str = "default") -> Any:
+    """Get TrustGraphBackbone instance for the request org."""
+    from core.trustgraph_backbone import TrustGraphBackbone
+    return TrustGraphBackbone(org_id=org_id)
+
+
+def _get_graphrag(org_id: str = "default") -> Any:
+    """Get GraphRAGEnhanced instance for the request org."""
+    from core.trustgraph_backbone import GraphRAGEnhanced
+    return GraphRAGEnhanced(org_id=org_id)
+
+
+# ============================================================================
+# POST /api/v1/graph/index
+# ============================================================================
+
+
+_INDEXERS = {
+    "finding": "index_finding",
+    "asset": "index_asset",
+    "incident": "index_incident",
+    "compliance_control": "index_compliance_control",
+    "vendor": "index_vendor",
+    "threat_actor": "index_threat_actor",
+}
+
+
+@router.post("/index", response_model=IndexEntityResponse)
+async def index_entity(req: IndexEntityRequest) -> Dict[str, Any]:
+    """Index any ALDECI entity into TrustGraph.
+
+    Supports entity types: finding, asset, incident, compliance_control,
+    vendor, threat_actor. Indexing is idempotent (upsert semantics).
+
+    Args:
+        req: Entity indexing request
+
+    Returns:
+        entity_id, entity_type, status
+    """
+    entity_type = req.entity_type.lower()
+    if entity_type not in _INDEXERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown entity_type '{entity_type}'. Valid: {list(_INDEXERS.keys())}",
+        )
+
+    try:
+        backbone = _get_backbone(org_id=req.org_id or "default")
+        indexer_method = getattr(backbone, _INDEXERS[entity_type])
+        entity_id = indexer_method(req.data)
+        return {
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "status": "indexed",
+        }
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/index failed for %s: %s", entity_type, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# POST /api/v1/graph/link
+# ============================================================================
+
+
+@router.post("/link", response_model=LinkEntitiesResponse)
+async def link_entities(req: LinkEntitiesRequest) -> Dict[str, Any]:
+    """Create a typed relationship between two graph entities.
+
+    Args:
+        req: Link entities request with source, target, and relationship type
+
+    Returns:
+        rel_id and confirmation
+    """
+    try:
+        backbone = _get_backbone(org_id=req.org_id or "default")
+        rel_id = backbone.link_entities(
+            entity_a_id=req.entity_a_id,
+            entity_b_id=req.entity_b_id,
+            relationship_type=req.relationship_type,
+            confidence=req.confidence,
+            properties=req.properties or {},
+        )
+        return {
+            "rel_id": rel_id or "unavailable",
+            "entity_a_id": req.entity_a_id,
+            "entity_b_id": req.entity_b_id,
+            "relationship_type": req.relationship_type,
+            "status": "linked" if rel_id else "unavailable",
+        }
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/link failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/impact/{entity_id}
+# ============================================================================
+
+
+@router.get("/impact/{entity_id}")
+async def get_impact(
+    entity_id: str,
+    depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """What is affected if this entity is compromised?
+
+    Performs graph traversal to identify all transitively affected
+    assets, services, and findings.
+
+    Args:
+        entity_id: Entity to analyze
+        depth: Traversal depth (1-3)
+        org_id: Tenant org ID
+
+    Returns:
+        Impact analysis with affected entities and summary
+    """
+    try:
+        graphrag = _get_graphrag(org_id=org_id)
+        return graphrag.query_impact(entity_id=entity_id, depth=depth)
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/impact failed for %s: %s", entity_id, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/root-cause/{finding_id}
+# ============================================================================
+
+
+@router.get("/root-cause/{finding_id}")
+async def get_root_cause(
+    finding_id: str,
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Trace a finding back to its root cause.
+
+    Follows FINDING_EXPLOITS_CVE and FINDING_AFFECTS_ASSET edges to
+    identify the underlying vulnerability and affected scope.
+
+    Args:
+        finding_id: Finding entity ID
+        org_id: Tenant org ID
+
+    Returns:
+        Root cause analysis with CVEs, assets, and summary
+    """
+    try:
+        graphrag = _get_graphrag(org_id=org_id)
+        return graphrag.query_root_cause(finding_id=finding_id)
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/root-cause failed for %s: %s", finding_id, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/attack-path
+# ============================================================================
+
+
+@router.get("/attack-path")
+async def get_attack_path(
+    source: str = Query(..., description="Source entity ID"),
+    target: str = Query(..., description="Target entity ID"),
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Find graph paths between source and target entities.
+
+    Uses BFS traversal to model lateral movement or supply chain vectors.
+
+    Args:
+        source: Source entity ID
+        target: Target entity ID
+        org_id: Tenant org ID
+
+    Returns:
+        Paths found between source and target
+    """
+    try:
+        graphrag = _get_graphrag(org_id=org_id)
+        return graphrag.query_attack_path(source_id=source, target_id=target)
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/attack-path failed %s->%s: %s", source, target, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/related/{entity_id}
+# ============================================================================
+
+
+@router.get("/related/{entity_id}")
+async def get_related(
+    entity_id: str,
+    depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Neighborhood exploration — what's related to this entity.
+
+    Args:
+        entity_id: Entity to explore
+        depth: Traversal depth (1-3)
+        org_id: Tenant org ID
+
+    Returns:
+        Neighbors grouped by entity type with relationships
+    """
+    try:
+        graphrag = _get_graphrag(org_id=org_id)
+        return graphrag.query_related(entity_id=entity_id, depth=depth)
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/related failed for %s: %s", entity_id, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/search
+# ============================================================================
+
+
+@router.get("/search")
+async def semantic_search(
+    q: str = Query(..., description="Natural language search query"),
+    cores: Optional[str] = Query(
+        default=None, description="Comma-separated core IDs to search (e.g. '1,2,3'). Default: all"
+    ),
+    limit: int = Query(default=10, ge=1, le=100, description="Max results per core"),
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Natural language search across TrustGraph knowledge cores.
+
+    Searches entity names and properties using FTS5 with LIKE fallback.
+
+    Args:
+        q: Search query
+        cores: Comma-separated list of core IDs (1-5). Default: all cores.
+        limit: Max results per core
+        org_id: Tenant org ID
+
+    Returns:
+        Entities grouped by core
+    """
+    try:
+        core_ids: Optional[List[int]] = None
+        if cores:
+            try:
+                core_ids = [int(c.strip()) for c in cores.split(",") if c.strip()]
+            except ValueError:
+                raise HTTPException(status_code=400, detail="cores must be comma-separated integers")
+
+        graphrag = _get_graphrag(org_id=org_id)
+        return graphrag.semantic_search(query=q, cores=core_ids, limit=limit)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/search failed for '%s': %s", q, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/stats
+# ============================================================================
+
+
+@router.get("/stats")
+async def get_stats(
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Return graph statistics for all 5 Knowledge Cores.
+
+    Args:
+        org_id: Tenant org ID
+
+    Returns:
+        Per-core entity and relationship counts with aggregate totals
+    """
+    try:
+        backbone = _get_backbone(org_id=org_id)
+        return backbone.get_stats()
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/stats failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
+# GET /api/v1/graph/visualize/{entity_id}
+# ============================================================================
+
+
+@router.get("/visualize/{entity_id}")
+async def get_visualization(
+    entity_id: str,
+    depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
+    org_id: str = Query(default="default", description="Tenant org ID"),
+) -> Dict[str, Any]:
+    """Return graph data for frontend visualization (nodes + edges).
+
+    Produces a structure compatible with D3, Cytoscape, and React Flow.
+
+    Args:
+        entity_id: Central entity for the visualization
+        depth: Traversal depth (1-3)
+        org_id: Tenant org ID
+
+    Returns:
+        nodes and edges arrays for graph rendering
+    """
+    try:
+        graphrag = _get_graphrag(org_id=org_id)
+        return graphrag.get_visualization_data(entity_id=entity_id, depth=depth)
+    except Exception as exc:  # noqa: BLE001 — router error boundary
+        logger.error("graph/visualize failed for %s: %s", entity_id, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
