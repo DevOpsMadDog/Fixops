@@ -45,9 +45,7 @@ class SSOUser:
 
 def _b64_decode(s: str) -> bytes:
     """Base64url-decode with padding tolerance."""
-    # Add padding if needed
     padded = s + "=" * (4 - len(s) % 4) if len(s) % 4 else s
-    # Replace URL-safe chars
     padded = padded.replace("-", "+").replace("_", "/")
     return base64.b64decode(padded)
 
@@ -83,10 +81,6 @@ class SSOBridge:
         self._local = threading.local()
         self._init_db()
 
-    # ------------------------------------------------------------------
-    # Connection
-    # ------------------------------------------------------------------
-
     def _conn(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)
         if conn is None:
@@ -112,10 +106,6 @@ class SSOBridge:
                 );
             """)
 
-    # ------------------------------------------------------------------
-    # Provider management
-    # ------------------------------------------------------------------
-
     def register_provider(self, name: str, provider_type: str, config: dict) -> dict:
         """Register an SSO provider. provider_type: 'saml' or 'oidc'."""
         if provider_type not in ("saml", "oidc"):
@@ -133,7 +123,7 @@ class SSOBridge:
         return {"name": name, "type": provider_type, "config": config}
 
     def get_provider_config(self, provider_name: str) -> Optional[dict]:
-        """Get provider config by name. Returns None if not found."""
+        """Return provider config by name, or None if not found."""
         row = self._conn().execute(
             "SELECT name, provider_type, config FROM sso_providers WHERE name = ?",
             (provider_name,),
@@ -156,16 +146,8 @@ class SSOBridge:
             for r in rows
         ]
 
-    # ------------------------------------------------------------------
-    # OIDC
-    # ------------------------------------------------------------------
-
     def validate_oidc_token(self, jwt_str: str, provider: str = "default") -> SSOUser:
-        """Parse and validate an OIDC JWT.
-
-        Accepts any well-formed JWT (no signature verification in initial version).
-        Raises ValueError if token is malformed or expired.
-        """
+        """Parse an OIDC JWT and return an SSOUser. Raises ValueError if malformed or expired."""
         claims = _parse_jwt(jwt_str)
 
         # Check expiry if present
@@ -184,13 +166,11 @@ class SSOBridge:
         raw_roles = claims.get("roles") or claims.get("groups") or []
         if isinstance(raw_roles, str):
             raw_roles = [r.strip() for r in raw_roles.split(",") if r.strip()]
-        roles = list(raw_roles)
-
         _logger.info("sso.oidc_validated", user_id=user_id, provider=provider)
         return SSOUser(
             user_id=user_id,
             email=email,
-            roles=roles,
+            roles=list(raw_roles),
             org_id=org_id,
             provider=provider,
             raw_claims=claims,
@@ -220,16 +200,8 @@ class SSOBridge:
             "expires_in": 3600,
         }
 
-    # ------------------------------------------------------------------
-    # SAML
-    # ------------------------------------------------------------------
-
     def validate_saml_assertion(self, xml_str: str) -> SSOUser:
-        """Parse SAML response XML. Extract NameID + attributes.
-
-        No signature validation in initial version (TODO: add xmlsec1 verification).
-        Raises ValueError if assertion is malformed.
-        """
+        """Parse SAML response XML and return an SSOUser. Raises ValueError if malformed."""
         if not xml_str or not xml_str.strip():
             raise ValueError("SAML assertion XML is empty")
 
@@ -282,10 +254,6 @@ class SSOBridge:
             raw_claims={"name_id": name_id, "attributes": attrs},
         )
 
-    # ------------------------------------------------------------------
-    # Session management
-    # ------------------------------------------------------------------
-
     def create_session(self, user: SSOUser) -> str:
         """Create ALDECI session for SSO user. Returns session token."""
         token = "sso_" + secrets.token_hex(24)
@@ -307,7 +275,7 @@ class SSOBridge:
         return token
 
     def validate_session(self, session_token: str) -> Optional[SSOUser]:
-        """Validate a session token. Returns SSOUser or None if invalid/expired."""
+        """Return SSOUser for a valid session token, or None if invalid/expired."""
         if not session_token:
             return None
         row = self._conn().execute(
@@ -317,7 +285,6 @@ class SSOBridge:
         if row is None:
             return None
         if time.time() > row["expires_at"]:
-            # Clean up expired session
             with self._conn() as conn:
                 conn.execute("DELETE FROM sso_sessions WHERE token = ?", (session_token,))
             return None

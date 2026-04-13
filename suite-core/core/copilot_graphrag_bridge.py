@@ -14,27 +14,11 @@ class CopilotGraphRAGBridge:
 
     Uses GraphRAGRetriever from trustgraph.graph_rag to perform semantic graph
     queries against the TrustGraph knowledge store. Returns structured context
-    ready for injection into LLM prompts.
-
-    Gracefully degrades: if the retriever is unavailable, methods return safe
-    empty-result dicts rather than raising exceptions.
-
-    Usage:
-        bridge = CopilotGraphRAGBridge()
-        enriched = bridge.enrich_query("What CVEs affect our production API?")
-        if enriched["enriched"]:
-            system_prompt += enriched["graph_context"]
+    ready for injection into LLM prompts. Gracefully degrades to empty-result
+    dicts if the retriever is unavailable.
     """
 
     def __init__(self, retriever=None) -> None:
-        """Initialize the bridge.
-
-        Args:
-            retriever: An optional GraphRAGRetriever instance.  When None, the
-                       bridge attempts to instantiate one from
-                       ``trustgraph.graph_rag``.  Gracefully degrades if the
-                       import or instantiation fails.
-        """
         self._retriever = retriever
         self._queries_enriched: int = 0
         self._total_entities: int = 0
@@ -52,27 +36,8 @@ class CopilotGraphRAGBridge:
                 )
                 self._retriever = None
 
-    # -------------------------------------------------------------------------
-    # Public API
-    # -------------------------------------------------------------------------
-
     def enrich_query(self, query: str, top_k: int = 8, hops: int = 2) -> dict:
-        """Retrieve GraphRAG context for a query.
-
-        Args:
-            query:  Natural language query from the Copilot user.
-            top_k:  Maximum seed entities to retrieve.
-            hops:   Number of relationship hops to traverse.
-
-        Returns:
-            {
-                "query": str,
-                "graph_context": str,   # LLM-ready paragraph
-                "entities": list[dict],
-                "relationships": list[dict],
-                "enriched": bool,       # False if graph was empty/unavailable
-            }
-        """
+        """Retrieve GraphRAG context for a query. Returns enrichment dict with entities, relationships, and graph_context."""
         if self._retriever is None:
             return self._empty_enrichment(query)
 
@@ -105,26 +70,9 @@ class CopilotGraphRAGBridge:
         query: str,
         conversation_history: list | None = None,
     ) -> dict:
-        """Build a complete answer using GraphRAG context.
+        """Build a rule-based answer from GraphRAG context, or a fallback hint if unavailable.
 
-        Uses the knowledge graph to construct a security-domain answer without
-        making an external LLM call.  When graph context is available the
-        answer summarises graph findings; otherwise a generic security hint is
-        returned.
-
-        Args:
-            query:                Natural language query.
-            conversation_history: Optional list of prior chat turns (ignored in
-                                  rule-based path but accepted for API compat).
-
-        Returns:
-            {
-                "answer": str,
-                "sources": list[str],     # entity names used as sources
-                "confidence": float,      # 0.0–1.0 based on entity count
-                "graph_context": str,
-                "retrieval_method": "graph_rag" | "fallback",
-            }
+        conversation_history is accepted for API compatibility but not used in the rule-based path.
         """
         enriched_data = self.enrich_query(query)
 
@@ -134,19 +82,13 @@ class CopilotGraphRAGBridge:
                 e.get("name", e.get("id", "unknown")) for e in entities[:10]
             ]
             graph_context: str = enriched_data["graph_context"]
-
-            # Confidence scales with entity count, capped at 0.95
-            entity_count = len(entities)
-            confidence = min(0.5 + (entity_count * 0.05), 0.95)
-
-            # Build a rule-based answer from graph context
+            confidence = min(0.5 + (len(entities) * 0.05), 0.95)
             answer = (
                 f"Based on TrustGraph knowledge context, here is what is relevant to your query: "
                 f'"{query}"\n\n'
                 f"{graph_context}\n\n"
                 f"Sources consulted: {', '.join(sources[:5]) if sources else 'none'}."
             )
-
             return {
                 "answer": answer,
                 "sources": sources,
@@ -155,7 +97,6 @@ class CopilotGraphRAGBridge:
                 "retrieval_method": "graph_rag",
             }
 
-        # Fallback — no graph context available
         answer = (
             f"I was unable to find specific knowledge graph context for your query: "
             f'"{query}". '
@@ -171,15 +112,7 @@ class CopilotGraphRAGBridge:
         }
 
     def get_bridge_stats(self) -> dict:
-        """Return bridge usage statistics.
-
-        Returns:
-            {
-                "queries_enriched": int,
-                "avg_entities_per_query": float,
-                "cache_hits": int,
-            }
-        """
+        """Return bridge usage statistics (queries_enriched, avg_entities_per_query, cache_hits)."""
         avg = (
             self._total_entities / self._queries_enriched
             if self._queries_enriched > 0
@@ -191,13 +124,8 @@ class CopilotGraphRAGBridge:
             "cache_hits": self._cache_hits,
         }
 
-    # -------------------------------------------------------------------------
-    # Private helpers
-    # -------------------------------------------------------------------------
-
     @staticmethod
     def _empty_enrichment(query: str) -> dict:
-        """Return a safe empty enrichment result."""
         return {
             "query": query,
             "graph_context": "",

@@ -60,18 +60,10 @@ class RedisQueue:
         else:
             _logger.info("redis_queue.redis_not_installed", backend="memory")
 
-    # ------------------------------------------------------------------
-    # Properties
-    # ------------------------------------------------------------------
-
     @property
     def backend(self) -> str:
         """Return 'redis' or 'memory' depending on availability."""
         return "redis" if self._redis is not None else "memory"
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
 
     def enqueue(self, task: dict, priority: int = 5) -> str:
         """Add task to queue. Returns task_id. Priority 1=highest, 10=lowest."""
@@ -100,7 +92,7 @@ class RedisQueue:
         return task_id
 
     def dequeue(self) -> Optional[dict]:
-        """Pop next task (highest priority first). Returns None if empty."""
+        """Pop next highest-priority task. Returns None if empty."""
         if self._redis is not None:
             for p in range(1, 11):
                 key = f"{self._prefix}:{p}"

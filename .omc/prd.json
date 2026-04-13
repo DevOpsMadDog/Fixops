@@ -6,7 +6,7 @@
       "id": "US-001",
       "title": "Redis Queue Mode for Horizontal API Scaling",
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "suite-core/core/redis_queue.py exists with RedisQueue class",
         "RedisQueue.enqueue(task_dict) returns a task_id string",
@@ -20,7 +20,7 @@
       "id": "US-002",
       "title": "SAML/OIDC Auth Bridge for Enterprise SSO",
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "suite-core/core/sso_bridge.py exists with SSOBridge class",
         "suite-api/apps/api/sso_router.py exists",
@@ -31,7 +31,7 @@
       "id": "US-003",
       "title": "Threat Intelligence Dashboard Frontend",
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "suite-ui/aldeci-ui-new/src/pages/ThreatIntelDashboard.tsx exists",
         "Route /threat-intel registered in App.tsx"
@@ -41,7 +41,7 @@
       "id": "US-004",
       "title": "Asset Inventory Frontend Page",
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "suite-ui/aldeci-ui-new/src/pages/AssetInventory.tsx exists",
         "Route /assets registered in App.tsx"
@@ -51,7 +51,7 @@
       "id": "US-005",
       "title": "Vulnerability Lifecycle UI",
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "suite-ui/aldeci-ui-new/src/pages/VulnLifecycle.tsx exists",
         "Route /vuln-lifecycle registered in App.tsx"
