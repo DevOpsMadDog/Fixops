@@ -842,6 +842,14 @@ try:
 except ImportError as e:
     _logger.warning("Deduplication router not available: %s", e)
 
+smart_dedup_router: Optional[APIRouter] = None
+try:
+    from api.smart_dedup_router import router as smart_dedup_router
+
+    _logger.info("Loaded Smart Dedup router from suite-core")
+except ImportError as e:
+    _logger.warning("Smart Dedup router not available: %s", e)
+
 ml_router: Optional[APIRouter] = None
 try:
     from api.mindsdb_router import router as ml_router
@@ -2661,6 +2669,7 @@ def create_app() -> FastAPI:
         (nerve_center_router, "Nerve Center", None, "read:findings"),
         (decisions_router, "Decisions", "/api/v1", "read:findings"),
         (deduplication_router, "Deduplication", None, "write:findings"),
+        (smart_dedup_router, "Smart Dedup", None, "write:findings"),
         (ml_router, "ML/MindsDB", None, "read:findings"),
         (autofix_verify_router, "AutoFix Verification", None, "write:findings"),
         (postfix_verify_router, "MPTE Post-Fix Verification", None, "write:findings"),
