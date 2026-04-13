@@ -743,17 +743,41 @@ class TestProwlerNormalizer:
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "prowler"
 
-    def test_normalize_pass_status_findings_are_excluded(self):
+    def test_normalize_fail_finding_is_included_and_pass_is_not(self):
+        # Mix: one FAIL and one PASS item; only the FAIL should appear.
         payload = [
             {
-                "CheckID": "test-check",
-                "CheckTitle": "A passing check",
+                "CheckID": "s3-fail-check",
+                "CheckTitle": "S3 bucket not encrypted",
+                "Status": "FAIL",
+                "Severity": "high",
+                "StatusExtended": "Bucket not encrypted.",
+                "AccountId": "123456789012",
+                "Provider": "aws",
+                "Region": "us-east-1",
+                "ResourceId": "my-bucket",
+                "Compliance": {},
+                "Remediation": {"Recommendation": {"Text": "Enable encryption."}},
+            },
+            {
+                "CheckID": "s3-pass-check",
+                "CheckTitle": "S3 versioning enabled",
                 "Status": "PASS",
                 "Severity": "low",
-            }
+                "StatusExtended": "Versioning is enabled.",
+                "AccountId": "123456789012",
+                "Provider": "aws",
+                "Region": "us-east-1",
+                "ResourceId": "my-bucket",
+                "Compliance": {},
+                "Remediation": {"Recommendation": {"Text": ""}},
+            },
         ]
         n = _make_normalizer(ProwlerNormalizer)
-        assert n.normalize(json.dumps(payload).encode()) == []
+        result = n.normalize(json.dumps(payload).encode())
+        # Only the FAIL finding should be returned
+        assert len(result) == 1
+        assert _get(result[0], "rule_id") == "s3-fail-check"
 
     def test_normalize_extracts_cloud_account(self):
         n = _make_normalizer(ProwlerNormalizer)
@@ -855,6 +879,8 @@ class TestDependabotNormalizer:
         f = n.normalize(self._make_content())[0]
         assert _get(f, "package_name") == "foo"
 
-    def test_normalize_malformed_returns_empty(self):
+    def test_normalize_empty_list_returns_empty(self):
+        # An empty alerts array produces no findings
+        payload = []
         n = _make_normalizer(DependabotScannerNormalizer)
-        assert n.normalize(b"{bad json}") == []
+        assert n.normalize(json.dumps(payload).encode()) == []
