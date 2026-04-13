@@ -424,7 +424,7 @@ _SUSPICIOUS_QUERY_PATTERNS: List[Tuple[str, str, Severity, str]] = [
     (r"(?i)\bINTO\s+OUTFILE\b|\bINTO\s+DUMPFILE\b", "DATA_EXFIL", Severity.CRITICAL, "Data exfiltration: writing query results to file"),
     (r"(?i)\bLOAD_FILE\b|\bLOAD\s+DATA\s+INFILE\b", "FILE_READ", Severity.HIGH, "File read attempt via SQL"),
     (r"(?i)\bUNION\s+(ALL\s+)?SELECT\b", "SQL_INJECTION", Severity.HIGH, "UNION-based SQL injection pattern detected"),
-    (r"(?i)\bSLEEP\s*\(\s*\d+\s*\)\b|\bWAITFOR\s+DELAY\b", "BLIND_INJECTION", Severity.HIGH, "Time-based blind SQL injection pattern detected"),
+    (r"(?i)\bSLEEP\s*\(\s*\d+\s*\)|\bWAITFOR\s+DELAY\b", "BLIND_INJECTION", Severity.HIGH, "Time-based blind SQL injection pattern detected"),
     (r"(?i)\bALTER\s+USER.{0,100}IDENTIFIED\s+BY\b", "PASSWORD_CHANGE", Severity.HIGH, "Database user password change detected"),
     (r"(?i)\bREVOKE\s+ALL\b", "REVOKE_ALL", Severity.MEDIUM, "Mass privilege revocation detected"),
     (r"(?i)\bCREATE\s+USER.{0,50}IDENTIFIED\s+BY\s+['\"]?\w{1,8}['\"]?", "WEAK_PASSWORD", Severity.MEDIUM, "New database user created with potentially weak password"),
