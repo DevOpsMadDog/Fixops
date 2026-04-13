@@ -66,6 +66,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Material Change Detection router not available: %s", e)
 
+# Anomaly Detection router (spike, drop, drift, threshold, unusual timing)
+anomaly_router: Optional[APIRouter] = None
+try:
+    from apps.api.anomaly_router import router as anomaly_router
+    logging.getLogger(__name__).info("Loaded Anomaly Detection router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Anomaly Detection router not available: %s", e)
+
 # Universal Connectors router (Jira + GitHub + Slack fan-out)
 connectors_router: Optional[APIRouter] = None
 try:
@@ -412,6 +420,13 @@ try:
     logging.getLogger(__name__).info("Loaded Rate Limit router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Rate Limit router not available: %s", e)
+
+tenant_rate_limiter_router: Optional[APIRouter] = None
+try:
+    from apps.api.tenant_rate_limiter_router import router as tenant_rate_limiter_router
+    logging.getLogger(__name__).info("Loaded Tenant Rate Limiter router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Tenant Rate Limiter router not available: %s", e)
 
 retention_router: Optional[APIRouter] = None
 try:
@@ -2186,6 +2201,13 @@ def create_app() -> FastAPI:
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
+    if anomaly_router:
+        app.include_router(
+            anomaly_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Anomaly Detection router")
+
     # Phase 10: New E2E pipeline routers
     # WebSocket router for real-time event streaming (EventBus, pipeline events)
     if websocket_router:
@@ -2679,6 +2701,7 @@ def create_app() -> FastAPI:
         (pr_generator_router, "PR Generator", "write:findings"),
         (prioritizer_router, "Prioritizer", "read:findings"),
         (rate_limit_router, "Rate Limits", "admin:all"),
+        (tenant_rate_limiter_router, "Tenant Rate Limits", "admin:all"),
         (retention_router, "Retention", "admin:all"),
         (risk_acceptance_router, "Risk Acceptance", "write:findings"),
         (sbom_router, "SBOM", "read:sbom"),
