@@ -26,7 +26,7 @@ services:
       - "4566:4566"         # LocalStack unified gateway
       - "4510-4559:4510-4559"  # legacy service ports
     environment:
-      - SERVICES=s3,iam,lambda,securityhub,cloudtrail,events,logs,sts
+      - SERVICES=s3,iam,lambda,securityhub,cloudwatch,cloudtrail,events,logs,sts
       - DEBUG=${LOCALSTACK_DEBUG:-0}
       - PERSISTENCE=1
       - DATA_DIR=/var/lib/localstack/data
