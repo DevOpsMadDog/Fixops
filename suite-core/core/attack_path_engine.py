@@ -1,690 +1,544 @@
+"""Attack path analysis — graph-based lateral movement path discovery.
+
+SQLite-backed engine for modeling attack paths through a network.
+Given an entry point (compromised host), finds all paths an attacker
+could take to reach crown jewel assets using known vulnerabilities
+and network topology.
 """
-Attack Path Engine — FalkorDB/NetworkX Graph Traversal for CTEM+
-
-This is the dedicated attack path analysis engine that wraps the
-KnowledgeGraphEngine's AttackPathTraversalEngine from falkordb_client.py.
-
-Provides:
-- Multi-algorithm path discovery (BFS, DFS, Dijkstra, A*)
-- Internet-reachability analysis
-- Blast radius calculation (transitive impact)
-- Attack path scoring with CVSS/EPSS weighting
-- Natural language graph querying
-- Graph export (DOT, JSON, Mermaid)
-
-The actual graph traversal implementation is in falkordb_client.py
-(1,835 LOC) which provides dual-mode operation:
-- FalkorDB mode: Production graph database (Redis-compatible)
-- NetworkX mode: Air-gapped/development fallback (zero deps)
-
-Vision Pillars: V5 (MPTE Verification), V10 (CTEM Full Loop)
-"""
-
 from __future__ import annotations
 
-import hashlib
 import json
-import logging
-import os
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+import sqlite3
+import uuid
+from collections import deque
+from pathlib import Path
+from typing import Optional
 
-logger = logging.getLogger(__name__)
+import structlog
 
-# Re-export everything from falkordb_client for backward compatibility
-from core.falkordb_client import (
-    NodeType,
-    EdgeType,
-    GraphNode,
-    GraphEdge,
-    KnowledgeGraphEngine,
-    AttackPathTraversalEngine,
-    get_knowledge_graph,
-    get_attack_path_engine,
-    get_nl_query_engine,
-)
+_logger = structlog.get_logger()
 
-# Try importing advanced types (may not exist in older versions)
-try:
-    from core.falkordb_client import (
-        AttackPath,
-        BlastRadius,
-        AttackPathResult,
-        BlastRadiusV2,
-        InternetReachabilityPath,
-        NLQueryEngine,
+VALID_NODE_TYPES = {
+    "workstation",
+    "server",
+    "database",
+    "cloud_service",
+    "network_device",
+    "external",
+}
+
+
+class AttackNode:
+    """Represents a network node (host, service, database) in the attack graph."""
+
+    __slots__ = (
+        "node_id", "node_type", "name", "risk_score",
+        "is_crown_jewel", "vulnerabilities", "org_id",
     )
-except ImportError:
-    pass
-
-
-# ---------------------------------------------------------------------------
-# Attack Path Scoring Models
-# ---------------------------------------------------------------------------
-
-class AttackPathSeverity(str, Enum):
-    """Severity classification for attack paths."""
-    CRITICAL = "critical"
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-    INFORMATIONAL = "informational"
-
-
-@dataclass
-class AttackPathScore:
-    """Composite score for an attack path."""
-    path_id: str
-    total_score: float  # 0-100
-    exploitability: float  # 0-10
-    impact: float  # 0-10
-    reachability: float  # 0-1
-    blast_radius: int  # number of affected nodes
-    severity: AttackPathSeverity
-    confidence: float  # 0-1
-    factors: Dict[str, float] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "path_id": self.path_id,
-            "total_score": round(self.total_score, 2),
-            "exploitability": round(self.exploitability, 2),
-            "impact": round(self.impact, 2),
-            "reachability": round(self.reachability, 3),
-            "blast_radius": self.blast_radius,
-            "severity": self.severity.value,
-            "confidence": round(self.confidence, 3),
-            "factors": {k: round(v, 3) for k, v in self.factors.items()},
-        }
-
-
-@dataclass
-class AttackChain:
-    """A chain of vulnerabilities that form an attack path."""
-    chain_id: str
-    name: str
-    description: str
-    nodes: List[Dict[str, Any]]
-    edges: List[Dict[str, Any]]
-    entry_point: Dict[str, Any]
-    target: Dict[str, Any]
-    total_hops: int
-    score: AttackPathScore
-    techniques: List[str]  # MITRE ATT&CK technique IDs
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "chain_id": self.chain_id,
-            "name": self.name,
-            "description": self.description,
-            "nodes": self.nodes,
-            "edges": self.edges,
-            "entry_point": self.entry_point,
-            "target": self.target,
-            "total_hops": self.total_hops,
-            "score": self.score.to_dict(),
-            "techniques": self.techniques,
-            "created_at": self.created_at.isoformat(),
-        }
-
-
-@dataclass
-class AttackSurface:
-    """Summary of the attack surface derived from graph analysis."""
-    total_assets: int
-    internet_facing: int
-    internal_only: int
-    critical_paths: int
-    high_risk_components: List[Dict[str, Any]]
-    entry_points: List[Dict[str, Any]]
-    crown_jewels: List[Dict[str, Any]]
-    risk_score: float  # 0-100
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "total_assets": self.total_assets,
-            "internet_facing": self.internet_facing,
-            "internal_only": self.internal_only,
-            "critical_paths": self.critical_paths,
-            "high_risk_components": self.high_risk_components,
-            "entry_points": self.entry_points,
-            "crown_jewels": self.crown_jewels,
-            "risk_score": round(self.risk_score, 2),
-        }
-
-
-# ---------------------------------------------------------------------------
-# Attack Path Engine — High-Level Orchestrator
-# ---------------------------------------------------------------------------
-
-class AttackPathEngine:
-    """High-level attack path analysis engine.
-
-    Wraps the AttackPathTraversalEngine from falkordb_client.py
-    and adds:
-    - CVSS/EPSS-weighted path scoring
-    - MITRE ATT&CK technique mapping
-    - Attack surface summarization
-    - Multi-path comparison and ranking
-    - Chain detection (vulnerability chaining)
-    - Crown jewel identification
-    """
 
     def __init__(
         self,
-        kg: Optional[KnowledgeGraphEngine] = None,
-        traversal_engine: Optional[AttackPathTraversalEngine] = None,
-    ):
-        self._kg = kg or get_knowledge_graph()
-        self._traversal = traversal_engine or get_attack_path_engine(self._kg)
-        self._path_cache: Dict[str, Any] = {}
-        self._scoring_weights = {
-            "cvss_base": 0.3,
-            "epss_score": 0.2,
-            "reachability": 0.2,
-            "blast_radius": 0.15,
-            "asset_criticality": 0.15,
+        node_id: str,
+        node_type: str,
+        name: str,
+        risk_score: float = 50.0,
+        is_crown_jewel: bool = False,
+        vulnerabilities: list[str] | None = None,
+        org_id: str = "default",
+    ) -> None:
+        self.node_id = node_id
+        self.node_type = node_type
+        self.name = name
+        self.risk_score = risk_score
+        self.is_crown_jewel = is_crown_jewel
+        self.vulnerabilities = vulnerabilities or []
+        self.org_id = org_id
+
+    def to_dict(self) -> dict:
+        return {
+            "node_id": self.node_id,
+            "node_type": self.node_type,
+            "name": self.name,
+            "risk_score": self.risk_score,
+            "is_crown_jewel": self.is_crown_jewel,
+            "vulnerabilities": self.vulnerabilities,
+            "org_id": self.org_id,
         }
-        logger.info("AttackPathEngine initialized (KG nodes: %d)", len(self._kg._backend._graph.nodes) if hasattr(self._kg, '_backend') and hasattr(self._kg._backend, '_graph') else 0)
 
-    @property
-    def knowledge_graph(self) -> KnowledgeGraphEngine:
-        """Access underlying knowledge graph engine."""
-        return self._kg
 
-    @property
-    def traversal(self) -> AttackPathTraversalEngine:
-        """Access underlying traversal engine."""
-        return self._traversal
+class AttackEdge:
+    """Represents a possible lateral movement path between nodes."""
 
-    # ── Path Discovery ────────────────────────────────────────────────
+    __slots__ = ("edge_id", "from_node", "to_node", "protocol", "port", "requires_vuln", "org_id")
 
-    def discover_attack_paths(
+    def __init__(
         self,
-        entry_point: Optional[str] = None,
-        target: Optional[str] = None,
-        max_depth: int = 10,
-        max_paths: int = 20,
-        algorithms: Optional[List[str]] = None,
-    ) -> List[AttackChain]:
-        """Discover attack paths in the knowledge graph.
+        edge_id: str,
+        from_node: str,
+        to_node: str,
+        protocol: str = "tcp",
+        port: int = 0,
+        requires_vuln: str | None = None,
+        org_id: str = "default",
+    ) -> None:
+        self.edge_id = edge_id
+        self.from_node = from_node
+        self.to_node = to_node
+        self.protocol = protocol
+        self.port = port
+        self.requires_vuln = requires_vuln
+        self.org_id = org_id
 
-        If entry_point and target are specified, finds paths between them.
-        If only entry_point is given, finds all paths from that node.
-        If neither is given, finds all critical attack paths.
-
-        Args:
-            entry_point: Starting node ID (or None for auto-discovery)
-            target: Target node ID (or None for all targets)
-            max_depth: Maximum path depth
-            max_paths: Maximum number of paths to return
-            algorithms: List of algorithms to use (bfs, dfs, dijkstra, a_star)
-
-        Returns:
-            List of AttackChain objects, scored and ranked
-        """
-        if algorithms is None:
-            algorithms = ["dijkstra", "bfs"]
-
-        all_chains: List[AttackChain] = []
-
-        if entry_point and target:
-            # Specific path finding
-            paths = self._kg.find_attack_paths(entry_point, target, max_depth)
-            for i, path in enumerate(paths[:max_paths]):
-                chain = self._path_to_chain(path, i)
-                all_chains.append(chain)
-        else:
-            # Auto-discover critical paths
-            try:
-                analytics = self._kg.get_graph_analytics()
-                graph = self._kg._backend
-
-                # Find internet-facing nodes (entry points)
-                entry_points = []
-                for node_id in graph._graph.nodes() if hasattr(graph, '_graph') else []:
-                    props = graph._graph.nodes[node_id].get("properties", {})
-                    if props.get("internet_facing") or props.get("type") == "endpoint":
-                        entry_points.append(node_id)
-
-                # Find crown jewels (targets)
-                targets = []
-                for node_id in graph._graph.nodes() if hasattr(graph, '_graph') else []:
-                    props = graph._graph.nodes[node_id].get("properties", {})
-                    if props.get("critical") or props.get("has_sensitive_data"):
-                        targets.append(node_id)
-
-                # Find paths between entry points and crown jewels
-                for ep in entry_points[:5]:
-                    for tgt in targets[:5]:
-                        if ep != tgt:
-                            paths = self._kg.find_attack_paths(ep, tgt, max_depth)
-                            for j, path in enumerate(paths[:3]):
-                                chain = self._path_to_chain(path, len(all_chains))
-                                all_chains.append(chain)
-                                if len(all_chains) >= max_paths:
-                                    break
-                        if len(all_chains) >= max_paths:
-                            break
-                    if len(all_chains) >= max_paths:
-                        break
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-                logger.warning("Auto-discovery failed: %s", e)
-
-        # Sort by score
-        all_chains.sort(key=lambda c: c.score.total_score, reverse=True)
-        return all_chains[:max_paths]
-
-    def _path_to_chain(self, path: Any, index: int) -> AttackChain:
-        """Convert a raw path result to a scored AttackChain."""
-        nodes = []
-        edges = []
-
-        if isinstance(path, dict):
-            raw_nodes = path.get("nodes", path.get("path", []))
-            risk_score = path.get("risk_score", 50.0)
-        elif isinstance(path, (list, tuple)):
-            raw_nodes = list(path)
-            risk_score = 50.0
-        else:
-            raw_nodes = getattr(path, "nodes", [])
-            risk_score = getattr(path, "risk_score", 50.0)
-
-        for i, node in enumerate(raw_nodes):
-            if isinstance(node, str):
-                nodes.append({"id": node, "type": "unknown", "index": i})
-            elif isinstance(node, dict):
-                nodes.append(node)
-            else:
-                nodes.append({"id": str(node), "type": "unknown", "index": i})
-
-        for i in range(len(nodes) - 1):
-            edges.append({
-                "from": nodes[i].get("id", str(i)),
-                "to": nodes[i + 1].get("id", str(i + 1)),
-                "type": "ATTACK_STEP",
-            })
-
-        chain_id = f"CHAIN-{hashlib.md5(json.dumps(nodes, default=str).encode()).hexdigest()[:8].upper()}"
-
-        score = self._score_path(nodes, edges, risk_score)
-
-        entry = nodes[0] if nodes else {"id": "unknown", "type": "unknown"}
-        target = nodes[-1] if nodes else {"id": "unknown", "type": "unknown"}
-
-        return AttackChain(
-            chain_id=chain_id,
-            name=f"Attack Path {index + 1}: {entry.get('id', '?')} → {target.get('id', '?')}",
-            description=f"Attack chain with {len(nodes)} hops from {entry.get('id', '?')} to {target.get('id', '?')}",
-            nodes=nodes,
-            edges=edges,
-            entry_point=entry,
-            target=target,
-            total_hops=len(nodes),
-            score=score,
-            techniques=self._infer_techniques(nodes),
-        )
-
-    def _score_path(
-        self,
-        nodes: List[Dict[str, Any]],
-        edges: List[Dict[str, Any]],
-        base_risk: float = 50.0,
-    ) -> AttackPathScore:
-        """Score an attack path based on multiple factors."""
-        exploitability = min(10.0, base_risk / 10.0)
-        impact = min(10.0, len(nodes) * 2.0)
-        reachability = 1.0 / max(1, len(nodes))
-        blast = len(nodes) * 3
-
-        total = (
-            exploitability * self._scoring_weights["cvss_base"]
-            + impact * self._scoring_weights["epss_score"]
-            + reachability * 10 * self._scoring_weights["reachability"]
-            + min(10, blast / 5) * self._scoring_weights["blast_radius"]
-            + 5.0 * self._scoring_weights["asset_criticality"]
-        ) * 10
-
-        total = min(100.0, max(0.0, total))
-
-        if total >= 80:
-            severity = AttackPathSeverity.CRITICAL
-        elif total >= 60:
-            severity = AttackPathSeverity.HIGH
-        elif total >= 40:
-            severity = AttackPathSeverity.MEDIUM
-        elif total >= 20:
-            severity = AttackPathSeverity.LOW
-        else:
-            severity = AttackPathSeverity.INFORMATIONAL
-
-        return AttackPathScore(
-            path_id=hashlib.md5(json.dumps(nodes, default=str).encode()).hexdigest()[:12],
-            total_score=total,
-            exploitability=exploitability,
-            impact=impact,
-            reachability=reachability,
-            blast_radius=blast,
-            severity=severity,
-            confidence=0.85 if len(nodes) <= 5 else 0.7,
-            factors=dict(self._scoring_weights),
-        )
-
-    def _infer_techniques(self, nodes: List[Dict[str, Any]]) -> List[str]:
-        """Infer MITRE ATT&CK techniques from path node types."""
-        techniques = []
-        technique_map = {
-            "endpoint": "T1190",  # Exploit Public-Facing Application
-            "auth": "T1078",  # Valid Accounts
-            "database": "T1005",  # Data from Local System
-            "api": "T1059",  # Command and Scripting
-            "container": "T1611",  # Escape to Host
-            "network": "T1021",  # Remote Services
-            "cloud": "T1538",  # Cloud Service Dashboard
-            "secrets": "T1552",  # Unsecured Credentials
+    def to_dict(self) -> dict:
+        return {
+            "edge_id": self.edge_id,
+            "from_node": self.from_node,
+            "to_node": self.to_node,
+            "protocol": self.protocol,
+            "port": self.port,
+            "requires_vuln": self.requires_vuln,
+            "org_id": self.org_id,
         }
-        for node in nodes:
-            ntype = node.get("type", "").lower()
-            for key, technique in technique_map.items():
-                if key in ntype and technique not in techniques:
-                    techniques.append(technique)
-        return techniques or ["T1190"]  # Default to Exploit Public-Facing
 
-    # ── Attack Surface Analysis ───────────────────────────────────────
 
-    def get_attack_surface(self) -> AttackSurface:
-        """Compute the attack surface from the knowledge graph."""
-        try:
-            analytics = self._kg.get_graph_analytics()
-            total = analytics.get("total_nodes", 0)
+class AttackPathEngine:
+    """SQLite-backed attack path analysis engine.
 
-            # Compute surface metrics
-            internet_facing = 0
-            internal = 0
-            critical_components = []
-            entry_points = []
-            crown_jewels = []
+    Models lateral movement through a network graph. Uses BFS to
+    enumerate attack paths from entry points to crown jewel assets.
+    """
 
-            backend = self._kg._backend
-            if hasattr(backend, '_graph'):
-                for node_id in backend._graph.nodes():
-                    props = backend._graph.nodes[node_id].get("properties", {})
-                    ntype = backend._graph.nodes[node_id].get("type", "")
+    def __init__(self, db_path: str = "data/attack_paths.db") -> None:
+        self._db_path = db_path
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self._init_db()
+        _logger.info("AttackPathEngine initialised", db=db_path)
 
-                    if props.get("internet_facing"):
-                        internet_facing += 1
-                        entry_points.append({
-                            "id": node_id,
-                            "type": ntype,
-                            "risk": props.get("risk_score", 0),
-                        })
-                    else:
-                        internal += 1
+    # ------------------------------------------------------------------
+    # DB bootstrap
+    # ------------------------------------------------------------------
 
-                    if props.get("critical") or props.get("has_sensitive_data"):
-                        crown_jewels.append({
-                            "id": node_id,
-                            "type": ntype,
-                            "sensitivity": props.get("sensitivity", "high"),
-                        })
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS nodes (
+                    node_id       TEXT PRIMARY KEY,
+                    node_type     TEXT NOT NULL,
+                    name          TEXT NOT NULL,
+                    risk_score    REAL NOT NULL DEFAULT 50.0,
+                    is_crown_jewel INTEGER NOT NULL DEFAULT 0,
+                    vulnerabilities TEXT NOT NULL DEFAULT '[]',
+                    org_id        TEXT NOT NULL DEFAULT 'default'
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS edges (
+                    edge_id      TEXT PRIMARY KEY,
+                    from_node    TEXT NOT NULL,
+                    to_node      TEXT NOT NULL,
+                    protocol     TEXT NOT NULL DEFAULT 'tcp',
+                    port         INTEGER NOT NULL DEFAULT 0,
+                    requires_vuln TEXT,
+                    org_id       TEXT NOT NULL DEFAULT 'default'
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_node, org_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_nodes_org ON nodes(org_id)")
 
-                    finding_count = sum(
-                        1 for _, _, d in backend._graph.edges(node_id, data=True)
-                        if d.get("type") == "HAS_FINDING"
-                    )
-                    if finding_count > 3:
-                        critical_components.append({
-                            "id": node_id,
-                            "type": ntype,
-                            "finding_count": finding_count,
-                        })
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
 
-            risk_score = min(100.0, (
-                internet_facing * 5 +
-                len(critical_components) * 10 +
-                len(crown_jewels) * 3
-            ))
+    # ------------------------------------------------------------------
+    # Nodes
+    # ------------------------------------------------------------------
 
-            return AttackSurface(
-                total_assets=total,
-                internet_facing=internet_facing,
-                internal_only=internal,
-                critical_paths=analytics.get("attack_paths_count", 0),
-                high_risk_components=critical_components[:10],
-                entry_points=entry_points[:10],
-                crown_jewels=crown_jewels[:10],
-                risk_score=risk_score,
-            )
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.warning("Attack surface analysis failed: %s", e)
-            return AttackSurface(
-                total_assets=0,
-                internet_facing=0,
-                internal_only=0,
-                critical_paths=0,
-                high_risk_components=[],
-                entry_points=[],
-                crown_jewels=[],
-                risk_score=0.0,
-            )
-
-    # ── Blast Radius ──────────────────────────────────────────────────
-
-    def compute_blast_radius(
+    def add_node(
         self,
         node_id: str,
-        max_hops: int = 5,
-    ) -> Dict[str, Any]:
-        """Compute blast radius for a specific node.
+        node_type: str,
+        name: str,
+        risk_score: float = 50.0,
+        is_crown_jewel: bool = False,
+        vulnerabilities: list[str] | None = None,
+        org_id: str = "default",
+    ) -> dict:
+        """Add a network node to the attack graph.
 
-        Uses BFS to find all nodes reachable from the given node
-        and computes the transitive impact.
+        node_type: 'workstation'|'server'|'database'|'cloud_service'|'network_device'|'external'
+        vulnerabilities: list of CVE IDs present on this node
+        Returns: {node_id, node_type, name, is_crown_jewel, ...}
         """
-        try:
-            reachable = self._kg._backend.bfs_reachable(node_id, max_depth=max_hops)
-            affected_nodes = []
-            total_risk = 0.0
+        if node_type not in VALID_NODE_TYPES:
+            raise ValueError(
+                f"Invalid node_type '{node_type}'. Must be one of: {sorted(VALID_NODE_TYPES)}"
+            )
+        vulns = vulnerabilities or []
+        with self._conn() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO nodes
+                    (node_id, node_type, name, risk_score, is_crown_jewel, vulnerabilities, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (node_id, node_type, name, risk_score, int(is_crown_jewel),
+                 json.dumps(vulns), org_id),
+            )
+        node = AttackNode(node_id, node_type, name, risk_score, is_crown_jewel, vulns, org_id)
+        _logger.debug("Node added", node_id=node_id, node_type=node_type)
+        return node.to_dict()
 
-            for nid, depth in reachable.items():
-                if nid == node_id:
-                    continue
-                node_props = {}
-                if hasattr(self._kg._backend, '_graph'):
-                    node_props = self._kg._backend._graph.nodes.get(nid, {}).get("properties", {})
-                risk = node_props.get("risk_score", 1.0) / max(depth, 1)
-                total_risk += risk
-                affected_nodes.append({
-                    "id": nid,
-                    "depth": depth,
-                    "risk_contribution": round(risk, 3),
-                })
+    def get_node(self, node_id: str) -> Optional[dict]:
+        """Return node dict or None if not found."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM nodes WHERE node_id = ?", (node_id,)
+            ).fetchone()
+        return self._row_to_node(row) if row else None
 
-            affected_nodes.sort(key=lambda n: n["risk_contribution"], reverse=True)
-
-            return {
-                "source_node": node_id,
-                "max_hops": max_hops,
-                "total_affected": len(affected_nodes),
-                "total_risk_score": round(total_risk, 2),
-                "affected_nodes": affected_nodes[:50],
-                "severity": (
-                    "critical" if total_risk >= 50 else
-                    "high" if total_risk >= 30 else
-                    "medium" if total_risk >= 10 else "low"
-                ),
-            }
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.warning("Blast radius calculation failed: %s", e)
-            return {
-                "source_node": node_id,
-                "max_hops": max_hops,
-                "total_affected": 0,
-                "total_risk_score": 0.0,
-                "affected_nodes": [],
-                "severity": "low",
-                "error": str(e),
-            }
-
-    # ── Path Comparison ───────────────────────────────────────────────
-
-    def compare_paths(
+    def list_nodes(
         self,
-        paths: List[AttackChain],
-    ) -> Dict[str, Any]:
-        """Compare multiple attack paths and provide ranked analysis."""
-        if not paths:
-            return {"paths": [], "recommendation": "No paths to compare"}
+        org_id: str = "default",
+        is_crown_jewel: bool | None = None,
+    ) -> list[dict]:
+        """Return all nodes for org, optionally filtered by crown jewel status."""
+        query = "SELECT * FROM nodes WHERE org_id = ?"
+        params: list = [org_id]
+        if is_crown_jewel is not None:
+            query += " AND is_crown_jewel = ?"
+            params.append(int(is_crown_jewel))
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row_to_node(r) for r in rows]
 
-        ranked = sorted(paths, key=lambda p: p.score.total_score, reverse=True)
+    def remove_node(self, node_id: str) -> bool:
+        """Remove a node (and its edges). Returns True if node existed."""
+        with self._conn() as conn:
+            cur = conn.execute("DELETE FROM nodes WHERE node_id = ?", (node_id,))
+            conn.execute(
+                "DELETE FROM edges WHERE from_node = ? OR to_node = ?",
+                (node_id, node_id),
+            )
+        return cur.rowcount > 0
 
-        comparison = []
-        for i, path in enumerate(ranked):
-            comparison.append({
-                "rank": i + 1,
-                "chain_id": path.chain_id,
-                "name": path.name,
-                "score": path.score.total_score,
-                "severity": path.score.severity.value,
-                "hops": path.total_hops,
-                "techniques": path.techniques,
-            })
+    @staticmethod
+    def _row_to_node(row: sqlite3.Row) -> dict:
+        d = dict(row)
+        d["is_crown_jewel"] = bool(d["is_crown_jewel"])
+        d["vulnerabilities"] = json.loads(d.get("vulnerabilities", "[]"))
+        return d
+
+    # ------------------------------------------------------------------
+    # Edges
+    # ------------------------------------------------------------------
+
+    def add_edge(
+        self,
+        from_node: str,
+        to_node: str,
+        protocol: str = "tcp",
+        port: int = 0,
+        requires_vuln: str | None = None,
+        org_id: str = "default",
+    ) -> dict:
+        """Add a directed edge (possible lateral movement path).
+
+        requires_vuln: CVE ID required to traverse this edge (None = always traversable)
+        Returns: {edge_id, from_node, to_node, protocol, port}
+        """
+        edge_id = str(uuid.uuid4())
+        with self._conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO edges (edge_id, from_node, to_node, protocol, port, requires_vuln, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (edge_id, from_node, to_node, protocol, port, requires_vuln, org_id),
+            )
+        edge = AttackEdge(edge_id, from_node, to_node, protocol, port, requires_vuln, org_id)
+        _logger.debug("Edge added", from_node=from_node, to_node=to_node)
+        return edge.to_dict()
+
+    # ------------------------------------------------------------------
+    # Graph traversal helpers
+    # ------------------------------------------------------------------
+
+    def _load_adjacency(self, org_id: str) -> dict[str, list[dict]]:
+        """Return adjacency map: from_node -> list of edge dicts."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM edges WHERE org_id = ?", (org_id,)
+            ).fetchall()
+        adj: dict[str, list[dict]] = {}
+        for row in rows:
+            e = dict(row)
+            adj.setdefault(e["from_node"], []).append(e)
+        return adj
+
+    def _load_nodes_map(self, org_id: str) -> dict[str, dict]:
+        """Return node_id -> node dict for org."""
+        rows = self.list_nodes(org_id=org_id)
+        return {r["node_id"]: r for r in rows}
+
+    # ------------------------------------------------------------------
+    # Path analysis
+    # ------------------------------------------------------------------
+
+    def find_attack_paths(
+        self,
+        entry_point: str,
+        target: str | None = None,
+        max_hops: int = 5,
+        org_id: str = "default",
+    ) -> dict:
+        """Find all attack paths from entry_point to crown jewels (or specific target).
+
+        Uses BFS to enumerate paths up to max_hops.
+        Returns: {
+            entry_point, target_nodes_reached: list,
+            paths: [{path: [node_ids], hops: int, risk_score: float,
+                    vulnerabilities_required: list[str]}],
+            total_paths: int, max_blast_radius: int
+        }
+        """
+        adj = self._load_adjacency(org_id)
+        nodes_map = self._load_nodes_map(org_id)
+
+        # Determine targets
+        if target:
+            target_ids = {target}
+        else:
+            target_ids = {
+                nid for nid, n in nodes_map.items() if n["is_crown_jewel"]
+            }
+
+        paths: list[dict] = []
+        target_nodes_reached: set[str] = set()
+
+        # BFS — state: (current_node, path_so_far, vulns_required)
+        queue: deque[tuple[str, list[str], list[str]]] = deque()
+        queue.append((entry_point, [entry_point], []))
+
+        # Visited per path length to avoid infinite loops but allow multi-path
+        # Use (node, frozenset of path) to allow same node via different routes
+        # but cap at max_hops to prevent explosion
+        visited_states: set[tuple[str, tuple[str, ...]]] = set()
+
+        while queue:
+            current, path, vulns = queue.popleft()
+
+            state = (current, tuple(path))
+            if state in visited_states:
+                continue
+            visited_states.add(state)
+
+            # Check if current node is a target
+            if current in target_ids and current != entry_point:
+                risk = self._compute_path_risk(path, nodes_map)
+                paths.append({
+                    "path": list(path),
+                    "hops": len(path) - 1,
+                    "risk_score": risk,
+                    "vulnerabilities_required": list(vulns),
+                })
+                target_nodes_reached.add(current)
+                # Don't stop — keep exploring for other paths
+
+            # Only expand further if we haven't hit the hop limit
+            if len(path) - 1 >= max_hops:
+                continue
+
+            for edge in adj.get(current, []):
+                next_node = edge["to_node"]
+                if next_node in path:
+                    # Avoid cycles in a single path
+                    continue
+                new_vulns = list(vulns)
+                if edge.get("requires_vuln"):
+                    new_vulns.append(edge["requires_vuln"])
+                queue.append((next_node, path + [next_node], new_vulns))
+
+        # Sort by hops then risk
+        paths.sort(key=lambda p: (p["hops"], -p["risk_score"]))
 
         return {
-            "paths": comparison,
-            "highest_risk": ranked[0].chain_id if ranked else None,
-            "recommendation": f"Prioritize mitigation of {ranked[0].name}" if ranked else "No action needed",
-            "total_unique_techniques": len(set(t for p in ranked for t in p.techniques)),
+            "entry_point": entry_point,
+            "target_nodes_reached": sorted(target_nodes_reached),
+            "paths": paths,
+            "total_paths": len(paths),
+            "max_blast_radius": len(
+                self._reachable_set(entry_point, adj)
+            ),
         }
 
-    # ── Graph Export ──────────────────────────────────────────────────
+    def find_shortest_path(
+        self,
+        from_node: str,
+        to_node: str,
+        org_id: str = "default",
+    ) -> Optional[dict]:
+        """Find shortest path between two specific nodes."""
+        adj = self._load_adjacency(org_id)
+        nodes_map = self._load_nodes_map(org_id)
 
-    def export_paths_mermaid(self, paths: List[AttackChain]) -> str:
-        """Export attack paths as a Mermaid diagram."""
-        lines = ["graph LR"]
-        for chain in paths:
-            for edge in chain.edges:
-                src = edge["from"].replace("-", "_").replace(".", "_")
-                tgt = edge["to"].replace("-", "_").replace(".", "_")
-                lines.append(f"    {src} --> {tgt}")
-        return "\n".join(lines)
+        # BFS for shortest path
+        queue: deque[tuple[str, list[str], list[str]]] = deque()
+        queue.append((from_node, [from_node], []))
+        visited: set[str] = {from_node}
 
-    def export_paths_json(self, paths: List[AttackChain]) -> str:
-        """Export attack paths as JSON."""
-        return json.dumps(
-            [p.to_dict() for p in paths],
-            indent=2,
-            default=str,
+        while queue:
+            current, path, vulns = queue.popleft()
+
+            for edge in adj.get(current, []):
+                next_node = edge["to_node"]
+                if next_node in visited:
+                    continue
+                new_path = path + [next_node]
+                new_vulns = list(vulns)
+                if edge.get("requires_vuln"):
+                    new_vulns.append(edge["requires_vuln"])
+
+                if next_node == to_node:
+                    return {
+                        "path": new_path,
+                        "hops": len(new_path) - 1,
+                        "risk_score": self._compute_path_risk(new_path, nodes_map),
+                        "vulnerabilities_required": new_vulns,
+                    }
+
+                visited.add(next_node)
+                queue.append((next_node, new_path, new_vulns))
+
+        return None
+
+    def get_blast_radius(self, entry_point: str, org_id: str = "default") -> dict:
+        """Find all nodes reachable from entry_point.
+
+        Returns: {entry_point, reachable_nodes: list, crown_jewels_at_risk: list,
+                  max_depth: int, total_reachable: int}
+        """
+        adj = self._load_adjacency(org_id)
+        nodes_map = self._load_nodes_map(org_id)
+
+        # BFS with depth tracking
+        queue: deque[tuple[str, int]] = deque([(entry_point, 0)])
+        visited: dict[str, int] = {entry_point: 0}
+
+        while queue:
+            current, depth = queue.popleft()
+            for edge in adj.get(current, []):
+                next_node = edge["to_node"]
+                if next_node not in visited:
+                    visited[next_node] = depth + 1
+                    queue.append((next_node, depth + 1))
+
+        # Exclude the entry point itself
+        reachable = [
+            {"node_id": nid, "depth": d, **nodes_map.get(nid, {"name": nid})}
+            for nid, d in visited.items()
+            if nid != entry_point
+        ]
+        crown_jewels_at_risk = [
+            r for r in reachable
+            if nodes_map.get(r["node_id"], {}).get("is_crown_jewel")
+        ]
+        max_depth = max((r["depth"] for r in reachable), default=0)
+
+        return {
+            "entry_point": entry_point,
+            "reachable_nodes": reachable,
+            "crown_jewels_at_risk": crown_jewels_at_risk,
+            "max_depth": max_depth,
+            "total_reachable": len(reachable),
+        }
+
+    def get_crown_jewels_at_risk(self, org_id: str = "default") -> list[dict]:
+        """List crown jewels and which entry points can reach them."""
+        nodes_map = self._load_nodes_map(org_id)
+        adj = self._load_adjacency(org_id)
+
+        crown_jewels = [n for n in nodes_map.values() if n["is_crown_jewel"]]
+        # Reverse adjacency for reverse BFS
+        reverse_adj: dict[str, list[str]] = {}
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM edges WHERE org_id = ?", (org_id,)
+            ).fetchall()
+        for row in rows:
+            e = dict(row)
+            reverse_adj.setdefault(e["to_node"], []).append(e["from_node"])
+
+        results = []
+        for cj in crown_jewels:
+            cj_id = cj["node_id"]
+            # BFS backwards to find all entry points that can reach this crown jewel
+            visited: set[str] = {cj_id}
+            queue: deque[str] = deque([cj_id])
+            ancestors: list[str] = []
+            while queue:
+                current = queue.popleft()
+                for pred in reverse_adj.get(current, []):
+                    if pred not in visited:
+                        visited.add(pred)
+                        ancestors.append(pred)
+                        queue.append(pred)
+
+            results.append({
+                **cj,
+                "reachable_from": ancestors,
+                "reachable_from_count": len(ancestors),
+            })
+        return results
+
+    def get_graph_stats(self, org_id: str = "default") -> dict:
+        """Return {total_nodes, total_edges, crown_jewel_count, avg_connections_per_node}."""
+        with self._conn() as conn:
+            total_nodes = conn.execute(
+                "SELECT COUNT(*) FROM nodes WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            total_edges = conn.execute(
+                "SELECT COUNT(*) FROM edges WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            crown_jewel_count = conn.execute(
+                "SELECT COUNT(*) FROM nodes WHERE org_id = ? AND is_crown_jewel = 1",
+                (org_id,),
+            ).fetchone()[0]
+
+        avg_connections = (
+            round(total_edges / total_nodes, 2) if total_nodes > 0 else 0.0
         )
+        return {
+            "total_nodes": total_nodes,
+            "total_edges": total_edges,
+            "crown_jewel_count": crown_jewel_count,
+            "avg_connections_per_node": avg_connections,
+        }
 
-    # ── Statistics ────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
 
-    def get_stats(self) -> Dict[str, Any]:
-        """Get attack path engine statistics."""
-        try:
-            analytics = self._kg.get_graph_analytics()
-            surface = self.get_attack_surface()
-            return {
-                "engine": "attack-path-engine",
-                "version": "1.0.0",
-                "status": "operational",
-                "graph": {
-                    "nodes": analytics.get("total_nodes", 0),
-                    "edges": analytics.get("total_edges", 0),
-                    "density": analytics.get("density", 0.0),
-                },
-                "surface": surface.to_dict(),
-                "scoring_weights": dict(self._scoring_weights),
-                "algorithms": ["bfs", "dfs", "dijkstra", "a_star"],
-                "cache_size": len(self._path_cache),
-            }
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            return {
-                "engine": "attack-path-engine",
-                "version": "1.0.0",
-                "status": "degraded",
-                "error": str(e),
-            }
+    @staticmethod
+    def _compute_path_risk(path: list[str], nodes_map: dict[str, dict]) -> float:
+        """Average risk score across path nodes."""
+        if not path:
+            return 0.0
+        scores = [nodes_map.get(nid, {}).get("risk_score", 50.0) for nid in path]
+        return round(sum(scores) / len(scores), 2)
 
-
-# ---------------------------------------------------------------------------
-# Module-Level Singleton
-# ---------------------------------------------------------------------------
-
-_engine: Optional[AttackPathEngine] = None
-
-
-def get_engine() -> AttackPathEngine:
-    """Get or create the singleton AttackPathEngine."""
-    global _engine
-    if _engine is None:
-        _engine = AttackPathEngine()
-    return _engine
-
-
-# ---------------------------------------------------------------------------
-# Convenience Functions
-# ---------------------------------------------------------------------------
-
-def discover_paths(
-    entry_point: Optional[str] = None,
-    target: Optional[str] = None,
-    max_depth: int = 10,
-    max_paths: int = 20,
-) -> List[Dict[str, Any]]:
-    """Convenience function to discover attack paths."""
-    engine = get_engine()
-    chains = engine.discover_attack_paths(entry_point, target, max_depth, max_paths)
-    return [c.to_dict() for c in chains]
-
-
-def get_surface() -> Dict[str, Any]:
-    """Convenience function to get attack surface."""
-    engine = get_engine()
-    return engine.get_attack_surface().to_dict()
-
-
-def blast_radius(node_id: str, max_hops: int = 5) -> Dict[str, Any]:
-    """Convenience function to compute blast radius."""
-    engine = get_engine()
-    return engine.compute_blast_radius(node_id, max_hops)
-
-
-def get_stats() -> Dict[str, Any]:
-    """Convenience function to get engine stats."""
-    engine = get_engine()
-    return engine.get_stats()
-
-
-# ---------------------------------------------------------------------------
-# __all__
-# ---------------------------------------------------------------------------
-
-__all__ = [
-    # Core types
-    "AttackPathSeverity",
-    "AttackPathScore",
-    "AttackChain",
-    "AttackSurface",
-    # Engine
-    "AttackPathEngine",
-    "get_engine",
-    # Convenience functions
-    "discover_paths",
-    "get_surface",
-    "blast_radius",
-    "get_stats",
-    # Re-exports from falkordb_client
-    "NodeType",
-    "EdgeType",
-    "GraphNode",
-    "GraphEdge",
-    "KnowledgeGraphEngine",
-    "AttackPathTraversalEngine",
-    "get_knowledge_graph",
-    "get_attack_path_engine",
-    "get_nl_query_engine",
-]
+    @staticmethod
+    def _reachable_set(entry_point: str, adj: dict[str, list[dict]]) -> set[str]:
+        """BFS to find all reachable node IDs from entry_point."""
+        visited: set[str] = {entry_point}
+        queue: deque[str] = deque([entry_point])
+        while queue:
+            current = queue.popleft()
+            for edge in adj.get(current, []):
+                nxt = edge["to_node"]
+                if nxt not in visited:
+                    visited.add(nxt)
+                    queue.append(nxt)
+        visited.discard(entry_point)
+        return visited
