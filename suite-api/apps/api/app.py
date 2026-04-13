@@ -4879,6 +4879,16 @@ def create_app() -> FastAPI:
         _logger.warning("Breach Simulation router not available: %s", _e)
 
     # -----------------------------------------------------------------------
+    # Phishing Simulation Engine — employee security awareness testing
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.phishing_router import router as _phishing_router
+        app.include_router(_phishing_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Loaded Phishing Simulation router")
+    except ImportError as _e:
+        _logger.warning("Phishing Simulation router not available: %s", _e)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
