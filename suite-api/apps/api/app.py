@@ -694,6 +694,17 @@ except ImportError as e:
     _logger.warning("Webhook DLQ router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Webhook Verifier router (incoming webhook signature verification)
+# ---------------------------------------------------------------------------
+webhook_verifier_router: Optional[APIRouter] = None
+try:
+    from apps.api.webhook_verifier_router import router as webhook_verifier_router
+
+    _logger.info("Loaded Webhook Verifier router")
+except ImportError as e:
+    _logger.warning("Webhook Verifier router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Sandbox PoC Verifier router (Docker-isolated exploit verification)
 # ---------------------------------------------------------------------------
 sandbox_router: Optional[APIRouter] = None
@@ -905,6 +916,15 @@ try:
     _logger.info("Loaded Streaming/SSE router from suite-core")
 except ImportError as e:
     _logger.warning("Streaming/SSE router not available: %s", e)
+
+# Real-time event stream router (SSE + WebSocket for live dashboards)
+event_stream_router: Optional[APIRouter] = None
+try:
+    from apps.api.stream_router import router as event_stream_router
+
+    _logger.info("Loaded Event Stream router (SSE + WebSocket)")
+except ImportError as e:
+    _logger.warning("Event Stream router not available: %s", e)
 
 code_to_cloud_router: Optional[APIRouter] = None
 try:
@@ -2240,6 +2260,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted WebSocket router")
 
+    # Event Stream router — SSE + WebSocket live dashboards (/api/v1/stream/*)
+    if event_stream_router:
+        app.include_router(
+            event_stream_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Event Stream router (SSE + WebSocket)")
+
     # MCP/GraphRAG router for knowledge graph and decision memory
     if mcp_router:
         app.include_router(
@@ -2421,6 +2449,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Webhook DLQ router")
+
+    # Webhook Verifier — incoming webhook signature verification
+    if webhook_verifier_router:
+        app.include_router(
+            webhook_verifier_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted Webhook Verifier router")
 
     # Dependency-Track — SBOM analysis via OWASP Dependency-Track
     if dtrack_router:
