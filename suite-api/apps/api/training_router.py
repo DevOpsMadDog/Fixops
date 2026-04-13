@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field
 
 from apps.api.auth_deps import api_key_auth
 from core.training_tracker import TrainingCategory, TrainingCompletion, TrainingModule
+from core.security_training import SecurityAwarenessTracker
 
 logger = logging.getLogger(__name__)
 
@@ -204,3 +205,128 @@ async def get_compliance_training_status(org_id: str, framework: str):
         )
     tracker = _get_tracker()
     return tracker.get_compliance_training_status(org_id, framework)
+
+
+# ---------------------------------------------------------------------------
+# SecurityAwarenessTracker endpoints
+# ---------------------------------------------------------------------------
+
+_awareness_tracker: Optional[SecurityAwarenessTracker] = None
+
+
+def _get_awareness_tracker() -> SecurityAwarenessTracker:
+    global _awareness_tracker
+    if _awareness_tracker is None:
+        _awareness_tracker = SecurityAwarenessTracker()
+    return _awareness_tracker
+
+
+class AssignTrainingRequest(BaseModel):
+    user_id: str = Field(..., description="User ID to assign training to")
+    module: str = Field(..., description="Module ID (e.g. 'phishing-awareness')")
+    due_date: Optional[datetime] = Field(default=None, description="Assignment due date (ISO 8601)")
+
+
+class RecordAwarenessCompletionRequest(BaseModel):
+    user_id: str = Field(..., description="User ID")
+    assignment_id: str = Field(..., description="Assignment ID returned from /assign")
+    score: float = Field(..., ge=0.0, le=100.0, description="Quiz score (0–100)")
+
+
+class LaunchPhishingRequest(BaseModel):
+    user_ids: List[str] = Field(..., description="User IDs to target")
+    template: str = Field(..., description="Phishing template ID (e.g. 'tpl_cred_001')")
+
+
+class PhishingClickRequest(BaseModel):
+    campaign_id: str = Field(..., description="Campaign ID from /phishing/launch")
+    user_id: str = Field(..., description="User ID who clicked the link")
+
+
+@router.post("/assign", response_model=Dict[str, Any], status_code=201)
+async def assign_training(request: AssignTrainingRequest):
+    """Assign a training module to a user."""
+    tracker = _get_awareness_tracker()
+    assignment = tracker.assign_training(
+        user_id=request.user_id,
+        module=request.module,
+        due_date=request.due_date,
+    )
+    return assignment.model_dump()
+
+
+@router.post("/complete", response_model=Dict[str, Any], status_code=201)
+async def record_awareness_completion(request: RecordAwarenessCompletionRequest):
+    """Record training completion with a quiz score."""
+    tracker = _get_awareness_tracker()
+    completion = tracker.record_completion(
+        user_id=request.user_id,
+        assignment_id=request.assignment_id,
+        score=request.score,
+    )
+    if completion is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Assignment '{request.assignment_id}' not found for user '{request.user_id}'",
+        )
+    return completion.model_dump()
+
+
+@router.get("/compliance", response_model=Dict[str, Any])
+async def get_team_compliance(
+    team_id: str = Query(..., description="Team or department ID"),
+):
+    """Get training compliance report for a team."""
+    tracker = _get_awareness_tracker()
+    report = tracker.get_team_compliance(team_id=team_id)
+    return report.model_dump()
+
+
+@router.post("/phishing/launch", response_model=Dict[str, Any], status_code=201)
+async def launch_phishing_simulation(request: LaunchPhishingRequest):
+    """Launch a simulated phishing campaign against a list of users."""
+    if not request.user_ids:
+        raise HTTPException(status_code=400, detail="user_ids must not be empty")
+    tracker = _get_awareness_tracker()
+    campaign = tracker.run_phishing_simulation(
+        user_ids=request.user_ids,
+        template=request.template,
+    )
+    return campaign.model_dump()
+
+
+@router.post("/phishing/click", response_model=Dict[str, Any])
+async def record_phishing_click(request: PhishingClickRequest):
+    """Record that a user clicked the phishing link (webhook callback)."""
+    tracker = _get_awareness_tracker()
+    try:
+        campaign = tracker.record_phishing_click(
+            campaign_id=request.campaign_id,
+            user_id=request.user_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return campaign.model_dump()
+
+
+@router.get("/user/{user_id}/risk", response_model=Dict[str, Any])
+async def get_user_risk_score(user_id: str):
+    """Calculate a user's security risk score (0.0 = no risk, 1.0 = maximum risk)."""
+    tracker = _get_awareness_tracker()
+    score = tracker.get_user_risk_score(user_id=user_id)
+    return {"user_id": user_id, "risk_score": score}
+
+
+@router.get("/suggest/{user_id}", response_model=Dict[str, Any])
+async def suggest_training(
+    user_id: str,
+    findings: Optional[str] = Query(
+        default=None,
+        description="Comma-separated CWE IDs or finding labels (e.g. 'CWE-89,CWE-79')",
+    ),
+):
+    """Suggest training modules based on recent security findings and user history."""
+    tracker = _get_awareness_tracker()
+    recent_findings = [f.strip() for f in findings.split(",")] if findings else []
+    suggestions = tracker.suggest_training(user_id=user_id, recent_findings=recent_findings)
+    return {"user_id": user_id, "suggested_modules": suggestions}

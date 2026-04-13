@@ -1504,3 +1504,434 @@ def get_training_tracker(db_path: str = _DEFAULT_DB) -> SecurityTrainingTracker:
             if _tracker_instance is None:
                 _tracker_instance = SecurityTrainingTracker(db_path=db_path)
     return _tracker_instance
+
+
+# ---------------------------------------------------------------------------
+# SecurityAwarenessTracker — high-level facade
+# ---------------------------------------------------------------------------
+# Additional models required by the facade API.
+
+class TrainingAssignment(BaseModel):
+    """Result of assigning a training module to a user."""
+    assignment_id: str
+    user_id: str
+    module: str
+    module_title: str
+    due_date: Optional[datetime]
+    status: CompletionStatus = CompletionStatus.NOT_STARTED
+    assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PhishingCampaign(BaseModel):
+    """Result of launching a phishing simulation campaign."""
+    campaign_id: str
+    user_ids: List[str]
+    template: str
+    sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    click_rate: float = 0.0
+    clicks: List[str] = Field(default_factory=list)  # user_ids who clicked
+
+
+class ComplianceReport(BaseModel):
+    """Team training compliance report."""
+    team_id: str
+    total_users: int
+    completion_rate: float
+    overdue_count: int
+    average_score: float
+    highest_risk_users: List[str] = Field(default_factory=list)
+
+
+# CWE → recommended training module
+_CWE_MODULE_MAP: Dict[str, str] = {
+    "CWE-89":  "owasp-top10",           # SQL injection
+    "CWE-79":  "owasp-top10",           # XSS
+    "CWE-22":  "owasp-top10",           # Path traversal
+    "CWE-78":  "secure-coding-python",  # OS command injection
+    "CWE-77":  "secure-coding-python",  # Command injection
+    "CWE-502": "secure-coding-java",    # Deserialization
+    "CWE-798": "password-mfa-hygiene",  # Hard-coded credentials
+    "CWE-259": "password-mfa-hygiene",  # Hard-coded password
+    "CWE-916": "password-mfa-hygiene",  # Weak password hash
+    "CWE-200": "data-handling-classification",  # Info disclosure
+    "CWE-312": "data-handling-classification",  # Cleartext storage
+    "CWE-319": "data-handling-classification",  # Cleartext transmission
+    "CWE-352": "secure-coding-javascript",      # CSRF
+    "CWE-601": "owasp-top10",           # Open redirect
+    "CWE-918": "cloud-security-fundamentals",   # SSRF
+    "CWE-611": "secure-coding-java",    # XXE
+}
+
+# Phishing simulation templates (matches PhishingSimulator built-ins)
+_PHISHING_TEMPLATES = [
+    "tpl_cred_001", "tpl_cred_002",
+    "tpl_mal_001",  "tpl_mal_002",
+    "tpl_data_001", "tpl_data_002",
+    "tpl_urg_001",  "tpl_urg_002",
+    "tpl_auth_001", "tpl_auth_002",
+]
+
+
+class SecurityAwarenessTracker:
+    """
+    High-level facade for Security Awareness Training and Phishing Simulation.
+
+    Delegates persistence to SecurityTrainingTracker (SQLite-backed).
+    Provides the interface specified in the task spec:
+      - assign_training / record_completion
+      - run_phishing_simulation
+      - get_user_risk_score
+      - get_team_compliance
+      - suggest_training
+    """
+
+    def __init__(self, db_path: str = _DEFAULT_DB) -> None:
+        self._tracker = SecurityTrainingTracker(db_path=db_path)
+        # Campaign store: campaign_id → PhishingCampaign (in-memory, lightweight)
+        self._campaigns: Dict[str, PhishingCampaign] = {}
+        self._campaign_lock = threading.Lock()
+
+    # ------------------------------------------------------------------
+    # Training Assignment
+    # ------------------------------------------------------------------
+
+    def assign_training(
+        self, user_id: str, module: str, due_date: Optional[datetime] = None
+    ) -> TrainingAssignment:
+        """
+        Assign a training module to a user.
+
+        Args:
+            user_id: The user to assign training to.
+            module: Module ID (e.g. "phishing-awareness", "owasp-top10").
+            due_date: Optional deadline. Defaults to 30 days from now.
+
+        Returns:
+            TrainingAssignment with assignment metadata.
+        """
+        due_days = 30
+        if due_date:
+            delta = due_date - datetime.now(timezone.utc)
+            due_days = max(1, delta.days)
+
+        completion = self._tracker.assign_training(user_id, module, due_days=due_days)
+        mod_obj = self._tracker.get_module(module)
+        module_title = mod_obj.title if mod_obj else module
+
+        return TrainingAssignment(
+            assignment_id=completion.id,
+            user_id=user_id,
+            module=module,
+            module_title=module_title,
+            due_date=completion.due_date,
+            status=completion.status,
+            assigned_at=completion.assigned_at,
+        )
+
+    # ------------------------------------------------------------------
+    # Completion Recording
+    # ------------------------------------------------------------------
+
+    def record_completion(
+        self, user_id: str, assignment_id: str, score: float
+    ) -> Optional[TrainingCompletion]:
+        """
+        Record training completion with a quiz score.
+
+        Args:
+            user_id: User who completed the training.
+            assignment_id: The completion/assignment ID.
+            score: Score achieved (0.0–100.0).
+
+        Returns:
+            Updated TrainingCompletion or None if assignment not found.
+        """
+        # Resolve module_id from the assignment record
+        with self._tracker._conn() as conn:
+            row = conn.execute(
+                "SELECT module_id FROM completions WHERE id = ? AND user_id = ?",
+                (assignment_id, user_id),
+            ).fetchone()
+        if not row:
+            logger.warning("assign_not_found", assignment_id=assignment_id, user_id=user_id)
+            return None
+        module_id = row["module_id"]
+        return self._tracker.record_completion(user_id, module_id, score=int(score))
+
+    # ------------------------------------------------------------------
+    # Phishing Simulation
+    # ------------------------------------------------------------------
+
+    def run_phishing_simulation(
+        self, user_ids: List[str], template: str
+    ) -> PhishingCampaign:
+        """
+        Launch a simulated phishing campaign.
+
+        Records a PhishingSimulation event per user via SecurityTrainingTracker.
+        Users who "click" are determined stochastically in this simulation (no
+        real email is sent — ntfy.sh notification is sent to a campaign topic).
+
+        Args:
+            user_ids: List of user IDs to target.
+            template: Phishing template ID (e.g. "tpl_cred_001").
+
+        Returns:
+            PhishingCampaign with campaign metadata.
+        """
+        campaign_id = f"camp-{uuid.uuid4().hex[:10]}"
+        sent_at = datetime.now(timezone.utc)
+
+        # Attempt ntfy.sh notification (non-blocking, best-effort)
+        try:
+            import urllib.request
+            ntfy_url = f"https://ntfy.sh/aldeci-phishing-{campaign_id}"
+            payload = json.dumps({
+                "campaign_id": campaign_id,
+                "template": template,
+                "targets": len(user_ids),
+                "sent_at": sent_at.isoformat(),
+            }).encode()
+            req = urllib.request.Request(
+                ntfy_url,
+                data=payload,
+                headers={"Content-Type": "application/json", "Title": "Phishing Sim Launched"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=2)
+            logger.info("ntfy_notification_sent", campaign_id=campaign_id)
+        except Exception as exc:
+            logger.warning("ntfy_notification_failed", error=str(exc))
+
+        campaign = PhishingCampaign(
+            campaign_id=campaign_id,
+            user_ids=list(user_ids),
+            template=template,
+            sent_at=sent_at,
+        )
+
+        with self._campaign_lock:
+            self._campaigns[campaign_id] = campaign
+
+        # Record a PhishingSimulation for each user (not clicked by default —
+        # clicks are recorded later via webhook callbacks)
+        for uid in user_ids:
+            sim = PhishingSimulation(
+                user_id=uid,
+                campaign_id=campaign_id,
+                sent_at=sent_at,
+                clicked=False,
+            )
+            self._tracker.record_phishing_simulation(sim)
+
+        logger.info(
+            "phishing_campaign_launched",
+            campaign_id=campaign_id,
+            template=template,
+            targets=len(user_ids),
+        )
+        return campaign
+
+    def record_phishing_click(self, campaign_id: str, user_id: str) -> PhishingCampaign:
+        """
+        Record that a user clicked the phishing link (webhook callback).
+
+        Auto-assigns phishing awareness training for that user.
+
+        Args:
+            campaign_id: The campaign ID from run_phishing_simulation.
+            user_id: The user who clicked.
+
+        Returns:
+            Updated PhishingCampaign.
+        """
+        with self._campaign_lock:
+            campaign = self._campaigns.get(campaign_id)
+            if campaign is None:
+                raise ValueError(f"Campaign not found: {campaign_id}")
+            if user_id not in campaign.clicks:
+                campaign.clicks.append(user_id)
+            total = len(campaign.user_ids)
+            campaign.click_rate = round(len(campaign.clicks) / total, 3) if total else 0.0
+
+        sim = PhishingSimulation(
+            user_id=user_id,
+            campaign_id=campaign_id,
+            sent_at=campaign.sent_at,
+            clicked=True,
+            clicked_at=datetime.now(timezone.utc),
+        )
+        self._tracker.record_phishing_simulation(sim)
+        return campaign
+
+    # ------------------------------------------------------------------
+    # User Risk Score
+    # ------------------------------------------------------------------
+
+    def get_user_risk_score(self, user_id: str) -> float:
+        """
+        Calculate a user risk score (0.0 = no risk, 1.0 = maximum risk).
+
+        Factors:
+          - Training completion rate (lower = higher risk)
+          - Average quiz score (lower = higher risk)
+          - Phishing click rate (higher = higher risk)
+          - Recency of last activity (stale = higher risk)
+
+        Returns:
+            Risk score float in [0.0, 1.0].
+        """
+        # Training completion ratio
+        completions = self._tracker.get_user_completions(user_id)
+        total = len(completions)
+        if total == 0:
+            return 1.0  # No training at all — maximum risk
+
+        completed = sum(1 for c in completions if c.status == CompletionStatus.COMPLETED)
+        completion_ratio = completed / total  # 1.0 = all done, low risk
+
+        # Average quiz score
+        scores = [c.score for c in completions if c.score is not None]
+        avg_score_ratio = (sum(scores) / len(scores) / 100.0) if scores else 0.0
+
+        # Phishing effectiveness
+        phishing_data = self._tracker.get_phishing_effectiveness(user_id)
+        sims_sent = phishing_data.get("simulations_sent", 0)
+        click_count = phishing_data.get("click_count", 0)
+        phishing_click_rate = (click_count / sims_sent) if sims_sent > 0 else 0.0
+
+        # Recency penalty: days since last activity (cap at 365)
+        profile = self._tracker.get_user_profile(user_id)
+        recency_penalty = 0.0
+        if profile and profile.last_activity_date:
+            days_since = (datetime.now(timezone.utc) - profile.last_activity_date).days
+            recency_penalty = min(days_since / 365.0, 1.0) * 0.2  # max 0.2 penalty
+
+        # Weighted risk
+        training_risk = (1.0 - completion_ratio) * 0.35
+        score_risk = (1.0 - avg_score_ratio) * 0.25
+        phishing_risk = phishing_click_rate * 0.30
+
+        risk = training_risk + score_risk + phishing_risk + recency_penalty
+        return round(min(max(risk, 0.0), 1.0), 3)
+
+    # ------------------------------------------------------------------
+    # Team Compliance
+    # ------------------------------------------------------------------
+
+    def get_team_compliance(self, team_id: str) -> ComplianceReport:
+        """
+        Get training compliance report for a team/department.
+
+        Args:
+            team_id: Department name or org_id used as team identifier.
+
+        Returns:
+            ComplianceReport with completion rate, overdue count, risk users.
+        """
+        dept_stats = self._tracker.get_department_stats(org_id=team_id)
+
+        if not dept_stats:
+            # team_id may be a department within the default org
+            all_stats = self._tracker.get_department_stats(org_id="default")
+            dept_stats = [s for s in all_stats if s.department == team_id]
+
+        if not dept_stats:
+            return ComplianceReport(
+                team_id=team_id,
+                total_users=0,
+                completion_rate=0.0,
+                overdue_count=0,
+                average_score=0.0,
+            )
+
+        # Aggregate across all department stats returned
+        total_users = sum(s.total_users for s in dept_stats)
+        total_assigned = sum(s.total_assigned for s in dept_stats)
+        total_completed = sum(s.total_completed for s in dept_stats)
+        overdue_count = sum(s.overdue_count for s in dept_stats)
+        avg_score = (
+            sum(s.average_score * s.total_users for s in dept_stats) / total_users
+            if total_users > 0 else 0.0
+        )
+        completion_rate = (
+            total_completed / total_assigned * 100.0 if total_assigned > 0 else 0.0
+        )
+
+        # Highest-risk users: overdue users in the team
+        overdue_users = self._tracker.get_overdue_users(org_id=team_id)
+        highest_risk = [u["user_id"] for u in overdue_users[:10]]
+
+        return ComplianceReport(
+            team_id=team_id,
+            total_users=total_users,
+            completion_rate=round(completion_rate, 2),
+            overdue_count=overdue_count,
+            average_score=round(avg_score, 2),
+            highest_risk_users=highest_risk,
+        )
+
+    # ------------------------------------------------------------------
+    # Training Suggestions
+    # ------------------------------------------------------------------
+
+    def suggest_training(
+        self, user_id: str, recent_findings: Optional[List[str]] = None
+    ) -> List[str]:
+        """
+        Suggest training modules based on recent security findings and user history.
+
+        Args:
+            user_id: Target user.
+            recent_findings: List of CWE IDs or finding labels (e.g. ["CWE-89", "CWE-79"]).
+
+        Returns:
+            List of module IDs recommended for this user.
+        """
+        suggestions: List[str] = []
+
+        # 1. CWE-based suggestions from recent findings
+        for finding in (recent_findings or []):
+            # Normalise to uppercase for matching
+            key = finding.upper().strip()
+            if key in _CWE_MODULE_MAP:
+                mod_id = _CWE_MODULE_MAP[key]
+                if mod_id not in suggestions:
+                    suggestions.append(mod_id)
+
+        # 2. Suggest phishing awareness if click rate is high
+        phishing_data = self._tracker.get_phishing_effectiveness(user_id)
+        click_count = phishing_data.get("click_count", 0)
+        sims_sent = phishing_data.get("simulations_sent", 0)
+        if sims_sent > 0 and click_count / sims_sent >= 0.3:
+            if "phishing-awareness" not in suggestions:
+                suggestions.append("phishing-awareness")
+
+        # 3. Fill with incomplete required modules (risk-based)
+        completions = self._tracker.get_user_completions(user_id)
+        incomplete_ids = {
+            c.module_id for c in completions
+            if c.status not in (CompletionStatus.COMPLETED,)
+        }
+        # Prioritise modules with compliance mappings
+        for mod in self._tracker.get_catalog():
+            if mod.id in incomplete_ids and mod.id not in suggestions:
+                if mod.compliance_mappings:
+                    suggestions.append(mod.id)
+                if len(suggestions) >= 5:
+                    break
+
+        return suggestions[:5]  # Cap at 5 recommendations
+
+    # ------------------------------------------------------------------
+    # Singleton
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def get_instance(cls, db_path: str = _DEFAULT_DB) -> "SecurityAwarenessTracker":
+        """Return the process-level singleton."""
+        if not hasattr(cls, "_instance") or cls._instance is None:
+            cls._instance = cls(db_path=db_path)
+        return cls._instance
+
+    _instance: Optional["SecurityAwarenessTracker"] = None

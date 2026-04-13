@@ -1,7 +1,7 @@
 {
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/reports_router.py\"}",
-  "error": "File content (10270 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
-  "timestamp": "2026-04-13T12:55:56.460Z",
-  "retry_count": 2
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"python -c \\\"import sys; print(sys.path[:5])\\\" 2>&1 && python -c \\\"import apps; print('apps ok')\\\" 2>&1\",\"description\":\"Check if sitecustomize is loading suite paths\"}",
+  "error": "Exit code 1\n['', '/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python311.zip', '/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11', '/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/lib-dynload', '/opt/homebrew/lib/python3.11/site-packages']\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'apps'\n[...",
+  "timestamp": "2026-04-13T12:57:13.503Z",
+  "retry_count": 4
 }

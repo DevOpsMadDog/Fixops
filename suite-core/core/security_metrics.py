@@ -1340,3 +1340,732 @@ class SecurityMetricsEngine:
             risks.append("No critical risk signals detected in this period")
 
         return risks[:10]  # cap at 10 top risks
+
+
+# ============================================================================
+# SECURITY METRICS AGGREGATOR — KPI Dashboard Engine
+# ============================================================================
+
+
+@dataclass
+class FindingMetrics:
+    """Aggregated finding counts and trends across all severity tiers."""
+
+    total_open: int = 0
+    critical_open: int = 0
+    high_open: int = 0
+    medium_open: int = 0
+    low_open: int = 0
+    new_24h: int = 0
+    new_7d: int = 0
+    new_30d: int = 0
+    closed_24h: int = 0
+    closed_7d: int = 0
+    closed_30d: int = 0
+    mttr_by_severity: Dict[str, float] = field(default_factory=dict)  # hours
+    false_positive_rate: float = 0.0
+
+
+@dataclass
+class CoverageMetrics:
+    """Attack surface monitoring coverage percentages."""
+
+    repos_scanned_pct: float = 0.0
+    assets_inventoried_pct: float = 0.0
+    endpoints_monitored_pct: float = 0.0
+    trustgraph_coverage_pct: float = 0.0
+    total_finding_sources: int = 0
+    active_scanners: List[str] = field(default_factory=list)
+
+
+@dataclass
+class SLAMetrics:
+    """SLA compliance rates and breach statistics."""
+
+    overall_compliance_rate: float = 0.0
+    compliance_by_severity: Dict[str, float] = field(default_factory=dict)
+    total_records: int = 0
+    on_time_resolutions: int = 0
+    breaches: int = 0
+    at_risk_count: int = 0  # open findings approaching SLA deadline
+    avg_overdue_hours: float = 0.0
+
+
+@dataclass
+class ResponseMetrics:
+    """Incident response effectiveness metrics."""
+
+    mttd_hours: float = 0.0   # mean time to detect
+    mttr_hours: float = 0.0   # mean time to remediate
+    escalation_rate: float = 0.0
+    automated_response_rate: float = 0.0
+    total_incidents: int = 0
+    open_incidents: int = 0
+    closed_incidents: int = 0
+
+
+@dataclass
+class ExecutiveSummary:
+    """One-page executive summary for CISO."""
+
+    overall_security_score: float = 0.0
+    score_trend: str = "stable"  # "improving", "degrading", "stable"
+    top_risks: List[str] = field(default_factory=list)
+    recommended_actions: List[str] = field(default_factory=list)
+    period_label: str = ""
+    finding_metrics: Optional["FindingMetrics"] = None
+    sla_metrics: Optional["SLAMetrics"] = None
+    response_metrics: Optional["ResponseMetrics"] = None
+
+
+# Default DB paths relative to this file
+_SUITE_DATA = Path(__file__).resolve().parents[2] / "data"
+
+
+class SecurityMetricsAggregator:
+    """
+    Aggregates security KPIs from all ALDECI engines.
+
+    Reads from SQLite databases in suite-core/data/ — no external API calls.
+    Covers: findings, SLA compliance, incident response, posture, coverage.
+
+    Compliance: SOC2 CC7.2, NIST CSF ID.RA-1, CIS Control 17
+    """
+
+    def __init__(
+        self,
+        vuln_db: Optional[Path] = None,
+        sla_db: Optional[Path] = None,
+        incident_db: Optional[Path] = None,
+        posture_db: Optional[Path] = None,
+        lifecycle_db: Optional[Path] = None,
+    ) -> None:
+        self._vuln_db = vuln_db or (_SUITE_DATA / "vulnerability_analytics.db")
+        self._sla_db = sla_db or (_SUITE_DATA / "sla.db")
+        self._incident_db = incident_db or (_SUITE_DATA / "incident_response.db")
+        self._posture_db = posture_db or (_SUITE_DATA / "posture_scoring.db")
+        self._lifecycle_db = lifecycle_db or (_SUITE_DATA / "vuln_lifecycle.db")
+        self._log = structlog.get_logger(self.__class__.__name__)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _connect(self, path: Path) -> Optional[sqlite3.Connection]:
+        """Return a read-only connection or None if the DB does not exist."""
+        if not path.exists():
+            self._log.warning("db_not_found", path=str(path))
+            return None
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _connect_rw(self, path: Path) -> sqlite3.Connection:
+        """Return a read-write connection, creating the DB if needed."""
+        conn = sqlite3.connect(str(path))
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    @staticmethod
+    def _iso(dt: datetime) -> str:
+        return dt.isoformat()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def get_finding_metrics(self, org_id: str = "default") -> FindingMetrics:
+        """
+        Aggregate finding counts and trends from vulnerability_analytics.db.
+
+        Returns counts of open findings by severity, new/closed in last
+        24h / 7d / 30d, MTTR by severity, and false positive rate.
+        """
+        conn = self._connect(self._vuln_db)
+        if conn is None:
+            return FindingMetrics()
+
+        now = datetime.now(timezone.utc)
+        cutoff_24h = self._iso(now - timedelta(hours=24))
+        cutoff_7d = self._iso(now - timedelta(days=7))
+        cutoff_30d = self._iso(now - timedelta(days=30))
+
+        try:
+            cur = conn.cursor()
+
+            # Count open findings per severity (opened but never closed)
+            open_by_sev: Dict[str, int] = {}
+            cur.execute(
+                """
+                SELECT severity, COUNT(*) as cnt
+                FROM finding_events
+                WHERE (org_id = ? OR ? = 'default')
+                  AND event_type = 'opened'
+                  AND finding_id NOT IN (
+                    SELECT finding_id FROM finding_events
+                    WHERE event_type = 'closed'
+                  )
+                GROUP BY severity
+                """,
+                (org_id, org_id),
+            )
+            for row in cur.fetchall():
+                open_by_sev[row["severity"].lower()] = row["cnt"]
+
+            total_open = sum(open_by_sev.values())
+
+            # New findings in time windows (event_type = 'opened')
+            def _count_new(cutoff: str) -> int:
+                cur.execute(
+                    """
+                    SELECT COUNT(*) FROM finding_events
+                    WHERE (org_id = ? OR ? = 'default')
+                      AND event_type = 'opened'
+                      AND ts >= ?
+                    """,
+                    (org_id, org_id, cutoff),
+                )
+                return cur.fetchone()[0] or 0
+
+            # Closed findings in time windows
+            def _count_closed(cutoff: str) -> int:
+                cur.execute(
+                    """
+                    SELECT COUNT(*) FROM finding_events
+                    WHERE (org_id = ? OR ? = 'default')
+                      AND event_type = 'closed'
+                      AND ts >= ?
+                    """,
+                    (org_id, org_id, cutoff),
+                )
+                return cur.fetchone()[0] or 0
+
+            new_24h = _count_new(cutoff_24h)
+            new_7d = _count_new(cutoff_7d)
+            new_30d = _count_new(cutoff_30d)
+            closed_24h = _count_closed(cutoff_24h)
+            closed_7d = _count_closed(cutoff_7d)
+            closed_30d = _count_closed(cutoff_30d)
+
+            # False positive rate
+            cur.execute(
+                """
+                SELECT
+                    CAST(SUM(CASE WHEN event_type = 'false_positive' THEN 1 ELSE 0 END) AS REAL) as fp,
+                    CAST(COUNT(*) AS REAL) as total
+                FROM finding_events
+                WHERE (org_id = ? OR ? = 'default')
+                """,
+                (org_id, org_id),
+            )
+            row = cur.fetchone()
+            fp_rate = 0.0
+            if row and row["total"] and row["total"] > 0:
+                fp_rate = round((row["fp"] or 0.0) / row["total"] * 100.0, 2)
+
+        finally:
+            conn.close()
+
+        # MTTR from lifecycle DB
+        mttr = self._compute_mttr_by_severity(org_id)
+
+        return FindingMetrics(
+            total_open=total_open,
+            critical_open=open_by_sev.get("critical", 0),
+            high_open=open_by_sev.get("high", 0),
+            medium_open=open_by_sev.get("medium", 0),
+            low_open=open_by_sev.get("low", 0),
+            new_24h=new_24h,
+            new_7d=new_7d,
+            new_30d=new_30d,
+            closed_24h=closed_24h,
+            closed_7d=closed_7d,
+            closed_30d=closed_30d,
+            mttr_by_severity=mttr,
+            false_positive_rate=fp_rate,
+        )
+
+    def _compute_mttr_by_severity(self, org_id: str) -> Dict[str, float]:
+        """Compute MTTR in hours per severity from vulnerability analytics events."""
+        conn = self._connect(self._vuln_db)
+        if conn is None:
+            return {}
+        try:
+            cur = conn.cursor()
+            # Match open/close pairs per finding_id to compute elapsed hours
+            cur.execute(
+                """
+                SELECT o.severity, o.ts AS opened_ts, c.ts AS closed_ts
+                FROM finding_events o
+                JOIN finding_events c ON o.finding_id = c.finding_id
+                WHERE o.event_type = 'opened'
+                  AND c.event_type = 'closed'
+                  AND (o.org_id = ? OR ? = 'default')
+                """,
+                (org_id, org_id),
+            )
+            rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        buckets: Dict[str, List[float]] = {}
+        for row in rows:
+            try:
+                t_open = datetime.fromisoformat(row["opened_ts"])
+                t_close = datetime.fromisoformat(row["closed_ts"])
+                if t_close > t_open:
+                    sev = (row["severity"] or "unknown").lower()
+                    buckets.setdefault(sev, []).append(
+                        (t_close - t_open).total_seconds() / 3600.0
+                    )
+            except (ValueError, TypeError):
+                pass
+
+        return {
+            sev: round(sum(vals) / len(vals), 2)
+            for sev, vals in buckets.items()
+            if vals
+        }
+
+    def get_coverage_metrics(self, org_id: str = "default") -> CoverageMetrics:
+        """
+        Compute attack surface coverage from posture and vuln analytics DBs.
+
+        Coverage is derived from posture snapshots (trustgraph_coverage field)
+        and distinct scanner sources in the finding events.
+        """
+        tg_coverage = 0.0
+        conn_p = self._connect(self._posture_db)
+        if conn_p is not None:
+            try:
+                cur = conn_p.cursor()
+                cur.execute(
+                    """
+                    SELECT components FROM posture_scores
+                    WHERE (org_id = ? OR ? = 'default')
+                    ORDER BY calculated_at DESC
+                    LIMIT 1
+                    """,
+                    (org_id, org_id),
+                )
+                row = cur.fetchone()
+                if row:
+                    try:
+                        comps = json.loads(row["components"] or "{}")
+                        tg_coverage = float(comps.get("trustgraph_coverage", 0.0))
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        pass
+            finally:
+                conn_p.close()
+
+        active_scanners: List[str] = []
+        total_sources = 0
+        conn_v = self._connect(self._vuln_db)
+        if conn_v is not None:
+            try:
+                cur = conn_v.cursor()
+                cur.execute(
+                    """
+                    SELECT DISTINCT scanner FROM finding_events
+                    WHERE (org_id = ? OR ? = 'default')
+                      AND scanner IS NOT NULL AND scanner != ''
+                    """,
+                    (org_id, org_id),
+                )
+                active_scanners = [r["scanner"] for r in cur.fetchall()]
+                total_sources = len(active_scanners)
+            finally:
+                conn_v.close()
+
+        # Estimate coverage percentages from posture score components
+        conn_p2 = self._connect(self._posture_db)
+        repos_pct = assets_pct = endpoints_pct = 0.0
+        if conn_p2 is not None:
+            try:
+                cur = conn_p2.cursor()
+                cur.execute(
+                    """
+                    SELECT overall_score FROM posture_scores
+                    WHERE (org_id = ? OR ? = 'default')
+                    ORDER BY calculated_at DESC
+                    LIMIT 1
+                    """,
+                    (org_id, org_id),
+                )
+                row = cur.fetchone()
+                if row:
+                    # Approximate coverage from posture score as proxy
+                    score = float(row["overall_score"] or 0.0)
+                    repos_pct = min(100.0, score * 1.1)
+                    assets_pct = min(100.0, score)
+                    endpoints_pct = min(100.0, score * 0.9)
+            finally:
+                conn_p2.close()
+
+        return CoverageMetrics(
+            repos_scanned_pct=round(repos_pct, 1),
+            assets_inventoried_pct=round(assets_pct, 1),
+            endpoints_monitored_pct=round(endpoints_pct, 1),
+            trustgraph_coverage_pct=round(tg_coverage, 1),
+            total_finding_sources=total_sources,
+            active_scanners=active_scanners,
+        )
+
+    def get_sla_metrics(self, org_id: str = "default") -> SLAMetrics:
+        """
+        Compute SLA compliance rates and breach stats from sla.db.
+
+        Reads sla_records table: status, severity, deadline, resolved_at.
+        """
+        conn = self._connect(self._sla_db)
+        if conn is None:
+            return SLAMetrics()
+
+        now = datetime.now(timezone.utc)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT severity, status, deadline, resolved_at, breached_at
+                FROM sla_records
+                WHERE (org_id = ? OR ? = 'default')
+                """,
+                (org_id, org_id),
+            )
+            rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        total = len(rows)
+        if total == 0:
+            return SLAMetrics()
+
+        on_time = 0
+        breaches = 0
+        at_risk = 0
+        overdue_hours: List[float] = []
+        compliance_by_sev: Dict[str, List[bool]] = {}
+
+        for row in rows:
+            sev = (row["status"] or "unknown").lower()
+            status = (row["status"] or "").lower()
+            try:
+                deadline_dt = datetime.fromisoformat(row["deadline"]) if row["deadline"] else None
+            except (ValueError, TypeError):
+                deadline_dt = None
+
+            resolved_dt = None
+            if row["resolved_at"]:
+                try:
+                    resolved_dt = datetime.fromisoformat(row["resolved_at"])
+                except (ValueError, TypeError):
+                    pass
+
+            severity_key = (row["severity"] or "unknown").lower()
+            compliance_by_sev.setdefault(severity_key, [])
+
+            if status == "resolved" or resolved_dt is not None:
+                if deadline_dt and resolved_dt:
+                    in_sla = resolved_dt <= deadline_dt
+                    compliance_by_sev[severity_key].append(in_sla)
+                    if in_sla:
+                        on_time += 1
+                    else:
+                        breaches += 1
+                        overdue = (resolved_dt - deadline_dt).total_seconds() / 3600.0
+                        overdue_hours.append(max(0.0, overdue))
+                else:
+                    on_time += 1
+                    compliance_by_sev[severity_key].append(True)
+            elif row["breached_at"]:
+                breaches += 1
+                compliance_by_sev[severity_key].append(False)
+                if deadline_dt:
+                    overdue = (now - deadline_dt).total_seconds() / 3600.0
+                    overdue_hours.append(max(0.0, overdue))
+            else:
+                # Open — check if at risk (>80% of SLA window elapsed)
+                if deadline_dt:
+                    sla_hours_map = {"critical": 24, "high": 168, "medium": 720, "low": 2160}
+                    sla_window = sla_hours_map.get(severity_key, 720)
+                    elapsed = (now - (deadline_dt - timedelta(hours=sla_window))).total_seconds() / 3600.0
+                    if elapsed > sla_window * 0.8:
+                        at_risk += 1
+
+        resolved_count = on_time + breaches
+        overall_rate = round((on_time / resolved_count * 100.0) if resolved_count > 0 else 0.0, 2)
+
+        compliance_by_severity: Dict[str, float] = {}
+        for sev_key, results in compliance_by_sev.items():
+            if results:
+                compliance_by_severity[sev_key] = round(
+                    sum(1 for r in results if r) / len(results) * 100.0, 2
+                )
+
+        avg_overdue = round(sum(overdue_hours) / len(overdue_hours), 2) if overdue_hours else 0.0
+
+        return SLAMetrics(
+            overall_compliance_rate=overall_rate,
+            compliance_by_severity=compliance_by_severity,
+            total_records=total,
+            on_time_resolutions=on_time,
+            breaches=breaches,
+            at_risk_count=at_risk,
+            avg_overdue_hours=avg_overdue,
+        )
+
+    def get_response_metrics(self, org_id: str = "default") -> ResponseMetrics:
+        """
+        Compute IR effectiveness metrics from incident_response.db.
+
+        MTTD: time from incident creation to detection event.
+        MTTR: time from detection to resolution (status=resolved).
+        """
+        conn = self._connect(self._incident_db)
+        if conn is None:
+            return ResponseMetrics()
+
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT status, data, detected_at
+                FROM incidents
+                WHERE (org_id = ? OR ? = 'default')
+                """,
+                (org_id, org_id),
+            )
+            rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        total = len(rows)
+        if total == 0:
+            return ResponseMetrics()
+
+        open_count = 0
+        closed_count = 0
+        mttd_vals: List[float] = []
+        mttr_vals: List[float] = []
+        escalated = 0
+        automated = 0
+
+        for row in rows:
+            status = (row["status"] or "").lower()
+            if status in ("resolved", "closed"):
+                closed_count += 1
+            else:
+                open_count += 1
+
+            try:
+                data = json.loads(row["data"] or "{}")
+            except (json.JSONDecodeError, TypeError):
+                data = {}
+
+            detected_at_str = row["detected_at"]
+            created_at_str = data.get("created_at") or detected_at_str
+            resolved_at_str = data.get("resolved_at")
+
+            if detected_at_str and created_at_str:
+                try:
+                    t_detected = datetime.fromisoformat(detected_at_str)
+                    t_created = datetime.fromisoformat(created_at_str)
+                    mttd_h = abs((t_detected - t_created).total_seconds()) / 3600.0
+                    mttd_vals.append(mttd_h)
+                except (ValueError, TypeError):
+                    pass
+
+            if detected_at_str and resolved_at_str:
+                try:
+                    t_detected = datetime.fromisoformat(detected_at_str)
+                    t_resolved = datetime.fromisoformat(resolved_at_str)
+                    if t_resolved > t_detected:
+                        mttr_vals.append((t_resolved - t_detected).total_seconds() / 3600.0)
+                except (ValueError, TypeError):
+                    pass
+
+            if data.get("escalated"):
+                escalated += 1
+            if data.get("automated_response"):
+                automated += 1
+
+        mttd = round(sum(mttd_vals) / len(mttd_vals), 2) if mttd_vals else 0.0
+        mttr = round(sum(mttr_vals) / len(mttr_vals), 2) if mttr_vals else 0.0
+        esc_rate = round(escalated / total * 100.0, 2) if total else 0.0
+        auto_rate = round(automated / total * 100.0, 2) if total else 0.0
+
+        return ResponseMetrics(
+            mttd_hours=mttd,
+            mttr_hours=mttr,
+            escalation_rate=esc_rate,
+            automated_response_rate=auto_rate,
+            total_incidents=total,
+            open_incidents=open_count,
+            closed_incidents=closed_count,
+        )
+
+    def get_executive_summary(self, org_id: str = "default") -> ExecutiveSummary:
+        """
+        Produce a one-page executive summary for CISO.
+
+        Pulls overall_security_score from latest posture snapshot.
+        Computes score trend by comparing last two posture scores.
+        Derives top risks and recommended actions from sub-metrics.
+        """
+        now = datetime.now(timezone.utc)
+        period_label = now.strftime("Week of %Y-%m-%d")
+
+        # Posture score + trend
+        overall_score = 0.0
+        score_trend = "stable"
+        conn_p = self._connect(self._posture_db)
+        if conn_p is not None:
+            try:
+                cur = conn_p.cursor()
+                cur.execute(
+                    """
+                    SELECT overall_score FROM posture_scores
+                    WHERE (org_id = ? OR ? = 'default')
+                    ORDER BY calculated_at DESC
+                    LIMIT 2
+                    """,
+                    (org_id, org_id),
+                )
+                scores = [r["overall_score"] for r in cur.fetchall()]
+                if scores:
+                    overall_score = float(scores[0])
+                if len(scores) == 2:
+                    delta = scores[0] - scores[1]
+                    if delta > 1.0:
+                        score_trend = "improving"
+                    elif delta < -1.0:
+                        score_trend = "degrading"
+            finally:
+                conn_p.close()
+
+        findings = self.get_finding_metrics(org_id)
+        sla = self.get_sla_metrics(org_id)
+        response = self.get_response_metrics(org_id)
+
+        # Build top risks
+        top_risks: List[str] = []
+        if findings.critical_open > 0:
+            top_risks.append(f"{findings.critical_open} critical findings open")
+        if sla.breaches > 0:
+            top_risks.append(
+                f"{sla.breaches} SLA breaches (compliance {sla.overall_compliance_rate:.0f}%)"
+            )
+        if response.mttd_hours > 48:
+            top_risks.append(f"MTTD {response.mttd_hours:.0f}h exceeds 48h target")
+        if response.mttr_hours > 720:
+            top_risks.append(f"MTTR {response.mttr_hours:.0f}h exceeds 30-day target")
+        if findings.false_positive_rate > 20.0:
+            top_risks.append(
+                f"High false positive rate ({findings.false_positive_rate:.0f}%) — review tuning"
+            )
+        if not top_risks:
+            top_risks.append("No critical risk signals detected this period")
+
+        # Recommended actions
+        actions: List[str] = []
+        if findings.critical_open > 0:
+            actions.append("Prioritise remediation of all open critical findings immediately")
+        if sla.breaches > 0:
+            actions.append("Review SLA breach root causes; assign dedicated remediation owner")
+        if response.mttd_hours > 48:
+            actions.append("Tune detection rules to reduce MTTD below 48h threshold")
+        if score_trend == "degrading":
+            actions.append("Posture score declining — review recent scan results for regressions")
+        if not actions:
+            actions.append("Maintain current security posture — no urgent actions required")
+
+        return ExecutiveSummary(
+            overall_security_score=round(overall_score, 1),
+            score_trend=score_trend,
+            top_risks=top_risks[:5],
+            recommended_actions=actions[:5],
+            period_label=period_label,
+            finding_metrics=findings,
+            sla_metrics=sla,
+            response_metrics=response,
+        )
+
+    def export_metrics_report(self, org_id: str = "default", format: str = "json") -> str:
+        """
+        Export a full metrics report as JSON or CSV.
+
+        Args:
+            org_id: Organisation identifier.
+            format: "json" (default) or "csv".
+
+        Returns:
+            Serialised report string.
+        """
+        findings = self.get_finding_metrics(org_id)
+        coverage = self.get_coverage_metrics(org_id)
+        sla = self.get_sla_metrics(org_id)
+        response = self.get_response_metrics(org_id)
+        summary = self.get_executive_summary(org_id)
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        if format.lower() == "csv":
+            import csv
+            import io
+
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            writer.writerow(["metric", "value", "org_id", "exported_at"])
+            flat: List[Tuple[str, Any]] = [
+                ("findings.total_open", findings.total_open),
+                ("findings.critical_open", findings.critical_open),
+                ("findings.high_open", findings.high_open),
+                ("findings.medium_open", findings.medium_open),
+                ("findings.low_open", findings.low_open),
+                ("findings.new_24h", findings.new_24h),
+                ("findings.new_7d", findings.new_7d),
+                ("findings.new_30d", findings.new_30d),
+                ("findings.false_positive_rate_pct", findings.false_positive_rate),
+                ("coverage.repos_scanned_pct", coverage.repos_scanned_pct),
+                ("coverage.assets_inventoried_pct", coverage.assets_inventoried_pct),
+                ("coverage.endpoints_monitored_pct", coverage.endpoints_monitored_pct),
+                ("coverage.trustgraph_coverage_pct", coverage.trustgraph_coverage_pct),
+                ("coverage.total_finding_sources", coverage.total_finding_sources),
+                ("sla.overall_compliance_rate_pct", sla.overall_compliance_rate),
+                ("sla.total_records", sla.total_records),
+                ("sla.on_time_resolutions", sla.on_time_resolutions),
+                ("sla.breaches", sla.breaches),
+                ("sla.at_risk_count", sla.at_risk_count),
+                ("sla.avg_overdue_hours", sla.avg_overdue_hours),
+                ("response.mttd_hours", response.mttd_hours),
+                ("response.mttr_hours", response.mttr_hours),
+                ("response.escalation_rate_pct", response.escalation_rate),
+                ("response.automated_response_rate_pct", response.automated_response_rate),
+                ("response.total_incidents", response.total_incidents),
+                ("executive.overall_security_score", summary.overall_security_score),
+                ("executive.score_trend", summary.score_trend),
+            ]
+            for metric, value in flat:
+                writer.writerow([metric, value, org_id, now_iso])
+            return buf.getvalue()
+
+        # Default: JSON
+        return json.dumps(
+            {
+                "exported_at": now_iso,
+                "org_id": org_id,
+                "findings": asdict(findings),
+                "coverage": asdict(coverage),
+                "sla": asdict(sla),
+                "response": asdict(response),
+                "executive_summary": {
+                    "overall_security_score": summary.overall_security_score,
+                    "score_trend": summary.score_trend,
+                    "top_risks": summary.top_risks,
+                    "recommended_actions": summary.recommended_actions,
+                    "period_label": summary.period_label,
+                },
+            },
+            indent=2,
+            default=str,
+        )

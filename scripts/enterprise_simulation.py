@@ -325,16 +325,16 @@ def run_cmd(user_input):
 
     # 1b: Secret scanner
     secret_payload = {
-        "text": (
+        "content": (
             "# Config file\n"
             "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n"
             "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n"
             "DATABASE_URL=postgres://admin:SuperSecret123!@prod-db.internal:5432/app\n"
         ),
-        "file_path": "config/secrets.env",
+        "filename": "config/secrets.env",
     }
     status2, body2 = _call(
-        client, "post", "/api/v1/secrets/scan", report,
+        client, "post", "/api/v1/secrets/scan/content", report,
         json=secret_payload,
         headers=AUTH_HEADERS,
     )
@@ -446,14 +446,17 @@ CMD ["/bin/sh", "-c", "python app.py"]
 
     # 2b: CSPM scan — sync a cloud resource then scan
     sync_payload = {
-        "provider": "aws",
+        "provider": "AWS",
         "org_id": "default",
         "resources": [
             {
                 "resource_id": f"s3-sim-{state.run_id}",
                 "resource_type": "s3_bucket",
+                "category": "STORAGE",
                 "name": f"sim-data-bucket-{state.run_id}",
                 "region": "us-east-1",
+                "account_id": "123456789012",
+                "provider": "AWS",
                 "tags": {},
                 "config": {
                     "public_access_block": False,
@@ -461,6 +464,9 @@ CMD ["/bin/sh", "-c", "python app.py"]
                     "versioning": False,
                     "logging": False,
                 },
+                "public_exposure": True,
+                "encryption_enabled": False,
+                "org_id": "default",
             }
         ],
     }
@@ -476,7 +482,7 @@ CMD ["/bin/sh", "-c", "python app.py"]
     # 2c: CSPM scan
     status3, body3 = _call(
         client, "post", "/api/v1/cspm-engine/scan", report,
-        json={"org_id": "default", "provider": "aws"},
+        json={"org_id": "default", "provider": "AWS"},
         headers=AUTH_HEADERS,
     )
     local_calls += 1

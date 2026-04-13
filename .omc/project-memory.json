@@ -400,8 +400,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 271,
-      "lastAccessed": 1776084956565,
+      "accessCount": 279,
+      "lastAccessed": 1776085069610,
       "type": "directory"
     },
     {
@@ -411,15 +411,21 @@
       "type": "file"
     },
     {
-      "path": "suite-core/core/supply_chain_security.py",
-      "accessCount": 17,
-      "lastAccessed": 1776084475831,
+      "path": "suite-core/core/asset_inventory.py",
+      "accessCount": 21,
+      "lastAccessed": 1776085064865,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/asset_inventory_router.py",
+      "accessCount": 18,
+      "lastAccessed": 1776085004258,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/supply_chain_security.py",
       "accessCount": 17,
-      "lastAccessed": 1776084888732,
+      "lastAccessed": 1776084475831,
       "type": "file"
     },
     {
@@ -435,21 +441,15 @@
       "type": "directory"
     },
     {
-      "path": "suite-core/core/asset_inventory.py",
+      "path": "suite-api/apps/api/anomaly_router.py",
       "accessCount": 13,
-      "lastAccessed": 1776084909437,
+      "lastAccessed": 1776085006791,
       "type": "file"
     },
     {
       "path": "suite-core/core/anomaly_detector.py",
-      "accessCount": 12,
-      "lastAccessed": 1776081428728,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/anomaly_router.py",
-      "accessCount": 12,
-      "lastAccessed": 1776083499220,
+      "accessCount": 13,
+      "lastAccessed": 1776085012291,
       "type": "file"
     },
     {

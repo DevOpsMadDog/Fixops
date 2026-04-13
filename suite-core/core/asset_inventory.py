@@ -253,13 +253,9 @@ class _InventoryDB:
                 CREATE INDEX IF NOT EXISTS idx_masset_org ON managed_assets(org_id);
                 CREATE INDEX IF NOT EXISTS idx_masset_type ON managed_assets(asset_type);
                 CREATE INDEX IF NOT EXISTS idx_masset_criticality ON managed_assets(criticality);
-                CREATE INDEX IF NOT EXISTS idx_masset_tier ON managed_assets(criticality_tier);
                 CREATE INDEX IF NOT EXISTS idx_masset_lifecycle ON managed_assets(lifecycle);
                 CREATE INDEX IF NOT EXISTS idx_masset_environment ON managed_assets(environment);
                 CREATE INDEX IF NOT EXISTS idx_masset_owner ON managed_assets(owner_email);
-                CREATE INDEX IF NOT EXISTS idx_masset_cloud ON managed_assets(cloud_provider);
-                CREATE INDEX IF NOT EXISTS idx_masset_bu ON managed_assets(business_unit);
-                CREATE INDEX IF NOT EXISTS idx_masset_classification ON managed_assets(data_classification);
 
                 CREATE TABLE IF NOT EXISTS asset_relationships (
                     id TEXT PRIMARY KEY,
@@ -287,6 +283,30 @@ class _InventoryDB:
                 );
                 CREATE INDEX IF NOT EXISTS idx_sync_asset ON cmdb_sync_records(asset_id);
                 CREATE INDEX IF NOT EXISTS idx_sync_system ON cmdb_sync_records(cmdb_system);
+            """)
+            # Schema migration: add columns introduced after initial schema
+            _migrations = [
+                ("cloud_provider", "TEXT"),
+                ("region", "TEXT"),
+                ("cloud_resource_id", "TEXT"),
+                ("owner_name", "TEXT"),
+                ("business_unit", "TEXT"),
+                ("cost_center", "TEXT"),
+                ("criticality_tier", "TEXT NOT NULL DEFAULT 'T3'"),
+                ("data_classification", "TEXT NOT NULL DEFAULT 'internal'"),
+                ("compliance_scope", "TEXT NOT NULL DEFAULT '[]'"),
+                ("discovery_source", "TEXT"),
+            ]
+            existing = {row[1] for row in self._conn.execute("PRAGMA table_info(managed_assets)")}
+            for col, col_def in _migrations:
+                if col not in existing:
+                    self._conn.execute(f"ALTER TABLE managed_assets ADD COLUMN {col} {col_def}")
+            # Indexes on migrated columns (safe to run after columns exist)
+            self._conn.executescript("""
+                CREATE INDEX IF NOT EXISTS idx_masset_tier ON managed_assets(criticality_tier);
+                CREATE INDEX IF NOT EXISTS idx_masset_cloud ON managed_assets(cloud_provider);
+                CREATE INDEX IF NOT EXISTS idx_masset_bu ON managed_assets(business_unit);
+                CREATE INDEX IF NOT EXISTS idx_masset_classification ON managed_assets(data_classification);
             """)
             self._conn.commit()
 
