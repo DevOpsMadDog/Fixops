@@ -195,6 +195,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("TrustGraph router not available: %s", e)
 
+# TrustGraph Quality Monitor router (coverage, orphans, backfill, stats, issues)
+trustgraph_quality_router: Optional[APIRouter] = None
+try:
+    from apps.api.trustgraph_quality_router import router as trustgraph_quality_router
+    logging.getLogger(__name__).info("Loaded TrustGraph Quality router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("TrustGraph Quality router not available: %s", e)
+
 # Findings lifecycle management router (status, assignment, SLA, bulk ops, export)
 findings_router: Optional[APIRouter] = None
 try:
@@ -2589,6 +2597,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
         )
         _logger.info("Mounted TrustGraph router")
+
+    # TrustGraph Quality Monitor — coverage, orphans, backfill, stats, issues
+    if trustgraph_quality_router:
+        app.include_router(
+            trustgraph_quality_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:graph"))],
+        )
+        _logger.info("Mounted TrustGraph Quality router")
 
     # Findings lifecycle management — status, assignment, SLA, bulk ops, export
     if findings_router:
