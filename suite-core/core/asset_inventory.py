@@ -1,7 +1,11 @@
-"""Asset Inventory and CMDB Integration — Centralized Asset Management.
+"""Asset Inventory and CMDB Engine — Unified Configuration Management Database.
 
-Provides auto-discovery, lifecycle tracking, ownership management, tagging,
-full-text search, and CMDB sync for all managed assets across orgs.
+Provides auto-discovery, lifecycle tracking, ownership & accountability,
+relationship mapping, compliance tagging, full-text search, and CMDB sync
+for all managed assets across orgs.
+
+Asset types supported: servers, containers, cloud resources, applications,
+databases, APIs, repositories, network devices, users, certificates.
 
 Usage:
     from core.asset_inventory import AssetInventory, get_asset_inventory
@@ -14,13 +18,12 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 from pydantic import BaseModel, Field
@@ -42,7 +45,16 @@ class AssetCriticality(str, Enum):
     INFORMATIONAL = "informational"
 
 
+class CriticalityTier(str, Enum):
+    """Business criticality tier — T1 (most critical) to T4 (least critical)."""
+    T1 = "T1"
+    T2 = "T2"
+    T3 = "T3"
+    T4 = "T4"
+
+
 class AssetLifecycle(str, Enum):
+    PROVISIONED = "provisioned"
     DISCOVERED = "discovered"
     ACTIVE = "active"
     MAINTENANCE = "maintenance"
@@ -58,8 +70,53 @@ class Environment(str, Enum):
     DR = "dr"
 
 
+class DataClassification(str, Enum):
+    PUBLIC = "public"
+    INTERNAL = "internal"
+    CONFIDENTIAL = "confidential"
+    RESTRICTED = "restricted"
+    SECRET = "secret"
+
+
+class ComplianceFramework(str, Enum):
+    PCI = "pci"          # PCI-DSS — cardholder data environment
+    HIPAA = "hipaa"      # HIPAA — protected health information
+    SOX = "sox"          # SOX — financial systems
+    ITAR = "itar"        # ITAR — defense / export-controlled
+    GDPR = "gdpr"        # GDPR — personal data (EU)
+    NIST = "nist"        # NIST CSF
+    ISO27001 = "iso27001"
+
+
+class RelationshipType(str, Enum):
+    DEPENDS_ON = "depends_on"           # app depends_on database
+    RUNS_ON = "runs_on"                 # service runs_on container
+    DEPLOYED_IN = "deployed_in"         # container deployed_in cluster
+    EXPOSED_BY = "exposed_by"           # api exposed_by load_balancer
+    OWNED_BY = "owned_by"               # resource owned_by team/account
+    CONNECTS_TO = "connects_to"         # network connectivity
+    BACKS_UP_TO = "backs_up_to"         # backup target
+    REPLICATES_TO = "replicates_to"     # replication target
+    HOSTED_ON = "hosted_on"             # hosted on cloud provider
+    MANAGED_BY = "managed_by"           # managed by orchestrator
+
+
+# ---------------------------------------------------------------------------
+# Compliance auto-scope rules
+# data_classification -> implied compliance frameworks
+# ---------------------------------------------------------------------------
+
+_CLASSIFICATION_TO_COMPLIANCE: Dict[DataClassification, List[ComplianceFramework]] = {
+    DataClassification.RESTRICTED: [ComplianceFramework.PCI, ComplianceFramework.HIPAA, ComplianceFramework.ITAR],
+    DataClassification.SECRET: [ComplianceFramework.ITAR, ComplianceFramework.SOX],
+    DataClassification.CONFIDENTIAL: [ComplianceFramework.SOX, ComplianceFramework.GDPR],
+    DataClassification.INTERNAL: [ComplianceFramework.GDPR],
+    DataClassification.PUBLIC: [],
+}
+
 # Valid lifecycle transitions: from -> set of allowed destinations
 _LIFECYCLE_TRANSITIONS: Dict[AssetLifecycle, set] = {
+    AssetLifecycle.PROVISIONED: {AssetLifecycle.ACTIVE, AssetLifecycle.DISCOVERED, AssetLifecycle.DECOMMISSIONED},
     AssetLifecycle.DISCOVERED: {AssetLifecycle.ACTIVE, AssetLifecycle.DEPRECATED, AssetLifecycle.DECOMMISSIONED},
     AssetLifecycle.ACTIVE: {AssetLifecycle.MAINTENANCE, AssetLifecycle.DEPRECATED, AssetLifecycle.DECOMMISSIONED},
     AssetLifecycle.MAINTENANCE: {AssetLifecycle.ACTIVE, AssetLifecycle.DEPRECATED, AssetLifecycle.DECOMMISSIONED},
@@ -73,22 +130,63 @@ _LIFECYCLE_TRANSITIONS: Dict[AssetLifecycle, set] = {
 # ---------------------------------------------------------------------------
 
 class ManagedAsset(BaseModel):
+    """Universal asset model — tracks any asset type with full accountability."""
+
     id: str = Field(default_factory=lambda: f"masset-{uuid.uuid4().hex[:12]}")
     name: str
-    asset_type: str
+    asset_type: str  # server, container, cloud_resource, application, database,
+                     # api, repository, network_device, user, certificate, etc.
+
+    # Network identity
     hostname: Optional[str] = None
     ip_address: Optional[str] = None
+    cloud_provider: Optional[str] = None   # aws, gcp, azure, on-prem
+    region: Optional[str] = None
+    cloud_resource_id: Optional[str] = None  # ARN, resource ID, etc.
+
+    # Ownership & Accountability
     owner_email: Optional[str] = None
+    owner_name: Optional[str] = None
     team: Optional[str] = None
+    business_unit: Optional[str] = None
+    cost_center: Optional[str] = None
     criticality: AssetCriticality = AssetCriticality.MEDIUM
+    criticality_tier: CriticalityTier = CriticalityTier.T3
+
+    # Data governance
+    data_classification: DataClassification = DataClassification.INTERNAL
+    compliance_scope: List[str] = Field(default_factory=list)  # ComplianceFramework values
+
+    # Deployment context
     environment: Environment = Environment.PRODUCTION
     lifecycle: AssetLifecycle = AssetLifecycle.DISCOVERED
+
+    # Discovery source
+    discovery_source: Optional[str] = None  # cloud_discovery, k8s_scan, container_scan,
+                                             # network_scan, manual, bulk_import
+
+    # Labels / metadata
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    # Tracking
     first_discovered: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     last_seen: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     finding_count: int = 0
     risk_score: float = 0.0
+
+    org_id: str = "default"
+
+
+class AssetRelationship(BaseModel):
+    """Directed relationship between two assets."""
+
+    id: str = Field(default_factory=lambda: f"rel-{uuid.uuid4().hex[:12]}")
+    source_asset_id: str
+    target_asset_id: str
+    relationship_type: RelationshipType
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     org_id: str = "default"
 
 
@@ -107,7 +205,7 @@ class CMDBSyncRecord(BaseModel):
 # ---------------------------------------------------------------------------
 
 class _InventoryDB:
-    """SQLite persistence for managed assets and CMDB sync records."""
+    """SQLite persistence for managed assets, relationships, and CMDB sync records."""
 
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
@@ -129,11 +227,21 @@ class _InventoryDB:
                     asset_type TEXT NOT NULL,
                     hostname TEXT,
                     ip_address TEXT,
+                    cloud_provider TEXT,
+                    region TEXT,
+                    cloud_resource_id TEXT,
                     owner_email TEXT,
+                    owner_name TEXT,
                     team TEXT,
+                    business_unit TEXT,
+                    cost_center TEXT,
                     criticality TEXT NOT NULL DEFAULT 'medium',
+                    criticality_tier TEXT NOT NULL DEFAULT 'T3',
+                    data_classification TEXT NOT NULL DEFAULT 'internal',
+                    compliance_scope TEXT NOT NULL DEFAULT '[]',
                     environment TEXT NOT NULL DEFAULT 'production',
                     lifecycle TEXT NOT NULL DEFAULT 'discovered',
+                    discovery_source TEXT,
                     tags TEXT NOT NULL DEFAULT '[]',
                     metadata TEXT NOT NULL DEFAULT '{}',
                     first_discovered TEXT NOT NULL,
@@ -145,9 +253,28 @@ class _InventoryDB:
                 CREATE INDEX IF NOT EXISTS idx_masset_org ON managed_assets(org_id);
                 CREATE INDEX IF NOT EXISTS idx_masset_type ON managed_assets(asset_type);
                 CREATE INDEX IF NOT EXISTS idx_masset_criticality ON managed_assets(criticality);
+                CREATE INDEX IF NOT EXISTS idx_masset_tier ON managed_assets(criticality_tier);
                 CREATE INDEX IF NOT EXISTS idx_masset_lifecycle ON managed_assets(lifecycle);
                 CREATE INDEX IF NOT EXISTS idx_masset_environment ON managed_assets(environment);
                 CREATE INDEX IF NOT EXISTS idx_masset_owner ON managed_assets(owner_email);
+                CREATE INDEX IF NOT EXISTS idx_masset_cloud ON managed_assets(cloud_provider);
+                CREATE INDEX IF NOT EXISTS idx_masset_bu ON managed_assets(business_unit);
+                CREATE INDEX IF NOT EXISTS idx_masset_classification ON managed_assets(data_classification);
+
+                CREATE TABLE IF NOT EXISTS asset_relationships (
+                    id TEXT PRIMARY KEY,
+                    source_asset_id TEXT NOT NULL,
+                    target_asset_id TEXT NOT NULL,
+                    relationship_type TEXT NOT NULL,
+                    metadata TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    org_id TEXT NOT NULL,
+                    UNIQUE(source_asset_id, target_asset_id, relationship_type)
+                );
+                CREATE INDEX IF NOT EXISTS idx_rel_source ON asset_relationships(source_asset_id);
+                CREATE INDEX IF NOT EXISTS idx_rel_target ON asset_relationships(target_asset_id);
+                CREATE INDEX IF NOT EXISTS idx_rel_type ON asset_relationships(relationship_type);
+                CREATE INDEX IF NOT EXISTS idx_rel_org ON asset_relationships(org_id);
 
                 CREATE TABLE IF NOT EXISTS cmdb_sync_records (
                     id TEXT PRIMARY KEY,
@@ -169,16 +296,24 @@ class _InventoryDB:
         with self._lock:
             self._conn.execute(
                 """INSERT OR REPLACE INTO managed_assets
-                   (id, name, asset_type, hostname, ip_address, owner_email, team,
-                    criticality, environment, lifecycle, tags, metadata,
-                    first_discovered, last_seen, finding_count, risk_score, org_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (id, name, asset_type, hostname, ip_address, cloud_provider, region,
+                    cloud_resource_id, owner_email, owner_name, team, business_unit,
+                    cost_center, criticality, criticality_tier, data_classification,
+                    compliance_scope, environment, lifecycle, discovery_source,
+                    tags, metadata, first_discovered, last_seen,
+                    finding_count, risk_score, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     asset.id, asset.name, asset.asset_type,
                     asset.hostname, asset.ip_address,
-                    asset.owner_email, asset.team,
-                    asset.criticality.value, asset.environment.value,
-                    asset.lifecycle.value,
+                    asset.cloud_provider, asset.region, asset.cloud_resource_id,
+                    asset.owner_email, asset.owner_name, asset.team,
+                    asset.business_unit, asset.cost_center,
+                    asset.criticality.value, asset.criticality_tier.value,
+                    asset.data_classification.value,
+                    json.dumps(asset.compliance_scope),
+                    asset.environment.value, asset.lifecycle.value,
+                    asset.discovery_source,
                     json.dumps(asset.tags), json.dumps(asset.metadata),
                     asset.first_discovered, asset.last_seen,
                     asset.finding_count, asset.risk_score, asset.org_id,
@@ -198,10 +333,16 @@ class _InventoryDB:
         org_id: str,
         asset_type: Optional[str] = None,
         criticality: Optional[str] = None,
+        criticality_tier: Optional[str] = None,
         environment: Optional[str] = None,
         lifecycle: Optional[str] = None,
         owner_email: Optional[str] = None,
         tag: Optional[str] = None,
+        business_unit: Optional[str] = None,
+        cloud_provider: Optional[str] = None,
+        region: Optional[str] = None,
+        data_classification: Optional[str] = None,
+        compliance_scope: Optional[str] = None,
     ) -> List[ManagedAsset]:
         query = "SELECT * FROM managed_assets WHERE org_id = ?"
         params: List[Any] = [org_id]
@@ -211,6 +352,9 @@ class _InventoryDB:
         if criticality:
             query += " AND criticality = ?"
             params.append(criticality)
+        if criticality_tier:
+            query += " AND criticality_tier = ?"
+            params.append(criticality_tier)
         if environment:
             query += " AND environment = ?"
             params.append(environment)
@@ -220,11 +364,25 @@ class _InventoryDB:
         if owner_email:
             query += " AND owner_email = ?"
             params.append(owner_email)
+        if business_unit:
+            query += " AND business_unit = ?"
+            params.append(business_unit)
+        if cloud_provider:
+            query += " AND cloud_provider = ?"
+            params.append(cloud_provider)
+        if region:
+            query += " AND region = ?"
+            params.append(region)
+        if data_classification:
+            query += " AND data_classification = ?"
+            params.append(data_classification)
         with self._lock:
             rows = self._conn.execute(query, params).fetchall()
         assets = [self._row_to_asset(r) for r in rows]
         if tag:
             assets = [a for a in assets if tag in a.tags]
+        if compliance_scope:
+            assets = [a for a in assets if compliance_scope in a.compliance_scope]
         return assets
 
     def delete_asset(self, asset_id: str) -> bool:
@@ -244,11 +402,17 @@ class _InventoryDB:
                        lower(coalesce(hostname,'')) LIKE ? OR
                        lower(coalesce(ip_address,'')) LIKE ? OR
                        lower(coalesce(owner_email,'')) LIKE ? OR
+                       lower(coalesce(owner_name,'')) LIKE ? OR
                        lower(coalesce(team,'')) LIKE ? OR
+                       lower(coalesce(business_unit,'')) LIKE ? OR
+                       lower(coalesce(cost_center,'')) LIKE ? OR
+                       lower(coalesce(cloud_provider,'')) LIKE ? OR
+                       lower(coalesce(region,'')) LIKE ? OR
                        lower(tags) LIKE ? OR
-                       lower(metadata) LIKE ?
+                       lower(metadata) LIKE ? OR
+                       lower(compliance_scope) LIKE ?
                    )""",
-                (org_id, q, q, q, q, q, q, q, q),
+                (org_id, q, q, q, q, q, q, q, q, q, q, q, q, q, q),
             ).fetchall()
         return [self._row_to_asset(r) for r in rows]
 
@@ -275,34 +439,34 @@ class _InventoryDB:
                 "SELECT COUNT(*) FROM managed_assets WHERE org_id = ?", (org_id,)
             ).fetchone()[0]
 
-            by_type = {
-                r[0]: r[1]
-                for r in self._conn.execute(
-                    "SELECT asset_type, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY asset_type",
-                    (org_id,),
-                ).fetchall()
-            }
-            by_criticality = {
-                r[0]: r[1]
-                for r in self._conn.execute(
-                    "SELECT criticality, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY criticality",
-                    (org_id,),
-                ).fetchall()
-            }
-            by_lifecycle = {
-                r[0]: r[1]
-                for r in self._conn.execute(
-                    "SELECT lifecycle, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY lifecycle",
-                    (org_id,),
-                ).fetchall()
-            }
-            by_environment = {
-                r[0]: r[1]
-                for r in self._conn.execute(
-                    "SELECT environment, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY environment",
-                    (org_id,),
-                ).fetchall()
-            }
+            by_type = dict(self._conn.execute(
+                "SELECT asset_type, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY asset_type",
+                (org_id,),
+            ).fetchall())
+            by_criticality = dict(self._conn.execute(
+                "SELECT criticality, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY criticality",
+                (org_id,),
+            ).fetchall())
+            by_tier = dict(self._conn.execute(
+                "SELECT criticality_tier, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY criticality_tier",
+                (org_id,),
+            ).fetchall())
+            by_lifecycle = dict(self._conn.execute(
+                "SELECT lifecycle, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY lifecycle",
+                (org_id,),
+            ).fetchall())
+            by_environment = dict(self._conn.execute(
+                "SELECT environment, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY environment",
+                (org_id,),
+            ).fetchall())
+            by_cloud = dict(self._conn.execute(
+                "SELECT cloud_provider, COUNT(*) FROM managed_assets WHERE org_id = ? AND cloud_provider IS NOT NULL GROUP BY cloud_provider",
+                (org_id,),
+            ).fetchall())
+            by_classification = dict(self._conn.execute(
+                "SELECT data_classification, COUNT(*) FROM managed_assets WHERE org_id = ? GROUP BY data_classification",
+                (org_id,),
+            ).fetchall())
             unowned = self._conn.execute(
                 "SELECT COUNT(*) FROM managed_assets WHERE org_id = ? AND (owner_email IS NULL OR owner_email = '')",
                 (org_id,),
@@ -312,9 +476,99 @@ class _InventoryDB:
             "total": total,
             "by_type": by_type,
             "by_criticality": by_criticality,
+            "by_criticality_tier": by_tier,
             "by_lifecycle": by_lifecycle,
             "by_environment": by_environment,
+            "by_cloud_provider": by_cloud,
+            "by_data_classification": by_classification,
             "unowned_count": unowned,
+        }
+
+    # ---- Relationship persistence ----
+
+    def upsert_relationship(self, rel: AssetRelationship) -> AssetRelationship:
+        """Insert or replace a relationship (unique on source+target+type)."""
+        with self._lock:
+            self._conn.execute(
+                """INSERT OR REPLACE INTO asset_relationships
+                   (id, source_asset_id, target_asset_id, relationship_type, metadata, created_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    rel.id, rel.source_asset_id, rel.target_asset_id,
+                    rel.relationship_type.value,
+                    json.dumps(rel.metadata), rel.created_at, rel.org_id,
+                ),
+            )
+            self._conn.commit()
+        return rel
+
+    def get_relationships(
+        self,
+        asset_id: str,
+        direction: str = "both",  # "outbound", "inbound", "both"
+        relationship_type: Optional[str] = None,
+    ) -> List[AssetRelationship]:
+        conditions: List[str] = []
+        params: List[Any] = []
+        if direction == "outbound":
+            conditions.append("source_asset_id = ?")
+            params.append(asset_id)
+        elif direction == "inbound":
+            conditions.append("target_asset_id = ?")
+            params.append(asset_id)
+        else:
+            conditions.append("(source_asset_id = ? OR target_asset_id = ?)")
+            params.extend([asset_id, asset_id])
+        if relationship_type:
+            conditions.append("relationship_type = ?")
+            params.append(relationship_type)
+        where = " AND ".join(conditions)
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT * FROM asset_relationships WHERE {where}", params
+            ).fetchall()
+        return [self._row_to_rel(r) for r in rows]
+
+    def delete_relationship(self, rel_id: str) -> bool:
+        with self._lock:
+            cur = self._conn.execute(
+                "DELETE FROM asset_relationships WHERE id = ?", (rel_id,)
+            )
+            self._conn.commit()
+        return cur.rowcount > 0
+
+    def get_impact_graph(self, asset_id: str, max_depth: int = 3) -> Dict[str, Any]:
+        """BFS traversal of the dependency graph starting from asset_id.
+
+        Returns a dict with nodes (asset IDs) and edges visited up to max_depth hops.
+        """
+        visited: Dict[str, int] = {}   # asset_id -> depth
+        edges: List[Tuple[str, str, str]] = []
+        queue: List[Tuple[str, int]] = [(asset_id, 0)]
+
+        while queue:
+            current_id, depth = queue.pop(0)
+            if current_id in visited or depth > max_depth:
+                continue
+            visited[current_id] = depth
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT id, source_asset_id, target_asset_id, relationship_type "
+                    "FROM asset_relationships WHERE source_asset_id = ? OR target_asset_id = ?",
+                    (current_id, current_id),
+                ).fetchall()
+            for row in rows:
+                rel_id, src, tgt, rel_type = row
+                edges.append((src, tgt, rel_type))
+                neighbor = tgt if src == current_id else src
+                if neighbor not in visited:
+                    queue.append((neighbor, depth + 1))
+
+        return {
+            "root": asset_id,
+            "nodes": list(visited.keys()),
+            "edges": [{"source": s, "target": t, "type": rt} for s, t, rt in edges],
+            "depth": max_depth,
         }
 
     # ---- CMDB sync persistence ----
@@ -347,9 +601,12 @@ class _InventoryDB:
     def _row_to_asset(row: tuple) -> ManagedAsset:
         (
             id_, name, asset_type, hostname, ip_address,
-            owner_email, team, criticality, environment,
-            lifecycle, tags_json, metadata_json,
-            first_discovered, last_seen, finding_count, risk_score, org_id,
+            cloud_provider, region, cloud_resource_id,
+            owner_email, owner_name, team, business_unit, cost_center,
+            criticality, criticality_tier, data_classification,
+            compliance_scope_json, environment, lifecycle, discovery_source,
+            tags_json, metadata_json, first_discovered, last_seen,
+            finding_count, risk_score, org_id,
         ) = row
         return ManagedAsset(
             id=id_,
@@ -357,17 +614,40 @@ class _InventoryDB:
             asset_type=asset_type,
             hostname=hostname,
             ip_address=ip_address,
+            cloud_provider=cloud_provider,
+            region=region,
+            cloud_resource_id=cloud_resource_id,
             owner_email=owner_email,
+            owner_name=owner_name,
             team=team,
+            business_unit=business_unit,
+            cost_center=cost_center,
             criticality=AssetCriticality(criticality),
+            criticality_tier=CriticalityTier(criticality_tier),
+            data_classification=DataClassification(data_classification),
+            compliance_scope=json.loads(compliance_scope_json),
             environment=Environment(environment),
             lifecycle=AssetLifecycle(lifecycle),
+            discovery_source=discovery_source,
             tags=json.loads(tags_json),
             metadata=json.loads(metadata_json),
             first_discovered=first_discovered,
             last_seen=last_seen,
             finding_count=finding_count,
             risk_score=risk_score,
+            org_id=org_id,
+        )
+
+    @staticmethod
+    def _row_to_rel(row: tuple) -> AssetRelationship:
+        id_, source_asset_id, target_asset_id, relationship_type, metadata_json, created_at, org_id = row
+        return AssetRelationship(
+            id=id_,
+            source_asset_id=source_asset_id,
+            target_asset_id=target_asset_id,
+            relationship_type=RelationshipType(relationship_type),
+            metadata=json.loads(metadata_json),
+            created_at=created_at,
             org_id=org_id,
         )
 
@@ -390,7 +670,8 @@ class _InventoryDB:
 # ---------------------------------------------------------------------------
 
 class AssetInventory:
-    """Centralized asset inventory with lifecycle, ownership, tagging, and CMDB sync."""
+    """Centralized asset inventory with lifecycle, ownership, tagging, relationships,
+    compliance tagging, and CMDB sync."""
 
     def __init__(self, db_path: str = _DEFAULT_DB) -> None:
         self._db = _InventoryDB(db_path)
@@ -399,7 +680,19 @@ class AssetInventory:
     # ---- CRUD ----
 
     def register_asset(self, asset: ManagedAsset) -> ManagedAsset:
-        """Create or update an asset in the inventory."""
+        """Create or update an asset in the inventory.
+
+        Auto-applies compliance scope based on data_classification if
+        compliance_scope is not explicitly set.
+        """
+        if not asset.compliance_scope:
+            asset = asset.model_copy(update={
+                "compliance_scope": [
+                    f.value for f in _CLASSIFICATION_TO_COMPLIANCE.get(
+                        asset.data_classification, []
+                    )
+                ]
+            })
         self._db.upsert_asset(asset)
         logger.info("Asset registered", asset_id=asset.id, name=asset.name, org_id=asset.org_id)
         return asset
@@ -413,20 +706,32 @@ class AssetInventory:
         org_id: str,
         asset_type: Optional[str] = None,
         criticality: Optional[str] = None,
+        criticality_tier: Optional[str] = None,
         environment: Optional[str] = None,
         lifecycle: Optional[str] = None,
         owner_email: Optional[str] = None,
         tag: Optional[str] = None,
+        business_unit: Optional[str] = None,
+        cloud_provider: Optional[str] = None,
+        region: Optional[str] = None,
+        data_classification: Optional[str] = None,
+        compliance_scope: Optional[str] = None,
     ) -> List[ManagedAsset]:
         """List assets for an org with optional filters."""
         return self._db.list_assets(
             org_id,
             asset_type=asset_type,
             criticality=criticality,
+            criticality_tier=criticality_tier,
             environment=environment,
             lifecycle=lifecycle,
             owner_email=owner_email,
             tag=tag,
+            business_unit=business_unit,
+            cloud_provider=cloud_provider,
+            region=region,
+            data_classification=data_classification,
+            compliance_scope=compliance_scope,
         )
 
     def update_asset(self, asset_id: str, updates: Dict[str, Any]) -> Optional[ManagedAsset]:
@@ -440,6 +745,15 @@ class AssetInventory:
                 data[key] = val
         data["last_seen"] = datetime.now(timezone.utc).isoformat()
         updated = ManagedAsset(**data)
+        # Re-apply compliance auto-scope if classification changed and scope not explicitly provided
+        if "data_classification" in updates and "compliance_scope" not in updates:
+            new_scope = [
+                f.value for f in _CLASSIFICATION_TO_COMPLIANCE.get(
+                    updated.data_classification, []
+                )
+            ]
+            if new_scope:
+                updated = updated.model_copy(update={"compliance_scope": new_scope})
         self._db.upsert_asset(updated)
         logger.info("Asset updated", asset_id=asset_id, fields=list(updates.keys()))
         return updated
@@ -454,11 +768,18 @@ class AssetInventory:
     # ---- Discovery ----
 
     def discover_from_findings(
-        self, findings: List[Dict[str, Any]], org_id: str
+        self,
+        findings: List[Dict[str, Any]],
+        org_id: str,
+        discovery_source: str = "scanner",
     ) -> List[ManagedAsset]:
         """Auto-extract and register assets from scan findings.
 
-        Looks for hostname, ip_address, asset_type, url, host, target fields.
+        Supported sources: cloud_discovery, k8s_scan, container_scan,
+        network_scan, api_scan, manual, scanner (default).
+
+        De-duplicates by name within the org. Increments finding_count on
+        assets already in the inventory.
         """
         seen_keys: set = set()
         assets: List[ManagedAsset] = []
@@ -480,33 +801,44 @@ class AssetInventory:
                 continue
             seen_keys.add(dedup_key)
 
-            # Check if an asset with this name+org already exists
-            existing = self._db.list_assets(org_id, asset_type=None)
+            existing = self._db.list_assets(org_id)
             matched = next((a for a in existing if a.name == name), None)
 
             if matched:
-                # Update finding_count and last_seen
                 matched.finding_count += 1
                 matched.last_seen = datetime.now(timezone.utc).isoformat()
                 self._db.upsert_asset(matched)
                 assets.append(matched)
             else:
+                # Extract cloud / k8s fields from finding payload
+                cloud_provider = finding.get("cloud_provider") or finding.get("provider")
+                region = finding.get("region") or finding.get("availability_zone")
+                cloud_resource_id = finding.get("cloud_resource_id") or finding.get("resource_id") or finding.get("arn")
+
+                excluded = {
+                    "hostname", "host", "target", "ip_address", "ip",
+                    "asset_type", "type", "name", "url",
+                    "cloud_provider", "provider", "region", "availability_zone",
+                    "cloud_resource_id", "resource_id", "arn",
+                }
                 asset = ManagedAsset(
                     name=name,
                     asset_type=str(asset_type),
                     hostname=hostname,
                     ip_address=ip_address,
+                    cloud_provider=cloud_provider,
+                    region=region,
+                    cloud_resource_id=cloud_resource_id,
                     org_id=org_id,
                     finding_count=1,
                     lifecycle=AssetLifecycle.DISCOVERED,
-                    metadata={k: v for k, v in finding.items() if k not in {
-                        "hostname", "host", "target", "ip_address", "ip",
-                        "asset_type", "type", "name", "url",
-                    }},
+                    discovery_source=discovery_source,
+                    metadata={k: v for k, v in finding.items() if k not in excluded},
                 )
                 self._db.upsert_asset(asset)
                 assets.append(asset)
-                logger.info("Asset discovered", asset_id=asset.id, name=name, org_id=org_id)
+                logger.info("Asset discovered", asset_id=asset.id, name=name,
+                            org_id=org_id, source=discovery_source)
 
         return assets
 
@@ -515,7 +847,16 @@ class AssetInventory:
     def transition_lifecycle(
         self, asset_id: str, new_state: AssetLifecycle
     ) -> Optional[ManagedAsset]:
-        """Transition an asset to a new lifecycle state (validated state machine)."""
+        """Transition an asset to a new lifecycle state (validated state machine).
+
+        Valid paths:
+          provisioned -> active | discovered | decommissioned
+          discovered  -> active | deprecated | decommissioned
+          active      -> maintenance | deprecated | decommissioned
+          maintenance -> active | deprecated | decommissioned
+          deprecated  -> decommissioned | active
+          decommissioned -> (terminal)
+        """
         asset = self._db.get_asset(asset_id)
         if not asset:
             raise ValueError(f"Asset '{asset_id}' not found")
@@ -534,12 +875,24 @@ class AssetInventory:
     # ---- Ownership ----
 
     def assign_owner(
-        self, asset_id: str, owner_email: str, team: Optional[str] = None
+        self,
+        asset_id: str,
+        owner_email: str,
+        owner_name: Optional[str] = None,
+        team: Optional[str] = None,
+        business_unit: Optional[str] = None,
+        cost_center: Optional[str] = None,
     ) -> Optional[ManagedAsset]:
-        """Assign an owner (and optionally a team) to an asset."""
+        """Assign an owner (and optionally team/BU/cost center) to an asset."""
         updates: Dict[str, Any] = {"owner_email": owner_email}
+        if owner_name is not None:
+            updates["owner_name"] = owner_name
         if team is not None:
             updates["team"] = team
+        if business_unit is not None:
+            updates["business_unit"] = business_unit
+        if cost_center is not None:
+            updates["cost_center"] = cost_center
         return self.update_asset(asset_id, updates)
 
     # ---- Tags ----
@@ -552,10 +905,97 @@ class AssetInventory:
         merged = list(dict.fromkeys(asset.tags + tags))
         return self.update_asset(asset_id, {"tags": merged})
 
+    # ---- Compliance tagging ----
+
+    def apply_compliance_scope(
+        self, asset_id: str, frameworks: List[str]
+    ) -> Optional[ManagedAsset]:
+        """Explicitly set compliance frameworks on an asset (additive merge).
+
+        Validates each framework value against ComplianceFramework enum.
+        """
+        asset = self._db.get_asset(asset_id)
+        if not asset:
+            return None
+        # Validate each framework string
+        valid = {f.value for f in ComplianceFramework}
+        for fw in frameworks:
+            if fw not in valid:
+                raise ValueError(
+                    f"Unknown compliance framework: '{fw}'. "
+                    f"Valid: {sorted(valid)}"
+                )
+        merged = list(dict.fromkeys(asset.compliance_scope + frameworks))
+        return self.update_asset(asset_id, {"compliance_scope": merged})
+
+    def get_assets_in_compliance_scope(
+        self, org_id: str, framework: str
+    ) -> List[ManagedAsset]:
+        """Return all assets tagged with a specific compliance framework."""
+        return self._db.list_assets(org_id, compliance_scope=framework)
+
+    # ---- Relationships ----
+
+    def add_relationship(
+        self,
+        source_asset_id: str,
+        target_asset_id: str,
+        relationship_type: RelationshipType,
+        org_id: str = "default",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> AssetRelationship:
+        """Create a directed relationship between two assets.
+
+        Idempotent — upserting the same (source, target, type) triple
+        replaces the existing record.
+        """
+        rel = AssetRelationship(
+            source_asset_id=source_asset_id,
+            target_asset_id=target_asset_id,
+            relationship_type=relationship_type,
+            org_id=org_id,
+            metadata=metadata or {},
+        )
+        self._db.upsert_relationship(rel)
+        logger.info(
+            "Relationship added",
+            source=source_asset_id,
+            target=target_asset_id,
+            type=relationship_type.value,
+        )
+        return rel
+
+    def get_relationships(
+        self,
+        asset_id: str,
+        direction: str = "both",
+        relationship_type: Optional[RelationshipType] = None,
+    ) -> List[AssetRelationship]:
+        """Return relationships for an asset.
+
+        direction: "outbound" | "inbound" | "both" (default)
+        """
+        rt = relationship_type.value if relationship_type else None
+        return self._db.get_relationships(asset_id, direction=direction, relationship_type=rt)
+
+    def delete_relationship(self, rel_id: str) -> bool:
+        """Remove a relationship by ID."""
+        return self._db.delete_relationship(rel_id)
+
+    def get_impact_graph(self, asset_id: str, max_depth: int = 3) -> Dict[str, Any]:
+        """Return the blast-radius dependency graph starting from asset_id.
+
+        Performs BFS up to max_depth hops across all relationship types,
+        returning nodes (asset IDs) and edges (source, target, type).
+        """
+        return self._db.get_impact_graph(asset_id, max_depth=max_depth)
+
     # ---- Search ----
 
     def search_assets(self, query: str, org_id: str) -> List[ManagedAsset]:
-        """Full-text search across name, type, hostname, ip, owner, team, tags, metadata."""
+        """Full-text search across name, type, hostname, ip, owner, team,
+        business_unit, cost_center, cloud_provider, region, tags, metadata,
+        compliance_scope."""
         return self._db.search_assets(query, org_id)
 
     # ---- Unowned / Stale ----
@@ -565,7 +1005,7 @@ class AssetInventory:
         return self._db.get_unowned_assets(org_id)
 
     def get_stale_assets(self, org_id: str, days: int = 30) -> List[ManagedAsset]:
-        """Return assets not seen in the last N days."""
+        """Return assets not seen in the last N days (staleness alert threshold)."""
         return self._db.get_stale_assets(org_id, days)
 
     # ---- CMDB Sync ----
@@ -603,7 +1043,8 @@ class AssetInventory:
     # ---- Stats ----
 
     def get_inventory_stats(self, org_id: str) -> Dict[str, Any]:
-        """Return counts by type, criticality, lifecycle, and environment."""
+        """Return counts by type, criticality, tier, lifecycle, environment,
+        cloud provider, and data classification."""
         return self._db.get_stats(org_id)
 
     # ---- Bulk import ----
@@ -611,21 +1052,24 @@ class AssetInventory:
     def bulk_import(self, assets: List[Dict[str, Any]], org_id: str) -> int:
         """Import assets from a list of dicts (e.g. parsed from CSV/JSON).
 
+        Coerces string enum values. Skips invalid records with a warning.
         Returns the count of successfully imported assets.
         """
         count = 0
         for raw in assets:
             try:
                 raw["org_id"] = org_id
-                # Coerce enum fields if they are plain strings
-                if "criticality" in raw and isinstance(raw["criticality"], str):
-                    raw["criticality"] = AssetCriticality(raw["criticality"])
-                if "environment" in raw and isinstance(raw["environment"], str):
-                    raw["environment"] = Environment(raw["environment"])
-                if "lifecycle" in raw and isinstance(raw["lifecycle"], str):
-                    raw["lifecycle"] = AssetLifecycle(raw["lifecycle"])
+                for field, enum_cls in (
+                    ("criticality", AssetCriticality),
+                    ("criticality_tier", CriticalityTier),
+                    ("environment", Environment),
+                    ("lifecycle", AssetLifecycle),
+                    ("data_classification", DataClassification),
+                ):
+                    if field in raw and isinstance(raw[field], str):
+                        raw[field] = enum_cls(raw[field])
                 asset = ManagedAsset(**raw)
-                self._db.upsert_asset(asset)
+                self.register_asset(asset)  # triggers compliance auto-scope
                 count += 1
             except Exception as exc:
                 logger.warning("bulk_import: skipping invalid asset", error=str(exc), raw=raw)

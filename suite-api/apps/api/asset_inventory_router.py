@@ -1,7 +1,8 @@
 """Asset Inventory and CMDB Integration API Router.
 
 Endpoints for registering, discovering, managing lifecycle, ownership,
-tags, search, CMDB sync, and bulk import of managed assets.
+tags, compliance tagging, relationship mapping, search, CMDB sync,
+impact graph traversal, and bulk import of managed assets.
 
 Auth is applied centrally by app.py (Depends(_verify_api_key)).
 """
@@ -18,9 +19,14 @@ from core.asset_inventory import (
     AssetCriticality,
     AssetInventory,
     AssetLifecycle,
+    AssetRelationship,
     CMDBSyncRecord,
+    ComplianceFramework,
+    CriticalityTier,
+    DataClassification,
     Environment,
     ManagedAsset,
+    RelationshipType,
     get_asset_inventory,
 )
 
@@ -35,17 +41,27 @@ router = APIRouter(prefix="/api/v1/assets", tags=["asset-inventory"])
 
 class RegisterAssetRequest(BaseModel):
     name: str = Field(..., description="Asset name or identifier")
-    asset_type: str = Field(..., description="Asset type (server, container, domain, etc.)")
-    hostname: Optional[str] = Field(None, description="Hostname")
-    ip_address: Optional[str] = Field(None, description="IP address")
-    owner_email: Optional[str] = Field(None, description="Asset owner email")
-    team: Optional[str] = Field(None, description="Owning team")
-    criticality: AssetCriticality = Field(AssetCriticality.MEDIUM, description="Asset criticality")
-    environment: Environment = Field(Environment.PRODUCTION, description="Deployment environment")
-    lifecycle: AssetLifecycle = Field(AssetLifecycle.DISCOVERED, description="Lifecycle state")
-    tags: List[str] = Field(default_factory=list, description="Free-form tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    org_id: str = Field("default", description="Organisation ID")
+    asset_type: str = Field(..., description="Asset type (server, container, cloud_resource, application, database, api, repository, network_device, user, certificate, etc.)")
+    hostname: Optional[str] = Field(None)
+    ip_address: Optional[str] = Field(None)
+    cloud_provider: Optional[str] = Field(None, description="aws, gcp, azure, on-prem")
+    region: Optional[str] = Field(None)
+    cloud_resource_id: Optional[str] = Field(None, description="ARN, resource ID, etc.")
+    owner_email: Optional[str] = Field(None)
+    owner_name: Optional[str] = Field(None)
+    team: Optional[str] = Field(None)
+    business_unit: Optional[str] = Field(None)
+    cost_center: Optional[str] = Field(None)
+    criticality: AssetCriticality = Field(AssetCriticality.MEDIUM)
+    criticality_tier: CriticalityTier = Field(CriticalityTier.T3)
+    data_classification: DataClassification = Field(DataClassification.INTERNAL)
+    compliance_scope: List[str] = Field(default_factory=list)
+    environment: Environment = Field(Environment.PRODUCTION)
+    lifecycle: AssetLifecycle = Field(AssetLifecycle.DISCOVERED)
+    discovery_source: Optional[str] = Field(None)
+    tags: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    org_id: str = Field("default")
 
 
 class UpdateAssetRequest(BaseModel):
@@ -53,9 +69,18 @@ class UpdateAssetRequest(BaseModel):
     asset_type: Optional[str] = None
     hostname: Optional[str] = None
     ip_address: Optional[str] = None
+    cloud_provider: Optional[str] = None
+    region: Optional[str] = None
+    cloud_resource_id: Optional[str] = None
     owner_email: Optional[str] = None
+    owner_name: Optional[str] = None
     team: Optional[str] = None
+    business_unit: Optional[str] = None
+    cost_center: Optional[str] = None
     criticality: Optional[AssetCriticality] = None
+    criticality_tier: Optional[CriticalityTier] = None
+    data_classification: Optional[DataClassification] = None
+    compliance_scope: Optional[List[str]] = None
     environment: Optional[Environment] = None
     tags: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -65,7 +90,8 @@ class UpdateAssetRequest(BaseModel):
 
 class DiscoverFromFindingsRequest(BaseModel):
     findings: List[Dict[str, Any]] = Field(..., description="Pipeline findings to extract assets from")
-    org_id: str = Field("default", description="Organisation ID")
+    org_id: str = Field("default")
+    discovery_source: str = Field("scanner", description="Source: cloud_discovery, k8s_scan, container_scan, network_scan, api_scan, manual")
 
 
 class LifecycleTransitionRequest(BaseModel):
@@ -73,23 +99,38 @@ class LifecycleTransitionRequest(BaseModel):
 
 
 class AssignOwnerRequest(BaseModel):
-    owner_email: str = Field(..., description="Owner email address")
-    team: Optional[str] = Field(None, description="Owning team")
+    owner_email: str = Field(...)
+    owner_name: Optional[str] = Field(None)
+    team: Optional[str] = Field(None)
+    business_unit: Optional[str] = Field(None)
+    cost_center: Optional[str] = Field(None)
 
 
 class TagAssetRequest(BaseModel):
     tags: List[str] = Field(..., description="Tags to add")
 
 
+class ComplianceScopeRequest(BaseModel):
+    frameworks: List[str] = Field(..., description="Compliance framework values to apply: pci, hipaa, sox, itar, gdpr, nist, iso27001")
+
+
+class AddRelationshipRequest(BaseModel):
+    source_asset_id: str = Field(...)
+    target_asset_id: str = Field(...)
+    relationship_type: RelationshipType = Field(...)
+    org_id: str = Field("default")
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class CMDBSyncRequest(BaseModel):
     cmdb_system: str = Field(..., description="CMDB system name (e.g. ServiceNow, Jira)")
     external_id: str = Field(..., description="Asset ID in the external CMDB")
-    changes: Dict[str, Any] = Field(default_factory=dict, description="Fields changed in this sync")
+    changes: Dict[str, Any] = Field(default_factory=dict)
 
 
 class BulkImportRequest(BaseModel):
     assets: List[Dict[str, Any]] = Field(..., description="List of asset dicts to import")
-    org_id: str = Field("default", description="Organisation ID")
+    org_id: str = Field("default")
 
 
 # ---------------------------------------------------------------------------
@@ -108,22 +149,107 @@ def _require_asset(asset_id: str) -> ManagedAsset:
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Endpoints — collection-level (must come before /{asset_id} routes)
 # ---------------------------------------------------------------------------
+
+@router.get("/stats", summary="Inventory stats")
+def get_stats(
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Return asset counts grouped by type, criticality, tier, lifecycle,
+    environment, cloud provider, and data classification."""
+    return _inv().get_inventory_stats(org_id)
+
+
+@router.get("/unowned", response_model=List[ManagedAsset], summary="Unowned assets")
+def get_unowned_assets(
+    org_id: str = Query("default"),
+) -> List[ManagedAsset]:
+    """Return assets with no assigned owner."""
+    return _inv().get_unowned_assets(org_id)
+
+
+@router.get("/stale", response_model=List[ManagedAsset], summary="Stale assets")
+def get_stale_assets(
+    org_id: str = Query("default"),
+    days: int = Query(30, ge=1, le=3650, description="Not seen in this many days"),
+) -> List[ManagedAsset]:
+    """Return assets not seen within the specified number of days."""
+    return _inv().get_stale_assets(org_id, days=days)
+
+
+@router.get("/compliance/{framework}", response_model=List[ManagedAsset], summary="Assets by compliance scope")
+def get_assets_by_compliance(
+    framework: ComplianceFramework,
+    org_id: str = Query("default"),
+) -> List[ManagedAsset]:
+    """Return all assets tagged with a specific compliance framework."""
+    return _inv().get_assets_in_compliance_scope(org_id, framework.value)
+
+
+@router.get("", response_model=List[ManagedAsset], summary="List assets")
+def list_assets(
+    org_id: str = Query("default"),
+    asset_type: Optional[str] = Query(None),
+    criticality: Optional[AssetCriticality] = Query(None),
+    criticality_tier: Optional[CriticalityTier] = Query(None),
+    environment: Optional[Environment] = Query(None),
+    lifecycle: Optional[AssetLifecycle] = Query(None),
+    owner_email: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None),
+    business_unit: Optional[str] = Query(None),
+    cloud_provider: Optional[str] = Query(None),
+    region: Optional[str] = Query(None),
+    data_classification: Optional[DataClassification] = Query(None),
+    compliance_scope: Optional[str] = Query(None, description="Filter by compliance framework value"),
+    search: Optional[str] = Query(None, description="Full-text search query"),
+) -> List[ManagedAsset]:
+    """List assets for an org with optional filters and full-text search."""
+    if search:
+        return _inv().search_assets(search, org_id)
+    return _inv().list_assets(
+        org_id,
+        asset_type=asset_type,
+        criticality=criticality.value if criticality else None,
+        criticality_tier=criticality_tier.value if criticality_tier else None,
+        environment=environment.value if environment else None,
+        lifecycle=lifecycle.value if lifecycle else None,
+        owner_email=owner_email,
+        tag=tag,
+        business_unit=business_unit,
+        cloud_provider=cloud_provider,
+        region=region,
+        data_classification=data_classification.value if data_classification else None,
+        compliance_scope=compliance_scope,
+    )
+
 
 @router.post("", response_model=ManagedAsset, summary="Register asset")
 def register_asset(req: RegisterAssetRequest) -> ManagedAsset:
-    """Create or update an asset in the centralized inventory."""
+    """Create or update an asset in the centralized inventory.
+
+    Compliance scope is auto-applied from data_classification if not set explicitly.
+    """
     asset = ManagedAsset(
         name=req.name,
         asset_type=req.asset_type,
         hostname=req.hostname,
         ip_address=req.ip_address,
+        cloud_provider=req.cloud_provider,
+        region=req.region,
+        cloud_resource_id=req.cloud_resource_id,
         owner_email=req.owner_email,
+        owner_name=req.owner_name,
         team=req.team,
+        business_unit=req.business_unit,
+        cost_center=req.cost_center,
         criticality=req.criticality,
+        criticality_tier=req.criticality_tier,
+        data_classification=req.data_classification,
+        compliance_scope=req.compliance_scope,
         environment=req.environment,
         lifecycle=req.lifecycle,
+        discovery_source=req.discovery_source,
         tags=req.tags,
         metadata=req.metadata,
         org_id=req.org_id,
@@ -135,61 +261,14 @@ def register_asset(req: RegisterAssetRequest) -> ManagedAsset:
         raise HTTPException(status_code=500, detail=f"Failed to register asset: {exc}") from exc
 
 
-@router.get("/stats", summary="Inventory stats")
-def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
-) -> Dict[str, Any]:
-    """Return asset counts grouped by type, criticality, lifecycle, and environment."""
-    return _inv().get_inventory_stats(org_id)
-
-
-@router.get("/unowned", response_model=List[ManagedAsset], summary="Unowned assets")
-def get_unowned_assets(
-    org_id: str = Query("default", description="Organisation ID"),
-) -> List[ManagedAsset]:
-    """Return assets with no assigned owner."""
-    return _inv().get_unowned_assets(org_id)
-
-
-@router.get("/stale", response_model=List[ManagedAsset], summary="Stale assets")
-def get_stale_assets(
-    org_id: str = Query("default", description="Organisation ID"),
-    days: int = Query(30, ge=1, le=3650, description="Not seen in this many days"),
-) -> List[ManagedAsset]:
-    """Return assets not seen within the specified number of days."""
-    return _inv().get_stale_assets(org_id, days=days)
-
-
-@router.get("", response_model=List[ManagedAsset], summary="List assets")
-def list_assets(
-    org_id: str = Query("default", description="Organisation ID"),
-    asset_type: Optional[str] = Query(None, description="Filter by asset type"),
-    criticality: Optional[AssetCriticality] = Query(None, description="Filter by criticality"),
-    environment: Optional[Environment] = Query(None, description="Filter by environment"),
-    lifecycle: Optional[AssetLifecycle] = Query(None, description="Filter by lifecycle state"),
-    owner_email: Optional[str] = Query(None, description="Filter by owner email"),
-    tag: Optional[str] = Query(None, description="Filter by tag"),
-    search: Optional[str] = Query(None, description="Full-text search query"),
-) -> List[ManagedAsset]:
-    """List assets for an org with optional filters and full-text search."""
-    if search:
-        return _inv().search_assets(search, org_id)
-    return _inv().list_assets(
-        org_id,
-        asset_type=asset_type,
-        criticality=criticality.value if criticality else None,
-        environment=environment.value if environment else None,
-        lifecycle=lifecycle.value if lifecycle else None,
-        owner_email=owner_email,
-        tag=tag,
-    )
-
-
 @router.post("/discover", response_model=List[ManagedAsset], summary="Discover assets from findings")
 def discover_from_findings(req: DiscoverFromFindingsRequest) -> List[ManagedAsset]:
-    """Auto-extract and register assets from pipeline scan findings."""
+    """Auto-extract and register assets from pipeline scan findings.
+
+    Supports cloud_discovery, k8s_scan, container_scan, network_scan, api_scan sources.
+    """
     try:
-        return _inv().discover_from_findings(req.findings, req.org_id)
+        return _inv().discover_from_findings(req.findings, req.org_id, discovery_source=req.discovery_source)
     except Exception as exc:
         logger.exception("Asset discovery failed: %s", exc)
         raise HTTPException(status_code=500, detail=f"Discovery failed: {exc}") from exc
@@ -206,6 +285,30 @@ def bulk_import(req: BulkImportRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Bulk import failed: {exc}") from exc
 
 
+@router.post("/relationships", response_model=AssetRelationship, summary="Add relationship")
+def add_relationship(req: AddRelationshipRequest) -> AssetRelationship:
+    """Create a directed relationship between two assets.
+
+    Relationship types: depends_on, runs_on, deployed_in, exposed_by,
+    owned_by, connects_to, backs_up_to, replicates_to, hosted_on, managed_by.
+    """
+    try:
+        return _inv().add_relationship(
+            source_asset_id=req.source_asset_id,
+            target_asset_id=req.target_asset_id,
+            relationship_type=req.relationship_type,
+            org_id=req.org_id,
+            metadata=req.metadata,
+        )
+    except Exception as exc:
+        logger.exception("Failed to add relationship: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to add relationship: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Endpoints — per-asset
+# ---------------------------------------------------------------------------
+
 @router.get("/{asset_id}", response_model=ManagedAsset, summary="Get asset")
 def get_asset(asset_id: str) -> ManagedAsset:
     """Retrieve a single asset by ID."""
@@ -217,8 +320,7 @@ def update_asset(asset_id: str, req: UpdateAssetRequest) -> ManagedAsset:
     """Apply partial updates to an existing asset."""
     _require_asset(asset_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
-    # Coerce enum values to their string representation for storage
-    for field in ("criticality", "environment"):
+    for field in ("criticality", "criticality_tier", "environment", "data_classification"):
         if field in updates and hasattr(updates[field], "value"):
             updates[field] = updates[field].value
     updated = _inv().update_asset(asset_id, updates)
@@ -250,9 +352,16 @@ def transition_lifecycle(asset_id: str, req: LifecycleTransitionRequest) -> Mana
 
 @router.post("/{asset_id}/owner", response_model=ManagedAsset, summary="Assign owner")
 def assign_owner(asset_id: str, req: AssignOwnerRequest) -> ManagedAsset:
-    """Assign an owner (and optionally a team) to an asset."""
+    """Assign owner (email, name, team, business unit, cost center) to an asset."""
     _require_asset(asset_id)
-    asset = _inv().assign_owner(asset_id, req.owner_email, req.team)
+    asset = _inv().assign_owner(
+        asset_id,
+        owner_email=req.owner_email,
+        owner_name=req.owner_name,
+        team=req.team,
+        business_unit=req.business_unit,
+        cost_center=req.cost_center,
+    )
     if not asset:
         raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
     return asset
@@ -266,6 +375,56 @@ def tag_asset(asset_id: str, req: TagAssetRequest) -> ManagedAsset:
     if not asset:
         raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
     return asset
+
+
+@router.post("/{asset_id}/compliance", response_model=ManagedAsset, summary="Apply compliance scope")
+def apply_compliance_scope(asset_id: str, req: ComplianceScopeRequest) -> ManagedAsset:
+    """Explicitly tag an asset with compliance frameworks (additive merge).
+
+    Valid values: pci, hipaa, sox, itar, gdpr, nist, iso27001.
+    """
+    _require_asset(asset_id)
+    try:
+        asset = _inv().apply_compliance_scope(asset_id, req.frameworks)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not asset:
+        raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found")
+    return asset
+
+
+@router.get("/{asset_id}/relationships", response_model=List[AssetRelationship], summary="Get relationships")
+def get_relationships(
+    asset_id: str,
+    direction: str = Query("both", description="outbound | inbound | both"),
+    relationship_type: Optional[RelationshipType] = Query(None),
+) -> List[AssetRelationship]:
+    """Return relationships for an asset (outbound, inbound, or both directions)."""
+    _require_asset(asset_id)
+    return _inv().get_relationships(asset_id, direction=direction, relationship_type=relationship_type)
+
+
+@router.get("/{asset_id}/impact", summary="Impact graph")
+def get_impact_graph(
+    asset_id: str,
+    max_depth: int = Query(3, ge=1, le=10, description="Max BFS hops"),
+) -> Dict[str, Any]:
+    """Return the blast-radius dependency graph starting from this asset.
+
+    Performs BFS traversal across all relationship types up to max_depth hops.
+    Returns nodes (asset IDs) and edges (source, target, type).
+    """
+    _require_asset(asset_id)
+    return _inv().get_impact_graph(asset_id, max_depth=max_depth)
+
+
+@router.delete("/relationships/{rel_id}", summary="Delete relationship")
+def delete_relationship(rel_id: str) -> Dict[str, Any]:
+    """Remove a relationship by ID."""
+    deleted = _inv().delete_relationship(rel_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Relationship '{rel_id}' not found")
+    return {"deleted": True, "rel_id": rel_id}
 
 
 @router.post("/{asset_id}/sync", response_model=CMDBSyncRecord, summary="Sync to CMDB")

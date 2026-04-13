@@ -1,17 +1,20 @@
-"""Tests for Asset Inventory and CMDB Integration.
+"""Tests for Asset Inventory and CMDB Engine.
 
 Tests cover:
 - Asset CRUD (register, get, update, delete)
-- Lifecycle transitions (valid and invalid)
-- Discover from findings
-- Owner assignment
+- Lifecycle transitions (valid and invalid), including provisioned state
+- Discover from findings (dedup, increment, cloud fields, discovery_source)
+- Owner assignment (email, name, team, business_unit, cost_center)
 - Tag management
-- Search
+- Compliance tagging (auto-scope from data_classification, explicit apply)
+- Relationship mapping (add, get, delete, impact graph)
+- Search (name, ip, compliance_scope, business_unit)
 - Stale / unowned detection
 - CMDB sync recording
-- Inventory stats
+- Inventory stats (including new fields)
 - Bulk import
-- Filters
+- Filters (type, criticality, tier, environment, lifecycle, owner, tag,
+           business_unit, cloud_provider, region, data_classification, compliance_scope)
 
 Usage:
     pytest tests/test_asset_inventory.py -v --timeout=10
@@ -20,7 +23,6 @@ Usage:
 from __future__ import annotations
 
 import sys
-import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict
@@ -36,9 +38,14 @@ from core.asset_inventory import (
     AssetCriticality,
     AssetInventory,
     AssetLifecycle,
+    AssetRelationship,
     CMDBSyncRecord,
+    ComplianceFramework,
+    CriticalityTier,
+    DataClassification,
     Environment,
     ManagedAsset,
+    RelationshipType,
 )
 
 
@@ -48,7 +55,7 @@ from core.asset_inventory import (
 
 @pytest.fixture
 def inventory(tmp_path):
-    """Fresh in-memory-equivalent inventory backed by a temp file."""
+    """Fresh inventory backed by a temp file."""
     db_file = str(tmp_path / "test_asset_inventory.db")
     return AssetInventory(db_path=db_file)
 
@@ -62,6 +69,7 @@ def _make_asset(**kwargs) -> ManagedAsset:
         "owner_email": "ops@example.com",
         "team": "platform",
         "criticality": AssetCriticality.HIGH,
+        "criticality_tier": CriticalityTier.T2,
         "environment": Environment.PRODUCTION,
         "lifecycle": AssetLifecycle.ACTIVE,
         "tags": ["web", "prod"],
@@ -122,12 +130,48 @@ class TestAssetCRUD:
         registered = inventory.register_asset(asset)
         assert registered.last_seen >= before
 
+    def test_cloud_fields_persisted(self, inventory):
+        asset = _make_asset(
+            name="ec2-instance",
+            asset_type="cloud_resource",
+            cloud_provider="aws",
+            region="us-east-1",
+            cloud_resource_id="arn:aws:ec2:us-east-1:123:instance/i-abc",
+        )
+        inventory.register_asset(asset)
+        fetched = inventory.get_asset(asset.id)
+        assert fetched.cloud_provider == "aws"
+        assert fetched.region == "us-east-1"
+        assert fetched.cloud_resource_id == "arn:aws:ec2:us-east-1:123:instance/i-abc"
+
+    def test_ownership_fields_persisted(self, inventory):
+        asset = _make_asset(
+            business_unit="Engineering",
+            cost_center="CC-1001",
+            owner_name="Alice Smith",
+        )
+        inventory.register_asset(asset)
+        fetched = inventory.get_asset(asset.id)
+        assert fetched.business_unit == "Engineering"
+        assert fetched.cost_center == "CC-1001"
+        assert fetched.owner_name == "Alice Smith"
+
 
 # ---------------------------------------------------------------------------
 # Lifecycle transitions
 # ---------------------------------------------------------------------------
 
 class TestLifecycleTransitions:
+    def test_valid_transition_provisioned_to_active(self, inventory):
+        asset = inventory.register_asset(_make_asset(lifecycle=AssetLifecycle.PROVISIONED))
+        result = inventory.transition_lifecycle(asset.id, AssetLifecycle.ACTIVE)
+        assert result.lifecycle == AssetLifecycle.ACTIVE
+
+    def test_valid_transition_provisioned_to_discovered(self, inventory):
+        asset = inventory.register_asset(_make_asset(lifecycle=AssetLifecycle.PROVISIONED))
+        result = inventory.transition_lifecycle(asset.id, AssetLifecycle.DISCOVERED)
+        assert result.lifecycle == AssetLifecycle.DISCOVERED
+
     def test_valid_transition_discovered_to_active(self, inventory):
         asset = inventory.register_asset(_make_asset(lifecycle=AssetLifecycle.DISCOVERED))
         result = inventory.transition_lifecycle(asset.id, AssetLifecycle.ACTIVE)
@@ -189,7 +233,7 @@ class TestDiscoverFromFindings:
 
     def test_discover_increments_finding_count(self, inventory):
         findings = [{"hostname": "monitored-host", "type": "server"}]
-        first = inventory.discover_from_findings(findings, "org-count")
+        inventory.discover_from_findings(findings, "org-count")
         second = inventory.discover_from_findings(findings, "org-count")
         assert second[0].finding_count == 2
 
@@ -203,6 +247,28 @@ class TestDiscoverFromFindings:
         assets = inventory.discover_from_findings(findings, "org-url")
         assert len(assets) == 1
         assert assets[0].name == "https://api.example.com"
+
+    def test_discover_cloud_fields(self, inventory):
+        findings = [
+            {
+                "hostname": "ec2-node",
+                "type": "cloud_resource",
+                "cloud_provider": "aws",
+                "region": "us-west-2",
+                "arn": "arn:aws:ec2:us-west-2:123:instance/i-xyz",
+            }
+        ]
+        assets = inventory.discover_from_findings(findings, "org-cloud", discovery_source="cloud_discovery")
+        assert len(assets) == 1
+        assert assets[0].cloud_provider == "aws"
+        assert assets[0].region == "us-west-2"
+        assert assets[0].cloud_resource_id == "arn:aws:ec2:us-west-2:123:instance/i-xyz"
+        assert assets[0].discovery_source == "cloud_discovery"
+
+    def test_discover_k8s_source(self, inventory):
+        findings = [{"hostname": "pod-abc", "type": "container"}]
+        assets = inventory.discover_from_findings(findings, "org-k8s", discovery_source="k8s_scan")
+        assert assets[0].discovery_source == "k8s_scan"
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +286,21 @@ class TestOwnerAssignment:
         asset = inventory.register_asset(_make_asset(owner_email=None))
         result = inventory.assign_owner(asset.id, "bob@example.com")
         assert result.owner_email == "bob@example.com"
+
+    def test_assign_owner_full_accountability(self, inventory):
+        asset = inventory.register_asset(_make_asset(owner_email=None))
+        result = inventory.assign_owner(
+            asset.id,
+            owner_email="charlie@example.com",
+            owner_name="Charlie Brown",
+            team="infra",
+            business_unit="Engineering",
+            cost_center="CC-9999",
+        )
+        assert result.owner_email == "charlie@example.com"
+        assert result.owner_name == "Charlie Brown"
+        assert result.business_unit == "Engineering"
+        assert result.cost_center == "CC-9999"
 
     def test_get_unowned_assets(self, inventory):
         inventory.register_asset(_make_asset(name="owned", owner_email="someone@x.com", org_id="org-own"))
@@ -257,6 +338,170 @@ class TestTagManagement:
 
 
 # ---------------------------------------------------------------------------
+# Compliance tagging
+# ---------------------------------------------------------------------------
+
+class TestComplianceTagging:
+    def test_auto_scope_restricted_classification(self, inventory):
+        asset = _make_asset(
+            data_classification=DataClassification.RESTRICTED,
+            compliance_scope=[],
+        )
+        registered = inventory.register_asset(asset)
+        # restricted -> pci, hipaa, itar
+        assert "pci" in registered.compliance_scope
+        assert "hipaa" in registered.compliance_scope
+        assert "itar" in registered.compliance_scope
+
+    def test_auto_scope_confidential_classification(self, inventory):
+        asset = _make_asset(
+            data_classification=DataClassification.CONFIDENTIAL,
+            compliance_scope=[],
+        )
+        registered = inventory.register_asset(asset)
+        assert "sox" in registered.compliance_scope
+        assert "gdpr" in registered.compliance_scope
+
+    def test_auto_scope_public_classification_no_frameworks(self, inventory):
+        asset = _make_asset(
+            data_classification=DataClassification.PUBLIC,
+            compliance_scope=[],
+        )
+        registered = inventory.register_asset(asset)
+        assert registered.compliance_scope == []
+
+    def test_explicit_compliance_scope_preserved(self, inventory):
+        asset = _make_asset(
+            data_classification=DataClassification.PUBLIC,
+            compliance_scope=["nist"],
+        )
+        registered = inventory.register_asset(asset)
+        assert "nist" in registered.compliance_scope
+
+    def test_apply_compliance_scope_additive(self, inventory):
+        asset = inventory.register_asset(_make_asset(compliance_scope=["pci"]))
+        result = inventory.apply_compliance_scope(asset.id, ["hipaa", "sox"])
+        assert "pci" in result.compliance_scope
+        assert "hipaa" in result.compliance_scope
+        assert "sox" in result.compliance_scope
+
+    def test_apply_compliance_scope_deduplication(self, inventory):
+        asset = inventory.register_asset(_make_asset(compliance_scope=["pci"]))
+        result = inventory.apply_compliance_scope(asset.id, ["pci", "hipaa"])
+        assert result.compliance_scope.count("pci") == 1
+
+    def test_apply_invalid_compliance_framework_raises(self, inventory):
+        asset = inventory.register_asset(_make_asset())
+        with pytest.raises(ValueError, match="Unknown compliance framework"):
+            inventory.apply_compliance_scope(asset.id, ["not-a-framework"])
+
+    def test_get_assets_in_compliance_scope(self, inventory):
+        inventory.register_asset(_make_asset(name="pci-asset", compliance_scope=["pci"], org_id="org-comp"))
+        inventory.register_asset(_make_asset(name="hipaa-asset", compliance_scope=["hipaa"], org_id="org-comp"))
+        inventory.register_asset(_make_asset(name="no-scope", compliance_scope=[], org_id="org-comp"))
+        results = inventory.get_assets_in_compliance_scope("org-comp", "pci")
+        assert len(results) == 1
+        assert results[0].name == "pci-asset"
+
+    def test_compliance_scope_updated_when_classification_changes(self, inventory):
+        asset = inventory.register_asset(_make_asset(
+            data_classification=DataClassification.PUBLIC,
+            compliance_scope=[],
+        ))
+        updated = inventory.update_asset(asset.id, {"data_classification": "confidential"})
+        # confidential -> sox, gdpr
+        assert "sox" in updated.compliance_scope or "gdpr" in updated.compliance_scope
+
+
+# ---------------------------------------------------------------------------
+# Relationship mapping
+# ---------------------------------------------------------------------------
+
+class TestRelationshipMapping:
+    def test_add_relationship(self, inventory):
+        app = inventory.register_asset(_make_asset(name="my-app", asset_type="application"))
+        db = inventory.register_asset(_make_asset(name="my-db", asset_type="database"))
+        rel = inventory.add_relationship(
+            source_asset_id=app.id,
+            target_asset_id=db.id,
+            relationship_type=RelationshipType.DEPENDS_ON,
+            org_id="org-test",
+        )
+        assert isinstance(rel, AssetRelationship)
+        assert rel.source_asset_id == app.id
+        assert rel.target_asset_id == db.id
+        assert rel.relationship_type == RelationshipType.DEPENDS_ON
+
+    def test_get_outbound_relationships(self, inventory):
+        app = inventory.register_asset(_make_asset(name="svc-a", asset_type="service"))
+        db = inventory.register_asset(_make_asset(name="db-a", asset_type="database"))
+        cache = inventory.register_asset(_make_asset(name="cache-a", asset_type="cache"))
+        inventory.add_relationship(app.id, db.id, RelationshipType.DEPENDS_ON)
+        inventory.add_relationship(app.id, cache.id, RelationshipType.CONNECTS_TO)
+        rels = inventory.get_relationships(app.id, direction="outbound")
+        assert len(rels) == 2
+        targets = {r.target_asset_id for r in rels}
+        assert db.id in targets
+        assert cache.id in targets
+
+    def test_get_inbound_relationships(self, inventory):
+        app = inventory.register_asset(_make_asset(name="svc-b"))
+        db = inventory.register_asset(_make_asset(name="db-b", asset_type="database"))
+        inventory.add_relationship(app.id, db.id, RelationshipType.DEPENDS_ON)
+        rels = inventory.get_relationships(db.id, direction="inbound")
+        assert len(rels) == 1
+        assert rels[0].source_asset_id == app.id
+
+    def test_relationship_idempotent(self, inventory):
+        a = inventory.register_asset(_make_asset(name="a1"))
+        b = inventory.register_asset(_make_asset(name="b1"))
+        inventory.add_relationship(a.id, b.id, RelationshipType.RUNS_ON)
+        inventory.add_relationship(a.id, b.id, RelationshipType.RUNS_ON)  # duplicate
+        rels = inventory.get_relationships(a.id, direction="outbound")
+        types = [r.relationship_type for r in rels if r.target_asset_id == b.id]
+        assert types.count(RelationshipType.RUNS_ON) == 1
+
+    def test_delete_relationship(self, inventory):
+        a = inventory.register_asset(_make_asset(name="del-a"))
+        b = inventory.register_asset(_make_asset(name="del-b"))
+        rel = inventory.add_relationship(a.id, b.id, RelationshipType.DEPLOYED_IN)
+        assert inventory.delete_relationship(rel.id) is True
+        rels = inventory.get_relationships(a.id, direction="outbound")
+        assert all(r.id != rel.id for r in rels)
+
+    def test_delete_nonexistent_relationship(self, inventory):
+        assert inventory.delete_relationship("rel-ghost") is False
+
+    def test_impact_graph_traversal(self, inventory):
+        # app -> service -> database
+        app = inventory.register_asset(_make_asset(name="g-app", asset_type="application"))
+        svc = inventory.register_asset(_make_asset(name="g-svc", asset_type="service"))
+        db = inventory.register_asset(_make_asset(name="g-db", asset_type="database"))
+        inventory.add_relationship(app.id, svc.id, RelationshipType.DEPENDS_ON)
+        inventory.add_relationship(svc.id, db.id, RelationshipType.DEPENDS_ON)
+        graph = inventory.get_impact_graph(app.id, max_depth=3)
+        assert graph["root"] == app.id
+        assert app.id in graph["nodes"]
+        assert svc.id in graph["nodes"]
+        assert db.id in graph["nodes"]
+        assert len(graph["edges"]) >= 2
+
+    def test_impact_graph_respects_depth(self, inventory):
+        # Chain: a -> b -> c -> d
+        a = inventory.register_asset(_make_asset(name="depth-a"))
+        b = inventory.register_asset(_make_asset(name="depth-b"))
+        c = inventory.register_asset(_make_asset(name="depth-c"))
+        d = inventory.register_asset(_make_asset(name="depth-d"))
+        inventory.add_relationship(a.id, b.id, RelationshipType.DEPENDS_ON)
+        inventory.add_relationship(b.id, c.id, RelationshipType.DEPENDS_ON)
+        inventory.add_relationship(c.id, d.id, RelationshipType.DEPENDS_ON)
+        # depth=1 — only a and b visible
+        graph = inventory.get_impact_graph(a.id, max_depth=1)
+        assert b.id in graph["nodes"]
+        assert d.id not in graph["nodes"]
+
+
+# ---------------------------------------------------------------------------
 # Search
 # ---------------------------------------------------------------------------
 
@@ -284,6 +529,13 @@ class TestSearch:
         results = inventory.search_assets("shared-name", "org-a")
         assert len(results) == 1
 
+    def test_search_by_business_unit(self, inventory):
+        inventory.register_asset(_make_asset(name="bu-asset", business_unit="Finance", org_id="org-bu"))
+        inventory.register_asset(_make_asset(name="other-asset", business_unit="Engineering", org_id="org-bu"))
+        results = inventory.search_assets("Finance", "org-bu")
+        assert len(results) == 1
+        assert results[0].name == "bu-asset"
+
 
 # ---------------------------------------------------------------------------
 # Stale assets
@@ -291,13 +543,10 @@ class TestSearch:
 
 class TestStaleAssets:
     def test_stale_detection(self, inventory):
-        # Register with a very recent last_seen
-        fresh = inventory.register_asset(_make_asset(name="fresh", org_id="org-stale"))
-        # Register and manually backdate last_seen
+        inventory.register_asset(_make_asset(name="fresh", org_id="org-stale"))
         old_asset = _make_asset(name="old", org_id="org-stale")
         old_asset.last_seen = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
         inventory.register_asset(old_asset)
-
         stale = inventory.get_stale_assets("org-stale", days=30)
         names = {a.name for a in stale}
         assert "old" in names
@@ -362,14 +611,25 @@ class TestInventoryStats:
         assert stats["by_type"]["server"] == 2
         assert stats["by_type"]["container"] == 1
         assert "by_criticality" in stats
+        assert "by_criticality_tier" in stats
         assert "by_lifecycle" in stats
         assert "by_environment" in stats
+        assert "by_cloud_provider" in stats
+        assert "by_data_classification" in stats
         assert stats["unowned_count"] == 1
 
     def test_stats_empty_org(self, inventory):
         stats = inventory.get_inventory_stats("org-empty")
         assert stats["total"] == 0
         assert stats["unowned_count"] == 0
+
+    def test_stats_by_criticality_tier(self, inventory):
+        inventory.register_asset(_make_asset(name="t1", criticality_tier=CriticalityTier.T1, org_id="org-tier"))
+        inventory.register_asset(_make_asset(name="t2", criticality_tier=CriticalityTier.T2, org_id="org-tier"))
+        inventory.register_asset(_make_asset(name="t3", criticality_tier=CriticalityTier.T3, org_id="org-tier"))
+        stats = inventory.get_inventory_stats("org-tier")
+        assert stats["by_criticality_tier"].get("T1") == 1
+        assert stats["by_criticality_tier"].get("T2") == 1
 
 
 # ---------------------------------------------------------------------------
@@ -396,6 +656,8 @@ class TestBulkImport:
                 "criticality": "critical",
                 "environment": "staging",
                 "lifecycle": "active",
+                "criticality_tier": "T1",
+                "data_classification": "confidential",
             }
         ]
         count = inventory.bulk_import(raw_assets, org_id="org-enum")
@@ -404,11 +666,13 @@ class TestBulkImport:
         assert asset.criticality == AssetCriticality.CRITICAL
         assert asset.environment == Environment.STAGING
         assert asset.lifecycle == AssetLifecycle.ACTIVE
+        assert asset.criticality_tier == CriticalityTier.T1
+        assert asset.data_classification == DataClassification.CONFIDENTIAL
 
     def test_bulk_import_skips_invalid(self, inventory):
         raw_assets = [
             {"name": "valid", "asset_type": "server"},
-            {"asset_type": "missing-name-field"},  # name is required by Pydantic
+            {"asset_type": "missing-name-field"},  # name is required
             {"name": "also-valid", "asset_type": "domain"},
         ]
         count = inventory.bulk_import(raw_assets, org_id="org-skip")
@@ -418,6 +682,15 @@ class TestBulkImport:
         raw_assets = [{"bad": "data"}, {"worse": "data"}]
         count = inventory.bulk_import(raw_assets, org_id="org-bad")
         assert count == 0
+
+    def test_bulk_import_triggers_compliance_auto_scope(self, inventory):
+        raw_assets = [
+            {"name": "restricted-asset", "asset_type": "database", "data_classification": "restricted"},
+        ]
+        inventory.bulk_import(raw_assets, org_id="org-autoscope")
+        results = inventory.list_assets("org-autoscope")
+        assert len(results) == 1
+        assert "pci" in results[0].compliance_scope
 
 
 # ---------------------------------------------------------------------------
@@ -439,6 +712,13 @@ class TestFilters:
         assert len(results) == 1
         assert results[0].name == "crit"
 
+    def test_filter_by_criticality_tier(self, inventory):
+        inventory.register_asset(_make_asset(name="t1-asset", criticality_tier=CriticalityTier.T1, org_id="org-tier-f"))
+        inventory.register_asset(_make_asset(name="t4-asset", criticality_tier=CriticalityTier.T4, org_id="org-tier-f"))
+        results = inventory.list_assets("org-tier-f", criticality_tier="T1")
+        assert len(results) == 1
+        assert results[0].name == "t1-asset"
+
     def test_filter_by_environment(self, inventory):
         inventory.register_asset(_make_asset(name="prod-sv", environment=Environment.PRODUCTION, org_id="org-fe"))
         inventory.register_asset(_make_asset(name="dev-sv", environment=Environment.DEVELOPMENT, org_id="org-fe"))
@@ -459,3 +739,51 @@ class TestFilters:
         results = inventory.list_assets("org-fo", owner_email="alice@x.com")
         assert len(results) == 1
         assert results[0].name == "mine"
+
+    def test_filter_by_business_unit(self, inventory):
+        inventory.register_asset(_make_asset(name="eng-asset", business_unit="Engineering", org_id="org-bu-f"))
+        inventory.register_asset(_make_asset(name="fin-asset", business_unit="Finance", org_id="org-bu-f"))
+        results = inventory.list_assets("org-bu-f", business_unit="Engineering")
+        assert len(results) == 1
+        assert results[0].name == "eng-asset"
+
+    def test_filter_by_cloud_provider(self, inventory):
+        inventory.register_asset(_make_asset(name="aws-asset", cloud_provider="aws", org_id="org-cloud-f"))
+        inventory.register_asset(_make_asset(name="gcp-asset", cloud_provider="gcp", org_id="org-cloud-f"))
+        results = inventory.list_assets("org-cloud-f", cloud_provider="aws")
+        assert len(results) == 1
+        assert results[0].name == "aws-asset"
+
+    def test_filter_by_region(self, inventory):
+        inventory.register_asset(_make_asset(name="us-asset", region="us-east-1", org_id="org-region-f"))
+        inventory.register_asset(_make_asset(name="eu-asset", region="eu-west-1", org_id="org-region-f"))
+        results = inventory.list_assets("org-region-f", region="us-east-1")
+        assert len(results) == 1
+        assert results[0].name == "us-asset"
+
+    def test_filter_by_data_classification(self, inventory):
+        inventory.register_asset(_make_asset(
+            name="restricted-asset",
+            data_classification=DataClassification.RESTRICTED,
+            compliance_scope=["pci"],
+            org_id="org-class-f",
+        ))
+        inventory.register_asset(_make_asset(
+            name="public-asset",
+            data_classification=DataClassification.PUBLIC,
+            compliance_scope=[],
+            org_id="org-class-f",
+        ))
+        results = inventory.list_assets("org-class-f", data_classification="restricted")
+        assert len(results) == 1
+        assert results[0].name == "restricted-asset"
+
+    def test_filter_by_compliance_scope(self, inventory):
+        inventory.register_asset(_make_asset(name="pci-only", compliance_scope=["pci"], org_id="org-cs-f"))
+        inventory.register_asset(_make_asset(name="hipaa-only", compliance_scope=["hipaa"], org_id="org-cs-f"))
+        inventory.register_asset(_make_asset(name="both", compliance_scope=["pci", "hipaa"], org_id="org-cs-f"))
+        results = inventory.list_assets("org-cs-f", compliance_scope="pci")
+        assert len(results) == 2
+        names = {a.name for a in results}
+        assert "pci-only" in names
+        assert "both" in names

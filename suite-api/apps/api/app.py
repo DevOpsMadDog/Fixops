@@ -36,6 +36,7 @@ except ImportError:
 import jwt
 from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
+from apps.api.change_management_router import router as change_management_router
 
 # Evidence Chain router — tamper-proof cryptographic audit trail
 evidence_chain_router: Optional[APIRouter] = None
@@ -81,6 +82,14 @@ try:
     logging.getLogger(__name__).info("Loaded Anomaly Detection router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Anomaly Detection router not available: %s", e)
+
+# Anomaly ML Engine — behavioral analytics, UEBA, isolation forest, feedback loop
+anomaly_ml_router: Optional[APIRouter] = None
+try:
+    from apps.api.anomaly_ml_router import router as anomaly_ml_router
+    logging.getLogger(__name__).info("Loaded Anomaly ML Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Anomaly ML Engine router not available: %s", e)
 
 # NDR router (asset discovery, segmentation, firewall audit, DNS, TLS, flows, zero trust)
 network_security_router: Optional[APIRouter] = None
@@ -247,6 +256,14 @@ try:
     logging.getLogger(__name__).info("Loaded Compliance Reports router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Compliance Reports router not available: %s", e)
+
+# Integration Hub — Slack, Jira, PagerDuty, ServiceNow, Teams delivery engine
+integration_hub_router: Optional[APIRouter] = None
+try:
+    from apps.api.integration_hub_router import router as integration_hub_router
+    logging.getLogger(__name__).info("Loaded Integration Hub router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Integration Hub router not available: %s", e)
 
 # Threat Intelligence Correlation — threat actor profiles and campaign data
 threat_intel_router: Optional[APIRouter] = None
@@ -2405,6 +2422,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Anomaly Detection router")
 
+    # Anomaly ML Engine — behavioral analytics, UEBA, isolation forest, feedback loop
+    if anomaly_ml_router:
+        app.include_router(
+            anomaly_ml_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Anomaly ML Engine router")
+
     if network_security_router:
         app.include_router(
             network_security_router,
@@ -2637,6 +2662,7 @@ def create_app() -> FastAPI:
 
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
+    app.include_router(change_management_router, dependencies=[Depends(_verify_api_key)])
     if evidence_chain_router:
         app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Evidence Chain router")

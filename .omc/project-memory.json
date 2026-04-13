@@ -400,20 +400,38 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 110,
-      "lastAccessed": 1776079076697,
+      "accessCount": 166,
+      "lastAccessed": 1776081701165,
       "type": "directory"
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 16,
-      "lastAccessed": 1776078819875,
+      "accessCount": 21,
+      "lastAccessed": 1776081491347,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_pipeline_api.py",
+      "accessCount": 13,
+      "lastAccessed": 1776081490855,
       "type": "file"
     },
     {
       "path": "suite-core/core/anomaly_detector.py",
-      "accessCount": 9,
-      "lastAccessed": 1776078497427,
+      "accessCount": 12,
+      "lastAccessed": 1776081428728,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/asset_inventory.py",
+      "accessCount": 12,
+      "lastAccessed": 1776081474940,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/anomaly_router.py",
+      "accessCount": 10,
+      "lastAccessed": 1776081272316,
       "type": "file"
     },
     {
@@ -423,15 +441,15 @@
       "type": "file"
     },
     {
-      "path": "tests/test_pipeline_api.py",
-      "accessCount": 8,
-      "lastAccessed": 1776078458665,
+      "path": "suite-api/apps/api/asset_inventory_router.py",
+      "accessCount": 9,
+      "lastAccessed": 1776081514457,
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/anomaly_router.py",
+      "path": "tests/test_phase2_connectors.py",
       "accessCount": 8,
-      "lastAccessed": 1776078498862,
+      "lastAccessed": 1776081474496,
       "type": "file"
     },
     {
@@ -447,33 +465,15 @@
       "type": "file"
     },
     {
-      "path": "tests/test_phase2_connectors.py",
-      "accessCount": 6,
-      "lastAccessed": 1776078516282,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/asset_inventory.py",
+      "path": "tests/test_trustgraph.py",
       "accessCount": 5,
-      "lastAccessed": 1776078515298,
+      "lastAccessed": 1776081267328,
       "type": "file"
     },
     {
       "path": "tests/test_phishing_simulator.py",
       "accessCount": 4,
       "lastAccessed": 1776078019123,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_trustgraph.py",
-      "accessCount": 4,
-      "lastAccessed": 1776078378745,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/asset_inventory_router.py",
-      "accessCount": 4,
-      "lastAccessed": 1776078511097,
       "type": "file"
     },
     {
@@ -540,6 +540,24 @@
       "path": "suite-api/apps/api/compliance_automation_router.py",
       "accessCount": 2,
       "lastAccessed": 1776078390808,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/api_key_manager.py",
+      "accessCount": 2,
+      "lastAccessed": 1776081448143,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/apikey_router.py",
+      "accessCount": 2,
+      "lastAccessed": 1776081448894,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_connector_framework.py",
+      "accessCount": 2,
+      "lastAccessed": 1776081450748,
       "type": "file"
     },
     {
@@ -633,21 +651,9 @@
       "type": "file"
     },
     {
-      "path": "suite-core/core/api_key_manager.py",
-      "accessCount": 1,
-      "lastAccessed": 1776078038584,
-      "type": "file"
-    },
-    {
       "path": "suite-api/apps/api/attack_surface_manager_router.py",
       "accessCount": 1,
       "lastAccessed": 1776078043908,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/apikey_router.py",
-      "accessCount": 1,
-      "lastAccessed": 1776078044008,
       "type": "file"
     },
     {
@@ -690,12 +696,6 @@
       "path": "tests/test_soar_engine.py",
       "accessCount": 1,
       "lastAccessed": 1776078173476,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_connector_framework.py",
-      "accessCount": 1,
-      "lastAccessed": 1776078183723,
       "type": "file"
     }
   ],
