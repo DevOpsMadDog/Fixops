@@ -503,6 +503,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Risk Quantifier router not available: %s", e)
 
+security_roi_router: Optional[APIRouter] = None
+try:
+    from apps.api.security_roi_router import router as security_roi_router
+    logging.getLogger(__name__).info("Loaded Security ROI router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Security ROI router not available: %s", e)
+
 sbom_router: Optional[APIRouter] = None
 try:
     from apps.api.sbom_router import router as sbom_router
@@ -2832,6 +2839,7 @@ def create_app() -> FastAPI:
         (retention_router, "Retention", "admin:all"),
         (risk_acceptance_router, "Risk Acceptance", "write:findings"),
         (risk_quantifier_router, "Risk Quantifier", "read:findings"),
+        (security_roi_router, "Security ROI", "read:findings"),
         (sbom_router, "SBOM", "read:sbom"),
         (secret_scanner_router, "Secret Scanner", "read:findings"),
         (security_kb_router, "Security KB", "read:findings"),
