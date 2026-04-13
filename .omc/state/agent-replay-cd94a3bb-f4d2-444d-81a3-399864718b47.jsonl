@@ -345,3 +345,10 @@
 {"t":0,"agent":"a8c9a6f","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a3963cb","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a3b0dcf","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a446f4f","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"af22ec9","agent_type":"debugger","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"abe3ea9","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a10654c","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"ab47c8e","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ad381b6","agent_type":"designer","event":"agent_stop","success":true}
+{"t":0,"agent":"a253894","agent_type":"executor","event":"agent_stop","success":true}

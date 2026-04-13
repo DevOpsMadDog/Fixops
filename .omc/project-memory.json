@@ -400,8 +400,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 255,
-      "lastAccessed": 1776084659109,
+      "accessCount": 261,
+      "lastAccessed": 1776084720100,
       "type": "directory"
     },
     {
@@ -459,6 +459,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/threat_intel_router.py",
+      "accessCount": 7,
+      "lastAccessed": 1776084682167,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/api_fuzzer_router.py",
       "accessCount": 6,
       "lastAccessed": 1776078221773,
@@ -486,12 +492,6 @@
       "path": "suite-api/apps/api/supply_chain_router.py",
       "accessCount": 5,
       "lastAccessed": 1776084622740,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/threat_intel_router.py",
-      "accessCount": 5,
-      "lastAccessed": 1776084645232,
       "type": "file"
     },
     {

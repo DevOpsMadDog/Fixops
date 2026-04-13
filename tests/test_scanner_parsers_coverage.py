@@ -1,10 +1,8 @@
-"""Comprehensive tests for scanner_parsers.py — 32 normalizer functions.
+"""Comprehensive tests for scanner_parsers.py — normalizer functions.
 
 Coverage targets:
 - Each major parser: semgrep, trivy, snyk, bandit, grype, gitleaks, checkov,
-  trufflehog (no trufflehog class found — covered via gitleaks secrets pattern),
-  zap, burp, nessus, nuclei, sonarqube, nikto, nmap, checkov, prowler,
-  dependabot, checkmarx, openvas
+  zap, nuclei, sonarqube, prowler, dependabot
 - can_handle() returns expected confidence for valid input
 - can_handle() returns 0.0 for unrelated content
 - normalize() produces standard finding schema fields
@@ -56,8 +54,23 @@ from core.scanner_parsers import (
 
 
 # ---------------------------------------------------------------------------
-# Helper: get a value from a finding regardless of whether it is a dict or
-# UnifiedFinding dataclass (when ingestion module is available).
+# Factory: create normalizer with optional NormalizerConfig if ingestion module
+# is present, otherwise call constructor with no args (standalone mode).
+# ---------------------------------------------------------------------------
+
+def _make_normalizer(cls):
+    """Instantiate a normalizer correctly regardless of ingestion availability."""
+    try:
+        from apps.api.ingestion import NormalizerConfig
+        config = NormalizerConfig(name=cls.__name__.lower().replace("normalizer", ""))
+        return cls(config)
+    except (ImportError, TypeError):
+        # Standalone mode: no config required
+        return cls()
+
+
+# ---------------------------------------------------------------------------
+# Helper: get a field from a finding regardless of dict vs UnifiedFinding object.
 # ---------------------------------------------------------------------------
 
 def _get(finding, key, default=None):
@@ -190,37 +203,37 @@ class TestBanditNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence_for_bandit_json(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         score = n.can_handle(self._make_content())
         assert score >= 0.85
 
     def test_can_handle_returns_zero_for_unrelated_content(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         assert n.can_handle(b'{"hello": "world"}') == 0.0
 
     def test_normalize_returns_findings_list(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         findings = n.normalize(self._make_content())
         assert isinstance(findings, list)
         assert len(findings) == 1
 
     def test_normalize_sets_source_tool_to_bandit(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "bandit"
 
     def test_normalize_extracts_rule_id(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "rule_id") == "B101"
 
     def test_normalize_empty_results_returns_empty_list(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         findings = n.normalize(self._make_content(results=[]))
         assert findings == []
 
     def test_normalize_malformed_json_returns_empty_list(self):
-        n = BanditNormalizer()
+        n = _make_normalizer(BanditNormalizer)
         assert n.normalize(b"{bad}") == []
 
 
@@ -249,30 +262,30 @@ class TestSemgrepNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence_for_semgrep_json(self):
-        n = SemgrepScannerNormalizer()
+        n = _make_normalizer(SemgrepScannerNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_can_handle_returns_zero_for_unrelated_content(self):
-        n = SemgrepScannerNormalizer()
+        n = _make_normalizer(SemgrepScannerNormalizer)
         assert n.can_handle(b'{"noresults": true}') == 0.0
 
     def test_normalize_returns_one_finding(self):
-        n = SemgrepScannerNormalizer()
+        n = _make_normalizer(SemgrepScannerNormalizer)
         findings = n.normalize(self._make_content())
         assert len(findings) == 1
 
     def test_normalize_sets_source_tool_to_semgrep(self):
-        n = SemgrepScannerNormalizer()
+        n = _make_normalizer(SemgrepScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "semgrep"
 
     def test_normalize_extracts_file_path(self):
-        n = SemgrepScannerNormalizer()
+        n = _make_normalizer(SemgrepScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "file_path") == "app/views.py"
 
     def test_normalize_empty_results_returns_empty_list(self):
-        n = SemgrepScannerNormalizer()
+        n = _make_normalizer(SemgrepScannerNormalizer)
         assert n.normalize(self._make_content(results=[])) == []
 
 
@@ -308,30 +321,38 @@ class TestTrivyNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence_for_trivy_json(self):
-        n = TrivyScannerNormalizer()
+        n = _make_normalizer(TrivyScannerNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_normalize_returns_findings(self):
-        n = TrivyScannerNormalizer()
+        n = _make_normalizer(TrivyScannerNormalizer)
         findings = n.normalize(self._make_content())
         assert len(findings) == 1
 
     def test_normalize_sets_source_tool_to_trivy(self):
-        n = TrivyScannerNormalizer()
+        n = _make_normalizer(TrivyScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "trivy"
 
     def test_normalize_extracts_cve_id(self):
-        n = TrivyScannerNormalizer()
+        n = _make_normalizer(TrivyScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "cve_id") == "CVE-2021-3711"
 
     def test_normalize_maps_critical_severity(self):
-        n = TrivyScannerNormalizer()
+        n = _make_normalizer(TrivyScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         sev = _get(f, "severity")
-        # severity may be enum or string; normalise for comparison
         assert str(sev).lower() in ("critical", "findingseverity.critical")
+
+    def test_normalize_empty_results_returns_empty(self):
+        payload = {
+            "SchemaVersion": 2,
+            "ArtifactName": "img",
+            "Results": [{"Target": "img", "Type": "ubuntu", "Vulnerabilities": []}],
+        }
+        n = _make_normalizer(TrivyScannerNormalizer)
+        assert n.normalize(json.dumps(payload).encode()) == []
 
 
 # ---------------------------------------------------------------------------
@@ -360,36 +381,36 @@ class TestSnykNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence_for_snyk_json(self):
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_can_handle_returns_zero_for_unrelated_content(self):
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         assert n.can_handle(b"{}") == 0.0
 
     def test_normalize_returns_one_finding(self):
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_snyk(self):
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "snyk"
 
     def test_normalize_extracts_package_name(self):
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "package_name") == "Pillow"
 
     def test_normalize_recommendation_contains_upgrade_version(self):
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         f = n.normalize(self._make_content())[0]
         rec = _get(f, "recommendation", "")
         assert "8.2.0" in str(rec)
 
     def test_normalize_empty_vulnerabilities_returns_empty(self):
         payload = {"packageManager": "pip", "vulnerabilities": []}
-        n = SnykNormalizer()
+        n = _make_normalizer(SnykNormalizer)
         assert n.normalize(json.dumps(payload).encode()) == []
 
 
@@ -420,25 +441,25 @@ class TestGrypeNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence_for_grype_json(self):
-        n = GrypeScannerNormalizer()
+        n = _make_normalizer(GrypeScannerNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_normalize_returns_one_finding(self):
-        n = GrypeScannerNormalizer()
+        n = _make_normalizer(GrypeScannerNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_grype(self):
-        n = GrypeScannerNormalizer()
+        n = _make_normalizer(GrypeScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "grype"
 
     def test_normalize_extracts_cve_id(self):
-        n = GrypeScannerNormalizer()
+        n = _make_normalizer(GrypeScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "cve_id") == "CVE-2022-12345"
 
     def test_normalize_empty_matches_returns_empty(self):
-        n = GrypeScannerNormalizer()
+        n = _make_normalizer(GrypeScannerNormalizer)
         assert n.normalize(json.dumps({"matches": []}).encode()) == []
 
 
@@ -465,52 +486,65 @@ class TestGitleaksNormalizer:
         return json.dumps(data).encode()
 
     def test_can_handle_returns_high_confidence_for_gitleaks_json(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_can_handle_returns_zero_for_unrelated_content(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         assert n.can_handle(b'{"results": []}') == 0.0
 
     def test_normalize_returns_one_finding(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_gitleaks(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "gitleaks"
 
     def test_normalize_aws_key_rule_maps_to_critical(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         sev = str(_get(f, "severity", "")).lower()
         assert "critical" in sev
 
     def test_normalize_sets_cwe_798_for_hardcoded_credentials(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "cwe_id") == "CWE-798"
 
     def test_normalize_does_not_store_plaintext_secret(self):
         """The actual secret value must NOT appear in the finding output."""
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         finding_str = json.dumps(f if isinstance(f, dict) else vars(f), default=str)
         assert "AKIAIOSFODNN7EXAMPLE" not in finding_str
 
     def test_normalize_extracts_file_path(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "file_path") == "config/settings.py"
 
     def test_normalize_empty_list_returns_empty(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         assert n.normalize(b"[]") == []
 
     def test_normalize_malformed_json_returns_empty(self):
-        n = GitleaksScannerNormalizer()
+        n = _make_normalizer(GitleaksScannerNormalizer)
         assert n.normalize(b"{bad}") == []
+
+    def test_normalize_generic_rule_maps_to_high_not_critical(self):
+        items = [{
+            "RuleID": "generic-api-key",
+            "Description": "Generic API key",
+            "Secret": "some-secret-value",
+            "File": "app.py",
+            "StartLine": 5,
+        }]
+        n = _make_normalizer(GitleaksScannerNormalizer)
+        f = n.normalize(self._make_content(items=items))[0]
+        sev = str(_get(f, "severity", "")).lower()
+        assert "high" in sev
 
 
 # ---------------------------------------------------------------------------
@@ -537,36 +571,54 @@ class TestCheckovNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence_for_checkov_json(self):
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_can_handle_returns_zero_for_unrelated_json(self):
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         assert n.can_handle(b'{"foo": "bar"}') == 0.0
 
     def test_normalize_returns_one_finding(self):
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_checkov(self):
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "checkov"
 
     def test_normalize_extracts_rule_id(self):
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "rule_id") == "CKV_AWS_2"
 
     def test_normalize_extracts_file_path(self):
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "file_path") == "/tf/main.tf"
 
     def test_normalize_no_failed_checks_returns_empty(self):
         payload = {"check_type": "terraform", "passed_checks": [], "failed_checks": []}
-        n = CheckovNormalizer()
+        n = _make_normalizer(CheckovNormalizer)
         assert n.normalize(json.dumps(payload).encode()) == []
+
+    def test_normalize_nested_results_failed_checks(self):
+        payload = {
+            "check_type": "cloudformation",
+            "results": {
+                "failed_checks": [
+                    {
+                        "check_id": "CKV_AWS_18",
+                        "check_name": "S3 logging enabled",
+                        "file_path": "/cf/template.yml",
+                        "file_line_range": [1, 5],
+                    }
+                ]
+            },
+        }
+        n = _make_normalizer(CheckovNormalizer)
+        findings = n.normalize(json.dumps(payload).encode())
+        assert len(findings) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -596,21 +648,21 @@ class TestZAPNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence(self):
-        n = ZAPNormalizer()
+        n = _make_normalizer(ZAPNormalizer)
         assert n.can_handle(self._make_content()) > 0.8
 
     def test_normalize_returns_findings(self):
-        n = ZAPNormalizer()
+        n = _make_normalizer(ZAPNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_zap(self):
-        n = ZAPNormalizer()
+        n = _make_normalizer(ZAPNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "zap"
 
     def test_normalize_empty_alerts_returns_empty(self):
         payload = {"site": [{"alerts": []}]}
-        n = ZAPNormalizer()
+        n = _make_normalizer(ZAPNormalizer)
         assert n.normalize(json.dumps(payload).encode()) == []
 
 
@@ -634,17 +686,21 @@ class TestNucleiNormalizer:
         return line.encode()
 
     def test_can_handle_returns_high_confidence_for_nuclei_jsonl(self):
-        n = NucleiNormalizer()
+        n = _make_normalizer(NucleiNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_normalize_returns_findings(self):
-        n = NucleiNormalizer()
+        n = _make_normalizer(NucleiNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_nuclei(self):
-        n = NucleiNormalizer()
+        n = _make_normalizer(NucleiNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "nuclei"
+
+    def test_normalize_empty_bytes_returns_empty(self):
+        n = _make_normalizer(NucleiNormalizer)
+        assert n.normalize(b"") == []
 
 
 # ---------------------------------------------------------------------------
@@ -672,15 +728,15 @@ class TestProwlerNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence(self):
-        n = ProwlerNormalizer()
+        n = _make_normalizer(ProwlerNormalizer)
         assert n.can_handle(self._make_content()) >= 0.85
 
     def test_normalize_returns_one_finding(self):
-        n = ProwlerNormalizer()
+        n = _make_normalizer(ProwlerNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_prowler(self):
-        n = ProwlerNormalizer()
+        n = _make_normalizer(ProwlerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "prowler"
 
@@ -693,8 +749,13 @@ class TestProwlerNormalizer:
                 "Severity": "low",
             }
         ]
-        n = ProwlerNormalizer()
+        n = _make_normalizer(ProwlerNormalizer)
         assert n.normalize(json.dumps(payload).encode()) == []
+
+    def test_normalize_extracts_cloud_account(self):
+        n = _make_normalizer(ProwlerNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "cloud_account") == "123456789012"
 
 
 # ---------------------------------------------------------------------------
@@ -712,7 +773,7 @@ class TestSonarQubeNormalizer:
                     "rule": "python:S1192",
                     "severity": "MAJOR",
                     "component": "my-project:src/main.py",
-                    "message": "Define a constant instead of duplicating this literal 'foo' 3 times",
+                    "message": "Define a constant instead of duplicating literal",
                     "line": 42,
                     "tags": [],
                 }
@@ -721,23 +782,28 @@ class TestSonarQubeNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_confidence_above_zero(self):
-        n = SonarQubeNormalizer()
+        n = _make_normalizer(SonarQubeNormalizer)
         assert n.can_handle(self._make_content()) > 0.0
 
     def test_normalize_returns_one_finding(self):
-        n = SonarQubeNormalizer()
+        n = _make_normalizer(SonarQubeNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_sonarqube(self):
-        n = SonarQubeNormalizer()
+        n = _make_normalizer(SonarQubeNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "sonarqube"
 
     def test_normalize_major_severity_maps_to_medium(self):
-        n = SonarQubeNormalizer()
+        n = _make_normalizer(SonarQubeNormalizer)
         f = n.normalize(self._make_content())[0]
         sev = str(_get(f, "severity", "")).lower()
         assert "medium" in sev
+
+    def test_normalize_extracts_rule_id(self):
+        n = _make_normalizer(SonarQubeNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "rule_id") == "python:S1192"
 
 
 # ---------------------------------------------------------------------------
@@ -764,23 +830,28 @@ class TestDependabotNormalizer:
         return json.dumps(payload).encode()
 
     def test_can_handle_returns_high_confidence(self):
-        n = DependabotScannerNormalizer()
+        n = _make_normalizer(DependabotScannerNormalizer)
         assert n.can_handle(self._make_content()) >= 0.9
 
     def test_normalize_returns_one_finding(self):
-        n = DependabotScannerNormalizer()
+        n = _make_normalizer(DependabotScannerNormalizer)
         assert len(n.normalize(self._make_content())) == 1
 
     def test_normalize_sets_source_tool_to_dependabot(self):
-        n = DependabotScannerNormalizer()
+        n = _make_normalizer(DependabotScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "source_tool") == "dependabot"
 
     def test_normalize_extracts_cve_id(self):
-        n = DependabotScannerNormalizer()
+        n = _make_normalizer(DependabotScannerNormalizer)
         f = n.normalize(self._make_content())[0]
         assert _get(f, "cve_id") == "CVE-2023-12345"
 
+    def test_normalize_extracts_package_name(self):
+        n = _make_normalizer(DependabotScannerNormalizer)
+        f = n.normalize(self._make_content())[0]
+        assert _get(f, "package_name") == "foo"
+
     def test_normalize_malformed_returns_empty(self):
-        n = DependabotScannerNormalizer()
+        n = _make_normalizer(DependabotScannerNormalizer)
         assert n.normalize(b"{bad json}") == []
