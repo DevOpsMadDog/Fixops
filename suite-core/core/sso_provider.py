@@ -33,6 +33,7 @@ from typing import Any, Dict, List, Literal, Optional
 import defusedxml.ElementTree as defused_ET
 import httpx
 import jwt
+from jwt import PyJWKClient
 from core.exceptions import AuthorizationError, ValidationError
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -43,6 +44,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _OIDC_DISCOVERY_SUFFIX = "/.well-known/openid-configuration"
+
+# Module-level JWKS client cache — keyed by jwks_uri, shared across provider instances
+_jwks_clients: dict = {}
 
 _PROVIDER_DISCOVERY_URLS: Dict[str, str] = {
     "okta": "{issuer}/.well-known/openid-configuration",
@@ -302,22 +306,38 @@ class OIDCProvider:
     def validate_token(self, id_token: str) -> UserInfo:
         """Validate an OIDC id_token JWT and extract user claims.
 
-        In production the issuer's public key is used; here we decode
-        without signature verification for the nonce/claims check, then
-        callers can layer signature verification on top.
+        Uses PyJWKClient to fetch the IdP's public key from the JWKS URI and
+        verifies the RS256 signature, expiry, audience, and issuer.
         """
+        jwks_uri = self._discovery.get("jwks_uri", "")
+        if not jwks_uri:
+            raise ValueError("No jwks_uri in discovery document")
+
+        if jwks_uri not in _jwks_clients:
+            _jwks_clients[jwks_uri] = PyJWKClient(jwks_uri, cache_jwk_set=True, lifespan=300)
+
+        client = _jwks_clients[jwks_uri]
         try:
-            # Decode without verification to extract claims (signature
-            # verification requires fetching JWKS — callers can extend)
+            signing_key = client.get_signing_key_from_jwt(id_token).key
+        except Exception as exc:
+            raise AuthorizationError(f"Failed to fetch signing key: {exc}") from exc
+
+        try:
             claims = jwt.decode(
                 id_token,
-                options={"verify_signature": False},
-                algorithms=["RS256", "HS256"],
+                signing_key,
+                algorithms=["RS256"],
+                audience=self.config.client_id,
+                issuer=self.config.issuer_url,
+                options={"verify_exp": True, "verify_aud": True, "verify_iss": True},
             )
+        except jwt.ExpiredSignatureError as exc:
+            raise AuthorizationError("id_token has expired") from exc
         except jwt.DecodeError as exc:
             raise AuthorizationError(f"Invalid id_token: {exc}") from exc
+        except jwt.InvalidTokenError as exc:
+            raise AuthorizationError(f"Token validation failed: {exc}") from exc
 
-        # Expiry check
         exp = claims.get("exp", 0)
         if exp and exp < time.time():
             raise AuthorizationError("id_token has expired")

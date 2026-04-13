@@ -397,30 +397,65 @@ class TestOIDCProvider:
         with pytest.raises(AuthorizationError, match="invalid_grant"):
             p.exchange_code(code="bad_code", redirect_uri="https://cb", http_client=mock_client)
 
+    def _make_jwks_mock(self, id_token: str):
+        """Return a mock PyJWKClient that produces a key which makes jwt.decode
+        succeed by patching jwt.decode directly in the call path."""
+        mock_client = MagicMock()
+        mock_key = MagicMock()
+        mock_client.get_signing_key_from_jwt.return_value.key = mock_key
+        return mock_client, mock_key
+
     def test_validate_token_extracts_email(self):
         p = self._provider()
         id_token = _make_id_token(email="alice@company.com")
-        user_info = p.validate_token(id_token)
+        mock_client, mock_key = self._make_jwks_mock(id_token)
+        with patch("core.sso_provider.PyJWKClient", return_value=mock_client), \
+             patch("core.sso_provider.jwt.decode") as mock_decode:
+            mock_decode.return_value = {
+                "sub": "user-123",
+                "email": "alice@company.com",
+                "name": "Alice Smith",
+                "groups": [],
+                "exp": int(__import__("time").time()) + 3600,
+            }
+            user_info = p.validate_token(id_token)
         assert user_info.email == "alice@company.com"
 
     def test_validate_token_extracts_groups(self):
         p = self._provider(role_mapping={"SecurityTeam": "security_analyst"})
         id_token = _make_id_token(groups=["SecurityTeam"])
-        user_info = p.validate_token(id_token)
+        mock_client, mock_key = self._make_jwks_mock(id_token)
+        with patch("core.sso_provider.PyJWKClient", return_value=mock_client), \
+             patch("core.sso_provider.jwt.decode") as mock_decode:
+            mock_decode.return_value = {
+                "sub": "user-123",
+                "email": "alice@company.com",
+                "name": "Alice Smith",
+                "groups": ["SecurityTeam"],
+                "exp": int(__import__("time").time()) + 3600,
+            }
+            user_info = p.validate_token(id_token)
         assert "SecurityTeam" in user_info.groups
         assert "security_analyst" in user_info.roles
 
     def test_validate_expired_token_raises(self):
         p = self._provider()
-        # Token expired 10 seconds ago
         id_token = _make_id_token(exp_offset=-10)
-        with pytest.raises(AuthorizationError, match="expired"):
-            p.validate_token(id_token)
+        mock_client = MagicMock()
+        mock_client.get_signing_key_from_jwt.return_value.key = MagicMock()
+        with patch("core.sso_provider.PyJWKClient", return_value=mock_client), \
+             patch("core.sso_provider.jwt.decode") as mock_decode:
+            mock_decode.side_effect = jwt.ExpiredSignatureError("Signature has expired")
+            with pytest.raises(AuthorizationError, match="expired"):
+                p.validate_token(id_token)
 
     def test_validate_malformed_token_raises(self):
         p = self._provider()
-        with pytest.raises(AuthorizationError):
-            p.validate_token("not.a.jwt")
+        mock_client = MagicMock()
+        mock_client.get_signing_key_from_jwt.side_effect = Exception("Invalid token")
+        with patch("core.sso_provider.PyJWKClient", return_value=mock_client):
+            with pytest.raises(AuthorizationError):
+                p.validate_token("not.a.jwt")
 
     def test_refresh_token_success(self):
         p = self._provider()
