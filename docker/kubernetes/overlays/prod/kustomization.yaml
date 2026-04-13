@@ -1,0 +1,116 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: aldeci-prod
+
+# Point to base manifests
+resources:
+  - ../../
+
+# Production namespace
+namespace: aldeci
+
+# Production image tags — pin to specific release
+images:
+  - name: aldeci/suite-api
+    newTag: "1.0.0"
+  - name: aldeci/suite-ui
+    newTag: "1.0.0"
+
+# Production patches — higher replicas, stricter limits, prod hostnames
+patches:
+  - target:
+      kind: Deployment
+      name: aldeci-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "1"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "1Gi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "4"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "4Gi"
+
+  - target:
+      kind: Deployment
+      name: aldeci-ui
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: aldeci-api-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+
+  - target:
+      kind: PersistentVolumeClaim
+      name: aldeci-data
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: "100Gi"
+      - op: replace
+        path: /spec/storageClassName
+        value: "gp3"
+
+  - target:
+      kind: PersistentVolumeClaim
+      name: aldeci-backups
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: "50Gi"
+      - op: replace
+        path: /spec/storageClassName
+        value: "gp3"
+
+  - target:
+      kind: ConfigMap
+      name: aldeci-config
+    patch: |-
+      - op: replace
+        path: /data/ENVIRONMENT
+        value: "production"
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "INFO"
+      - op: replace
+        path: /data/API_WORKERS
+        value: "8"
+      - op: replace
+        path: /data/FIXOPS_ALLOWED_ORIGINS
+        value: "https://aldeci.example.com"
+
+  - target:
+      kind: Ingress
+      name: aldeci-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: "aldeci.example.com"
+      - op: replace
+        path: /spec/rules/1/host
+        value: "api.aldeci.example.com"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "aldeci.example.com"
+      - op: replace
+        path: /spec/tls/0/secretName
+        value: "aldeci-tls-prod"

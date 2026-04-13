@@ -1,0 +1,135 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aldeci-api-netpol
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci-api
+    app.kubernetes.io/part-of: aldeci-platform
+  annotations:
+    description: "API pods: accept from UI pods and ingress, allow egress to redis/cache"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: aldeci-api
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept traffic from UI pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: aldeci-ui
+              app.kubernetes.io/component: ui
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Accept traffic from nginx ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Accept traffic from cronjob (health checks during backup)
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: cronjob
+      ports:
+        - port: 8000
+          protocol: TCP
+  egress:
+    # DNS resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Redis cache
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - port: 6379
+          protocol: TCP
+    # TrustGraph MCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: trustgraph
+      ports:
+        - port: 8888
+          protocol: TCP
+    # External LLM APIs (OpenRouter, OpenAI, Anthropic) — HTTPS only
+    - ports:
+        - port: 443
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aldeci-ui-netpol
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci-ui
+    app.kubernetes.io/part-of: aldeci-platform
+  annotations:
+    description: "UI pods: accept from ingress only, egress to API pods"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: aldeci-ui
+      app.kubernetes.io/component: ui
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - port: 80
+          protocol: TCP
+  egress:
+    # DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Proxy to API backend
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: aldeci-api
+              app.kubernetes.io/component: api
+      ports:
+        - port: 8000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aldeci-default-deny
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/part-of: aldeci-platform
+  annotations:
+    description: "Default deny all ingress/egress — specific policies allow what's needed"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

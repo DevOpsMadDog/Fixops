@@ -1,0 +1,115 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: aldeci-dev
+
+# Point to base manifests
+resources:
+  - ../../
+
+# Override namespace for dev
+namespace: aldeci-dev
+
+# Dev-specific image tags
+images:
+  - name: aldeci/suite-api
+    newTag: dev
+  - name: aldeci/suite-ui
+    newTag: dev
+
+# Dev config patches — lower replicas, relaxed limits
+patches:
+  - target:
+      kind: Deployment
+      name: aldeci-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "512Mi"
+
+  - target:
+      kind: Deployment
+      name: aldeci-ui
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: aldeci-api-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: aldeci-ui-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+
+  - target:
+      kind: PersistentVolumeClaim
+      name: aldeci-data
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: "10Gi"
+
+  - target:
+      kind: PersistentVolumeClaim
+      name: aldeci-backups
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: "5Gi"
+
+  - target:
+      kind: ConfigMap
+      name: aldeci-config
+    patch: |-
+      - op: replace
+        path: /data/ENVIRONMENT
+        value: "development"
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
+
+  - target:
+      kind: Ingress
+      name: aldeci-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: "aldeci.dev.local"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "aldeci.dev.local"
+      - op: replace
+        path: /spec/tls/0/secretName
+        value: "aldeci-tls-dev"
+
+  # Disable backup cronjob in dev
+  - target:
+      kind: CronJob
+      name: aldeci-backup
+    patch: |-
+      - op: replace
+        path: /spec/suspend
+        value: true
