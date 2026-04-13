@@ -5358,6 +5358,17 @@ def create_app() -> FastAPI:
     except ImportError as _eb_err:
         _logger.warning("TrustGraph Event Bus not available: %s", _eb_err)
 
+    # Composite Risk Scorer — ML-powered multi-signal 0-100 risk scoring
+    try:
+        from apps.api.composite_risk_router import router as composite_risk_router
+        app.include_router(
+            composite_risk_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Composite Risk Scorer router at /api/v1/risk")
+    except ImportError as _crs_err:
+        _logger.warning("Composite Risk Scorer router not available: %s", _crs_err)
+
     return app
 
 
