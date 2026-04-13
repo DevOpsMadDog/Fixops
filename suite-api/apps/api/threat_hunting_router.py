@@ -212,6 +212,20 @@ async def run_hunt(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled and results:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"hunt-{session_id}-{body.query_id}",
+                "type": "hunt_finding", "severity": "medium",
+                "source": "threat_hunting_router",
+                "data": {"session_id": session_id, "query_id": body.query_id, "hits": len(results)},
+            }))
+    except Exception:
+        pass
     return [r.model_dump() for r in results]
 
 

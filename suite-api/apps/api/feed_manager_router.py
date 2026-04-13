@@ -167,6 +167,20 @@ async def register_feed(
 
     manager = _get_manager()
     result = manager.register_feed(config)
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"feed-registered-{body.name}",
+                "type": "threat_intel_feed", "severity": "info",
+                "source": "feed_manager_router",
+                "data": {"name": body.name, "type": body.type, "org_id": org_id},
+            }))
+    except Exception:
+        pass
     return result.model_dump()
 
 

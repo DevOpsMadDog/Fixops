@@ -264,11 +264,26 @@ def list_groups(
 def trigger_prioritization(body: PrioritizeRequest) -> PrioritizationSummary:
     engine = _get_engine()
     try:
-        return engine.run_prioritization(
+        result = engine.run_prioritization(
             org_id=body.org_id,
             asset_ids=body.asset_ids,
             force_epss_refresh=body.force_epss_refresh,
         )
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": f"vuln-prioritize-{body.org_id}",
+                    "type": "vuln_prioritization", "severity": "high",
+                    "source": "vuln_prioritizer_router",
+                    "data": {"org_id": body.org_id, "evaluated": getattr(result, "evaluated", 0)},
+                }))
+        except Exception:
+            pass
+        return result
     except Exception as exc:
         logger.error("trigger_prioritization error: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

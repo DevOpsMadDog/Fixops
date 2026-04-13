@@ -109,7 +109,21 @@ def score_finding(body: ScoreFindingRequest) -> Dict[str, Any]:
     engine = _get_prioritizer()
     try:
         result = engine.score_finding(body.finding)
-        return result.model_dump()
+        result_dict = result.model_dump()
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": str(body.finding.get("id", body.finding.get("finding_id", "risk-scored"))),
+                    "type": "risk_score", "severity": str(body.finding.get("severity", "medium")),
+                    "source": "risk_scoring_router", "data": result_dict,
+                }))
+        except Exception:
+            pass
+        return result_dict
     except Exception as exc:
         logger.error("score_finding error: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

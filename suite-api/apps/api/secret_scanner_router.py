@@ -128,6 +128,19 @@ async def scan_secrets(
             org_id=org_id,
         )
 
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled and secrets:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"secrets-{body.file_path}-{len(secrets)}",
+                "type": "secret_finding", "severity": "high",
+                "source": "secret_scanner_router", "data": {"count": len(secrets)},
+            }))
+    except Exception:
+        pass
     return ScanResponse(secrets_found=len(secrets), secrets=secrets)
 
 

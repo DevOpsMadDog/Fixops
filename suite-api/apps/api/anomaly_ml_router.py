@@ -209,6 +209,19 @@ def detect_zscore(body: ZScoreRequest) -> ZScoreResponse:
                 anomaly_detected=False,
                 message="No anomaly detected — value within normal range",
             )
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": f"anomaly-zscore-{body.entity_id}-{body.metric_name}",
+                    "type": "ml_anomaly", "severity": anomaly.risk_level.value if hasattr(anomaly.risk_level, "value") else "medium",
+                    "source": "anomaly_ml_router", "data": {"entity_id": body.entity_id, "metric": body.metric_name},
+                }))
+        except Exception:
+            pass
         return ZScoreResponse(
             anomaly_detected=True,
             anomaly=anomaly,
@@ -250,6 +263,19 @@ def score_isolation(body: IsolationRequest) -> IsolationResponse:
                 anomaly_detected=False,
                 message="Isolation score within normal range (<=0.6)",
             )
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": f"anomaly-isolation-{body.entity_id}",
+                    "type": "ml_anomaly", "severity": "high",
+                    "source": "anomaly_ml_router", "data": {"entity_id": body.entity_id, "score": anomaly.isolation_score},
+                }))
+        except Exception:
+            pass
         return IsolationResponse(
             anomaly_detected=True,
             isolation_score=anomaly.isolation_score,
@@ -283,6 +309,20 @@ def analyze_timeseries(body: TimeSeriesRequest) -> TimeSeriesResponse:
             entity_type=body.entity_type,
             org_id=body.org_id,
         )
+        # TrustGraph explicit indexing (fire-and-forget)
+        if anomalies:
+            try:
+                from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+                _bus = _get_eb()
+                if _bus and _bus.enabled:
+                    import asyncio as _asyncio
+                    _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                        "finding_id": f"anomaly-ts-{body.entity_id}-{body.metric_name}",
+                        "type": "ml_anomaly", "severity": "medium",
+                        "source": "anomaly_ml_router", "data": {"entity_id": body.entity_id, "anomaly_count": len(anomalies)},
+                    }))
+            except Exception:
+                pass
         return TimeSeriesResponse(
             anomalies_found=len(anomalies),
             anomalies=anomalies,

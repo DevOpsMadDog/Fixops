@@ -150,6 +150,19 @@ def run_scan(request: ScanRequest) -> Dict[str, Any]:
             )
     engine = _get_engine()
     results = engine.run_security_checks(org_id=request.org_id, provider=provider_filter)
+    # TrustGraph explicit indexing (fire-and-forget)
+    try:
+        from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+        _bus = _get_eb()
+        if _bus and _bus.enabled and results:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                "finding_id": f"cspm-scan-{request.org_id}-{len(results)}",
+                "type": "cspm_finding", "severity": "medium",
+                "source": "cspm_engine_router", "data": {"count": len(results), "org_id": request.org_id},
+            }))
+    except Exception:
+        pass
     return {
         "results": [r.model_dump(mode="json") for r in results],
         "count": len(results),

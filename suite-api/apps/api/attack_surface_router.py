@@ -159,7 +159,22 @@ def discover_from_findings(req: DiscoverFromFindingsRequest) -> List[Asset]:
         f.setdefault("org_id", req.org_id)
     mapper = _get_mapper()
     try:
-        return mapper.discover_from_findings(req.findings)
+        assets = mapper.discover_from_findings(req.findings)
+        # TrustGraph explicit indexing (fire-and-forget)
+        try:
+            from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
+            _bus = _get_eb()
+            if _bus and _bus.enabled and assets:
+                import asyncio as _asyncio
+                _asyncio.ensure_future(_bus.emit(EVENT_FINDING_CREATED, {
+                    "finding_id": f"attack-surface-{req.org_id}-{len(assets)}",
+                    "type": "attack_surface_finding", "severity": "high",
+                    "source": "attack_surface_router",
+                    "data": {"org_id": req.org_id, "assets_discovered": len(assets)},
+                }))
+        except Exception:
+            pass
+        return assets
     except Exception as exc:
         logger.exception("Discovery failed: %s", exc)
         raise HTTPException(status_code=500, detail=f"Discovery failed: {exc}") from exc

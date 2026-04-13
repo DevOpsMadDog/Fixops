@@ -521,3 +521,89 @@ async def detect_conflicts():
                 )
 
     return {"conflicts": conflicts, "total": len(conflicts)}
+
+
+# ---------------------------------------------------------------------------
+# Global violations list, evaluate, and enable/disable toggle
+# ---------------------------------------------------------------------------
+
+
+@router.get("/violations")
+async def list_all_violations(
+    limit: int = Query(100, ge=1, le=1000),
+    days: int = Query(30, ge=1, le=365),
+):
+    """List all policy violations across all policies in the past N days."""
+    cutoff = datetime.now(timezone.utc).timestamp() - days * 86400
+    all_violations: List[Dict[str, Any]] = []
+    for policy_id, violations in _violation_store.items():
+        for v in violations:
+            recorded_at = v.get("recorded_at", "")
+            try:
+                ts = datetime.fromisoformat(recorded_at).timestamp()
+            except (ValueError, TypeError):
+                ts = 0.0
+            if ts >= cutoff:
+                all_violations.append({**v, "policy_id": policy_id})
+    all_violations.sort(key=lambda x: x.get("recorded_at", ""), reverse=True)
+    return {
+        "violations": all_violations[:limit],
+        "total": len(all_violations),
+        "days": days,
+    }
+
+
+class EvaluateContextRequest(BaseModel):
+    """Request body for evaluating a context dict against all active policies."""
+    context: Dict[str, Any] = Field(..., description="Arbitrary context to evaluate (finding, asset, user, etc.)")
+
+
+@router.post("/evaluate")
+async def evaluate_context(body: EvaluateContextRequest):
+    """Evaluate a context dict against all active policies.
+
+    Returns a list of violated policies and their configured actions.
+    """
+    policies = db.list_policies(limit=10000)
+    active_policies = [p for p in policies if p.status == PolicyStatus.ACTIVE]
+    violated: List[Dict[str, Any]] = []
+    for policy in active_policies:
+        violations = _evaluate_policy(policy, [body.context])
+        if violations:
+            violated.append(
+                {
+                    "policy_id": policy.id,
+                    "policy_name": policy.name,
+                    "violations": violations,
+                    "actions": violations[0].get("actions", []) if violations else [],
+                }
+            )
+    return {
+        "context": body.context,
+        "policies_evaluated": len(active_policies),
+        "violated_policies": violated,
+        "violation_count": len(violated),
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+class EnableToggleRequest(BaseModel):
+    enabled: bool = Field(..., description="True to enable, False to disable")
+
+
+@router.put("/{id}/enable")
+async def toggle_policy_enabled(id: str, body: EnableToggleRequest):
+    """Enable or disable a policy without full update."""
+    policy = db.get_policy(id)
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    new_status = PolicyStatus.ACTIVE if body.enabled else PolicyStatus.DRAFT
+    updated = db.update_policy(id, {"status": new_status.value})
+    if not updated:
+        raise HTTPException(status_code=500, detail="Failed to update policy status")
+    return {
+        "id": id,
+        "enabled": body.enabled,
+        "status": new_status.value,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
