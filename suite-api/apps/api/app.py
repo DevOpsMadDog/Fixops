@@ -5227,6 +5227,25 @@ def create_app() -> FastAPI:
     except ImportError as e:
         _logger.warning("GitHub Issues router not available: %s", e)
 
+    # TrustGraph Event Bus — automatic pipeline from ALL API responses into TrustGraph.
+    # This closes the architectural gap: findings/assets/incidents created anywhere
+    # in the API are automatically routed to TrustGraph via response interception.
+    try:
+        from apps.api.event_bus_router import router as event_bus_router
+        from core.trustgraph_event_bus import init_event_bus
+
+        # Wire response interceptor middleware + startup handler
+        init_event_bus(app)
+
+        # Mount the management REST API (status, queue, flush, config)
+        app.include_router(
+            event_bus_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+        )
+        _logger.info("TrustGraph Event Bus wired: ResponseInterceptorMiddleware + /api/v1/event-bus endpoints")
+    except ImportError as _eb_err:
+        _logger.warning("TrustGraph Event Bus not available: %s", _eb_err)
+
     return app
 
 
