@@ -1,4 +1,4 @@
-"""CVE enrichment service — combine NVD, EPSS, KEV, CVSS into unified records."""
+"""CVE enrichment service — combine NVD, EPSS, KEV, CVSS, Shodan into unified records."""
 import json
 import sqlite3
 import time
@@ -11,6 +11,9 @@ from typing import Optional
 import structlog
 
 _logger = structlog.get_logger()
+
+_KEV_CACHE_TTL_HOURS = 6
+_SHODAN_CACHE_TTL_DAYS = 5
 
 # Built-in CVE database (subset of well-known CVEs for offline use)
 BUILT_IN_CVES = {
@@ -98,6 +101,29 @@ class CVEEnrichmentService:
                 CREATE INDEX IF NOT EXISTS idx_cve_cvss ON cve_cache(cvss_score);
                 CREATE INDEX IF NOT EXISTS idx_cve_epss ON cve_cache(epss_score);
                 CREATE INDEX IF NOT EXISTS idx_cve_kev ON cve_cache(is_kev);
+
+                CREATE TABLE IF NOT EXISTS kev_catalog (
+                    cve_id               TEXT PRIMARY KEY,
+                    due_date             TEXT,
+                    ransomware_use       TEXT,
+                    date_added           TEXT
+                );
+                CREATE TABLE IF NOT EXISTS kev_meta (
+                    key   TEXT PRIMARY KEY,
+                    value TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS ip_cache (
+                    ip          TEXT PRIMARY KEY,
+                    ports       TEXT,
+                    hostnames   TEXT,
+                    cpes        TEXT,
+                    tags        TEXT,
+                    vulns       TEXT,
+                    enriched_at TEXT,
+                    expires_at  TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_ip_expires ON ip_cache(expires_at);
                 """
             )
 
@@ -367,7 +393,7 @@ class CVEEnrichmentService:
             # Affected products from configurations
             affected_products: list = []
 
-            epss_score, epss_percentile = self._fetch_epss(cve_id)
+            epss_score, epss_percentile, epss_date = self._fetch_epss(cve_id)
             is_kev, kev_due_date = self._fetch_kev(cve_id)
 
             return {
@@ -378,6 +404,7 @@ class CVEEnrichmentService:
                 "description": desc,
                 "epss_score": epss_score,
                 "epss_percentile": epss_percentile,
+                "epss_date": epss_date,
                 "is_kev": is_kev,
                 "kev_due_date": kev_due_date,
                 "affected_products": affected_products,
@@ -391,32 +418,198 @@ class CVEEnrichmentService:
             return None
 
     def _fetch_epss(self, cve_id: str) -> tuple:
-        """Fetch EPSS score from FIRST.org API. Returns (score, percentile)."""
+        """Fetch EPSS score from FIRST.org API. Returns (score, percentile, date)."""
         try:
             url = f"https://api.first.org/data/v1/epss?cve={cve_id}"
-            with urllib.request.urlopen(url, timeout=5) as resp:
+            req = urllib.request.Request(url, headers={"User-Agent": "ALDECI-CVE-Enrichment/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read().decode())
             entries = data.get("data", [])
             if entries:
                 score = float(entries[0].get("epss", 0.0))
                 percentile = float(entries[0].get("percentile", 0.0)) * 100
-                return score, round(percentile, 2)
+                epss_date = entries[0].get("date", "")
+                return score, round(percentile, 2), epss_date
         except Exception:  # noqa: BLE001
             pass
-        return 0.0, 0.0
+        return 0.0, 0.0, ""
 
-    def _fetch_kev(self, cve_id: str) -> tuple:
-        """Check CISA KEV catalog. Returns (is_kev: bool, due_date: str)."""
+    def _refresh_kev_catalog(self) -> None:
+        """Download CISA KEV catalog and store in SQLite. Skips if cache is fresh (<6h)."""
+        now = datetime.utcnow()
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT value FROM kev_meta WHERE key = 'fetched_at'"
+            ).fetchone()
+            if row:
+                fetched_at = datetime.fromisoformat(row["value"])
+                if now - fetched_at < timedelta(hours=_KEV_CACHE_TTL_HOURS):
+                    return  # catalog is still fresh
+
         try:
             url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
-            with urllib.request.urlopen(url, timeout=5) as resp:
+            req = urllib.request.Request(url, headers={"User-Agent": "ALDECI-CVE-Enrichment/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
-            for vuln in data.get("vulnerabilities", []):
-                if vuln.get("cveID", "").upper() == cve_id:
-                    return True, vuln.get("dueDate", "")
+
+            vulns = data.get("vulnerabilities", [])
+            with self._get_conn() as conn:
+                conn.execute("DELETE FROM kev_catalog")
+                conn.executemany(
+                    """
+                    INSERT OR REPLACE INTO kev_catalog
+                        (cve_id, due_date, ransomware_use, date_added)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    [
+                        (
+                            v.get("cveID", "").upper(),
+                            v.get("dueDate", ""),
+                            v.get("knownRansomwareCampaignUse", ""),
+                            v.get("dateAdded", ""),
+                        )
+                        for v in vulns
+                    ],
+                )
+                conn.execute(
+                    "INSERT OR REPLACE INTO kev_meta (key, value) VALUES ('fetched_at', ?)",
+                    (now.isoformat(),),
+                )
+            _logger.debug("kev_catalog_refreshed", count=len(vulns))
+        except Exception as exc:  # noqa: BLE001
+            _logger.debug("kev_catalog_fetch_failed", error=str(exc))
+
+    def _fetch_kev(self, cve_id: str) -> tuple:
+        """Check CISA KEV catalog using local cache. Returns (is_kev: bool, due_date: str)."""
+        self._refresh_kev_catalog()
+        try:
+            with self._get_conn() as conn:
+                row = conn.execute(
+                    "SELECT due_date FROM kev_catalog WHERE cve_id = ?",
+                    (cve_id.upper(),),
+                ).fetchone()
+            if row:
+                return True, row["due_date"]
         except Exception:  # noqa: BLE001
             pass
         return False, ""
+
+    # ------------------------------------------------------------------
+    # Public: KEV lookup
+    # ------------------------------------------------------------------
+
+    def is_kev(self, cve_id: str) -> dict:
+        """Check if a CVE is in the CISA Known Exploited Vulnerabilities catalog.
+
+        Returns dict with: is_kev (bool), kev_due_date (str), kev_ransomware_use (str).
+        Catalog is cached for 6 hours in SQLite.
+        """
+        cve_id = cve_id.upper().strip()
+        self._refresh_kev_catalog()
+        try:
+            with self._get_conn() as conn:
+                row = conn.execute(
+                    "SELECT due_date, ransomware_use FROM kev_catalog WHERE cve_id = ?",
+                    (cve_id,),
+                ).fetchone()
+            if row:
+                return {
+                    "is_kev": True,
+                    "kev_due_date": row["due_date"],
+                    "kev_ransomware_use": row["ransomware_use"],
+                }
+        except Exception as exc:  # noqa: BLE001
+            _logger.debug("is_kev_lookup_failed", cve_id=cve_id, error=str(exc))
+        return {
+            "is_kev": False,
+            "kev_due_date": "",
+            "kev_ransomware_use": "",
+        }
+
+    # ------------------------------------------------------------------
+    # Public: IP enrichment via Shodan InternetDB
+    # ------------------------------------------------------------------
+
+    def enrich_ip(self, ip: str) -> dict:
+        """Enrich an IP address using Shodan InternetDB (no auth required).
+
+        Returns dict with: ip, ports, hostnames, cpes, tags, vulns, source, enriched_at.
+        Results are cached for 5 days in SQLite. Respects 1 req/sec rate limit.
+        """
+        ip = ip.strip()
+        now = datetime.utcnow()
+
+        # Check cache first
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM ip_cache WHERE ip = ? AND expires_at > ?",
+                (ip, now.isoformat()),
+            ).fetchone()
+        if row:
+            return {
+                "ip": row["ip"],
+                "ports": json.loads(row["ports"] or "[]"),
+                "hostnames": json.loads(row["hostnames"] or "[]"),
+                "cpes": json.loads(row["cpes"] or "[]"),
+                "tags": json.loads(row["tags"] or "[]"),
+                "vulns": json.loads(row["vulns"] or "[]"),
+                "source": "cache",
+                "enriched_at": row["enriched_at"],
+            }
+
+        # Fetch from Shodan InternetDB — 1 req/sec limit
+        time.sleep(1)
+        try:
+            url = f"https://internetdb.shodan.io/{ip}"
+            req = urllib.request.Request(url, headers={"User-Agent": "ALDECI-CVE-Enrichment/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+
+            result = {
+                "ip": data.get("ip", ip),
+                "ports": data.get("ports", []),
+                "hostnames": data.get("hostnames", []),
+                "cpes": data.get("cpes", []),
+                "tags": data.get("tags", []),
+                "vulns": data.get("vulns", []),
+                "source": "shodan",
+                "enriched_at": now.isoformat(),
+            }
+
+            # Cache for 5 days (matching Shodan cache-control: max-age=432000)
+            expires = (now + timedelta(days=_SHODAN_CACHE_TTL_DAYS)).isoformat()
+            with self._get_conn() as conn:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO ip_cache
+                        (ip, ports, hostnames, cpes, tags, vulns, enriched_at, expires_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        ip,
+                        json.dumps(result["ports"]),
+                        json.dumps(result["hostnames"]),
+                        json.dumps(result["cpes"]),
+                        json.dumps(result["tags"]),
+                        json.dumps(result["vulns"]),
+                        now.isoformat(),
+                        expires,
+                    ),
+                )
+            return result
+
+        except Exception as exc:  # noqa: BLE001
+            _logger.debug("shodan_fetch_failed", ip=ip, error=str(exc))
+            return {
+                "ip": ip,
+                "ports": [],
+                "hostnames": [],
+                "cpes": [],
+                "tags": [],
+                "vulns": [],
+                "source": "error",
+                "enriched_at": now.isoformat(),
+            }
 
     def _row_to_dict(self, row: sqlite3.Row) -> dict:
         """Convert a sqlite3.Row to a dict, deserializing JSON fields."""
