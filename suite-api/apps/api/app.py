@@ -160,6 +160,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Correlation Engine router not available: %s", e)
 
+# Trivy Scanner — real Docker image / filesystem / repo vulnerability scanning
+trivy_router: Optional[APIRouter] = None
+try:
+    from apps.api.trivy_router import router as trivy_router
+    logging.getLogger(__name__).info("Loaded Trivy Scanner router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Trivy Scanner router not available: %s", e)
+
 # ---------------------------------------------------------------------------
 # Additional apps/api routers (wired in this session)
 # ---------------------------------------------------------------------------
@@ -2179,6 +2187,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Correlation Engine router")
+
+    # Trivy Scanner — real Docker image / filesystem / repo vulnerability scanning
+    if trivy_router:
+        app.include_router(
+            trivy_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Trivy Scanner router")
 
     # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
     if triage_router is not None:
