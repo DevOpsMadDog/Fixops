@@ -4647,6 +4647,16 @@ def create_app() -> FastAPI:
         _logger.warning("Access Control Matrix router not available: %s", _e)
 
     # -----------------------------------------------------------------------
+    # Zero-Trust Policy Engine — NIST SP 800-207
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.zero_trust_router import router as _zero_trust_router
+        app.include_router(_zero_trust_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Loaded Zero-Trust Policy Engine router")
+    except ImportError as _e:
+        _logger.warning("Zero-Trust router not available: %s", _e)
+
+    # -----------------------------------------------------------------------
     # Security Awareness Training Tracker
     # -----------------------------------------------------------------------
     try:
