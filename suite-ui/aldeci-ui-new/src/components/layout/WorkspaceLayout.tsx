@@ -120,6 +120,7 @@ const navGroups: NavGroup[] = [
       { label: "SLA Dashboard", to: "/mission-control/sla", icon: Clock, roles: ["admin", "security_analyst"] },
       { label: "Live Feed", to: "/mission-control/live-feed", icon: Activity },
       { label: "Risk Overview", to: "/mission-control/risk", icon: AlertTriangle },
+      { label: "Risk Register", to: "/mission-control/risk-register", icon: ClipboardCheck },
     ],
   },
   {
