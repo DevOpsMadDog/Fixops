@@ -4349,6 +4349,20 @@ def create_app() -> FastAPI:
         _logger.warning("Security KPI router not loaded: %s", exc)
 
     # ------------------------------------------------------------------
+    # Automated Evidence Collection router (SOC2/PCI/HIPAA auto-collect)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.auto_evidence_router import router as auto_evidence_router
+
+        app.include_router(
+            auto_evidence_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Auto Evidence Collection router at /api/v1/auto-evidence")
+    except ImportError as exc:
+        _logger.warning("Auto Evidence Collection router not loaded: %s", exc)
+
+    # ------------------------------------------------------------------
     # MCP Auto-Discovery router (must be mounted after all other routers
     # so that the startup hook can introspect the full route table)
     # ------------------------------------------------------------------
