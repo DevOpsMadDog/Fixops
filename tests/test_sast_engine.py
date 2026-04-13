@@ -531,3 +531,435 @@ class TestSelfScanBehavior:
 
         result = engine.scan_code(code, "suite-core/core/sast_engine.py")
         assert not any(f.line_number in skip_lines for f in result.findings)
+
+
+# ====================================================================
+# Section 20: New Language Support — TypeScript
+# ====================================================================
+
+class TestTypeScriptSupport:
+    def test_typescript_detected_from_extension(self):
+        result = detect_language("app.ts")
+        assert result == Language.TYPESCRIPT
+
+    def test_tsx_detected_as_typescript(self):
+        result = detect_language("Component.tsx")
+        assert result == Language.TYPESCRIPT
+
+    def test_typescript_eval_detection(self, engine):
+        code = "const result = eval(userInput);"
+        result = engine.scan_code(code, "app.ts")
+        assert any(f.cwe_id == "CWE-95" for f in result.findings)
+
+    def test_typescript_xss_detection(self, engine):
+        code = "element.innerHTML = userData;"
+        result = engine.scan_code(code, "app.ts")
+        assert any(f.cwe_id == "CWE-79" for f in result.findings)
+
+    def test_typescript_hardcoded_secret(self, engine):
+        code = 'const apiKey = "sk-abc123defghijklmnopqrstuvwxyz0123";'
+        result = engine.scan_code(code, "config.ts")
+        assert any(f.cwe_id == "CWE-798" for f in result.findings)
+
+    def test_typescript_sql_injection(self, engine):
+        code = "const rows = await db.query(`SELECT * FROM users WHERE id = ${userId}`);"
+        result = engine.scan_code(code, "repo.ts")
+        assert any(f.cwe_id == "CWE-89" for f in result.findings)
+
+
+# ====================================================================
+# Section 21: New Language Support — C
+# ====================================================================
+
+class TestCLanguageSupport:
+    def test_c_detected_from_extension(self):
+        assert detect_language("main.c") == Language.C
+        assert detect_language("utils.h") == Language.C
+
+    def test_c_gets_buffer_overflow(self, engine):
+        code = "gets(buf);"
+        result = engine.scan_code(code, "main.c")
+        assert any(f.cwe_id == "CWE-120" for f in result.findings)
+
+    def test_c_strcpy_unsafe(self, engine):
+        code = "strcpy(dest, src);"
+        result = engine.scan_code(code, "utils.c")
+        assert any(f.cwe_id == "CWE-120" for f in result.findings)
+
+    def test_c_system_command_injection(self, engine):
+        code = "system(cmd);"
+        result = engine.scan_code(code, "run.c")
+        assert any(f.cwe_id == "CWE-78" for f in result.findings)
+
+    def test_c_weak_hash(self, engine):
+        code = "MD5_Init(&ctx);"
+        result = engine.scan_code(code, "hash.c")
+        assert any(f.cwe_id == "CWE-328" for f in result.findings)
+
+    def test_c_insecure_random(self, engine):
+        code = "int r = rand();"
+        result = engine.scan_code(code, "token.c")
+        assert any(f.cwe_id == "CWE-330" for f in result.findings)
+
+
+# ====================================================================
+# Section 22: New Language Support — C++
+# ====================================================================
+
+class TestCppLanguageSupport:
+    def test_cpp_detected_from_extension(self):
+        assert detect_language("main.cpp") == Language.CPP
+        assert detect_language("utils.cc") == Language.CPP
+        assert detect_language("engine.cxx") == Language.CPP
+
+    def test_cpp_system_injection(self, engine):
+        code = "system(cmd.c_str());"
+        result = engine.scan_code(code, "runner.cpp")
+        assert any(f.cwe_id == "CWE-78" for f in result.findings)
+
+    def test_cpp_gets_unsafe(self, engine):
+        code = "gets(buf);"
+        result = engine.scan_code(code, "input.cpp")
+        assert any(f.cwe_id == "CWE-120" for f in result.findings)
+
+    def test_cpp_weak_hash(self, engine):
+        code = "EVP_md5();"
+        result = engine.scan_code(code, "crypto.cpp")
+        assert any(f.cwe_id == "CWE-328" for f in result.findings)
+
+    def test_cpp_insecure_random(self, engine):
+        code = "int x = std::rand();"
+        result = engine.scan_code(code, "rand.cpp")
+        assert any(f.cwe_id == "CWE-330" for f in result.findings)
+
+
+# ====================================================================
+# Section 23: New Language Support — Rust
+# ====================================================================
+
+class TestRustLanguageSupport:
+    def test_rust_detected_from_extension(self):
+        assert detect_language("main.rs") == Language.RUST
+
+    def test_rust_weak_hash_md5(self, engine):
+        code = "use md5;"
+        result = engine.scan_code(code, "hash.rs")
+        assert any(f.cwe_id == "CWE-328" for f in result.findings)
+
+    def test_rust_unsafe_block(self, engine):
+        code = "unsafe { *ptr = 42; }"
+        result = engine.scan_code(code, "raw.rs")
+        assert any(f.cwe_id == "CWE-119" for f in result.findings)
+
+    def test_rust_hardcoded_secret(self, engine):
+        code = 'let password = "mysecretpassword123";'
+        result = engine.scan_code(code, "auth.rs")
+        assert any(f.cwe_id == "CWE-798" for f in result.findings)
+
+    def test_rust_sql_injection_format(self, engine):
+        code = 'let q = format!("SELECT * FROM users WHERE id = {}", user_id);'
+        result = engine.scan_code(code, "db.rs")
+        assert any(f.cwe_id == "CWE-89" for f in result.findings)
+
+
+# ====================================================================
+# Section 24: Semgrep Rule Integration
+# ====================================================================
+
+class TestSemgrepRuleIntegration:
+    def test_parse_semgrep_yaml_basic(self):
+        yaml_text = """
+rules:
+  - id: no-eval
+    pattern: eval(...)
+    message: "Do not use eval"
+    severity: ERROR
+    languages: [python]
+"""
+        rules = parse_semgrep_yaml(yaml_text)
+        assert len(rules) == 1
+        assert rules[0].rule_id == "no-eval"
+        assert rules[0].severity == "high"
+        assert "python" in rules[0].languages
+
+    def test_parse_semgrep_yaml_with_metadata(self):
+        yaml_text = """
+rules:
+  - id: sql-injection
+    pattern: "db.execute(...)"
+    message: "SQL injection risk"
+    severity: WARNING
+    languages: [python]
+    metadata:
+      cwe: CWE-89
+      owasp: A03:2021
+"""
+        rules = parse_semgrep_yaml(yaml_text)
+        assert len(rules) == 1
+        assert rules[0].cwe == "CWE-89"
+        assert rules[0].owasp == "A03:2021"
+
+    def test_parse_semgrep_yaml_pattern_regex(self):
+        yaml_text = (
+            "rules:\n"
+            "  - id: custom-secret\n"
+            "    pattern-regex: 'MY_API_KEY'\n"
+            "    message: 'Hardcoded API key'\n"
+            "    severity: ERROR\n"
+            "    languages: [python]\n"
+        )
+        rules = parse_semgrep_yaml(yaml_text)
+        assert len(rules) == 1
+        assert "MY_API_KEY" in rules[0].pattern
+
+    def test_parse_semgrep_yaml_invalid_yaml(self):
+        rules = parse_semgrep_yaml("not: valid: yaml: ::::")
+        assert isinstance(rules, list)
+
+    def test_parse_semgrep_yaml_empty(self):
+        rules = parse_semgrep_yaml("rules: []")
+        assert rules == []
+
+    def test_add_semgrep_rules_to_engine(self, engine):
+        yaml_text = """
+rules:
+  - id: custom-debug-print
+    pattern: "print(debug_info)"
+    message: "Debug print found"
+    severity: WARNING
+    languages: [python]
+"""
+        added = engine.add_semgrep_rules(yaml_text)
+        assert len(added) == 1
+        assert added[0].rule_id == "custom-debug-print"
+
+    def test_custom_rule_detects_pattern(self):
+        engine2 = SASTEngine()
+        yaml_text = (
+            "rules:\n"
+            "  - id: no-hardcoded-admin\n"
+            "    pattern-regex: 'admin_password'\n"
+            "    message: 'Hardcoded admin password'\n"
+            "    severity: ERROR\n"
+            "    languages: [python]\n"
+        )
+        engine2.add_semgrep_rules(yaml_text)
+        code = "admin_password = 'secret123'"
+        result = engine2.scan_code(code, "config.py")
+        custom = [f for f in result.findings if "no-hardcoded-admin" in f.rule_id]
+        assert len(custom) >= 1
+
+    def test_get_custom_rules_returns_list(self, engine):
+        rules = engine.get_custom_rules()
+        assert isinstance(rules, list)
+
+    def test_clear_custom_rules(self, engine):
+        yaml_text = """
+rules:
+  - id: temp-rule
+    pattern: "temp()"
+    message: "Temp"
+    severity: INFO
+    languages: [python]
+"""
+        engine3 = SASTEngine()
+        engine3.add_semgrep_rules(yaml_text)
+        engine3.clear_custom_rules()
+        assert engine3.get_custom_rules() == []
+
+    def test_semgrep_rule_to_dict(self):
+        rule = SemgrepRule(
+            rule_id="test-rule",
+            message="Test message",
+            severity="high",
+            languages=["python"],
+            pattern="eval(...)",
+            cwe="CWE-95",
+            owasp="A03:2021",
+        )
+        d = rule.to_dict()
+        assert d["rule_id"] == "test-rule"
+        assert d["cwe"] == "CWE-95"
+        assert "python" in d["languages"]
+
+
+# ====================================================================
+# Section 25: Incremental Scanning
+# ====================================================================
+
+class TestIncrementalScanning:
+    def test_cache_hit_returns_same_result(self, engine):
+        engine4 = SASTEngine()
+        code = 'password = "supersecretpassword1"'
+        r1 = engine4.scan_code(code, "config.py", incremental=True)
+        r2 = engine4.scan_code(code, "config.py", incremental=True)
+        # Same code → same scan_id (cached)
+        assert r1.scan_id == r2.scan_id
+
+    def test_cache_miss_on_changed_code(self, engine):
+        engine5 = SASTEngine()
+        code1 = 'password = "supersecretpassword1"'
+        code2 = 'password = "differentpassword123"'
+        r1 = engine5.scan_code(code1, "config.py", incremental=True)
+        r2 = engine5.scan_code(code2, "config.py", incremental=True)
+        # Different code → different scan_id
+        assert r1.scan_id != r2.scan_id
+
+    def test_non_incremental_always_rescans(self, engine):
+        engine6 = SASTEngine()
+        code = 'x = 1'
+        r1 = engine6.scan_code(code, "safe.py", incremental=False)
+        r2 = engine6.scan_code(code, "safe.py", incremental=False)
+        assert r1.scan_id != r2.scan_id
+
+    def test_clear_cache(self, engine):
+        engine7 = SASTEngine()
+        code = 'password = "supersecretpassword1"'
+        engine7.scan_code(code, "config.py", incremental=True)
+        engine7.clear_cache()
+        # After clearing, next scan is fresh
+        r_fresh = engine7.scan_code(code, "config.py", incremental=True)
+        assert r_fresh is not None
+
+    def test_scan_files_incremental(self, engine):
+        engine8 = SASTEngine()
+        files = {
+            "a.py": 'password = "mysecretpass123"',
+            "b.js": 'element.innerHTML = x;',
+        }
+        r1 = engine8.scan_files(files, incremental=True)
+        r2 = engine8.scan_files(files, incremental=True)
+        # Files unchanged — second scan should still produce valid results
+        assert r2.files_scanned == 2
+        assert r1.total_findings == r2.total_findings
+
+
+# ====================================================================
+# Section 26: Summary and Findings API
+# ====================================================================
+
+class TestSummaryAndFindings:
+    def test_get_summary_no_scan(self):
+        engine9 = SASTEngine()
+        summary = engine9.get_summary()
+        assert summary["status"] == "no_scan"
+
+    def test_get_summary_after_scan(self, engine):
+        engine10 = SASTEngine()
+        code = 'eval(user_input)\npassword = "secret123456"'
+        engine10.scan_code(code, "test.py")
+        summary = engine10.get_summary()
+        assert "scan_id" in summary
+        assert summary["total_findings"] >= 1
+        assert "by_severity" in summary
+        assert "by_cwe" in summary
+
+    def test_get_all_findings_no_filter(self, engine):
+        engine11 = SASTEngine()
+        code = 'eval(user_input)\npassword = "secret123456"'
+        engine11.scan_code(code, "test.py")
+        findings = engine11.get_all_findings()
+        assert isinstance(findings, list)
+        assert len(findings) >= 1
+
+    def test_get_all_findings_severity_filter(self, engine):
+        engine12 = SASTEngine()
+        code = 'eval(user_input)\npassword = "secret123456"'
+        engine12.scan_code(code, "test.py")
+        critical = engine12.get_all_findings(severity="critical")
+        for f in critical:
+            assert f["severity"] == "critical"
+
+    def test_get_all_findings_cwe_filter(self, engine):
+        engine13 = SASTEngine()
+        code = 'eval(user_input)'
+        engine13.scan_code(code, "test.py")
+        findings = engine13.get_all_findings(cwe="CWE-95")
+        for f in findings:
+            assert f["cwe_id"] == "CWE-95"
+
+    def test_get_all_findings_empty_before_scan(self):
+        engine14 = SASTEngine()
+        findings = engine14.get_all_findings()
+        assert findings == []
+
+    def test_get_all_findings_language_filter(self, engine):
+        engine15 = SASTEngine()
+        files = {
+            "app.py": 'eval(user_input)',
+            "app.js": 'document.write(data);',
+        }
+        engine15.scan_files(files)
+        py_findings = engine15.get_all_findings(language="python")
+        for f in py_findings:
+            assert f["language"] == "python"
+
+
+# ====================================================================
+# Section 27: Supported Languages API
+# ====================================================================
+
+class TestSupportedLanguages:
+    def test_get_supported_languages_returns_dict(self):
+        langs = SASTEngine.get_supported_languages()
+        assert isinstance(langs, dict)
+
+    def test_all_major_languages_present(self):
+        langs = SASTEngine.get_supported_languages()
+        for lang in ("python", "javascript", "typescript", "java", "go", "ruby", "php", "c", "cpp", "rust"):
+            assert lang in langs, f"Missing language: {lang}"
+
+    def test_language_has_rule_count(self):
+        langs = SASTEngine.get_supported_languages()
+        assert langs["python"]["rule_count"] > 0
+        assert langs["javascript"]["rule_count"] > 0
+
+    def test_language_has_extensions(self):
+        langs = SASTEngine.get_supported_languages()
+        assert ".py" in langs["python"]["extensions"]
+        assert ".js" in langs["javascript"]["extensions"]
+        assert ".ts" in langs["typescript"]["extensions"]
+        assert ".rs" in langs["rust"]["extensions"]
+        assert ".c" in langs["c"]["extensions"]
+
+    def test_extra_rules_counted_in_languages(self):
+        langs = SASTEngine.get_supported_languages()
+        assert langs["typescript"]["rule_count"] > 0
+        assert langs["c"]["rule_count"] > 0
+        assert langs["cpp"]["rule_count"] > 0
+        assert langs["rust"]["rule_count"] > 0
+
+
+# ====================================================================
+# Section 28: Extra Rules — Structural Validation
+# ====================================================================
+
+class TestExtraRules:
+    def test_extra_rules_count(self):
+        assert len(_EXTRA_RULES) >= 20
+
+    def test_extra_rules_all_have_cwe(self):
+        for r in _EXTRA_RULES:
+            _, _, _, cwe, _, _, _, _ = r
+            assert cwe.startswith("CWE-"), f"Rule missing CWE: {r[0]}"
+
+    def test_extra_rules_all_have_valid_severity(self):
+        valid = {"critical", "high", "medium", "low", "info"}
+        for r in _EXTRA_RULES:
+            _, _, sev, _, _, _, _, _ = r
+            assert sev in valid, f"Invalid severity {sev} in {r[0]}"
+
+    def test_extra_rules_have_language_list(self):
+        for r in _EXTRA_RULES:
+            _, _, _, _, _, _, _, langs = r
+            assert isinstance(langs, list)
+            assert len(langs) >= 1
+
+    def test_extra_rules_patterns_compile(self):
+        import re
+        for r in _EXTRA_RULES:
+            _, _, _, _, pat, _, _, _ = r
+            try:
+                re.compile(pat, re.IGNORECASE)
+            except re.error as e:
+                assert False, f"Pattern compile error in {r[0]}: {e}"
