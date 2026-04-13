@@ -458,6 +458,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Risk Acceptance router not available: %s", e)
 
+# Risk Quantification Engine — FAIR-based financial risk modeling (ALE, Monte Carlo)
+risk_quantifier_router: Optional[APIRouter] = None
+try:
+    from apps.api.risk_quantifier_router import router as risk_quantifier_router
+    logging.getLogger(__name__).info("Loaded Risk Quantifier router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Risk Quantifier router not available: %s", e)
+
 sbom_router: Optional[APIRouter] = None
 try:
     from apps.api.sbom_router import router as sbom_router
@@ -2763,6 +2771,7 @@ def create_app() -> FastAPI:
         (tenant_rate_limiter_router, "Tenant Rate Limits", "admin:all"),
         (retention_router, "Retention", "admin:all"),
         (risk_acceptance_router, "Risk Acceptance", "write:findings"),
+        (risk_quantifier_router, "Risk Quantifier", "read:findings"),
         (sbom_router, "SBOM", "read:sbom"),
         (secret_scanner_router, "Secret Scanner", "read:findings"),
         (security_kb_router, "Security KB", "read:findings"),
@@ -4327,6 +4336,17 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Connector Gateway router at /api/v1/connectors")
     except ImportError as exc:
         _logger.warning("Connector Gateway router not loaded: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Security KPI Engine — CISO executive dashboard metrics
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.kpi_router import router as kpi_router
+
+        app.include_router(kpi_router)
+        _logger.info("Mounted Security KPI router at /api/v1/kpis")
+    except ImportError as exc:
+        _logger.warning("Security KPI router not loaded: %s", exc)
 
     # ------------------------------------------------------------------
     # MCP Auto-Discovery router (must be mounted after all other routers
