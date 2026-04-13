@@ -378,6 +378,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Pentest router not available: %s", e)
 
+auto_pentest_router: Optional[APIRouter] = None
+try:
+    from apps.api.auto_pentest_router import router as auto_pentest_router
+    logging.getLogger(__name__).info("Loaded Auto Pentest router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Auto Pentest router not available: %s", e)
+
 posture_router: Optional[APIRouter] = None
 try:
     from apps.api.posture_router import router as posture_router
@@ -2660,6 +2667,7 @@ def create_app() -> FastAPI:
         (metrics_aggregator_router, "Metrics Aggregator", "read:findings"),
         (notification_router, "Notifications", "read:findings"),
         (pentest_router, "Pentest", "attack:execute"),
+        (auto_pentest_router, "Auto Pentest", "attack:execute"),
         (posture_router, "Posture", "read:findings"),
         (pr_generator_router, "PR Generator", "write:findings"),
         (prioritizer_router, "Prioritizer", "read:findings"),
