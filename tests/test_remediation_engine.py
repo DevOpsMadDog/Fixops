@@ -457,3 +457,262 @@ class TestStepTracking:
         )
         execution = engine.execute_playbook(pb.id)
         assert execution.total_steps == len(patch_steps)
+
+
+# ===========================================================================
+# RemediationPlanEngine — CWE-based plan generation, SLA, and fix verification
+# ===========================================================================
+
+
+@pytest.fixture
+def plan_engine(tmp_path):
+    """RemediationPlanEngine backed by a temporary SQLite database."""
+    return RemediationPlanEngine(db_path=str(tmp_path / "plans.db"))
+
+
+@pytest.fixture
+def sql_finding():
+    return {"id": "find-sql-01", "cwe_id": "CWE-89", "severity": "HIGH", "title": "SQL Injection"}
+
+
+@pytest.fixture
+def xss_finding():
+    return {"id": "find-xss-01", "cwe_id": "CWE-79", "severity": "MEDIUM"}
+
+
+@pytest.fixture
+def hardcoded_finding():
+    return {"id": "find-cred-01", "cwe_id": "CWE-798", "severity": "CRITICAL"}
+
+
+class TestCreateRemediationPlan:
+    def test_returns_remediation_plan(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert isinstance(plan, RemediationPlan)
+
+    def test_plan_has_plan_id(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert plan.plan_id and len(plan.plan_id) > 0
+
+    def test_plan_finding_id_matches(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert plan.finding_id == sql_finding["id"]
+
+    def test_plan_cwe_id_set(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert plan.cwe_id == "CWE-89"
+
+    def test_plan_has_steps(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert len(plan.steps) >= 3
+
+    def test_plan_initial_state_identified(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert plan.state == PlanState.IDENTIFIED
+
+    def test_plan_effort_set(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert isinstance(plan.effort, EffortLevel)
+
+    def test_plan_auto_fixable_sql_injection(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert plan.auto_fixable is True
+
+    def test_plan_references_nonempty(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert len(plan.references) >= 1
+
+    def test_plan_sla_deadline_set(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        assert plan.sla_deadline is not None
+
+    def test_plan_sla_high_72h(self, plan_engine, sql_finding):
+        from datetime import timezone as tz
+        from datetime import datetime as dt
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        delta = plan.sla_deadline - dt.now(tz.utc)
+        # Should be ~72h for HIGH severity (allow ±5 min)
+        assert 71 <= delta.total_seconds() / 3600 <= 73
+
+    def test_plan_critical_sla_24h(self, plan_engine, hardcoded_finding):
+        from datetime import timezone as tz
+        from datetime import datetime as dt
+        plan = plan_engine.create_remediation_plan(hardcoded_finding)
+        delta = plan.sla_deadline - dt.now(tz.utc)
+        assert 23 <= delta.total_seconds() / 3600 <= 25
+
+    def test_plan_unknown_cwe_fallback(self, plan_engine):
+        plan = plan_engine.create_remediation_plan({"id": "f-unk", "cwe_id": "CWE-9999", "severity": "LOW"})
+        assert plan.cwe_id == "CWE-9999"
+        assert len(plan.steps) >= 1
+
+    def test_plan_persisted_and_fetchable(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        fetched = plan_engine.get_plan(plan.plan_id)
+        assert fetched is not None
+        assert fetched.plan_id == plan.plan_id
+
+    def test_list_plans_returns_created(self, plan_engine, sql_finding, xss_finding):
+        plan_engine.create_remediation_plan(sql_finding)
+        plan_engine.create_remediation_plan(xss_finding)
+        plans = plan_engine.list_plans()
+        assert len(plans) >= 2
+
+    def test_list_plans_filter_by_finding(self, plan_engine, sql_finding, xss_finding):
+        plan_engine.create_remediation_plan(sql_finding)
+        plan_engine.create_remediation_plan(xss_finding)
+        plans = plan_engine.list_plans(finding_id=sql_finding["id"])
+        assert all(p.finding_id == sql_finding["id"] for p in plans)
+
+
+class TestSuggestCodeFix:
+    def test_returns_code_fix(self, plan_engine, sql_finding):
+        fix = plan_engine.suggest_code_fix(sql_finding)
+        assert isinstance(fix, CodeFix)
+
+    def test_fix_has_description(self, plan_engine, sql_finding):
+        fix = plan_engine.suggest_code_fix(sql_finding)
+        assert len(fix.description) > 0
+
+    def test_fix_has_after_snippet(self, plan_engine, sql_finding):
+        fix = plan_engine.suggest_code_fix(sql_finding)
+        assert len(fix.after_snippet) > 0
+
+    def test_fix_uses_provided_code_snippet_as_before(self, plan_engine, sql_finding):
+        snippet = "query = 'SELECT * FROM users WHERE id=' + uid"
+        fix = plan_engine.suggest_code_fix(sql_finding, code_snippet=snippet)
+        assert fix.before_snippet == snippet
+
+    def test_fix_confidence_high_for_known_cwe(self, plan_engine, sql_finding):
+        fix = plan_engine.suggest_code_fix(sql_finding)
+        assert fix.confidence >= 0.8
+
+    def test_fix_confidence_lower_for_unknown_cwe(self, plan_engine):
+        fix = plan_engine.suggest_code_fix({"id": "f-unk", "cwe_id": "CWE-9999"})
+        assert fix.confidence < 0.8
+
+    def test_fix_finding_id_set(self, plan_engine, sql_finding):
+        fix = plan_engine.suggest_code_fix(sql_finding)
+        assert fix.finding_id == sql_finding["id"]
+
+    def test_fix_cwe_id_set(self, plan_engine, xss_finding):
+        fix = plan_engine.suggest_code_fix(xss_finding)
+        assert fix.cwe_id == "CWE-79"
+
+    def test_fix_xss_mentions_encoding(self, plan_engine, xss_finding):
+        fix = plan_engine.suggest_code_fix(xss_finding)
+        combined = fix.description + fix.after_snippet
+        assert any(kw in combined.lower() for kw in ("escap", "encod", "markup"))
+
+
+class TestRemediationStateTracking:
+    def test_update_state_identified_to_planned(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        updated = plan_engine.update_state(plan.plan_id, PlanState.PLANNED)
+        assert updated.state == PlanState.PLANNED
+
+    def test_full_state_progression(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        for state in (PlanState.PLANNED, PlanState.IN_PROGRESS, PlanState.FIXED, PlanState.VERIFIED):
+            plan = plan_engine.update_state(plan.plan_id, state)
+        assert plan.state == PlanState.VERIFIED
+
+    def test_invalid_transition_raises(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        with pytest.raises(ValueError, match="Invalid transition"):
+            plan_engine.update_state(plan.plan_id, PlanState.VERIFIED)
+
+    def test_skip_state_raises(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        with pytest.raises(ValueError):
+            plan_engine.update_state(plan.plan_id, PlanState.IN_PROGRESS)
+
+    def test_update_state_not_found_raises(self, plan_engine):
+        with pytest.raises(ValueError, match="not found"):
+            plan_engine.update_state("nonexistent-plan-id", PlanState.PLANNED)
+
+    def test_track_remediation_returns_plan(self, plan_engine, sql_finding):
+        plan = plan_engine.create_remediation_plan(sql_finding)
+        tracked = plan_engine.track_remediation(sql_finding["id"], plan.plan_id)
+        assert tracked.plan_id == plan.plan_id
+
+    def test_track_remediation_not_found_raises(self, plan_engine, sql_finding):
+        with pytest.raises(ValueError, match="not found"):
+            plan_engine.track_remediation(sql_finding["id"], "bad-plan-id")
+
+    def test_list_plans_filter_by_state(self, plan_engine, sql_finding, xss_finding):
+        p1 = plan_engine.create_remediation_plan(sql_finding)
+        plan_engine.create_remediation_plan(xss_finding)
+        plan_engine.update_state(p1.plan_id, PlanState.PLANNED)
+        planned = plan_engine.list_plans(state_filter=PlanState.PLANNED)
+        assert all(p.state == PlanState.PLANNED for p in planned)
+
+
+class TestVerifyFix:
+    def test_verify_fix_not_in_results(self, plan_engine):
+        assert plan_engine.verify_fix("find-001", [{"id": "find-002"}, {"id": "find-003"}]) is True
+
+    def test_verify_fix_still_in_results(self, plan_engine):
+        assert plan_engine.verify_fix("find-001", [{"id": "find-001"}]) is False
+
+    def test_verify_fix_empty_results(self, plan_engine):
+        assert plan_engine.verify_fix("find-001", []) is True
+
+    def test_verify_fix_multiple_results_contains(self, plan_engine):
+        results = [{"id": "find-x"}, {"id": "find-001"}, {"id": "find-y"}]
+        assert plan_engine.verify_fix("find-001", results) is False
+
+
+class TestSLACalculation:
+    def test_sla_critical_24h(self, plan_engine):
+        sla = plan_engine.calculate_remediation_sla("CRITICAL")
+        assert sla.total_seconds() == 24 * 3600
+
+    def test_sla_high_72h(self, plan_engine):
+        sla = plan_engine.calculate_remediation_sla("HIGH")
+        assert sla.total_seconds() == 72 * 3600
+
+    def test_sla_medium_7d(self, plan_engine):
+        sla = plan_engine.calculate_remediation_sla("MEDIUM")
+        assert sla.total_seconds() == 7 * 24 * 3600
+
+    def test_sla_low_30d(self, plan_engine):
+        sla = plan_engine.calculate_remediation_sla("LOW")
+        assert sla.total_seconds() == 30 * 24 * 3600
+
+    def test_sla_case_insensitive(self, plan_engine):
+        assert plan_engine.calculate_remediation_sla("critical") == plan_engine.calculate_remediation_sla("CRITICAL")
+
+    def test_sla_unknown_falls_back_to_medium(self, plan_engine):
+        sla = plan_engine.calculate_remediation_sla("UNKNOWN")
+        assert sla.total_seconds() == 7 * 24 * 3600
+
+
+class TestCWETemplates:
+    def test_list_templates_returns_all_seven(self, plan_engine):
+        templates = plan_engine.list_cwe_templates()
+        assert len(templates) == 7
+
+    def test_templates_have_required_keys(self, plan_engine):
+        for t in plan_engine.list_cwe_templates():
+            assert "cwe_id" in t
+            assert "name" in t
+            assert "effort" in t
+            assert "auto_fixable" in t
+            assert "step_count" in t
+            assert "references" in t
+
+    def test_sql_injection_template_present(self, plan_engine):
+        templates = plan_engine.list_cwe_templates()
+        ids = [t["cwe_id"] for t in templates]
+        assert "CWE-89" in ids
+
+    def test_missing_auth_not_auto_fixable(self, plan_engine):
+        templates = plan_engine.list_cwe_templates()
+        auth = next(t for t in templates if t["cwe_id"] == "CWE-306")
+        assert auth["auto_fixable"] is False
+
+    def test_hardcoded_creds_auto_fixable(self, plan_engine):
+        templates = plan_engine.list_cwe_templates()
+        creds = next(t for t in templates if t["cwe_id"] == "CWE-798")
+        assert creds["auto_fixable"] is True
