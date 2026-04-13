@@ -155,6 +155,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("WebSocket router not available: %s", e)
 
+# WebSocket Alerts router — real-time security alert feed + test-broadcast endpoint
+websocket_alerts_router: Optional[APIRouter] = None
+try:
+    from apps.api.websocket_alerts_router import router as websocket_alerts_router
+    logging.getLogger(__name__).info("Loaded WebSocket Alerts router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("WebSocket Alerts router not available: %s", e)
+
 # MCP/GraphRAG router for knowledge graph integration
 mcp_router: Optional[APIRouter] = None
 try:
@@ -2557,6 +2565,13 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted WebSocket router")
+
+    # WebSocket Alerts router — real-time security alert feed (/ws/alerts) + test-broadcast
+    # Note: WebSocket endpoint auth is handled internally via ?token= query param.
+    # The REST test-broadcast endpoint uses its own Depends(api_key_auth).
+    if websocket_alerts_router:
+        app.include_router(websocket_alerts_router)
+        _logger.info("Mounted WebSocket Alerts router")
 
     # Event Stream router — SSE + WebSocket live dashboards (/api/v1/stream/*)
     if event_stream_router:

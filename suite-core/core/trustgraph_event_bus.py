@@ -528,6 +528,9 @@ class EventBus:
         for handler in handlers:
             asyncio.ensure_future(self._dispatch(event_type, handler, data))
 
+        # Fire-and-forget: push to WebSocket alert broadcaster (best-effort)
+        asyncio.ensure_future(self._broadcast_alert(event_type, data))
+
     async def _dispatch(
         self,
         event_type: str,
@@ -559,6 +562,46 @@ class EventBus:
             )
             self._queue.enqueue(event_type, data)
             self.metrics.record_queued(event_type)
+
+    async def _broadcast_alert(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Fire-and-forget push to AlertBroadcaster (best-effort, never raises)."""
+        try:
+            from core.alert_broadcaster import ALERT_TYPES, build_alert, get_alert_broadcaster
+
+            # Map TrustGraph event types to alert broadcaster types
+            _event_to_alert_type: Dict[str, str] = {
+                EVENT_FINDING_CREATED: "finding_created",
+                EVENT_FINDING_UPDATED: "finding_created",
+                EVENT_INCIDENT_CREATED: "incident_opened",
+                EVENT_ASSET_DISCOVERED: "threat_detected",
+                EVENT_CONTROL_ASSESSED: "policy_violation",
+                EVENT_VENDOR_UPDATED: "threat_detected",
+                EVENT_ACTOR_IDENTIFIED: "threat_detected",
+            }
+            alert_type = _event_to_alert_type.get(event_type)
+            if not alert_type:
+                return
+
+            severity = data.get("severity", "medium")
+            if severity not in ("critical", "high", "medium", "low", "info"):
+                severity = "medium"
+
+            alert = build_alert(
+                alert_type=alert_type,
+                severity=severity,
+                title=data.get("title", event_type.replace(".", " ").title()),
+                message=data.get("message", f"Event: {event_type}"),
+                tenant_id=data.get("tenant_id") or data.get("org_id"),
+                metadata={"event_type": event_type, "source": data.get("engine", "trustgraph")},
+            )
+            broadcaster = get_alert_broadcaster()
+            tenant_id = alert.get("tenant_id")
+            if tenant_id:
+                await broadcaster.broadcast_to_tenant(tenant_id, alert)
+            else:
+                await broadcaster.broadcast(alert)
+        except Exception as exc:  # noqa: BLE001 — best-effort, must never raise
+            logger.debug("EventBus._broadcast_alert: skipped", error=str(exc))
 
     # ------------------------------------------------------------------
     # Configuration
