@@ -168,6 +168,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Findings management router not available: %s", e)
 
+# Vulnerability lifecycle tracker (DISCOVERED → TRIAGED → … → CLOSED)
+vuln_lifecycle_router: Optional[APIRouter] = None
+try:
+    from apps.api.vuln_lifecycle_router import router as vuln_lifecycle_router
+    logging.getLogger(__name__).info("Loaded Vuln Lifecycle router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Vuln Lifecycle router not available: %s", e)
+
 # CTEM 15-stage pipeline REST API (ingest, batch processing, stage monitoring)
 ctem_pipeline_router: Optional[APIRouter] = None
 try:
@@ -374,6 +382,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Incident Response router not available: %s", e)
 
+soc_automation_router: Optional[APIRouter] = None
+try:
+    from apps.api.soc_automation_router import router as soc_automation_router
+    logging.getLogger(__name__).info("Loaded SOC Automation router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("SOC Automation router not available: %s", e)
+
 integration_health_router: Optional[APIRouter] = None
 try:
     from apps.api.integration_health_router import router as integration_health_router
@@ -542,6 +557,16 @@ try:
     logging.getLogger(__name__).info("Loaded Vendor Scorecard router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Vendor Scorecard router not available: %s", e)
+
+# Security Scorecard router (self-hosted SecurityScorecard-style scoring)
+security_scorecard_router: Optional[APIRouter] = None
+security_scorecard_public_router: Optional[APIRouter] = None
+try:
+    from apps.api.security_scorecard_router import router as security_scorecard_router
+    from apps.api.security_scorecard_router import public_router as security_scorecard_public_router
+    logging.getLogger(__name__).info("Loaded Security Scorecard router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Security Scorecard router not available: %s", e)
 
 questionnaire_router: Optional[APIRouter] = None
 try:
@@ -2322,6 +2347,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Findings management router")
 
+    # Vulnerability lifecycle tracker — state machine from DISCOVERED to CLOSED
+    if vuln_lifecycle_router:
+        app.include_router(
+            vuln_lifecycle_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Vuln Lifecycle router")
+
     # CTEM 15-stage pipeline — ingest, batch processing, stage monitoring
     if ctem_pipeline_router:
         app.include_router(
@@ -2792,11 +2825,13 @@ def create_app() -> FastAPI:
         (secret_scanner_router, "Secret Scanner", "read:findings"),
         (security_kb_router, "Security KB", "read:findings"),
         (slack_bot_router, "Slack Bot", "write:integrations"),
+        (soc_automation_router, "SOC Automation", "write:findings"),
         (system_health_router, "System Health", "admin:all"),
         (tag_router, "Tags", "read:findings"),
         (threat_hunting_router, "Threat Hunting", "read:findings"),
         (user_analytics_router, "User Analytics", "read:findings"),
         (questionnaire_router, "Questionnaire Engine", "read:findings"),
+        (security_scorecard_router, "Security Scorecard", "read:findings"),
         (vendor_scorecard_router, "Vendor Scorecard", "read:findings"),
         (versioning_router, "Versioning", "read:findings"),
         (webhook_events_router, "Webhook Events", "read:findings"),
@@ -2809,6 +2844,11 @@ def create_app() -> FastAPI:
                 dependencies=[Depends(_verify_api_key), Depends(_require_scope(_scope))],
             )
             _logger.info("Mounted %s router", _name)
+
+    # Public (unauthenticated) scorecard endpoint — no extra auth deps
+    if security_scorecard_public_router:
+        app.include_router(security_scorecard_public_router)
+        _logger.info("Mounted Security Scorecard public router")
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
