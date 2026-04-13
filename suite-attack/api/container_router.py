@@ -19,6 +19,7 @@ from typing import Any, Dict, List
 
 from core.container_scanner import (
     get_container_scanner,
+    get_security_scanner,
     DOCKERFILE_RULES,
     HELM_CHART_RULES,
     LAYER_SECRET_PATTERNS,
@@ -102,9 +103,12 @@ async def scan_dockerfile(req: ScanDockerfileRequest) -> Dict[str, Any]:
         raise HTTPException(400, "Empty Dockerfile content provided")
     safe_filename = _sanitize_filename(req.filename)
     try:
-        scanner = get_container_scanner()
-        result = scanner.scan_dockerfile(req.content, safe_filename)
-        result_dict = result.to_dict()
+        scanner = get_security_scanner()
+        analysis = scanner.scan_dockerfile(req.content, safe_filename)
+        result_dict = analysis.model_dump(mode="json")
+        # Normalise output for backward compat
+        result_dict["total_findings"] = len(result_dict.get("findings", []))
+        result_dict["findings_count"] = result_dict["total_findings"]
         # TrustGraph explicit indexing (fire-and-forget)
         try:
             from core.trustgraph_event_bus import EVENT_FINDING_CREATED, get_event_bus as _get_eb
@@ -119,7 +123,7 @@ async def scan_dockerfile(req: ScanDockerfileRequest) -> Dict[str, Any]:
         except Exception:
             pass
         return result_dict
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except Exception as e:
         logger.exception("Container Dockerfile scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"Scan failed: {type(e).__name__}")
 

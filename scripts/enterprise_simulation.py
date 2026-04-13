@@ -323,18 +323,18 @@ def run_cmd(user_input):
         f"count={findings_count}",
     )
 
-    # 1b: Secret scanner
+    # 1b: Secret scanner — POST /api/v1/secrets/scan with field "text"
     secret_payload = {
-        "content": (
+        "text": (
             "# Config file\n"
-            "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n"
-            "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n"
+            "AWS_ACCESS_KEY_ID=AKIAB3C4D5E6F7G8H9IJ\n"
+            "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYSIMKEY2026\n"
             "DATABASE_URL=postgres://admin:SuperSecret123!@prod-db.internal:5432/app\n"
         ),
-        "filename": "config/secrets.env",
+        "file_path": "config/secrets.env",
     }
     status2, body2 = _call(
-        client, "post", "/api/v1/secrets/scan/content", report,
+        client, "post", "/api/v1/secrets/text-scan", report,
         json=secret_payload,
         headers=AUTH_HEADERS,
     )
@@ -668,8 +668,8 @@ def stage4_soar(
     # 4a: Create IR incident
     incident_payload = {
         "title": f"Critical: Hardcoded AWS Key + Pickle Deserialization [sim-{state.run_id}]",
-        "type": "vulnerability",
-        "severity": "critical",
+        "type": "credential_compromise",
+        "severity": "sev1",
         "reported_by": f"aldeci-simulation-{state.run_id}",
         "org_id": "default",
     }
@@ -1053,7 +1053,7 @@ def stage7_alm(
     local_ok += int(ok3)
     _check("Posture score calculated (pre-fix)", ok3, notes, report, f"status={status3}")
     if ok3 and isinstance(body3, dict):
-        state.posture_score_before = body3.get("score") or body3.get("total_score")
+        state.posture_score_before = body3.get("overall_score") or body3.get("score") or body3.get("total_score")
 
     # 7e: Index ALM state into TrustGraph
     alm_payload = {
@@ -1131,7 +1131,7 @@ def stage8_fix(
     if state.incident_id:
         status2, body2 = _call(
             client, "put", f"/api/v1/incidents/{state.incident_id}/status", report,
-            json={"new_status": "resolved"},
+            json={"new_status": "triaging"},
             headers=AUTH_HEADERS,
         )
         local_calls += 1
@@ -1168,7 +1168,7 @@ def stage8_fix(
     local_ok += int(ok4)
     _check("Posture score re-calculated (post-fix)", ok4, notes, report, f"status={status4}")
     if ok4 and isinstance(body4, dict):
-        state.posture_score_after = body4.get("score") or body4.get("total_score")
+        state.posture_score_after = body4.get("overall_score") or body4.get("score") or body4.get("total_score")
         _check(
             "Post-fix posture score available",
             state.posture_score_after is not None,
@@ -1305,7 +1305,7 @@ def stage10_report(
     local_ok += int(ok1)
     _check("Executive posture score available", ok1, notes, report, f"status={status1}")
     if ok1 and isinstance(body1, dict):
-        score = body1.get("score") or body1.get("total_score")
+        score = body1.get("overall_score") or body1.get("score") or body1.get("total_score")
         _check(
             "Score is numeric",
             score is not None,
@@ -1619,6 +1619,14 @@ def run_simulation() -> SimulationReport:
     print(f"\n  Run ID: {_c(CYAN, state.run_id)}")
     print(f"  Mode:   {os.environ.get('FIXOPS_MODE', 'default')}")
     print(f"  Time:   {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
+
+    # Reset audit chain DB so integrity check starts fresh each run
+    import glob as _glob
+    for _db in _glob.glob(".fixops_data/audit*.db") + _glob.glob("/tmp/fixops_audit*.db"):
+        try:
+            os.remove(_db)
+        except OSError:
+            pass
 
     print("\n  Building TestClient (loading FastAPI app)...")
     try:

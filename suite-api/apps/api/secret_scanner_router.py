@@ -144,6 +144,23 @@ async def scan_secrets(
     return ScanResponse(secrets_found=len(secrets), secrets=secrets)
 
 
+@router.post("/text-scan", response_model=ScanResponse, summary="Scan raw text for secrets (pure Python, no external tools)")
+async def scan_text_for_secrets(
+    body: ScanRequest,
+    org_id: str = Depends(get_org_id),
+) -> ScanResponse:
+    """Pure-Python text scanner — no gitleaks/trufflehog required.
+
+    Accepts same payload as /scan but registered at unique path to avoid
+    route shadowing by other secrets routers.
+    """
+    content = body.text or body.diff or ""
+    if not content:
+        raise HTTPException(status_code=422, detail="Provide 'text' content to scan")
+    secrets = _scanner.scan_text(content, file_path=body.file_path, org_id=org_id)
+    return ScanResponse(secrets_found=len(secrets), secrets=secrets)
+
+
 @router.get("/active", response_model=List[DetectedSecret], summary="List active unrotated secrets")
 async def list_active_secrets(
     org_id: str = Depends(get_org_id),

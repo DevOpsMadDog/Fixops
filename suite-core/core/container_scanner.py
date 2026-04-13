@@ -778,6 +778,18 @@ def get_container_scanner() -> ContainerImageScanner:
     return _scanner
 
 
+# Forward-declare for get_security_scanner — resolved after ContainerSecurityScanner is defined
+_security_scanner = None
+
+
+def get_security_scanner():  # type: ignore[return]
+    """Return singleton ContainerSecurityScanner (new Pydantic-based scanner)."""
+    global _security_scanner
+    if _security_scanner is None:
+        _security_scanner = ContainerSecurityScanner()
+    return _security_scanner
+
+
 # =============================================================================
 # ContainerSecurityScanner — structured Pydantic-based Dockerfile analysis
 # Adds: Severity enum, CheckCategory enum, ContainerFinding (Pydantic),
