@@ -833,6 +833,61 @@ def _build_license_db() -> Dict[str, LicenseInfo]:
             "aliases": [],
             "url": "",
         },
+        {
+            "spdx_id": "EUPL-1.1",
+            "name": "European Union Public License 1.1",
+            "category": LicenseCategory.WEAK_COPYLEFT,
+            "osi_approved": True, "fsf_libre": False,
+            "obligations": [ObligationType.ATTRIBUTION, ObligationType.SOURCE_DISCLOSURE, ObligationType.COPYLEFT_SHARE],
+            "risk_score": 4.0,
+            "commercial_use_allowed": True, "patent_grant": False, "network_disclosure": False,
+            "aliases": ["EUPL 1.1"],
+            "url": "https://spdx.org/licenses/EUPL-1.1.html",
+        },
+        {
+            "spdx_id": "LGPL-2.0-or-later",
+            "name": "GNU Lesser General Public License v2.0 or later",
+            "category": LicenseCategory.WEAK_COPYLEFT,
+            "osi_approved": True, "fsf_libre": True,
+            "obligations": [ObligationType.ATTRIBUTION, ObligationType.SOURCE_DISCLOSURE, ObligationType.COPYLEFT_SHARE],
+            "risk_score": 3.8,
+            "commercial_use_allowed": True, "patent_grant": False, "network_disclosure": False,
+            "aliases": ["LGPL-2.0+"],
+            "url": "https://spdx.org/licenses/LGPL-2.0-or-later.html",
+        },
+        {
+            "spdx_id": "LGPL-3.0-or-later",
+            "name": "GNU Lesser General Public License v3.0 or later",
+            "category": LicenseCategory.WEAK_COPYLEFT,
+            "osi_approved": True, "fsf_libre": True,
+            "obligations": [ObligationType.ATTRIBUTION, ObligationType.SOURCE_DISCLOSURE, ObligationType.COPYLEFT_SHARE],
+            "risk_score": 4.3,
+            "commercial_use_allowed": True, "patent_grant": False, "network_disclosure": False,
+            "aliases": ["LGPL-3.0+", "LGPLv3+"],
+            "url": "https://spdx.org/licenses/LGPL-3.0-or-later.html",
+        },
+        {
+            "spdx_id": "EPL-1.1",
+            "name": "Eclipse Public License 1.1",
+            "category": LicenseCategory.WEAK_COPYLEFT,
+            "osi_approved": False, "fsf_libre": False,
+            "obligations": [ObligationType.ATTRIBUTION, ObligationType.SOURCE_DISCLOSURE, ObligationType.PATENT_GRANT],
+            "risk_score": 4.2,
+            "commercial_use_allowed": True, "patent_grant": True, "network_disclosure": False,
+            "aliases": ["EPL 1.1"],
+            "url": "https://spdx.org/licenses/EPL-1.1.html",
+        },
+        {
+            "spdx_id": "NPOSL-3.0",
+            "name": "Non-Profit Open Software License 3.0",
+            "category": LicenseCategory.NON_COMMERCIAL,
+            "osi_approved": True, "fsf_libre": False,
+            "obligations": [ObligationType.ATTRIBUTION, ObligationType.SOURCE_DISCLOSURE, ObligationType.COPYLEFT_SHARE],
+            "risk_score": 7.0,
+            "commercial_use_allowed": False, "patent_grant": True, "network_disclosure": False,
+            "aliases": ["Non-Profit OSL 3.0"],
+            "url": "https://spdx.org/licenses/NPOSL-3.0.html",
+        },
     ]
 
     db: Dict[str, LicenseInfo] = {}
@@ -1253,6 +1308,9 @@ def score_dependency_license(component: SBOMComponent) -> DependencyRiskScore:
     if info.category == LicenseCategory.NON_COMMERCIAL:
         commercial_restriction_risk = 9.0
 
+    # Network disclosure (AGPL-style) is a severe additional risk factor
+    network_disclosure_risk = 9.0 if info.network_disclosure else 0.0
+
     patent_risk = 0.0
     if ObligationType.PATENT_GRANT not in info.obligations and info.category in (
         LicenseCategory.STRONG_COPYLEFT,
@@ -1267,17 +1325,22 @@ def score_dependency_license(component: SBOMComponent) -> DependencyRiskScore:
         attribution_burden += 0.5
     if ObligationType.SOURCE_DISCLOSURE in info.obligations:
         attribution_burden += 3.0
-    if ObligationType.NETWORK_DISCLOSURE in info.obligations:
-        attribution_burden += 4.0
     attribution_burden = min(10.0, attribution_burden)
 
     aggregate = min(
         10.0,
-        (copyleft_risk * 0.4)
-        + (commercial_restriction_risk * 0.35)
-        + (patent_risk * 0.15)
-        + (attribution_burden * 0.10),
+        (copyleft_risk * 0.40)
+        + (commercial_restriction_risk * 0.25)
+        + (network_disclosure_risk * 0.20)
+        + (patent_risk * 0.08)
+        + (attribution_burden * 0.07),
     )
+    # Network-disclosure licenses (AGPL-style) are always at least critical risk
+    if info.network_disclosure:
+        aggregate = max(aggregate, 8.0)
+    # Unknown licenses are always at least high risk
+    if info.category == LicenseCategory.UNKNOWN:
+        aggregate = max(aggregate, 6.0)
 
     risk_label = (
         "critical" if aggregate >= 8.0

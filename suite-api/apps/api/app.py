@@ -193,6 +193,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Findings management router not available: %s", e)
 
+# Risk Register — enterprise risk lifecycle (CRUD, scoring, KRI, heat map, board report)
+risk_register_router: Optional[APIRouter] = None
+try:
+    from apps.api.risk_register_router import router as risk_register_router
+    logging.getLogger(__name__).info("Loaded Risk Register router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Risk Register router not available: %s", e)
+
 # Vulnerability lifecycle tracker (DISCOVERED → TRIAGED → … → CLOSED)
 vuln_lifecycle_router: Optional[APIRouter] = None
 try:
@@ -288,6 +296,14 @@ try:
     logging.getLogger(__name__).info("Loaded API Analytics router")
 except ImportError as e:
     logging.getLogger(__name__).warning("API Analytics router not available: %s", e)
+
+# API Gateway Security Engine — key management, rate limiting, IP filter, versioning, analytics
+api_gateway_router: Optional[APIRouter] = None
+try:
+    from apps.api.api_gateway_router import router as api_gateway_router
+    logging.getLogger(__name__).info("Loaded API Gateway Security router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("API Gateway Security router not available: %s", e)
 
 # Finding Correlation Engine — groups findings into Exposure Cases
 correlation_router: Optional[APIRouter] = None
@@ -2501,6 +2517,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Findings management router")
 
+    # Risk Register — enterprise risk lifecycle (CRUD, scoring, KRI, heat map, board report)
+    if risk_register_router:
+        app.include_router(
+            risk_register_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Risk Register router")
+
     # Vulnerability lifecycle tracker — state machine from DISCOVERED to CLOSED
     if vuln_lifecycle_router:
         app.include_router(
@@ -2588,6 +2612,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted API Analytics router")
+
+    # API Gateway Security Engine — rate limiting, IP filter, versioning, throttle, analytics
+    if api_gateway_router:
+        app.include_router(
+            api_gateway_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+        )
+        _logger.info("Mounted API Gateway Security router")
 
     # Finding Correlation Engine — Exposure Cases, alert fatigue reduction
     if correlation_router:
@@ -5069,6 +5101,17 @@ def create_app() -> FastAPI:
         _logger.warning("Data Security router not available: %s", _ds_err)
 
     # -----------------------------------------------------------------------
+    # IoT/OT Security Scanner — device inventory, firmware CVEs, protocol
+    # checks, segmentation, default creds, C2 beaconing, IEC 62443 / FDA
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.iot_security_router import router as iot_security_router
+        app.include_router(iot_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted IoT/OT Security Scanner router at /api/v1/iot")
+    except ImportError as _iot_err:
+        _logger.warning("IoT/OT Security Scanner router not available: %s", _iot_err)
+
+    # -----------------------------------------------------------------------
     # TrustGraph Integration — universal finding indexer, GraphRAG queries
     # -----------------------------------------------------------------------
     try:
@@ -5136,6 +5179,17 @@ def create_app() -> FastAPI:
         _logger.info("Mounted WAF Rule Generator router at /api/v1/waf")
     except ImportError as e:
         _logger.warning("WAF Rule Generator router not available: %s", e)
+
+    # Audit Log Analytics — ingest, search, anomaly detection, retention, forensic timeline
+    try:
+        from apps.api.audit_analytics_router import router as audit_analytics_router
+        app.include_router(
+            audit_analytics_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Audit Log Analytics router at /api/v1/audit-analytics")
+    except ImportError as e:
+        _logger.warning("Audit Log Analytics router not available: %s", e)
 
     return app
 

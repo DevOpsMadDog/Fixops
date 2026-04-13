@@ -101,9 +101,10 @@ async def lookup_license(
     """
     info = _engine.lookup_license(spdx_id)
     if info is None:
-        # Try normalization
+        # Try normalization only when the result is not the generic UNKNOWN fallback
         norm = normalize_license_id(spdx_id)
-        info = _engine.lookup_license(norm)
+        if norm != "UNKNOWN":
+            info = _engine.lookup_license(norm)
     if info is None:
         raise HTTPException(
             status_code=404,

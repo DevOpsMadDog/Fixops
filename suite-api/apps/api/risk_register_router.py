@@ -5,6 +5,9 @@ CRUD, control mapping, treatment plans, KRI tracking, heat map, and
 board-level reporting.
 
 Auth is applied centrally by app.py (Depends(_verify_api_key)).
+
+Route ordering: ALL static-path routes are registered BEFORE /{risk_id}
+parameterized routes so FastAPI does not swallow them as path parameters.
 """
 
 from __future__ import annotations
@@ -122,8 +125,12 @@ class MapControlRequest(BaseModel):
     ctrl_id: str = Field(..., description="Control ID to map to this risk")
 
 
+# ===========================================================================
+# STATIC ROUTES — registered first so they are not matched as /{risk_id}
+# ===========================================================================
+
 # ---------------------------------------------------------------------------
-# Endpoint 1 — Risk CRUD
+# Endpoint: Collection-level risk operations (no path param)
 # ---------------------------------------------------------------------------
 
 @router.post("", summary="Create a risk", response_model=Dict[str, Any])
@@ -156,36 +163,8 @@ async def list_risks(
     return [r.model_dump() for r in risks]
 
 
-@router.get("/{risk_id}", summary="Get a risk", response_model=Dict[str, Any])
-async def get_risk(risk_id: str) -> Dict[str, Any]:
-    register = get_risk_register()
-    risk = register.get_risk(risk_id)
-    if not risk:
-        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
-    return risk.model_dump()
-
-
-@router.patch("/{risk_id}", summary="Update a risk", response_model=Dict[str, Any])
-async def update_risk(risk_id: str, body: UpdateRiskRequest) -> Dict[str, Any]:
-    register = get_risk_register()
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    updated = register.update_risk(risk_id, updates)
-    if not updated:
-        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
-    return updated.model_dump()
-
-
-@router.delete("/{risk_id}", summary="Delete a risk")
-async def delete_risk(risk_id: str) -> Dict[str, Any]:
-    register = get_risk_register()
-    ok = register.delete_risk(risk_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
-    return {"deleted": True, "risk_id": risk_id}
-
-
 # ---------------------------------------------------------------------------
-# Endpoint 2 — Control mapping
+# Endpoint 2 — Control operations (static prefix /controls)
 # ---------------------------------------------------------------------------
 
 @router.post("/controls", summary="Create a control", response_model=Dict[str, Any])
@@ -210,31 +189,8 @@ async def list_controls(org_id: str = Query("default")) -> List[Dict[str, Any]]:
     return [c.model_dump() for c in register.list_controls(org_id)]
 
 
-@router.post("/{risk_id}/controls/map", summary="Map a control to a risk",
-             response_model=Dict[str, Any])
-async def map_control(risk_id: str, body: MapControlRequest) -> Dict[str, Any]:
-    register = get_risk_register()
-    updated = register.map_control_to_risk(risk_id, body.ctrl_id)
-    if not updated:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Risk '{risk_id}' or control '{body.ctrl_id}' not found",
-        )
-    return updated.model_dump()
-
-
-@router.delete("/{risk_id}/controls/{ctrl_id}", summary="Unmap a control from a risk",
-               response_model=Dict[str, Any])
-async def unmap_control(risk_id: str, ctrl_id: str) -> Dict[str, Any]:
-    register = get_risk_register()
-    updated = register.unmap_control_from_risk(risk_id, ctrl_id)
-    if not updated:
-        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
-    return updated.model_dump()
-
-
 # ---------------------------------------------------------------------------
-# Endpoint 3 — Treatment plans
+# Endpoint 3 — Treatment plan collection operations (static prefix /treatments)
 # ---------------------------------------------------------------------------
 
 @router.post("/treatments", summary="Create a treatment plan",
@@ -251,13 +207,6 @@ async def create_treatment(body: CreateTreatmentRequest) -> Dict[str, Any]:
     )
     created = register.create_treatment(plan)
     return created.model_dump()
-
-
-@router.get("/{risk_id}/treatments", summary="List treatment plans for a risk",
-            response_model=List[Dict[str, Any]])
-async def list_treatments(risk_id: str) -> List[Dict[str, Any]]:
-    register = get_risk_register()
-    return [p.model_dump() for p in register.list_treatments(risk_id)]
 
 
 @router.patch("/treatments/{plan_id}/status",
@@ -277,7 +226,7 @@ async def update_treatment_status(
 
 
 # ---------------------------------------------------------------------------
-# Endpoint 4 — KRI tracking
+# Endpoint 4 — KRI collection operations (static prefix /kris)
 # ---------------------------------------------------------------------------
 
 @router.post("/kris", summary="Create a KRI", response_model=Dict[str, Any])
@@ -319,7 +268,7 @@ async def update_kri_value(kri_id: str, body: UpdateKRIValueRequest) -> Dict[str
 
 
 # ---------------------------------------------------------------------------
-# Endpoint 5 — Risk appetite
+# Endpoint 5 — Risk appetite (static prefix /appetite)
 # ---------------------------------------------------------------------------
 
 @router.post("/appetite", summary="Set risk appetite for a category",
@@ -346,7 +295,7 @@ async def list_appetites(org_id: str = Query("default")) -> List[Dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------
-# Endpoint 6 — Heat map
+# Endpoint 6 — Heat map (static path /heatmap)
 # ---------------------------------------------------------------------------
 
 @router.get("/heatmap", summary="Get risk heat map data",
@@ -358,7 +307,7 @@ async def get_heat_map(org_id: str = Query("default")) -> List[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Endpoint 7 — Board report
+# Endpoint 7 — Board report (static path /report/board)
 # ---------------------------------------------------------------------------
 
 @router.get("/report/board", summary="Board-level risk report",
@@ -367,3 +316,69 @@ async def board_report(org_id: str = Query("default")) -> Dict[str, Any]:
     register = get_risk_register()
     report = register.get_board_report(org_id)
     return report.model_dump()
+
+
+# ===========================================================================
+# PARAMETERIZED ROUTES — registered last to avoid swallowing static paths
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Endpoint 1 — Risk CRUD with /{risk_id}
+# ---------------------------------------------------------------------------
+
+@router.get("/{risk_id}", summary="Get a risk", response_model=Dict[str, Any])
+async def get_risk(risk_id: str) -> Dict[str, Any]:
+    register = get_risk_register()
+    risk = register.get_risk(risk_id)
+    if not risk:
+        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
+    return risk.model_dump()
+
+
+@router.patch("/{risk_id}", summary="Update a risk", response_model=Dict[str, Any])
+async def update_risk(risk_id: str, body: UpdateRiskRequest) -> Dict[str, Any]:
+    register = get_risk_register()
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updated = register.update_risk(risk_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
+    return updated.model_dump()
+
+
+@router.delete("/{risk_id}", summary="Delete a risk")
+async def delete_risk(risk_id: str) -> Dict[str, Any]:
+    register = get_risk_register()
+    ok = register.delete_risk(risk_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
+    return {"deleted": True, "risk_id": risk_id}
+
+
+@router.post("/{risk_id}/controls/map", summary="Map a control to a risk",
+             response_model=Dict[str, Any])
+async def map_control(risk_id: str, body: MapControlRequest) -> Dict[str, Any]:
+    register = get_risk_register()
+    updated = register.map_control_to_risk(risk_id, body.ctrl_id)
+    if not updated:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Risk '{risk_id}' or control '{body.ctrl_id}' not found",
+        )
+    return updated.model_dump()
+
+
+@router.delete("/{risk_id}/controls/{ctrl_id}", summary="Unmap a control from a risk",
+               response_model=Dict[str, Any])
+async def unmap_control(risk_id: str, ctrl_id: str) -> Dict[str, Any]:
+    register = get_risk_register()
+    updated = register.unmap_control_from_risk(risk_id, ctrl_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Risk '{risk_id}' not found")
+    return updated.model_dump()
+
+
+@router.get("/{risk_id}/treatments", summary="List treatment plans for a risk",
+            response_model=List[Dict[str, Any]])
+async def list_treatments(risk_id: str) -> List[Dict[str, Any]]:
+    register = get_risk_register()
+    return [p.model_dump() for p in register.list_treatments(risk_id)]
