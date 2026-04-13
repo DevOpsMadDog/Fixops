@@ -530,6 +530,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Executive Report router not available: %s", e)
 
+exec_security_reports_router: Optional[APIRouter] = None
+try:
+    from apps.api.exec_security_reports_router import router as exec_security_reports_router
+    logging.getLogger(__name__).info("Loaded Executive Security Reports router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Executive Security Reports router not available: %s", e)
+
 feed_manager_router: Optional[APIRouter] = None
 try:
     from apps.api.feed_manager_router import router as feed_manager_router
@@ -3160,6 +3167,7 @@ def create_app() -> FastAPI:
         (evidence_collector_router, "Evidence Collector", "read:evidence"),
         (exception_policy_router, "Exception Policy", "write:findings"),
         (executive_report_router, "Executive Report", "read:evidence"),
+        (exec_security_reports_router, "Executive Security Reports", "read:evidence"),
         (feed_manager_router, "Feed Manager", "read:feeds"),
         (fix_engine_router, "Fix Engine", "write:findings"),
         (incident_response_router, "Incident Response", "write:findings"),
