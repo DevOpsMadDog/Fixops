@@ -4647,6 +4647,16 @@ def create_app() -> FastAPI:
         _logger.warning("Access Control Matrix router not available: %s", _e)
 
     # -----------------------------------------------------------------------
+    # Security Awareness Training Tracker
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.training_router import router as _training_router
+        app.include_router(_training_router)
+        _logger.info("Loaded Security Awareness Training router")
+    except ImportError as _e:
+        _logger.warning("Training router not available: %s", _e)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
