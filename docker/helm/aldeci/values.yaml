@@ -1,0 +1,281 @@
+# ALDECI Helm Chart — Default Values
+# Override per environment: helm install aldeci . -f values-prod.yaml
+
+# ---------------------------------------------------------------------------
+# Global
+# ---------------------------------------------------------------------------
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# ---------------------------------------------------------------------------
+# API (suite-api FastAPI gateway)
+# ---------------------------------------------------------------------------
+api:
+  replicaCount: 3
+
+  image:
+    repository: aldeci/suite-api
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  terminationGracePeriodSeconds: 60
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: /health
+      port: http
+    failureThreshold: 30
+    periodSeconds: 5
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# UI (suite-ui React 19 + nginx)
+# ---------------------------------------------------------------------------
+ui:
+  replicaCount: 2
+
+  image:
+    repository: aldeci/suite-ui
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  terminationGracePeriodSeconds: 30
+
+  readinessProbe:
+    httpGet:
+      path: /nginx-health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  livenessProbe:
+    httpGet:
+      path: /nginx-health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-API-Key, X-Request-ID"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+
+  hosts:
+    ui:
+      host: aldeci.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    api:
+      host: api.aldeci.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    enabled: true
+    secretName: aldeci-tls
+    hosts:
+      - aldeci.example.com
+      - api.aldeci.example.com
+
+# ---------------------------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------------------------
+persistence:
+  data:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    storageClass: ""
+    existingClaim: ""
+
+  logs:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    storageClass: ""
+    existingClaim: ""
+
+  backups:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 20Gi
+    storageClass: ""
+    existingClaim: ""
+
+# ---------------------------------------------------------------------------
+# Configuration (ConfigMap)
+# ---------------------------------------------------------------------------
+config:
+  environment: production
+  logLevel: INFO
+  logFormat: json
+  apiHost: "0.0.0.0"
+  apiPort: "8000"
+  apiWorkers: "4"
+  apiReload: "false"
+  authMode: enforced
+  allowedOrigins: "https://aldeci.example.com"
+  cacheUrl: "redis://aldeci-redis:6379/0"
+  dataDir: "/data"
+  dbPath: "/data/aldeci.db"
+  evidencePath: "/data/evidence"
+  knowledgePath: "/data/knowledge"
+  trustgraphEnabled: "true"
+  trustgraphUrl: "http://aldeci-trustgraph:8888"
+  useCouncil: "1"
+  llmCouncilTimeout: "30"
+  scannerNormalizerTimeout: "60"
+  maxConcurrentScans: "5"
+  feedRefreshInterval: "3600"
+  feedMaxAgeHours: "24"
+  backupRetentionDays: "30"
+  backupPath: "/data/backups"
+
+# ---------------------------------------------------------------------------
+# Secrets (override with real values or use external secrets)
+# ---------------------------------------------------------------------------
+secrets:
+  # Set create: false and provide existingSecret to use pre-created secret
+  create: true
+  existingSecret: ""
+  jwtSecret: "CHANGE_ME"
+  apiToken: "CHANGE_ME"
+  encryptionKey: "CHANGE_ME"
+  openrouterApiKey: ""
+  openaiApiKey: ""
+  anthropicApiKey: ""
+  redisPassword: ""
+  postgresPassword: ""
+  ssoClientSecret: ""
+  webhookSecret: "CHANGE_ME"
+
+# ---------------------------------------------------------------------------
+# Namespace
+# ---------------------------------------------------------------------------
+namespaceOverride: ""
+
+# ---------------------------------------------------------------------------
+# Service Account
+# ---------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}

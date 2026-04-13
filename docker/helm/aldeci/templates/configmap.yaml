@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aldeci.configmapName" . }}
+  namespace: {{ include "aldeci.namespace" . }}
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.config.environment | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  API_HOST: {{ .Values.config.apiHost | quote }}
+  API_PORT: {{ .Values.config.apiPort | quote }}
+  API_WORKERS: {{ .Values.config.apiWorkers | quote }}
+  API_RELOAD: {{ .Values.config.apiReload | quote }}
+  FIXOPS_AUTH_MODE: {{ .Values.config.authMode | quote }}
+  FIXOPS_ALLOWED_ORIGINS: {{ .Values.config.allowedOrigins | quote }}
+  FIXOPS_CACHE_URL: {{ .Values.config.cacheUrl | quote }}
+  FIXOPS_DATA_DIR: {{ .Values.config.dataDir | quote }}
+  FIXOPS_DB_PATH: {{ .Values.config.dbPath | quote }}
+  FIXOPS_EVIDENCE_PATH: {{ .Values.config.evidencePath | quote }}
+  FIXOPS_KNOWLEDGE_PATH: {{ .Values.config.knowledgePath | quote }}
+  TRUSTGRAPH_ENABLED: {{ .Values.config.trustgraphEnabled | quote }}
+  TRUSTGRAPH_URL: {{ .Values.config.trustgraphUrl | quote }}
+  FIXOPS_USE_COUNCIL: {{ .Values.config.useCouncil | quote }}
+  LLM_COUNCIL_TIMEOUT: {{ .Values.config.llmCouncilTimeout | quote }}
+  SCANNER_NORMALIZER_TIMEOUT: {{ .Values.config.scannerNormalizerTimeout | quote }}
+  MAX_CONCURRENT_SCANS: {{ .Values.config.maxConcurrentScans | quote }}
+  FEED_REFRESH_INTERVAL: {{ .Values.config.feedRefreshInterval | quote }}
+  FEED_MAX_AGE_HOURS: {{ .Values.config.feedMaxAgeHours | quote }}
+  BACKUP_RETENTION_DAYS: {{ .Values.config.backupRetentionDays | quote }}
+  BACKUP_PATH: {{ .Values.config.backupPath | quote }}

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: aldeci
+description: ALDECI — AI-native ASPM + CTEM + CSPM platform (771 endpoints, TrustGraph, LLM Council)
+type: application
+version: 1.0.0
+appVersion: "2.5.0"
+keywords:
+  - security
+  - aspm
+  - ctem
+  - cspm
+  - appsec
+home: https://github.com/DevOpsMadDog/Fixops
+maintainers:
+  - name: DevOpsMadDog
+    email: info@devopsai.co
+annotations:
+  artifacthub.io/category: security
+  artifacthub.io/license: proprietary

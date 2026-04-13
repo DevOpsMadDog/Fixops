@@ -1,0 +1,68 @@
+{{- if and .Values.persistence.data.enabled (not .Values.persistence.data.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aldeci.pvc.data" . }}
+  namespace: {{ include "aldeci.namespace" . }}
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+  annotations:
+    description: "Primary data volume for SQLite DBs, evidence, knowledge graph"
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.persistence.data.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.data.size }}
+  {{- if or .Values.persistence.data.storageClass .Values.global.storageClass }}
+  storageClassName: {{ .Values.persistence.data.storageClass | default .Values.global.storageClass }}
+  {{- end }}
+{{- end }}
+---
+{{- if and .Values.persistence.logs.enabled (not .Values.persistence.logs.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aldeci.pvc.logs" . }}
+  namespace: {{ include "aldeci.namespace" . }}
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logs
+  annotations:
+    description: "Structured log volume for audit trail and compliance"
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.persistence.logs.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.logs.size }}
+  {{- if or .Values.persistence.logs.storageClass .Values.global.storageClass }}
+  storageClassName: {{ .Values.persistence.logs.storageClass | default .Values.global.storageClass }}
+  {{- end }}
+{{- end }}
+---
+{{- if and .Values.persistence.backups.enabled (not .Values.persistence.backups.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aldeci.pvc.backups" . }}
+  namespace: {{ include "aldeci.namespace" . }}
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backups
+  annotations:
+    description: "Backup volume for scheduled database backups"
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.persistence.backups.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.backups.size }}
+  {{- if or .Values.persistence.backups.storageClass .Values.global.storageClass }}
+  storageClassName: {{ .Values.persistence.backups.storageClass | default .Values.global.storageClass }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,68 @@
+ALDECI Platform — Helm Chart v{{ .Chart.Version }} (appVersion {{ .Chart.AppVersion }})
+==========================================================================
+
+Release "{{ .Release.Name }}" deployed to namespace "{{ include "aldeci.namespace" . }}".
+
+ACCESS URLS
+-----------
+{{- if .Values.ingress.enabled }}
+  UI:  https://{{ .Values.ingress.hosts.ui.host }}
+  API: https://{{ .Values.ingress.hosts.api.host }}
+{{- else }}
+  Ingress is disabled. Use port-forward to access services:
+
+  API:
+    kubectl port-forward -n {{ include "aldeci.namespace" . }} \
+      svc/{{ include "aldeci.fullname" . }}-api 8000:8000
+
+  UI:
+    kubectl port-forward -n {{ include "aldeci.namespace" . }} \
+      svc/{{ include "aldeci.fullname" . }}-ui 8080:80
+
+  Then open http://localhost:8080 in your browser.
+{{- end }}
+
+API HEALTH CHECK
+----------------
+  curl https://{{ .Values.ingress.hosts.api.host }}/health
+
+BEFORE GOING LIVE — REQUIRED ACTIONS
+--------------------------------------
+1. Replace placeholder secrets (CHANGE_ME values):
+     helm upgrade {{ .Release.Name }} . \
+       --set secrets.jwtSecret="$(openssl rand -base64 48)" \
+       --set secrets.apiToken="$(openssl rand -hex 32)" \
+       --set secrets.encryptionKey="$(openssl rand -base64 32)" \
+       --set secrets.webhookSecret="$(openssl rand -hex 32)"
+
+   Or use an external secrets manager (Vault / ESO / Sealed Secrets).
+
+2. Install cert-manager and a ClusterIssuer for TLS:
+     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
+3. Verify persistent volumes are bound:
+     kubectl get pvc -n {{ include "aldeci.namespace" . }}
+
+COMPONENT STATUS
+----------------
+  kubectl get pods -n {{ include "aldeci.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+SCALING
+-------
+  API autoscaling: {{ .Values.api.autoscaling.minReplicas }}–{{ .Values.api.autoscaling.maxReplicas }} replicas (CPU {{ .Values.api.autoscaling.targetCPUUtilizationPercentage }}%)
+  UI  autoscaling: {{ .Values.ui.autoscaling.minReplicas }}–{{ .Values.ui.autoscaling.maxReplicas }} replicas (CPU {{ .Values.ui.autoscaling.targetCPUUtilizationPercentage }}%)
+
+LOGS
+----
+  kubectl logs -n {{ include "aldeci.namespace" . }} -l app.kubernetes.io/component=api -f
+  kubectl logs -n {{ include "aldeci.namespace" . }} -l app.kubernetes.io/component=ui  -f
+
+UPGRADE
+-------
+  helm upgrade {{ .Release.Name }} docker/helm/aldeci/ -n {{ include "aldeci.namespace" . }} -f values-prod.yaml
+
+UNINSTALL (data PVCs preserved by helm.sh/resource-policy: keep)
+-----------------------------------------------------------------
+  helm uninstall {{ .Release.Name }} -n {{ include "aldeci.namespace" . }}
+
+Documentation: https://github.com/DevOpsMadDog/Fixops/blob/main/docs/ALDECI_REARCHITECTURE_v2.md
