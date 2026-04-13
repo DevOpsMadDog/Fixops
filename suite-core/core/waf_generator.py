@@ -697,6 +697,79 @@ def _build_template_registry() -> Dict[str, RuleTemplate]:
         priority=25,
     )
 
+    # ---- Open Redirect templates ----
+    t["REDIRECT-001"] = RuleTemplate(
+        template_id="REDIRECT-001",
+        name="Block Open Redirect via url Parameter",
+        description="Blocks open redirects targeting external domains via url/redirect params",
+        vuln_type=VulnType.OPEN_REDIRECT,
+        rule_type=RuleType.BLOCK,
+        conditions=[WAFCondition(field="QUERY_STRING", operator="MATCHES", value=r"(?i)(url|redirect|next|return|goto)=https?://", transform="URL_DECODE")],
+        owasp_category="A01:2021-Broken Access Control",
+        cwe_id="CWE-601",
+        tags=["open-redirect"],
+        priority=20,
+    )
+
+    # ---- IDOR templates ----
+    t["IDOR-001"] = RuleTemplate(
+        template_id="IDOR-001",
+        name="Rate Limit Direct Object Reference Endpoints",
+        description="Rate limit enumeration of /api/{resource}/{id} style endpoints",
+        vuln_type=VulnType.IDOR,
+        rule_type=RuleType.RATE_LIMIT,
+        conditions=[WAFCondition(field="URI", operator="MATCHES", value=r"/api/v?\d*/\w+/\d+")],
+        owasp_category="A01:2021-Broken Access Control",
+        cwe_id="CWE-639",
+        tags=["idor", "rate-limit"],
+        priority=40,
+    )
+
+    # ---- Additional SQLi templates ----
+    t["SQLI-STACKED"] = RuleTemplate(
+        template_id="SQLI-STACKED",
+        name="Block Stacked SQL Queries",
+        description="Blocks stacked/batched SQL statements via semicolons",
+        vuln_type=VulnType.SQLI,
+        rule_type=RuleType.BLOCK,
+        conditions=[WAFCondition(field="QUERY_STRING", operator="MATCHES", value=r";\s*(select|insert|update|delete|drop|exec|declare)\b", transform="URL_DECODE")],
+        owasp_category="A03:2021-Injection",
+        cwe_id="CWE-89",
+        tags=["sqli", "stacked"],
+        priority=10,
+    )
+
+    # ---- Additional bot detection ----
+    t["BOT-HEADLESS"] = RuleTemplate(
+        template_id="BOT-HEADLESS",
+        name="Detect Headless Browser Fingerprints",
+        description="Blocks headless Chrome/Puppeteer/Playwright fingerprints",
+        vuln_type=VulnType.BOT,
+        rule_type=RuleType.CHALLENGE,
+        conditions=[WAFCondition(field="HEADER:User-Agent", operator="MATCHES", value=r"(?i)(headlesschrome|phantomjs|selenium|webdriver)")],
+        owasp_category="A05:2021-Security Misconfiguration",
+        cwe_id="CWE-693",
+        tags=["bot", "headless-browser"],
+        priority=5,
+    )
+
+    # ---- API abuse: missing auth header ----
+    t["API-NO-AUTH"] = RuleTemplate(
+        template_id="API-NO-AUTH",
+        name="Log API Requests Missing Authorization Header",
+        description="Log /api/ requests without Authorization or X-API-Key header",
+        vuln_type=VulnType.API_ABUSE,
+        rule_type=RuleType.LOG,
+        conditions=[
+            WAFCondition(field="URI", operator="STARTS_WITH", value="/api/"),
+            WAFCondition(field="HEADER:Authorization", operator="ABSENT", value=""),
+        ],
+        owasp_category="A07:2021-Identification and Authentication Failures",
+        cwe_id="CWE-306",
+        tags=["api", "auth", "logging"],
+        priority=50,
+    )
+
     return t
 
 

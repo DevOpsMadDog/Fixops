@@ -82,6 +82,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Anomaly Detection router not available: %s", e)
 
+# NDR router (asset discovery, segmentation, firewall audit, DNS, TLS, flows, zero trust)
+network_security_router: Optional[APIRouter] = None
+try:
+    from apps.api.network_security_router import router as network_security_router
+    logging.getLogger(__name__).info("Loaded Network Security (NDR) router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Network Security router not available: %s", e)
+
 # AI Orchestrator router (multi-agent LLM coordination for security decisions)
 ai_orchestrator_router: Optional[APIRouter] = None
 try:
@@ -199,6 +207,14 @@ try:
     logging.getLogger(__name__).info("Loaded SOAR Engine router")
 except ImportError as e:
     logging.getLogger(__name__).warning("SOAR Engine router not available: %s", e)
+
+# Security Metrics & OKR Tracking — DORA metrics, benchmarks, SLA, ROI, reports
+security_metrics_router: Optional[APIRouter] = None
+try:
+    from apps.api.security_metrics_router import router as security_metrics_router
+    logging.getLogger(__name__).info("Loaded Security Metrics & OKR router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Security Metrics router not available: %s", e)
 
 # IR Playbook Engine — NIST 800-61 structured incident response with evidence chain
 ir_playbook_router: Optional[APIRouter] = None
@@ -2389,6 +2405,13 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Anomaly Detection router")
 
+    if network_security_router:
+        app.include_router(
+            network_security_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Network Security (NDR) router")
+
     if ai_orchestrator_router:
         app.include_router(
             ai_orchestrator_router,
@@ -2468,6 +2491,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted SOAR Engine router")
+
+    # Security Metrics & OKR Tracking — DORA, benchmarks, SLA compliance, ROI, reports
+    if security_metrics_router:
+        app.include_router(
+            security_metrics_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Security Metrics & OKR router")
 
     # IR Playbook Engine — NIST 800-61 incident response, evidence chain, regulatory notifications
     if ir_playbook_router:

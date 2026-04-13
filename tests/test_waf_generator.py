@@ -649,17 +649,24 @@ class TestSingleton:
 
 @pytest.fixture(scope="module")
 def api_client():
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Depends
     from fastapi.testclient import TestClient
 
+    # Build a minimal app with auth dependency overridden
     app = FastAPI()
 
-    # Mount with auth bypassed
-    with patch("apps.api.auth_deps.api_key_auth", return_value=None):
-        from apps.api.waf_router import router
-        app.include_router(router)
+    # Import router — auth is applied via Depends(api_key_auth) in router definition
+    from apps.api.waf_router import router
+    from apps.api import auth_deps
 
-    return TestClient(app, headers={"X-API-Key": "test-token"})
+    # Override the auth dependency so all requests pass
+    async def _no_auth():
+        return None
+
+    app.dependency_overrides[auth_deps.api_key_auth] = _no_auth
+    app.include_router(router)
+
+    return TestClient(app)
 
 
 @pytest.fixture(scope="module")
