@@ -5416,6 +5416,17 @@ def create_app() -> FastAPI:
     except ImportError as _drp_err:
         _logger.warning("Digital Risk Protection router not available: %s", _drp_err)
 
+    # Deception Engine — canary tokens, honeypots, deception-based threat detection
+    try:
+        from apps.api.deception_router import router as deception_router
+        app.include_router(
+            deception_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Deception Engine router at /api/v1/deception")
+    except ImportError as _dec_err:
+        _logger.warning("Deception Engine router not available: %s", _dec_err)
+
     return app
 
 
