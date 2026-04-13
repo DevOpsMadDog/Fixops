@@ -1,0 +1,239 @@
+"""IDE Integration API router.
+
+Provides inline SAST scanning endpoints for VS Code / JetBrains plugins:
+- Scan a file or diff for security findings
+- Get fix suggestions
+- Session management (register, heartbeat, list, stats)
+- Pattern catalogue
+
+All endpoints require API key authentication.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+
+from apps.api.auth_deps import api_key_auth
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Lazy singleton — graceful degradation if core is unavailable
+# ---------------------------------------------------------------------------
+
+try:
+    from core.ide_integration import IDEFinding, IDEIntegration
+
+    _integration: Optional[IDEIntegration] = None
+
+    def _get_integration() -> IDEIntegration:
+        global _integration
+        if _integration is None:
+            db_path = os.getenv("ALDECI_IDE_DB", "")
+            _integration = IDEIntegration(db_path=db_path or ":memory:")
+        return _integration
+
+    _HAS_INTEGRATION = True
+except ImportError as _exc:
+    logger.warning("ide_router: ide_integration unavailable: %s", _exc)
+    _HAS_INTEGRATION = False
+
+router = APIRouter(
+    prefix="/api/v1/ide",
+    tags=["ide"],
+    dependencies=[Depends(api_key_auth)],
+)
+
+# ---------------------------------------------------------------------------
+# Request / response models
+# ---------------------------------------------------------------------------
+
+
+class ScanFileRequest(BaseModel):
+    content: str
+    file_path: str
+    language: str = "python"
+
+
+class ScanDiffRequest(BaseModel):
+    diff_text: str
+
+
+class GetFixRequest(BaseModel):
+    file_path: str
+    line_start: int
+    line_end: int
+    severity: str
+    title: str
+    description: str
+    fix_suggestion: Optional[str] = None
+    cwe_id: Optional[str] = None
+    rule_id: str
+
+
+class RegisterSessionRequest(BaseModel):
+    user_email: str
+    ide_type: str
+    project_path: str
+    org_id: str
+
+
+class FindingsForFileRequest(BaseModel):
+    content: str
+    file_path: str
+    language: str = "python"
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/scan/file")
+def scan_file(request: ScanFileRequest) -> Dict[str, Any]:
+    """Scan a file's content for SAST findings."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    findings = integration.scan_file(request.content, request.file_path, request.language)
+    return {
+        "file_path": request.file_path,
+        "findings": [f.model_dump() for f in findings],
+        "count": len(findings),
+    }
+
+
+@router.post("/scan/diff")
+def scan_diff(request: ScanDiffRequest) -> Dict[str, Any]:
+    """Scan a unified diff for SAST findings in added lines only."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    findings = integration.scan_diff(request.diff_text)
+    return {
+        "findings": [f.model_dump() for f in findings],
+        "count": len(findings),
+    }
+
+
+@router.post("/fix")
+def get_fix(request: GetFixRequest) -> Dict[str, Any]:
+    """Get a fix suggestion for a specific finding."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    finding = IDEFinding(
+        file_path=request.file_path,
+        line_start=request.line_start,
+        line_end=request.line_end,
+        severity=request.severity,
+        title=request.title,
+        description=request.description,
+        fix_suggestion=request.fix_suggestion,
+        cwe_id=request.cwe_id,
+        rule_id=request.rule_id,
+    )
+    return integration.get_fix_for_finding(finding)
+
+
+@router.post("/sessions/register")
+def register_session(request: RegisterSessionRequest) -> Dict[str, Any]:
+    """Register a new IDE session."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    session = integration.register_session(
+        user_email=request.user_email,
+        ide_type=request.ide_type,
+        project_path=request.project_path,
+        org_id=request.org_id,
+    )
+    return session.model_dump()
+
+
+@router.post("/sessions/{session_id}/heartbeat")
+def heartbeat(session_id: str) -> Dict[str, Any]:
+    """Send a heartbeat to keep a session active."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    integration.heartbeat(session_id)
+    return {"session_id": session_id, "status": "ok"}
+
+
+@router.get("/sessions")
+def get_active_sessions(
+    org_id: str = Query(..., description="Organisation ID to filter sessions"),
+) -> Dict[str, Any]:
+    """List active IDE sessions for an organisation."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    sessions = integration.get_active_sessions(org_id)
+    return {"sessions": sessions, "count": len(sessions)}
+
+
+@router.get("/stats")
+def get_stats(
+    org_id: str = Query(..., description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Get aggregate IDE usage statistics for an organisation."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    return integration.get_ide_stats(org_id)
+
+
+@router.get("/patterns")
+def get_patterns() -> Dict[str, Any]:
+    """List all supported SAST detection patterns."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    patterns = integration.get_patterns()
+    return {"patterns": patterns, "count": len(patterns)}
+
+
+@router.post("/findings/file")
+def findings_for_file(request: FindingsForFileRequest) -> Dict[str, Any]:
+    """Return all findings for a given file (alias for scan/file with richer metadata)."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    findings = integration.scan_file(request.content, request.file_path, request.language)
+    high = sum(1 for f in findings if f.severity == "HIGH")
+    medium = sum(1 for f in findings if f.severity == "MEDIUM")
+    low = sum(1 for f in findings if f.severity == "LOW")
+    return {
+        "file_path": request.file_path,
+        "findings": [f.model_dump() for f in findings],
+        "count": len(findings),
+        "severity_summary": {"high": high, "medium": medium, "low": low},
+    }
+
+
+@router.post("/project/summary")
+def project_summary(
+    org_id: str = Query(..., description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Return a project-level summary combining session stats and pattern catalogue."""
+    if not _HAS_INTEGRATION:
+        raise HTTPException(status_code=501, detail="IDEIntegration not available")
+    integration = _get_integration()
+    stats = integration.get_ide_stats(org_id)
+    patterns = integration.get_patterns()
+    return {
+        "org_id": org_id,
+        "stats": stats,
+        "supported_patterns": len(patterns),
+        "pattern_severities": {
+            "high": sum(1 for p in patterns if p["severity"] == "HIGH"),
+            "medium": sum(1 for p in patterns if p["severity"] == "MEDIUM"),
+            "low": sum(1 for p in patterns if p["severity"] == "LOW"),
+        },
+    }
