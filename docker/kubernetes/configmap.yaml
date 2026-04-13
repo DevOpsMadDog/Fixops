@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aldeci-config
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+data:
+  # --- Runtime environment ---
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+
+  # --- API server ---
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  API_WORKERS: "4"
+  API_RELOAD: "false"
+
+  # --- Auth ---
+  FIXOPS_AUTH_MODE: "enforced"
+  FIXOPS_ALLOWED_ORIGINS: "https://aldeci.example.com"
+
+  # --- Cache ---
+  FIXOPS_CACHE_URL: "redis://aldeci-redis:6379/0"
+
+  # --- Database paths (mounted via PVC) ---
+  FIXOPS_DATA_DIR: "/data"
+  FIXOPS_DB_PATH: "/data/aldeci.db"
+  FIXOPS_EVIDENCE_PATH: "/data/evidence"
+  FIXOPS_KNOWLEDGE_PATH: "/data/knowledge"
+
+  # --- TrustGraph ---
+  TRUSTGRAPH_ENABLED: "true"
+  TRUSTGRAPH_URL: "http://aldeci-trustgraph:8888"
+
+  # --- LLM Council ---
+  FIXOPS_USE_COUNCIL: "1"
+  LLM_COUNCIL_TIMEOUT: "30"
+
+  # --- Scanner ---
+  SCANNER_NORMALIZER_TIMEOUT: "60"
+  MAX_CONCURRENT_SCANS: "5"
+
+  # --- Feeds ---
+  FEED_REFRESH_INTERVAL: "3600"
+  FEED_MAX_AGE_HOURS: "24"
+
+  # --- Backup ---
+  BACKUP_RETENTION_DAYS: "30"
+  BACKUP_PATH: "/data/backups"

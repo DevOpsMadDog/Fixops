@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aldeci-api
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: aldeci-platform
+  annotations:
+    description: "ServiceAccount for the ALDECI API pods"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aldeci-ui
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/component: ui
+    app.kubernetes.io/part-of: aldeci-platform
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aldeci-cronjob
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/component: cronjob
+    app.kubernetes.io/part-of: aldeci-platform
+  annotations:
+    description: "ServiceAccount for backup and maintenance CronJobs"
+automountServiceAccountToken: false
+---
+# Role: API pods may read their own ConfigMap and Secret
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aldeci-api-role
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["aldeci-config"]
+    verbs: ["get", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["aldeci-secrets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aldeci-api-rolebinding
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+subjects:
+  - kind: ServiceAccount
+    name: aldeci-api
+    namespace: aldeci
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: aldeci-api-role
+---
+# Role: CronJob pods may create/update backup ConfigMaps for status tracking
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aldeci-cronjob-role
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["aldeci-backup-status"]
+    verbs: ["get", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["aldeci-secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aldeci-cronjob-rolebinding
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+subjects:
+  - kind: ServiceAccount
+    name: aldeci-cronjob
+    namespace: aldeci
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: aldeci-cronjob-role

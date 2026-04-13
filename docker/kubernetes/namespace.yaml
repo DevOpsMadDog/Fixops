@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+    environment: production
+    managed-by: kustomize
+  annotations:
+    description: "ALDECI — AI-native security intelligence platform (ASPM + CTEM + CSPM)"
+    contact: "info@devopsai.co"

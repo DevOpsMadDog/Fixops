@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aldeci-data
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+    app.kubernetes.io/component: storage
+  annotations:
+    description: "Primary data volume for SQLite DBs, evidence, knowledge graph"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: ""  # Uses cluster default; override in overlays
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aldeci-backups
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+    app.kubernetes.io/component: backups
+  annotations:
+    description: "Backup volume for scheduled database backups"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: ""  # Uses cluster default; override in overlays
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aldeci-logs
+  namespace: aldeci
+  labels:
+    app.kubernetes.io/name: aldeci
+    app.kubernetes.io/part-of: aldeci-platform
+    app.kubernetes.io/component: logs
+  annotations:
+    description: "Structured log volume for audit trail and compliance"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ""
