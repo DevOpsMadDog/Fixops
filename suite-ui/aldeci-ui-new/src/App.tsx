@@ -109,6 +109,9 @@ const RiskAcceptance = lazy(() => import("@/pages/risk/RiskAcceptance"));
 // SBOM Management
 const SBOMManagement = lazy(() => import("@/pages/sbom/SBOMManagement"));
 
+// Compliance Dashboard — standalone P07 view (route: /compliance)
+const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -230,6 +233,9 @@ export default function App() {
 
             {/* SBOM Management */}
             <Route path="/sbom" element={<SBOMManagement />} />
+
+            {/* Compliance Dashboard — P07 standalone */}
+            <Route path="/compliance" element={<StandaloneComplianceDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
