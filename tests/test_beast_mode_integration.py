@@ -75,7 +75,7 @@ def _test_org() -> str:
 
 
 class TestMaterialChangeDetector:
-    """Tests that MaterialChangeDetector analyses push events end-to-end."""
+    """Tests that PushEventAnalyzer analyses push events end-to-end."""
 
     @pytest.fixture(autouse=True)
     def _detector(self, tmp_path):
