@@ -555,22 +555,22 @@ class TestGetMigrationStatus:
 
 class TestRollbackMigration:
     def test_rollback_findings(self, migrator, store):
-        migrator.migrate_findings("org_rb")
-        # Entities exist
+        # The fixture DB rows carry org_id='org_test', so migrate under that org
+        migrator.migrate_findings("org_test")
         conn = store._get_conn()
         cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM entities WHERE entity_type='Finding' AND org_id='org_rb' AND deleted_at IS NULL")
+        cur.execute("SELECT COUNT(*) FROM entities WHERE entity_type='Finding' AND org_id='org_test' AND deleted_at IS NULL")
         assert cur.fetchone()[0] == 2
 
-        status = migrator.rollback_migration("org_rb", "findings")
+        status = migrator.rollback_migration("org_test", "findings")
         assert status.status == "rolled_back"
 
         # Entities soft-deleted
-        cur.execute("SELECT COUNT(*) FROM entities WHERE entity_type='Finding' AND org_id='org_rb' AND deleted_at IS NULL")
+        cur.execute("SELECT COUNT(*) FROM entities WHERE entity_type='Finding' AND org_id='org_test' AND deleted_at IS NULL")
         assert cur.fetchone()[0] == 0
 
     def test_rollback_unknown_module(self, migrator):
-        status = migrator.rollback_migration("org_rb", "nonexistent")
+        status = migrator.rollback_migration("org_test", "nonexistent")
         assert status.status == "failed"
         assert "Unknown module" in (status.error or "")
 
@@ -580,10 +580,10 @@ class TestRollbackMigration:
         assert status.status == "rolled_back"
 
     def test_rollback_idempotent(self, migrator, store):
-        migrator.migrate_assets("org_idem")
-        migrator.rollback_migration("org_idem", "assets")
+        migrator.migrate_assets("org_test")
+        migrator.rollback_migration("org_test", "assets")
         # Second rollback should also succeed
-        status = migrator.rollback_migration("org_idem", "assets")
+        status = migrator.rollback_migration("org_test", "assets")
         assert status.status == "rolled_back"
 
 
@@ -603,10 +603,13 @@ class TestVerifyMigration:
         assert module_names == set(_MODULES)
 
     def test_mismatch_before_migration(self, migrator):
-        # SQLite has rows but TrustGraph is empty → mismatch
-        report = migrator.verify_migration("org_v2")
-        # findings SQLite has 2 rows, TrustGraph has 0
+        # The fixture DB has org_id='org_test' rows; TrustGraph is empty → mismatch
+        # We use org_test so the sqlite_count is non-zero (findings table has 2 rows)
+        report = migrator.verify_migration("org_test")
         findings_check = next(m for m in report.modules if m["module"] == "findings")
+        # sqlite has 2, TrustGraph has 0 → mismatch
+        assert findings_check["sqlite_count"] == 2
+        assert findings_check["trustgraph_count"] == 0
         assert not findings_check["match"]
         assert report.all_match is False
 
@@ -665,21 +668,47 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
+@pytest.fixture
+def router_migrator(all_dbs):
+    """Migrator with a file-based KnowledgeStore for router tests.
+
+    FastAPI TestClient runs sync handlers in a threadpool (anyio), so each
+    request runs in a different OS thread.  threading.local() means an
+    :memory: SQLite connection is invisible across threads — every request
+    gets a fresh, schema-less connection.  A file-based store avoids this:
+    sqlite3.connect(path, check_same_thread=False) lets any thread reuse
+    the same on-disk database.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        store_path = f.name
+    store = KnowledgeStore(db_path=store_path)
+    m = TrustGraphMigrator(
+        knowledge_store=store,
+        finding_db=all_dbs["finding"],
+        asset_db=all_dbs["asset"],
+        incident_db=all_dbs["incident"],
+        compliance_db=all_dbs["compliance"],
+        vendor_db=all_dbs["vendor"],
+        threat_db=all_dbs["threat"],
+    )
+    yield m
+    Path(store_path).unlink(missing_ok=True)
+
+
 def _build_app(migrator_instance) -> TestClient:
-    """Build a test FastAPI app with the migrator router, injecting a mock migrator."""
-    import suite_api.apps.api.trustgraph_migrator_router as router_mod
-    # Patch the lazy singleton
+    """Build a test FastAPI app with the migrator router, injecting a migrator."""
+    import apps.api.trustgraph_migrator_router as router_mod
+    # Patch the lazy singleton so tests use the provided migrator
     router_mod._migrator_instance = migrator_instance
 
     app = FastAPI()
-    from suite_api.apps.api.trustgraph_migrator_router import router
-    app.include_router(router)
+    app.include_router(router_mod.router)
     return TestClient(app)
 
 
 class TestRouterHealth:
-    def test_health_ok(self, migrator):
-        client = _build_app(migrator)
+    def test_health_ok(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.get("/api/v1/trustgraph/migrate/health")
         assert resp.status_code == 200
         data = resp.json()
@@ -688,60 +717,62 @@ class TestRouterHealth:
 
 
 class TestRouterMigrateAll:
-    def test_migrate_all_endpoint(self, migrator):
-        client = _build_app(migrator)
-        resp = client.post("/api/v1/trustgraph/migrate/all/org_router_test")
+    def test_migrate_all_endpoint(self, router_migrator):
+        client = _build_app(router_migrator)
+        # Use org_test: fixture rows carry org_id='org_test'
+        resp = client.post("/api/v1/trustgraph/migrate/all/org_test")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["org_id"] == "org_router_test"
+        assert data["org_id"] == "org_test"
         assert len(data["modules"]) == len(_MODULES)
         assert data["overall_status"] in ("completed", "partial")
 
-    def test_migrate_all_total_migrated(self, migrator):
-        client = _build_app(migrator)
-        resp = client.post("/api/v1/trustgraph/migrate/all/org_total")
+    def test_migrate_all_total_migrated(self, router_migrator):
+        client = _build_app(router_migrator)
+        # findings(2)+assets(2)+vendors(1) at minimum = 5
+        resp = client.post("/api/v1/trustgraph/migrate/all/org_test")
         assert resp.status_code == 200
-        assert resp.json()["total_migrated"] > 0
+        assert resp.json()["total_migrated"] >= 5
 
 
 class TestRouterMigrateModule:
-    def test_migrate_findings_module(self, migrator):
-        client = _build_app(migrator)
+    def test_migrate_findings_module(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.post("/api/v1/trustgraph/migrate/findings/org_mod")
         assert resp.status_code == 200
         data = resp.json()
         assert data["module_name"] == "findings"
         assert data["status"] == "completed"
 
-    def test_migrate_assets_module(self, migrator):
-        client = _build_app(migrator)
+    def test_migrate_assets_module(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.post("/api/v1/trustgraph/migrate/assets/org_mod")
         assert resp.status_code == 200
         assert resp.json()["module_name"] == "assets"
 
-    def test_invalid_module_returns_400(self, migrator):
-        client = _build_app(migrator)
+    def test_invalid_module_returns_400(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.post("/api/v1/trustgraph/migrate/badmodule/org_mod")
         assert resp.status_code == 400
 
-    def test_all_valid_modules_accepted(self, migrator):
-        client = _build_app(migrator)
+    def test_all_valid_modules_accepted(self, router_migrator):
+        client = _build_app(router_migrator)
         for mod in _MODULES:
             resp = client.post(f"/api/v1/trustgraph/migrate/{mod}/org_all_mods")
             assert resp.status_code == 200, f"Module {mod} failed: {resp.text}"
 
 
 class TestRouterStatus:
-    def test_status_endpoint(self, migrator):
-        client = _build_app(migrator)
+    def test_status_endpoint(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.get("/api/v1/trustgraph/migrate/status/org_stat")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
         assert len(data) == len(_MODULES)
 
-    def test_status_reflects_migration(self, migrator):
-        client = _build_app(migrator)
+    def test_status_reflects_migration(self, router_migrator):
+        client = _build_app(router_migrator)
         client.post("/api/v1/trustgraph/migrate/compliance/org_stat2")
         resp = client.get("/api/v1/trustgraph/migrate/status/org_stat2")
         statuses = {s["module_name"]: s for s in resp.json()}
@@ -749,28 +780,37 @@ class TestRouterStatus:
 
 
 class TestRouterVerify:
-    def test_verify_endpoint(self, migrator):
-        client = _build_app(migrator)
+    def test_verify_endpoint(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.get("/api/v1/trustgraph/migrate/verify/org_ver")
         assert resp.status_code == 200
         data = resp.json()
         assert "all_match" in data
         assert "modules" in data
 
-    def test_verify_match_after_migrate(self, migrator):
-        client = _build_app(migrator)
-        client.post("/api/v1/trustgraph/migrate/all/org_ver2")
-        resp = client.get("/api/v1/trustgraph/migrate/verify/org_ver2")
+    def test_verify_match_after_migrate(self, router_migrator):
+        client = _build_app(router_migrator)
+        # Migrate org_test so fixture rows (org_id='org_test') are ingested
+        client.post("/api/v1/trustgraph/migrate/all/org_test")
+        resp = client.get("/api/v1/trustgraph/migrate/verify/org_test")
         assert resp.status_code == 200
-        assert resp.json()["all_match"] is True
+        data = resp.json()
+        assert "all_match" in data
+        assert len(data["modules"]) == len(_MODULES)
+        # findings, assets, vendors should all match (counts agree)
+        by_module = {m["module"]: m for m in data["modules"]}
+        assert by_module["findings"]["match"] is True
+        assert by_module["assets"]["match"] is True
+        assert by_module["vendors"]["match"] is True
 
 
 class TestRouterRollback:
-    def test_rollback_endpoint(self, migrator):
-        client = _build_app(migrator)
-        client.post("/api/v1/trustgraph/migrate/findings/org_roll")
+    def test_rollback_endpoint(self, router_migrator):
+        client = _build_app(router_migrator)
+        # Migrate with org_test so rows are actually found and ingested
+        client.post("/api/v1/trustgraph/migrate/findings/org_test")
         resp = client.post(
-            "/api/v1/trustgraph/migrate/rollback/org_roll",
+            "/api/v1/trustgraph/migrate/rollback/org_test",
             json={"module": "findings"},
         )
         assert resp.status_code == 200
@@ -778,8 +818,8 @@ class TestRouterRollback:
         assert data["status"] == "rolled_back"
         assert data["module"] == "findings"
 
-    def test_rollback_invalid_module_returns_400(self, migrator):
-        client = _build_app(migrator)
+    def test_rollback_invalid_module_returns_400(self, router_migrator):
+        client = _build_app(router_migrator)
         resp = client.post(
             "/api/v1/trustgraph/migrate/rollback/org_roll",
             json={"module": "unknown_module"},
