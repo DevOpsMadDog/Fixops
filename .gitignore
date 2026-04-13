@@ -111,6 +111,7 @@ frontend/node_modules/.cache/default-development/0.pack
 *.env.*
 !/.env.example
 !/enterprise/.env.example
+!/docker/enterprise.env.example
 
 data/data/
 real_cve_*.json

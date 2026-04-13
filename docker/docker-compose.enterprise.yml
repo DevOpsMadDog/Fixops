@@ -1,0 +1,614 @@
+# ============================================
+# ALDECI Enterprise Stack — Single-Command Deployment
+# ============================================
+# Usage:
+#   docker compose -f docker/docker-compose.enterprise.yml --env-file docker/enterprise.env up -d
+#   docker compose -f docker/docker-compose.enterprise.yml --env-file docker/enterprise.env down -v
+#
+# Services:
+#   aldeci-api      → http://localhost:8000  (ALDECI FastAPI backend)
+#   aldeci-ui       → http://localhost:3000  (React 19 UI via Nginx)
+#   trustgraph      → http://localhost:8888  (Knowledge graph / GraphRAG)
+#   redis           → localhost:6379         (Event bus queue + cache)
+#   localstack      → http://localhost:4566  (Fake AWS: S3, SecurityHub, IAM)
+#   wazuh           → https://localhost:55000 (SIEM simulation)
+#   shuffle         → http://localhost:3001  (SOAR platform)
+#   netbox          → http://localhost:8080  (CMDB / network inventory)
+#
+# First-boot:
+#   POST http://localhost:8000/api/v1/deployment/initialize
+#
+# Env vars:
+#   Copy docker/enterprise.env.example → docker/enterprise.env and fill in secrets
+# ============================================
+
+# ─── Top-level extensions ────────────────────────────────────────────────────
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+# Shared environment block injected into aldeci-api (and any future workers)
+x-aldeci-env: &aldeci-env
+  FIXOPS_MODE: "${FIXOPS_MODE:-enterprise}"
+  FIXOPS_API_TOKEN: "${FIXOPS_API_TOKEN:-}"
+  FIXOPS_JWT_SECRET: "${FIXOPS_JWT_SECRET:-}"
+  FIXOPS_DATA_DIR: "/app/data"
+  FIXOPS_LOG_LEVEL: "${FIXOPS_LOG_LEVEL:-warning}"
+  FIXOPS_DISABLE_TELEMETRY: "1"
+  ALDECI_MODE: "enterprise"
+  # Database
+  DATABASE_URL: "postgresql://${POSTGRES_USER:-aldeci}:${POSTGRES_PASSWORD:-aldeci_pw_change_me}@postgres:5432/${POSTGRES_DB:-aldeci}"
+  FIXOPS_SQLITE_DIR: "/app/data"
+  # Redis event bus
+  REDIS_URL: "redis://redis:6379/0"
+  FIXOPS_REDIS_URL: "redis://redis:6379/0"
+  # TrustGraph knowledge graph
+  TRUSTGRAPH_URL: "http://trustgraph:8888"
+  FIXOPS_TRUSTGRAPH_URL: "http://trustgraph:8888"
+  # LocalStack (fake AWS)
+  LOCALSTACK_ENDPOINT: "${LOCALSTACK_ENDPOINT:-http://localstack:4566}"
+  AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-test}"
+  AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-test}"
+  AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
+  # Wazuh SIEM
+  WAZUH_API_URL: "${WAZUH_API_URL:-https://wazuh:55000}"
+  WAZUH_API_USER: "${WAZUH_API_USER:-wazuh-wui}"
+  WAZUH_API_PASSWORD: "${WAZUH_API_PASSWORD:-MyS3cr37P450r.*-}"
+  # Shuffle SOAR
+  SHUFFLE_URL: "${SHUFFLE_URL:-http://shuffle:3001}"
+  SHUFFLE_AUTHORIZATION: "${SHUFFLE_AUTHORIZATION:-}"
+  # NetBox CMDB
+  NETBOX_URL: "${NETBOX_URL:-http://netbox:8080}"
+  NETBOX_TOKEN: "${NETBOX_TOKEN:-}"
+  # LLM providers
+  OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+  ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+  OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+  FIXOPS_OLLAMA_URL: "${FIXOPS_OLLAMA_URL:-}"
+  FIXOPS_USE_COUNCIL: "${FIXOPS_USE_COUNCIL:-0}"
+
+# ─── Services ────────────────────────────────────────────────────────────────
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # postgres — Primary structured database (PostgreSQL 15)
+  # ──────────────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: aldeci-enterprise-postgres
+    <<: *default-restart
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-aldeci}"
+      POSTGRES_USER: "${POSTGRES_USER:-aldeci}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-aldeci_pw_change_me}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - enterprise-postgres-data:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aldeci} -d ${POSTGRES_DB:-aldeci}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=infrastructure"
+      - "aldeci.role=database"
+      - "aldeci.tier=data"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # redis — Event bus queue + cache + rate limiting (Redis 7)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Port 6379 exposed for direct access from host tools / SwarmClaw agents.
+  redis:
+    image: redis:7-alpine
+    container_name: aldeci-enterprise-redis
+    <<: *default-restart
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+    volumes:
+      - enterprise-redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=infrastructure"
+      - "aldeci.role=cache"
+      - "aldeci.tier=data"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # trustgraph — Knowledge graph + GraphRAG (5 Knowledge Cores)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Config UI: http://localhost:8888
+  trustgraph:
+    image: trustgraph/trustgraph-flow:latest
+    container_name: aldeci-enterprise-trustgraph
+    <<: *default-restart
+    ports:
+      - "${TRUSTGRAPH_PORT:-8888}:8888"
+    environment:
+      TRUSTGRAPH_LOG_LEVEL: "${TRUSTGRAPH_LOG_LEVEL:-warning}"
+      TRUSTGRAPH_DATA_DIR: "/data"
+      TRUSTGRAPH_ENABLE_GRAPHRAG: "true"
+      TRUSTGRAPH_ENABLE_MCP: "true"
+    volumes:
+      - enterprise-trustgraph-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8888/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=knowledge-graph"
+      - "aldeci.role=trustgraph"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=intelligence"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # localstack — Fake AWS (S3, SecurityHub, IAM, SQS, SNS)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Simulates AWS services for ALDECI connectors and evidence storage.
+  # Access: http://localhost:4566
+  # AWS CLI: aws --endpoint-url=http://localhost:4566 s3 ls
+  localstack:
+    image: localstack/localstack:3.4
+    container_name: aldeci-enterprise-localstack
+    <<: *default-restart
+    ports:
+      - "${LOCALSTACK_PORT:-4566}:4566"
+    environment:
+      SERVICES: "s3,sqs,sns,iam,sts,secretsmanager,securityhub,cloudwatch,logs"
+      DEBUG: "${LOCALSTACK_DEBUG:-0}"
+      DATA_DIR: "/var/lib/localstack/data"
+      LOCALSTACK_HOST: "localstack:4566"
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
+      # Persist state across restarts
+      PERSISTENCE: "1"
+    volumes:
+      - enterprise-localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=connector"
+      - "aldeci.role=aws-simulation"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=integration"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # wazuh — SIEM Simulation (Wazuh single-node 4.8.0)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Provides real SIEM alerts for ALDECI threat intel ingestion.
+  # API:       https://localhost:55000 (user: wazuh-wui / MyS3cr37P450r.*-)
+  # Dashboard: https://localhost:443  (Kibana-based)
+  wazuh:
+    image: wazuh/wazuh-single:4.8.0
+    container_name: aldeci-enterprise-wazuh
+    <<: *default-restart
+    ports:
+      - "${WAZUH_API_PORT:-55000}:55000"
+      - "${WAZUH_DASHBOARD_PORT:-443}:443"
+      - "1514:1514/udp"
+      - "1515:1515"
+    environment:
+      INDEXER_URL: "https://localhost:9200"
+      INDEXER_USERNAME: "admin"
+      INDEXER_PASSWORD: "SecretPassword"
+      FILEBEAT_SSL_VERIFICATION_MODE: "full"
+      SSL_CERTIFICATE_AUTHORITIES: "/etc/ssl/root-ca.pem"
+      SSL_CERTIFICATE: "/etc/ssl/filebeat.pem"
+      SSL_KEY: "/etc/ssl/filebeat.key"
+      API_USERNAME: "wazuh-wui"
+      API_PASSWORD: "${WAZUH_API_PASSWORD:-MyS3cr37P450r.*-}"
+    volumes:
+      - enterprise-wazuh-api-config:/var/ossec/api/configuration
+      - enterprise-wazuh-etc:/var/ossec/etc
+      - enterprise-wazuh-logs:/var/ossec/logs
+      - enterprise-wazuh-queue:/var/ossec/queue
+      - enterprise-wazuh-var-multigroups:/var/ossec/var/multigroups
+      - enterprise-wazuh-integrations:/var/ossec/integrations
+      - enterprise-wazuh-active-response:/var/ossec/active-response/bin
+      - enterprise-wazuh-agentless:/var/ossec/agentless
+      - enterprise-wazuh-wodles:/var/ossec/wodles
+      - enterprise-wazuh-filebeat-etc:/etc/filebeat
+      - enterprise-wazuh-filebeat-var:/var/lib/filebeat
+      - enterprise-wazuh-indexer-data:/var/lib/wazuh-indexer
+      - enterprise-wazuh-indexer-logs:/var/log/wazuh-indexer
+    healthcheck:
+      # Wazuh API returns 401 when unauthenticated — proves it's running
+      test: ["CMD-SHELL", "curl -sf -k https://localhost:55000/ -o /dev/null -w '%{http_code}' | grep -qE '^(200|401)$'"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=siem"
+      - "aldeci.role=wazuh"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=detection"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # shuffle — SOAR Platform (Shuffle latest)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Security Orchestration, Automation and Response.
+  # Triggers ALDECI playbooks via webhooks on Wazuh alerts.
+  # Access: http://localhost:3001
+  shuffle:
+    image: ghcr.io/shuffle/shuffle:latest
+    container_name: aldeci-enterprise-shuffle
+    <<: *default-restart
+    ports:
+      - "${SHUFFLE_PORT:-3001}:3001"
+    environment:
+      SHUFFLE_DEFAULT_USERNAME: "${SHUFFLE_USERNAME:-admin}"
+      SHUFFLE_DEFAULT_PASSWORD: "${SHUFFLE_PASSWORD:-password}"
+      SHUFFLE_DEFAULT_APIKEY: "${SHUFFLE_AUTHORIZATION:-}"
+      ALDECI_API_URL: "http://aldeci-api:8000"
+      ALDECI_API_TOKEN: "${FIXOPS_API_TOKEN:-}"
+      BACKEND_HOSTNAME: "shuffle"
+      OUTER_HOSTNAME: "localhost"
+      # Disable self-signed cert warnings in dev
+      SHUFFLE_SKIPSSL: "true"
+    volumes:
+      - enterprise-shuffle-apps:/shuffle-apps
+      - enterprise-shuffle-db:/shuffle-database
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=soar"
+      - "aldeci.role=shuffle"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=response"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # netbox-postgres — NetBox dedicated database
+  # ──────────────────────────────────────────────────────────────────────────
+  netbox-postgres:
+    image: postgres:15-alpine
+    container_name: aldeci-enterprise-netbox-postgres
+    <<: *default-restart
+    environment:
+      POSTGRES_DB: "${NETBOX_DB_NAME:-netbox}"
+      POSTGRES_USER: "${NETBOX_DB_USER:-netbox}"
+      POSTGRES_PASSWORD: "${NETBOX_DB_PASSWORD:-netbox_pw_change_me}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - enterprise-netbox-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NETBOX_DB_USER:-netbox} -d ${NETBOX_DB_NAME:-netbox}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=cmdb"
+      - "aldeci.role=database"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # netbox-redis — NetBox cache + task queue
+  # ──────────────────────────────────────────────────────────────────────────
+  netbox-redis:
+    image: redis:7-alpine
+    container_name: aldeci-enterprise-netbox-redis
+    <<: *default-restart
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - enterprise-netbox-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=cmdb"
+      - "aldeci.role=cache"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # netbox — CMDB / Network Source of Truth (NetBox latest)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Provides asset inventory for ALDECI attack surface mapping.
+  # Access: http://localhost:8080
+  # Default: admin / admin (change via NETBOX_SUPERUSER_PASSWORD)
+  netbox:
+    image: netboxcommunity/netbox:latest
+    container_name: aldeci-enterprise-netbox
+    <<: *default-restart
+    ports:
+      - "${NETBOX_PORT:-8080}:8080"
+    environment:
+      DB_HOST: "netbox-postgres"
+      DB_PORT: "5432"
+      DB_NAME: "${NETBOX_DB_NAME:-netbox}"
+      DB_USER: "${NETBOX_DB_USER:-netbox}"
+      DB_PASSWORD: "${NETBOX_DB_PASSWORD:-netbox_pw_change_me}"
+      REDIS_HOST: "netbox-redis"
+      REDIS_PORT: "6379"
+      REDIS_DATABASE: "0"
+      REDIS_CACHE_DATABASE: "1"
+      SECRET_KEY: "${NETBOX_SECRET_KEY:-change-me-in-production-min-50-chars-long-secret}"
+      SUPERUSER_NAME: "${NETBOX_SUPERUSER_NAME:-admin}"
+      SUPERUSER_EMAIL: "${NETBOX_SUPERUSER_EMAIL:-admin@aldeci.local}"
+      SUPERUSER_PASSWORD: "${NETBOX_SUPERUSER_PASSWORD:-admin}"
+      SUPERUSER_API_TOKEN: "${NETBOX_TOKEN:-0123456789abcdef0123456789abcdef01234567}"
+      ALLOWED_HOSTS: "netbox localhost 127.0.0.1"
+      CORS_ORIGIN_ALLOW_ALL: "true"
+      EXEMPT_VIEW_PERMISSIONS: "*"
+    volumes:
+      - enterprise-netbox-media:/opt/netbox/netbox/media
+      - enterprise-netbox-reports:/opt/netbox/netbox/reports
+      - enterprise-netbox-scripts:/opt/netbox/netbox/scripts
+    depends_on:
+      netbox-postgres:
+        condition: service_healthy
+      netbox-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=cmdb"
+      - "aldeci.role=netbox"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=inventory"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # aldeci-api — FastAPI backend (ALDECI CTEM+ Platform)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Health: http://localhost:8000/health
+  # Docs:   http://localhost:8000/docs
+  aldeci-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    image: aldeci-api:enterprise
+    container_name: aldeci-enterprise-api
+    <<: *default-restart
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *aldeci-env
+      FIXOPS_WORKERS: "${FIXOPS_WORKERS:-1}"
+      ALDECI_SEED_DEMO: "${ALDECI_SEED_DEMO:-0}"
+      PYTHONPATH: "/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app"
+    volumes:
+      - enterprise-aldeci-data:/app/data
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=api"
+      - "aldeci.role=backend"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=application"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # aldeci-ui — React 19 frontend (Nginx serving built assets)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Proxies /api/* → aldeci-api:8000. SPA fallback on all routes.
+  # Access: http://localhost:3000
+  aldeci-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    image: aldeci-ui:enterprise
+    container_name: aldeci-enterprise-ui
+    <<: *default-restart
+    depends_on:
+      aldeci-api:
+        condition: service_healthy
+    ports:
+      - "${UI_PORT:-3000}:80"
+    volumes:
+      - ./nginx-ui.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/nginx-health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    networks:
+      - aldeci-enterprise
+    labels:
+      - "aldeci.service=ui"
+      - "aldeci.role=frontend"
+      - "aldeci.tier=presentation"
+
+# ─── Named Volumes ────────────────────────────────────────────────────────────
+volumes:
+  enterprise-postgres-data:
+    driver: local
+  enterprise-redis-data:
+    driver: local
+  enterprise-trustgraph-data:
+    driver: local
+  enterprise-localstack-data:
+    driver: local
+  enterprise-aldeci-data:
+    driver: local
+  enterprise-shuffle-apps:
+    driver: local
+  enterprise-shuffle-db:
+    driver: local
+  enterprise-netbox-pgdata:
+    driver: local
+  enterprise-netbox-redis-data:
+    driver: local
+  enterprise-netbox-media:
+    driver: local
+  enterprise-netbox-reports:
+    driver: local
+  enterprise-netbox-scripts:
+    driver: local
+  # Wazuh volumes — ossec data + indexer
+  enterprise-wazuh-api-config:
+    driver: local
+  enterprise-wazuh-etc:
+    driver: local
+  enterprise-wazuh-logs:
+    driver: local
+  enterprise-wazuh-queue:
+    driver: local
+  enterprise-wazuh-var-multigroups:
+    driver: local
+  enterprise-wazuh-integrations:
+    driver: local
+  enterprise-wazuh-active-response:
+    driver: local
+  enterprise-wazuh-agentless:
+    driver: local
+  enterprise-wazuh-wodles:
+    driver: local
+  enterprise-wazuh-filebeat-etc:
+    driver: local
+  enterprise-wazuh-filebeat-var:
+    driver: local
+  enterprise-wazuh-indexer-data:
+    driver: local
+  enterprise-wazuh-indexer-logs:
+    driver: local
+
+# ─── Network ──────────────────────────────────────────────────────────────────
+networks:
+  aldeci-enterprise:
+    name: aldeci-enterprise
+    driver: bridge

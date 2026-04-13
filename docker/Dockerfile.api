@@ -1,0 +1,87 @@
+# ============================================
+# ALDECI API — Dedicated build image
+# ============================================
+# Builds only the FastAPI backend (no bundled UI).
+# Used by docker-compose.enterprise.yml for the aldeci-api service.
+#
+# Build (from repo root):
+#   docker build -f docker/Dockerfile.api -t aldeci-api:enterprise .
+# Run:
+#   docker run -p 8000:8000 -e FIXOPS_API_TOKEN=<key> aldeci-api:enterprise
+# ============================================
+
+# ── Stage 1: Python dependency builder ───────────────────────────────────────
+FROM python:3.11-slim AS py-builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Isolated venv so final image doesn't need build tools
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# CPU-only PyTorch (avoids 2+ GB GPU wheel)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ── Stage 2: Production runtime ──────────────────────────────────────────────
+FROM python:3.11-slim
+
+# Non-root user
+RUN groupadd -r aldeci && useradd -r -g aldeci -m -s /bin/bash aldeci
+
+WORKDIR /app
+
+# Runtime deps only (curl for healthcheck, jq for scripts)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Venv from builder
+COPY --from=py-builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Application suites
+COPY suite-api/            ./suite-api/
+COPY suite-core/           ./suite-core/
+COPY suite-attack/         ./suite-attack/
+COPY suite-feeds/          ./suite-feeds/
+COPY suite-evidence-risk/  ./suite-evidence-risk/
+COPY suite-integrations/   ./suite-integrations/
+
+# Import path resolver
+COPY sitecustomize.py ./
+COPY requirements.txt ./
+
+# Entrypoint (same script as root Dockerfile — api-only mode)
+COPY docker/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+RUN chmod +x /app/scripts/docker-entrypoint.sh
+
+# Persistent data directories
+RUN mkdir -p /app/data /app/.fixops_data \
+    && chown -R aldeci:aldeci /app
+
+USER aldeci
+
+LABEL org.opencontainers.image.title="ALDECI API"
+LABEL org.opencontainers.image.description="ALDECI CTEM+ FastAPI backend — enterprise build"
+LABEL org.opencontainers.image.vendor="ALDECI"
+
+EXPOSE 8000
+
+ENV FIXOPS_MODE=enterprise \
+    FIXOPS_DATA_DIR=/app/data \
+    FIXOPS_DISABLE_TELEMETRY=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD curl -sf http://localhost:8000/health || exit 1
+
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+CMD ["api-only"]
