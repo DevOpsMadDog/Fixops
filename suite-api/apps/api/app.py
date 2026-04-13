@@ -5427,6 +5427,39 @@ def create_app() -> FastAPI:
     except ImportError as _dec_err:
         _logger.warning("Deception Engine router not available: %s", _dec_err)
 
+    # GraphRAG — graph-based semantic retrieval for TrustGraph knowledge
+    try:
+        from apps.api.graph_rag_router import router as graph_rag_router
+        app.include_router(
+            graph_rag_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted GraphRAG router at /api/v1/graphrag")
+    except ImportError as _gr_err:
+        _logger.warning("GraphRAG router not available: %s", _gr_err)
+
+    # SLA Escalation — auto-escalate findings past SLA deadline
+    try:
+        from apps.api.sla_escalation_router import router as sla_escalation_router
+        app.include_router(
+            sla_escalation_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted SLA Escalation router at /api/v1/sla-escalation")
+    except ImportError as _sla_esc_err:
+        _logger.warning("SLA Escalation router not available: %s", _sla_esc_err)
+
+    # Error Handling Auditor — static analysis of exception handling quality
+    try:
+        from apps.api.error_audit_router import router as error_audit_router
+        app.include_router(
+            error_audit_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+        )
+        _logger.info("Mounted Error Audit router at /api/v1/error-audit")
+    except ImportError as _ea_err:
+        _logger.warning("Error Audit router not available: %s", _ea_err)
+
     return app
 
 
