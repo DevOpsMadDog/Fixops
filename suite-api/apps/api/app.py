@@ -265,6 +265,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Cloud Discovery router not available: %s", e)
 
+# Enhanced LLM Council — calibration, feedback, recent verdicts
+council_enhanced_router: Optional[APIRouter] = None
+try:
+    from apps.api.council_enhanced_router import router as council_enhanced_router
+    logging.getLogger(__name__).info("Loaded Enhanced Council router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Enhanced Council router not available: %s", e)
+
 # Compliance Reports — multi-framework compliance reporting
 compliance_reports_router: Optional[APIRouter] = None
 try:
@@ -2589,6 +2597,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted CTEM Pipeline router")
+
+    # Enhanced LLM Council — calibration, feedback, recent verdicts
+    if council_enhanced_router:
+        app.include_router(
+            council_enhanced_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Enhanced Council router")
 
     # SOAR Engine — automated playbook execution and security response
     if soar_router:
