@@ -730,21 +730,19 @@ class TestPurpleTeamRouter:
         """Build a minimal FastAPI app with the purple team router mounted."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
-        from unittest.mock import patch, MagicMock
+        from apps.api import purple_team_router as ptr_module
+        from apps.api.auth_deps import api_key_auth
 
-        # Patch auth dependency to always pass
-        with patch("apps.api.auth_deps.api_key_auth", return_value=None):
-            from apps.api import purple_team_router as ptr_module
+        app = FastAPI()
+        app.include_router(ptr_module.router)
 
-            # Override the auth dep on the router with a no-op
-            ptr_module.router.dependencies = []
+        # Override auth to be a no-op for all tests
+        app.dependency_overrides[api_key_auth] = lambda: None
 
-            app = FastAPI()
-            app.include_router(ptr_module.router)
-
-            self.client = TestClient(app)
-            self.engine = get_purple_team_engine()
-            yield
+        self.client = TestClient(app)
+        self.engine = get_purple_team_engine()
+        yield
+        app.dependency_overrides.clear()
 
     def test_list_scenarios_returns_30_plus(self):
         resp = self.client.get("/api/v1/purple-team/scenarios")
