@@ -1,26 +1,47 @@
 """ALdeci SAST Engine — Static Application Security Testing.
 
 Real pattern-based code analysis with taint tracking, CWE mapping,
-and multi-language support (Python, JavaScript, Java, Go, Ruby, PHP).
+and multi-language support (Python, JavaScript, TypeScript, Java, Go,
+Ruby, PHP, C, C++, Rust).
+
+New in v2:
+- TypeScript, C, C++, Rust language support
+- Semgrep-format YAML rule parsing and execution
+- Incremental scanning: file hash cache skips unchanged files
+- Structured fix suggestions with CWE/OWASP references per finding
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+from threading import Lock
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+try:
+    import yaml as _yaml
+    _YAML_AVAILABLE = True
+except ImportError:
+    _YAML_AVAILABLE = False
 
 
 class Language(str, Enum):
     PYTHON = "python"
     JAVASCRIPT = "javascript"
+    TYPESCRIPT = "typescript"
     JAVA = "java"
     GO = "go"
     RUBY = "ruby"
     PHP = "php"
+    C = "c"
+    CPP = "cpp"
+    RUST = "rust"
     CSHARP = "csharp"
     UNKNOWN = "unknown"
 
@@ -1303,6 +1324,27 @@ TAINT_SOURCES = {
         r"params\[",
         r"request\.(body|env|headers)",
     ],
+    "typescript": [
+        r"req\.(body|query|params|headers|cookies)",
+        r"process\.env\b",
+        r"localStorage\b|sessionStorage\b",
+        r"window\.location\.(search|hash|href)\b",
+    ],
+    "c": [
+        r"\bgets\s*\(|\bfgets\s*\(|\bscanf\s*\(|\bfscanf\s*\(",
+        r"\bgetenv\s*\(",
+        r"\bargv\b",
+    ],
+    "cpp": [
+        r"std::cin\b|\bgetline\s*\(|\bfgets\s*\(",
+        r"\bgetenv\s*\(",
+        r"\bargv\b",
+    ],
+    "rust": [
+        r"std::env::args\(\)|std::env::var\(",
+        r"stdin\(\)\.lock\(\)|read_to_string\b",
+        r"fs::read_to_string\b|File::open\b",
+    ],
 }
 
 TAINT_SINKS = {
@@ -1319,16 +1361,307 @@ TAINT_SINKS = {
 
 EXT_TO_LANG = {
     ".py": Language.PYTHON,
+    ".pyw": Language.PYTHON,
     ".js": Language.JAVASCRIPT,
-    ".ts": Language.JAVASCRIPT,
+    ".mjs": Language.JAVASCRIPT,
+    ".cjs": Language.JAVASCRIPT,
     ".jsx": Language.JAVASCRIPT,
-    ".tsx": Language.JAVASCRIPT,
+    ".ts": Language.TYPESCRIPT,
+    ".tsx": Language.TYPESCRIPT,
     ".java": Language.JAVA,
     ".go": Language.GO,
     ".rb": Language.RUBY,
     ".php": Language.PHP,
+    ".php3": Language.PHP,
+    ".php4": Language.PHP,
+    ".php5": Language.PHP,
+    ".c": Language.C,
+    ".h": Language.C,
+    ".cc": Language.CPP,
+    ".cpp": Language.CPP,
+    ".cxx": Language.CPP,
+    ".hpp": Language.CPP,
+    ".rs": Language.RUST,
     ".cs": Language.CSHARP,
 }
+
+# ── Extra rules for TypeScript, C, C++, Rust ──────────────────────────
+# Same tuple shape: (rule_id, title, severity, cwe, pattern_regex, message, fix, languages)
+_EXTRA_RULES: List[Tuple[str, str, str, str, str, str, str, List[str]]] = [
+    # TypeScript
+    (
+        "SAST-TS-001",
+        "TypeScript — SQL Injection via template literal",
+        "critical",
+        "CWE-89",
+        r"""(query|execute)\s*\(\s*`[^`]*\$\{""",
+        "SQL query built from template literal with user-controlled expression",
+        "Use parameterized queries: db.query('SELECT ... WHERE id = $1', [id])",
+        ["typescript"],
+    ),
+    (
+        "SAST-TS-002",
+        "TypeScript — eval usage",
+        "critical",
+        "CWE-95",
+        r"""\beval\s*\(""",
+        "eval() executes arbitrary code",
+        "Remove eval(); use JSON.parse or explicit logic",
+        ["typescript"],
+    ),
+    (
+        "SAST-TS-003",
+        "TypeScript — DOM XSS via innerHTML",
+        "high",
+        "CWE-79",
+        r"""innerHTML\s*=|document\.write\s*\(""",
+        "Direct DOM write with potentially user-controlled data",
+        "Use textContent or DOMPurify.sanitize()",
+        ["typescript"],
+    ),
+    (
+        "SAST-TS-004",
+        "TypeScript — Hardcoded Secret",
+        "critical",
+        "CWE-798",
+        r"""(password|secret|apiKey|api_key|token)\s*[=:]\s*["\'][^"\']{8,}["\']""",
+        "Credential hardcoded in TypeScript source",
+        "Use process.env.SECRET or a secrets manager",
+        ["typescript"],
+    ),
+    # C
+    (
+        "SAST-C-001",
+        "C — gets() Buffer Overflow",
+        "critical",
+        "CWE-120",
+        r"""\bgets\s*\(""",
+        "gets() has no bounds checking — guaranteed buffer overflow",
+        "Use fgets(buf, sizeof(buf), stdin) instead",
+        ["c"],
+    ),
+    (
+        "SAST-C-002",
+        "C — strcpy/strcat unsafe",
+        "high",
+        "CWE-120",
+        r"""\b(strcpy|strcat|sprintf|vsprintf)\s*\(""",
+        "Unbounded string copy/format — buffer overflow risk",
+        "Use strlcpy, strlcat, or snprintf with explicit size",
+        ["c"],
+    ),
+    (
+        "SAST-C-003",
+        "C — system() command injection",
+        "critical",
+        "CWE-78",
+        r"""\bsystem\s*\(|\bpopen\s*\(""",
+        "Arbitrary OS command execution",
+        "Use execve() with a fixed path and validated argument list",
+        ["c"],
+    ),
+    (
+        "SAST-C-004",
+        "C — Hardcoded Secret",
+        "critical",
+        "CWE-798",
+        r'(password|secret|key)\s*=\s*"[^"]{8,}"',
+        "Credential hardcoded in C source",
+        'Load secrets from environment: getenv("MY_SECRET")',
+        ["c"],
+    ),
+    (
+        "SAST-C-005",
+        "C — Weak Hash (MD5/SHA1)",
+        "medium",
+        "CWE-328",
+        r"""\b(MD5_Init|SHA1_Init|EVP_md5|EVP_sha1)\b""",
+        "MD5/SHA1 are cryptographically weak",
+        "Use EVP_sha256() or stronger",
+        ["c"],
+    ),
+    (
+        "SAST-C-006",
+        "C — Insecure Random (rand)",
+        "medium",
+        "CWE-330",
+        r"""\brand\s*\(|\bsrand\s*\(""",
+        "rand() is not cryptographically secure",
+        "Use getrandom() or /dev/urandom for security tokens",
+        ["c"],
+    ),
+    # C++
+    (
+        "SAST-CPP-001",
+        "C++ — system() command injection",
+        "critical",
+        "CWE-78",
+        r"""\bsystem\s*\(|\bpopen\s*\(""",
+        "Shell command execution — injection risk",
+        "Use execve() or boost::process with argument arrays",
+        ["cpp"],
+    ),
+    (
+        "SAST-CPP-002",
+        "C++ — gets/strcpy unsafe",
+        "high",
+        "CWE-120",
+        r"""\b(gets|strcpy|strcat)\s*\(""",
+        "Unsafe C string functions in C++ code",
+        "Use std::string or bounded functions",
+        ["cpp"],
+    ),
+    (
+        "SAST-CPP-003",
+        "C++ — Hardcoded Secret",
+        "critical",
+        "CWE-798",
+        r'(password|secret|key)\s*=\s*"[^"]{8,}"',
+        "Credential hardcoded in C++ source",
+        'Load from environment: std::getenv("MY_SECRET")',
+        ["cpp"],
+    ),
+    (
+        "SAST-CPP-004",
+        "C++ — Weak Hash (MD5/SHA1)",
+        "medium",
+        "CWE-328",
+        r"""\b(MD5|SHA1|EVP_md5|EVP_sha1)\b""",
+        "Weak cryptographic hash",
+        "Use EVP_sha256() or stronger",
+        ["cpp"],
+    ),
+    (
+        "SAST-CPP-005",
+        "C++ — std::rand insecure",
+        "medium",
+        "CWE-330",
+        r"""\bstd::rand\s*\(|\bsrand\s*\(""",
+        "std::rand is not cryptographically secure",
+        "Use std::random_device or getrandom()",
+        ["cpp"],
+    ),
+    # Rust
+    (
+        "SAST-RS-001",
+        "Rust — SQL Injection via format!",
+        "high",
+        "CWE-89",
+        r"""format!\s*\(["\'].*SELECT.*\{\}|format!\s*\(["\'].*INSERT.*\{\}""",
+        "SQL query built with format! macro — injection risk",
+        "Use sqlx query! macro or diesel parameterized queries",
+        ["rust"],
+    ),
+    (
+        "SAST-RS-002",
+        "Rust — Hardcoded Secret",
+        "critical",
+        "CWE-798",
+        r'(password|secret|api_key)\s*=\s*"[^"]{8,}"',
+        "Credential hardcoded in Rust source",
+        'Use std::env::var("MY_SECRET") or a secrets crate',
+        ["rust"],
+    ),
+    (
+        "SAST-RS-003",
+        "Rust — Weak Hash (MD5/SHA1)",
+        "medium",
+        "CWE-328",
+        r"""use\s+md5\b|Md5::new\(\)|use\s+sha1\b|Sha1::new\(\)""",
+        "MD5/SHA1 are cryptographically weak",
+        "Use sha2 crate: Sha256::digest(data)",
+        ["rust"],
+    ),
+    (
+        "SAST-RS-004",
+        "Rust — Command Injection via user-controlled arg",
+        "high",
+        "CWE-78",
+        r"""Command::new\s*\([^)]*\.arg\s*\(\s*&?user|Command::new\s*\([^)]*format!""",
+        "OS command argument from user-controlled data",
+        "Validate and allowlist arguments; avoid shell=true equivalents",
+        ["rust"],
+    ),
+    (
+        "SAST-RS-005",
+        "Rust — unsafe block",
+        "low",
+        "CWE-119",
+        r"""\bunsafe\s*\{""",
+        "Unsafe Rust block — manual memory safety audit required",
+        "Minimize unsafe blocks; document all invariants",
+        ["rust"],
+    ),
+]
+
+
+# ── Semgrep-format custom rule support ────────────────────────────────
+
+@dataclass
+class SemgrepRule:
+    """A parsed Semgrep-format YAML rule mapped to ALDECI format."""
+    rule_id: str
+    message: str
+    severity: str
+    languages: List[str]
+    pattern: str
+    cwe: Optional[str] = None
+    owasp: Optional[str] = None
+    fix: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "rule_id": self.rule_id,
+            "message": self.message,
+            "severity": self.severity,
+            "languages": self.languages,
+            "pattern": self.pattern,
+            "cwe": self.cwe,
+            "owasp": self.owasp,
+            "fix": self.fix,
+        }
+
+
+def parse_semgrep_yaml(yaml_text: str) -> List[SemgrepRule]:
+    """Parse a Semgrep-format YAML string into SemgrepRule objects.
+
+    Supports ``pattern``, ``pattern-regex``, and the first entry of
+    ``patterns`` as the matching expression.
+    """
+    if not _YAML_AVAILABLE:
+        return []
+    try:
+        doc = _yaml.safe_load(yaml_text)
+    except Exception:
+        return []
+    rules: List[SemgrepRule] = []
+    for raw in doc.get("rules", []):
+        pattern = (
+            raw.get("pattern")
+            or raw.get("pattern-regex")
+            or (raw.get("patterns", [{}]) or [{}])[0].get("pattern", "")
+            or ""
+        )
+        meta = raw.get("metadata", {})
+        langs = raw.get("languages", ["unknown"])
+        sev = (
+            raw.get("severity", "WARNING")
+            .lower()
+            .replace("warning", "medium")
+            .replace("error", "high")
+            .replace("info", "low")
+        )
+        rules.append(SemgrepRule(
+            rule_id=raw.get("id", f"custom-{uuid.uuid4().hex[:8]}"),
+            message=raw.get("message", "Custom rule finding"),
+            severity=sev,
+            languages=langs,
+            pattern=str(pattern),
+            cwe=meta.get("cwe"),
+            owasp=meta.get("owasp"),
+            fix=raw.get("fix"),
+        ))
+    return rules
 
 
 def detect_language(filename: str) -> Language:
@@ -1378,11 +1711,13 @@ class SASTEngine:
     """Static Application Security Testing engine.
 
     Performs real pattern-based analysis with:
-    - 110 vulnerability rules across 8 languages
+    - 110 built-in rules + extra rules for TypeScript/C/C++/Rust
     - Full OWASP Top 10 (2021) coverage
     - Taint source→sink flow tracking
     - CWE mapping for every finding
     - Confidence scoring
+    - Semgrep-format YAML custom rule support
+    - Incremental scanning via SHA-256 file hash cache
     - Air-gapped capable — no external dependencies
 
     OWASP Coverage:
@@ -1406,14 +1741,131 @@ class SASTEngine:
     MAX_FINDINGS_PER_SCAN = 5_000  # Cap findings to prevent memory exhaustion
 
     def __init__(self):
+        self._lock = Lock()
         self._compiled_rules: List[
             Tuple[str, str, str, str, re.Pattern, str, str, List[str]]
         ] = []
-        for r in SAST_RULES:
+        # Built-in rules (110 OWASP rules + extra language rules)
+        all_rules = list(SAST_RULES) + list(_EXTRA_RULES)
+        for r in all_rules:
             rid, title, sev, cwe, pat, msg, fix, langs = r
-            self._compiled_rules.append(
-                (rid, title, sev, cwe, re.compile(pat, re.IGNORECASE), msg, fix, langs)
-            )
+            try:
+                self._compiled_rules.append(
+                    (rid, title, sev, cwe, re.compile(pat, re.IGNORECASE), msg, fix, langs)
+                )
+            except re.error:
+                pass  # Skip malformed patterns gracefully
+
+        # Custom Semgrep rules (added at runtime via add_semgrep_rules)
+        self._custom_rules: List[SemgrepRule] = []
+        self._compiled_custom: List[Tuple[SemgrepRule, re.Pattern]] = []
+
+        # Incremental scan cache: filename → (sha256_hash, SastScanResult)
+        self._file_cache: Dict[str, Tuple[str, "SastScanResult"]] = {}
+
+        # Accumulated results store: scan_id → SastScanResult
+        self._scan_store: Dict[str, "SastScanResult"] = {}
+        self._latest_scan_id: Optional[str] = None
+
+    # ── Semgrep / Custom Rule Management ─────────────────────────────
+
+    def add_semgrep_rules(self, yaml_text: str) -> List[SemgrepRule]:
+        """Parse and register Semgrep-format YAML rules. Returns added rules."""
+        rules = parse_semgrep_yaml(yaml_text)
+        with self._lock:
+            for rule in rules:
+                self._custom_rules.append(rule)
+                try:
+                    compiled = re.compile(rule.pattern, re.IGNORECASE)
+                    self._compiled_custom.append((rule, compiled))
+                except re.error:
+                    pass
+        return rules
+
+    def get_custom_rules(self) -> List[SemgrepRule]:
+        """Return all registered custom Semgrep rules."""
+        with self._lock:
+            return list(self._custom_rules)
+
+    def clear_custom_rules(self) -> None:
+        """Remove all custom rules."""
+        with self._lock:
+            self._custom_rules.clear()
+            self._compiled_custom.clear()
+
+    # ── Incremental Scan Cache ────────────────────────────────────────
+
+    def clear_cache(self) -> None:
+        """Clear the incremental scan file-hash cache."""
+        with self._lock:
+            self._file_cache.clear()
+
+    def _file_hash(self, code: str) -> str:
+        return hashlib.sha256(code.encode("utf-8", errors="replace")).hexdigest()
+
+    # ── Supported Languages ───────────────────────────────────────────
+
+    @staticmethod
+    def get_supported_languages() -> Dict[str, Any]:
+        """Return supported languages with rule counts and file extensions."""
+        lang_rules: Dict[str, int] = {}
+        for r in list(SAST_RULES) + list(_EXTRA_RULES):
+            for lang in r[7]:
+                lang_rules[lang] = lang_rules.get(lang, 0) + 1
+        lang_exts: Dict[str, List[str]] = {}
+        for ext, lang in EXT_TO_LANG.items():
+            lang_exts.setdefault(lang.value, []).append(ext)
+        result = {}
+        for lang in Language:
+            if lang == Language.UNKNOWN:
+                continue
+            result[lang.value] = {
+                "rule_count": lang_rules.get(lang.value, 0),
+                "extensions": lang_exts.get(lang.value, []),
+            }
+        return result
+
+    # ── Latest Scan Summary ───────────────────────────────────────────
+
+    def get_summary(self) -> Dict[str, Any]:
+        """Return summary of the most recent scan (all-time aggregated)."""
+        with self._lock:
+            sid = self._latest_scan_id
+            if sid is None or sid not in self._scan_store:
+                return {"status": "no_scan", "message": "No scans have been run yet"}
+            result = self._scan_store[sid]
+        return {
+            "scan_id": result.scan_id,
+            "files_scanned": result.files_scanned,
+            "total_findings": result.total_findings,
+            "by_severity": result.by_severity,
+            "by_cwe": result.by_cwe,
+            "duration_ms": result.duration_ms,
+            "timestamp": result.timestamp.isoformat(),
+        }
+
+    def get_all_findings(
+        self,
+        severity: Optional[str] = None,
+        cwe: Optional[str] = None,
+        language: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Return findings from the most recent scan, optionally filtered."""
+        with self._lock:
+            sid = self._latest_scan_id
+            if sid is None or sid not in self._scan_store:
+                return []
+            result = self._scan_store[sid]
+        out = []
+        for f in result.findings:
+            if severity and f.severity.value != severity.lower():
+                continue
+            if cwe and f.cwe_id != cwe:
+                continue
+            if language and f.language.value != language.lower():
+                continue
+            out.append(f.to_dict())
+        return out
 
     def _self_scan_skip_lines(self, lines: List[str], filename: str) -> set[int]:
         """Skip metadata-only rule blocks when the engine scans its own source.
@@ -1447,21 +1899,37 @@ class SASTEngine:
         return skip_lines
 
     # ── Public API ──────────────────────────────────────────────────
-    def scan_code(self, code: str, filename: str = "input.py") -> SastScanResult:
+    def scan_code(
+        self,
+        code: str,
+        filename: str = "input.py",
+        incremental: bool = False,
+    ) -> "SastScanResult":
         """Scan a single code string and return findings.
+
+        Args:
+            code: Source code string to scan.
+            filename: Filename used for language detection and in findings.
+            incremental: If True, return cached result when file hash is unchanged.
 
         Input limits:
         - Code size: MAX_CODE_SIZE (10 MB)
         - Line length: MAX_LINE_LENGTH (10,000 chars) — skips longer lines
         - Total findings capped at MAX_FINDINGS_PER_SCAN
         """
-        import time
-
         # Input validation: reject oversized code
         if len(code) > self.MAX_CODE_SIZE:
             raise ValueError(
                 f"Code size {len(code)} exceeds maximum {self.MAX_CODE_SIZE} bytes"
             )
+
+        # Incremental: return cached result if file hash unchanged
+        if incremental:
+            fhash = self._file_hash(code)
+            with self._lock:
+                cached = self._file_cache.get(filename)
+            if cached is not None and cached[0] == fhash:
+                return cached[1]
 
         t0 = time.time()
         lang = detect_language(filename)
@@ -1512,6 +1980,43 @@ class SASTEngine:
                         )
                     )
 
+        # Custom Semgrep rules
+        with self._lock:
+            custom_compiled = list(self._compiled_custom)
+        for rule, pattern in custom_compiled:
+            if lang.value not in rule.languages and "generic" not in rule.languages:
+                if lang != Language.UNKNOWN:
+                    continue
+            for line_num, line in enumerate(lines, 1):
+                if line_num in skip_lines:
+                    continue
+                if len(line) > self.MAX_LINE_LENGTH:
+                    continue
+                stripped_line = line.strip()
+                if not stripped_line:
+                    continue
+                if len(findings) >= self.MAX_FINDINGS_PER_SCAN:
+                    break
+                if pattern.search(line):
+                    try:
+                        sev_val = SastSeverity(rule.severity)
+                    except ValueError:
+                        sev_val = SastSeverity.MEDIUM
+                    findings.append(
+                        SastFinding(
+                            rule_id=rule.rule_id,
+                            title=f"[Custom] {rule.rule_id}",
+                            severity=sev_val,
+                            cwe_id=rule.cwe or "CWE-0",
+                            language=lang,
+                            file_path=filename,
+                            line_number=line_num,
+                            snippet=stripped_line[:200],
+                            message=rule.message,
+                            fix_suggestion=rule.fix or "Review per custom rule",
+                        )
+                    )
+
         # Taint flow analysis
         taint_flows = self._analyze_taint_flows(lines, lang)
 
@@ -1523,7 +2028,7 @@ class SASTEngine:
             by_cwe[f.cwe_id] = by_cwe.get(f.cwe_id, 0) + 1
 
         elapsed = (time.time() - t0) * 1000
-        return SastScanResult(
+        result = SastScanResult(
             scan_id=f"sast-{uuid.uuid4().hex[:12]}",
             files_scanned=1,
             total_findings=len(findings),
@@ -1534,14 +2039,30 @@ class SASTEngine:
             duration_ms=round(elapsed, 2),
         )
 
-    def scan_files(self, file_contents: Dict[str, str]) -> SastScanResult:
+        # Store result and update incremental cache
+        with self._lock:
+            self._scan_store[result.scan_id] = result
+            self._latest_scan_id = result.scan_id
+            if incremental:
+                fhash = self._file_hash(code)
+                self._file_cache[filename] = (fhash, result)
+
+        return result
+
+    def scan_files(
+        self,
+        file_contents: Dict[str, str],
+        incremental: bool = False,
+    ) -> "SastScanResult":
         """Scan multiple files. Keys are filenames, values are code strings.
+
+        Args:
+            file_contents: Mapping of filename → source code.
+            incremental: If True, skip files whose SHA-256 hash is unchanged.
 
         Limits: MAX_FILES (500) files per call. Each file subject to
         MAX_CODE_SIZE. Aggregated findings capped at MAX_FINDINGS_PER_SCAN.
         """
-        import time
-
         if len(file_contents) > self.MAX_FILES:
             raise ValueError(
                 f"Too many files ({len(file_contents)}), maximum is {self.MAX_FILES}"
@@ -1553,7 +2074,7 @@ class SASTEngine:
         for fname, code in file_contents.items():
             if len(all_findings) >= self.MAX_FINDINGS_PER_SCAN:
                 break
-            result = self.scan_code(code, fname)
+            result = self.scan_code(code, fname, incremental=incremental)
             all_findings.extend(result.findings)
             all_taint.extend(result.taint_flows)
 
@@ -1564,7 +2085,7 @@ class SASTEngine:
             by_cwe[f.cwe_id] = by_cwe.get(f.cwe_id, 0) + 1
 
         elapsed = (time.time() - t0) * 1000
-        return SastScanResult(
+        result = SastScanResult(
             scan_id=f"sast-{uuid.uuid4().hex[:12]}",
             files_scanned=len(file_contents),
             total_findings=len(all_findings),
@@ -1574,6 +2095,10 @@ class SASTEngine:
             by_cwe=by_cwe,
             duration_ms=round(elapsed, 2),
         )
+        with self._lock:
+            self._scan_store[result.scan_id] = result
+            self._latest_scan_id = result.scan_id
+        return result
 
     # ── Taint Analysis ──────────────────────────────────────────────
     def _analyze_taint_flows(

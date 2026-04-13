@@ -1,394 +1,262 @@
-"""CSPM Router — Cloud Security Posture Management endpoints.
+"""CSPM Router — Cloud Security Posture Management API endpoints.
 
 Endpoints:
-  POST /api/v1/cspm/scan/terraform       — scan Terraform HCL
-  POST /api/v1/cspm/scan/cloudformation   — scan CloudFormation
-  POST /api/v1/cspm/scan/live             — scan live cloud account (AWS/Azure/GCP)
-  POST /api/v1/cspm/scan/kubernetes       — scan K8s manifests
-  GET  /api/v1/cspm/rules                 — list all CSPM rules
-  GET  /api/v1/cspm/rules/{provider}      — list rules for a specific provider
-  GET  /api/v1/cspm/compliance-report     — generate compliance report
-  GET  /api/v1/cspm/status                — engine status
-  GET  /api/v1/cspm/health                — health check
+  GET  /api/v1/cspm/posture              — Overall cloud security posture score
+  GET  /api/v1/cspm/findings             — Misconfigurations found
+  GET  /api/v1/cspm/resources            — Cloud resource inventory
+  GET  /api/v1/cspm/benchmarks           — CIS benchmark compliance status
+  POST /api/v1/cspm/scan                 — Trigger cloud posture scan
+  GET  /api/v1/cspm/drift                — Drift detection results
+  GET  /api/v1/cspm/remediation/{id}     — Remediation steps for a finding
+  GET  /api/v1/cspm/compliance-map       — Mapping of CIS checks to compliance frameworks
+
+Auth is applied centrally by app.py (Depends(_verify_api_key)).
 """
 
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
-from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from core.cspm_engine import (
+    CloudProvider,
+    CloudResource,
+    CSPMFinding,
+    FindingStatus,
+    OrgPosture,
+    RemediationPlaybook,
+    ResourceType,
+    ScanRequest,
+    ScanResult,
+    Severity,
+    get_cspm_engine,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/cspm", tags=["CSPM"])
 
-_MAX_CONTENT_LENGTH = 1_000_000  # 1MB max IaC content
-_MAX_FILENAME_LENGTH = 255
+
+# ---------------------------------------------------------------------------
+# Request models
+# ---------------------------------------------------------------------------
+
+class RegisterResourceRequest(BaseModel):
+    provider: CloudProvider
+    resource_type: ResourceType
+    name: str
+    region: str = "global"
+    account_id: str = "unknown"
+    org_id: str = "default"
+    tags: Dict[str, str] = Field(default_factory=dict)
+    owner: Optional[str] = None
+    is_public: bool = False
+    is_encrypted: bool = True
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
-def _sanitize_filename(filename: str) -> str:
-    """Sanitize filename to prevent path traversal."""
-    if ".." in filename or "/" in filename or "\\" in filename:
-        safe = os.path.basename(filename)
-    else:
-        safe = filename
-    safe = "".join(c for c in safe if c.isprintable() and c != "\x00")
-    if len(safe) > _MAX_FILENAME_LENGTH:
-        safe = safe[:_MAX_FILENAME_LENGTH]
-    return safe or "main.tf"
+class TriggerScanRequest(BaseModel):
+    org_id: str = "default"
+    account_ids: List[str] = Field(default_factory=list)
+    providers: List[CloudProvider] = Field(default_factory=list)
+    rule_ids: Optional[List[str]] = None
 
 
-class TerraformScanRequest(BaseModel):
-    content: str = Field(
-        ...,
-        description="Terraform HCL content to scan",
-        max_length=_MAX_CONTENT_LENGTH,
-    )
-    filename: str = Field(
-        "main.tf",
-        description="Filename for reporting",
-        max_length=_MAX_FILENAME_LENGTH,
-    )
+class SuppressFindingRequest(BaseModel):
+    reason: str = Field(..., description="Reason for suppressing this finding")
 
 
-class CloudFormationScanRequest(BaseModel):
-    content: str = Field(
-        ...,
-        description="CloudFormation JSON/YAML content to scan",
-        max_length=_MAX_CONTENT_LENGTH,
-    )
+# ---------------------------------------------------------------------------
+# Helper
+# ---------------------------------------------------------------------------
+
+def _engine():
+    return get_cspm_engine()
 
 
-class LiveScanRequest(BaseModel):
-    provider: str = Field(
-        ...,
-        description="Cloud provider: aws, azure, or gcp",
-        pattern="^(aws|azure|gcp)$",
-    )
-    region: str = Field(
-        "us-east-1",
-        description="Region to scan (AWS only)",
-    )
-    services: Optional[List[str]] = Field(
-        None,
-        description="Services to scan (e.g. ['s3', 'iam', 'ec2']). Defaults to all.",
-    )
-    subscription_id: Optional[str] = Field(
-        None,
-        description="Azure subscription ID (Azure only)",
-    )
-    project_id: Optional[str] = Field(
-        None,
-        description="GCP project ID (GCP only)",
-    )
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
+@router.get("/posture", summary="Overall cloud security posture score")
+def get_posture(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> OrgPosture:
+    """Return the aggregated cloud security posture for the org.
 
-class KubernetesScanRequest(BaseModel):
-    content: str = Field(
-        ...,
-        description="Kubernetes YAML manifest content to scan",
-        max_length=_MAX_CONTENT_LENGTH,
-    )
-    filename: str = Field(
-        "manifest.yaml",
-        description="Filename for reporting",
-        max_length=_MAX_FILENAME_LENGTH,
-    )
-
-
-@router.post("/scan/terraform")
-async def scan_terraform(req: TerraformScanRequest) -> Dict[str, Any]:
-    """Scan Terraform HCL for cloud misconfigurations."""
-    if not req.content.strip():
-        raise HTTPException(400, "Empty Terraform content provided")
-    safe_filename = _sanitize_filename(req.filename)
-    try:
-        from core.cspm_engine import get_cspm_engine
-
-        engine = get_cspm_engine()
-        result = engine.scan_terraform(req.content, safe_filename)
-        return result.to_dict()
-    except ImportError as e:
-        logger.exception("Terraform scan failed: %s", type(e).__name__)
-        raise HTTPException(500, f"Terraform scan failed: {type(e).__name__}")
-
-
-@router.post("/scan/cloudformation")
-async def scan_cloudformation(req: CloudFormationScanRequest) -> Dict[str, Any]:
-    """Scan CloudFormation JSON/YAML for AWS misconfigurations."""
-    if not req.content.strip():
-        raise HTTPException(400, "Empty CloudFormation content provided")
-    try:
-        from core.cspm_engine import get_cspm_engine
-
-        engine = get_cspm_engine()
-        result = engine.scan_cloudformation(req.content)
-        return result.to_dict()
-    except ImportError as e:
-        logger.exception("CloudFormation scan failed: %s", type(e).__name__)
-        raise HTTPException(500, f"CloudFormation scan failed: {type(e).__name__}")
-
-
-@router.post("/scan/live")
-async def scan_live(req: LiveScanRequest) -> Dict[str, Any]:
-    """Scan a live cloud account for misconfigurations.
-
-    Requires appropriate SDK credentials (boto3/azure-identity/google-cloud).
+    The overall_score is 0-100 where higher is better (less risk).
     """
+    return _engine().get_posture(org_id=org_id)
+
+
+@router.get("/findings", summary="List CSPM misconfigurations", response_model=List[CSPMFinding])
+def list_findings(
+    org_id: str = Query("default", description="Organisation ID"),
+    status: Optional[FindingStatus] = Query(None, description="Filter by status"),
+    severity: Optional[Severity] = Query(None, description="Filter by severity"),
+) -> List[CSPMFinding]:
+    """List all CSPM findings for an org with optional filters."""
+    return _engine().list_findings(org_id=org_id, status=status, severity=severity)
+
+
+@router.get("/resources", summary="Cloud resource inventory", response_model=List[CloudResource])
+def list_resources(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> List[CloudResource]:
+    """Return the full cloud resource inventory for an org."""
+    return _engine().list_resources(org_id=org_id)
+
+
+@router.post("/resources", summary="Register a cloud resource", response_model=CloudResource)
+def register_resource(req: RegisterResourceRequest) -> CloudResource:
+    """Register or update a cloud resource in the CSPM inventory."""
+    resource = CloudResource(
+        provider=req.provider,
+        resource_type=req.resource_type,
+        name=req.name,
+        region=req.region,
+        account_id=req.account_id,
+        org_id=req.org_id,
+        tags=req.tags,
+        owner=req.owner,
+        is_public=req.is_public,
+        is_encrypted=req.is_encrypted,
+        metadata=req.metadata,
+    )
     try:
-        from core.cspm_engine import get_cspm_engine
-
-        engine = get_cspm_engine()
-        if req.provider == "aws":
-            result = engine.scan_aws_live(
-                region=req.region,
-                services=req.services,
-            )
-        elif req.provider == "azure":
-            result = engine.scan_azure_live(
-                subscription_id=req.subscription_id,
-            )
-        elif req.provider == "gcp":
-            result = engine.scan_gcp_live(
-                project_id=req.project_id,
-            )
-        else:
-            raise HTTPException(400, f"Unsupported provider: {req.provider}")
-        return result.to_dict()
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("Live scan failed: %s", type(e).__name__)
-        raise HTTPException(500, f"Live scan failed: {type(e).__name__}")
+        return _engine().register_resource(resource)
+    except Exception as exc:
+        logger.exception("Failed to register resource: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to register resource: {exc}") from exc
 
 
-@router.post("/scan/kubernetes")
-async def scan_kubernetes(req: KubernetesScanRequest) -> Dict[str, Any]:
-    """Scan Kubernetes YAML manifests for security misconfigurations.
-
-    Detects privileged containers, root users, hostNetwork, missing resource limits,
-    writable root filesystems, dangerous capabilities, missing probes, and more.
-    """
-    if not req.content.strip():
-        raise HTTPException(400, "Empty Kubernetes manifest content provided")
-    safe_filename = _sanitize_filename(req.filename)
-    try:
-        from core.cspm_engine import get_cspm_engine
-
-        engine = get_cspm_engine()
-        result = engine.scan_kubernetes(req.content, safe_filename)
-        return result.to_dict()
-    except Exception as e:
-        logger.exception("Kubernetes scan failed: %s", type(e).__name__)
-        raise HTTPException(500, f"Kubernetes scan failed: {type(e).__name__}")
-
-
-@router.get("/findings")
-async def list_cspm_findings(
-    severity: str = None,
-    limit: int = 100,
-    org_id: str = Depends(get_org_id),
+@router.get("/benchmarks", summary="CIS benchmark compliance status")
+def get_benchmarks(
+    org_id: str = Query("default", description="Organisation ID"),
 ) -> Dict[str, Any]:
-    """List CSPM/IaC scan findings."""
+    """Return CIS Benchmark compliance status grouped by cloud provider.
+
+    Shows total/passing/failing rule counts and per-rule status.
+    """
+    return _engine().get_benchmark_status(org_id=org_id)
+
+
+@router.post("/scan", summary="Trigger cloud posture scan", response_model=ScanResult)
+def trigger_scan(req: TriggerScanRequest) -> ScanResult:
+    """Trigger a CSPM scan for all registered resources in an org.
+
+    Evaluates all applicable CIS Benchmark rules and detects configuration
+    drift against the saved baseline. Returns the full scan result including
+    the updated posture score.
+    """
     try:
-        from core.analytics_db import AnalyticsDB
-        db = AnalyticsDB()
-        findings = db.list_findings(limit=limit)
-        cspm_findings = []
-        for f in findings:
-            src = getattr(f, 'source', '') or ''
-            if any(k in src.lower() for k in ('cspm', 'iac', 'terraform', 'cloud')):
-                sev = f.severity.value if hasattr(f.severity, 'value') else str(f.severity)
-                if severity and sev.lower() != severity.lower():
-                    continue
-                cspm_findings.append({
-                    'id': f.id,
-                    'title': getattr(f, 'title', 'CSPM Finding'),
-                    'severity': sev,
-                    'status': f.status.value if hasattr(f.status, 'value') else str(f.status),
-                    'source': src,
-                    'provider': 'aws' if 'aws' in src.lower() else 'azure' if 'azure' in src.lower() else 'gcp' if 'gcp' in src.lower() else 'unknown',
-                })
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
-        cspm_findings = []
-    return {
-        'findings': cspm_findings,
-        'total': len(cspm_findings),
-        'scanner': 'ALdeci CSPM Engine',
-    }
+        return _engine().run_scan(org_id=req.org_id, rule_ids=req.rule_ids)
+    except Exception as exc:
+        logger.exception("CSPM scan failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"CSPM scan failed: {exc}") from exc
 
 
-@router.get("/rules")
-async def list_rules() -> Dict[str, Any]:
-    """List all CSPM rules by provider (including K8s)."""
-    from core.cspm_engine import AWS_RULES, AZURE_RULES, GCP_RULES, K8S_RULES
-
-    def fmt(rules):
-        return [
-            {
-                "id": r[0], "title": r[1], "severity": r[2], "cwe": r[3],
-                "category": r[4], "description": r[5], "recommendation": r[6],
-                "compliance_frameworks": r[7],
-            }
-            for r in rules
-        ]
-
-    return {
-        "aws": fmt(AWS_RULES),
-        "azure": fmt(AZURE_RULES),
-        "gcp": fmt(GCP_RULES),
-        "kubernetes": fmt(K8S_RULES),
-        "total": len(AWS_RULES) + len(AZURE_RULES) + len(GCP_RULES) + len(K8S_RULES),
-    }
-
-
-@router.get("/rules/{provider}")
-async def list_rules_by_provider(provider: str) -> Dict[str, Any]:
-    """List CSPM rules for a specific provider.
-
-    Args:
-        provider: One of aws, azure, gcp, kubernetes (or k8s).
-    """
-    from core.cspm_engine import AWS_RULES, AZURE_RULES, GCP_RULES, K8S_RULES
-
-    provider_map = {
-        "aws": AWS_RULES,
-        "azure": AZURE_RULES,
-        "gcp": GCP_RULES,
-        "kubernetes": K8S_RULES,
-        "k8s": K8S_RULES,
-    }
-    rules = provider_map.get(provider.lower())
-    if rules is None:
-        raise HTTPException(404, f"Unknown provider: {provider}. Valid: aws, azure, gcp, kubernetes")
-
-    def fmt(r):
-        return {
-            "id": r[0], "title": r[1], "severity": r[2], "cwe": r[3],
-            "category": r[4], "description": r[5], "recommendation": r[6],
-            "compliance_frameworks": r[7],
-        }
-
-    by_severity: Dict[str, int] = {}
-    for r in rules:
-        by_severity[r[2]] = by_severity.get(r[2], 0) + 1
-
-    return {
-        "provider": provider.lower(),
-        "rules": [fmt(r) for r in rules],
-        "total": len(rules),
-        "by_severity": by_severity,
-    }
-
-
-@router.get("/compliance-report")
-async def compliance_report(
-    provider: Optional[str] = None,
-    framework: Optional[str] = None,
+@router.get("/drift", summary="Configuration drift detection results")
+def get_drift(
+    org_id: str = Query("default", description="Organisation ID"),
 ) -> Dict[str, Any]:
-    """Generate a compliance report showing rule coverage by framework.
+    """Return configuration drift events detected against the saved baseline.
 
-    Args:
-        provider: Filter by provider (aws, azure, gcp, kubernetes). All if omitted.
-        framework: Filter by framework prefix (e.g. 'CIS-AWS', 'SOC2', 'NIST'). All if omitted.
+    Drift events include: new public resources, removed security controls,
+    changed encryption settings, and modified security metadata.
     """
-    from core.cspm_engine import AWS_RULES, AZURE_RULES, GCP_RULES, K8S_RULES
-
-    all_providers = {
-        "aws": AWS_RULES,
-        "azure": AZURE_RULES,
-        "gcp": GCP_RULES,
-        "kubernetes": K8S_RULES,
-    }
-
-    if provider:
-        key = provider.lower()
-        if key == "k8s":
-            key = "kubernetes"
-        if key not in all_providers:
-            raise HTTPException(404, f"Unknown provider: {provider}")
-        selected = {key: all_providers[key]}
-    else:
-        selected = all_providers
-
-    # Build framework coverage map
-    framework_coverage: Dict[str, List[Dict[str, str]]] = {}
-    total_rules = 0
-    by_severity: Dict[str, int] = {}
-
-    for prov_name, rules in selected.items():
-        for r in rules:
-            rule_id, title, sev, cwe, cat, desc, rec, frameworks_list = r
-            total_rules += 1
-            by_severity[sev] = by_severity.get(sev, 0) + 1
-
-            for fw in frameworks_list:
-                if framework and not fw.upper().startswith(framework.upper()):
-                    continue
-                if fw not in framework_coverage:
-                    framework_coverage[fw] = []
-                framework_coverage[fw].append({
-                    "rule_id": rule_id,
-                    "title": title,
-                    "severity": sev,
-                    "provider": prov_name,
-                })
-
-    # Compute compliance posture summary
-    frameworks_summary = []
-    for fw_name, covered_rules in sorted(framework_coverage.items()):
-        sev_breakdown: Dict[str, int] = {}
-        for cr in covered_rules:
-            sev_breakdown[cr["severity"]] = sev_breakdown.get(cr["severity"], 0) + 1
-        frameworks_summary.append({
-            "framework": fw_name,
-            "rules_count": len(covered_rules),
-            "by_severity": sev_breakdown,
-        })
-
+    events = _engine().list_drift(org_id=org_id)
     return {
-        "report_type": "compliance_coverage",
-        "providers_scanned": list(selected.keys()),
-        "total_rules": total_rules,
-        "by_severity": by_severity,
-        "frameworks": frameworks_summary,
-        "total_frameworks": len(framework_coverage),
-        "engine_version": "2.0.0",
+        "drift_events": [e.model_dump() for e in events],
+        "total": len(events),
+        "org_id": org_id,
     }
 
 
-@router.get("/status")
-async def cspm_status() -> Dict[str, Any]:
-    from core.cspm_engine import get_cspm_engine
-
-    engine = get_cspm_engine()
-    from core.cspm_engine import AWS_RULES, AZURE_RULES, GCP_RULES, K8S_RULES
-
-    return {
-        "engine": "cspm",
-        "status": "ready",
-        "version": "2.0.0",
-        "capabilities": ["terraform", "cloudformation", "live_aws", "live_azure", "live_gcp", "kubernetes"],
-        "rules_count": {
-            "aws": len(AWS_RULES),
-            "azure": len(AZURE_RULES),
-            "gcp": len(GCP_RULES),
-            "kubernetes": len(K8S_RULES),
-            "total": len(AWS_RULES) + len(AZURE_RULES) + len(GCP_RULES) + len(K8S_RULES),
-        },
-        "sdk_available": {
-            "boto3": engine._boto3_available,
-            "azure": engine._azure_available,
-            "gcp": engine._gcp_available,
-        },
-    }
+@router.post("/baseline", summary="Save current state as drift baseline")
+def save_baseline(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Snapshot the current resource state as the baseline for drift detection."""
+    count = _engine().save_baseline(org_id=org_id)
+    return {"snapshotted": count, "org_id": org_id}
 
 
-@router.get("/health")
-async def cspm_health() -> Dict[str, Any]:
-    """CSPM engine health check (alias for /status)."""
-    return await cspm_status()
+@router.get("/remediation/{finding_id}", summary="Remediation steps for a finding", response_model=RemediationPlaybook)
+def get_remediation(finding_id: str) -> RemediationPlaybook:
+    """Return a step-by-step remediation playbook for a specific finding.
+
+    Includes CLI commands and Terraform blocks where available, plus
+    estimated effort and downtime risk indicators.
+    """
+    playbook = _engine().get_remediation(finding_id)
+    if not playbook:
+        raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
+    return playbook
+
+
+@router.get("/compliance-map", summary="Mapping of CIS checks to compliance frameworks")
+def get_compliance_map() -> Dict[str, Any]:
+    """Return the full mapping of CIS Benchmark checks to compliance frameworks.
+
+    Frameworks covered: SOC2, PCI-DSS, HIPAA, FedRAMP, NIST 800-53, CIS.
+    """
+    return _engine().get_compliance_map()
+
+
+@router.get("/findings/{finding_id}", summary="Get a single finding", response_model=CSPMFinding)
+def get_finding(finding_id: str) -> CSPMFinding:
+    """Retrieve a single CSPM finding by ID."""
+    finding = _engine().get_finding(finding_id)
+    if not finding:
+        raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
+    return finding
+
+
+@router.post("/findings/{finding_id}/suppress", summary="Suppress a finding", response_model=CSPMFinding)
+def suppress_finding(finding_id: str, req: SuppressFindingRequest) -> CSPMFinding:
+    """Mark a finding as suppressed with a documented reason (e.g. accepted risk)."""
+    finding = _engine().suppress_finding(finding_id, req.reason)
+    if not finding:
+        raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
+    return finding
+
+
+@router.post("/findings/{finding_id}/resolve", summary="Resolve a finding", response_model=CSPMFinding)
+def resolve_finding(finding_id: str) -> CSPMFinding:
+    """Mark a finding as resolved after applying remediation."""
+    finding = _engine().resolve_finding(finding_id)
+    if not finding:
+        raise HTTPException(status_code=404, detail=f"Finding '{finding_id}' not found")
+    return finding
+
+
+@router.get("/scans", summary="Recent scan history")
+def list_scans(
+    org_id: str = Query("default", description="Organisation ID"),
+    limit: int = Query(10, ge=1, le=100, description="Max results"),
+) -> Dict[str, Any]:
+    """Return recent CSPM scan results for an org."""
+    scans = _engine().list_scans(org_id=org_id, limit=limit)
+    return {"scans": [s.model_dump() for s in scans], "total": len(scans)}
+
+
+@router.get("/resources/{resource_id}", summary="Get a single cloud resource", response_model=CloudResource)
+def get_resource(resource_id: str) -> CloudResource:
+    """Retrieve a single cloud resource from the inventory by ID."""
+    resource = _engine().get_resource(resource_id)
+    if not resource:
+        raise HTTPException(status_code=404, detail=f"Resource '{resource_id}' not found")
+    return resource
+
+
+@router.delete("/resources/{resource_id}", summary="Remove a cloud resource")
+def delete_resource(resource_id: str) -> Dict[str, Any]:
+    """Remove a cloud resource from the CSPM inventory."""
+    deleted = _engine().delete_resource(resource_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Resource '{resource_id}' not found")
+    return {"deleted": True, "resource_id": resource_id}

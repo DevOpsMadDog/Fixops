@@ -1,0 +1,278 @@
+# ============================================
+# ALDECI Full-Stack — Single-Command Deployment
+# ============================================
+# Usage:
+#   docker compose -f docker/docker-compose.full.yml up
+#   docker compose -f docker/docker-compose.full.yml up --build
+#   docker compose -f docker/docker-compose.full.yml down -v  # wipe volumes
+#
+# Services: aldeci-api | aldeci-ui | trustgraph | redis | postgres
+#
+# Access:
+#   UI  →  http://localhost:3000
+#   API →  http://localhost:8000
+#   Docs → http://localhost:8000/docs
+#   TrustGraph config → http://localhost:8888
+#
+# First-boot: POST http://localhost:8000/api/v1/deployment/initialize
+# ============================================
+
+# ─── Top-level settings ──────────────────────────────────────────────────────
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+x-aldeci-env: &aldeci-env
+  FIXOPS_MODE: "${FIXOPS_MODE:-enterprise}"
+  FIXOPS_API_TOKEN: "${FIXOPS_API_TOKEN:-}"
+  FIXOPS_JWT_SECRET: "${FIXOPS_JWT_SECRET:-}"
+  FIXOPS_DATA_DIR: "/app/data"
+  FIXOPS_LOG_LEVEL: "${FIXOPS_LOG_LEVEL:-warning}"
+  FIXOPS_DISABLE_TELEMETRY: "1"
+  ALDECI_MODE: "full"
+  # PostgreSQL (structured data)
+  DATABASE_URL: "postgresql://${POSTGRES_USER:-aldeci}:${POSTGRES_PASSWORD:-aldeci_pw_change_me}@postgres:5432/${POSTGRES_DB:-aldeci}"
+  # SQLite fallback (per-domain DBs remain in data volume)
+  FIXOPS_SQLITE_DIR: "/app/data"
+  # Redis
+  REDIS_URL: "redis://redis:6379/0"
+  FIXOPS_REDIS_URL: "redis://redis:6379/0"
+  # TrustGraph
+  TRUSTGRAPH_URL: "http://trustgraph:8888"
+  FIXOPS_TRUSTGRAPH_URL: "http://trustgraph:8888"
+  # LLM providers (optional — set in .env)
+  OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+  ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+  OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+  FIXOPS_OLLAMA_URL: "${FIXOPS_OLLAMA_URL:-}"
+
+# ─── Services ────────────────────────────────────────────────────────────────
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # postgres — Primary structured database (PostgreSQL 15)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Role: Stores users, audit trails, enterprise findings, compliance records.
+  # SQLite per-domain DBs continue to live in the data volume alongside this.
+  postgres:
+    image: postgres:15-alpine
+    container_name: aldeci-postgres
+    <<: *default-restart
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-aldeci}"
+      POSTGRES_USER: "${POSTGRES_USER:-aldeci}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-aldeci_pw_change_me}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aldeci} -d ${POSTGRES_DB:-aldeci}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      - "aldeci.service=infrastructure"
+      - "aldeci.role=database"
+      - "aldeci.tier=data"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # redis — Cache + rate limiting + job queue (Redis 7)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Role: Session store, rate-limit counters, async job queue, pub/sub for
+  # real-time events. Persistence: appendonly for durability.
+  redis:
+    image: redis:7-alpine
+    container_name: aldeci-redis
+    <<: *default-restart
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+    volumes:
+      - redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    labels:
+      - "aldeci.service=infrastructure"
+      - "aldeci.role=cache"
+      - "aldeci.tier=data"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # trustgraph — Knowledge graph + GraphRAG (TrustGraph)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Role: Stores 5 Knowledge Cores (Security Posture, Threat Intel, Compliance,
+  # Attack Surface, Remediation). Powers semantic search for AI copilot.
+  # Config UI: http://localhost:8888
+  trustgraph:
+    image: trustgraph/trustgraph-flow:latest
+    container_name: aldeci-trustgraph
+    <<: *default-restart
+    ports:
+      - "${TRUSTGRAPH_PORT:-8888}:8888"
+    environment:
+      TRUSTGRAPH_LOG_LEVEL: "${TRUSTGRAPH_LOG_LEVEL:-warning}"
+      TRUSTGRAPH_DATA_DIR: "/data"
+      TRUSTGRAPH_ENABLE_GRAPHRAG: "true"
+      TRUSTGRAPH_ENABLE_MCP: "true"
+    volumes:
+      - trustgraph-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8888/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    labels:
+      - "aldeci.service=knowledge-graph"
+      - "aldeci.role=trustgraph"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=intelligence"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # aldeci-api — FastAPI backend (ALDECI CTEM+ Platform)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Role: Main API gateway — 771 endpoints across 64 routers. Handles finding
+  # ingestion, LLM consensus, compliance checking, real-time streaming.
+  # Health: http://localhost:8000/health
+  # Docs:   http://localhost:8000/docs
+  aldeci-api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: aldeci:latest
+    container_name: aldeci-api
+    <<: *default-restart
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *aldeci-env
+      FIXOPS_WORKERS: "${FIXOPS_WORKERS:-1}"
+      ALDECI_SEED_DEMO: "${ALDECI_SEED_DEMO:-0}"
+      PYTHONPATH: "/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app"
+    volumes:
+      # Persistent data (SQLite DBs, evidence files, scan results)
+      - aldeci-data:/app/data
+      # Optional: mount local codebase for dev iteration
+      # - ..:/app:ro
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    labels:
+      - "aldeci.service=api"
+      - "aldeci.role=backend"
+      - "aldeci.discovery=enabled"
+      - "aldeci.tier=application"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # aldeci-ui — React 19 frontend (Nginx serving built assets)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Role: Serves the ALDECI UI (React 19 + Vite 6 + Tailwind v4).
+  # Proxies /api/* → aldeci-api:8000. SPA fallback on all routes.
+  # Access: http://localhost:3000
+  aldeci-ui:
+    build:
+      context: ../suite-ui/aldeci-ui-new
+      dockerfile: Dockerfile
+    image: aldeci-ui:latest
+    container_name: aldeci-ui
+    <<: *default-restart
+    depends_on:
+      aldeci-api:
+        condition: service_healthy
+    ports:
+      - "${UI_PORT:-3000}:80"
+    volumes:
+      - ./nginx-ui.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/nginx-health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    labels:
+      - "aldeci.service=ui"
+      - "aldeci.role=frontend"
+      - "aldeci.tier=presentation"
+
+# ─── Named Volumes ────────────────────────────────────────────────────────────
+volumes:
+  # PostgreSQL data — users, audit, enterprise records
+  postgres-data:
+    driver: local
+  # Redis persistence — sessions, rate limits, job queue
+  redis-data:
+    driver: local
+  # TrustGraph — 5 Knowledge Cores, entity graph
+  trustgraph-data:
+    driver: local
+  # ALDECI data — SQLite per-domain DBs, evidence, scan results
+  aldeci-data:
+    driver: local
+
+# ─── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  default:
+    name: aldeci-network
+    driver: bridge

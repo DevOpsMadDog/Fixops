@@ -1029,3 +1029,399 @@ async def list_fips_algorithms(_: str = Depends(_require_api_key)) -> Dict[str, 
         })
     except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# Deployment Hardening endpoints (from airgap_deployment.py)
+# ---------------------------------------------------------------------------
+
+
+def _get_hardening():
+    """Lazy-load the AirGapDeploymentHardening singleton."""
+    from core.airgap_deployment import AirGapDeploymentHardening
+    return AirGapDeploymentHardening()
+
+
+class EnableAirGapRequest(BaseModel):
+    """Request body for enabling air-gap mode."""
+    classification: Optional[str] = Field(
+        None,
+        description="Classification level: UNCLASSIFIED | CUI | SECRET | TOP SECRET/SCI",
+    )
+
+
+class CVESearchRequest(BaseModel):
+    """Query parameters model (used for documentation only — params come via Query)."""
+    product: Optional[str] = None
+    severity: Optional[str] = None
+    min_score: float = 0.0
+    max_score: float = 10.0
+    year: Optional[int] = None
+    limit: int = 100
+
+
+class SneakernetExportRequest(BaseModel):
+    """Request body for exporting a sneakernet update package."""
+    payload_files: List[str] = Field(
+        ...,
+        description="Absolute server-side paths of files to include in the package",
+    )
+    package_type: str = Field(
+        ...,
+        description="Package type: cve_db | sbom | trustgraph_config | signatures | full_system",
+    )
+    version: str = Field(..., description="Semantic version string, e.g. 2025.01.1")
+    encryption_key_hex: str = Field(
+        ...,
+        description="64-hex-char AES-256 key for encrypting the package",
+    )
+    classification: str = Field(
+        "UNCLASSIFIED",
+        description="Classification level for the package",
+    )
+    output_path: Optional[str] = Field(None, description="Override output file path")
+
+
+class SneakernetImportRequest(BaseModel):
+    """Request body for importing a sneakernet update package."""
+    package_path: str = Field(
+        ...,
+        description="Absolute path to the .snk package file on the server",
+    )
+    encryption_key_hex: str = Field(
+        ...,
+        description="64-hex-char AES-256 key that was used when exporting",
+    )
+    extract_dir: Optional[str] = Field(None, description="Override extraction directory")
+
+
+# ---------------------------------------------------------------------------
+# POST /enable
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/enable",
+    summary="Enable air-gap mode with full deployment hardening",
+    response_description="Air-gap mode enablement status",
+)
+async def enable_airgap(
+    req: EnableAirGapRequest,
+    _: str = Depends(_require_api_key),
+) -> Dict[str, Any]:
+    """Enable air-gap / SCIF deployment mode.
+
+    Activates:
+    - AirGapMode network blocking
+    - Telemetry kill-switch (all analytics disabled)
+    - Local-only TrustGraph configuration
+
+    Optionally sets the classification level (UNCLASSIFIED, CUI, SECRET, TOP SECRET/SCI).
+    """
+    try:
+        hardening = _get_hardening()
+        hardening.enable()
+        result: Dict[str, Any] = {
+            "status": "ok",
+            "message": "Air-gap hardening enabled",
+            "air_gap_enabled": True,
+        }
+        if req.classification:
+            from core.airgap_deployment import ClassificationEnforcer
+            policy = ClassificationEnforcer.set_level(req.classification)
+            result["classification"] = req.classification
+            result["banner"] = policy.banner
+        return _with_banner(result)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except (OSError, RuntimeError, KeyError) as exc:
+        logger.exception("Error enabling air-gap mode")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# POST /disable
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/disable",
+    summary="Disable air-gap mode (admin only)",
+    response_description="Confirmation that air-gap mode has been disabled",
+)
+async def disable_airgap(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
+    """Disable air-gap hardening mode.
+
+    This is a privileged operation intended for maintenance windows only.
+    Requires admin-level API key. All network restrictions are lifted.
+    """
+    try:
+        hardening = _get_hardening()
+        hardening.disable()
+        return _with_banner({
+            "status": "ok",
+            "message": "Air-gap hardening disabled",
+            "air_gap_enabled": False,
+        })
+    except (OSError, RuntimeError, KeyError) as exc:
+        logger.exception("Error disabling air-gap mode")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# GET /cve/search
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/cve/search",
+    summary="Search offline CVE database",
+    response_description="List of matching CVE records from the local NVD mirror",
+)
+async def search_cves(
+    product: Optional[str] = Query(None, description="Product name substring filter"),
+    severity: Optional[str] = Query(None, description="CRITICAL | HIGH | MEDIUM | LOW | UNKNOWN"),
+    min_score: float = Query(0.0, ge=0.0, le=10.0, description="Minimum CVSS score"),
+    max_score: float = Query(10.0, ge=0.0, le=10.0, description="Maximum CVSS score"),
+    year: Optional[int] = Query(None, description="Filter by CVE publication year"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum results to return"),
+    _: str = Depends(_require_api_key),
+) -> Dict[str, Any]:
+    """Search the offline NVD/CVE database without any internet access.
+
+    Filter by product name, severity level, CVSS score range, or publication year.
+    Requires that NVD feeds have been imported via POST /import/vuln-db first.
+    """
+    try:
+        from core.airgap_deployment import OfflineCVEDatabase
+        db = OfflineCVEDatabase()
+        results = db.search(
+            product=product,
+            severity=severity,
+            min_score=min_score,
+            max_score=max_score,
+            year=year,
+            limit=limit,
+        )
+        return _with_banner({
+            "status": "ok",
+            "count": len(results),
+            "results": [r.model_dump() for r in results],
+            "filters": {
+                "product": product,
+                "severity": severity,
+                "min_score": min_score,
+                "max_score": max_score,
+                "year": year,
+                "limit": limit,
+            },
+        })
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:
+        logger.exception("Error searching CVE database")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# POST /update/export
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/update/export",
+    summary="Export sneakernet update package",
+    response_description="Path to the generated encrypted+signed .snk package",
+)
+async def export_update_package(
+    req: SneakernetExportRequest,
+    _: str = Depends(_require_api_key),
+) -> Dict[str, Any]:
+    """Create an encrypted and integrity-signed update package for sneakernet transfer.
+
+    The package uses FIPS-compliant AES-256 encryption and HMAC-SHA256 signing.
+    Transfer via USB or removable media to other air-gapped instances and import
+    with POST /update/import.
+
+    Package types: cve_db | sbom | trustgraph_config | signatures | full_system
+    """
+    try:
+        key = bytes.fromhex(req.encryption_key_hex)
+        if len(key) != 32:
+            raise ValueError("encryption_key_hex must be 64 hex chars (32 bytes / AES-256)")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        from core.airgap_deployment import SneakernetManager
+        mgr = SneakernetManager()
+        out_path = mgr.export_package(
+            payload_files=req.payload_files,
+            package_type=req.package_type,
+            version=req.version,
+            key=key,
+            classification=req.classification,
+            output_path=req.output_path,
+        )
+        return _with_banner({
+            "status": "ok",
+            "message": "Sneakernet package exported",
+            "output_path": out_path,
+            "package_type": req.package_type,
+            "version": req.version,
+            "classification": req.classification,
+        })
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except (OSError, RuntimeError, KeyError) as exc:
+        logger.exception("Error exporting sneakernet package")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# POST /update/import
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/update/import",
+    summary="Import sneakernet update package",
+    response_description="Manifest of the imported package and extracted file list",
+)
+async def import_update_package(
+    req: SneakernetImportRequest,
+    _: str = Depends(_require_api_key),
+) -> Dict[str, Any]:
+    """Import and verify an encrypted sneakernet update package.
+
+    Verification steps:
+    1. Magic header check
+    2. HMAC-SHA256 payload integrity
+    3. AES-256 decryption
+    4. Per-file SHA-256 checksum verification
+
+    If any check fails, the import is rejected with no files written.
+    """
+    try:
+        key = bytes.fromhex(req.encryption_key_hex)
+        if len(key) != 32:
+            raise ValueError("encryption_key_hex must be 64 hex chars (32 bytes / AES-256)")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        from core.airgap_deployment import SneakernetManager
+        mgr = SneakernetManager()
+        manifest, extracted = mgr.import_package(
+            package_path=req.package_path,
+            key=key,
+            extract_dir=req.extract_dir,
+        )
+        return _with_banner({
+            "status": "ok",
+            "message": "Sneakernet package imported and verified",
+            "manifest": manifest.model_dump(),
+            "extracted_files": extracted,
+            "file_count": len(extracted),
+        })
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except (OSError, RuntimeError, KeyError) as exc:
+        logger.exception("Error importing sneakernet package")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# GET /network-check
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/network-check",
+    summary="Verify network isolation — active egress check",
+    response_description="Network isolation verification result",
+)
+async def network_check(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
+    """Run an active network isolation verification.
+
+    Probes:
+    - TCP egress to known external IPs (Google DNS, Cloudflare, PyPI, AI APIs)
+    - DNS resolution of external hostnames
+    - HTTP/HTTPS egress to external endpoints
+
+    All probes have short timeouts (≤1 second). A fully isolated system will
+    report is_isolated=true with all egress checks blocked.
+
+    IMPORTANT: This endpoint is read-only and safe to call in production.
+    It makes outbound connection ATTEMPTS (which should all fail in air-gap).
+    """
+    try:
+        from core.airgap_deployment import NetworkIsolationVerifier
+        verifier = NetworkIsolationVerifier()
+        result = verifier.verify()
+        return _with_banner({
+            "status": "ok",
+            "is_isolated": result.is_isolated,
+            "tcp_blocked": result.tcp_blocked,
+            "dns_blocked": result.dns_blocked,
+            "egress_blocked": result.egress_blocked,
+            "violations": result.violations,
+            "probe_duration_ms": result.probe_duration_ms,
+            "checked_at": result.checked_at,
+        })
+    except (OSError, RuntimeError, KeyError) as exc:
+        logger.exception("Error running network check")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
+
+
+# ---------------------------------------------------------------------------
+# GET /validate
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/validate",
+    summary="Run deployment validation checklist",
+    response_description="Pre-deployment checklist results with pass/fail per item",
+)
+async def validate_deployment(
+    classification: str = Query(
+        "UNCLASSIFIED",
+        description="Classification level for this deployment",
+    ),
+    _: str = Depends(_require_api_key),
+) -> Dict[str, Any]:
+    """Run the full SCIF/air-gap deployment pre-flight checklist.
+
+    Validates:
+    - Air-gap mode enabled
+    - FIPS 140-2 mode active
+    - Offline CVE database populated
+    - Telemetry fully disabled
+    - TrustGraph configured local-only
+    - Network isolation configured
+    - Audit logging operational
+    - Data directory accessible
+    - Classification level valid
+    - Package registries blocked
+
+    Returns overall pass/fail plus per-check detail with severity (ERROR/WARNING/INFO).
+    """
+    try:
+        from core.airgap_deployment import AirGapDeploymentHardening
+        hardening = AirGapDeploymentHardening()
+        report = hardening.validate(classification=classification)
+        return _with_banner({
+            "status": "ok",
+            "overall_pass": report.overall_pass,
+            "errors": report.errors,
+            "warnings": report.warnings,
+            "classification": report.classification,
+            "validated_at": report.validated_at,
+            "checks": [c.model_dump() for c in report.checks],
+        })
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except (OSError, RuntimeError, KeyError) as exc:
+        logger.exception("Error running deployment validation")
+        raise HTTPException(status_code=500, detail=type(exc).__name__)

@@ -381,3 +381,194 @@ async def tracer_status() -> Dict[str, Any]:
             ),
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Code-to-Cloud Traceability Engine endpoints (Apiiro parity — new engine)
+# Mounted on the same /api/v1/code-to-cloud prefix, under /engine/... sub-paths.
+# ---------------------------------------------------------------------------
+
+try:
+    from core.code_to_cloud import get_engine as _get_ctc_engine
+    _CTC_ENGINE_AVAILABLE = True
+except ImportError as _ctc_import_err:
+    logger.warning("CodeToCloudEngine not available: %s", _ctc_import_err)
+    _CTC_ENGINE_AVAILABLE = False
+
+
+def _ctc_engine():
+    if not _CTC_ENGINE_AVAILABLE:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Code-to-Cloud engine not available")
+    return _get_ctc_engine()
+
+
+from pydantic import BaseModel as _BaseModel, Field as _Field
+
+
+class _WebhookPayload(_BaseModel):
+    """Generic Git webhook payload (GitHub / GitLab push or PR events)."""
+    event_type: Optional[str] = "push"
+    ref: Optional[str] = None
+    commits: List[Dict[str, Any]] = _Field(default_factory=list)
+    pull_request: Optional[Dict[str, Any]] = None
+    object_kind: Optional[str] = None
+    object_attributes: Optional[Dict[str, Any]] = None
+
+    model_config = {"extra": "allow"}
+
+
+class _RegisterArtifactRequest(_BaseModel):
+    name: str
+    version: str
+    commit_sha: str
+    artifact_type: str = "docker_image"
+    sha256: Optional[str] = None
+    builder: str = "unknown"
+    build_url: Optional[str] = None
+    size_bytes: int = 0
+    metadata: Dict[str, Any] = _Field(default_factory=dict)
+
+
+class _RegisterDeploymentRequest(_BaseModel):
+    artifact_id: str
+    environment: str = "production"
+    deployed_by: str = "ci-system"
+    k8s_namespace: Optional[str] = None
+    k8s_deployment: Optional[str] = None
+    k8s_pod_count: int = 0
+    cloud_provider: str = "unknown"
+    cloud_region: Optional[str] = None
+    cloud_service: Optional[str] = None
+    cloud_instance_ids: List[str] = _Field(default_factory=list)
+    internet_facing: bool = False
+    previous_deployment_id: Optional[str] = None
+
+
+class _IndexFindingRequest(_BaseModel):
+    finding_id: str
+    commit_sha: Optional[str] = None
+    artifact_id: Optional[str] = None
+    deployment_id: Optional[str] = None
+
+
+@router.get("/engine/trace/{finding_id}", tags=["Code-to-Cloud Traceability"])
+async def engine_trace_finding(
+    finding_id: str,
+    discovered_at: Optional[str] = Query(default=None),
+) -> Dict[str, Any]:
+    """Full provenance trace for a finding (code → build → deploy → runtime)."""
+    engine = _ctc_engine()
+    trace = engine.trace_finding(finding_id, discovered_at=discovered_at)
+    return {"status": "ok", "trace": trace.to_dict()}
+
+
+@router.get("/engine/changes", tags=["Code-to-Cloud Traceability"])
+async def engine_list_changes(
+    material_only: bool = Query(default=True),
+    limit: int = Query(default=50, ge=1, le=500),
+) -> Dict[str, Any]:
+    """Recent material changes with risk classification."""
+    engine = _ctc_engine()
+    changes = (
+        engine.get_recent_material_changes(limit=limit)
+        if material_only
+        else engine.get_recent_changes(limit=limit)
+    )
+    return {"status": "ok", "count": len(changes), "material_only": material_only,
+            "changes": [c.to_dict() for c in changes]}
+
+
+@router.get("/engine/blast-radius/{commit}", tags=["Code-to-Cloud Traceability"])
+async def engine_blast_radius(commit: str) -> Dict[str, Any]:
+    """Blast radius analysis for a git commit SHA."""
+    engine = _ctc_engine()
+    blast = engine.compute_blast_radius(commit)
+    return {"status": "ok", "blast_radius": blast.to_dict()}
+
+
+@router.get("/engine/deployments", tags=["Code-to-Cloud Traceability"])
+async def engine_list_deployments(
+    limit: int = Query(default=100, ge=1, le=1000),
+    environment: Optional[str] = Query(default=None),
+) -> Dict[str, Any]:
+    """Deployment history with artifact mapping."""
+    engine = _ctc_engine()
+    deployments = engine.get_all_deployments(limit=limit)
+    if environment:
+        deployments = [d for d in deployments if d.environment == environment]
+    return {"status": "ok", "count": len(deployments),
+            "deployments": [d.to_dict() for d in deployments]}
+
+
+@router.get("/engine/timeline/{finding_id}", tags=["Code-to-Cloud Traceability"])
+async def engine_timeline(
+    finding_id: str,
+    discovered_at: Optional[str] = Query(default=None),
+) -> Dict[str, Any]:
+    """Timeline reconstruction: code written → built → deployed → vuln discovered."""
+    engine = _ctc_engine()
+    events = engine.reconstruct_timeline(finding_id, discovered_at=discovered_at)
+    return {"status": "ok", "finding_id": finding_id,
+            "event_count": len(events), "timeline": [e.to_dict() for e in events]}
+
+
+@router.get("/engine/developer-risk", tags=["Code-to-Cloud Traceability"])
+async def engine_developer_risk(
+    min_risk_score: float = Query(default=0.0, ge=0.0, le=1.0),
+) -> Dict[str, Any]:
+    """Anonymised developer risk profiles (for targeted education, not blame)."""
+    engine = _ctc_engine()
+    profiles = engine.get_developer_profiles()
+    if min_risk_score > 0.0:
+        profiles = [p for p in profiles if p.risk_score >= min_risk_score]
+    profiles.sort(key=lambda p: p.risk_score, reverse=True)
+    return {"status": "ok", "count": len(profiles),
+            "profiles": [p.to_dict() for p in profiles]}
+
+
+@router.post("/engine/webhook", tags=["Code-to-Cloud Traceability"])
+async def engine_git_webhook(payload: _WebhookPayload) -> Dict[str, Any]:
+    """Git webhook receiver (GitHub/GitLab push + PR events) for real-time tracking."""
+    engine = _ctc_engine()
+    result = engine.process_webhook(payload.model_dump())
+    return {"status": "ok", **result}
+
+
+@router.post("/engine/artifacts", tags=["Code-to-Cloud Traceability"])
+async def engine_register_artifact(req: _RegisterArtifactRequest) -> Dict[str, Any]:
+    """Register a build artifact (Docker image, wheel, npm package) tied to a commit SHA."""
+    engine = _ctc_engine()
+    artifact = engine.register_artifact(
+        name=req.name, version=req.version, commit_sha=req.commit_sha,
+        artifact_type=req.artifact_type, sha256=req.sha256, builder=req.builder,
+        build_url=req.build_url, size_bytes=req.size_bytes, metadata=req.metadata,
+    )
+    return {"status": "ok", "artifact": artifact.to_dict()}
+
+
+@router.post("/engine/deployments", tags=["Code-to-Cloud Traceability"])
+async def engine_register_deployment(req: _RegisterDeploymentRequest) -> Dict[str, Any]:
+    """Register a deployment of an artifact to an environment."""
+    engine = _ctc_engine()
+    deployment = engine.register_deployment(
+        artifact_id=req.artifact_id, environment=req.environment,
+        deployed_by=req.deployed_by, k8s_namespace=req.k8s_namespace,
+        k8s_deployment=req.k8s_deployment, k8s_pod_count=req.k8s_pod_count,
+        cloud_provider=req.cloud_provider, cloud_region=req.cloud_region,
+        cloud_service=req.cloud_service, cloud_instance_ids=req.cloud_instance_ids,
+        internet_facing=req.internet_facing,
+        previous_deployment_id=req.previous_deployment_id,
+    )
+    return {"status": "ok", "deployment": deployment.to_dict()}
+
+
+@router.post("/engine/findings/index", tags=["Code-to-Cloud Traceability"])
+async def engine_index_finding(req: _IndexFindingRequest) -> Dict[str, Any]:
+    """Associate a runtime finding with its provenance chain."""
+    engine = _ctc_engine()
+    engine.index_finding(
+        finding_id=req.finding_id, commit_sha=req.commit_sha,
+        artifact_id=req.artifact_id, deployment_id=req.deployment_id,
+    )
+    return {"status": "ok", "finding_id": req.finding_id, "indexed": True}

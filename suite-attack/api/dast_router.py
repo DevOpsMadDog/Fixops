@@ -1,8 +1,10 @@
-"""DAST Router — Dynamic Application Security Testing endpoints.
+"""DAST Scanner Router — Dynamic Application Security Testing endpoints.
 
-Hardened with SSRF protection, input validation, and rate limiting awareness.
-Supports authenticated scanning (Bearer, Basic, API Key, Form Login, OAuth2)
-and OpenAPI-driven API security testing.
+Security hardening:
+- SSRF prevention on target_url (blocks RFC1918, localhost, link-local, metadata)
+- Profile-based rate limiting
+- URL length limit (2048 chars)
+- Max depth bounded to [1, 10]
 """
 
 from __future__ import annotations
@@ -12,309 +14,386 @@ import logging
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, Depends
-from apps.api.dependencies import get_org_id
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, field_validator
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/dast", tags=["DAST"])
 
-# Maximum scan depth to prevent resource exhaustion
-_MAX_SCAN_DEPTH = 10
-# Maximum number of custom headers to prevent header injection abuse
-_MAX_HEADERS = 20
-# Blocked internal network ranges for SSRF protection
-_BLOCKED_NETWORKS = [
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("169.254.0.0/16"),  # link-local
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),  # IPv6 private
-    ipaddress.ip_network("fe80::/10"),  # IPv6 link-local
-]
+# ---------------------------------------------------------------------------
+# SSRF blocklist
+# ---------------------------------------------------------------------------
+
+_BLOCKED_HOSTS = frozenset({
+    "localhost", "127.0.0.1", "::1", "0.0.0.0",
+    "metadata.google.internal", "169.254.169.254",
+})
 
 
-def _is_safe_url(url: str) -> bool:
-    """Check if URL is safe (not targeting internal networks)."""
+def _is_private_ip(host: str) -> bool:
     try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
-        if not hostname:
-            return False
-        # Block non-HTTP(S) schemes
-        if parsed.scheme not in ("http", "https"):
-            return False
-        # Block common internal hostnames
-        blocked_hosts = {"localhost", "metadata.google.internal", "169.254.169.254"}
-        if hostname.lower() in blocked_hosts:
-            return False
-        # Try to resolve and check against blocked networks
-        try:
-            addr = ipaddress.ip_address(hostname)
-            for network in _BLOCKED_NETWORKS:
-                if addr in network:
-                    return False
-        except ValueError:
-            # hostname is a domain name, not an IP — allow it
-            # (DNS resolution would require network access)
-            pass
-        return True
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        addr = ipaddress.ip_address(host)
+        return addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved
+    except ValueError:
         return False
 
 
-_MAX_HEADER_VALUE_LEN = 8192  # Per-header/cookie value size limit
-_MAX_COOKIE_COUNT = 50  # Max number of cookies
+def _validate_target_url(url: str) -> str:
+    if len(url) > 2048:
+        raise ValueError("URL exceeds 2048 character limit")
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("Only http/https schemes allowed")
+    host = parsed.hostname or ""
+    if not host:
+        raise ValueError("URL must include a hostname")
+    if host.lower() in _BLOCKED_HOSTS:
+        raise ValueError("Target host is blocked (internal address)")
+    if _is_private_ip(host):
+        raise ValueError("Private/reserved IP addresses are blocked")
+    return url
 
+
+# ---------------------------------------------------------------------------
+# Request/response models
+# ---------------------------------------------------------------------------
 
 class AuthConfigRequest(BaseModel):
-    """Authentication configuration for DAST scanning."""
-    mode: str = Field("none", description="Auth mode: bearer, basic, api_key, form_login, cookie, oauth2, none")
-    bearer_token: Optional[str] = Field(None, description="Bearer token", max_length=8192)
-    basic_username: Optional[str] = Field(None, description="Basic auth username", max_length=256)
-    basic_password: Optional[str] = Field(None, description="Basic auth password", max_length=1024)
-    api_key_header: Optional[str] = Field("X-API-Key", description="Header name for API key", max_length=256)
-    api_key_value: Optional[str] = Field(None, description="API key value", max_length=8192)
-    login_url: Optional[str] = Field(None, description="URL of login form", max_length=2048)
-    username_field: Optional[str] = Field("username", description="Login form username field name", max_length=256)
-    password_field: Optional[str] = Field("password", description="Login form password field name", max_length=256)
-    login_username: Optional[str] = Field(None, description="Login username", max_length=256)
-    login_password: Optional[str] = Field(None, description="Login password", max_length=1024)
-    extra_form_fields: Optional[Dict[str, str]] = Field(None, description="Extra login form fields")
-    success_indicator: Optional[str] = Field(None, description="Text indicating login success", max_length=1024)
-    failure_indicator: Optional[str] = Field(None, description="Text indicating login failure", max_length=1024)
-    token_url: Optional[str] = Field(None, description="OAuth2 token endpoint", max_length=2048)
-    client_id: Optional[str] = Field(None, description="OAuth2 client ID", max_length=256)
-    client_secret: Optional[str] = Field(None, description="OAuth2 client secret", max_length=1024)
-    scope: Optional[str] = Field(None, description="OAuth2 scope", max_length=1024)
-    session_check_url: Optional[str] = Field(None, description="URL to verify session", max_length=2048)
-    session_check_pattern: Optional[str] = Field(None, description="Pattern for valid session", max_length=1024)
-    reauth_on_401: bool = Field(True, description="Re-authenticate on 401 responses")
+    auth_type: str = "none"
+    cookie_name: str = ""
+    cookie_value: str = ""
+    token: str = ""
+    header_name: str = "Authorization"
+    token_url: str = ""
+    client_id: str = ""
+    client_secret: str = ""
+    scope: str = ""
+    username: str = ""
+    password: str = ""
+    login_url: str = ""
+    login_username_field: str = "username"
+    login_password_field: str = "password"
 
-    @field_validator("mode")
+    @field_validator("auth_type")
     @classmethod
-    def validate_mode(cls, v: str) -> str:
-        valid_modes = {"none", "bearer", "basic", "api_key", "form_login", "cookie", "oauth2"}
-        if v not in valid_modes:
-            raise ValueError(f"Invalid auth mode: {v}. Must be one of: {', '.join(sorted(valid_modes))}")
+    def validate_auth_type(cls, v: str) -> str:
+        allowed = {"none", "cookie", "jwt_bearer", "oauth2", "api_key_header", "basic_auth"}
+        if v not in allowed:
+            raise ValueError(f"auth_type must be one of: {sorted(allowed)}")
+        return v
+
+    @field_validator("header_name")
+    @classmethod
+    def validate_header_name(cls, v: str) -> str:
+        if len(v) > 100:
+            raise ValueError("header_name too long (max 100 chars)")
         return v
 
 
-class DastScanRequest(BaseModel):
-    target_url: str = Field(
-        ...,
-        description="Target URL to scan (must be http/https, external only)",
-        max_length=2048,
-    )
-    headers: Optional[Dict[str, str]] = Field(
-        None, description="Custom HTTP headers for scanning"
-    )
-    cookies: Optional[Dict[str, str]] = Field(
-        None, description="Cookies to include in scan requests"
-    )
-    crawl: bool = Field(True, description="Whether to crawl the target")
-    max_depth: int = Field(3, ge=1, le=_MAX_SCAN_DEPTH, description="Max crawl depth")
-    auth: Optional[AuthConfigRequest] = Field(None, description="Authentication configuration")
+class ScanRequest(BaseModel):
+    target_url: str
+    profile: str = "standard"
+    auth: Optional[AuthConfigRequest] = None
+    max_depth: int = 3
+    max_urls: int = 100
+    requests_per_second: float = 5.0
+    timeout: float = 10.0
+    respect_robots_txt: bool = True
+    scope_pattern: str = ""
+    custom_headers: Optional[Dict[str, str]] = None
+    openapi_spec: Optional[Dict[str, Any]] = None
 
     @field_validator("target_url")
     @classmethod
     def validate_target_url(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("target_url cannot be empty")
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("target_url must start with http:// or https://")
-        if not _is_safe_url(v):
-            raise ValueError(
-                "target_url points to an internal/restricted network address"
-            )
-        return v
+        return _validate_target_url(v)
 
-    @field_validator("headers")
+    @field_validator("profile")
     @classmethod
-    def validate_headers(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
-        if v is None:
-            return v
-        for key, val in v.items():
-            if len(key) > 256:
-                raise ValueError(f"Header name too long: {len(key)} chars (max 256)")
-            if len(val) > _MAX_HEADER_VALUE_LEN:
-                raise ValueError(
-                    f"Header '{key[:64]}' value too long: {len(val)} chars (max {_MAX_HEADER_VALUE_LEN})"
-                )
+    def validate_profile(cls, v: str) -> str:
+        allowed = {"quick", "standard", "full", "api_only"}
+        if v not in allowed:
+            raise ValueError(f"profile must be one of: {sorted(allowed)}")
         return v
 
-    @field_validator("cookies")
+    @field_validator("max_depth")
     @classmethod
-    def validate_cookies(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
-        if v is None:
-            return v
-        if len(v) > _MAX_COOKIE_COUNT:
-            raise ValueError(f"Too many cookies: {len(v)} (max {_MAX_COOKIE_COUNT})")
-        for key, val in v.items():
-            if len(key) > 256:
-                raise ValueError(f"Cookie name too long: {len(key)} chars (max 256)")
-            if len(val) > _MAX_HEADER_VALUE_LEN:
-                raise ValueError(
-                    f"Cookie '{key[:64]}' value too long: {len(val)} chars (max {_MAX_HEADER_VALUE_LEN})"
-                )
+    def validate_max_depth(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("max_depth must be >= 1")
+        if v > 10:
+            raise ValueError("max_depth must be <= 10")
         return v
 
-
-class DastApiScanRequest(BaseModel):
-    """Request for API-specific DAST scanning using OpenAPI spec."""
-    target_url: str = Field(
-        ...,
-        description="Base URL of the API to scan",
-        max_length=2048,
-    )
-    openapi_spec: Dict[str, Any] = Field(
-        ..., description="OpenAPI 3.x or Swagger 2.x specification"
-    )
-    headers: Optional[Dict[str, str]] = Field(None, description="Custom HTTP headers")
-    cookies: Optional[Dict[str, str]] = Field(None, description="Cookies to include")
-    auth: Optional[AuthConfigRequest] = Field(None, description="Authentication configuration")
-
-    @field_validator("target_url")
+    @field_validator("max_urls")
     @classmethod
-    def validate_target_url(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("target_url cannot be empty")
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("target_url must start with http:// or https://")
-        if not _is_safe_url(v):
-            raise ValueError("target_url points to an internal/restricted network address")
+    def validate_max_urls(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("max_urls must be >= 1")
+        if v > 500:
+            raise ValueError("max_urls must be <= 500")
         return v
 
-    @field_validator("openapi_spec")
+    @field_validator("requests_per_second")
     @classmethod
-    def validate_spec(cls, v: Dict[str, Any]) -> Dict[str, Any]:
-        if "paths" not in v:
-            raise ValueError("OpenAPI spec must contain 'paths'")
+    def validate_rps(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("requests_per_second must be > 0")
+        if v > 50:
+            raise ValueError("requests_per_second must be <= 50")
+        return v
+
+    @field_validator("custom_headers")
+    @classmethod
+    def validate_custom_headers(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+        if v is not None and len(v) > 50:
+            raise ValueError("Too many custom_headers (max 50)")
+        return v
+
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout(cls, v: float) -> float:
+        if v < 1:
+            raise ValueError("timeout must be >= 1 second")
+        if v > 60:
+            raise ValueError("timeout must be <= 60 seconds")
         return v
 
 
-def _build_auth_config(auth_req: Optional[AuthConfigRequest]) -> "AuthSessionConfig | None":
-    """Convert router AuthConfigRequest to engine AuthSessionConfig."""
-    if not auth_req or auth_req.mode == "none":
-        return None
-    from core.dast_engine import AuthMode, AuthSessionConfig
-    return AuthSessionConfig(
-        mode=AuthMode(auth_req.mode),
-        bearer_token=auth_req.bearer_token or "",
-        basic_username=auth_req.basic_username or "",
-        basic_password=auth_req.basic_password or "",
-        api_key_header=auth_req.api_key_header or "X-API-Key",
-        api_key_value=auth_req.api_key_value or "",
-        login_url=auth_req.login_url or "",
-        username_field=auth_req.username_field or "username",
-        password_field=auth_req.password_field or "password",
-        login_username=auth_req.login_username or "",
-        login_password=auth_req.login_password or "",
-        extra_form_fields=auth_req.extra_form_fields or {},
-        success_indicator=auth_req.success_indicator or "",
-        failure_indicator=auth_req.failure_indicator or "",
-        token_url=auth_req.token_url or "",
-        client_id=auth_req.client_id or "",
-        client_secret=auth_req.client_secret or "",
-        scope=auth_req.scope or "",
-        session_check_url=auth_req.session_check_url or "",
-        session_check_pattern=auth_req.session_check_pattern or "",
-        reauth_on_401=auth_req.reauth_on_401,
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _build_scan_config(req: ScanRequest):
+    """Convert ScanRequest to ScanConfig (lazy import to avoid circular deps)."""
+    from core.dast_scanner import (
+        AuthConfig, AuthType, ScanConfig, ScanProfile,
     )
 
+    auth_cfg = AuthConfig()
+    if req.auth:
+        try:
+            auth_cfg.auth_type = AuthType(req.auth.auth_type)
+        except ValueError:
+            auth_cfg.auth_type = AuthType.NONE
+        auth_cfg.cookie_name = req.auth.cookie_name
+        auth_cfg.cookie_value = req.auth.cookie_value
+        auth_cfg.token = req.auth.token
+        auth_cfg.header_name = req.auth.header_name
+        auth_cfg.token_url = req.auth.token_url
+        auth_cfg.client_id = req.auth.client_id
+        auth_cfg.client_secret = req.auth.client_secret
+        auth_cfg.scope = req.auth.scope
+        auth_cfg.username = req.auth.username
+        auth_cfg.password = req.auth.password
+        auth_cfg.login_url = req.auth.login_url
+        auth_cfg.login_username_field = req.auth.login_username_field
+        auth_cfg.login_password_field = req.auth.login_password_field
+
+    return ScanConfig(
+        target_url=req.target_url,
+        profile=ScanProfile(req.profile),
+        auth=auth_cfg,
+        max_depth=req.max_depth,
+        max_urls=req.max_urls,
+        requests_per_second=req.requests_per_second,
+        timeout=req.timeout,
+        respect_robots_txt=req.respect_robots_txt,
+        scope_pattern=req.scope_pattern,
+        custom_headers=req.custom_headers or {},
+        openapi_spec=req.openapi_spec,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 @router.post("/scan")
-async def dast_scan(req: DastScanRequest) -> Dict[str, Any]:
-    """Launch a DAST scan against a live target.
+async def start_scan(req: ScanRequest) -> Dict[str, Any]:
+    """Start a DAST scan against a target URL.
 
-    SSRF Protection: Internal network addresses are blocked.
-    Supports authenticated scanning via Bearer, Basic, API Key, Form Login, OAuth2.
+    Returns scan_id immediately; scan runs in a background thread.
+    Poll GET /api/v1/dast/scans/{id} for status and results.
     """
-    # Additional header count validation
-    if req.headers and len(req.headers) > _MAX_HEADERS:
-        raise HTTPException(
-            400, f"Too many custom headers: {len(req.headers)} (max {_MAX_HEADERS})"
-        )
+    from core.dast_scanner import get_dast_scanner
 
-    from core.dast_engine import get_dast_engine
-
-    engine = get_dast_engine()
-    auth_config = _build_auth_config(req.auth)
     try:
-        result = await engine.scan(
-            target_url=req.target_url,
-            headers=req.headers,
-            cookies=req.cookies,
-            crawl=req.crawl,
-            max_depth=req.max_depth,
-            auth_config=auth_config,
-        )
-        return result.to_dict()
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-        logger.exception("DAST scan failed for target %s", req.target_url)
-        raise HTTPException(500, f"Scan failed: {type(e).__name__}")
+        config = _build_scan_config(req)
+        scanner = get_dast_scanner()
+        scan_id = scanner.start_scan(config)
+        _logger.info("DAST scan started: %s -> %s (%s)", scan_id, req.target_url, req.profile)
+        return {
+            "scan_id": scan_id,
+            "target_url": req.target_url,
+            "profile": req.profile,
+            "status": "pending",
+            "message": f"Scan started. Poll GET /api/v1/dast/scans/{scan_id} for results.",
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        _logger.exception("Failed to start DAST scan: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to start scan")
 
 
-@router.post("/scan/api")
-async def dast_api_scan(req: DastApiScanRequest) -> Dict[str, Any]:
-    """Launch an API-specific DAST scan using an OpenAPI/Swagger specification.
+@router.get("/scans/{scan_id}")
+async def get_scan_status(scan_id: str) -> Dict[str, Any]:
+    """Get DAST scan status and full results (once completed)."""
+    from core.dast_scanner import get_dast_scanner
 
-    Tests each endpoint for injection, auth bypass, error handling, and misconfig.
-    """
-    from core.dast_engine import get_dast_engine
-
-    engine = get_dast_engine()
-    auth_config = _build_auth_config(req.auth)
-    try:
-        result = await engine.scan_api(
-            target_url=req.target_url,
-            openapi_spec=req.openapi_spec,
-            headers=req.headers,
-            cookies=req.cookies,
-            auth_config=auth_config,
-        )
-        return result.to_dict()
-    except (OSError, ValueError, KeyError, RuntimeError) as e:
-        logger.exception("DAST API scan failed for target %s", req.target_url)
-        raise HTTPException(500, f"API scan failed: {type(e).__name__}")
+    scanner = get_dast_scanner()
+    result = scanner.get_scan(scan_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Scan '{scan_id}' not found")
+    return result.to_dict()
 
 
-@router.get("/auth-modes")
-async def dast_auth_modes() -> Dict[str, Any]:
-    """List supported DAST authentication modes."""
+@router.get("/findings")
+async def get_findings(
+    severity: Optional[str] = Query(None, description="Filter by severity: critical, high, medium, low, info"),
+    scan_id: Optional[str] = Query(None, description="Filter by scan_id"),
+    limit: int = Query(100, ge=1, le=1000),
+) -> Dict[str, Any]:
+    """List DAST findings with reproducible PoC details."""
+    from core.dast_scanner import get_dast_scanner, FindingSeverity
+
+    if severity is not None:
+        allowed_severities = {s.value for s in FindingSeverity}
+        if severity not in allowed_severities:
+            raise HTTPException(
+                status_code=422,
+                detail=f"severity must be one of: {sorted(allowed_severities)}",
+            )
+
+    scanner = get_dast_scanner()
+
+    if scan_id is not None:
+        result = scanner.get_scan(scan_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Scan '{scan_id}' not found")
+        findings = result.findings
+        if severity:
+            findings = [f for f in findings if f.severity.value == severity]
+    else:
+        findings = scanner.get_all_findings(severity_filter=severity)
+
+    findings = findings[:limit]
     return {
-        "modes": [
-            {"id": "none", "name": "No Authentication", "description": "Unauthenticated scan"},
-            {"id": "bearer", "name": "Bearer Token", "description": "JWT or OAuth2 Bearer token in Authorization header"},
-            {"id": "basic", "name": "Basic Auth", "description": "HTTP Basic Authentication (username:password)"},
-            {"id": "api_key", "name": "API Key", "description": "API key sent in a custom header"},
-            {"id": "form_login", "name": "Form Login", "description": "Automated login form submission with session cookie persistence"},
-            {"id": "cookie", "name": "Cookie", "description": "Cookies provided directly (pre-authenticated session)"},
-            {"id": "oauth2", "name": "OAuth2 Client Credentials", "description": "OAuth2 client_credentials flow for machine-to-machine auth"},
-        ],
+        "total": len(findings),
+        "findings": [f.to_dict() for f in findings],
     }
 
 
-@router.get("/status")
-async def dast_status() -> Dict[str, Any]:
+@router.get("/headers/{url:path}")
+async def check_security_headers(url: str) -> Dict[str, Any]:
+    """Quick security headers check for a target URL.
+
+    Checks: CSP, X-Frame-Options, HSTS, X-Content-Type-Options,
+    Referrer-Policy, Permissions-Policy, X-XSS-Protection.
+    Also reports TLS version.
+    """
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    try:
+        _validate_target_url(url)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    try:
+        from core.dast_scanner import (
+            AuthConfig, ScanConfig, ScanProfile, SecurityHeadersAnalyser,
+            _HttpClient,
+        )
+
+        config = ScanConfig(
+            target_url=url,
+            profile=ScanProfile.QUICK,
+            auth=AuthConfig(),
+            requests_per_second=10.0,
+            timeout=10.0,
+        )
+        client = _HttpClient(config, {})
+        analyser = SecurityHeadersAnalyser()
+        result = analyser.analyse(url, client)
+        return result.to_dict()
+    except Exception as exc:
+        _logger.exception("Security headers check failed for %s: %s", url, exc)
+        raise HTTPException(status_code=500, detail=f"Headers check failed: {exc}")
+
+
+@router.get("/profiles")
+async def list_scan_profiles() -> Dict[str, Any]:
+    """List available DAST scan profiles with descriptions."""
     return {
-        "engine": "dast",
-        "status": "ready",
-        "version": "2.0.0",
-        "features": [
-            "authenticated_scanning",
-            "openapi_api_scanning",
-            "form_login_automation",
-            "session_persistence",
-            "auth_bypass_detection",
-        ],
+        "profiles": [
+            {
+                "id": "quick",
+                "name": "Quick",
+                "description": "Security headers and server configuration checks only. No active injection tests.",
+                "tests": [
+                    "Security headers analysis (CSP, HSTS, X-Frame-Options, etc.)",
+                    "TLS/HTTPS redirect check",
+                    "Server version disclosure",
+                    "Clickjacking protection",
+                ],
+                "active_testing": False,
+                "estimated_duration": "30-60 seconds",
+            },
+            {
+                "id": "standard",
+                "name": "Standard",
+                "description": "Full crawl + all passive checks + light active injection testing. Recommended for CI/CD.",
+                "tests": [
+                    "Web crawling and endpoint discovery",
+                    "Security headers analysis",
+                    "SQL/NoSQL injection (safe payloads)",
+                    "SSRF detection",
+                    "Broken access control (IDOR, privileged paths)",
+                    "Security misconfiguration (directory listing, verbose errors, unnecessary methods)",
+                    "Vulnerable component detection (server headers)",
+                    "Clickjacking and CSP checks",
+                    "Rate limit assessment on sensitive endpoints",
+                ],
+                "active_testing": True,
+                "estimated_duration": "2-10 minutes",
+            },
+            {
+                "id": "full",
+                "name": "Full",
+                "description": "Everything in Standard plus authentication testing, session fixation, OS command injection.",
+                "tests": [
+                    "All Standard tests",
+                    "Authentication failure testing (session fixation)",
+                    "Default credential testing",
+                    "OS command injection probes",
+                    "Business logic flaw detection",
+                    "Logging/monitoring gap assessment",
+                ],
+                "active_testing": True,
+                "estimated_duration": "5-30 minutes",
+            },
+            {
+                "id": "api_only",
+                "name": "API Only",
+                "description": "OpenAPI/Swagger-driven scan — no browser crawling. Requires openapi_spec in request body.",
+                "tests": [
+                    "OpenAPI endpoint discovery",
+                    "Broken access control per endpoint",
+                    "Injection testing on API parameters",
+                    "SSRF via URL-type parameters",
+                    "Server version / stack disclosure",
+                ],
+                "active_testing": True,
+                "estimated_duration": "1-5 minutes",
+            },
+        ]
     }
 
 
 @router.get("/health")
 async def dast_health() -> Dict[str, Any]:
-    """DAST engine health check (alias for /status)."""
-    return await dast_status()
+    """Health check for the DAST scanner engine."""
+    return {"status": "healthy", "engine": "dast_scanner", "version": "1.0.0"}

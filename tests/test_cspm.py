@@ -1,45 +1,64 @@
-"""
-Tests for CSPM (Cloud Security Posture Management) engine.
+"""Tests for the CSPM Engine (Cloud Security Posture Management).
 
 Covers:
-- Resource sync and CRUD
-- Security checks for AWS, Azure, GCP
-- Public exposure detection
-- Encryption status checks
-- IAM analysis
-- Security group analysis
-- Compliance summary
-- CSPM score calculation
+- CloudResource model validation
+- CIS Benchmark rule evaluation (AWS, Azure, GCP)
+- Scan engine: scan_resource, run_scan
+- Finding CRUD: list, get, suppress, resolve
+- Drift detection
+- Remediation playbook generation
+- Risk and posture scoring
+- Compliance mapping
+- Benchmark status
+- Resource inventory CRUD
+- Baseline management
+- Singleton factory
 
-Run with: python -m pytest tests/test_cspm.py -x --tb=short --timeout=10 -q
+Run with:
+    python -m pytest tests/test_cspm.py -x --tb=short --timeout=10 -q
 """
 
 from __future__ import annotations
 
 import sys
-import uuid
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 
+# Make suite-core importable without installing the package
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
 
-from core.cspm import (
-    CheckSeverity,
+from core.cspm_engine import (
+    CISBenchmarkRule,
     CloudProvider,
     CloudResource,
-    ComplianceStatus,
+    ComplianceFramework,
     CSPMEngine,
-    ResourceCategory,
-    SecurityCheck,
-    _BUILTIN_CHECKS,
+    CSPMFinding,
+    DriftEvent,
+    FindingStatus,
+    OrgPosture,
+    RemediationPlaybook,
+    ResourceType,
+    ScanResult,
+    Severity,
+    _CIS_RULES,
+    _RULES_BY_ID,
+    _build_playbook,
+    _compliance_score,
+    _detect_drift,
+    _evaluate_rule,
+    _get_applicable_rules,
+    _posture_score,
+    _score_from_findings,
+    get_cspm_engine,
 )
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
 
 @pytest.fixture
 def engine(tmp_path):
@@ -48,1001 +67,828 @@ def engine(tmp_path):
 
 
 @pytest.fixture
-def org_id():
-    return "test-org-001"
-
-
-def _make_resource(**kwargs) -> CloudResource:
-    defaults = dict(
+def aws_s3_public(engine) -> CloudResource:
+    res = CloudResource(
         provider=CloudProvider.AWS,
-        category=ResourceCategory.STORAGE,
-        resource_type="s3_bucket",
-        resource_id=str(uuid.uuid4()),
-        name="test-bucket",
-        region="us-east-1",
-        account_id="123456789012",
-        org_id="test-org-001",
+        resource_type=ResourceType.S3_BUCKET,
+        name="my-public-bucket",
+        account_id="123456789",
+        org_id="test-org",
+        is_public=True,
+        is_encrypted=False,
+        metadata={"mfa_delete_enabled": False, "access_logging_enabled": False},
     )
-    defaults.update(kwargs)
-    return CloudResource(**defaults)
+    engine.register_resource(res)
+    return res
+
+
+@pytest.fixture
+def aws_s3_compliant(engine) -> CloudResource:
+    res = CloudResource(
+        provider=CloudProvider.AWS,
+        resource_type=ResourceType.S3_BUCKET,
+        name="my-private-bucket",
+        account_id="123456789",
+        org_id="test-org",
+        is_public=False,
+        is_encrypted=True,
+        metadata={"mfa_delete_enabled": True, "access_logging_enabled": True},
+    )
+    engine.register_resource(res)
+    return res
+
+
+@pytest.fixture
+def aws_sg_open_ssh(engine) -> CloudResource:
+    res = CloudResource(
+        provider=CloudProvider.AWS,
+        resource_type=ResourceType.SECURITY_GROUP,
+        name="sg-open",
+        account_id="123456789",
+        org_id="test-org",
+        metadata={"allows_ssh_from_internet": True, "allows_rdp_from_internet": True,
+                  "default_sg_has_rules": True},
+    )
+    engine.register_resource(res)
+    return res
+
+
+@pytest.fixture
+def aws_ec2_insecure(engine) -> CloudResource:
+    res = CloudResource(
+        provider=CloudProvider.AWS,
+        resource_type=ResourceType.EC2_INSTANCE,
+        name="i-bad",
+        account_id="123456789",
+        org_id="test-org",
+        is_public=True,
+        is_encrypted=False,
+        metadata={"imdsv2_required": False, "ssm_managed": False},
+    )
+    engine.register_resource(res)
+    return res
+
+
+@pytest.fixture
+def aws_rds_bad(engine) -> CloudResource:
+    res = CloudResource(
+        provider=CloudProvider.AWS,
+        resource_type=ResourceType.RDS_INSTANCE,
+        name="db-prod",
+        account_id="123456789",
+        org_id="test-org",
+        is_public=True,
+        is_encrypted=False,
+        metadata={"backup_retention_days": 0, "auto_minor_version_upgrade": False},
+    )
+    engine.register_resource(res)
+    return res
+
+
+@pytest.fixture
+def azure_storage_bad(engine) -> CloudResource:
+    res = CloudResource(
+        provider=CloudProvider.AZURE,
+        resource_type=ResourceType.STORAGE_ACCOUNT,
+        name="storageacc",
+        account_id="sub-001",
+        org_id="test-org",
+        is_public=True,
+        metadata={"https_only": False, "customer_managed_key": False, "soft_delete_enabled": False},
+    )
+    engine.register_resource(res)
+    return res
+
+
+@pytest.fixture
+def gcp_gcs_bad(engine) -> CloudResource:
+    res = CloudResource(
+        provider=CloudProvider.GCP,
+        resource_type=ResourceType.GCS_BUCKET,
+        name="gcs-bucket",
+        account_id="project-xyz",
+        org_id="test-org",
+        is_public=True,
+        metadata={"uniform_bucket_access": False, "customer_managed_key": False},
+    )
+    engine.register_resource(res)
+    return res
 
 
 # ---------------------------------------------------------------------------
-# Resource sync and CRUD
+# 1. Model validation
 # ---------------------------------------------------------------------------
 
-
-class TestResourceSync:
-    def test_sync_returns_count(self, engine, org_id):
-        resources = [
-            _make_resource(resource_id="r1", org_id=org_id),
-            _make_resource(resource_id="r2", org_id=org_id),
-        ]
-        count = engine.sync_resources(resources, CloudProvider.AWS, org_id)
-        assert count == 2
-
-    def test_sync_upserts_on_conflict(self, engine, org_id):
-        r = _make_resource(resource_id="r-upsert", name="original", org_id=org_id)
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        r2 = _make_resource(resource_id="r-upsert", name="updated", org_id=org_id)
-        engine.sync_resources([r2], CloudProvider.AWS, org_id)
-        resources = engine.list_resources(org_id=org_id)
-        assert len(resources) == 1
-        assert resources[0].name == "updated"
-
-    def test_get_resource_by_id(self, engine, org_id):
-        r = _make_resource(resource_id="get-me", org_id=org_id)
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        fetched = engine.get_resource(r.id)
-        assert fetched is not None
-        assert fetched.resource_id == "get-me"
-
-    def test_get_resource_missing_returns_none(self, engine):
-        assert engine.get_resource("nonexistent-uuid") is None
-
-    def test_list_resources_empty_org(self, engine):
-        result = engine.list_resources(org_id="empty-org")
-        assert result == []
-
-    def test_list_resources_filter_by_provider(self, engine, org_id):
-        aws_r = _make_resource(resource_id="aws-1", provider=CloudProvider.AWS, org_id=org_id)
-        gcp_r = _make_resource(
-            resource_id="gcp-1",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.STORAGE,
-            resource_type="gcs_bucket",
-            org_id=org_id,
-        )
-        engine.sync_resources([aws_r], CloudProvider.AWS, org_id)
-        engine.sync_resources([gcp_r], CloudProvider.GCP, org_id)
-        aws_only = engine.list_resources(org_id=org_id, provider=CloudProvider.AWS)
-        assert all(r.provider == CloudProvider.AWS for r in aws_only)
-        assert len(aws_only) == 1
-
-    def test_list_resources_filter_by_category(self, engine, org_id):
-        storage_r = _make_resource(resource_id="s1", category=ResourceCategory.STORAGE, org_id=org_id)
-        iam_r = _make_resource(
-            resource_id="i1",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            org_id=org_id,
-        )
-        engine.sync_resources([storage_r, iam_r], CloudProvider.AWS, org_id)
-        iam_only = engine.list_resources(org_id=org_id, category=ResourceCategory.IAM)
-        assert len(iam_only) == 1
-        assert iam_only[0].resource_type == "iam_user"
-
-    def test_list_resources_public_only_filter(self, engine, org_id):
-        public_r = _make_resource(resource_id="pub-1", public_exposure=True, org_id=org_id)
-        private_r = _make_resource(resource_id="priv-1", public_exposure=False, org_id=org_id)
-        engine.sync_resources([public_r, private_r], CloudProvider.AWS, org_id)
-        public_only = engine.list_resources(org_id=org_id, public_only=True)
-        assert len(public_only) == 1
-        assert public_only[0].resource_id == "pub-1"
-
-    def test_sync_preserves_config_and_tags(self, engine, org_id):
-        r = _make_resource(
-            resource_id="cfg-r",
-            config={"block_public_access": True},
-            tags={"env": "prod"},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        fetched = engine.get_resource(r.id)
-        assert fetched.config["block_public_access"] is True
-        assert fetched.tags["env"] == "prod"
-
-
-# ---------------------------------------------------------------------------
-# AWS security checks
-# ---------------------------------------------------------------------------
-
-
-class TestAWSChecks:
-    def _get_check(self, fn_name: str) -> SecurityCheck:
-        for c in _BUILTIN_CHECKS:
-            if c.check_function == fn_name:
-                return c
-        raise KeyError(fn_name)
-
-    def test_s3_public_access_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-pub",
-            resource_type="s3_bucket",
-            public_exposure=True,
-            config={"block_public_access": False},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        check = self._get_check("check_aws_s3_public_access")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_s3_public_access_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-priv",
-            resource_type="s3_bucket",
-            public_exposure=False,
-            config={"block_public_access": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        check = self._get_check("check_aws_s3_public_access")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_s3_public_access_not_applicable_wrong_type(self, engine, org_id):
-        r = _make_resource(resource_id="ec2-1", resource_type="ec2_instance", org_id=org_id)
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        check = self._get_check("check_aws_s3_public_access")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NOT_APPLICABLE
-
-    def test_s3_encryption_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-noenc",
-            resource_type="s3_bucket",
-            encryption_enabled=False,
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        check = self._get_check("check_aws_s3_encryption")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_s3_encryption_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-enc",
-            resource_type="s3_bucket",
-            encryption_enabled=True,
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        check = self._get_check("check_aws_s3_encryption")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_vpc_flow_logs_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="vpc-1",
-            category=ResourceCategory.NETWORK,
-            resource_type="vpc",
-            config={"flow_logs_enabled": False},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.NETWORK if False else CloudProvider.AWS, org_id)
-        check = self._get_check("check_aws_vpc_flow_logs")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_vpc_flow_logs_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="vpc-2",
-            category=ResourceCategory.NETWORK,
-            resource_type="vpc",
-            config={"flow_logs_enabled": True},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_vpc_flow_logs")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_cloudtrail_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="ct-1",
-            category=ResourceCategory.LOGGING,
-            resource_type="cloudtrail",
-            config={"enabled": False, "is_multi_region_trail": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_cloudtrail")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_cloudtrail_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="ct-2",
-            category=ResourceCategory.LOGGING,
-            resource_type="cloudtrail",
-            config={"enabled": True, "is_multi_region_trail": True},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_cloudtrail")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_iam_mfa_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-1",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"console_access": True, "mfa_enabled": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_iam_mfa")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_iam_mfa_compliant_with_mfa(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-2",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"console_access": True, "mfa_enabled": True},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_iam_mfa")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_iam_mfa_compliant_no_console(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-3",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"console_access": False, "mfa_enabled": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_iam_mfa")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_sg_open_ssh_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-ssh",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={"inbound_rules": [{"port": 22, "cidr": "0.0.0.0/0", "protocol": "tcp"}]},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_sg_open_ssh")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_sg_open_ssh_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-ssh-ok",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={"inbound_rules": [{"port": 22, "cidr": "10.0.0.0/8", "protocol": "tcp"}]},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_sg_open_ssh")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_sg_open_rdp_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-rdp",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={"inbound_rules": [{"port": 3389, "cidr": "0.0.0.0/0", "protocol": "tcp"}]},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_sg_open_rdp")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_rds_public_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="rds-pub",
-            category=ResourceCategory.DATABASE,
-            resource_type="rds_instance",
-            public_exposure=True,
-            config={"publicly_accessible": True},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_rds_public")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_rds_public_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="rds-priv",
-            category=ResourceCategory.DATABASE,
-            resource_type="rds_instance",
-            public_exposure=False,
-            config={"publicly_accessible": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_rds_public")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_ebs_encryption_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="ebs-noenc",
-            category=ResourceCategory.ENCRYPTION,
-            resource_type="ebs_volume",
-            encryption_enabled=False,
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_ebs_encryption")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_ebs_encryption_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="ebs-enc",
-            category=ResourceCategory.ENCRYPTION,
-            resource_type="ebs_volume",
-            encryption_enabled=True,
-            org_id=org_id,
-        )
-        check = self._get_check("check_aws_ebs_encryption")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-
-# ---------------------------------------------------------------------------
-# Azure security checks
-# ---------------------------------------------------------------------------
-
-
-class TestAzureChecks:
-    def _get_check(self, fn_name: str) -> SecurityCheck:
-        for c in _BUILTIN_CHECKS:
-            if c.check_function == fn_name:
-                return c
-        raise KeyError(fn_name)
-
-    def test_azure_storage_encryption_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-stor-noenc",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.STORAGE,
-            resource_type="storage_account",
-            encryption_enabled=False,
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_storage_encryption")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_azure_storage_encryption_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-stor-enc",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.STORAGE,
-            resource_type="storage_account",
-            encryption_enabled=True,
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_storage_encryption")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_azure_nsg_ssh_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-nsg-ssh",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.NETWORK,
-            resource_type="network_security_group",
-            config={
-                "security_rules": [
-                    {
-                        "access": "Allow",
-                        "source_address_prefix": "Internet",
-                        "destination_port_range": "22",
-                    }
-                ]
-            },
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_nsg_ssh")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_azure_nsg_rdp_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-nsg-rdp",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.NETWORK,
-            resource_type="network_security_group",
-            config={
-                "security_rules": [
-                    {
-                        "access": "Allow",
-                        "source_address_prefix": "*",
-                        "destination_port_range": "3389",
-                    }
-                ]
-            },
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_nsg_rdp")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_azure_nsg_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-nsg-ok",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.NETWORK,
-            resource_type="network_security_group",
-            config={"security_rules": []},
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_nsg_ssh")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_azure_keyvault_logs_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-kv-nologs",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.LOGGING,
-            resource_type="key_vault",
-            config={"diagnostic_logs_enabled": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_keyvault_logs")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_azure_sql_tde_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-sql-notde",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.DATABASE,
-            resource_type="sql_database",
-            encryption_enabled=False,
-            config={"transparent_data_encryption": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_sql_tde")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_azure_aks_rbac_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-aks-norbac",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.CONTAINER,
-            resource_type="aks_cluster",
-            config={"rbac_enabled": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_aks_rbac")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_azure_aks_rbac_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="az-aks-rbac",
-            provider=CloudProvider.AZURE,
-            category=ResourceCategory.CONTAINER,
-            resource_type="aks_cluster",
-            config={"rbac_enabled": True},
-            org_id=org_id,
-        )
-        check = self._get_check("check_azure_aks_rbac")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-
-# ---------------------------------------------------------------------------
-# GCP security checks
-# ---------------------------------------------------------------------------
-
-
-class TestGCPChecks:
-    def _get_check(self, fn_name: str) -> SecurityCheck:
-        for c in _BUILTIN_CHECKS:
-            if c.check_function == fn_name:
-                return c
-        raise KeyError(fn_name)
-
-    def test_gcp_bucket_public_acl_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-bucket-pub",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.STORAGE,
-            resource_type="gcs_bucket",
-            config={"acl": [{"entity": "allUsers", "role": "READER"}]},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_bucket_public_acl")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_gcp_bucket_public_acl_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-bucket-priv",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.STORAGE,
-            resource_type="gcs_bucket",
-            config={"acl": [{"entity": "user:admin@example.com", "role": "OWNER"}]},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_bucket_public_acl")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_gcp_firewall_ssh_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-fw-ssh",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.NETWORK,
-            resource_type="firewall_rule",
-            config={
-                "source_ranges": ["0.0.0.0/0"],
-                "allowed": [{"IPProtocol": "tcp", "ports": ["22"]}],
-            },
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_firewall_ssh")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_gcp_audit_logging_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-proj-nolog",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.LOGGING,
-            resource_type="project",
-            config={"audit_logging_enabled": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_audit_logging")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_gcp_kms_rotation_non_compliant_no_rotation(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-kms-norot",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.ENCRYPTION,
-            resource_type="kms_key",
-            config={"rotation_period_days": None},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_kms_rotation")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_gcp_kms_rotation_non_compliant_too_long(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-kms-long",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.ENCRYPTION,
-            resource_type="kms_key",
-            config={"rotation_period_days": 180},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_kms_rotation")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_gcp_kms_rotation_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-kms-ok",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.ENCRYPTION,
-            resource_type="kms_key",
-            config={"rotation_period_days": 30},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_kms_rotation")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.COMPLIANT
-
-    def test_gcp_gke_rbac_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-gke-abac",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.CONTAINER,
-            resource_type="gke_cluster",
-            config={"legacy_abac_enabled": True},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_gke_rbac")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-    def test_gcp_sql_ssl_non_compliant(self, engine, org_id):
-        r = _make_resource(
-            resource_id="gcp-sql-nossl",
-            provider=CloudProvider.GCP,
-            category=ResourceCategory.DATABASE,
-            resource_type="cloud_sql",
-            config={"require_ssl": False},
-            org_id=org_id,
-        )
-        check = self._get_check("check_gcp_sql_ssl")
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NON_COMPLIANT
-
-
-# ---------------------------------------------------------------------------
-# Public exposure detection
-# ---------------------------------------------------------------------------
-
-
-class TestPublicExposure:
-    def test_get_public_resources_returns_exposed(self, engine, org_id):
-        public = _make_resource(resource_id="pub-1", public_exposure=True, org_id=org_id)
-        private = _make_resource(resource_id="priv-1", public_exposure=False, org_id=org_id)
-        engine.sync_resources([public, private], CloudProvider.AWS, org_id)
-        result = engine.get_public_resources(org_id)
-        assert len(result) == 1
-        assert result[0].resource_id == "pub-1"
-
-    def test_get_public_resources_empty(self, engine, org_id):
-        result = engine.get_public_resources(org_id)
-        assert result == []
-
-
-# ---------------------------------------------------------------------------
-# Encryption status checks
-# ---------------------------------------------------------------------------
-
-
-class TestEncryptionChecks:
-    def test_get_unencrypted_resources(self, engine, org_id):
-        enc = _make_resource(resource_id="enc-1", encryption_enabled=True, org_id=org_id)
-        noenc = _make_resource(resource_id="noenc-1", encryption_enabled=False, org_id=org_id)
-        engine.sync_resources([enc, noenc], CloudProvider.AWS, org_id)
-        result = engine.get_unencrypted_resources(org_id)
-        assert len(result) == 1
-        assert result[0].resource_id == "noenc-1"
-
-    def test_get_unencrypted_resources_empty_when_all_encrypted(self, engine, org_id):
-        r = _make_resource(resource_id="enc-only", encryption_enabled=True, org_id=org_id)
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        result = engine.get_unencrypted_resources(org_id)
-        assert result == []
-
-
-# ---------------------------------------------------------------------------
-# IAM analysis
-# ---------------------------------------------------------------------------
-
-
-class TestIAMAnalysis:
-    def test_iam_findings_admin_access(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-admin",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"admin_access": True, "console_access": True, "mfa_enabled": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_iam_findings(org_id)
-        assert len(findings) == 1
-        assert any("AdministratorAccess" in i for i in findings[0]["issues"])
-
-    def test_iam_findings_old_access_key(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-oldkey",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"access_keys_age_days": 120, "console_access": False, "mfa_enabled": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_iam_findings(org_id)
-        assert len(findings) == 1
-        assert any("90 days" in i for i in findings[0]["issues"])
-
-    def test_iam_findings_no_issues_for_clean_user(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-clean",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"console_access": True, "mfa_enabled": True, "access_keys_age_days": 30},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_iam_findings(org_id)
-        assert findings == []
-
-    def test_iam_findings_no_mfa_with_console_access(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-nomfa",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={"console_access": True, "mfa_enabled": False},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_iam_findings(org_id)
-        assert len(findings) == 1
-        assert any("MFA" in i for i in findings[0]["issues"])
-
-    def test_iam_findings_severity_high_for_multiple_issues(self, engine, org_id):
-        r = _make_resource(
-            resource_id="iam-multi",
-            category=ResourceCategory.IAM,
-            resource_type="iam_user",
-            config={
-                "admin_access": True,
-                "console_access": True,
-                "mfa_enabled": False,
-                "access_keys_age_days": 200,
-            },
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_iam_findings(org_id)
-        assert findings[0]["severity"] == "HIGH"
-
-
-# ---------------------------------------------------------------------------
-# Security group analysis
-# ---------------------------------------------------------------------------
-
-
-class TestSecurityGroupAnalysis:
-    def test_sg_findings_open_ssh(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-open-ssh",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={"inbound_rules": [{"port": 22, "cidr": "0.0.0.0/0"}]},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_security_group_findings(org_id)
-        assert len(findings) == 1
-        assert any("SSH" in i for i in findings[0]["issues"])
-        assert findings[0]["severity"] == "HIGH"
-
-    def test_sg_findings_open_rdp(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-open-rdp",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={"inbound_rules": [{"port": 3389, "cidr": "0.0.0.0/0"}]},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_security_group_findings(org_id)
-        assert any("RDP" in i for i in findings[0]["issues"])
-
-    def test_sg_findings_no_issues_restricted(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-restricted",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={"inbound_rules": [{"port": 22, "cidr": "10.0.0.0/8"}]},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_security_group_findings(org_id)
-        assert findings == []
-
-    def test_sg_findings_allow_all_rule(self, engine, org_id):
-        r = _make_resource(
-            resource_id="sg-allow-all",
-            category=ResourceCategory.NETWORK,
-            resource_type="security_group",
-            config={
-                "inbound_rules": [{"protocol": "-1", "cidr": "0.0.0.0/0"}],
-            },
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        findings = engine.get_security_group_findings(org_id)
-        assert len(findings) == 1
-
-
-# ---------------------------------------------------------------------------
-# Compliance summary
-# ---------------------------------------------------------------------------
-
-
-class TestComplianceSummary:
-    def test_summary_empty_org(self, engine, org_id):
-        summary = engine.get_compliance_summary(org_id)
-        assert summary["total"] == 0
-        assert summary["compliance_rate"] == 0.0
-
-    def test_summary_counts_after_scan(self, engine, org_id):
-        # Two S3 buckets: one compliant, one not
-        compliant_r = _make_resource(
-            resource_id="s3-good",
-            resource_type="s3_bucket",
-            public_exposure=False,
-            config={"block_public_access": True},
-            encryption_enabled=True,
-            org_id=org_id,
-        )
-        bad_r = _make_resource(
-            resource_id="s3-bad",
-            resource_type="s3_bucket",
-            public_exposure=True,
-            config={"block_public_access": False},
-            encryption_enabled=False,
-            org_id=org_id,
-        )
-        engine.sync_resources([compliant_r, bad_r], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        summary = engine.get_compliance_summary(org_id)
-        assert summary["total"] > 0
-        assert summary["compliant"] + summary["non_compliant"] + summary["not_assessed"] + summary["not_applicable"] == summary["total"]
-        assert 0.0 <= summary["compliance_rate"] <= 100.0
-
-    def test_summary_has_by_category(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-cat",
-            resource_type="s3_bucket",
-            public_exposure=False,
-            config={"block_public_access": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        summary = engine.get_compliance_summary(org_id)
-        assert isinstance(summary["by_category"], dict)
-
-    def test_get_check_results_filter_by_status(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-nc",
-            resource_type="s3_bucket",
-            public_exposure=True,
-            config={"block_public_access": False},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        nc_results = engine.get_check_results(org_id, status_filter=ComplianceStatus.NON_COMPLIANT)
-        assert all(r.status == ComplianceStatus.NON_COMPLIANT for r in nc_results)
-
-
-# ---------------------------------------------------------------------------
-# CSPM score calculation
-# ---------------------------------------------------------------------------
-
-
-class TestCSPMScore:
-    def test_score_no_resources_is_100(self, engine, org_id):
-        score = engine.get_cspm_score(org_id)
-        assert score == 100.0
-
-    def test_score_all_compliant_close_to_100(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-score-good",
-            resource_type="s3_bucket",
-            public_exposure=False,
-            encryption_enabled=True,
-            config={"block_public_access": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        score = engine.get_cspm_score(org_id)
-        assert 0.0 <= score <= 100.0
-
-    def test_score_penalized_for_public_resources(self, engine, org_id):
-        # Two resources, one public — score should be penalized
-        pub = _make_resource(
-            resource_id="s3-pub-score",
-            resource_type="s3_bucket",
-            public_exposure=True,
-            config={"block_public_access": False},
-            org_id=org_id,
-        )
-        priv = _make_resource(
-            resource_id="s3-priv-score",
-            resource_type="s3_bucket",
-            public_exposure=False,
-            config={"block_public_access": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([pub, priv], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        score = engine.get_cspm_score(org_id)
-        assert score < 100.0
-
-    def test_score_penalized_for_unencrypted_resources(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-noenc-score",
-            resource_type="s3_bucket",
-            encryption_enabled=False,
-            config={"block_public_access": True},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        score_with_unencrypted = engine.get_cspm_score(org_id)
-        assert score_with_unencrypted < 100.0
-
-    def test_score_is_float_between_0_and_100(self, engine, org_id):
-        r = _make_resource(
-            resource_id="s3-score-range",
-            resource_type="s3_bucket",
-            public_exposure=True,
-            encryption_enabled=False,
-            config={"block_public_access": False},
-            org_id=org_id,
-        )
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        engine.run_security_checks(org_id, provider=CloudProvider.AWS)
-        score = engine.get_cspm_score(org_id)
-        assert isinstance(score, float)
-        assert 0.0 <= score <= 100.0
-
-    def test_score_no_checks_run_returns_100(self, engine, org_id):
-        # Resources exist but no checks run → no stored results → total==0 → 100.0
-        r = _make_resource(resource_id="s3-nocheck", resource_type="s3_bucket", org_id=org_id)
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        # No run_security_checks call — score is 100.0 (no failures recorded)
-        score = engine.get_cspm_score(org_id)
-        assert score == 100.0
-
-    def test_score_returns_50_when_results_all_not_assessed(self, engine, org_id):
-        # The 50.0 path: results exist but assessed (compliant+non_compliant) == 0
-        # Achieve this by storing a NOT_ASSESSED result directly via a check with missing impl
-        from core.cspm import CheckSeverity, SecurityCheck
-        r = _make_resource(resource_id="s3-na", resource_type="s3_bucket", org_id=org_id)
-        engine.sync_resources([r], CloudProvider.AWS, org_id)
-        bad_check = SecurityCheck(
-            name="Missing",
-            description="desc",
+class TestCloudResourceModel:
+    def test_id_auto_generated(self):
+        res = CloudResource(
             provider=CloudProvider.AWS,
-            category=ResourceCategory.STORAGE,
-            severity=CheckSeverity.LOW,
-            check_function="nonexistent_method",
+            resource_type=ResourceType.S3_BUCKET,
+            name="bucket",
         )
-        result = engine.run_check(r, bad_check)
-        engine._persist_result(result, org_id)
-        score = engine.get_cspm_score(org_id)
-        assert score == 50.0
+        assert res.id.startswith("res-")
+
+    def test_default_values(self):
+        res = CloudResource(
+            provider=CloudProvider.GCP,
+            resource_type=ResourceType.GCS_BUCKET,
+            name="test",
+        )
+        assert res.is_encrypted is True
+        assert res.is_public is False
+        assert res.org_id == "default"
+        assert res.region == "global"
+
+    def test_metadata_dict(self):
+        res = CloudResource(
+            provider=CloudProvider.AZURE,
+            resource_type=ResourceType.STORAGE_ACCOUNT,
+            name="s",
+            metadata={"https_only": True},
+        )
+        assert res.metadata["https_only"] is True
+
+    def test_tags(self):
+        res = CloudResource(
+            provider=CloudProvider.AWS,
+            resource_type=ResourceType.EC2_INSTANCE,
+            name="i-1",
+            tags={"env": "prod", "team": "security"},
+        )
+        assert res.tags["env"] == "prod"
+
+    def test_model_dump_roundtrip(self):
+        res = CloudResource(
+            provider=CloudProvider.AWS,
+            resource_type=ResourceType.VPC,
+            name="vpc-1",
+        )
+        dumped = res.model_dump_json()
+        restored = CloudResource.model_validate_json(dumped)
+        assert restored.id == res.id
+        assert restored.provider == CloudProvider.AWS
 
 
 # ---------------------------------------------------------------------------
-# Builtin checks catalogue
+# 2. CIS Rule catalogue
 # ---------------------------------------------------------------------------
 
+class TestCISRuleCatalogue:
+    def test_minimum_rule_count(self):
+        assert len(_CIS_RULES) >= 50
 
-class TestBuiltinChecks:
-    def test_builtin_checks_not_empty(self):
-        assert len(_BUILTIN_CHECKS) > 0
-
-    def test_all_checks_have_check_function_on_engine(self):
-        engine = CSPMEngine.__new__(CSPMEngine)
-        for check in _BUILTIN_CHECKS:
-            assert hasattr(engine, check.check_function), (
-                f"Missing method: {check.check_function}"
-            )
-
-    def test_checks_cover_all_three_providers(self):
-        providers = {c.provider for c in _BUILTIN_CHECKS}
+    def test_all_providers_covered(self):
+        providers = {r.provider for r in _CIS_RULES}
         assert CloudProvider.AWS in providers
         assert CloudProvider.AZURE in providers
         assert CloudProvider.GCP in providers
 
-    def test_run_check_unknown_function_returns_not_assessed(self, engine, org_id):
-        r = _make_resource(resource_id="r-unknown", org_id=org_id)
-        check = SecurityCheck(
-            name="Fake Check",
-            description="desc",
-            provider=CloudProvider.AWS,
-            category=ResourceCategory.STORAGE,
-            severity=CheckSeverity.LOW,
-            check_function="nonexistent_method",
-        )
-        result = engine.run_check(r, check)
-        assert result.status == ComplianceStatus.NOT_ASSESSED
+    def test_rules_by_id_lookup(self):
+        assert "aws-s3-2.1" in _RULES_BY_ID
+        assert "aws-net-3.1" in _RULES_BY_ID
+        assert "azure-stor-2.1" in _RULES_BY_ID
+        assert "gcp-gcs-2.1" in _RULES_BY_ID
+
+    def test_rules_have_compliance_mapping(self):
+        for rule in _CIS_RULES:
+            assert isinstance(rule.compliance_mapping, dict)
+
+    def test_critical_rules_exist(self):
+        critical = [r for r in _CIS_RULES if r.severity == Severity.CRITICAL]
+        assert len(critical) >= 5
+
+    def test_remediation_cli_populated(self):
+        rule = _RULES_BY_ID["aws-s3-2.1"]
+        assert rule.remediation_cli is not None
+        assert "aws s3api" in rule.remediation_cli
+
+    def test_terraform_block_on_s3(self):
+        rule = _RULES_BY_ID["aws-s3-2.1"]
+        assert rule.remediation_terraform is not None
+        assert "aws_s3_bucket" in rule.remediation_terraform
+
+
+# ---------------------------------------------------------------------------
+# 3. Rule evaluation — AWS IAM
+# ---------------------------------------------------------------------------
+
+class TestAWSIAMRules:
+    def test_root_account_passes_when_not_root(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_USER,
+                            name="alice", metadata={"is_root": False})
+        rule = _RULES_BY_ID["aws-iam-1.1"]
+        assert _evaluate_rule(rule, res) is True
+
+    def test_root_account_fails_when_root(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_USER,
+                            name="root", metadata={"is_root": True})
+        rule = _RULES_BY_ID["aws-iam-1.1"]
+        assert _evaluate_rule(rule, res) is False
+
+    def test_mfa_root_passes_with_mfa(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_USER,
+                            name="root", metadata={"is_root": True, "mfa_enabled": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-iam-1.2"], res) is True
+
+    def test_mfa_root_fails_without_mfa(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_USER,
+                            name="root", metadata={"is_root": True, "mfa_enabled": False})
+        assert _evaluate_rule(_RULES_BY_ID["aws-iam-1.2"], res) is False
+
+    def test_key_rotation_passes_within_90_days(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_USER,
+                            name="bob", metadata={"access_key_age_days": 45})
+        assert _evaluate_rule(_RULES_BY_ID["aws-iam-1.4"], res) is True
+
+    def test_key_rotation_fails_over_90_days(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_USER,
+                            name="bob", metadata={"access_key_age_days": 120})
+        assert _evaluate_rule(_RULES_BY_ID["aws-iam-1.4"], res) is False
+
+    def test_password_policy_passes_14_chars(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_POLICY,
+                            name="policy", metadata={"min_password_length": 16})
+        assert _evaluate_rule(_RULES_BY_ID["aws-iam-1.5"], res) is True
+
+    def test_password_policy_fails_short(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.IAM_POLICY,
+                            name="policy", metadata={"min_password_length": 8})
+        assert _evaluate_rule(_RULES_BY_ID["aws-iam-1.5"], res) is False
+
+
+# ---------------------------------------------------------------------------
+# 4. Rule evaluation — AWS S3
+# ---------------------------------------------------------------------------
+
+class TestAWSS3Rules:
+    def test_public_bucket_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.S3_BUCKET,
+                            name="pub", is_public=True)
+        assert _evaluate_rule(_RULES_BY_ID["aws-s3-2.1"], res) is False
+
+    def test_private_bucket_passes(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.S3_BUCKET,
+                            name="priv", is_public=False)
+        assert _evaluate_rule(_RULES_BY_ID["aws-s3-2.1"], res) is True
+
+    def test_unencrypted_bucket_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.S3_BUCKET,
+                            name="s3", is_encrypted=False)
+        assert _evaluate_rule(_RULES_BY_ID["aws-s3-2.2"], res) is False
+
+    def test_mfa_delete_passes(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.S3_BUCKET,
+                            name="s3", metadata={"mfa_delete_enabled": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-s3-2.3"], res) is True
+
+    def test_access_logging_passes(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.S3_BUCKET,
+                            name="s3", metadata={"access_logging_enabled": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-s3-2.4"], res) is True
+
+
+# ---------------------------------------------------------------------------
+# 5. Rule evaluation — AWS Network
+# ---------------------------------------------------------------------------
+
+class TestAWSNetworkRules:
+    def test_open_ssh_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.SECURITY_GROUP,
+                            name="sg", metadata={"allows_ssh_from_internet": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-net-3.1"], res) is False
+
+    def test_closed_ssh_passes(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.SECURITY_GROUP,
+                            name="sg", metadata={"allows_ssh_from_internet": False})
+        assert _evaluate_rule(_RULES_BY_ID["aws-net-3.1"], res) is True
+
+    def test_open_rdp_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.SECURITY_GROUP,
+                            name="sg", metadata={"allows_rdp_from_internet": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-net-3.2"], res) is False
+
+    def test_vpc_flow_logs_passes(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                            name="vpc", metadata={"flow_logs_enabled": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-net-3.3"], res) is True
+
+    def test_vpc_flow_logs_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                            name="vpc", metadata={"flow_logs_enabled": False})
+        assert _evaluate_rule(_RULES_BY_ID["aws-net-3.3"], res) is False
+
+
+# ---------------------------------------------------------------------------
+# 6. Rule evaluation — AWS Compute
+# ---------------------------------------------------------------------------
+
+class TestAWSComputeRules:
+    def test_imdsv2_required_passes(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.EC2_INSTANCE,
+                            name="i-1", metadata={"imdsv2_required": True})
+        assert _evaluate_rule(_RULES_BY_ID["aws-ec2-4.1"], res) is True
+
+    def test_imdsv2_not_required_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.EC2_INSTANCE,
+                            name="i-1", metadata={"imdsv2_required": False})
+        assert _evaluate_rule(_RULES_BY_ID["aws-ec2-4.1"], res) is False
+
+    def test_public_ec2_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.EC2_INSTANCE,
+                            name="i-1", is_public=True)
+        assert _evaluate_rule(_RULES_BY_ID["aws-ec2-4.2"], res) is False
+
+    def test_ebs_encryption_fails(self):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.EC2_INSTANCE,
+                            name="i-1", is_encrypted=False)
+        assert _evaluate_rule(_RULES_BY_ID["aws-ec2-4.3"], res) is False
+
+
+# ---------------------------------------------------------------------------
+# 7. Rule evaluation — Azure
+# ---------------------------------------------------------------------------
+
+class TestAzureRules:
+    def test_azure_mfa_fails_without_mfa(self):
+        res = CloudResource(provider=CloudProvider.AZURE, resource_type=ResourceType.IAM_USER,
+                            name="admin", metadata={"mfa_enabled": False})
+        assert _evaluate_rule(_RULES_BY_ID["azure-iam-1.1"], res) is False
+
+    def test_azure_storage_public_fails(self):
+        res = CloudResource(provider=CloudProvider.AZURE, resource_type=ResourceType.STORAGE_ACCOUNT,
+                            name="acc", is_public=True)
+        assert _evaluate_rule(_RULES_BY_ID["azure-stor-2.1"], res) is False
+
+    def test_azure_https_only_passes(self):
+        res = CloudResource(provider=CloudProvider.AZURE, resource_type=ResourceType.STORAGE_ACCOUNT,
+                            name="acc", metadata={"https_only": True})
+        assert _evaluate_rule(_RULES_BY_ID["azure-stor-2.2"], res) is True
+
+    def test_azure_open_ssh_fails(self):
+        res = CloudResource(provider=CloudProvider.AZURE, resource_type=ResourceType.NETWORK_ACL,
+                            name="nsg", metadata={"allows_ssh_from_internet": True})
+        assert _evaluate_rule(_RULES_BY_ID["azure-net-3.1"], res) is False
+
+    def test_azure_log_retention_passes(self):
+        res = CloudResource(provider=CloudProvider.AZURE, resource_type=ResourceType.AZURE_MONITOR,
+                            name="monitor", metadata={"log_retention_days": 400})
+        assert _evaluate_rule(_RULES_BY_ID["azure-log-6.2"], res) is True
+
+    def test_azure_log_retention_fails_short(self):
+        res = CloudResource(provider=CloudProvider.AZURE, resource_type=ResourceType.AZURE_MONITOR,
+                            name="monitor", metadata={"log_retention_days": 90})
+        assert _evaluate_rule(_RULES_BY_ID["azure-log-6.2"], res) is False
+
+
+# ---------------------------------------------------------------------------
+# 8. Rule evaluation — GCP
+# ---------------------------------------------------------------------------
+
+class TestGCPRules:
+    def test_gcp_public_bucket_fails(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.GCS_BUCKET,
+                            name="bucket", is_public=True)
+        assert _evaluate_rule(_RULES_BY_ID["gcp-gcs-2.1"], res) is False
+
+    def test_gcp_private_bucket_passes(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.GCS_BUCKET,
+                            name="bucket", is_public=False)
+        assert _evaluate_rule(_RULES_BY_ID["gcp-gcs-2.1"], res) is True
+
+    def test_gcp_service_account_key_age_passes(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.IAM_USER,
+                            name="sa", metadata={"key_age_days": 30})
+        assert _evaluate_rule(_RULES_BY_ID["gcp-iam-1.1"], res) is True
+
+    def test_gcp_service_account_key_age_fails(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.IAM_USER,
+                            name="sa", metadata={"key_age_days": 100})
+        assert _evaluate_rule(_RULES_BY_ID["gcp-iam-1.1"], res) is False
+
+    def test_gcp_firewall_ssh_fails(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.SECURITY_GROUP,
+                            name="fw", metadata={"allows_ssh_from_internet": True})
+        assert _evaluate_rule(_RULES_BY_ID["gcp-net-3.1"], res) is False
+
+    def test_gcp_flow_logs_passes(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.VPC,
+                            name="vpc", metadata={"flow_logs_enabled": True})
+        assert _evaluate_rule(_RULES_BY_ID["gcp-net-3.2"], res) is True
+
+    def test_gcp_shielded_vm_passes(self):
+        res = CloudResource(provider=CloudProvider.GCP, resource_type=ResourceType.COMPUTE_INSTANCE,
+                            name="vm", metadata={"shielded_vm_enabled": True})
+        assert _evaluate_rule(_RULES_BY_ID["gcp-compute-4.2"], res) is True
+
+
+# ---------------------------------------------------------------------------
+# 9. scan_resource
+# ---------------------------------------------------------------------------
+
+class TestScanResource:
+    def test_public_s3_generates_findings(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        rule_ids = [f.rule_id for f in findings]
+        assert "aws-s3-2.1" in rule_ids
+        assert "aws-s3-2.2" in rule_ids
+
+    def test_compliant_s3_generates_no_public_finding(self, engine, aws_s3_compliant):
+        findings = engine.scan_resource(aws_s3_compliant)
+        rule_ids = [f.rule_id for f in findings]
+        assert "aws-s3-2.1" not in rule_ids
+        assert "aws-s3-2.2" not in rule_ids
+
+    def test_open_sg_generates_critical_findings(self, engine, aws_sg_open_ssh):
+        findings = engine.scan_resource(aws_sg_open_ssh)
+        rule_ids = [f.rule_id for f in findings]
+        assert "aws-net-3.1" in rule_ids
+        assert "aws-net-3.2" in rule_ids
+
+    def test_findings_stored_in_db(self, engine, aws_s3_public):
+        engine.scan_resource(aws_s3_public)
+        stored = engine.list_findings("test-org")
+        assert len(stored) >= 1
+
+    def test_finding_has_correct_severity(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        public_finding = next(f for f in findings if f.rule_id == "aws-s3-2.1")
+        assert public_finding.severity == Severity.CRITICAL
+
+    def test_finding_has_remediation(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        public_finding = next(f for f in findings if f.rule_id == "aws-s3-2.1")
+        assert public_finding.remediation_summary
+        assert public_finding.remediation_cli
+
+
+# ---------------------------------------------------------------------------
+# 10. run_scan
+# ---------------------------------------------------------------------------
+
+class TestRunScan:
+    def test_scan_returns_scan_result(self, engine, aws_s3_public):
+        result = engine.run_scan(org_id="test-org")
+        assert isinstance(result, ScanResult)
+
+    def test_scan_counts_resources(self, engine, aws_s3_public, aws_sg_open_ssh):
+        result = engine.run_scan(org_id="test-org")
+        assert result.resources_scanned == 2
+
+    def test_scan_posture_score_is_low_for_bad_resources(self, engine, aws_s3_public, aws_ec2_insecure):
+        result = engine.run_scan(org_id="test-org")
+        assert result.posture.overall_score < 80
+
+    def test_scan_with_rule_id_filter(self, engine, aws_s3_public):
+        result = engine.run_scan(org_id="test-org", rule_ids=["aws-s3-2.1"])
+        rule_ids = [f.rule_id for f in engine.list_findings("test-org")]
+        # Filter applied — only the specified rule should generate findings
+        assert "aws-s3-2.1" in rule_ids
+
+    def test_scan_saves_result(self, engine, aws_s3_public):
+        engine.run_scan(org_id="test-org")
+        scans = engine.list_scans(org_id="test-org")
+        assert len(scans) >= 1
+
+
+# ---------------------------------------------------------------------------
+# 11. Finding management
+# ---------------------------------------------------------------------------
+
+class TestFindingManagement:
+    def test_list_findings_empty_initially(self, engine):
+        assert engine.list_findings("new-org") == []
+
+    def test_get_finding_by_id(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = findings[0].id
+        retrieved = engine.get_finding(fid)
+        assert retrieved is not None
+        assert retrieved.id == fid
+
+    def test_get_nonexistent_finding_returns_none(self, engine):
+        assert engine.get_finding("does-not-exist") is None
+
+    def test_suppress_finding(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = findings[0].id
+        suppressed = engine.suppress_finding(fid, reason="Accepted risk")
+        assert suppressed.status == FindingStatus.SUPPRESSED
+        assert suppressed.suppression_reason == "Accepted risk"
+
+    def test_resolve_finding(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = findings[0].id
+        resolved = engine.resolve_finding(fid)
+        assert resolved.status == FindingStatus.RESOLVED
+        assert resolved.resolved_at is not None
+
+    def test_filter_findings_by_status(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        engine.suppress_finding(findings[0].id, "test")
+        open_findings = engine.list_findings("test-org", status=FindingStatus.OPEN)
+        suppressed = engine.list_findings("test-org", status=FindingStatus.SUPPRESSED)
+        assert all(f.status == FindingStatus.OPEN for f in open_findings)
+        assert all(f.status == FindingStatus.SUPPRESSED for f in suppressed)
+
+    def test_filter_findings_by_severity(self, engine, aws_s3_public):
+        engine.scan_resource(aws_s3_public)
+        critical = engine.list_findings("test-org", severity=Severity.CRITICAL)
+        assert all(f.severity == Severity.CRITICAL for f in critical)
+
+
+# ---------------------------------------------------------------------------
+# 12. Resource inventory
+# ---------------------------------------------------------------------------
+
+class TestResourceInventory:
+    def test_register_and_list(self, engine):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                            name="vpc-1", org_id="org1")
+        engine.register_resource(res)
+        resources = engine.list_resources("org1")
+        assert len(resources) == 1
+        assert resources[0].name == "vpc-1"
+
+    def test_get_resource(self, engine):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                            name="vpc-2", org_id="org1")
+        engine.register_resource(res)
+        fetched = engine.get_resource(res.id)
+        assert fetched is not None
+        assert fetched.id == res.id
+
+    def test_get_nonexistent_resource(self, engine):
+        assert engine.get_resource("no-such-id") is None
+
+    def test_delete_resource(self, engine):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                            name="vpc-del", org_id="org1")
+        engine.register_resource(res)
+        deleted = engine.delete_resource(res.id)
+        assert deleted is True
+        assert engine.get_resource(res.id) is None
+
+    def test_delete_nonexistent_returns_false(self, engine):
+        assert engine.delete_resource("no-such") is False
+
+    def test_org_isolation(self, engine):
+        res1 = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                             name="vpc-a", org_id="org-a")
+        res2 = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                             name="vpc-b", org_id="org-b")
+        engine.register_resource(res1)
+        engine.register_resource(res2)
+        assert len(engine.list_resources("org-a")) == 1
+        assert len(engine.list_resources("org-b")) == 1
+
+
+# ---------------------------------------------------------------------------
+# 13. Drift detection
+# ---------------------------------------------------------------------------
+
+class TestDriftDetection:
+    def _make_resource(self, **kwargs) -> CloudResource:
+        defaults: Dict[str, Any] = {
+            "provider": CloudProvider.AWS,
+            "resource_type": ResourceType.S3_BUCKET,
+            "name": "bucket",
+            "account_id": "acct",
+            "org_id": "org",
+            "is_public": False,
+            "is_encrypted": True,
+            "metadata": {},
+        }
+        defaults.update(kwargs)
+        return CloudResource(**defaults)
+
+    def test_no_drift_identical(self):
+        baseline = self._make_resource()
+        current = self._make_resource(id=baseline.id)
+        events = _detect_drift(current, baseline, "org")
+        assert events == []
+
+    def test_detects_new_public_resource(self):
+        baseline = self._make_resource(is_public=False)
+        current = self._make_resource(id=baseline.id, is_public=True)
+        events = _detect_drift(current, baseline, "org")
+        types = [e.drift_type for e in events]
+        assert "new_public_resource" in types
+
+    def test_public_drift_is_critical(self):
+        baseline = self._make_resource(is_public=False)
+        current = self._make_resource(id=baseline.id, is_public=True)
+        events = _detect_drift(current, baseline, "org")
+        pub_event = next(e for e in events if e.drift_type == "new_public_resource")
+        assert pub_event.severity == Severity.CRITICAL
+
+    def test_detects_encryption_removal(self):
+        baseline = self._make_resource(is_encrypted=True)
+        current = self._make_resource(id=baseline.id, is_encrypted=False)
+        events = _detect_drift(current, baseline, "org")
+        types = [e.drift_type for e in events]
+        assert "encryption_removed" in types
+
+    def test_detects_security_control_disabled(self):
+        baseline = self._make_resource(metadata={"flow_logs_enabled": True})
+        current = self._make_resource(id=baseline.id, metadata={"flow_logs_enabled": False})
+        events = _detect_drift(current, baseline, "org")
+        types = [e.drift_type for e in events]
+        assert "security_control_disabled" in types
+
+    def test_detects_tag_change(self):
+        baseline = self._make_resource()
+        baseline.tags = {"env": "prod"}
+        current = self._make_resource(id=baseline.id)
+        current.tags = {"env": "staging"}
+        events = _detect_drift(current, baseline, "org")
+        types = [e.drift_type for e in events]
+        assert "tags_changed" in types
+
+    def test_engine_drift_stored(self, engine):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.S3_BUCKET,
+                            name="b", org_id="driftorg", is_public=False, is_encrypted=True)
+        engine.register_resource(res)
+        engine.save_baseline("driftorg")
+        # Mutate resource to be public
+        res2 = CloudResource(id=res.id, provider=CloudProvider.AWS,
+                             resource_type=ResourceType.S3_BUCKET, name="b",
+                             org_id="driftorg", is_public=True, is_encrypted=True)
+        engine.register_resource(res2)
+        engine.run_scan(org_id="driftorg")
+        drift = engine.list_drift("driftorg")
+        assert len(drift) >= 1
+
+
+# ---------------------------------------------------------------------------
+# 14. Remediation playbook
+# ---------------------------------------------------------------------------
+
+class TestRemediationPlaybook:
+    def test_playbook_generated_for_finding(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = next(f.id for f in findings if f.rule_id == "aws-s3-2.1")
+        playbook = engine.get_remediation(fid)
+        assert isinstance(playbook, RemediationPlaybook)
+
+    def test_playbook_has_steps(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = findings[0].id
+        playbook = engine.get_remediation(fid)
+        assert len(playbook.steps) >= 3
+
+    def test_playbook_cli_commands_populated(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = next(f.id for f in findings if f.rule_id == "aws-s3-2.1")
+        playbook = engine.get_remediation(fid)
+        assert len(playbook.cli_commands) >= 1
+
+    def test_playbook_terraform_for_s3(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = next(f.id for f in findings if f.rule_id == "aws-s3-2.1")
+        playbook = engine.get_remediation(fid)
+        assert len(playbook.terraform_blocks) >= 1
+
+    def test_playbook_nonexistent_finding(self, engine):
+        assert engine.get_remediation("no-such") is None
+
+    def test_playbook_risk_level_critical(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        fid = next(f.id for f in findings if f.rule_id == "aws-s3-2.1")
+        playbook = engine.get_remediation(fid)
+        assert playbook.risk_level == "high"
+
+    def test_playbook_rds_requires_downtime(self, engine, aws_rds_bad):
+        findings = engine.scan_resource(aws_rds_bad)
+        fid = next(f.id for f in findings if f.rule_id == "aws-rds-5.2")
+        playbook = engine.get_remediation(fid)
+        assert playbook.requires_downtime is True
+
+
+# ---------------------------------------------------------------------------
+# 15. Posture scoring
+# ---------------------------------------------------------------------------
+
+class TestPostureScoring:
+    def test_score_zero_findings(self):
+        assert _score_from_findings(0, 0, 0, 0, 0) == 0.0
+
+    def test_risk_score_all_critical(self):
+        score = _score_from_findings(10, 10, 0, 0, 0)
+        assert score == 100.0
+
+    def test_posture_score_inverts_risk(self):
+        assert _posture_score(0.0) == 100.0
+        assert _posture_score(100.0) == 0.0
+        assert _posture_score(60.0) == 40.0
+
+    def test_get_posture_empty_org(self, engine):
+        posture = engine.get_posture("empty-org")
+        assert posture.overall_score == 100.0
+        assert posture.total_resources == 0
+
+    def test_get_posture_with_findings(self, engine, aws_s3_public, aws_ec2_insecure):
+        engine.run_scan("test-org")
+        posture = engine.get_posture("test-org")
+        assert posture.total_findings > 0
+        assert posture.overall_score < 100.0
+
+    def test_posture_has_account_breakdown(self, engine, aws_s3_public):
+        engine.run_scan("test-org")
+        posture = engine.get_posture("test-org")
+        assert len(posture.accounts) >= 1
+
+    def test_posture_compliance_scores_populated(self, engine, aws_s3_public):
+        engine.run_scan("test-org")
+        posture = engine.get_posture("test-org")
+        assert "soc2" in posture.compliance_scores
+        assert "pci_dss" in posture.compliance_scores
+        assert "hipaa" in posture.compliance_scores
+
+
+# ---------------------------------------------------------------------------
+# 16. Compliance scoring
+# ---------------------------------------------------------------------------
+
+class TestComplianceScoring:
+    def test_compliance_score_no_findings(self):
+        assert _compliance_score([], ComplianceFramework.SOC2) == 100.0
+
+    def test_compliance_score_decreases_with_violations(self, engine, aws_s3_public):
+        findings = engine.scan_resource(aws_s3_public)
+        score = _compliance_score(findings, ComplianceFramework.SOC2)
+        assert score < 100.0
+
+    def test_compliance_map_has_all_frameworks(self, engine):
+        cmap = engine.get_compliance_map()
+        fw_keys = set(cmap["frameworks"].keys())
+        for fw in ComplianceFramework:
+            assert fw.value in fw_keys
+
+    def test_compliance_map_has_rules(self, engine):
+        cmap = engine.get_compliance_map()
+        assert cmap["total_rules"] > 0
+        assert len(cmap["frameworks"]["soc2"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# 17. Benchmark status
+# ---------------------------------------------------------------------------
+
+class TestBenchmarkStatus:
+    def test_benchmark_status_structure(self, engine):
+        status = engine.get_benchmark_status("empty-org")
+        assert "total_rules" in status
+        assert "total_passing" in status
+        assert "total_failing" in status
+        assert "by_provider" in status
+
+    def test_benchmark_all_passing_when_no_findings(self, engine):
+        status = engine.get_benchmark_status("no-findings-org")
+        assert status["total_failing"] == 0
+
+    def test_benchmark_failing_when_findings_exist(self, engine, aws_s3_public):
+        engine.scan_resource(aws_s3_public)
+        status = engine.get_benchmark_status("test-org")
+        assert status["total_failing"] > 0
+
+    def test_benchmark_providers_covered(self, engine):
+        status = engine.get_benchmark_status("empty-org")
+        providers = set(status["by_provider"].keys())
+        assert "aws" in providers
+        assert "azure" in providers
+        assert "gcp" in providers
+
+
+# ---------------------------------------------------------------------------
+# 18. Baseline management
+# ---------------------------------------------------------------------------
+
+class TestBaseline:
+    def test_save_baseline_returns_count(self, engine):
+        res = CloudResource(provider=CloudProvider.AWS, resource_type=ResourceType.VPC,
+                            name="vpc", org_id="baseorg")
+        engine.register_resource(res)
+        count = engine.save_baseline("baseorg")
+        assert count == 1
+
+    def test_save_baseline_empty_org(self, engine):
+        count = engine.save_baseline("no-resources-org")
+        assert count == 0
+
+
+# ---------------------------------------------------------------------------
+# 19. Singleton
+# ---------------------------------------------------------------------------
+
+class TestSingleton:
+    def test_get_cspm_engine_returns_same_instance(self, tmp_path):
+        # Reset singleton for test isolation by using a unique db path
+        from core import cspm_engine as _mod
+        original = _mod._engine_instance
+        _mod._engine_instance = None
+        try:
+            e1 = get_cspm_engine(str(tmp_path / "singleton.db"))
+            e2 = get_cspm_engine(str(tmp_path / "singleton.db"))
+            assert e1 is e2
+        finally:
+            _mod._engine_instance = original

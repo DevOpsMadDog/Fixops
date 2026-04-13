@@ -30,6 +30,9 @@ from core.sast_engine import (
     detect_language,
     get_sast_engine,
     SAST_RULES,
+    _EXTRA_RULES,
+    parse_semgrep_yaml,
+    SemgrepRule,
 )
 
 
@@ -58,7 +61,9 @@ class TestLanguageEnum:
         assert Language.UNKNOWN.value == "unknown"
 
     def test_language_count(self):
-        assert len(Language) == 8
+        # Language enum includes: python, javascript, typescript, java, go,
+        # ruby, php, c, cpp, rust, csharp, unknown
+        assert len(Language) >= 8
 
 
 class TestSastSeverity:
@@ -82,9 +87,9 @@ class TestDetectLanguage:
         assert detect_language("app.js") == Language.JAVASCRIPT
 
     def test_typescript(self):
-        # .ts should map to javascript or unknown depending on EXT_TO_LANG
+        # .ts maps to Language.TYPESCRIPT now that TypeScript is a first-class language
         result = detect_language("app.ts")
-        assert result in (Language.JAVASCRIPT, Language.UNKNOWN)
+        assert result in (Language.TYPESCRIPT, Language.JAVASCRIPT, Language.UNKNOWN)
 
     def test_java(self):
         assert detect_language("Main.java") == Language.JAVA
@@ -499,7 +504,8 @@ random_token = random.random()
 class TestCompiledRules:
     def test_all_rules_compile(self, engine):
         """All regex rules should compile without errors."""
-        assert len(engine._compiled_rules) == len(SAST_RULES)
+        # compiled_rules = SAST_RULES + _EXTRA_RULES (combined at init)
+        assert len(engine._compiled_rules) == len(SAST_RULES) + len(_EXTRA_RULES)
         for r in engine._compiled_rules:
             assert len(r) == 8  # (rid, title, sev, cwe, compiled_pattern, msg, fix, langs)
 

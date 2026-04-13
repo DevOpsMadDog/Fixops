@@ -2,6 +2,9 @@
 Secrets detection API endpoints.
 
 Provides enterprise-grade secrets scanning with gitleaks and trufflehog integration.
+Also includes the ALDECI SecretsManager engine: 200+ pattern scanning, git history
+scanning, auto-rotation stubs, Vault integration stubs, pre-commit hook generation,
+secret lifecycle tracking, and compliance mapping.
 
 SECURITY: This router handles sensitive data (secrets/credentials).
 - NEVER log actual secret values
@@ -17,9 +20,27 @@ from typing import Any, Dict, List, Optional
 from core.secrets_db import SecretsDB
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import SecretsScanner, get_secrets_detector
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, status as http_status
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, field_validator
+
+# ALDECI SecretsManager — 200+ patterns, rotation, Vault, pre-commit
+try:
+    from core.secrets_manager import (
+        RotationStatus,
+        ScanType,
+        SecretCategory,
+        SecretFinding as MgrFinding,
+        SecretPolicy,
+        SecretSeverity,
+        SecretsManager,
+        ScanResult,
+        SECRET_PATTERNS,
+        get_manager,
+    )
+    _HAS_MGR = True
+except ImportError:
+    _HAS_MGR = False
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -32,7 +53,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/secrets", tags=["secrets"])
+router = APIRouter(prefix="/api/v1/secrets", tags=["secrets", "Secrets Management"])
 db = SecretsDB()
 
 _MAX_FILE_PATH_LENGTH = 1024
@@ -377,3 +398,354 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest, org_id: s
         error_message=result.error_message,
         metadata=result.metadata,
     )
+
+
+# ===========================================================================
+# ALDECI SecretsManager endpoints — 200+ patterns, rotation, Vault, lifecycle
+# ===========================================================================
+
+
+def _require_mgr() -> "SecretsManager":
+    if not _HAS_MGR:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SecretsManager not available — check suite-core installation",
+        )
+    try:
+        return get_manager()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"SecretsManager unavailable: {exc}",
+        )
+
+
+# ── Request / Response models ────────────────────────────────────────────────
+
+class MgrScanRequest(BaseModel):
+    target_path: str = Field(..., description="Absolute path to repo or file to scan")
+    scan_type: str = Field("filesystem", description="filesystem | git_history")
+    include_git_history: bool = Field(False, description="Also scan git commit history")
+
+
+class MgrScanSummaryResponse(BaseModel):
+    scan_id: str
+    scan_type: str
+    target_path: str
+    files_scanned: int
+    commits_scanned: int
+    findings_count: int
+    critical_count: int
+    high_count: int
+    medium_count: int
+    low_count: int
+    started_at: str
+    completed_at: Optional[str]
+    errors: List[str]
+
+
+class MgrFindingResponse(BaseModel):
+    id: str
+    pattern_id: str
+    category: str
+    severity: str
+    name: str
+    file_path: str
+    line_number: int
+    matched_value: str
+    scan_type: str
+    commit_sha: Optional[str]
+    commit_author: Optional[str]
+    commit_date: Optional[str]
+    introduced_at: Optional[str]
+    compliance_tags: List[str]
+    rotation_status: str
+    first_seen: str
+    last_seen: str
+
+
+class MgrRotationResponse(BaseModel):
+    finding_id: str
+    category: str
+    rotation_steps: List[str]
+    rotation_script: str
+    estimated_downtime_minutes: int
+    requires_service_restart: bool
+    vault_path: Optional[str]
+    status: str
+    created_at: str
+
+
+class MgrPolicyResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    categories: List[str]
+    max_age_days: int
+    require_rotation: bool
+    block_on_commit: bool
+    compliance_frameworks: List[str]
+    created_at: str
+
+
+def _mgr_finding_to_resp(f: "MgrFinding") -> MgrFindingResponse:
+    return MgrFindingResponse(
+        id=f.id,
+        pattern_id=f.pattern_id,
+        category=f.category.value,
+        severity=f.severity.value,
+        name=f.name,
+        file_path=f.file_path,
+        line_number=f.line_number,
+        matched_value=f.matched_value,
+        scan_type=f.scan_type.value,
+        commit_sha=f.commit_sha,
+        commit_author=f.commit_author,
+        commit_date=f.commit_date,
+        introduced_at=f.introduced_at,
+        compliance_tags=f.compliance_tags,
+        rotation_status=f.rotation_status.value,
+        first_seen=f.first_seen.isoformat(),
+        last_seen=f.last_seen.isoformat(),
+    )
+
+
+def _mgr_scan_to_resp(r: "ScanResult") -> MgrScanSummaryResponse:
+    return MgrScanSummaryResponse(
+        scan_id=r.id,
+        scan_type=r.scan_type.value,
+        target_path=r.target_path,
+        files_scanned=r.files_scanned,
+        commits_scanned=r.commits_scanned,
+        findings_count=r.findings_count,
+        critical_count=r.critical_count,
+        high_count=r.high_count,
+        medium_count=r.medium_count,
+        low_count=r.low_count,
+        started_at=r.started_at.isoformat(),
+        completed_at=r.completed_at.isoformat() if r.completed_at else None,
+        errors=r.errors,
+    )
+
+
+# ── Endpoints ────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/scan",
+    response_model=MgrScanSummaryResponse,
+    summary="Trigger ALDECI secrets scan (200+ patterns)",
+    tags=["Secrets Management"],
+)
+def trigger_mgr_scan(request: MgrScanRequest) -> MgrScanSummaryResponse:
+    """
+    Scan a filesystem path or git repo for leaked secrets using 200+ regex patterns.
+    Set scan_type='git_history' to scan all commits. include_git_history=true runs both.
+    """
+    mgr = _require_mgr()
+    scan_type = ScanType(request.scan_type) if _HAS_MGR else None
+    if scan_type == ScanType.GIT_HISTORY:
+        result = mgr.scan_git_history(request.target_path)
+    else:
+        result = mgr.scan_filesystem(request.target_path)
+        if request.include_git_history:
+            hist = mgr.scan_git_history(request.target_path)
+            result.findings.extend(hist.findings)
+            result.commits_scanned = hist.commits_scanned
+            result.findings_count = len(result.findings)
+            for f in hist.findings:
+                sev = f.severity.value
+                if sev == "critical":
+                    result.critical_count += 1
+                elif sev == "high":
+                    result.high_count += 1
+                elif sev == "medium":
+                    result.medium_count += 1
+                else:
+                    result.low_count += 1
+    return _mgr_scan_to_resp(result)
+
+
+@router.get(
+    "/findings",
+    response_model=List[MgrFindingResponse],
+    summary="All discovered secrets with severity",
+    tags=["Secrets Management"],
+)
+def get_mgr_findings(
+    severity: Optional[str] = Query(None, description="critical | high | medium | low"),
+    category: Optional[str] = Query(None, description="aws | gcp | azure | github | database | ..."),
+    rotation_status: Optional[str] = Query(None, description="pending | in_progress | completed | failed"),
+    limit: int = Query(500, ge=1, le=5000),
+) -> List[MgrFindingResponse]:
+    """Return all stored secret findings from the ALDECI scanner, optionally filtered."""
+    mgr = _require_mgr()
+    sev = SecretSeverity(severity) if severity else None
+    cat = SecretCategory(category) if category else None
+    rot = RotationStatus(rotation_status) if rotation_status else None
+    findings = mgr.get_findings(severity=sev, category=cat, rotation_status=rot, limit=limit)
+    return [_mgr_finding_to_resp(f) for f in findings]
+
+
+@router.get(
+    "/history",
+    response_model=List[MgrFindingResponse],
+    summary="Git history scan results",
+    tags=["Secrets Management"],
+)
+def get_git_history_findings() -> List[MgrFindingResponse]:
+    """Return secrets found in git commit history including author and commit SHA."""
+    mgr = _require_mgr()
+    return [_mgr_finding_to_resp(f) for f in mgr.get_git_history_findings()]
+
+
+@router.get(
+    "/rotation-status",
+    response_model=Dict[str, Any],
+    summary="Secrets needing rotation",
+    tags=["Secrets Management"],
+)
+def get_rotation_status() -> Dict[str, Any]:
+    """Return critical/high-severity secrets with rotation_status=pending or failed."""
+    mgr = _require_mgr()
+    findings = mgr.get_rotation_needed()
+    by_category: Dict[str, List[Dict[str, Any]]] = {}
+    for f in findings:
+        cat = f.category.value
+        by_category.setdefault(cat, [])
+        by_category[cat].append({
+            "id": f.id,
+            "name": f.name,
+            "severity": f.severity.value,
+            "file_path": f.file_path,
+            "rotation_status": f.rotation_status.value,
+            "first_seen": f.first_seen.isoformat(),
+        })
+    return {
+        "total_needing_rotation": len(findings),
+        "by_category": by_category,
+        "findings": [_mgr_finding_to_resp(f).model_dump() for f in findings],
+    }
+
+
+@router.post(
+    "/rotate/{finding_id}",
+    response_model=MgrRotationResponse,
+    summary="Trigger rotation workflow",
+    tags=["Secrets Management"],
+)
+def trigger_rotation(finding_id: str) -> MgrRotationResponse:
+    """
+    Generate and trigger a rotation plan for a specific secret finding.
+    Returns rotation steps and a ready-to-run shell script.
+    """
+    mgr = _require_mgr()
+    finding = mgr.get_finding(finding_id)
+    if not finding:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"Finding not found: {finding_id}",
+        )
+    plan = mgr.trigger_rotation(finding_id)
+    return MgrRotationResponse(
+        finding_id=plan.finding_id,
+        category=plan.category.value,
+        rotation_steps=plan.rotation_steps,
+        rotation_script=plan.rotation_script,
+        estimated_downtime_minutes=plan.estimated_downtime_minutes,
+        requires_service_restart=plan.requires_service_restart,
+        vault_path=plan.vault_path,
+        status=plan.status.value,
+        created_at=plan.created_at.isoformat(),
+    )
+
+
+@router.get(
+    "/policies",
+    response_model=List[MgrPolicyResponse],
+    summary="Active secrets policies",
+    tags=["Secrets Management"],
+)
+def get_mgr_policies() -> List[MgrPolicyResponse]:
+    """List all active secrets management policies with compliance framework mappings."""
+    mgr = _require_mgr()
+    return [
+        MgrPolicyResponse(
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            categories=[c.value for c in p.categories],
+            max_age_days=p.max_age_days,
+            require_rotation=p.require_rotation,
+            block_on_commit=p.block_on_commit,
+            compliance_frameworks=p.compliance_frameworks,
+            created_at=p.created_at.isoformat(),
+        )
+        for p in mgr.get_policies()
+    ]
+
+
+@router.get(
+    "/pre-commit",
+    response_model=Dict[str, str],
+    summary="Generate pre-commit hook config",
+    tags=["Secrets Management"],
+)
+def get_precommit_config(
+    repo_path: Optional[str] = Query(None, description="If provided, write config to this path"),
+) -> Dict[str, str]:
+    """
+    Generate a .pre-commit-config.yaml with ALDECI secrets scanner hook.
+    Blocks commits containing secrets before they reach the remote.
+    """
+    mgr = _require_mgr()
+    write_path = repo_path or "/tmp/aldeci_precommit_preview"
+    yaml_content = mgr.generate_precommit_config(write_path)
+    hook_script = mgr.generate_precommit_hook_script()
+    return {
+        "pre_commit_config": yaml_content,
+        "hook_script": hook_script,
+        "instructions": (
+            "1. Copy .pre-commit-config.yaml to your repo root.\n"
+            "2. pip install pre-commit\n"
+            "3. pre-commit install\n"
+            "4. Commits containing secrets will now be blocked automatically."
+        ),
+    }
+
+
+@router.get(
+    "/compliance",
+    response_model=Dict[str, Any],
+    summary="Compliance framework mapping",
+    tags=["Secrets Management"],
+)
+def get_compliance_summary() -> Dict[str, Any]:
+    """Map secret findings to SOC2 CC6.1, PCI-DSS 3.4, and HIPAA 164.312 controls."""
+    mgr = _require_mgr()
+    return mgr.compliance_summary()
+
+
+@router.get(
+    "/patterns",
+    response_model=Dict[str, Any],
+    summary="All detection patterns",
+    tags=["Secrets Management"],
+)
+def get_all_patterns() -> Dict[str, Any]:
+    """Return metadata for all 200+ secret detection patterns."""
+    if not _HAS_MGR:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SecretsManager not available",
+        )
+    by_category: Dict[str, List[Dict[str, Any]]] = {}
+    for p in SECRET_PATTERNS:
+        cat = p["category"].value if hasattr(p["category"], "value") else str(p["category"])
+        by_category.setdefault(cat, [])
+        by_category[cat].append({
+            "id": p["id"],
+            "name": p["name"],
+            "severity": p["severity"].value if hasattr(p["severity"], "value") else str(p["severity"]),
+            "compliance": p.get("compliance", []),
+        })
+    return {"total_patterns": len(SECRET_PATTERNS), "by_category": by_category}

@@ -200,6 +200,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("SOAR Engine router not available: %s", e)
 
+# IR Playbook Engine — NIST 800-61 structured incident response with evidence chain
+ir_playbook_router: Optional[APIRouter] = None
+try:
+    from apps.api.ir_playbook_router import router as ir_playbook_router
+    logging.getLogger(__name__).info("Loaded IR Playbook Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("IR Playbook Engine router not available: %s", e)
+
 # Security Policy Document Generator — auto-generate policies from platform config
 policy_generator_router: Optional[APIRouter] = None
 try:
@@ -2461,6 +2469,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted SOAR Engine router")
 
+    # IR Playbook Engine — NIST 800-61 incident response, evidence chain, regulatory notifications
+    if ir_playbook_router:
+        app.include_router(
+            ir_playbook_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted IR Playbook Engine router")
+
     # Security Policy Document Generator — generate, approve, archive, export policies
     if policy_generator_router:
         app.include_router(
@@ -4577,6 +4593,17 @@ def create_app() -> FastAPI:
         _logger.warning("Auto Evidence Collection router not loaded: %s", exc)
 
     # ------------------------------------------------------------------
+    # Deployment Manager router (health, status, initialize, config)
+    # ------------------------------------------------------------------
+    try:
+        from apps.api.deployment_router import router as deployment_router
+
+        app.include_router(deployment_router)
+        _logger.info("Mounted Deployment Manager router at /api/v1/deployment")
+    except ImportError as exc:
+        _logger.warning("Deployment Manager router not loaded: %s", exc)
+
+    # ------------------------------------------------------------------
     # MCP Auto-Discovery router (must be mounted after all other routers
     # so that the startup hook can introspect the full route table)
     # ------------------------------------------------------------------
@@ -4899,6 +4926,14 @@ def create_app() -> FastAPI:
         _logger.info("Loaded Phishing Simulation router")
     except ImportError as _e:
         _logger.warning("Phishing Simulation router not available: %s", _e)
+
+    # DAST Scanner — Dynamic Application Security Testing (OWASP Top 10)
+    try:
+        from apps.api.dast_router import router as dast_router
+        app.include_router(dast_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted DAST Scanner router")
+    except ImportError as _dast_err:
+        _logger.warning("DAST Scanner router not available: %s", _dast_err)
 
     # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
