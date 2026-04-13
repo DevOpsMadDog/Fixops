@@ -262,6 +262,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Backup router not available: %s", e)
 
+patch_manager_router: Optional[APIRouter] = None
+try:
+    from apps.api.patch_manager_router import router as patch_manager_router
+    logging.getLogger(__name__).info("Loaded Patch Manager router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Patch Manager router not available: %s", e)
+
 bulk_operations_router: Optional[APIRouter] = None
 try:
     from apps.api.bulk_operations_router import router as bulk_operations_router
@@ -415,6 +422,13 @@ try:
     logging.getLogger(__name__).info("Loaded Posture router")
 except ImportError as e:
     logging.getLogger(__name__).warning("Posture router not available: %s", e)
+
+posture_benchmark_router: Optional[APIRouter] = None
+try:
+    from apps.api.posture_benchmark_router import router as posture_benchmark_router
+    logging.getLogger(__name__).info("Loaded Posture Benchmark router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Posture Benchmark router not available: %s", e)
 
 pr_generator_router: Optional[APIRouter] = None
 try:
@@ -2743,6 +2757,7 @@ def create_app() -> FastAPI:
         (apikey_router, "API Key Management", "admin:all"),
         (asset_inventory_router, "Asset Inventory", "read:findings"),
         (backup_router, "Backup", "admin:all"),
+        (patch_manager_router, "Patch Management", "read:findings"),
         (bulk_operations_router, "Bulk Operations", "write:findings"),
         (changelog_router, "Changelog", "read:findings"),
         (cicd_router, "CI/CD", "write:findings"),
@@ -2765,6 +2780,7 @@ def create_app() -> FastAPI:
         (pentest_router, "Pentest", "attack:execute"),
         (auto_pentest_router, "Auto Pentest", "attack:execute"),
         (posture_router, "Posture", "read:findings"),
+        (posture_benchmark_router, "Posture Benchmark", "read:findings"),
         (pr_generator_router, "PR Generator", "write:findings"),
         (prioritizer_router, "Prioritizer", "read:findings"),
         (rate_limit_router, "Rate Limits", "admin:all"),
