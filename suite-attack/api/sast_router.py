@@ -1,10 +1,15 @@
 """ALdeci SAST Router — Static Application Security Testing API.
 
 Endpoints:
-  POST /api/v1/sast/scan/code      — scan a single code snippet
-  POST /api/v1/sast/scan/files     — scan multiple files
-  GET  /api/v1/sast/rules          — list all SAST rules
-  GET  /api/v1/sast/status         — engine status
+  POST /api/v1/sast/scan            — trigger SAST scan (repo path or file list)
+  POST /api/v1/sast/scan/code       — scan a single code snippet
+  POST /api/v1/sast/scan/files      — scan multiple files
+  GET  /api/v1/sast/findings        — SAST findings with severity and CWE filters
+  GET  /api/v1/sast/rules           — active rules by language
+  POST /api/v1/sast/rules/custom    — add custom Semgrep-format YAML rule
+  GET  /api/v1/sast/languages       — supported languages with rule counts
+  GET  /api/v1/sast/summary         — scan summary (findings by language, severity, CWE)
+  GET  /api/v1/sast/status          — engine status / health check
 """
 
 from __future__ import annotations
@@ -12,9 +17,9 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from core.sast_engine import SAST_RULES, get_sast_engine
+from core.sast_engine import SAST_RULES, _EXTRA_RULES, get_sast_engine, parse_semgrep_yaml, SASTEngine
 from fastapi import APIRouter, HTTPException, Depends
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
@@ -51,6 +56,31 @@ class ScanCodeRequest(BaseModel):
 
 class ScanFilesRequest(BaseModel):
     files: Dict[str, str] = Field(..., description="Map of filename → code content")
+
+
+class ScanRequest(BaseModel):
+    """Unified scan request — provide either repo_path or file_list."""
+    repo_path: Optional[str] = Field(
+        None,
+        description="Absolute path to the repository root to scan",
+        max_length=1024,
+    )
+    file_list: Optional[List[str]] = Field(
+        None,
+        description="Explicit list of file paths to scan",
+        max_length=_MAX_FILES,
+    )
+    incremental: bool = Field(
+        False, description="Skip files whose content hash is unchanged since last scan"
+    )
+
+
+class CustomRuleRequest(BaseModel):
+    yaml_text: str = Field(
+        ...,
+        description="Semgrep-format YAML rule(s) to add",
+        max_length=100_000,
+    )
 
 
 def _sanitize_filename(filename: str) -> str:
@@ -130,6 +160,85 @@ def _persist_sast_findings(findings: list, app_id: str | None = None) -> int:
         return -1  # Distinguish error from zero findings
 
 
+@router.post("/scan")
+async def trigger_scan(req: ScanRequest) -> Dict[str, Any]:
+    """Trigger a SAST scan by repo path or explicit file list.
+
+    - Supply ``repo_path`` to scan all supported files under that directory.
+    - Supply ``file_list`` to scan specific files (must be absolute paths).
+    - Set ``incremental=true`` to skip files unchanged since last scan.
+    """
+    import os
+
+    engine = get_sast_engine()
+
+    if req.repo_path is None and req.file_list is None:
+        raise HTTPException(400, "Provide repo_path or file_list")
+
+    if req.repo_path is not None:
+        # Security: repo_path must be an existing directory
+        safe_path = os.path.realpath(req.repo_path)
+        if not os.path.isdir(safe_path):
+            raise HTTPException(400, f"repo_path is not a valid directory: {req.repo_path}")
+        result = engine.scan_path(safe_path, incremental=req.incremental)
+    else:
+        # file_list mode: read each file and scan
+        file_contents: Dict[str, str] = {}
+        for fp in (req.file_list or []):
+            safe_fp = os.path.realpath(fp)
+            if not os.path.isfile(safe_fp):
+                continue
+            try:
+                with open(safe_fp, encoding="utf-8", errors="replace") as fh:
+                    content = fh.read(engine.MAX_CODE_SIZE)
+                file_contents[safe_fp] = content
+            except OSError:
+                continue
+        if not file_contents:
+            raise HTTPException(400, "No readable files found in file_list")
+        result = engine.scan_files(file_contents, incremental=req.incremental)
+
+    result_dict = result.to_dict()
+    persisted = _persist_sast_findings(result_dict.get("findings", []))
+    result_dict["persisted_count"] = persisted
+    return result_dict
+
+
+@router.get("/languages")
+async def list_languages() -> Dict[str, Any]:
+    """Return supported languages with rule counts and file extensions."""
+    langs = SASTEngine.get_supported_languages()
+    return {
+        "languages": langs,
+        "total_languages": len(langs),
+    }
+
+
+@router.get("/summary")
+async def scan_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Return summary of the most recent scan: findings by language, severity, CWE."""
+    engine = get_sast_engine()
+    summary = engine.get_summary()
+    return summary
+
+
+@router.post("/rules/custom")
+async def add_custom_rule(req: CustomRuleRequest) -> Dict[str, Any]:
+    """Add one or more custom Semgrep-format YAML rules to the engine."""
+    if not req.yaml_text.strip():
+        raise HTTPException(400, "Empty yaml_text provided")
+    engine = get_sast_engine()
+    try:
+        added = engine.add_semgrep_rules(req.yaml_text)
+    except Exception as exc:
+        logger.exception("Failed to parse custom Semgrep rules")
+        raise HTTPException(400, f"Failed to parse YAML rules: {exc}") from exc
+    return {
+        "added": len(added),
+        "rules": [r.to_dict() for r in added],
+    }
+
+
 @router.post("/scan/code")
 async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
     """Scan a single code snippet for vulnerabilities."""
@@ -175,56 +284,77 @@ async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
 @router.get("/findings")
 async def list_sast_findings(
     severity: str = None,
+    cwe: str = None,
+    language: str = None,
     limit: int = 100,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """List SAST scan findings."""
-    try:
-        from core.analytics_db import AnalyticsDB
-        db = AnalyticsDB()
-        findings = db.list_findings(limit=limit)
-        sast_findings = []
-        for f in findings:
-            src = getattr(f, 'source', '') or ''
-            if 'sast' in src.lower() or 'static' in src.lower():
-                sev = f.severity.value if hasattr(f.severity, 'value') else str(f.severity)
-                if severity and sev.lower() != severity.lower():
-                    continue
-                sast_findings.append({
-                    'id': f.id,
-                    'title': getattr(f, 'title', 'SAST Finding'),
-                    'severity': sev,
-                    'status': f.status.value if hasattr(f.status, 'value') else str(f.status),
-                    'source': src,
-                    'created_at': f.created_at.isoformat() if hasattr(f, 'created_at') and f.created_at else None,
-                })
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
-        sast_findings = []
+    """List SAST findings from the most recent scan, with optional filters.
+
+    Query parameters:
+    - ``severity``: Filter by severity (critical/high/medium/low/info)
+    - ``cwe``: Filter by CWE ID (e.g. CWE-89)
+    - ``language``: Filter by language (e.g. python, javascript)
+    - ``limit``: Maximum number of results (default 100)
+    """
+    engine = get_sast_engine()
+    findings = engine.get_all_findings(severity=severity, cwe=cwe, language=language)
+    findings = findings[:limit]
     return {
-        'findings': sast_findings,
-        'total': len(sast_findings),
-        'scanner': 'ALdeci SAST Engine',
+        "findings": findings,
+        "total": len(findings),
+        "scanner": "ALdeci SAST Engine",
+        "filters": {"severity": severity, "cwe": cwe, "language": language},
     }
 
 
 @router.get("/rules")
-async def list_rules() -> List[Dict[str, Any]]:
-    """List all SAST rules."""
+async def list_rules(language: str = None) -> Dict[str, Any]:
+    """List active SAST rules, optionally filtered by language.
+
+    Query parameters:
+    - ``language``: Return only rules that apply to this language
+      (e.g. python, javascript, typescript, go, java, c, cpp, rust, ruby, php)
+    """
+    all_rules = list(SAST_RULES) + list(_EXTRA_RULES)
+    # Also include any custom Semgrep rules
+    engine = get_sast_engine()
+    custom_rules = engine.get_custom_rules()
+
     rules = []
-    for r in SAST_RULES:
+    for r in all_rules:
         rid, title, sev, cwe, pat, msg, fix, langs = r
-        rules.append(
-            {
-                "rule_id": rid,
-                "title": title,
-                "severity": sev,
-                "cwe_id": cwe,
-                "message": msg,
-                "fix_suggestion": fix,
-                "languages": langs,
-            }
-        )
-    return rules
+        if language and language.lower() not in langs:
+            continue
+        rules.append({
+            "rule_id": rid,
+            "title": title,
+            "severity": sev,
+            "cwe_id": cwe,
+            "message": msg,
+            "fix_suggestion": fix,
+            "languages": langs,
+            "source": "builtin",
+        })
+    for cr in custom_rules:
+        if language and language.lower() not in cr.languages:
+            continue
+        rules.append({
+            "rule_id": cr.rule_id,
+            "title": cr.rule_id,
+            "severity": cr.severity,
+            "cwe_id": cr.cwe or "CWE-0",
+            "message": cr.message,
+            "fix_suggestion": cr.fix or "",
+            "languages": cr.languages,
+            "source": "custom",
+        })
+
+    return {
+        "rules": rules,
+        "total": len(rules),
+        "filter": {"language": language},
+    }
 
 
 @router.get("/status")

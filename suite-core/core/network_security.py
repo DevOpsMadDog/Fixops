@@ -612,7 +612,7 @@ class NDREngine:
         # --- Flat network detection ---
         vlans = {a.vlan_id for a in assets if a.vlan_id is not None}
         firewalls = [a for a in assets if a.asset_type == AssetType.FIREWALL]
-        if len(vlans) <= 1 and not firewalls:
+        if assets and len(vlans) <= 1 and not firewalls:
             f = SegmentationFinding(
                 org_id=org,
                 segment_name="global",

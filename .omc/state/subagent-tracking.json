@@ -676,21 +676,27 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:02:47.769Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:16:09.112Z",
+      "duration_ms": 801343
     },
     {
       "agent_id": "a41b914b471440669",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:03:27.749Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:13:43.199Z",
+      "duration_ms": 615450
     },
     {
       "agent_id": "a35d02586d37e2899",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:03:45.636Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:13:28.436Z",
+      "duration_ms": 582800
     },
     {
       "agent_id": "a6823e3dc57a0e4ee",
@@ -706,14 +712,18 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:04:46.064Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:14:22.217Z",
+      "duration_ms": 576153
     },
     {
       "agent_id": "a3c03708bf9e9c772",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:04:59.425Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:14:38.020Z",
+      "duration_ms": 578595
     },
     {
       "agent_id": "ac58c51fa5dc4f011",
@@ -729,7 +739,9 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:05:26.720Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:14:35.120Z",
+      "duration_ms": 548400
     },
     {
       "agent_id": "acb0f84e554e22ff3",
@@ -754,21 +766,27 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:06:00.855Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:15:04.833Z",
+      "duration_ms": 543978
     },
     {
       "agent_id": "a2c3601c6a0c4cc71",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:06:55.615Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:16:32.464Z",
+      "duration_ms": 576849
     },
     {
       "agent_id": "a5dbeb67f3be69565",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:07:04.164Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:14:02.206Z",
+      "duration_ms": 418042
     },
     {
       "agent_id": "a1f4abd861bd35c95",
@@ -793,25 +811,58 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:08:06.292Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:18:39.665Z",
+      "duration_ms": 633373
     },
     {
       "agent_id": "af9ea31c4c1239157",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:08:16.795Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:14:54.698Z",
+      "duration_ms": 397903
     },
     {
       "agent_id": "a5c519f49cbd371e8",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-13T11:08:27.558Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-13T11:16:53.653Z",
+      "duration_ms": 506095
+    },
+    {
+      "agent_id": "acb2b9217daf5acca",
+      "agent_type": "oh-my-claudecode:executor",
+      "started_at": "2026-04-13T11:16:21.313Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-13T11:29:09.196Z",
+      "duration_ms": 767883
+    },
+    {
+      "agent_id": "ad39aea257a775c47",
+      "agent_type": "oh-my-claudecode:test-engineer",
+      "started_at": "2026-04-13T11:19:28.692Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-13T11:23:18.125Z",
+      "duration_ms": 229433
+    },
+    {
+      "agent_id": "a9edb0a96915a0096",
+      "agent_type": "oh-my-claudecode:test-engineer",
+      "started_at": "2026-04-13T11:19:31.479Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-13T11:22:50.861Z",
+      "duration_ms": 199382
     }
   ],
-  "total_spawned": 93,
-  "total_completed": 79,
+  "total_spawned": 96,
+  "total_completed": 94,
   "total_failed": 0,
-  "last_updated": "2026-04-13T11:13:09.802Z"
+  "last_updated": "2026-04-13T11:29:09.300Z"
 }

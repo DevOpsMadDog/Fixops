@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git add -A && git commit -m \\\"$(cat <<'EOF'\\nbeast-mode(feature): MEGA COMMIT — 10 engines, 700+ new tests\\n\\nCSPM Engine (74 tests): CIS benchmarks AWS/Azure/GCP, drift detection\\nComplia...",
-  "error": "Exit code 1\n[features/intermediate-stage 90a1e78a] beast-mode(feature): MEGA COMMIT — 10 engines, 700+ new tests\n 74 files changed, 57290 insertions(+), 4015 deletions(-)\n create mode 100644 .claude/scheduled_tasks.lock\n create mode 100644 .claude/settings.json\n create mode 100644 .claude/skills/researcher/SKILL.md\n create mode 100644 .omc/project-memory.json\n create mode 100644 .omc/state/agent-replay-cd94a3bb-f4d2-444d-81a3-399864718b47.jsonl\n create mode 100644 .omc/state/checkpoints/checkpoi...",
-  "timestamp": "2026-04-13T11:12:46.442Z",
-  "retry_count": 18
+  "tool_input_preview": "{\"command\":\"git add tests/test_e2e_famous_repos.py tests/test_pentest_manager.py tests/test_security_training.py && git commit -m \\\"$(cat <<'EOF'\\nbeast-mode(feature): FINAL WAVE — E2E real repos + pe...",
+  "error": "Exit code 1\n[features/intermediate-stage 7034b261] beast-mode(feature): FINAL WAVE — E2E real repos + pentest + training (256 tests)\n 3 files changed, 3078 insertions(+)\n create mode 100644 tests/test_e2e_famous_repos.py\n create mode 100644 tests/test_pentest_manager.py\n create mode 100644 tests/test_security_training.py\nremote: error: GH013: Repository rule violations found for refs/heads/features/intermediate-stage.        \nremote: \nremote: - GITHUB PUSH PROTECTION        \nremote:   ——————————...",
+  "timestamp": "2026-04-13T11:51:58.435Z",
+  "retry_count": 1
 }

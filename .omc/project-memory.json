@@ -400,20 +400,26 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 77,
-      "lastAccessed": 1776078753845,
+      "accessCount": 110,
+      "lastAccessed": 1776079076697,
       "type": "directory"
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 15,
-      "lastAccessed": 1776078494273,
+      "accessCount": 16,
+      "lastAccessed": 1776078819875,
       "type": "file"
     },
     {
       "path": "suite-core/core/anomaly_detector.py",
       "accessCount": 9,
       "lastAccessed": 1776078497427,
+      "type": "file"
+    },
+    {
+      "path": "suite-core/core/supply_chain_security.py",
+      "accessCount": 9,
+      "lastAccessed": 1776079032881,
       "type": "file"
     },
     {
@@ -495,6 +501,12 @@
       "type": "file"
     },
     {
+      "path": "tests/test_phase4_integration.py",
+      "accessCount": 3,
+      "lastAccessed": 1776079017150,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/phishing_router.py",
       "accessCount": 2,
       "lastAccessed": 1776077770630,
@@ -510,12 +522,6 @@
       "path": "tests/test_code_to_cloud_tracer.py",
       "accessCount": 2,
       "lastAccessed": 1776078089574,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_phase4_integration.py",
-      "accessCount": 2,
-      "lastAccessed": 1776078144439,
       "type": "file"
     },
     {
@@ -612,12 +618,6 @@
       "path": "suite-core/core/attack_surface_discovery.py",
       "accessCount": 1,
       "lastAccessed": 1776077779741,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/supply_chain_security.py",
-      "accessCount": 1,
-      "lastAccessed": 1776077944048,
       "type": "file"
     },
     {
