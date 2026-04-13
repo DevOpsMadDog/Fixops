@@ -1208,6 +1208,17 @@ except ImportError as e:
     _logger.warning("Attack Surface Discovery router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Attack Surface Manager router (full ASM engine — CTEM positioning)
+# ---------------------------------------------------------------------------
+attack_surface_manager_router: Optional[APIRouter] = None
+try:
+    from apps.api.attack_surface_manager_router import router as attack_surface_manager_router
+
+    _logger.info("Loaded Attack Surface Manager router")
+except ImportError as e:
+    _logger.warning("Attack Surface Manager router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Dependency-Track router (SBOM analysis — from suite-core/api/)
 # ---------------------------------------------------------------------------
 dtrack_router: Optional[APIRouter] = None
@@ -2799,6 +2810,7 @@ def create_app() -> FastAPI:
         (threat_modeling_router, "Threat Modeling", None, "read:findings"),
         (ai_code_guardian_router, "AI Code Guardian", None, "read:findings"),
         (attack_surface_router, "Attack Surface Discovery", None, "read:findings"),
+        (attack_surface_manager_router, "Attack Surface Manager", None, "read:findings"),
     ]
     for _r, _name, _prefix, _scope in _core_routers:
         if _r:

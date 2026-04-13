@@ -1,22 +1,18 @@
 """
-Supply Chain Intelligence API router for ALDECI.
+Supply Chain Security API Router.
 
-Provides endpoints for analyzing package supply chain risks, detecting
-typosquatting, maintainer trust, abandoned packages, and dependency confusion.
+8 endpoints:
+  POST   /api/v1/supply-chain/sbom/upload       Upload SBOM (CycloneDX or SPDX JSON)
+  GET    /api/v1/supply-chain/components         List all tracked components with risk scores
+  GET    /api/v1/supply-chain/risks              Supply chain risk dashboard data
+  POST   /api/v1/supply-chain/scan               Trigger dependency scan for a repo
+  GET    /api/v1/supply-chain/policies           List active policies
+  POST   /api/v1/supply-chain/policies           Create/update a policy
+  GET    /api/v1/supply-chain/vendors            Vendor risk assessments
+  POST   /api/v1/supply-chain/vendors            Create/update a vendor risk assessment
+  GET    /api/v1/supply-chain/provenance/{component}  Provenance info for a component
 
-Routes:
-- POST   /api/v1/supply-chain/analyze          — analyze a single package
-- POST   /api/v1/supply-chain/analyze-sbom     — analyze all SBOM components
-- GET    /api/v1/supply-chain/alerts           — list alerts
-- POST   /api/v1/supply-chain/alerts/{id}/resolve — resolve alert
-- GET    /api/v1/supply-chain/high-risk        — high-risk packages
-- GET    /api/v1/supply-chain/stats            — supply chain stats
-- GET    /api/v1/supply-chain/risk-summary     — risk summary by ecosystem/category
-- POST   /api/v1/supply-chain/typosquat        — typosquat detection
-- POST   /api/v1/supply-chain/maintainer-trust — maintainer trust check
-- GET    /api/v1/supply-chain/malicious-db     — list known-malicious packages
-
-Protected by api_key_auth dependency.
+Compliance: NIST SP 800-218 (SSDF), EO 14028, SLSA Framework
 """
 
 from __future__ import annotations
@@ -24,254 +20,380 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from apps.api.auth_deps import api_key_auth
+try:
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    from fastapi import Depends
+    _AUTH_DEP: list = [Depends(_api_key_auth)]
+except ImportError:
+    logging.getLogger(__name__).warning(
+        "supply_chain_router: auth_deps not available, relying on app.py mount-level auth"
+    )
+    _AUTH_DEP = []
 
-logger = logging.getLogger(__name__)
+from core.supply_chain_security import (
+    PolicyAction,
+    ProvenanceLevel,
+    ProvenanceRecord,
+    RiskDashboard,
+    SupplyChainEngine,
+    SupplyChainPolicy,
+    VendorRiskAssessment,
+    VendorTier,
+)
+
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/supply-chain",
-    tags=["supply-chain"],
-    dependencies=[Depends(api_key_auth)],
+    tags=["Supply Chain Security"],
+    dependencies=_AUTH_DEP,
 )
 
-
-# ---------------------------------------------------------------------------
-# Lazy singleton — avoids import-time SQLite init during tests
-# ---------------------------------------------------------------------------
-
-_intel = None
+# Shared engine singleton (SQLite-backed)
+_engine: Optional[SupplyChainEngine] = None
 
 
-def _get_intel():
-    global _intel
-    if _intel is None:
-        from core.supply_chain_intel import SupplyChainIntel
-        _intel = SupplyChainIntel()
-    return _intel
+def _get_engine() -> SupplyChainEngine:
+    global _engine
+    if _engine is None:
+        _engine = SupplyChainEngine()
+    return _engine
 
 
-# ---------------------------------------------------------------------------
-# Request models
-# ---------------------------------------------------------------------------
-
-class AnalyzePackageRequest(BaseModel):
-    package_name: str = Field(..., description="Package name to analyze")
-    ecosystem: str = Field(..., description="pip, npm, or maven")
-    version: str = Field(default="", description="Package version (optional)")
-    org_id: str = Field(default="default", description="Organisation ID")
+# ============================================================================
+# REQUEST / RESPONSE MODELS
+# ============================================================================
 
 
-class AnalyzeSBOMRequest(BaseModel):
-    sbom_id: str = Field(..., description="SBOM ID to analyze all components of")
-    org_id: str = Field(default="default", description="Organisation ID")
+class SBOMUploadRequest(BaseModel):
+    """Request body for uploading an SBOM document."""
 
-
-class TyposquatRequest(BaseModel):
-    package_name: str = Field(..., description="Package name to check")
-    ecosystem: str = Field(..., description="pip, npm, or maven")
-
-
-class MaintainerTrustRequest(BaseModel):
-    package_name: str = Field(..., description="Package name to check")
-    ecosystem: str = Field(..., description="pip, npm, or maven")
-
-
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
-
-@router.post("/analyze", summary="Analyze a single package for supply chain risk")
-async def analyze_package(req: AnalyzePackageRequest) -> Dict[str, Any]:
-    """Score a package for typosquatting, abandonment, malicious code, and more."""
-    intel = _get_intel()
-    result = intel.analyze_package(
-        name=req.package_name,
-        ecosystem=req.ecosystem,
-        version=req.version,
-        org_id=req.org_id,
+    sbom: Dict[str, Any] = Field(
+        ..., description="Raw CycloneDX or SPDX SBOM as a JSON object"
     )
-    return {
-        "package_name": result.package_name,
-        "ecosystem": result.ecosystem,
-        "version": result.version,
-        "risk_score": result.risk_score,
-        "risk_level": _score_to_level(result.risk_score),
-        "risks": result.risks,
-        "maintainer_count": result.maintainer_count,
-        "last_updated_days": result.last_updated_days,
-        "download_count": result.download_count,
-        "dependencies_count": result.dependencies_count,
-        "org_id": result.org_id,
-    }
+    org_id: str = Field("default", description="Organisation ID")
+    source_repo: Optional[str] = Field(
+        None, description="Git repository URL this SBOM was generated from"
+    )
 
 
-@router.post("/analyze-sbom", summary="Analyze all components of an SBOM")
-async def analyze_sbom(req: AnalyzeSBOMRequest) -> Dict[str, Any]:
-    """Run supply chain analysis across every component in the given SBOM."""
-    intel = _get_intel()
-    results = intel.analyze_sbom(sbom_id=req.sbom_id, org_id=req.org_id)
-    high_risk = [r for r in results if r.risk_score >= 70]
-    return {
-        "sbom_id": req.sbom_id,
-        "org_id": req.org_id,
-        "total_components": len(results),
-        "high_risk_count": len(high_risk),
-        "packages": [
-            {
-                "package_name": r.package_name,
-                "ecosystem": r.ecosystem,
-                "version": r.version,
-                "risk_score": r.risk_score,
-                "risk_level": _score_to_level(r.risk_score),
-                "risks": r.risks,
-            }
-            for r in results
-        ],
-    }
+class SBOMUploadResponse(BaseModel):
+    """Response after SBOM ingestion."""
+
+    sbom_id: str
+    format: str
+    name: str
+    version: str
+    component_count: int
+    sha256: str
+    attack_signals_detected: int
+    org_id: str
 
 
-@router.get("/alerts", summary="List supply chain alerts")
-async def get_alerts(
-    org_id: str = Query(default="default", description="Organisation ID"),
-    unresolved_only: bool = Query(default=False, description="Only return unresolved alerts"),
-) -> Dict[str, Any]:
-    """Return supply chain alerts, optionally filtered to unresolved."""
-    intel = _get_intel()
-    alerts = intel.get_alerts(org_id=org_id)
-    if unresolved_only:
-        alerts = [a for a in alerts if not a.resolved]
-    return {
-        "org_id": org_id,
-        "total": len(alerts),
-        "alerts": [
-            {
-                "id": a.id,
-                "package_name": a.package_name,
-                "category": a.category.value,
-                "severity": a.severity,
-                "description": a.description,
-                "detected_at": a.detected_at,
-                "resolved": a.resolved,
-            }
-            for a in alerts
-        ],
-    }
+class ScanRequest(BaseModel):
+    """Request body for triggering a repository dependency scan."""
+
+    repo_url: str = Field(..., description="Git repository URL to scan")
+    branch: str = Field("main", description="Branch to scan")
+    org_id: str = Field("default", description="Organisation ID")
 
 
-@router.post("/alerts/{alert_id}/resolve", summary="Resolve a supply chain alert")
-async def resolve_alert(alert_id: str) -> Dict[str, Any]:
-    """Mark a supply chain alert as resolved."""
-    intel = _get_intel()
-    found = intel.resolve_alert(alert_id)
-    if not found:
-        raise HTTPException(status_code=404, detail=f"Alert {alert_id!r} not found")
-    return {"alert_id": alert_id, "resolved": True}
+class CreatePolicyRequest(BaseModel):
+    """Request body for creating or updating a supply chain policy."""
+
+    name: str = Field(..., description="Policy name")
+    description: str = Field("", description="Policy description")
+    enabled: bool = Field(True)
+    action: PolicyAction = Field(PolicyAction.WARN)
+    org_id: str = Field("default")
+    blocked_licenses: Optional[List[str]] = Field(
+        None,
+        description="SPDX license IDs to block. Defaults to GPL-2.0, GPL-3.0, AGPL-3.0, LGPL variants.",
+    )
+    require_sbom: bool = Field(False)
+    max_transitive_depth: Optional[int] = Field(None, ge=0)
+    required_provenance_level: ProvenanceLevel = Field(ProvenanceLevel.SLSA_0)
+    max_critical_cves: int = Field(0, ge=0)
+    max_overall_risk_score: float = Field(80.0, ge=0.0, le=100.0)
 
 
-@router.get("/high-risk", summary="List high-risk packages")
-async def get_high_risk_packages(
-    org_id: str = Query(default="default", description="Organisation ID"),
-    threshold: float = Query(default=70.0, ge=0, le=100, description="Risk score threshold"),
-) -> Dict[str, Any]:
-    """Return packages whose risk score meets or exceeds the threshold."""
-    intel = _get_intel()
-    packages = intel.get_high_risk_packages(org_id=org_id, threshold=threshold)
-    return {
-        "org_id": org_id,
-        "threshold": threshold,
-        "count": len(packages),
-        "packages": [
-            {
-                "package_name": p.package_name,
-                "ecosystem": p.ecosystem,
-                "version": p.version,
-                "risk_score": p.risk_score,
-                "risk_level": _score_to_level(p.risk_score),
-                "risks": p.risks,
-            }
-            for p in packages
-        ],
-    }
+class CreateVendorRequest(BaseModel):
+    """Request body for creating or updating a vendor risk assessment."""
+
+    vendor_name: str = Field(..., description="Vendor / publisher name")
+    vendor_url: Optional[str] = Field(None)
+    tier: VendorTier = Field(VendorTier.MEDIUM)
+    org_id: str = Field("default")
+    security_score: float = Field(50.0, ge=0.0, le=100.0)
+    sla_uptime_pct: Optional[float] = Field(None, ge=0.0, le=100.0)
+    sla_response_hours: Optional[int] = Field(None, ge=0)
+    sla_compliant: bool = Field(True)
+    known_breaches: int = Field(0, ge=0)
+    breach_details: List[str] = Field(default_factory=list)
+    component_count: int = Field(0, ge=0)
+    security_contact: Optional[str] = Field(None)
+    bug_bounty: bool = Field(False)
+    mfa_required: bool = Field(False)
+    sbom_provided: bool = Field(False)
+    notes: str = Field("")
 
 
-@router.get("/stats", summary="Supply chain statistics")
-async def get_stats(
-    org_id: str = Query(default="default", description="Organisation ID"),
-) -> Dict[str, Any]:
-    """Return aggregate supply chain statistics for an organisation."""
-    intel = _get_intel()
-    return intel.get_supply_chain_stats(org_id=org_id)
+class ProvenanceQueryResponse(BaseModel):
+    """Response for a provenance lookup."""
+
+    found: bool
+    component_name: str
+    component_version: Optional[str]
+    provenance: Optional[ProvenanceRecord]
 
 
-@router.get("/risk-summary", summary="Risk summary by ecosystem and category")
-async def get_risk_summary(
-    org_id: str = Query(default="default", description="Organisation ID"),
-) -> Dict[str, Any]:
-    """Return risk breakdown by ecosystem, category, and severity."""
-    intel = _get_intel()
-    return intel.get_risk_summary(org_id=org_id)
+# ============================================================================
+# ENDPOINTS
+# ============================================================================
 
 
-@router.post("/typosquat", summary="Detect typosquatting candidates")
-async def detect_typosquat(req: TyposquatRequest) -> Dict[str, Any]:
-    """Check whether a package name is a known or likely typosquat."""
-    intel = _get_intel()
-    hits = intel.detect_typosquat(req.package_name, req.ecosystem)
-    return {
-        "package_name": req.package_name,
-        "ecosystem": req.ecosystem,
-        "is_typosquat": len(hits) > 0,
-        "candidates": hits,
-    }
+@router.post(
+    "/sbom/upload",
+    response_model=SBOMUploadResponse,
+    status_code=201,
+    summary="Upload an SBOM (CycloneDX or SPDX JSON)",
+)
+def upload_sbom(body: SBOMUploadRequest) -> SBOMUploadResponse:
+    """
+    Ingest a Software Bill of Materials document.
+
+    Accepts CycloneDX (v1.4-v1.6) or SPDX (v2.2-v2.3) JSON.
+    On ingestion the engine:
+    - Parses and stores all components
+    - Computes dependency risk scores for each component
+    - Runs supply chain attack detection (typosquatting, dependency confusion,
+      version bump anomalies)
+
+    Returns the SBOM record summary and count of attack signals detected.
+    """
+    engine = _get_engine()
+    try:
+        record, components, signals = engine.ingest_sbom(
+            raw_payload=body.sbom,
+            org_id=body.org_id,
+            source_repo=body.source_repo,
+        )
+        return SBOMUploadResponse(
+            sbom_id=record.id,
+            format=record.format.value,
+            name=record.name,
+            version=record.version,
+            component_count=record.component_count,
+            sha256=record.sha256,
+            attack_signals_detected=len(signals),
+            org_id=record.org_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        _logger.exception("SBOM upload failed for org=%s", body.org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/maintainer-trust", summary="Check maintainer trust for a package")
-async def check_maintainer_trust(req: MaintainerTrustRequest) -> Dict[str, Any]:
-    """Return maintainer trust analysis including account age and change history."""
-    intel = _get_intel()
-    return intel.check_maintainer_trust(req.package_name, req.ecosystem)
+@router.get(
+    "/components",
+    summary="List all tracked components with risk scores",
+)
+def list_components(
+    org_id: str = Query("default", description="Organisation ID"),
+    limit: int = Query(200, ge=1, le=1000, description="Maximum results"),
+) -> List[Dict[str, Any]]:
+    """
+    Return all software components tracked across all uploaded SBOMs.
+
+    Each entry includes the component metadata plus its computed risk score
+    (CVE exposure, license risk, maintenance status, transitive depth, etc.).
+    """
+    engine = _get_engine()
+    try:
+        return engine.list_components(org_id=org_id, limit=limit)
+    except Exception as exc:
+        _logger.exception("list_components failed for org=%s", org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.get("/malicious-db", summary="List known-malicious package database")
-async def get_malicious_db(
-    ecosystem: Optional[str] = Query(
-        default=None, description="Filter by ecosystem (pip, npm, maven)"
-    ),
-) -> Dict[str, Any]:
-    """Return the built-in known-malicious package database, optionally filtered."""
-    from core.supply_chain_intel import _KNOWN_MALICIOUS
+@router.get(
+    "/risks",
+    response_model=RiskDashboard,
+    summary="Supply chain risk dashboard",
+)
+def get_risk_dashboard(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> RiskDashboard:
+    """
+    Return an aggregated risk dashboard for the organisation's supply chain.
 
-    entries = [
-        {
-            "package_name": name,
-            "ecosystem": info["ecosystem"],
-            "reason": info["reason"],
-            "severity": info["severity"],
-        }
-        for name, info in _KNOWN_MALICIOUS.items()
-        if ecosystem is None or info["ecosystem"] == ecosystem
-    ]
-    return {
-        "total": len(entries),
-        "ecosystem_filter": ecosystem,
-        "entries": entries,
-    }
+    Includes:
+    - Component counts by risk level
+    - Recent attack signals
+    - Top-10 highest-risk components
+    - Vendor risk summary
+    - Policy violation counts
+    """
+    engine = _get_engine()
+    try:
+        return engine.get_risk_dashboard(org_id=org_id)
+    except Exception as exc:
+        _logger.exception("get_risk_dashboard failed for org=%s", org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+@router.post(
+    "/scan",
+    summary="Trigger a supply chain dependency scan for a repository",
+)
+def trigger_scan(body: ScanRequest) -> Dict[str, Any]:
+    """
+    Queue a supply chain scan for a Git repository.
 
-def _score_to_level(score: float) -> str:
-    if score >= 90:
-        return "critical"
-    if score >= 70:
-        return "high"
-    if score >= 40:
-        return "medium"
-    if score > 0:
-        return "low"
-    return "none"
+    In production this integrates with pip-audit, npm audit, trivy, and grype
+    to produce CVE findings for all dependencies. Returns a scan job record;
+    results are available asynchronously.
+    """
+    engine = _get_engine()
+    try:
+        return engine.scan_repo(
+            repo_url=body.repo_url,
+            org_id=body.org_id,
+            branch=body.branch,
+        )
+    except Exception as exc:
+        _logger.exception("trigger_scan failed for repo=%s", body.repo_url)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/policies",
+    response_model=List[SupplyChainPolicy],
+    summary="List active supply chain policies",
+)
+def list_policies(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> List[SupplyChainPolicy]:
+    """
+    Return all supply chain security policies for the organisation.
+
+    Policies control:
+    - Which licenses are blocked (e.g. GPL in commercial products)
+    - Whether SBOMs are required for all dependencies
+    - Maximum transitive dependency depth
+    - Required SLSA provenance level
+    - CVE and risk score thresholds
+    """
+    engine = _get_engine()
+    try:
+        return engine.list_policies(org_id=org_id)
+    except Exception as exc:
+        _logger.exception("list_policies failed for org=%s", org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/policies",
+    response_model=SupplyChainPolicy,
+    status_code=201,
+    summary="Create or update a supply chain policy",
+)
+def create_policy(body: CreatePolicyRequest) -> SupplyChainPolicy:
+    """
+    Create a new supply chain security policy.
+
+    Policies are evaluated against every component at SBOM ingestion time and
+    during continuous monitoring scans. Violations trigger the configured action
+    (BLOCK, WARN, or AUDIT).
+    """
+    engine = _get_engine()
+    try:
+        kwargs: Dict[str, Any] = body.model_dump()
+        if kwargs.get("blocked_licenses") is None:
+            del kwargs["blocked_licenses"]
+        policy = SupplyChainPolicy(**kwargs)
+        return engine.create_policy(policy)
+    except Exception as exc:
+        _logger.exception("create_policy failed name=%s org=%s", body.name, body.org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/vendors",
+    response_model=List[VendorRiskAssessment],
+    summary="List vendor risk assessments",
+)
+def list_vendors(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> List[VendorRiskAssessment]:
+    """
+    Return all vendor risk assessments for the organisation.
+
+    Each assessment captures:
+    - Security posture score
+    - SLA compliance
+    - Known breach history
+    - Concentration risk (how many components come from this vendor)
+    - Bug bounty / MFA / SBOM availability signals
+    """
+    engine = _get_engine()
+    try:
+        return engine.list_vendors(org_id=org_id)
+    except Exception as exc:
+        _logger.exception("list_vendors failed for org=%s", org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/vendors",
+    response_model=VendorRiskAssessment,
+    status_code=201,
+    summary="Create or update a vendor risk assessment",
+)
+def upsert_vendor(body: CreateVendorRequest) -> VendorRiskAssessment:
+    """
+    Create or update a vendor risk assessment.
+
+    Concentration risk is automatically computed from component_count.
+    """
+    engine = _get_engine()
+    try:
+        vendor = VendorRiskAssessment(**body.model_dump())
+        return engine.upsert_vendor(vendor)
+    except Exception as exc:
+        _logger.exception("upsert_vendor failed vendor=%s", body.vendor_name)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/provenance/{component_name}",
+    response_model=ProvenanceQueryResponse,
+    summary="Get provenance information for a component",
+)
+def get_provenance(
+    component_name: str,
+    version: Optional[str] = Query(None, description="Specific version to look up"),
+) -> ProvenanceQueryResponse:
+    """
+    Return SLSA provenance and build attestation information for a component.
+
+    Looks up the most recent verified provenance record. Returns SLSA level,
+    builder identity, source URI, signature verification status, and any
+    verification errors.
+    """
+    engine = _get_engine()
+    try:
+        record = engine.get_provenance(component_name=component_name, component_version=version)
+        return ProvenanceQueryResponse(
+            found=record is not None,
+            component_name=component_name,
+            component_version=version,
+            provenance=record,
+        )
+    except Exception as exc:
+        _logger.exception("get_provenance failed component=%s", component_name)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
