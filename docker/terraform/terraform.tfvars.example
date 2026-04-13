@@ -1,0 +1,93 @@
+# =============================================================================
+# ALDECI — Terraform Variable Values Example
+# Copy to terraform.tfvars and fill in real values.
+# DO NOT commit terraform.tfvars — it contains secrets.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Core
+# ---------------------------------------------------------------------------
+aws_region   = "us-east-1"
+environment  = "production"
+project_name = "aldeci"
+
+# ---------------------------------------------------------------------------
+# Networking / Domain
+# Route53 zone must exist before apply.
+# ---------------------------------------------------------------------------
+domain_name          = "aldeci.example.com"
+api_subdomain        = "api"
+ui_subdomain         = "app"
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+
+# ---------------------------------------------------------------------------
+# ECS — API (FastAPI)
+# ---------------------------------------------------------------------------
+api_image         = "123456789012.dkr.ecr.us-east-1.amazonaws.com/aldeci-api:latest"
+api_cpu           = 512       # 0.5 vCPU
+api_memory        = 1024      # 1 GiB
+api_port          = 8000
+api_desired_count = 2
+api_min_count     = 1
+api_max_count     = 10
+
+# ---------------------------------------------------------------------------
+# ECS — UI (React 19 + Vite 6 via Nginx)
+# ---------------------------------------------------------------------------
+ui_image         = "123456789012.dkr.ecr.us-east-1.amazonaws.com/aldeci-ui:latest"
+ui_cpu           = 256        # 0.25 vCPU
+ui_memory        = 512        # 0.5 GiB
+ui_port          = 80
+ui_desired_count = 2
+ui_min_count     = 1
+ui_max_count     = 5
+
+# ---------------------------------------------------------------------------
+# RDS PostgreSQL (disabled by default — ALDECI uses SQLite per domain)
+# Enable when migrating to managed Postgres.
+# ---------------------------------------------------------------------------
+enable_rds                = false
+rds_instance_class        = "db.t3.micro"
+rds_allocated_storage     = 20
+rds_engine_version        = "15.4"
+rds_db_name               = "aldeci"
+rds_username              = "aldeci_admin"
+rds_password              = "CHANGE_ME_USE_SSM_IN_PRODUCTION"
+rds_multi_az              = false
+rds_deletion_protection   = true
+rds_backup_retention_days = 7
+
+# ---------------------------------------------------------------------------
+# S3 Backups
+# Leave backup_bucket_name empty to auto-generate a unique name.
+# ---------------------------------------------------------------------------
+backup_bucket_name        = ""
+backup_retention_days     = 30
+enable_backup_replication = false
+backup_replication_region = "us-west-2"
+
+# ---------------------------------------------------------------------------
+# Secrets / Application Config
+# ---------------------------------------------------------------------------
+# ARN of the Secrets Manager secret containing ALDECI_API_KEY, etc.
+api_key_secret_arn          = "arn:aws:secretsmanager:us-east-1:123456789012:secret:aldeci/production/api-keys-xxxxxx"
+openrouter_api_key_ssm_path = "/aldeci/production/openrouter_api_key"
+fixops_use_council          = "0"   # Set to "1" to enable LLM Council mode
+
+# ---------------------------------------------------------------------------
+# Observability
+# ---------------------------------------------------------------------------
+log_retention_days        = 30
+enable_container_insights = true
+
+# ---------------------------------------------------------------------------
+# Tags — applied to every resource
+# ---------------------------------------------------------------------------
+tags = {
+  Owner      = "platform-team"
+  CostCenter = "security-platform"
+  Compliance = "soc2"
+}
