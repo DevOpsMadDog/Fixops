@@ -177,6 +177,9 @@ const VulnerabilityScanner = lazy(() => import("@/pages/VulnerabilityScanner"));
 const RiskQuantification = lazy(() => import("@/pages/RiskQuantification"));
 const AttackSimulationPage = lazy(() => import("@/pages/AttackSimulation"));
 const VulnerabilityScannerPage = lazy(() => import("@/pages/VulnerabilityScannerPage"));
+const SecurityPostureDashboard = lazy(() => import("@/pages/SecurityPostureDashboard"));
+const ExecutiveBriefing = lazy(() => import("@/pages/ExecutiveBriefing"));
+const ThreatFeedDashboard = lazy(() => import("@/pages/ThreatFeedDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -376,6 +379,9 @@ export default function App() {
             <Route path="/risk-quantification" element={<RiskQuantification />} />
             <Route path="/attack-simulation" element={<AttackSimulationPage />} />
             <Route path="/vuln-scanner-mgmt" element={<VulnerabilityScannerPage />} />
+            <Route path="/security-posture" element={<SecurityPostureDashboard />} />
+            <Route path="/executive-briefing" element={<ExecutiveBriefing />} />
+            <Route path="/threat-feeds" element={<ThreatFeedDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
