@@ -96,6 +96,10 @@ import {
   Link2,
   ShieldOff,
   ScanSearch,
+  UserCheck,
+  GraduationCap,
+  Map,
+  Eye,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -214,6 +218,7 @@ const navGroups: NavGroup[] = [
     icon: Crosshair,
     items: [
       { label: "Hunt Operations", to: "/hunting", icon: Crosshair, badge: "P04" },
+      { label: "Threat Hunting", to: "/threat-hunting", icon: Crosshair, badge: "NEW" },
     ],
   },
   {
@@ -247,6 +252,8 @@ const navGroups: NavGroup[] = [
     icon: Siren,
     items: [
       { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
+      { label: "Incident Timeline", to: "/incident-timeline", icon: AlertTriangle, badge: "NEW" },
+      { label: "Network Analysis", to: "/network-analysis", icon: Network, badge: "NEW" },
     ],
   },
   {
@@ -265,6 +272,7 @@ const navGroups: NavGroup[] = [
       { label: "Vulnerability Lifecycle", to: "/vuln-lifecycle", icon: Bug, badge: "NEW" },
       { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
       { label: "Attack Paths", to: "/attack-paths", icon: Route },
+      { label: "Vuln Heatmap", to: "/vuln-heatmap", icon: Map, badge: "NEW" },
     ],
   },
   {
@@ -280,6 +288,8 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Insider Threats", to: "/insider-threats", icon: UserX, badge: "NEW" },
       { label: "Zero Trust", to: "/zero-trust", icon: Lock },
+      { label: "Identity Governance", to: "/identity-governance", icon: UserCheck, badge: "NEW" },
+      { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap, badge: "NEW" },
     ],
   },
   {
@@ -290,6 +300,8 @@ const navGroups: NavGroup[] = [
       { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, roles: ["admin", "security_analyst"] },
       { label: "Vendor Risk", to: "/vendor-risk", icon: Building2 },
       { label: "Security KPIs", to: "/security-kpis", icon: BarChart3 },
+      { label: "Executive Report", to: "/executive-report", icon: BarChart3, badge: "NEW" },
+      { label: "Audit Log", to: "/audit-log", icon: FileText, badge: "NEW" },
     ],
   },
   {
@@ -299,6 +311,7 @@ const navGroups: NavGroup[] = [
       { label: "Posture Advisor", to: "/posture-advisor", icon: Target, badge: "NEW" },
       { label: "Threat Modeling", to: "/threat-modeling", icon: Layers },
       { label: "Supply Chain", to: "/supply-chain", icon: Link2 },
+      { label: "CSPM", to: "/cspm", icon: Cloud, badge: "NEW" },
     ],
   },
   {
