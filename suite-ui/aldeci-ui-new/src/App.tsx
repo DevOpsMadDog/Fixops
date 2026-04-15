@@ -113,6 +113,8 @@ const SBOMManagement = lazy(() => import("@/pages/sbom/SBOMManagement"));
 const ThreatIntelDashboardPage = lazy(() => import("@/pages/ThreatIntelDashboard"));
 const AssetInventoryPage = lazy(() => import("@/pages/AssetInventory"));
 const VulnLifecyclePage = lazy(() => import("@/pages/VulnLifecycle"));
+const InsiderThreatMonitor = lazy(() => import("@/pages/InsiderThreatMonitor"));
+const SecurityKPIDashboard = lazy(() => import("@/pages/SecurityKPIDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -246,6 +248,7 @@ export default function App() {
             <Route path="/threat-intel" element={<ThreatIntelDashboardPage />} />
             <Route path="/assets" element={<AssetInventoryPage />} />
             <Route path="/vuln-lifecycle" element={<VulnLifecyclePage />} />
+            <Route path="/insider-threats" element={<InsiderThreatMonitor />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
