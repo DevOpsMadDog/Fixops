@@ -7540,6 +7540,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 35 pre-wiring (engines pending creation)
+    try:
+        from apps.api.security_health_scorecard_router import router as security_health_scorecard_router
+        app.include_router(security_health_scorecard_router)
+        _logger.info("Mounted Security Health Scorecard router at /api/v1/health-scorecard")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.compliance_calendar_router import router as compliance_calendar_router
+        app.include_router(compliance_calendar_router)
+        _logger.info("Mounted Compliance Calendar router at /api/v1/compliance-calendar")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cyber_resilience_router import router as cyber_resilience_router
+        app.include_router(cyber_resilience_router)
+        _logger.info("Mounted Cyber Resilience router at /api/v1/cyber-resilience")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.asset_criticality_router import router as asset_criticality_router
+        app.include_router(asset_criticality_router)
+        _logger.info("Mounted Asset Criticality router at /api/v1/asset-criticality")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_investment_router import router as security_investment_router
+        app.include_router(security_investment_router)
+        _logger.info("Mounted Security Investment router at /api/v1/security-investment")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_modeling_pipeline_router import router as threat_modeling_pipeline_router
+        app.include_router(threat_modeling_pipeline_router)
+        _logger.info("Mounted Threat Modeling Pipeline router at /api/v1/threat-modeling-pipeline")
+    except ImportError:
+        pass
+
     return app
 
 
