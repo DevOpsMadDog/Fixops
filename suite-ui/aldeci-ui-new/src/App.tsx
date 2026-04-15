@@ -383,6 +383,14 @@ const AwarenessCampaignDashboard = lazy(() => import("@/pages/AwarenessCampaignD
 const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard"));
 const DataDiscoveryDashboard = lazy(() => import("@/pages/DataDiscoveryDashboard"));
 
+// Wave 30 domain dashboards
+const ComplianceMappingDashboard = lazy(() => import("@/pages/ComplianceMappingDashboard"));
+const VulnScanDashboard = lazy(() => import("@/pages/VulnScanDashboard"));
+const ThreatBriefDashboard = lazy(() => import("@/pages/ThreatBriefDashboard"));
+const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard"));
+const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
+const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -770,6 +778,14 @@ export default function App() {
             <Route path="/awareness-campaigns" element={<AwarenessCampaignDashboard />} />
             <Route path="/risk-treatment" element={<RiskTreatmentDashboard />} />
             <Route path="/data-discovery" element={<DataDiscoveryDashboard />} />
+
+            {/* Wave 30 domain dashboards */}
+            <Route path="/compliance-mapping" element={<ComplianceMappingDashboard />} />
+            <Route path="/vuln-scans" element={<VulnScanDashboard />} />
+            <Route path="/threat-briefs" element={<ThreatBriefDashboard />} />
+            <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
+            <Route path="/asset-tags" element={<AssetTagsDashboard />} />
+            <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
