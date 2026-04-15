@@ -5981,6 +5981,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"XDR Correlation Engine router not loaded: {e}")
 
+    # EDR Engine — process telemetry, auto-detection heuristics, endpoint isolation
+    try:
+        from apps.api.edr_router import router as edr_router
+        app.include_router(edr_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted EDR Engine router at /api/v1/edr")
+    except Exception as e:
+        _logger.warning(f"EDR Engine router not loaded: {e}")
+
+    # Supply Chain Intelligence — package tracking, vuln/malicious flags, SBOM snapshots
+    try:
+        from apps.api.supply_chain_intel_router import router as supply_chain_intel_router
+        app.include_router(supply_chain_intel_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Supply Chain Intel router at /api/v1/supply-chain-intel")
+    except Exception as e:
+        _logger.warning(f"Supply Chain Intel router not loaded: {e}")
+
     return app
 
 
