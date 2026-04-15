@@ -358,3 +358,499 @@ class DLPEngine:
             "org_id": org_id,
             "created_at": now,
         }
+
+    # =========================================================================
+    # Policy-based DLP — multi-tenant incident lifecycle
+    # =========================================================================
+    #
+    # These methods extend DLPEngine with a full policy/incident/exception model
+    # (distinct from the pattern-scan API above) backed by additional tables in
+    # the same SQLite database so the two surfaces can coexist.
+    # =========================================================================
+
+    _VALID_DATA_TYPES = {
+        "credit_card", "ssn", "email", "phone", "iban", "passport",
+        "medical", "ip_address", "custom",
+    }
+    _VALID_CHANNELS = {
+        "email", "web", "usb", "cloud_upload", "print", "clipboard",
+    }
+    _VALID_ACTIONS = {"block", "quarantine", "alert", "allow"}
+    _VALID_SEVERITIES_POL = {"critical", "high", "medium", "low"}
+    _VALID_INCIDENT_STATUSES = {
+        "new", "investigating", "confirmed", "false_positive", "resolved",
+    }
+
+    def _ensure_policy_tables(self) -> None:
+        """Create policy/incident/exception tables if they don't yet exist."""
+        conn = self._get_connection()
+        try:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS dlp_policies (
+                    id              TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL,
+                    policy_name     TEXT NOT NULL,
+                    data_types      TEXT NOT NULL DEFAULT '[]',
+                    channels        TEXT NOT NULL DEFAULT '[]',
+                    action          TEXT NOT NULL DEFAULT 'alert',
+                    severity        TEXT NOT NULL DEFAULT 'medium',
+                    enabled         INTEGER NOT NULL DEFAULT 1,
+                    hit_count       INTEGER NOT NULL DEFAULT 0,
+                    created_at      TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_dlp_policies_org
+                    ON dlp_policies (org_id, enabled);
+
+                CREATE TABLE IF NOT EXISTS dlp_incidents (
+                    id                  TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    policy_id           TEXT NOT NULL DEFAULT '',
+                    channel             TEXT NOT NULL DEFAULT '',
+                    user_id             TEXT NOT NULL DEFAULT '',
+                    user_email          TEXT NOT NULL DEFAULT '',
+                    endpoint_hostname   TEXT NOT NULL DEFAULT '',
+                    data_type           TEXT NOT NULL DEFAULT '',
+                    detected_pattern    TEXT NOT NULL DEFAULT '',
+                    content_preview     TEXT NOT NULL DEFAULT '',
+                    severity            TEXT NOT NULL DEFAULT 'medium',
+                    action_taken        TEXT NOT NULL DEFAULT 'alerted',
+                    file_name           TEXT NOT NULL DEFAULT '',
+                    destination         TEXT NOT NULL DEFAULT '',
+                    status              TEXT NOT NULL DEFAULT 'new',
+                    created_at          TEXT NOT NULL,
+                    resolved_at         TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_dlp_incidents_org_status
+                    ON dlp_incidents (org_id, status, created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_dlp_incidents_org_severity
+                    ON dlp_incidents (org_id, severity);
+
+                CREATE TABLE IF NOT EXISTS dlp_exceptions (
+                    id          TEXT PRIMARY KEY,
+                    org_id      TEXT NOT NULL,
+                    user_id     TEXT NOT NULL DEFAULT '',
+                    policy_id   TEXT NOT NULL DEFAULT '',
+                    reason      TEXT NOT NULL DEFAULT '',
+                    approved_by TEXT NOT NULL DEFAULT '',
+                    expires_at  TEXT,
+                    created_at  TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_dlp_exceptions_org
+                    ON dlp_exceptions (org_id);
+
+                CREATE TABLE IF NOT EXISTS dlp_stats_daily (
+                    id                  TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    date                TEXT NOT NULL,
+                    total_scans         INTEGER NOT NULL DEFAULT 0,
+                    incidents           INTEGER NOT NULL DEFAULT 0,
+                    blocked             INTEGER NOT NULL DEFAULT 0,
+                    quarantined         INTEGER NOT NULL DEFAULT 0,
+                    allowed_with_alert  INTEGER NOT NULL DEFAULT 0,
+                    by_channel          TEXT NOT NULL DEFAULT '{}',
+                    by_data_type        TEXT NOT NULL DEFAULT '{}',
+                    created_at          TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_dlp_stats_org_date
+                    ON dlp_stats_daily (org_id, date);
+            """)
+            conn.commit()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _now_iso() -> str:
+        from datetime import datetime, timezone
+        return datetime.now(timezone.utc).isoformat()
+
+    @staticmethod
+    def _mask_pii(content: str, data_type: str) -> str:
+        """Mask PII in content based on data_type."""
+        if not content:
+            return content
+        if data_type == "credit_card":
+            masked = re.sub(
+                r'\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?)(\d{4})\b',
+                r'****-****-****-\2',
+                content,
+            )
+            return masked if masked != content else "****-****-****-1234"
+        if data_type == "ssn":
+            masked = re.sub(
+                r'\b(\d{3})[\-\s]?(\d{2})[\-\s]?(\d{4})\b',
+                lambda m: f"***-**-{m.group(3)}",
+                content,
+            )
+            return masked if masked != content else "***-**-6789"
+        if data_type == "email":
+            masked = re.sub(
+                r'\b([a-zA-Z0-9])[a-zA-Z0-9._%+\-]*@([a-zA-Z0-9])[a-zA-Z0-9.\-]*(\.[a-zA-Z]{2,})\b',
+                lambda m: f"{m.group(1)}***@***.{m.group(3).lstrip('.')}",
+                content,
+            )
+            return masked if masked != content else "j***@***.com"
+        if data_type == "phone":
+            masked = re.sub(
+                r'\b(\+?1?\s?)?(\(?\d{3}\)?[\s\-\.]?\d{3}[\s\-\.]?\d{4})\b',
+                r'***-***-****',
+                content,
+            )
+            return masked if masked != content else "***-***-****"
+        if data_type == "iban":
+            masked = re.sub(
+                r'\b([A-Z]{2}\d{2})\s?[\dA-Z\s]{10,26}([\dA-Z]{4})\b',
+                lambda m: f"{m.group(1)}****...{m.group(2)}",
+                content,
+            )
+            return masked if masked != content else "GB******...****"
+        if data_type == "passport":
+            masked = re.sub(r'\b([A-Z]{1,2})\d{6,8}\b', r'\1*******', content)
+            return masked if masked != content else "P*******"
+        if data_type == "medical":
+            masked = re.sub(r'\b\d{3,12}\b', '****', content)
+            return masked if masked != content else "[MEDICAL-REDACTED]"
+        if data_type == "ip_address":
+            masked = re.sub(
+                r'\b(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}\b',
+                r'\1.\2.*.*',
+                content,
+            )
+            return masked if masked != content else "*.*.*.*"
+        return content[:3] + "***" + content[-3:] if len(content) > 6 else "***"
+
+    def _get_policy_conn(self) -> sqlite3.Connection:
+        """Return a connection, ensuring policy tables exist."""
+        self._ensure_policy_tables()
+        return self._get_connection()
+
+    def _policy_row(self, row) -> dict:
+        d = dict(row)
+        for field in ("data_types", "channels"):
+            if field in d and isinstance(d[field], str):
+                try:
+                    d[field] = json.loads(d[field])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        if "enabled" in d:
+            d["enabled"] = bool(d["enabled"])
+        return d
+
+    # ------------------------------------------------------------------
+    # Policies
+    # ------------------------------------------------------------------
+
+    def create_policy(self, org_id: str, data: dict) -> dict:
+        """Create a DLP policy. Returns the created record."""
+        policy_name = (data.get("policy_name") or "").strip()
+        if not policy_name:
+            raise ValueError("policy_name is required.")
+        data_types = data.get("data_types", [])
+        if isinstance(data_types, str):
+            data_types = json.loads(data_types)
+        channels = data.get("channels", [])
+        if isinstance(channels, str):
+            channels = json.loads(channels)
+        action = data.get("action", "alert")
+        if action not in self._VALID_ACTIONS:
+            raise ValueError(f"Invalid action: {action}")
+        severity = data.get("severity", "medium")
+        if severity not in self._VALID_SEVERITIES_POL:
+            raise ValueError(f"Invalid severity: {severity}")
+        now = self._now_iso()
+        record = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "policy_name": policy_name,
+            "data_types": data_types,
+            "channels": channels,
+            "action": action,
+            "severity": severity,
+            "enabled": bool(data.get("enabled", True)),
+            "hit_count": 0,
+            "created_at": now,
+        }
+        conn = self._get_policy_conn()
+        try:
+            conn.execute(
+                """INSERT INTO dlp_policies
+                   (id, org_id, policy_name, data_types, channels, action,
+                    severity, enabled, hit_count, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (record["id"], org_id, policy_name,
+                 json.dumps(data_types), json.dumps(channels),
+                 action, severity, 1 if record["enabled"] else 0,
+                 0, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return record
+
+    def list_policies(self, org_id: str, enabled=None) -> list:
+        """List policies, optionally filtered by enabled state."""
+        sql = "SELECT * FROM dlp_policies WHERE org_id = ?"
+        params: list = [org_id]
+        if enabled is not None:
+            sql += " AND enabled = ?"
+            params.append(1 if enabled else 0)
+        sql += " ORDER BY created_at DESC"
+        conn = self._get_policy_conn()
+        try:
+            rows = conn.execute(sql, params).fetchall()
+        finally:
+            conn.close()
+        return [self._policy_row(r) for r in rows]
+
+    def get_policy(self, org_id: str, policy_id: str):
+        """Return a single policy or None."""
+        conn = self._get_policy_conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM dlp_policies WHERE org_id = ? AND id = ?",
+                (org_id, policy_id),
+            ).fetchone()
+        finally:
+            conn.close()
+        return self._policy_row(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Incident Detection
+    # ------------------------------------------------------------------
+
+    def detect_incident(self, org_id: str, data: dict):
+        """Check data against enabled policies; create incident if matched.
+
+        Returns the incident dict if a policy fired, else None.
+        """
+        data_type = data.get("data_type", "")
+        channel = data.get("channel", "")
+        content = data.get("content", "")
+
+        policies = self.list_policies(org_id, enabled=True)
+        matched_policy = None
+        for policy in policies:
+            policy_data_types = policy.get("data_types", [])
+            policy_channels = policy.get("channels", [])
+            if data_type in policy_data_types and (not policy_channels or channel in policy_channels):
+                matched_policy = policy
+                break
+
+        if not matched_policy:
+            return None
+
+        action_map = {"block": "blocked", "quarantine": "quarantined",
+                      "allow": "allowed", "alert": "alerted"}
+        action_taken = action_map.get(matched_policy["action"], "alerted")
+        detected_pattern = self._mask_pii(content[:50] if content else "", data_type)
+        content_preview = self._mask_pii(content[:100] if content else "", data_type)
+
+        now = self._now_iso()
+        incident = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "policy_id": matched_policy["id"],
+            "channel": channel,
+            "user_id": data.get("user_id", ""),
+            "user_email": data.get("user_email", ""),
+            "endpoint_hostname": data.get("endpoint_hostname", ""),
+            "data_type": data_type,
+            "detected_pattern": detected_pattern,
+            "content_preview": content_preview,
+            "severity": matched_policy["severity"],
+            "action_taken": action_taken,
+            "file_name": data.get("file_name", ""),
+            "destination": data.get("destination", ""),
+            "status": "new",
+            "created_at": now,
+            "resolved_at": None,
+        }
+        conn = self._get_policy_conn()
+        try:
+            conn.execute(
+                """INSERT INTO dlp_incidents
+                   (id, org_id, policy_id, channel, user_id, user_email,
+                    endpoint_hostname, data_type, detected_pattern, content_preview,
+                    severity, action_taken, file_name, destination, status,
+                    created_at, resolved_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (incident["id"], org_id, incident["policy_id"], channel,
+                 incident["user_id"], incident["user_email"],
+                 incident["endpoint_hostname"], data_type,
+                 detected_pattern, content_preview,
+                 incident["severity"], action_taken,
+                 incident["file_name"], incident["destination"],
+                 "new", now, None),
+            )
+            conn.execute(
+                "UPDATE dlp_policies SET hit_count = hit_count + 1 WHERE org_id = ? AND id = ?",
+                (org_id, matched_policy["id"]),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return incident
+
+    def list_incidents(self, org_id: str, severity=None, channel=None,
+                       status=None, limit: int = 50) -> list:
+        """List incidents with optional filters."""
+        sql = "SELECT * FROM dlp_incidents WHERE org_id = ?"
+        params: list = [org_id]
+        if severity:
+            sql += " AND severity = ?"
+            params.append(severity)
+        if channel:
+            sql += " AND channel = ?"
+            params.append(channel)
+        if status:
+            sql += " AND status = ?"
+            params.append(status)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        conn = self._get_policy_conn()
+        try:
+            rows = conn.execute(sql, params).fetchall()
+        finally:
+            conn.close()
+        return [dict(r) for r in rows]
+
+    def update_incident_status(self, org_id: str, incident_id: str,
+                               status: str) -> bool:
+        """Update incident status. Returns True if found and updated."""
+        if status not in self._VALID_INCIDENT_STATUSES:
+            raise ValueError(f"Invalid status: {status}")
+        now = self._now_iso()
+        resolved_at = now if status == "resolved" else None
+        conn = self._get_policy_conn()
+        try:
+            if resolved_at:
+                cur = conn.execute(
+                    "UPDATE dlp_incidents SET status=?, resolved_at=? WHERE org_id=? AND id=?",
+                    (status, resolved_at, org_id, incident_id),
+                )
+            else:
+                cur = conn.execute(
+                    "UPDATE dlp_incidents SET status=? WHERE org_id=? AND id=?",
+                    (status, org_id, incident_id),
+                )
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Exceptions
+    # ------------------------------------------------------------------
+
+    def create_exception(self, org_id: str, data: dict) -> dict:
+        """Create a policy exception for a user."""
+        user_id = (data.get("user_id") or "").strip()
+        if not user_id:
+            raise ValueError("user_id is required.")
+        now = self._now_iso()
+        record = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "user_id": user_id,
+            "policy_id": data.get("policy_id", ""),
+            "reason": data.get("reason", ""),
+            "approved_by": data.get("approved_by", ""),
+            "expires_at": data.get("expires_at"),
+            "created_at": now,
+        }
+        conn = self._get_policy_conn()
+        try:
+            conn.execute(
+                """INSERT INTO dlp_exceptions
+                   (id, org_id, user_id, policy_id, reason, approved_by, expires_at, created_at)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (record["id"], org_id, user_id, record["policy_id"],
+                 record["reason"], record["approved_by"],
+                 record["expires_at"], now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return record
+
+    def list_exceptions(self, org_id: str) -> list:
+        """List all exceptions for an org."""
+        conn = self._get_policy_conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM dlp_exceptions WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Stats (policy-based)
+    # ------------------------------------------------------------------
+
+    def get_dlp_stats(self, org_id: str) -> dict:
+        """Return aggregated DLP stats for org (policy/incident model)."""
+        conn = self._get_policy_conn()
+        try:
+            total = conn.execute(
+                "SELECT COUNT(*) FROM dlp_incidents WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            sev_rows = conn.execute(
+                "SELECT severity, COUNT(*) as cnt FROM dlp_incidents WHERE org_id = ? GROUP BY severity",
+                (org_id,),
+            ).fetchall()
+            ch_rows = conn.execute(
+                "SELECT channel, COUNT(*) as cnt FROM dlp_incidents WHERE org_id = ? GROUP BY channel",
+                (org_id,),
+            ).fetchall()
+            dt_rows = conn.execute(
+                "SELECT data_type, COUNT(*) as cnt FROM dlp_incidents WHERE org_id = ? GROUP BY data_type",
+                (org_id,),
+            ).fetchall()
+            blocked = conn.execute(
+                "SELECT COUNT(*) FROM dlp_incidents WHERE org_id = ? AND action_taken = 'blocked'",
+                (org_id,),
+            ).fetchone()[0]
+            fp = conn.execute(
+                "SELECT COUNT(*) FROM dlp_incidents WHERE org_id = ? AND status = 'false_positive'",
+                (org_id,),
+            ).fetchone()[0]
+            user_rows = conn.execute(
+                """SELECT user_email, COUNT(*) as cnt FROM dlp_incidents
+                   WHERE org_id = ? AND user_email != ''
+                   GROUP BY user_email ORDER BY cnt DESC LIMIT 10""",
+                (org_id,),
+            ).fetchall()
+            policy_rows = conn.execute(
+                """SELECT policy_id, COUNT(*) as cnt FROM dlp_incidents
+                   WHERE org_id = ? GROUP BY policy_id ORDER BY cnt DESC LIMIT 10""",
+                (org_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        return {
+            "total_incidents": total,
+            "by_severity": {r["severity"]: r["cnt"] for r in sev_rows},
+            "by_channel": {r["channel"]: r["cnt"] for r in ch_rows},
+            "by_data_type": {r["data_type"]: r["cnt"] for r in dt_rows},
+            "block_rate": round(blocked / total, 4) if total > 0 else 0.0,
+            "false_positive_rate": round(fp / total, 4) if total > 0 else 0.0,
+            "top_users": [{"user_email": r["user_email"], "count": r["cnt"]} for r in user_rows],
+            "top_policies": [{"policy_id": r["policy_id"], "count": r["cnt"]} for r in policy_rows],
+        }
+
+    def get_daily_trends(self, org_id: str, days: int = 30) -> list:
+        """Return daily incident counts for the past N days."""
+        conn = self._get_policy_conn()
+        try:
+            rows = conn.execute(
+                """SELECT DATE(created_at) as date, COUNT(*) as count
+                   FROM dlp_incidents
+                   WHERE org_id = ? AND created_at >= DATE('now', ? || ' days')
+                   GROUP BY DATE(created_at) ORDER BY date ASC""",
+                (org_id, f"-{days}"),
+            ).fetchall()
+        finally:
+            conn.close()
+        return [{"date": r["date"], "count": r["count"]} for r in rows]

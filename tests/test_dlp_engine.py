@@ -269,3 +269,335 @@ def test_scan_file_returns_same_shape_as_scan_text(engine, tmp_path):
 def test_scan_file_raises_for_missing_file(engine):
     with pytest.raises(ValueError):
         engine.scan_file("/nonexistent/path/secret.txt")
+
+
+# ---------------------------------------------------------------------------
+# 11. Policy CRUD
+# ---------------------------------------------------------------------------
+
+def test_create_policy_returns_dict(engine):
+    pol = engine.create_policy("org1", {
+        "policy_name": "Credit Card Policy",
+        "data_types": ["credit_card"],
+        "channels": ["email"],
+        "action": "block",
+        "severity": "critical",
+    })
+    assert isinstance(pol, dict)
+    assert pol["policy_name"] == "Credit Card Policy"
+    assert "id" in pol
+
+
+def test_create_policy_has_uuid_id(engine):
+    pol = engine.create_policy("org1", {
+        "policy_name": "SSN Policy",
+        "data_types": ["ssn"],
+        "channels": ["web"],
+        "action": "alert",
+        "severity": "high",
+    })
+    import uuid
+    uuid.UUID(pol["id"])  # raises if not valid UUID
+
+
+def test_create_policy_defaults(engine):
+    pol = engine.create_policy("org1", {"policy_name": "Minimal Policy"})
+    assert pol["action"] == "alert"
+    assert pol["severity"] == "medium"
+    assert pol["enabled"] is True
+    assert pol["hit_count"] == 0
+
+
+def test_create_policy_requires_name(engine):
+    with pytest.raises((ValueError, Exception)):
+        engine.create_policy("org1", {})
+
+
+def test_list_policies_returns_created(engine):
+    engine.create_policy("org2", {"policy_name": "P1", "data_types": ["email"]})
+    engine.create_policy("org2", {"policy_name": "P2", "data_types": ["ssn"]})
+    policies = engine.list_policies("org2")
+    assert len(policies) >= 2
+    names = [p["policy_name"] for p in policies]
+    assert "P1" in names
+    assert "P2" in names
+
+
+def test_list_policies_enabled_filter(engine):
+    engine.create_policy("org3", {"policy_name": "Enabled", "enabled": True})
+    engine.create_policy("org3", {"policy_name": "Disabled", "enabled": False})
+    enabled = engine.list_policies("org3", enabled=True)
+    for p in enabled:
+        assert p["enabled"] is True
+
+
+def test_get_policy_returns_correct_record(engine):
+    pol = engine.create_policy("org4", {"policy_name": "GetTest", "data_types": ["phone"]})
+    retrieved = engine.get_policy("org4", pol["id"])
+    assert retrieved is not None
+    assert retrieved["id"] == pol["id"]
+    assert retrieved["policy_name"] == "GetTest"
+
+
+def test_get_policy_wrong_org_returns_none(engine):
+    pol = engine.create_policy("org5", {"policy_name": "Isolated"})
+    result = engine.get_policy("other_org", pol["id"])
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# 12. Incident Detection
+# ---------------------------------------------------------------------------
+
+def test_detect_incident_no_matching_policy_returns_none(engine):
+    result = engine.detect_incident("orgX", {
+        "data_type": "credit_card",
+        "channel": "email",
+        "content": "4111111111111111",
+    })
+    assert result is None
+
+
+def test_detect_incident_matching_policy_creates_incident(engine):
+    engine.create_policy("orgD", {
+        "policy_name": "CC Block",
+        "data_types": ["credit_card"],
+        "channels": ["email"],
+        "action": "block",
+        "severity": "critical",
+    })
+    incident = engine.detect_incident("orgD", {
+        "data_type": "credit_card",
+        "channel": "email",
+        "content": "4111111111111111",
+        "user_email": "alice@example.com",
+    })
+    assert incident is not None
+    assert "id" in incident
+    assert incident["action_taken"] == "blocked"
+    assert incident["severity"] == "critical"
+    assert incident["status"] == "new"
+
+
+def test_detect_incident_increments_policy_hit_count(engine):
+    pol = engine.create_policy("orgE", {
+        "policy_name": "Hit Counter",
+        "data_types": ["ssn"],
+        "channels": ["web"],
+        "action": "alert",
+        "severity": "high",
+    })
+    engine.detect_incident("orgE", {"data_type": "ssn", "channel": "web"})
+    engine.detect_incident("orgE", {"data_type": "ssn", "channel": "web"})
+    updated = engine.get_policy("orgE", pol["id"])
+    assert updated["hit_count"] >= 2
+
+
+def test_detect_incident_pii_is_masked(engine):
+    engine.create_policy("orgF", {
+        "policy_name": "Email Mask",
+        "data_types": ["email"],
+        "channels": ["web"],
+        "action": "alert",
+        "severity": "medium",
+    })
+    incident = engine.detect_incident("orgF", {
+        "data_type": "email",
+        "channel": "web",
+        "content": "alice@example.com",
+    })
+    assert incident is not None
+    assert "alice@example.com" not in incident["detected_pattern"]
+    assert "alice@example.com" not in incident["content_preview"]
+
+
+def test_detect_incident_channel_mismatch_no_fire(engine):
+    engine.create_policy("orgG", {
+        "policy_name": "Email Only",
+        "data_types": ["credit_card"],
+        "channels": ["email"],
+        "action": "block",
+        "severity": "critical",
+    })
+    result = engine.detect_incident("orgG", {
+        "data_type": "credit_card",
+        "channel": "usb",  # wrong channel
+        "content": "4111111111111111",
+    })
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# 13. PII Masking
+# ---------------------------------------------------------------------------
+
+def test_mask_pii_credit_card(engine):
+    masked = engine._mask_pii("4111111111111111", "credit_card")
+    assert "4111111111111111" not in masked
+    assert "****" in masked
+
+
+def test_mask_pii_ssn(engine):
+    masked = engine._mask_pii("123-45-6789", "ssn")
+    assert "123-45" not in masked
+    assert "***" in masked
+
+
+def test_mask_pii_email(engine):
+    masked = engine._mask_pii("alice@example.com", "email")
+    assert "alice" not in masked or "***" in masked
+
+
+def test_mask_pii_ip_address(engine):
+    masked = engine._mask_pii("192.168.1.100", "ip_address")
+    assert "100" not in masked or "*" in masked
+
+
+# ---------------------------------------------------------------------------
+# 14. Incident Management
+# ---------------------------------------------------------------------------
+
+def test_list_incidents_returns_list(engine):
+    engine.create_policy("orgH", {
+        "policy_name": "List Test",
+        "data_types": ["phone"],
+        "channels": ["usb"],
+        "action": "quarantine",
+        "severity": "high",
+    })
+    engine.detect_incident("orgH", {"data_type": "phone", "channel": "usb"})
+    incidents = engine.list_incidents("orgH")
+    assert isinstance(incidents, list)
+    assert len(incidents) >= 1
+
+
+def test_list_incidents_severity_filter(engine):
+    engine.create_policy("orgI", {
+        "policy_name": "Critical Policy",
+        "data_types": ["passport"],
+        "channels": ["print"],
+        "action": "block",
+        "severity": "critical",
+    })
+    engine.detect_incident("orgI", {"data_type": "passport", "channel": "print"})
+    critical_incidents = engine.list_incidents("orgI", severity="critical")
+    for inc in critical_incidents:
+        assert inc["severity"] == "critical"
+
+
+def test_update_incident_status(engine):
+    engine.create_policy("orgJ", {
+        "policy_name": "Status Test",
+        "data_types": ["iban"],
+        "channels": ["cloud_upload"],
+        "action": "alert",
+        "severity": "high",
+    })
+    incident = engine.detect_incident("orgJ", {
+        "data_type": "iban",
+        "channel": "cloud_upload",
+    })
+    assert incident is not None
+    updated = engine.update_incident_status("orgJ", incident["id"], "investigating")
+    assert updated is True
+    incidents = engine.list_incidents("orgJ", status="investigating")
+    assert any(i["id"] == incident["id"] for i in incidents)
+
+
+def test_update_incident_status_invalid_raises(engine):
+    with pytest.raises(ValueError):
+        engine.update_incident_status("orgJ", "fake-id", "invalid_status")
+
+
+# ---------------------------------------------------------------------------
+# 15. Exceptions
+# ---------------------------------------------------------------------------
+
+def test_create_exception_returns_dict(engine):
+    exc_rec = engine.create_exception("orgK", {
+        "user_id": "user-123",
+        "policy_id": "pol-456",
+        "reason": "Approved for quarterly reporting",
+        "approved_by": "ciso@example.com",
+    })
+    assert isinstance(exc_rec, dict)
+    assert exc_rec["user_id"] == "user-123"
+    assert "id" in exc_rec
+
+
+def test_create_exception_requires_user_id(engine):
+    with pytest.raises(ValueError):
+        engine.create_exception("orgK", {"reason": "No user"})
+
+
+def test_list_exceptions_returns_created(engine):
+    engine.create_exception("orgL", {"user_id": "u1", "reason": "R1"})
+    engine.create_exception("orgL", {"user_id": "u2", "reason": "R2"})
+    exceptions = engine.list_exceptions("orgL")
+    assert len(exceptions) >= 2
+
+
+# ---------------------------------------------------------------------------
+# 16. Stats and Daily Trends
+# ---------------------------------------------------------------------------
+
+def test_get_dlp_stats_returns_dict(engine):
+    stats = engine.get_dlp_stats("orgM")
+    assert isinstance(stats, dict)
+    assert "total_incidents" in stats
+    assert "by_severity" in stats
+    assert "by_channel" in stats
+    assert "by_data_type" in stats
+    assert "block_rate" in stats
+    assert "false_positive_rate" in stats
+    assert "top_users" in stats
+    assert "top_policies" in stats
+
+
+def test_get_dlp_stats_counts_incidents(engine):
+    engine.create_policy("orgN", {
+        "policy_name": "Stats Policy",
+        "data_types": ["medical"],
+        "channels": ["clipboard"],
+        "action": "alert",
+        "severity": "high",
+    })
+    engine.detect_incident("orgN", {"data_type": "medical", "channel": "clipboard"})
+    stats = engine.get_dlp_stats("orgN")
+    assert stats["total_incidents"] >= 1
+
+
+def test_get_daily_trends_returns_list(engine):
+    trends = engine.get_daily_trends("orgO", days=30)
+    assert isinstance(trends, list)
+
+
+# ---------------------------------------------------------------------------
+# 17. Org Isolation
+# ---------------------------------------------------------------------------
+
+def test_org_isolation_policies(engine):
+    engine.create_policy("orgP", {"policy_name": "Org P Policy", "data_types": ["ssn"]})
+    engine.create_policy("orgQ", {"policy_name": "Org Q Policy", "data_types": ["email"]})
+    p_policies = engine.list_policies("orgP")
+    q_policies = engine.list_policies("orgQ")
+    p_names = [p["policy_name"] for p in p_policies]
+    q_names = [p["policy_name"] for p in q_policies]
+    assert "Org P Policy" in p_names
+    assert "Org Q Policy" not in p_names
+    assert "Org Q Policy" in q_names
+    assert "Org P Policy" not in q_names
+
+
+def test_org_isolation_incidents(engine):
+    engine.create_policy("orgR", {
+        "policy_name": "R Policy",
+        "data_types": ["credit_card"],
+        "channels": ["email"],
+        "action": "block",
+        "severity": "critical",
+    })
+    engine.detect_incident("orgR", {"data_type": "credit_card", "channel": "email"})
+    # orgS has no policies, so no incidents
+    incidents_s = engine.list_incidents("orgS")
+    assert len(incidents_s) == 0

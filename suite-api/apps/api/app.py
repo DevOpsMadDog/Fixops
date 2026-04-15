@@ -6218,6 +6218,48 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.dlp_router import router as dlp_router
+        app.include_router(dlp_router)
+        _logger.info("Mounted DLP router at /api/v1/dlp")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_cost_security_router import router as cloud_cost_security_router
+        app.include_router(cloud_cost_security_router)
+        _logger.info("Mounted Cloud Cost Security router at /api/v1/cloud-cost")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.secret_scanner_engine_router import router as secret_scanner_engine_router
+        app.include_router(secret_scanner_engine_router)
+        _logger.info("Mounted Secret Scanner Engine router at /api/v1/secret-scanner")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vuln_workflow_router import router as vuln_workflow_router
+        app.include_router(vuln_workflow_router)
+        _logger.info("Mounted Vuln Workflow router at /api/v1/vuln-workflow")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_intel_platform_router import router as tip_router
+        app.include_router(tip_router)
+        _logger.info("Mounted Threat Intel Platform router at /api/v1/tip")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.attack_surface_mgmt_router import router as attack_surface_mgmt_router
+        app.include_router(attack_surface_mgmt_router)
+        _logger.info("Mounted Attack Surface Management router at /api/v1/asm")
+    except ImportError:
+        pass
+
     return app
 
 

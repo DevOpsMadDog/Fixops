@@ -147,3 +147,141 @@ def add_pattern(req: AddPatternRequest, engine: DLPEngine = Depends(_get_engine)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return result
+
+
+# ============================================================================
+# Policy-based DLP endpoints
+# ============================================================================
+
+class PolicyCreate(BaseModel):
+    org_id: str = Field("default")
+    policy_name: str
+    data_types: List[str] = Field(default_factory=list)
+    channels: List[str] = Field(default_factory=list)
+    action: str = Field("alert")
+    severity: str = Field("medium")
+    enabled: bool = Field(True)
+
+
+class DetectIncidentRequest(BaseModel):
+    org_id: str = Field("default")
+    data_type: str = Field("")
+    channel: str = Field("")
+    content: str = Field("")
+    user_id: str = Field("")
+    user_email: str = Field("")
+    endpoint_hostname: str = Field("")
+    file_name: str = Field("")
+    destination: str = Field("")
+
+
+class IncidentStatusUpdate(BaseModel):
+    status: str
+
+
+class ExceptionCreate(BaseModel):
+    org_id: str = Field("default")
+    user_id: str
+    policy_id: str = Field("")
+    reason: str = Field("")
+    approved_by: str = Field("")
+    expires_at: Optional[str] = None
+
+
+@router.post("/policies", summary="Create DLP policy")
+def create_policy(req: PolicyCreate, engine: DLPEngine = Depends(_get_engine)) -> Dict[str, Any]:
+    try:
+        return engine.create_policy(req.org_id, req.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/policies", summary="List DLP policies")
+def list_policies(
+    org_id: str = Query("default"),
+    enabled: Optional[bool] = Query(None),
+    engine: DLPEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    return engine.list_policies(org_id, enabled=enabled)
+
+
+@router.get("/policies/{policy_id}", summary="Get DLP policy")
+def get_policy(
+    policy_id: str,
+    org_id: str = Query("default"),
+    engine: DLPEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    pol = engine.get_policy(org_id, policy_id)
+    if pol is None:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    return pol
+
+
+@router.post("/detect", summary="Detect DLP incident")
+def detect_incident(req: DetectIncidentRequest, engine: DLPEngine = Depends(_get_engine)) -> Dict[str, Any]:
+    result = engine.detect_incident(req.org_id, req.model_dump())
+    if result is None:
+        return {"matched": False, "incident": None}
+    return {"matched": True, "incident": result}
+
+
+@router.get("/incidents", summary="List DLP incidents")
+def list_incidents(
+    org_id: str = Query("default"),
+    severity: Optional[str] = Query(None),
+    channel: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+    engine: DLPEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    return engine.list_incidents(org_id, severity=severity, channel=channel,
+                                  status=status, limit=limit)
+
+
+@router.patch("/incidents/{incident_id}/status", summary="Update incident status")
+def update_incident_status(
+    incident_id: str,
+    req: IncidentStatusUpdate,
+    org_id: str = Query("default"),
+    engine: DLPEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    try:
+        updated = engine.update_incident_status(org_id, incident_id, req.status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return {"updated": True}
+
+
+@router.post("/exceptions", summary="Create policy exception")
+def create_exception(req: ExceptionCreate, engine: DLPEngine = Depends(_get_engine)) -> Dict[str, Any]:
+    try:
+        return engine.create_exception(req.org_id, req.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/exceptions", summary="List policy exceptions")
+def list_exceptions(
+    org_id: str = Query("default"),
+    engine: DLPEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    return engine.list_exceptions(org_id)
+
+
+@router.get("/dlp-stats", summary="DLP policy/incident stats")
+def get_dlp_stats(
+    org_id: str = Query("default"),
+    engine: DLPEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    return engine.get_dlp_stats(org_id)
+
+
+@router.get("/daily-trends", summary="Daily incident trend")
+def get_daily_trends(
+    org_id: str = Query("default"),
+    days: int = Query(30, ge=1, le=365),
+    engine: DLPEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    return engine.get_daily_trends(org_id, days=days)
