@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776077615522,
+  "lastScanned": 1776262841417,
   "projectRoot": "/Users/devops.ai/fixops/Fixops",
   "techStack": {
     "languages": [
@@ -74,14 +74,14 @@
       "path": "MagicMock",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615510,
+      "lastAccessed": 1776262841402,
       "keyFiles": []
     },
     "__pycache__": {
       "path": "__pycache__",
       "purpose": null,
       "fileCount": 4,
-      "lastAccessed": 1776077615511,
+      "lastAccessed": 1776262841403,
       "keyFiles": [
         "sitecustomize.cpython-310.pyc",
         "sitecustomize.cpython-311.pyc",
@@ -93,7 +93,7 @@
       "path": "alembic",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776077615511,
+      "lastAccessed": 1776262841403,
       "keyFiles": [
         "env.py",
         "script.py.mako"
@@ -103,14 +103,14 @@
       "path": "archive",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615512,
+      "lastAccessed": 1776262841403,
       "keyFiles": []
     },
     "bash-5.1": {
       "path": "bash-5.1",
       "purpose": null,
       "fileCount": 172,
-      "lastAccessed": 1776077615512,
+      "lastAccessed": 1776262841404,
       "keyFiles": [
         "ABOUT-NLS",
         "AUTHORS",
@@ -122,33 +122,34 @@
     "data": {
       "path": "data",
       "purpose": "Data files",
-      "fileCount": 56,
-      "lastAccessed": 1776077615513,
+      "fileCount": 72,
+      "lastAccessed": 1776262841404,
       "keyFiles": [
+        "access_matrix.db",
         "activity_feed.db",
         "analytics.db",
-        "api_analytics.db",
-        "api_versioning.db",
-        "audit.db"
+        "anomaly_detector.db",
+        "api_analytics.db"
       ]
     },
     "docker": {
       "path": "docker",
       "purpose": null,
-      "fileCount": 4,
-      "lastAccessed": 1776077615513,
+      "fileCount": 9,
+      "lastAccessed": 1776262841404,
       "keyFiles": [
+        "Dockerfile.api",
+        "Dockerfile.ui",
         "docker-compose.connectors.yml",
-        "docker-entrypoint.sh",
-        "nginx-aldeci.conf",
-        "nginx-ui.conf"
+        "docker-compose.enterprise.yml",
+        "docker-compose.full.yml"
       ]
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
-      "fileCount": 14,
-      "lastAccessed": 1776077615513,
+      "fileCount": 17,
+      "lastAccessed": 1776262841404,
       "keyFiles": [
         "ADMIN_GUIDE.md",
         "ALDECI_BUILD_STATUS.md",
@@ -161,7 +162,7 @@
       "path": "fixtures",
       "purpose": "Test fixtures",
       "fileCount": 1,
-      "lastAccessed": 1776077615513,
+      "lastAccessed": 1776262841405,
       "keyFiles": [
         "security_patterns.json"
       ]
@@ -170,7 +171,7 @@
       "path": "frontend",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776077615513,
+      "lastAccessed": 1776262841405,
       "keyFiles": [
         "index.html"
       ]
@@ -178,8 +179,8 @@
     "htmlcov": {
       "path": "htmlcov",
       "purpose": null,
-      "fileCount": 735,
-      "lastAccessed": 1776077615517,
+      "fileCount": 901,
+      "lastAccessed": 1776262841408,
       "keyFiles": [
         "class_index.html",
         "coverage_html_cb_dd2e7eb5.js",
@@ -192,7 +193,7 @@
       "path": "logs",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776077615517,
+      "lastAccessed": 1776262841408,
       "keyFiles": [
         "jarvis-20260227-170428.log",
         "jarvis-20260227_183322.log"
@@ -202,7 +203,7 @@
       "path": "n8n-workflows",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1776077615517,
+      "lastAccessed": 1776262841409,
       "keyFiles": [
         "cloud-posture-collector.json",
         "github-repo-scanner.json",
@@ -213,7 +214,7 @@
       "path": "newman",
       "purpose": null,
       "fileCount": 19,
-      "lastAccessed": 1776077615517,
+      "lastAccessed": 1776262841409,
       "keyFiles": [
         "newman-run-report-2026-03-02-01-40-22-331-0.json",
         "newman-run-report-2026-03-02-01-41-16-012-0.json",
@@ -222,11 +223,24 @@
         "newman-run-report-2026-03-02-01-46-22-791-0.json"
       ]
     },
+    "reports": {
+      "path": "reports",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1776262841410,
+      "keyFiles": [
+        "e2e_15_repos_scan.json",
+        "e2e_real_scan_results.json",
+        "e2e_scan_output.log",
+        "endpoint_trustgraph_audit.json",
+        "endpoint_trustgraph_audit.md"
+      ]
+    },
     "scripts": {
       "path": "scripts",
       "purpose": "Build/utility scripts",
-      "fileCount": 151,
-      "lastAccessed": 1776077615518,
+      "fileCount": 154,
+      "lastAccessed": 1776262841410,
       "keyFiles": [
         "README.md",
         "_bulk_test_all.py",
@@ -239,65 +253,66 @@
       "path": "simulations",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615518,
+      "lastAccessed": 1776262841410,
       "keyFiles": []
     },
     "suite-api": {
       "path": "suite-api",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615518,
+      "lastAccessed": 1776262841410,
       "keyFiles": []
     },
     "suite-attack": {
       "path": "suite-attack",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615518,
+      "lastAccessed": 1776262841411,
       "keyFiles": []
     },
     "suite-core": {
       "path": "suite-core",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615518,
+      "lastAccessed": 1776262841411,
       "keyFiles": []
     },
     "suite-evidence-risk": {
       "path": "suite-evidence-risk",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615518,
+      "lastAccessed": 1776262841411,
       "keyFiles": []
     },
     "suite-feeds": {
       "path": "suite-feeds",
       "purpose": null,
-      "fileCount": 1,
-      "lastAccessed": 1776077615518,
+      "fileCount": 2,
+      "lastAccessed": 1776262841412,
       "keyFiles": [
-        "feeds_service.py"
+        "feeds_service.py",
+        "threat_intel_aggregator.py"
       ]
     },
     "suite-integrations": {
       "path": "suite-integrations",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615519,
+      "lastAccessed": 1776262841412,
       "keyFiles": []
     },
     "suite-ui": {
       "path": "suite-ui",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776077615519,
+      "lastAccessed": 1776262841412,
       "keyFiles": []
     },
     "tests": {
       "path": "tests",
       "purpose": "Test files",
-      "fileCount": 398,
-      "lastAccessed": 1776077615519,
+      "fileCount": 496,
+      "lastAccessed": 1776262841413,
       "keyFiles": [
         "__init__.py",
         "conftest.py",
@@ -310,7 +325,7 @@
       "path": "tools",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776077615520,
+      "lastAccessed": 1776262841413,
       "keyFiles": [
         "generate_pentest_report.py"
       ]
@@ -319,14 +334,14 @@
       "path": "suite-api/data",
       "purpose": "Data files",
       "fileCount": 0,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841414,
       "keyFiles": []
     },
     "suite-api/fixtures": {
       "path": "suite-api/fixtures",
       "purpose": "Test fixtures",
       "fileCount": 1,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841414,
       "keyFiles": [
         "security_patterns.json"
       ]
@@ -335,7 +350,7 @@
       "path": "suite-attack/api",
       "purpose": "API routes",
       "fileCount": 14,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841414,
       "keyFiles": [
         "api_fuzzer_router.py",
         "app.py",
@@ -346,7 +361,7 @@
       "path": "suite-core/api",
       "purpose": "API routes",
       "fileCount": 44,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841415,
       "keyFiles": [
         "agents_router.py",
         "ai_code_guardian_router.py",
@@ -357,7 +372,7 @@
       "path": "suite-core/config",
       "purpose": "Configuration files",
       "fileCount": 6,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841415,
       "keyFiles": [
         "feature_flags.example.yml",
         "fixops.overlay.yml",
@@ -368,7 +383,7 @@
       "path": "suite-evidence-risk/api",
       "purpose": "API routes",
       "fileCount": 12,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841415,
       "keyFiles": [
         "app.py",
         "business_context.py",
@@ -379,17 +394,26 @@
       "path": "suite-feeds/api",
       "purpose": "API routes",
       "fileCount": 2,
-      "lastAccessed": 1776077615521,
+      "lastAccessed": 1776262841415,
       "keyFiles": [
         "app.py",
         "feeds_router.py"
+      ]
+    },
+    "suite-feeds/data": {
+      "path": "suite-feeds/data",
+      "purpose": "Data files",
+      "fileCount": 1,
+      "lastAccessed": 1776262841416,
+      "keyFiles": [
+        "threat_intel.db"
       ]
     },
     "suite-integrations/api": {
       "path": "suite-integrations/api",
       "purpose": "API routes",
       "fileCount": 8,
-      "lastAccessed": 1776077615522,
+      "lastAccessed": 1776262841416,
       "keyFiles": [
         "app.py",
         "iac_router.py",
@@ -400,32 +424,44 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 381,
-      "lastAccessed": 1776090730320,
+      "accessCount": 422,
+      "lastAccessed": 1776264084646,
+      "type": "directory"
+    },
+    {
+      "path": "",
+      "accessCount": 38,
+      "lastAccessed": 1776263771251,
       "type": "directory"
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 33,
-      "lastAccessed": 1776090098286,
-      "type": "file"
-    },
-    {
-      "path": "tests/test_pipeline_api.py",
-      "accessCount": 29,
-      "lastAccessed": 1776090556714,
+      "accessCount": 35,
+      "lastAccessed": 1776262610478,
       "type": "file"
     },
     {
       "path": "suite-core/core/asset_inventory.py",
+      "accessCount": 34,
+      "lastAccessed": 1776263802187,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_pipeline_api.py",
+      "accessCount": 34,
+      "lastAccessed": 1776263970976,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/asset_inventory_router.py",
       "accessCount": 28,
-      "lastAccessed": 1776085138291,
+      "lastAccessed": 1776263835249,
       "type": "file"
     },
     {
       "path": "suite-api/apps/api/anomaly_router.py",
-      "accessCount": 27,
-      "lastAccessed": 1776090564654,
+      "accessCount": 28,
+      "lastAccessed": 1776264055069,
       "type": "file"
     },
     {
@@ -435,22 +471,10 @@
       "type": "file"
     },
     {
-      "path": "suite-api/apps/api/asset_inventory_router.py",
-      "accessCount": 21,
-      "lastAccessed": 1776085225870,
-      "type": "file"
-    },
-    {
       "path": "suite-core/core/supply_chain_security.py",
       "accessCount": 17,
       "lastAccessed": 1776084475831,
       "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 17,
-      "lastAccessed": 1776090127495,
-      "type": "directory"
     },
     {
       "path": "tests/test_trustgraph.py",
@@ -472,8 +496,8 @@
     },
     {
       "path": "suite-api/apps/api/threat_intel_router.py",
-      "accessCount": 7,
-      "lastAccessed": 1776084682167,
+      "accessCount": 9,
+      "lastAccessed": 1776263812052,
       "type": "file"
     },
     {
@@ -489,6 +513,12 @@
       "type": "file"
     },
     {
+      "path": "suite-core/core/compliance_automation.py",
+      "accessCount": 7,
+      "lastAccessed": 1776263884560,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/supply_chain_router.py",
       "accessCount": 6,
       "lastAccessed": 1776090268233,
@@ -501,15 +531,15 @@
       "type": "file"
     },
     {
-      "path": "tests/test_phishing_simulator.py",
-      "accessCount": 4,
-      "lastAccessed": 1776078019123,
+      "path": "tests/test_compliance_automation.py",
+      "accessCount": 5,
+      "lastAccessed": 1776263715025,
       "type": "file"
     },
     {
-      "path": "tests/test_compliance_automation.py",
+      "path": "tests/test_phishing_simulator.py",
       "accessCount": 4,
-      "lastAccessed": 1776082366491,
+      "lastAccessed": 1776078019123,
       "type": "file"
     },
     {
@@ -537,15 +567,15 @@
       "type": "file"
     },
     {
-      "path": "suite-core/core/api_fuzzer.py",
-      "accessCount": 3,
-      "lastAccessed": 1776078220355,
+      "path": "tests/test_phase4_integration.py",
+      "accessCount": 4,
+      "lastAccessed": 1776262621625,
       "type": "file"
     },
     {
-      "path": "tests/test_phase4_integration.py",
+      "path": "suite-core/core/api_fuzzer.py",
       "accessCount": 3,
-      "lastAccessed": 1776079017150,
+      "lastAccessed": 1776078220355,
       "type": "file"
     },
     {
@@ -573,6 +603,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/compliance_automation_router.py",
+      "accessCount": 3,
+      "lastAccessed": 1776263701270,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/phishing_router.py",
       "accessCount": 2,
       "lastAccessed": 1776077770630,
@@ -588,12 +624,6 @@
       "path": "tests/test_attack_surface_manager.py",
       "accessCount": 2,
       "lastAccessed": 1776078177931,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/compliance_automation_router.py",
-      "accessCount": 2,
-      "lastAccessed": 1776078390808,
       "type": "file"
     },
     {
@@ -666,12 +696,6 @@
       "path": "suite-api/apps/api/policy_generator_router.py",
       "accessCount": 1,
       "lastAccessed": 1776077754374,
-      "type": "file"
-    },
-    {
-      "path": "suite-core/core/compliance_automation.py",
-      "accessCount": 1,
-      "lastAccessed": 1776078080169,
       "type": "file"
     },
     {

@@ -140,6 +140,8 @@ const PentestManagement = lazy(() => import("@/pages/PentestManagement"));
 const DeceptionEngine = lazy(() => import("@/pages/DeceptionEngine"));
 const FirewallAnalyzer = lazy(() => import("@/pages/FirewallAnalyzer"));
 const RiskRegisterPage = lazy(() => import("@/pages/RiskRegister"));
+const PlaybookLibraryPage = lazy(() => import("@/pages/PlaybookLibrary"));
+const BugBounty = lazy(() => import("@/pages/BugBounty"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -302,6 +304,8 @@ export default function App() {
             <Route path="/deception" element={<DeceptionEngine />} />
             <Route path="/firewall" element={<FirewallAnalyzer />} />
             <Route path="/risk-register" element={<RiskRegisterPage />} />
+            <Route path="/playbooks" element={<PlaybookLibraryPage />} />
+            <Route path="/bug-bounty" element={<BugBounty />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
