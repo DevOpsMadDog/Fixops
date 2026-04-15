@@ -117,6 +117,8 @@ const InsiderThreatMonitor = lazy(() => import("@/pages/InsiderThreatMonitor"));
 const SecurityKPIDashboard = lazy(() => import("@/pages/SecurityKPIDashboard"));
 const VendorRiskDashboard = lazy(() => import("@/pages/VendorRiskDashboard"));
 const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
+const CVESearch = lazy(() => import("@/pages/CVESearch"));
+const IPReputation = lazy(() => import("@/pages/IPReputation"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -254,6 +256,8 @@ export default function App() {
             <Route path="/security-kpis" element={<SecurityKPIDashboard />} />
             <Route path="/posture-advisor" element={<PostureAdvisor />} />
             <Route path="/vendor-risk" element={<VendorRiskDashboard />} />
+            <Route path="/cve-search" element={<CVESearch />} />
+            <Route path="/ip-reputation" element={<IPReputation />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
