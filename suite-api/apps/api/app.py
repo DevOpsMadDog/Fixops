@@ -5973,6 +5973,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"NDR Engine router not loaded: {e}")
 
+    # Identity Analytics Engine — identity profiles, login events, risks, access certifications
+    try:
+        from apps.api.identity_analytics_router import router as identity_analytics_router
+        app.include_router(identity_analytics_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Identity Analytics router at /api/v1/identity-analytics")
+    except Exception as e:
+        _logger.warning(f"Identity Analytics router not loaded: {e}")
+
+    # CNAPP Engine — cloud workloads, findings, policies, composite CSPM+CWPP+CIEM scoring
+    try:
+        from apps.api.cnapp_router import router as cnapp_router
+        app.include_router(cnapp_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CNAPP router at /api/v1/cnapp")
+    except Exception as e:
+        _logger.warning(f"CNAPP router not loaded: {e}")
+
     # XDR Correlation Engine — cross-domain signal ingestion, incident correlation, rules
     try:
         from apps.api.xdr_router import router as xdr_router
@@ -5996,6 +6012,22 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Supply Chain Intel router at /api/v1/supply-chain-intel")
     except Exception as e:
         _logger.warning(f"Supply Chain Intel router not loaded: {e}")
+
+    # Pentest Management — engagements, findings, targets, retests
+    try:
+        from apps.api.pentest_mgmt_router import router as pentest_mgmt_router
+        app.include_router(pentest_mgmt_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Pentest Mgmt router at /api/v1/pentest-mgmt")
+    except Exception as e:
+        _logger.warning(f"Pentest Mgmt router not loaded: {e}")
+
+    # Threat Intel Sharing — STIX/TAXII-lite, sharing groups, indicators, bundles
+    try:
+        from apps.api.threat_intel_sharing_router import router as threat_intel_sharing_router
+        app.include_router(threat_intel_sharing_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Intel Sharing router at /api/v1/threat-sharing")
+    except Exception as e:
+        _logger.warning(f"Threat Intel Sharing router not loaded: {e}")
 
     return app
 
