@@ -296,6 +296,14 @@ const ThreatScoreDashboard = lazy(() => import("@/pages/ThreatScoreDashboard"));
 const SecurityBudgetDashboard = lazy(() => import("@/pages/SecurityBudgetDashboard"));
 const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard"));
 
+// Wave 19 domain dashboards
+const DarkWebMonitoringDashboard = lazy(() => import("@/pages/DarkWebMonitoringDashboard"));
+const ITDRDashboard = lazy(() => import("@/pages/ITDRDashboard"));
+const ContainerRuntimeSecurityDashboard = lazy(() => import("@/pages/ContainerRuntimeSecurityDashboard"));
+const APIDiscoveryDashboard = lazy(() => import("@/pages/APIDiscoveryDashboard"));
+const SecurityChaosDashboard = lazy(() => import("@/pages/SecurityChaosDashboard"));
+const IncidentMetricsDashboard = lazy(() => import("@/pages/IncidentMetricsDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -596,6 +604,14 @@ export default function App() {
             <Route path="/threat-exposure" element={<ThreatExposureDashboard />} />
             <Route path="/license-security" element={<SoftwareLicenseDashboard />} />
             <Route path="/cloud-identity" element={<CloudIdentityDashboard />} />
+
+            {/* Wave 19 domain dashboards */}
+            <Route path="/dark-web" element={<DarkWebMonitoringDashboard />} />
+            <Route path="/itdr" element={<ITDRDashboard />} />
+            <Route path="/container-runtime" element={<ContainerRuntimeSecurityDashboard />} />
+            <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
+            <Route path="/security-chaos" element={<SecurityChaosDashboard />} />
+            <Route path="/incident-metrics" element={<IncidentMetricsDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
