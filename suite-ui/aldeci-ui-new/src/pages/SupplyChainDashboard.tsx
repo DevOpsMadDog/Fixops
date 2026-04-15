@@ -122,14 +122,16 @@ export default function SupplyChainDashboard() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/supply-chain/risks?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/supply-chain/vendors?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/supply-chain/components?org_id=${ORG_ID}&limit=20`),
-    ]).then(([risksResult, vendorsResult, componentsResult]) => {
+      apiFetch(`/api/v1/supply-chain/suppliers?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain/components?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain/stats?org_id=${ORG_ID}`),
+    ]).then(([risksResult, suppliersResult, componentsResult, statsResult]) => {
       const risks      = risksResult.status      === "fulfilled" ? risksResult.value      : null;
-      const vendors    = vendorsResult.status    === "fulfilled" ? vendorsResult.value    : null;
+      const suppliers  = suppliersResult.status  === "fulfilled" ? suppliersResult.value  : null;
       const components = componentsResult.status === "fulfilled" ? componentsResult.value : null;
-      if (risks || vendors || components) {
-        setLiveData({ risks, vendors, components });
+      const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
+      if (risks || suppliers || components || stats) {
+        setLiveData({ risks, vendors: suppliers, components, stats });
       }
     }).finally(() => setDataLoading(false));
   };
@@ -142,11 +144,11 @@ export default function SupplyChainDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derived values — prefer live data, fall back to mock constants
-  const totalComponents = liveData?.risks?.total_components ?? 1_847;
-  const eolCount        = liveData?.risks?.eol_components   ?? 34;
-  const cveAffected     = liveData?.risks?.cve_affected     ?? 112;
-  const licenseIssues   = liveData?.risks?.license_issues   ?? 9;
+  // Derived values — prefer live data (stats endpoint), fall back to mock constants
+  const totalComponents = liveData?.stats?.total_components ?? liveData?.risks?.total_components ?? 1_847;
+  const eolCount        = liveData?.stats?.eol_components   ?? liveData?.risks?.eol_components   ?? 34;
+  const cveAffected     = liveData?.stats?.cve_affected     ?? liveData?.risks?.cve_affected     ?? 112;
+  const licenseIssues   = liveData?.stats?.license_issues   ?? liveData?.risks?.license_issues   ?? 9;
 
   return (
     <motion.div
@@ -168,10 +170,10 @@ export default function SupplyChainDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Suppliers"        value={liveData?.risks?.vendor_count ?? liveData?.vendors?.length ?? 142}  icon={Globe}         />
-        <KpiCard title="Critical Tier"    value={liveData?.risks?.critical_components ?? 18}   icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Suppliers"        value={liveData?.stats?.total_suppliers ?? liveData?.vendors?.length ?? 142}  icon={Globe}         />
+        <KpiCard title="Critical Tier"    value={liveData?.stats?.critical_suppliers ?? liveData?.risks?.critical_components ?? 18}   icon={AlertTriangle} trend="up" className="border-red-500/20" />
         <KpiCard title="EOL Components"   value={eolCount}   icon={Package}       trend="up" className="border-amber-500/20" />
-        <KpiCard title="Open Risks"       value={liveData?.risks?.policy_violations ?? liveData?.risks?.open_risks ?? 67}   icon={Shield}        trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Open Risks"       value={liveData?.stats?.open_risks ?? liveData?.risks?.open_risks ?? 67}   icon={Shield}        trend="up" className="border-yellow-500/20" />
       </div>
 
       {/* Supplier table */}

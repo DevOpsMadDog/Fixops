@@ -13,7 +13,7 @@
  * API stubs: GET /api/v1/cmdb/cis  GET /api/v1/cmdb/changes
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Server,
@@ -25,6 +25,22 @@ import {
   Eye,
   ArrowRight,
 } from "lucide-react";
+
+// ── API ────────────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const key =
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key";
+  const url = path.startsWith("/api") ? `${API_BASE}${path}` : `${API_BASE}/api/v1${path}`;
+  const res = await fetch(url, { headers: { "X-API-Key": key } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -133,11 +149,63 @@ const STATUS_DOT: Record<string, string> = {
 
 export default function CMDBDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/cmdb/cis?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cmdb/changes?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cmdb/stats?org_id=${ORG_ID}`),
+    ]).then(([cisRes, changesRes, statsRes]) => {
+      const cis     = cisRes.status     === "fulfilled" ? cisRes.value     : null;
+      const changes = changesRes.status === "fulfilled" ? changesRes.value : null;
+      const stats   = statsRes.status   === "fulfilled" ? statsRes.value   : null;
+      if (cis || changes || stats) {
+        setLiveData({ cis, changes, stats });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Derived KPI values — prefer live, fall back to mock
+  const totalCIs      = liveData?.stats?.total_cis      ?? liveData?.cis?.length ?? "2,847";
+  const activeCIs     = liveData?.stats?.active_cis     ?? "2,634";
+  const changesWeek   = liveData?.stats?.changes_this_week ?? liveData?.changes?.length ?? 47;
+  const criticalAssets = liveData?.stats?.critical_count ?? 183;
+
+  // Live CI rows — map engine fields to display shape
+  const liveCIs: typeof CI_INVENTORY = Array.isArray(liveData?.cis) && liveData.cis.length > 0
+    ? liveData.cis.slice(0, 15).map((ci: any) => ({
+        name:        ci.name        ?? "—",
+        type:        ci.ci_type     ?? ci.type ?? "server",
+        env:         ci.environment ?? "prod",
+        criticality: ci.criticality ? (ci.criticality.charAt(0).toUpperCase() + ci.criticality.slice(1)) : "Medium",
+        owner:       ci.owner       ?? "—",
+        status:      ci.status      ?? "online",
+        changed:     ci.updated_at  ?? ci.created_at ?? "—",
+      }))
+    : CI_INVENTORY;
+
+  // Live change rows
+  const liveChanges: typeof RECENT_CHANGES = Array.isArray(liveData?.changes) && liveData.changes.length > 0
+    ? liveData.changes.slice(0, 12).map((c: any) => ({
+        ci:     c.ci_id       ?? c.ci_name ?? "—",
+        change: c.change_type ?? "modify",
+        desc:   c.description ?? "—",
+        by:     c.changed_by  ?? "—",
+        date:   c.change_date ?? c.created_at ?? "—",
+        status: "completed",
+      }))
+    : RECENT_CHANGES;
 
   return (
     <motion.div
@@ -159,10 +227,10 @@ export default function CMDBDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total CIs"           value="2,847" icon={Database}      trend="up" />
-        <KpiCard title="Active"              value="2,634" icon={Activity}      trend="up"   className="border-green-500/20" />
-        <KpiCard title="Changes This Week"   value={47}    icon={GitBranch}     trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Critical Assets"     value={183}   icon={AlertTriangle} trend="down" className="border-red-500/20" />
+        <KpiCard title="Total CIs"           value={totalCIs}       icon={Database}      trend="up" />
+        <KpiCard title="Active"              value={activeCIs}      icon={Activity}      trend="up"   className="border-green-500/20" />
+        <KpiCard title="Changes This Week"   value={changesWeek}    icon={GitBranch}     trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Critical Assets"     value={criticalAssets} icon={AlertTriangle} trend="down" className="border-red-500/20" />
       </div>
 
       {/* CI Inventory table */}
@@ -174,7 +242,7 @@ export default function CMDBDashboard() {
               CI Inventory
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {CI_INVENTORY.length} shown of 2,847
+              {liveCIs.length} shown of {totalCIs}
             </Badge>
           </div>
           <CardDescription className="text-xs">Configuration items across all environments</CardDescription>
@@ -195,7 +263,7 @@ export default function CMDBDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CI_INVENTORY.map((ci) => (
+                {liveCIs.map((ci) => (
                   <TableRow key={ci.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{ci.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -299,7 +367,7 @@ export default function CMDBDashboard() {
               Recent Changes
             </CardTitle>
             <Badge className="text-[10px] border border-blue-500/30 text-blue-400 bg-blue-500/10">
-              47 this week
+              {changesWeek} this week
             </Badge>
           </div>
           <CardDescription className="text-xs">Latest CI modifications, additions, and decommissions</CardDescription>
@@ -318,7 +386,7 @@ export default function CMDBDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {RECENT_CHANGES.map((c, i) => (
+                {liveChanges.map((c, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{c.ci}</TableCell>
                     <TableCell className="py-2.5">

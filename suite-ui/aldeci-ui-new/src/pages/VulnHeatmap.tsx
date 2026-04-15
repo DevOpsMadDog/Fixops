@@ -14,11 +14,11 @@
  */
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Shield, AlertTriangle, Activity, CheckCircle2,
-  Server, Cloud, Monitor, Box, ExternalLink,
+  Server, Cloud, Monitor, Box, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,19 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const key =
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key";
+  const url = path.startsWith("/api") ? `${API_BASE}${path}` : `${API_BASE}/api/v1${path}`;
+  const res = await fetch(url, { headers: { "X-API-Key": key } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -270,19 +283,26 @@ const SparkBar = ({
 // ══════════════════════════════════════════════════════════════
 
 export default function VulnHeatmap() {
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["vuln-heatmap"],
+    queryKey: ["vuln-heatmap", ORG_ID],
     queryFn: async (): Promise<VulnHeatmapData> => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/vuln-heatmap/assets`);
-        if (!res.ok) throw new Error("API unavailable");
-        return res.json();
+        return await apiFetch(`/api/v1/vuln-heatmap/assets?org_id=${ORG_ID}`);
       } catch {
         return MOCK_DATA;
       }
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    queryClient.invalidateQueries({ queryKey: ["vuln-heatmap", ORG_ID] });
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
   if (isLoading) return <PageSkeleton />;
 
@@ -303,6 +323,11 @@ export default function VulnHeatmap() {
         title="Vulnerability Heatmap"
         subtitle="Risk concentration across your asset landscape"
         icon={Shield}
+        actions={
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          </Button>
+        }
       />
 
       {/* ── KPI Row ── */}

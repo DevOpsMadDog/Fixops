@@ -9,9 +9,25 @@
  *   5. Budget breakdown — 4 category bars showing spend vs allocated
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Map, TrendingUp, CheckCircle, Clock, AlertTriangle, DollarSign, RefreshCw } from "lucide-react";
+
+// ── API ────────────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const key =
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key";
+  const url = path.startsWith("/api") ? `${API_BASE}${path}` : `${API_BASE}/api/v1${path}`;
+  const res = await fetch(url, { headers: { "X-API-Key": key } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,11 +137,64 @@ const BUDGET_MAX = 1200; // K — for bar scaling
 
 export default function SecurityRoadmap() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/security-roadmap/initiatives?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-roadmap/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-roadmap/gaps?org_id=${ORG_ID}`),
+    ]).then(([initiativesRes, statsRes, gapsRes]) => {
+      const initiatives = initiativesRes.status === "fulfilled" ? initiativesRes.value : null;
+      const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
+      const gaps        = gapsRes.status        === "fulfilled" ? gapsRes.value        : null;
+      if (initiatives || stats || gaps) {
+        setLiveData({ initiatives, stats, gaps });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Derive display values — prefer live, fall back to mock constants
+  const liveInitiatives: typeof INITIATIVES = Array.isArray(liveData?.initiatives) && liveData.initiatives.length > 0
+    ? liveData.initiatives.map((i: any) => ({
+        title:    i.title    ?? "—",
+        category: i.category ?? "technology",
+        priority: i.priority ?? "medium",
+        status:   i.status   ?? "planned",
+        owner:    i.owner    ?? "—",
+        budget:   i.budget_usd ? `$${Math.round(i.budget_usd / 1000)}K` : "—",
+        target:   i.target_date ?? "—",
+        progress: i.progress ?? 0,
+      }))
+    : INITIATIVES;
+
+  const liveGaps: typeof GAPS = Array.isArray(liveData?.gaps) && liveData.gaps.length > 0
+    ? liveData.gaps.map((g: any) => ({
+        title:      g.title       ?? "—",
+        severity:   g.severity    ?? "medium",
+        type:       g.gap_type    ?? "—",
+        initiative: g.linked_initiative_id ?? "—",
+      }))
+    : GAPS;
+
+  const totalInitiatives  = liveData?.stats?.total_initiatives  ?? 24;
+  const inProgress        = liveData?.stats?.in_progress        ?? 8;
+  const completionRate    = liveData?.stats?.completion_rate != null
+    ? `${Math.round(liveData.stats.completion_rate)}%`
+    : "67%";
+  const totalBudget       = liveData?.stats?.total_budget_usd != null
+    ? `$${(liveData.stats.total_budget_usd / 1_000_000).toFixed(1)}M`
+    : "$2.4M";
 
   return (
     <motion.div
@@ -147,10 +216,10 @@ export default function SecurityRoadmap() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Initiatives" value={24}      icon={Map} />
-        <KpiCard title="In Progress"       value={8}       icon={TrendingUp} trend="up" />
-        <KpiCard title="Completion Rate"   value="67%"     icon={CheckCircle} className="border-green-500/20" />
-        <KpiCard title="Total Budget"      value="$2.4M"   icon={DollarSign} />
+        <KpiCard title="Total Initiatives" value={totalInitiatives} icon={Map} />
+        <KpiCard title="In Progress"       value={inProgress}       icon={TrendingUp} trend="up" />
+        <KpiCard title="Completion Rate"   value={completionRate}   icon={CheckCircle} className="border-green-500/20" />
+        <KpiCard title="Total Budget"      value={totalBudget}      icon={DollarSign} />
       </div>
 
       {/* Initiative table */}
@@ -178,7 +247,7 @@ export default function SecurityRoadmap() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {INITIATIVES.map((row) => (
+                {liveInitiatives.map((row) => (
                   <TableRow key={row.title} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
                     <TableCell className="py-2.5"><CategoryBadge cat={row.category} /></TableCell>
@@ -247,7 +316,7 @@ export default function SecurityRoadmap() {
               <CardDescription className="text-xs">Security gaps linked to roadmap initiatives</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {GAPS.map((g, i) => (
+              {liveGaps.map((g, i) => (
                 <div key={i} className="flex items-start gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

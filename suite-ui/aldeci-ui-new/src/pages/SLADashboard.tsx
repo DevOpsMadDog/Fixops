@@ -13,9 +13,25 @@
  * API stubs: GET /api/v1/sla/compliance, /api/v1/sla/breached, /api/v1/sla/at-risk
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, AlertTriangle, Shield, Users, Settings, RefreshCw, BarChart3 } from "lucide-react";
+
+// ── API ────────────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const key =
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key";
+  const url = path.startsWith("/api") ? `${API_BASE}${path}` : `${API_BASE}/api/v1${path}`;
+  const res = await fetch(url, { headers: { "X-API-Key": key } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,11 +115,84 @@ const MTTR_MAX = 10; // days — for bar scaling
 
 export default function SLADashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/sla/dashboard?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/sla/breached?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/sla/at-risk?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/sla/compliance?org_id=${ORG_ID}`),
+    ]).then(([dashRes, breachedRes, atRiskRes, complianceRes]) => {
+      const dashboard  = dashRes.status      === "fulfilled" ? dashRes.value      : null;
+      const breached   = breachedRes.status  === "fulfilled" ? breachedRes.value  : null;
+      const atRisk     = atRiskRes.status    === "fulfilled" ? atRiskRes.value    : null;
+      const compliance = complianceRes.status === "fulfilled" ? complianceRes.value : null;
+      if (dashboard || breached || atRisk || compliance) {
+        setLiveData({ dashboard, breached, atRisk, compliance });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Derived KPI values — prefer live, fall back to mock
+  const complianceRate = liveData?.compliance?.compliance_rate != null
+    ? `${Math.round(liveData.compliance.compliance_rate)}%`
+    : liveData?.dashboard?.compliance_rate != null
+      ? `${Math.round(liveData.dashboard.compliance_rate)}%`
+      : "78%";
+
+  const activeBreaches = Array.isArray(liveData?.breached)
+    ? liveData.breached.length
+    : liveData?.dashboard?.breached ?? 12;
+
+  const atRiskCount = Array.isArray(liveData?.atRisk)
+    ? liveData.atRisk.length
+    : liveData?.dashboard?.at_risk ?? 23;
+
+  const avgMttr = liveData?.compliance?.mttr_by_severity
+    ? (() => {
+        const vals = Object.values(liveData.compliance.mttr_by_severity) as number[];
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        return `${avg.toFixed(1)}d`;
+      })()
+    : liveData?.dashboard?.avg_mttr_days != null
+      ? `${liveData.dashboard.avg_mttr_days.toFixed(1)}d`
+      : "4.2d";
+
+  // Live breach rows — map SLARecord fields to display shape
+  const liveBreaches = Array.isArray(liveData?.breached) && liveData.breached.length > 0
+    ? liveData.breached.slice(0, 8).map((r: any, i: number) => ({
+        id:      r.finding_id ?? `FND-${i}`,
+        title:   r.title     ?? r.finding_id ?? "—",
+        severity: r.severity ?? "High",
+        type:    "Resolve",
+        owner:   r.assigned_to ?? "—",
+        due:     r.deadline   ?? "—",
+        overdue: r.hours_overdue != null ? `${Math.round(r.hours_overdue)}h` : "—",
+      }))
+    : BREACHES;
+
+  const liveAtRisk = Array.isArray(liveData?.atRisk) && liveData.atRisk.length > 0
+    ? liveData.atRisk.slice(0, 10).map((r: any, i: number) => ({
+        id:        r.finding_id ?? `FND-${i}`,
+        title:     r.title ?? r.finding_id ?? "—",
+        severity:  r.severity ?? "Medium",
+        deadline:  r.deadline ?? "—",
+        remaining: r.hours_remaining != null ? `${Math.round(r.hours_remaining)}h` : "—",
+        owner:     r.assigned_to ?? "—",
+        urgent:    (r.hours_remaining ?? 999) < 2,
+      }))
+    : AT_RISK;
 
   return (
     <motion.div
@@ -125,10 +214,10 @@ export default function SLADashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="SLA Compliance"   value="78%"    icon={Shield}        trend="down" className="border-amber-500/20" />
-        <KpiCard title="Active Breaches"  value={12}     icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="At Risk (≤20%)"   value={23}     icon={Clock}         trend="up"   className="border-yellow-500/20" />
-        <KpiCard title="Avg MTTR"         value="4.2d"   icon={BarChart3}     trend="down" />
+        <KpiCard title="SLA Compliance"   value={complianceRate} icon={Shield}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="Active Breaches"  value={activeBreaches} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="At Risk (≤20%)"   value={atRiskCount}    icon={Clock}         trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="Avg MTTR"         value={avgMttr}        icon={BarChart3}     trend="down" />
       </div>
 
       {/* Severity bars + MTTR trend */}
@@ -217,7 +306,7 @@ export default function SLADashboard() {
               Active Breaches
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {BREACHES.length} breached
+              {liveBreaches.length} breached
             </Badge>
           </div>
           <CardDescription className="text-xs">Findings that have exceeded their SLA deadline</CardDescription>
@@ -238,7 +327,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {BREACHES.map((row) => (
+                {liveBreaches.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
@@ -269,7 +358,7 @@ export default function SLADashboard() {
               At-Risk Items
             </CardTitle>
             <Badge className="text-[10px] border border-yellow-500/30 text-yellow-400 bg-yellow-500/10">
-              {AT_RISK.length} items
+              {liveAtRisk.length} items
             </Badge>
           </div>
           <CardDescription className="text-xs">Findings within 20% of their SLA deadline — sorted by time remaining</CardDescription>
@@ -288,7 +377,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {AT_RISK.map((row) => (
+                {liveAtRisk.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(
