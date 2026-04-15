@@ -38,16 +38,19 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "default";
+
+function getApiKey() {
+  return (
+    (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key"
+  );
+}
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": API_KEY },
+  const res = await fetch(`/api/v1${path}`, {
+    headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -608,10 +611,10 @@ export default function SecurityAwareness() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/stats`),
-      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/employees`),
-      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/department-summary`),
-      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/scores`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID}/stats`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID}/employees`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID}/department-summary`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID}/scores`),
     ]).then(([statsRes, employeesRes, deptRes, scoresRes]) => {
       const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
       const employees   = employeesRes.status   === "fulfilled" ? employeesRes.value   : null;

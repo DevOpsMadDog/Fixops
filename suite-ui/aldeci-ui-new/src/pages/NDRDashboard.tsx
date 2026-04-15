@@ -16,16 +16,19 @@ import { motion } from "framer-motion";
 import { Network, AlertTriangle, Activity, Shield, RefreshCw, Eye, Radio } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "default";
+
+function getApiKey() {
+  return (
+    (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key"
+  );
+}
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": API_KEY },
+  const res = await fetch(`/api/v1${path}`, {
+    headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -170,9 +173,9 @@ export default function NDRDashboard() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/ndr/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ndr/alerts?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/ndr/flows?org_id=${ORG_ID}&limit=10`),
+      apiFetch(`/ndr/stats?org_id=${ORG_ID}`),
+      apiFetch(`/ndr/alerts?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/ndr/flows?org_id=${ORG_ID}&limit=10`),
     ]).then(([statsResult, alertsResult, flowsResult]) => {
       const stats  = statsResult.status  === "fulfilled" ? statsResult.value  : null;
       const alerts = alertsResult.status === "fulfilled" ? alertsResult.value : null;
