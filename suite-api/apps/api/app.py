@@ -6642,6 +6642,76 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.email_filtering_router import router as email_filtering_router
+        app.include_router(email_filtering_router)
+        _logger.info("Mounted Email Filtering router at /api/v1/email-filtering")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.anti_phishing_router import router as anti_phishing_router
+        app.include_router(anti_phishing_router)
+        _logger.info("Mounted Anti-Phishing router at /api/v1/anti-phishing")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.soc_workflow_router import router as soc_workflow_router
+        app.include_router(soc_workflow_router)
+        _logger.info("Mounted SOC Workflow router at /api/v1/soc-workflow")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_triage_router import router as incident_triage_router
+        app.include_router(incident_triage_router)
+        _logger.info("Mounted Incident Triage router at /api/v1/incident-triage")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_simulation_router import router as threat_simulation_router
+        app.include_router(threat_simulation_router)
+        _logger.info("Mounted Threat Simulation router at /api/v1/threat-simulation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_scoreboard_router import router as security_scoreboard_router
+        app.include_router(security_scoreboard_router)
+        _logger.info("Mounted Security Scoreboard router at /api/v1/security-scoreboard")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.asset_lifecycle_router import router as asset_lifecycle_router
+        app.include_router(asset_lifecycle_router)
+        _logger.info("Mounted Asset Lifecycle router at /api/v1/asset-lifecycle")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vuln_exception_router import router as vuln_exception_router
+        app.include_router(vuln_exception_router)
+        _logger.info("Mounted Vulnerability Exception router at /api/v1/vuln-exceptions")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.breach_detection_router import router as breach_detection_router
+        app.include_router(breach_detection_router)
+        _logger.info("Mounted Breach Detection router at /api/v1/breach-detection")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.forensics_readiness_router import router as forensics_readiness_router
+        app.include_router(forensics_readiness_router)
+        _logger.info("Mounted Forensics Readiness router at /api/v1/forensics-readiness")
+    except ImportError:
+        pass
+
     return app
 
 
