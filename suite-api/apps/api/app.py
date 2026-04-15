@@ -5670,6 +5670,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Network Topology router not loaded: {e}")
 
+    # Secrets Manager — vault management, secret rotation, expiry tracking
+    try:
+        from apps.api.secrets_manager_router import router as secrets_manager_router
+        app.include_router(secrets_manager_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Secrets Manager router at /api/v1/secrets")
+    except Exception as e:
+        _logger.warning(f"Secrets Manager router not loaded: {e}")
+
+    # SOAR — playbook automation, incident response, case management
+    try:
+        from apps.api.soar_router import router as soar_router
+        app.include_router(soar_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted SOAR router at /api/v1/soar")
+    except Exception as e:
+        _logger.warning(f"SOAR router not loaded: {e}")
+
     return app
 
 
