@@ -6740,6 +6740,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.cloud_governance_router import router as cloud_governance_router
+        app.include_router(cloud_governance_router)
+        _logger.info("Mounted Cloud Governance router at /api/v1/cloud-governance")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.policy_enforcement_router import router as policy_enforcement_router
+        app.include_router(policy_enforcement_router)
+        _logger.info("Mounted Policy Enforcement router at /api/v1/policy-enforcement")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_metrics_dashboard_router import router as security_metrics_dashboard_router
+        app.include_router(security_metrics_dashboard_router)
+        _logger.info("Mounted Security Metrics Dashboard router at /api/v1/metrics-dashboard")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.kpi_tracking_router import router as kpi_tracking_router
+        app.include_router(kpi_tracking_router)
+        _logger.info("Mounted KPI Tracking router at /api/v1/kpi-tracking")
+    except ImportError:
+        pass
+
     return app
 
 
