@@ -170,6 +170,7 @@ const IncidentResponseDashboard = lazy(() => import("@/pages/IncidentResponseDas
 const PhishingSimulation = lazy(() => import("@/pages/PhishingSimulation"));
 const APISecurityPage = lazy(() => import("@/pages/APISecurityPage"));
 const DataClassificationDashboard = lazy(() => import("@/pages/DataClassificationDashboard"));
+const SecurityTrainingDashboard = lazy(() => import("@/pages/SecurityTrainingDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -362,6 +363,7 @@ export default function App() {
             <Route path="/phishing" element={<PhishingSimulation />} />
             <Route path="/api-sec" element={<APISecurityPage />} />
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
+            <Route path="/security-training" element={<SecurityTrainingDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

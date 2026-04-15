@@ -312,6 +312,7 @@ const navGroups: NavGroup[] = [
       { label: "Cloud IAM", to: "/cloud-iam", icon: KeyRound, badge: "NEW" },
       { label: "Identity Governance", to: "/identity-governance", icon: UserCheck, badge: "NEW" },
       { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap, badge: "NEW" },
+      { label: "Security Training", to: "/security-training", icon: GraduationCap, badge: "NEW" },
       { label: "Password Policy", to: "/password-policy", icon: Key, badge: "NEW" },
       { label: "Mobile Security", to: "/mobile-security", icon: Smartphone, badge: "NEW" },
     ],
@@ -330,6 +331,7 @@ const navGroups: NavGroup[] = [
       { label: "Supply Chain Risk", to: "/supply-chain-risk", icon: Package, badge: "NEW" },
       { label: "Watchlist Manager", to: "/watchlist", icon: Eye, badge: "NEW" },
       { label: "IOC Hunter", to: "/ioc-hunter", icon: Search, badge: "NEW" },
+      { label: "Data Classification", to: "/data-classification", icon: Tag, badge: "NEW" },
     ],
   },
   {
@@ -358,6 +360,8 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "AppSec (SAST/DAST)", to: "/app-security", icon: Code, badge: "NEW" },
       { label: "API Security", to: "/api-security", icon: Wifi, badge: "NEW" },
+      { label: "API Vuln Mgmt", to: "/api-sec", icon: Wifi, badge: "NEW" },
+      { label: "Phishing Simulation", to: "/phishing", icon: Mail, badge: "NEW" },
       { label: "Social Engineering", to: "/social-engineering", icon: Users, badge: "NEW" },
     ],
   },
