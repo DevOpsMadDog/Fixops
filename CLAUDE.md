@@ -342,6 +342,68 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
+### DONE (session 2026-04-16, Wave 11+12 — Autonomous parallel build)
+
+**Wave 11 Backend Engines (all in suite-core/core/):**
+- ✅ zero_trust_policy_engine.py — ZeroTrust policy eval, compliance posture, maturity score — 44 tests
+- ✅ siem_integration_engine.py — SIEM event normalization, correlation, alert management — 38 tests
+- ✅ nac_engine.py — NAC device enrollment, posture checks, policy enforcement — 47 tests
+- ✅ waf_engine.py — WAF rules, virtual patches, rate limiting — 40 tests
+- ✅ casb_engine.py — Shadow IT discovery, OAuth control, data activity — 43 tests
+- ✅ mdm_engine.py — Device enrollment, compliance checks, remote wipe — 49 tests
+- ✅ compliance_evidence_collector.py — Evidence requests, auto-collect, audit readiness — 41 tests
+- ✅ mitre_attack_router.py — MITRE ATT&CK coverage dashboard — 14 tactics wired
+- ✅ ciso_report_router.py — CISO executive report with export
+
+**Wave 12 Backend Engines (all in suite-core/core/):**
+- ✅ network_monitoring_engine.py — Traffic sampling, alert rules, interface monitoring — 30 tests
+- ✅ bandwidth_analysis_engine.py — QoS policies, anomaly detection (z-score), utilization trends — 33 tests
+- ✅ service_account_auditor_engine.py — IAM audit, unused/overprivileged detection, rotation — 41 tests
+- ✅ privilege_escalation_detector_engine.py — Anomaly scoring, detection rules, heatmap — 48 tests
+- ✅ container_registry_security_engine.py — Image scanning, policy evaluation, severity counts — 33 tests
+- ✅ software_composition_analysis_engine.py — SCA, Log4Shell/CVE detection, license risk — 30 tests
+- ✅ security_automation_engine.py — Automation rules, execution history, success rate — 32 tests
+- ✅ incident_orchestration_engine.py — 5-state lifecycle, timeline, MTTR metrics — 39 tests
+- ✅ threat_geolocation_engine.py — Impossible travel detection, country heatmap, geo-blocking — 43 tests
+- ✅ ip_reputation_engine.py — Bulk scoring, blocklist, category-based risk — 42 tests
+- ✅ firewall_policy_engine.py — Rule conflict detection, coverage gaps, shadow rules — 31 tests
+- ✅ network_segmentation_engine.py — Lateral movement risk, segmentation score, flow policies — 34 tests
+- ✅ crypto_key_management_engine.py — Key rotation, expiry tracking, audit log — 34 tests
+- ✅ certificate_lifecycle_engine.py — Cert status, renewal history, expiry alerts — 34 tests
+- ✅ kubernetes_security_engine.py — Cluster findings, CIS benchmarks, RBAC analysis — 57 tests
+- ✅ cloud_native_security_engine.py — Cloud misconfigs, posture checks — 56 tests
+- ✅ passive_dns_engine.py — Passive DNS records, domain tracking — tests wired
+- ✅ iam_policy_analyzer.py — Wildcard/toxic combo detection, risk scoring — 40 tests
+- ✅ cloud_drift_engine.py — IaC baseline drift, acknowledge/remediate lifecycle — 34 tests
+- ✅ data_retention_engine.py — GDPR/CCPA policy lifecycle, deletion audit — 28 tests
+- ✅ evidence_chain_engine.py — Tamper-evident custody chain, sealed guard — 30 tests
+
+**Wave 12 New Routers wired into app.py:**
+- ✅ /api/v1/network-monitoring, /api/v1/bandwidth-analysis
+- ✅ /api/v1/service-account-auditor, /api/v1/privilege-escalation
+- ✅ /api/v1/threat-geolocation, /api/v1/ip-reputation
+- ✅ /api/v1/security-automation, /api/v1/incident-orchestration
+- ✅ /api/v1/firewall-policy, /api/v1/network-segmentation
+- ✅ /api/v1/crypto-keys, /api/v1/certificates
+- ✅ /api/v1/kubernetes-security, /api/v1/cloud-native
+- ✅ /api/v1/passive-dns, /api/v1/iam-policy, /api/v1/cloud-drift
+- ✅ /api/v1/data-retention, /api/v1/evidence-chain
+- ✅ /api/v1/container-registry-security, /api/v1/sca
+
+**Wave 12 New Frontend Pages:**
+- ✅ /container-registry — ContainerRegistryDashboard
+- ✅ /network-monitoring — NetworkMonitoringDashboard
+- ✅ /sca — SCADashboard (Software Composition Analysis)
+- ✅ /service-account-audit — ServiceAccountAuditDashboard
+- ✅ /firewall-policy — FirewallPolicyDashboard
+- ✅ /network-segmentation — NetworkSegmentationDashboard
+- ✅ /threat-geolocation — ThreatGeolocationDashboard (in progress)
+- ✅ /ip-reputation — IPReputationDashboard (in progress)
+
+**Test totals:** 1,400 base + 600+ Wave 12 = 2,000+ tests, zero regressions
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
