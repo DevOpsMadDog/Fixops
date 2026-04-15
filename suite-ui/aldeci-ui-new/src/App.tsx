@@ -146,6 +146,9 @@ const BugBounty = lazy(() => import("@/pages/BugBounty"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
 const EmailSecurity = lazy(() => import("@/pages/EmailSecurity"));
 const SLADashboardPage = lazy(() => import("@/pages/SLADashboard"));
+const SecurityMetricsDashboard = lazy(() => import("@/pages/SecurityMetricsDashboard"));
+const VulnRiskQueue = lazy(() => import("@/pages/VulnRiskQueue"));
+const RedTeamStatus = lazy(() => import("@/pages/RedTeamStatus"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -314,6 +317,9 @@ export default function App() {
             <Route path="/cloud-iam" element={<CloudIAM />} />
             <Route path="/email-security" element={<EmailSecurity />} />
             <Route path="/sla-dashboard" element={<SLADashboardPage />} />
+            <Route path="/security-metrics" element={<SecurityMetricsDashboard />} />
+            <Route path="/vuln-risk" element={<VulnRiskQueue />} />
+            <Route path="/red-team" element={<RedTeamStatus />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
