@@ -9,9 +9,25 @@
  *   5. Package check widget (search + 5 mock results)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Package, AlertTriangle, ShieldAlert, RefreshCw, Search, Bug, FileCheck, BarChart3 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +127,24 @@ export default function SupplyChainIntelDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/supply-chain-intel/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain-intel/packages?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/supply-chain-intel/sbom?org_id=${ORG_ID}&limit=10`),
+    ]).then(([statsResult, packagesResult, sbomResult]) => {
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const packages = packagesResult.status === "fulfilled" ? packagesResult.value : null;
+      const sbom     = sbomResult.status     === "fulfilled" ? sbomResult.value     : null;
+      if (stats || packages || sbom) {
+        setLiveData({ stats, packages, sbom });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleSearch = () => setSearched(true);
 
@@ -126,17 +160,17 @@ export default function SupplyChainIntelDashboard() {
         title="Supply Chain Intelligence"
         description="Package vulnerability tracking, malicious package detection, and SBOM analysis"
         actions={
-          <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Tracked Packages" value={847} icon={Package}       trend="up" />
-        <KpiCard title="Vulnerable"        value={124} icon={Bug}           trend="up"  className="border-amber-500/20" />
-        <KpiCard title="Malicious Flags"   value={8}   icon={ShieldAlert}   trend="up"  className="border-red-500/20" />
+        <KpiCard title="Tracked Packages" value={liveData?.stats?.vendor_count ?? liveData?.stats?.total ?? 847} icon={Package}       trend="up" />
+        <KpiCard title="Vulnerable"        value={liveData?.stats?.sbom_snapshots ?? 124} icon={Bug}           trend="up"  className="border-amber-500/20" />
+        <KpiCard title="Malicious Flags"   value={liveData?.stats?.malicious_packages_detected ?? 8}   icon={ShieldAlert}   trend="up"  className="border-red-500/20" />
         <KpiCard title="Critical CVEs"     value={23}  icon={AlertTriangle} trend="up"  className="border-red-500/20" />
       </div>
 
@@ -196,7 +230,7 @@ export default function SupplyChainIntelDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {VULN_PKGS.map((p, i) => (
+                {(liveData?.packages?.items ?? liveData?.packages ?? VULN_PKGS).map((p: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{p.name}</TableCell>
                     <TableCell className="py-2.5"><EcoBadge eco={p.eco} /></TableCell>
@@ -230,7 +264,7 @@ export default function SupplyChainIntelDashboard() {
             <CardDescription className="text-xs">Latest dependency snapshots per project</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {SBOM_SNAPSHOTS.map((snap, i) => (
+            {(liveData?.sbom?.items ?? liveData?.sbom ?? SBOM_SNAPSHOTS).map((snap: any, i: number) => (
               <div key={i} className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium font-mono">{snap.project}</span>

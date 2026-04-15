@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/threat-hunting/campaigns, /api/v1/threat-hunting/queries, /api/v1/threat-hunting/findings
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Crosshair, AlertTriangle, Search, Play, RefreshCw, BookOpen, BarChart3, Shield } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,6 +125,24 @@ function SevDot({ sev }: { sev: string }) {
 
 export default function ThreatHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/threat-hunting/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-hunting/hunts?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/threat-hunting/findings?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, huntsResult, findingsResult]) => {
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const hunts    = huntsResult.status    === "fulfilled" ? huntsResult.value    : null;
+      const findings = findingsResult.status === "fulfilled" ? findingsResult.value : null;
+      if (stats || hunts || findings) {
+        setLiveData({ stats, hunts, findings });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -127,17 +161,17 @@ export default function ThreatHuntingDashboard() {
         title="Threat Hunting"
         description="Proactive hunt campaigns, queries, and findings"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Hunts"     value={7}   icon={Crosshair}     trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Total Findings"   value={43}  icon={Search}        trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Findings" value={8}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Active Hunts"     value={liveData?.stats?.active_hunts ?? liveData?.stats?.hunt_count ?? 7}   icon={Crosshair}     trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Total Findings"   value={liveData?.stats?.findings ?? 43}  icon={Search}        trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Findings" value={liveData?.stats?.critical_findings ?? 8}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
         <KpiCard title="Queries Run"      value={284} icon={BarChart3}     trend="up" />
       </div>
 
@@ -169,7 +203,7 @@ export default function ThreatHuntingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CAMPAIGNS.map((row) => (
+                {(liveData?.hunts?.items ?? liveData?.hunts ?? CAMPAIGNS).map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{row.name}</TableCell>
@@ -257,7 +291,7 @@ export default function ThreatHuntingDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {FINDINGS.map((row) => (
+                  {(liveData?.findings?.items ?? liveData?.findings ?? FINDINGS).map((row: any) => (
                     <TableRow key={row.id} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 pl-4"><SevDot sev={row.sev} /></TableCell>
                       <TableCell className="text-xs py-2.5 max-w-[200px] truncate font-medium">{row.title}</TableCell>

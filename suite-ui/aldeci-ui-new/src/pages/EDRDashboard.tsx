@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/edr/endpoints, /api/v1/edr/detections, /api/v1/edr/processes
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Monitor, AlertTriangle, Shield, Lock, RefreshCw, Activity, Terminal } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,6 +159,24 @@ function RiskBar({ score }: { score: number }) {
 
 export default function EDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/edr/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/edr/endpoints?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/edr/detections?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, endpointsResult, detectionsResult]) => {
+      const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
+      const endpoints  = endpointsResult.status  === "fulfilled" ? endpointsResult.value  : null;
+      const detections = detectionsResult.status === "fulfilled" ? detectionsResult.value : null;
+      if (stats || endpoints || detections) {
+        setLiveData({ stats, endpoints, detections });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -161,18 +195,18 @@ export default function EDRDashboard() {
         title="Endpoint Detection & Response"
         description="Process telemetry, malware detection, and endpoint isolation"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Endpoints Online"  value={847} icon={Monitor}       trend="up"   />
-        <KpiCard title="Isolated"          value={3}   icon={Lock}          trend="up"   className="border-orange-500/20" />
-        <KpiCard title="New Detections"    value={12}  icon={Activity}      trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Alerts"   value={4}   icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Endpoints Online"  value={liveData?.stats?.endpoint_count ?? liveData?.stats?.total ?? 847} icon={Monitor}       trend="up"   />
+        <KpiCard title="Isolated"          value={liveData?.stats?.isolated_count ?? 3}   icon={Lock}          trend="up"   className="border-orange-500/20" />
+        <KpiCard title="New Detections"    value={liveData?.stats?.total_detections ?? 12}  icon={Activity}      trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Alerts"   value={liveData?.stats?.detection_rate ?? 4}   icon={AlertTriangle} trend="up"   className="border-red-500/20" />
       </div>
 
       {/* Endpoint Inventory */}
@@ -184,7 +218,7 @@ export default function EDRDashboard() {
               Endpoint Inventory
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {ENDPOINTS.filter(e => e.status === "isolated" || e.status === "compromised").length} need attention
+              {(liveData?.endpoints?.items ?? liveData?.endpoints ?? ENDPOINTS).filter((e: any) => e.status === "isolated" || e.status === "compromised").length} need attention
             </Badge>
           </div>
           <CardDescription className="text-xs">All managed endpoints with status, risk, and agent version</CardDescription>
@@ -205,7 +239,7 @@ export default function EDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ENDPOINTS.map((ep) => (
+                {(liveData?.endpoints?.items ?? liveData?.endpoints ?? ENDPOINTS).map((ep: any) => (
                   <TableRow key={ep.hostname} className={cn("hover:bg-muted/30", ep.status === "compromised" && "bg-red-500/5")}>
                     <TableCell className="py-2 font-mono text-xs font-semibold">{ep.hostname}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ep.ip}</TableCell>
@@ -247,7 +281,7 @@ export default function EDRDashboard() {
             <CardDescription className="text-xs">Malware and threat detections across all endpoints</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {DETECTIONS.map((d, i) => (
+            {(liveData?.detections?.items ?? liveData?.detections ?? DETECTIONS).map((d: any, i: number) => (
               <div key={i} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
