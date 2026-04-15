@@ -127,6 +127,7 @@ const DLPDashboard = lazy(() => import("@/pages/DLPDashboard"));
 const APIAbuseDashboard = lazy(() => import("@/pages/APIAbuseDashboard"));
 const ThreatModeling = lazy(() => import("@/pages/ThreatModeling"));
 const AttackPathAnalysis = lazy(() => import("@/pages/AttackPathAnalysis"));
+const IncidentTimeline = lazy(() => import("@/pages/IncidentTimeline"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -276,6 +277,7 @@ export default function App() {
             <Route path="/zero-trust" element={<ZeroTrustDashboard />} />
             <Route path="/threat-modeling" element={<ThreatModeling />} />
             <Route path="/attack-paths" element={<AttackPathAnalysis />} />
+            <Route path="/incident-timeline" element={<IncidentTimeline />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
