@@ -7755,6 +7755,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 40 pre-wiring (engines pending creation)
+    try:
+        from apps.api.security_architecture_review_router import router as security_architecture_review_router
+        app.include_router(security_architecture_review_router)
+        _logger.info("Mounted Security Architecture Review router at /api/v1/arch-review")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_hunting_playbook_router import router as threat_hunting_playbook_router
+        app.include_router(threat_hunting_playbook_router)
+        _logger.info("Mounted Threat Hunting Playbook router at /api/v1/hunting-playbooks")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_program_maturity_router import router as security_program_maturity_router
+        app.include_router(security_program_maturity_router)
+        _logger.info("Mounted Security Program Maturity router at /api/v1/program-maturity")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_incident_response_router import router as cloud_incident_response_router
+        app.include_router(cloud_incident_response_router)
+        _logger.info("Mounted Cloud Incident Response router at /api/v1/cloud-ir")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.identity_lifecycle_router import router as identity_lifecycle_router
+        app.include_router(identity_lifecycle_router)
+        _logger.info("Mounted Identity Lifecycle router at /api/v1/identity-lifecycle")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_dependency_mapping_router import router as security_dependency_mapping_router
+        app.include_router(security_dependency_mapping_router)
+        _logger.info("Mounted Security Dependency Mapping router at /api/v1/dependency-mapping")
+    except ImportError:
+        pass
+
     return app
 
 

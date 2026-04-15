@@ -399,6 +399,22 @@ const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmark
 const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
 const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
+// Wave 40 domain dashboards (frontend pages for Wave 39 engines)
+const RiskQuantDashboard = lazy(() => import("@/pages/RiskQuantDashboard"));
+const CyberThreatModelingDashboard = lazy(() => import("@/pages/CyberThreatModelingDashboard"));
+const CapacityPlanningDashboard = lazy(() => import("@/pages/CapacityPlanningDashboard"));
+const TprmExchangeDashboard = lazy(() => import("@/pages/TprmExchangeDashboard"));
+const EventTimelineDashboard = lazy(() => import("@/pages/EventTimelineDashboard"));
+const VulnIntelFusionDashboard = lazy(() => import("@/pages/VulnIntelFusionDashboard"));
+
+// Wave 39 domain dashboards
+const PostureReportingDashboard = lazy(() => import("@/pages/PostureReportingDashboard"));
+const NetworkAnomalyDashboard = lazy(() => import("@/pages/NetworkAnomalyDashboard"));
+const PrivilegedIdentityDashboard = lazy(() => import("@/pages/PrivilegedIdentityDashboard"));
+const HuntingAutomationDashboard = lazy(() => import("@/pages/HuntingAutomationDashboard"));
+const EvidenceVaultDashboard = lazy(() => import("@/pages/EvidenceVaultDashboard"));
+const ServiceCatalogDashboard = lazy(() => import("@/pages/ServiceCatalogDashboard"));
+
 // Wave 38 domain dashboards
 const SBOMExportDashboard = lazy(() => import("@/pages/SBOMExportDashboard"));
 const GapAnalysisDashboard = lazy(() => import("@/pages/GapAnalysisDashboard"));
@@ -842,6 +858,22 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 40 domain dashboards (pages for Wave 39 engines) */}
+            <Route path="/risk-quant" element={<RiskQuantDashboard />} />
+            <Route path="/cyber-threat-modeling" element={<CyberThreatModelingDashboard />} />
+            <Route path="/capacity-planning" element={<CapacityPlanningDashboard />} />
+            <Route path="/tprm-exchange" element={<TprmExchangeDashboard />} />
+            <Route path="/event-timeline" element={<EventTimelineDashboard />} />
+            <Route path="/vuln-intel-fusion" element={<VulnIntelFusionDashboard />} />
+
+            {/* Wave 39 domain dashboards */}
+            <Route path="/posture-reports" element={<PostureReportingDashboard />} />
+            <Route path="/network-anomaly" element={<NetworkAnomalyDashboard />} />
+            <Route path="/privileged-identity" element={<PrivilegedIdentityDashboard />} />
+            <Route path="/hunting-automation" element={<HuntingAutomationDashboard />} />
+            <Route path="/evidence-vault" element={<EvidenceVaultDashboard />} />
+            <Route path="/service-catalog" element={<ServiceCatalogDashboard />} />
 
             {/* Wave 38 domain dashboards */}
             <Route path="/sbom-export" element={<SBOMExportDashboard />} />
