@@ -399,6 +399,14 @@ const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmark
 const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
 const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
+// Wave 37 domain dashboards
+const SecurityPostureMaturityDashboard = lazy(() => import("@/pages/SecurityPostureMaturityDashboard"));
+const CloudSecurityFindingsDashboard = lazy(() => import("@/pages/CloudSecurityFindingsDashboard"));
+const SecurityOperationsMetricsDashboard = lazy(() => import("@/pages/SecurityOperationsMetricsDashboard"));
+const VulnerabilityAgeDashboard = lazy(() => import("@/pages/VulnerabilityAgeDashboard"));
+const ThreatIntelConfidenceDashboard = lazy(() => import("@/pages/ThreatIntelConfidenceDashboard"));
+const SecurityDependencyRiskDashboard = lazy(() => import("@/pages/SecurityDependencyRiskDashboard"));
+
 // Wave 36 domain dashboards
 const SecurityHealthScorecardDashboard = lazy(() => import("@/pages/SecurityHealthScorecardDashboard"));
 const ComplianceCalendarDashboard = lazy(() => import("@/pages/ComplianceCalendarDashboard"));
@@ -826,6 +834,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 37 domain dashboards */}
+            <Route path="/posture-maturity" element={<SecurityPostureMaturityDashboard />} />
+            <Route path="/cloud-findings" element={<CloudSecurityFindingsDashboard />} />
+            <Route path="/soc-metrics" element={<SecurityOperationsMetricsDashboard />} />
+            <Route path="/vuln-age" element={<VulnerabilityAgeDashboard />} />
+            <Route path="/ti-confidence" element={<ThreatIntelConfidenceDashboard />} />
+            <Route path="/dependency-risk" element={<SecurityDependencyRiskDashboard />} />
 
             {/* Wave 36 domain dashboards */}
             <Route path="/health-scorecard" element={<SecurityHealthScorecardDashboard />} />
