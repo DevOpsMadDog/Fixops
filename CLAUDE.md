@@ -829,6 +829,29 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 34 — Autonomous parallel build + CTO review)
+
+**Wave 34 New Backend Engines:**
+- ✅ security_exception_workflow_engine.py — SecurityExceptionWorkflow (7 types, frozenset validation, approve→approved_until=expires_at, expiry/expired detection) — 37 tests
+- ✅ threat_actor_tracking_engine.py — ThreatActorTracking (8 types, 90-day active window, TTP frequency aggregation top-10, mitre_groups JSON) — 37 tests
+- ✅ vulnerability_scoring_engine.py — VulnerabilityScoring (composite CVSS+EPSS+KEV+exposure, criticality multipliers 0.75-2.0, one active model per org, override audit) — 47 tests
+- ✅ security_benchmark_engine.py — SecurityBenchmark (percentile interpolation p25/p50/p75/p90, performance above-average/average/below-average/lagging) — 39 tests
+- ✅ incident_cost_engine.py — IncidentCost (10 cost categories, estimated vs actual split, 20% benchmark band, cost analytics by type/category) — 36 tests
+- ✅ security_culture_engine.py — SecurityCulture (7 categories, 5 maturity levels, initiative auto-transition, 5% trend threshold) — 39 tests
+
+**CTO Review Verdict:** ✅ PASS — WAL+RLock+org_id isolation verified, all endpoints auth-gated, 235/235 tests independently confirmed
+
+**Wave 34 Routers wired:** /api/v1/exception-workflow, /api/v1/actor-tracking, /api/v1/vuln-scoring, /api/v1/security-benchmarks, /api/v1/incident-costs, /api/v1/security-culture
+
+**Wave 34 Frontend Pages (Wave 33 domains):**
+- ✅ SecurityQuestionnaireDashboard (/security-questionnaires), RiskScenarioDashboard (/risk-scenarios)
+- ✅ FeedSubscriptionsDashboard (/feed-subscriptions), AssetGroupsDashboard (/asset-groups)
+- ✅ SecurityFindingsDashboard (/security-findings), ControlTestingDashboard (/control-testing)
+
+**Engine total: 302+ engines | Router total: 532+ routers | Test total: 7,091+ tests | Frontend: 254+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
