@@ -6712,6 +6712,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.regulatory_reporting_router import router as regulatory_reporting_router
+        app.include_router(regulatory_reporting_router)
+        _logger.info("Mounted Regulatory Reporting router at /api/v1/regulatory-reporting")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.audit_management_router import router as audit_management_router
+        app.include_router(audit_management_router)
+        _logger.info("Mounted Audit Management router at /api/v1/audit-management")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.supply_chain_monitoring_router import router as supply_chain_monitoring_router
+        app.include_router(supply_chain_monitoring_router)
+        _logger.info("Mounted Supply Chain Monitoring router at /api/v1/supply-chain-monitoring")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vendor_compliance_router import router as vendor_compliance_router
+        app.include_router(vendor_compliance_router)
+        _logger.info("Mounted Vendor Compliance router at /api/v1/vendor-compliance")
+    except ImportError:
+        pass
+
     return app
 
 
