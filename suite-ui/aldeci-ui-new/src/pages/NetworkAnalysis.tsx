@@ -16,6 +16,16 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API}${path}`, { headers: { "X-API-Key": API_KEY } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type ThreatLevel = "critical" | "high" | "medium" | "low";
@@ -79,15 +89,30 @@ const ACT_CFG: Record<FlowAction, { label:string; cls:string; icon:React.ReactNo
 export default function NetworkAnalysis() {
   const [search, setSearch] = useState("");
 
-  const { data: talkers = TALKERS, isLoading: l1 } = useQuery({
-    queryKey: ["network-flows"],
-    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network/flows`); if (!r.ok) throw 0; return r.json(); } catch { return TALKERS; } },
+  const { data: ndrAlerts = ANOMALIES, isLoading: l2 } = useQuery({
+    queryKey: ["ndr-alerts"],
+    queryFn: async () => {
+      try {
+        const d = await apiFetch("/api/v1/ndr/alerts?org_id=default&limit=20");
+        return Array.isArray(d) ? d : (d.items ?? d.alerts ?? ANOMALIES);
+      } catch { return ANOMALIES; }
+    },
   });
 
-  const { data: anomalies = ANOMALIES, isLoading: l2 } = useQuery({
-    queryKey: ["network-anomalies"],
-    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network/anomalies`); if (!r.ok) throw 0; return r.json(); } catch { return ANOMALIES; } },
+  const { data: ndrStats } = useQuery({
+    queryKey: ["ndr-stats"],
+    queryFn: async () => {
+      try { return await apiFetch("/api/v1/ndr/stats?org_id=default"); }
+      catch { return null; }
+    },
   });
+
+  const { data: talkers = TALKERS, isLoading: l1 } = useQuery({
+    queryKey: ["network-flows"],
+    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network/flows`, { headers: { "X-API-Key": API_KEY } }); if (!r.ok) throw 0; return r.json(); } catch { return TALKERS; } },
+  });
+
+  const anomalies = ndrAlerts;
 
   const filtered = (talkers as TopTalker[]).filter(t =>
     !search || t.src.includes(search) || t.country.toLowerCase().includes(search.toLowerCase())
@@ -104,10 +129,10 @@ export default function NetworkAnalysis() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard title="Alerts Today"         value="47"  trend="up"   trendLabel="+12 from yesterday" icon={AlertTriangle}/>
-          <KpiCard title="Suspicious Flows"     value="12"  trend="up"   trendLabel="Active now"          icon={Activity}/>
-          <KpiCard title="Blocked Connections"  value="234" trend="up"   trendLabel="+18 this hour"       icon={Ban}/>
-          <KpiCard title="Bandwidth Anomalies"  value="3"   trend="flat" trendLabel="Last 1h"             icon={Zap}/>
+          <KpiCard title="Alerts Today"         value={ndrStats?.total_alerts ?? ndrStats?.alerts_today ?? 47}  trend="up"   trendLabel="+12 from yesterday" icon={AlertTriangle}/>
+          <KpiCard title="Suspicious Flows"     value={ndrStats?.suspicious_flows ?? 12}  trend="up"   trendLabel="Active now"          icon={Activity}/>
+          <KpiCard title="Blocked Connections"  value={ndrStats?.blocked_connections ?? ndrStats?.blocked ?? 234} trend="up"   trendLabel="+18 this hour"       icon={Ban}/>
+          <KpiCard title="Bandwidth Anomalies"  value={ndrStats?.bandwidth_anomalies ?? 3}   trend="flat" trendLabel="Last 1h"             icon={Zap}/>
         </div>
 
         {/* Top Talkers */}

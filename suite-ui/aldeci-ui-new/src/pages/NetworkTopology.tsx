@@ -11,8 +11,19 @@
  * API stubs: GET /api/v1/network/nodes, /api/v1/network/segments, /api/v1/network/exposure
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+
+async function apiFetch(path: string) {
+  const res = await fetch(path, { headers: { "X-API-Key": API_KEY } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Network, Server, Shield, AlertTriangle, RefreshCw,
   Search, ChevronRight, Layers, Globe, Lock,
@@ -108,10 +119,23 @@ export default function NetworkTopology() {
   const [srcNode, setSrcNode]         = useState("");
   const [dstNode, setDstNode]         = useState("");
   const [pathResult, setPathResult]   = useState<string[] | null>(null);
+  const [liveData, setLiveData]       = useState<any>(null);
+
+  const fetchAll = () =>
+    Promise.allSettled([
+      apiFetch("/api/v1/asm/assets?org_id=default"),
+      apiFetch("/api/v1/asm/stats?org_id=default"),
+    ]).then(([assetsRes, statsRes]) => {
+      const assets = assetsRes.status === "fulfilled" ? assetsRes.value : null;
+      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
+      if (assets || stats) setLiveData({ assets, stats });
+    });
+
+  useEffect(() => { fetchAll(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    fetchAll().finally(() => setRefreshing(false));
   };
 
   const handleFindPath = () => {
@@ -138,10 +162,10 @@ export default function NetworkTopology() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Nodes"       value={847}    icon={Server}  />
-        <KpiCard title="Network Segments"  value={12}     icon={Layers}  />
-        <KpiCard title="Exposed Assets"    value={7}      icon={Globe}   trend="up" className="border-red-500/20" />
-        <KpiCard title="Topology Edges"    value="2,341"  icon={Network} />
+        <KpiCard title="Total Nodes"       value={liveData?.stats?.total_assets ?? liveData?.assets?.length ?? 847}    icon={Server}  />
+        <KpiCard title="Network Segments"  value={liveData?.stats?.total_segments ?? 12}     icon={Layers}  />
+        <KpiCard title="Exposed Assets"    value={liveData?.stats?.exposed_assets ?? liveData?.stats?.high_risk ?? 7}      icon={Globe}   trend="up" className="border-red-500/20" />
+        <KpiCard title="Topology Edges"    value={liveData?.stats?.total_edges ?? "2,341"}  icon={Network} />
       </div>
 
       {/* Node inventory table */}
