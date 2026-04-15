@@ -787,6 +787,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 32 — Autonomous parallel build)
+
+**Wave 32 New Backend Engines:**
+- ✅ compliance_workflow_engine.py — ComplianceWorkflow (8 frameworks, 6 types, auto completion_rate, pending-approval auto-transition, approve→completed/reject→needs-rework) — 36 tests
+- ✅ threat_landscape_engine.py — ThreatLandscape (6 actor types, 8 threat categories, overall_risk auto-computed from active critical counts, actor/threat counts auto-populated) — 47 tests
+- ✅ security_posture_trend_engine.py — SecurityPostureTrend (velocity>0.5=improving/<-0.5=declining, confidence tiers by datapoint count, ETA with zero-velocity guard) — 41 tests
+- ✅ access_governance_engine.py — AccessGovernance (SoD ALL-match required, role→entitlement auto-grant, expiry window excludes past-expired) — 35 tests
+- ✅ network_threat_engine.py — NetworkThreat (8 types, dedup same type+source+dest updates packet_count, deviation>25%=anomaly, top-5 source IPs) — 35 tests
+- ✅ incident_kb_engine.py — IncidentKB (6 article types, 8 incident types, rolling success_rate, LIKE search on title+content+tags, top-5 search terms) — 37 tests
+
+**Wave 32 Routers wired:** /api/v1/compliance-workflows, /api/v1/threat-landscape, /api/v1/posture-trends, /api/v1/access-governance, /api/v1/network-threats, /api/v1/incident-kb
+
+**Wave 32 Frontend Pages (Wave 31 domains):**
+- ✅ UserAccessReviewDashboard (/access-reviews), PostureHistoryDashboard (/posture-history)
+- ✅ IncidentLessonsDashboard (/incident-lessons), CloudAccountsDashboard (/cloud-accounts)
+- ✅ IntelEnrichmentDashboard (/intel-enrichment), SecurityOKRDashboard (/security-okrs)
+
+**Engine total: 290+ engines | Router total: 520+ routers | Test total: 6,630+ tests | Frontend: 242+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
