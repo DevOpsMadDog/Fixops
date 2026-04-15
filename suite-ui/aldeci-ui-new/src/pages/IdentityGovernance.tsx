@@ -13,7 +13,7 @@
  * Fallback: mock data when API is unavailable
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,6 +52,11 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const _API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -353,31 +358,55 @@ function apiKey(): string {
 // API fetch helpers
 // ═══════════════════════════════════════════════════════════
 
-async function fetchReviews(): Promise<AccessReviewItem[]> {
-  const res = await fetch(`${API_BASE}/api/v1/iga/reviews`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
-  });
+// ── Real API helpers (correct endpoints: /api/v1/identity-governance/) ──────
+
+function _igaHeaders() {
+  const key = _API_KEY || apiKey();
+  return { "X-API-Key": key };
+}
+
+async function fetchReviews(): Promise<Campaign[]> {
+  const res = await fetch(
+    `${API_BASE}/api/v1/identity-governance/reviews?org_id=${ORG_ID}`,
+    { headers: _igaHeaders() },
+  );
   if (!res.ok) throw new Error(`${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) ? data : data.reviews ?? MOCK_REVIEW_QUEUE;
+  return Array.isArray(data) ? data : data.reviews ?? MOCK_CAMPAIGNS;
 }
 
 async function fetchOrphanedAccounts(): Promise<OrphanedAccount[]> {
-  const res = await fetch(`${API_BASE}/api/v1/iga/orphaned-accounts`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
-  });
+  const res = await fetch(
+    `${API_BASE}/api/v1/identity-governance/entitlements?org_id=${ORG_ID}&is_orphaned=true`,
+    { headers: _igaHeaders() },
+  );
   if (!res.ok) throw new Error(`${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) ? data : data.accounts ?? MOCK_ORPHANED;
+  // Engine returns a list of entitlements; map to OrphanedAccount shape
+  const items: any[] = Array.isArray(data) ? data : data.entitlements ?? [];
+  return items.length > 0
+    ? items.map((e: any) => ({
+        id: e.id ?? e.identity_id,
+        username: e.identity_name ?? e.identity_id ?? "unknown",
+        system: e.system ?? "unknown",
+        last_login: e.last_used ?? "",
+      }))
+    : MOCK_ORPHANED;
+}
+
+async function fetchIgaStats(): Promise<any> {
+  const res = await fetch(
+    `${API_BASE}/api/v1/identity-governance/stats?org_id=${ORG_ID}`,
+    { headers: _igaHeaders() },
+  );
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
 }
 
 async function fetchSoDViolations(): Promise<SoDViolation[]> {
-  const res = await fetch(`${API_BASE}/api/v1/iga/sod-violations`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
-  });
-  if (!res.ok) throw new Error(`${res.status}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data : data.violations ?? MOCK_SOD_VIOLATIONS;
+  // No dedicated SoD endpoint yet in the engine — use mock fallback
+  // TODO: wire when /api/v1/identity-governance/sod-violations is deployed
+  return MOCK_SOD_VIOLATIONS;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -391,6 +420,14 @@ export default function IdentityGovernance() {
   const [disabledAccounts, setDisabledAccounts] = useState<Set<string>>(
     new Set()
   );
+  const [igaStats, setIgaStats] = useState<any>(null);
+
+  // Fetch governance stats via apiFetch pattern
+  useEffect(() => {
+    Promise.allSettled([fetchIgaStats()]).then(([statsRes]) => {
+      if (statsRes.status === "fulfilled") setIgaStats(statsRes.value);
+    });
+  }, []);
 
   const reviewsQuery = useQuery({
     queryKey: ["iga-reviews"],
@@ -410,16 +447,20 @@ export default function IdentityGovernance() {
     staleTime: 60000,
   });
 
-  const reviewQueue = reviewsQuery.data ?? MOCK_REVIEW_QUEUE;
+  // Use live reviews as campaigns if available, fallback to mock
+  const liveCampaigns: Campaign[] = reviewsQuery.data
+    ? (reviewsQuery.data as unknown as Campaign[])
+    : MOCK_CAMPAIGNS;
+  const reviewQueue = MOCK_REVIEW_QUEUE;
   const orphanedAccounts = orphanedQuery.data ?? MOCK_ORPHANED;
   const sodViolations = sodQuery.data ?? MOCK_SOD_VIOLATIONS;
 
-  const certCampaignProgress = 62;
-  const totalCertified = MOCK_CAMPAIGNS.reduce(
-    (sum, c) => sum + c.certified_count,
+  const totalCertified = liveCampaigns.reduce(
+    (sum, c) => sum + (c.certified_count ?? 0),
     0
   );
-  const totalItems = MOCK_CAMPAIGNS.reduce((sum, c) => sum + c.total_count, 0);
+  const totalItems = liveCampaigns.reduce((sum, c) => sum + (c.total_count ?? 1), 0);
+  const certCampaignProgress = totalItems > 0 ? Math.round((totalCertified / totalItems) * 100) : 62;
 
   function setDecision(id: string, decision: ReviewDecision) {
     setDecisions((prev) => ({ ...prev, [id]: decision }));
@@ -441,28 +482,27 @@ export default function IdentityGovernance() {
         {/* KPI Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
-            label="Pending Certifications"
-            value={47}
+            title="Pending Certifications"
+            value={igaStats?.pending_reviews ?? igaStats?.pending_certifications ?? 47}
             icon={Clock}
-            trendColor="yellow"
           />
           <KpiCard
-            label="Orphaned Accounts"
-            value={orphanedAccounts.filter((a) => !disabledAccounts.has(a.id)).length}
+            title="Orphaned Accounts"
+            value={igaStats?.orphaned_entitlements ?? orphanedAccounts.filter((a) => !disabledAccounts.has(a.id)).length}
             icon={UserX}
-            trendColor="orange"
+            className="border-orange-500/20"
           />
           <KpiCard
-            label="SoD Violations"
-            value={sodViolations.length}
+            title="SoD Violations"
+            value={igaStats?.sod_violations ?? sodViolations.length}
             icon={AlertTriangle}
-            trendColor={sodViolations.length > 0 ? "red" : "green"}
+            className="border-red-500/20"
           />
           <KpiCard
-            label="Cert Campaign Progress"
-            value={`${certCampaignProgress}%`}
+            title="Cert Campaign Progress"
+            value={igaStats?.revocation_rate != null ? `${igaStats.revocation_rate}%` : `${certCampaignProgress}%`}
             icon={Activity}
-            trendColor="blue"
+            className="border-blue-500/20"
           />
         </div>
 
@@ -487,7 +527,7 @@ export default function IdentityGovernance() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_CAMPAIGNS.map((campaign) => {
+                {liveCampaigns.map((campaign) => {
                   const pct =
                     campaign.total_count > 0
                       ? Math.round(

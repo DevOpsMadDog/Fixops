@@ -13,6 +13,7 @@
  * API: GET /api/v1/firewall/rules, GET /api/v1/firewall/findings (mock fallback)
  */
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -27,6 +28,7 @@ import {
   TrendingUp,
   Wrench,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,21 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API config ─────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -250,6 +267,32 @@ const VENDOR_COLORS: Record<Vendor, string> = {
 // ══════════════════════════════════════════════════════════════
 
 export default function FirewallAnalyzer() {
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    // TODO: wire when /api/v1/firewall-mgmt engine is deployed
+    // Endpoints: GET /api/v1/firewall-mgmt/stats, /firewalls, /violations
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch("/api/v1/firewall-mgmt/stats"),
+      apiFetch("/api/v1/firewall-mgmt/firewalls"),
+      apiFetch("/api/v1/firewall-mgmt/violations"),
+    ]).then(([statsRes, firewallsRes, violationsRes]) => {
+      const stats      = statsRes.status      === "fulfilled" ? statsRes.value      : null;
+      const firewalls  = firewallsRes.status  === "fulfilled" ? firewallsRes.value  : null;
+      const violations = violationsRes.status === "fulfilled" ? violationsRes.value : null;
+      if (stats || firewalls || violations) {
+        setLiveData({ stats, firewalls, violations });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  const findings: FirewallFinding[] =
+    (liveData?.violations?.items ?? liveData?.violations?.findings ?? liveData?.violations) ?? MOCK_FINDINGS;
+  const firewallDevices: FirewallDevice[] =
+    (liveData?.firewalls?.items ?? liveData?.firewalls?.firewalls ?? liveData?.firewalls) ?? MOCK_FIREWALLS;
+
   const trendMax = Math.max(...TREND_DATA.map((d) => d.count));
   const trendMin = Math.min(...TREND_DATA.map((d) => d.count));
   const trendRange = trendMax - trendMin || 1;
@@ -260,32 +303,37 @@ export default function FirewallAnalyzer() {
       <PageHeader
         title="Firewall Rule Analyzer"
         description="Detect shadow rules, overly permissive policies, and rule bloat"
+        actions={
+          <Button variant="outline" size="sm" disabled={dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", dataLoading && "animate-spin")} />
+          </Button>
+        }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Total Rules"
-          value={1247}
+          value={liveData?.stats?.total_rules ?? 1247}
           icon={Shield}
           change={9}
           changeLabel="vs last month"
         />
         <KpiCard
           title="Unused Rules"
-          value={89}
+          value={liveData?.stats?.unused_rules ?? 89}
           icon={Trash2}
           change={-3}
           changeLabel="vs last audit"
         />
         <KpiCard
           title="Overly Permissive"
-          value={34}
+          value={liveData?.stats?.overly_permissive ?? 34}
           icon={AlertTriangle}
         />
         <KpiCard
           title="Shadow Rules"
-          value={12}
+          value={liveData?.stats?.shadow_rules ?? 12}
           icon={Eye}
         />
       </div>
@@ -318,7 +366,7 @@ export default function FirewallAnalyzer() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_FINDINGS.map((finding, idx) => (
+                  {findings.map((finding, idx) => (
                     <motion.tr
                       key={finding.rule_id}
                       initial={{ opacity: 0 }}
@@ -378,7 +426,7 @@ export default function FirewallAnalyzer() {
           Firewall Inventory
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {MOCK_FIREWALLS.map((fw, idx) => (
+          {firewallDevices.map((fw, idx) => (
             <motion.div
               key={fw.id}
               initial={{ opacity: 0, scale: 0.97 }}

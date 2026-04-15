@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/correlation/rules, /api/v1/correlation/alerts, /api/v1/correlation/events
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GitMerge, Zap, Bell, BarChart3, RefreshCw, Radio } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,6 +21,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+// ── API config ─────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -114,10 +129,44 @@ function SeverityDot({ sev }: { sev: string }) {
 
 export default function ThreatCorrelation() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/threat-correlation/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-correlation/rules?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-correlation/alerts?org_id=${ORG_ID}&limit=15`),
+      apiFetch(`/api/v1/threat-correlation/events?org_id=${ORG_ID}&hours_back=1`),
+    ]).then(([statsRes, rulesRes, alertsRes, eventsRes]) => {
+      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
+      const rules  = rulesRes.status  === "fulfilled" ? rulesRes.value  : null;
+      const alerts = alertsRes.status === "fulfilled" ? alertsRes.value : null;
+      const events = eventsRes.status === "fulfilled" ? eventsRes.value : null;
+      if (stats || rules || alerts || events) {
+        setLiveData({ stats, rules, alerts, events });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/threat-correlation/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-correlation/rules?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-correlation/alerts?org_id=${ORG_ID}&limit=15`),
+      apiFetch(`/api/v1/threat-correlation/events?org_id=${ORG_ID}&hours_back=1`),
+    ]).then(([statsRes, rulesRes, alertsRes, eventsRes]) => {
+      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
+      const rules  = rulesRes.status  === "fulfilled" ? rulesRes.value  : null;
+      const alerts = alertsRes.status === "fulfilled" ? alertsRes.value : null;
+      const events = eventsRes.status === "fulfilled" ? eventsRes.value : null;
+      if (stats || rules || alerts || events) {
+        setLiveData({ stats, rules, alerts, events });
+      }
+    }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
   return (
@@ -132,18 +181,18 @@ export default function ThreatCorrelation() {
         title="Threat Correlation Engine"
         description="Cross-event pattern detection and alert correlation"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Rules"         value={34}       icon={GitMerge} />
-        <KpiCard title="Events Ingested Today" value="8,247"  icon={Zap}      trend="up" />
-        <KpiCard title="Correlated Alerts"    value={23}       icon={Bell}     trend="up" className="border-amber-500/20" />
-        <KpiCard title="Auto-Closed"          value="71.3%"    icon={BarChart3} trend="up" className="border-green-500/20" />
+        <KpiCard title="Active Rules"          value={liveData?.stats?.active_rules ?? liveData?.stats?.total_rules ?? 34}           icon={GitMerge} />
+        <KpiCard title="Events Ingested Today" value={liveData?.stats?.total_events ?? liveData?.stats?.events_ingested ?? "8,247"} icon={Zap}       trend="up" />
+        <KpiCard title="Correlated Alerts"     value={liveData?.stats?.total_alerts ?? liveData?.stats?.correlated_alerts ?? 23}    icon={Bell}      trend="up" className="border-amber-500/20" />
+        <KpiCard title="Auto-Closed"           value={liveData?.stats?.auto_closed_pct ?? liveData?.stats?.auto_closed ?? "71.3%"} icon={BarChart3}  trend="up" className="border-green-500/20" />
       </div>
 
       {/* Correlation rules table */}
@@ -170,17 +219,19 @@ export default function ThreatCorrelation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {RULES.map((rule) => (
+                {(liveData?.rules?.rules ?? RULES).map((rule: any) => (
                   <TableRow key={rule.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{rule.name}</TableCell>
                     <TableCell className="py-2.5 max-w-[220px]">
                       <div className="flex flex-wrap gap-1">
-                        {rule.events.map((e) => (
+                        {(rule.event_types ?? rule.events ?? []).map((e: string) => (
                           <Badge key={e} className="text-[9px] border border-border bg-muted/30 text-muted-foreground px-1 py-0">{e}</Badge>
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{rule.window}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">
+                      {rule.window ?? (rule.time_window_minutes != null ? `${rule.time_window_minutes} min` : "—")}
+                    </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5">{rule.threshold}</TableCell>
                     <TableCell className="py-2.5"><SeverityBadge sev={rule.severity} /></TableCell>
                     <TableCell className="py-2.5">
@@ -188,7 +239,7 @@ export default function ThreatCorrelation() {
                         {rule.enabled ? "On" : "Off"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{rule.hits}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{rule.hits ?? rule.hit_count ?? 0}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -208,7 +259,7 @@ export default function ThreatCorrelation() {
               </CardTitle>
               <CardDescription className="text-xs">Multi-event alerts grouped by triggered rule</CardDescription>
             </div>
-            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{ALERTS.length} alerts</Badge>
+            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.alerts?.alerts ?? ALERTS).length} alerts</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -226,14 +277,14 @@ export default function ThreatCorrelation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ALERTS.map((alert) => (
+                {(liveData?.alerts?.alerts ?? ALERTS).map((alert: any) => (
                   <TableRow key={alert.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{alert.id}</TableCell>
-                    <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{alert.rule}</TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 font-bold">{alert.matched}</TableCell>
+                    <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{alert.rule ?? alert.rule_name ?? alert.correlation_rule_id}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 font-bold">{alert.matched ?? alert.matched_events ?? alert.event_count ?? 0}</TableCell>
                     <TableCell className="py-2.5"><SeverityBadge sev={alert.severity} /></TableCell>
                     <TableCell className="py-2.5"><StatusBadge status={alert.status} /></TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{alert.created}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{alert.created ?? alert.created_at}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">
                         Investigate
@@ -260,15 +311,15 @@ export default function ThreatCorrelation() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/40">
-              {EVENT_STREAM.map((ev, i) => (
+              {(liveData?.events?.events ?? EVENT_STREAM).map((ev: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 transition-colors">
-                  <SeverityDot sev={ev.severity} />
+                  <SeverityDot sev={ev.severity ?? "low"} />
                   <Badge className="text-[9px] border border-border bg-muted/30 text-muted-foreground px-1 py-0 shrink-0 max-w-[100px] truncate">
-                    {ev.type}
+                    {ev.type ?? ev.event_type}
                   </Badge>
                   <span className="text-[10px] font-mono text-muted-foreground w-28 shrink-0 truncate">{ev.source_ip}</span>
-                  <span className="text-[10px] truncate flex-1 text-muted-foreground">{ev.user_id} / {ev.asset}</span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">{ev.ts}</span>
+                  <span className="text-[10px] truncate flex-1 text-muted-foreground">{ev.user_id ?? ev.raw_data?.user_id ?? "—"} / {ev.asset ?? ev.asset_id ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{ev.ts ?? ev.timestamp}</span>
                 </div>
               ))}
             </div>
