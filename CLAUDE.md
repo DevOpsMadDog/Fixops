@@ -808,6 +808,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 33 — Autonomous parallel build)
+
+**Wave 33 New Backend Engines:**
+- ✅ security_questionnaire_engine.py — SecurityQuestionnaire (6 types, 6 frameworks, 0-4 response scale, auto-score when all required answered, vendor risk summary) — 39 tests
+- ✅ risk_scenario_engine.py — RiskScenario (inherent_risk=likelihood×impact, residual=inherent×(1−effectiveness cap 0.9), review adjustments recompute all) — 47 tests
+- ✅ threat_feed_subscription_engine.py — ThreatFeedSubscription (7 feed types, SHA-256 api_key, ioc_count on success/error_count on failure, due detection) — 34 tests
+- ✅ asset_group_engine.py — AssetGroup (8 group types, INSERT OR IGNORE add_member, rowcount-gated counter, MAX(0,count-1) remove floor) — 31 tests
+- ✅ security_findings_engine.py — SecurityFindings (dedup skips resolved, cvss clamped 0-10, 5-status lifecycle, top-5 assets by open findings) — 36 tests
+- ✅ control_testing_engine.py — ControlTesting (rolling avg last 5 tests, 4-tier status ≥80/60/40/<40, schedule management, overdue detection) — 39 tests
+
+**Wave 33 Routers wired:** /api/v1/security-questionnaires, /api/v1/risk-scenarios, /api/v1/feed-subscriptions, /api/v1/asset-groups, /api/v1/security-findings, /api/v1/control-testing
+
+**Wave 33 Frontend Pages (Wave 32 domains):**
+- ✅ ComplianceWorkflowDashboard (/compliance-workflows), ThreatLandscapeDashboard (/threat-landscape)
+- ✅ PostureTrendsDashboard (/posture-trends), AccessGovernanceDashboard (/access-governance)
+- ✅ NetworkThreatsDashboard (/network-threats), IncidentKBDashboard (/incident-kb)
+
+**Engine total: 296+ engines | Router total: 526+ routers | Test total: 6,856+ tests | Frontend: 248+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
