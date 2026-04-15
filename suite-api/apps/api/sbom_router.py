@@ -314,6 +314,54 @@ async def scan_directory(req: ScanDirectoryRequest) -> Dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# High-level scan endpoints (read from project filesystem)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/cyclonedx", summary="Generate CycloneDX SBOM from project deps")
+async def generate_cyclonedx_from_project(
+    org_id: str = Query(default="default", description="Organisation ID"),
+    include_python: bool = Query(default=True, description="Include Python deps from requirements.txt"),
+    include_js: bool = Query(default=True, description="Include JS deps from package.json"),
+) -> Dict[str, Any]:
+    """Scan project manifests and return a CycloneDX 1.4 SBOM."""
+    gen = _get_generator()
+    components: list = []
+    if include_python:
+        components.extend(gen.scan_python_deps(org_id))
+    if include_js:
+        components.extend(gen.scan_js_deps(org_id))
+    sbom = gen.generate_cyclonedx(components)
+    return {"format": "cyclonedx", "component_count": len(components), "sbom": sbom}
+
+
+@router.get("/spdx", summary="Generate SPDX SBOM from project deps")
+async def generate_spdx_from_project(
+    org_id: str = Query(default="default", description="Organisation ID"),
+    include_python: bool = Query(default=True, description="Include Python deps from requirements.txt"),
+    include_js: bool = Query(default=True, description="Include JS deps from package.json"),
+) -> Dict[str, Any]:
+    """Scan project manifests and return an SPDX 2.3 SBOM."""
+    gen = _get_generator()
+    components: list = []
+    if include_python:
+        components.extend(gen.scan_python_deps(org_id))
+    if include_js:
+        components.extend(gen.scan_js_deps(org_id))
+    sbom = gen.generate_spdx(components)
+    return {"format": "spdx", "component_count": len(components), "sbom": sbom}
+
+
+@router.get("/stats", summary="SBOM dependency statistics")
+async def get_sbom_stats(
+    org_id: str = Query(default="default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Return dependency counts (python_deps, js_deps, total_deps, generated_at)."""
+    gen = _get_generator()
+    return gen.get_sbom_stats(org_id)
+
+
 @router.get("/{sbom_id}/diff/{other_id}", summary="Diff two generated SBOMs")
 async def diff_generated_sboms(sbom_id: str, other_id: str) -> Dict[str, Any]:
     """Compare two SBOMs stored via the generate endpoint."""

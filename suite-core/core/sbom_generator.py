@@ -642,6 +642,72 @@ class SBOMGenerator:
             })
         return self.query_osv(packages)
 
+    # ------------------------------------------------------------------
+    # High-level scan helpers (read from project filesystem)
+    # ------------------------------------------------------------------
+
+    def scan_python_deps(self, org_id: str = "default") -> List[Dict[str, Any]]:
+        """Scan requirements.txt at the project root and return parsed components.
+
+        Each item has keys: name, version, license, purl.
+        Falls back to an empty list if the file is missing.
+        """
+        req_path = Path("requirements.txt")
+        if not req_path.exists():
+            logger.warning("requirements.txt not found at %s", req_path.resolve())
+            return []
+        text = req_path.read_text(encoding="utf-8")
+        components = []
+        for name, version in _parse_requirements_txt(text):
+            if name:
+                components.append({
+                    "name": name,
+                    "version": version,
+                    "license": "UNKNOWN",
+                    "purl": _make_purl("pypi", name, version),
+                })
+        return components
+
+    def scan_js_deps(self, org_id: str = "default") -> List[Dict[str, Any]]:
+        """Scan suite-ui/aldeci-ui-new/package.json and return parsed components.
+
+        Each item has keys: name, version, license, purl.
+        Falls back to an empty list if the file is missing or invalid JSON.
+        """
+        pkg_path = Path("suite-ui/aldeci-ui-new/package.json")
+        if not pkg_path.exists():
+            logger.warning("package.json not found at %s", pkg_path.resolve())
+            return []
+        try:
+            data = json.loads(pkg_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            logger.warning("package.json is not valid JSON: %s", pkg_path)
+            return []
+        components = []
+        for name, version in _parse_package_json_deps(data):
+            if name:
+                components.append({
+                    "name": name,
+                    "version": version,
+                    "license": data.get("license", "UNKNOWN"),
+                    "purl": _make_purl("npm", name, version),
+                })
+        return components
+
+    def get_sbom_stats(self, org_id: str = "default") -> Dict[str, Any]:
+        """Return dependency counts and generation timestamp.
+
+        Returns a dict with: python_deps, js_deps, total_deps, generated_at.
+        """
+        python_deps = self.scan_python_deps(org_id)
+        js_deps = self.scan_js_deps(org_id)
+        return {
+            "python_deps": len(python_deps),
+            "js_deps": len(js_deps),
+            "total_deps": len(python_deps) + len(js_deps),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
     def map_osv_to_findings(self, osv_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Map raw OSV vulnerability dicts to ALDECI finding schema.
