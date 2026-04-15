@@ -1,0 +1,169 @@
+"""Microsegmentation Policy Router — ALDECI.
+
+Prefix: /api/v1/microsegmentation
+Auth: api_key_auth dependency
+
+Routes:
+  POST   /api/v1/microsegmentation/segments              create_segment
+  GET    /api/v1/microsegmentation/segments              list_segments
+  GET    /api/v1/microsegmentation/segments/{id}         get_segment
+  POST   /api/v1/microsegmentation/policies              create_policy
+  GET    /api/v1/microsegmentation/policies              list_policies
+  POST   /api/v1/microsegmentation/violations            record_violation
+  GET    /api/v1/microsegmentation/violations            list_violations
+  GET    /api/v1/microsegmentation/stats                 get_segmentation_stats
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from apps.api.auth_deps import api_key_auth
+
+_logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/v1/microsegmentation",
+    tags=["Microsegmentation Policy"],
+)
+
+_engine = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        from core.microsegmentation_policy_engine import MicrosegmentationPolicyEngine
+        _engine = MicrosegmentationPolicyEngine()
+    return _engine
+
+
+# ---------------------------------------------------------------------------
+# Request models
+# ---------------------------------------------------------------------------
+
+class SegmentCreate(BaseModel):
+    name: str
+    segment_type: str
+    cidr_range: str = ""
+    description: str = ""
+    enforcement_mode: str = "monitoring"
+
+
+class PolicyCreate(BaseModel):
+    src_segment_id: str
+    dst_segment_id: str
+    policy_action: str = "allow"
+    protocol: str = "tcp"
+    port_range: str = ""
+    description: str = ""
+
+
+class ViolationCreate(BaseModel):
+    segment_id: str
+    src_ip: str = ""
+    dst_ip: str = ""
+    protocol: str = "tcp"
+    port: int = Field(default=0, ge=0)
+    violation_type: str = "blocked_traffic"
+    severity: str = "medium"
+
+
+# ---------------------------------------------------------------------------
+# Segment routes
+# ---------------------------------------------------------------------------
+
+@router.post("/segments", dependencies=[Depends(api_key_auth)], status_code=201)
+def create_segment(body: SegmentCreate, org_id: str = Query(...)):
+    """Create a microsegment."""
+    try:
+        return _get_engine().create_segment(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/segments", dependencies=[Depends(api_key_auth)])
+def list_segments(
+    org_id: str = Query(...),
+    segment_type: Optional[str] = Query(None),
+    enforcement_mode: Optional[str] = Query(None),
+):
+    """List microsegments with optional filters."""
+    return _get_engine().list_segments(
+        org_id, segment_type=segment_type, enforcement_mode=enforcement_mode
+    )
+
+
+@router.get("/segments/{segment_id}", dependencies=[Depends(api_key_auth)])
+def get_segment(segment_id: str, org_id: str = Query(...)):
+    """Get a single microsegment by ID."""
+    seg = _get_engine().get_segment(org_id, segment_id)
+    if not seg:
+        raise HTTPException(status_code=404, detail="Segment not found")
+    return seg
+
+
+# ---------------------------------------------------------------------------
+# Policy routes
+# ---------------------------------------------------------------------------
+
+@router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
+def create_policy(body: PolicyCreate, org_id: str = Query(...)):
+    """Create a microsegmentation policy between two segments."""
+    try:
+        return _get_engine().create_policy(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/policies", dependencies=[Depends(api_key_auth)])
+def list_policies(
+    org_id: str = Query(...),
+    src_segment_id: Optional[str] = Query(None),
+    dst_segment_id: Optional[str] = Query(None),
+    policy_action: Optional[str] = Query(None),
+):
+    """List policies with optional filters."""
+    return _get_engine().list_policies(
+        org_id,
+        src_segment_id=src_segment_id,
+        dst_segment_id=dst_segment_id,
+        policy_action=policy_action,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Violation routes
+# ---------------------------------------------------------------------------
+
+@router.post("/violations", dependencies=[Depends(api_key_auth)], status_code=201)
+def record_violation(body: ViolationCreate, org_id: str = Query(...)):
+    """Record a microsegmentation policy violation."""
+    try:
+        return _get_engine().record_violation(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/violations", dependencies=[Depends(api_key_auth)])
+def list_violations(
+    org_id: str = Query(...),
+    segment_id: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+):
+    """List violations with optional filters."""
+    return _get_engine().list_violations(org_id, segment_id=segment_id, severity=severity)
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+@router.get("/stats", dependencies=[Depends(api_key_auth)])
+def get_segmentation_stats(org_id: str = Query(...)):
+    """Return aggregated microsegmentation statistics for the org."""
+    return _get_engine().get_segmentation_stats(org_id)
