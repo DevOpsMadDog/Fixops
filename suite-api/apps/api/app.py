@@ -5808,6 +5808,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"CWPP router not loaded: {e}")
 
+    # FAIR-based financial risk quantification — scenarios, Monte Carlo, treatments, impacts
+    try:
+        from apps.api.risk_quantification_router import router as risk_quantification_router
+        app.include_router(risk_quantification_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Risk Quantification router at /api/v1/risk-quantification")
+    except Exception as e:
+        _logger.warning(f"Risk Quantification router not loaded: {e}")
+
     return app
 
 

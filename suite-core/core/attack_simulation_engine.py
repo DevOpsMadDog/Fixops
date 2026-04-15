@@ -1135,6 +1135,7 @@ __all__ = [
     "AttackPath",
     "AttackScenario",
     "AttackSimulationEngine",
+    "AttackSimulationDbEngine",
     "AttackStep",
     "BreachImpact",
     "CampaignResult",
@@ -1144,3 +1145,441 @@ __all__ = [
     "ThreatActorProfile",
     "get_attack_simulation_engine",
 ]
+
+
+# ---------------------------------------------------------------------------
+# SQLite-backed Attack Simulation Engine (multi-tenant, persistent)
+# ---------------------------------------------------------------------------
+
+import json as _json
+import sqlite3 as _sqlite3
+import threading as _threading
+from pathlib import Path as _Path
+
+
+_DEFAULT_SIM_DB = str(
+    _Path(__file__).resolve().parents[2] / ".fixops_data" / "attack_simulation.db"
+)
+
+_SIMULATION_TYPES = {"BAS", "purple_team", "tabletop", "red_team"}
+_SIM_STATUSES = {"planned", "running", "completed"}
+_SEVERITIES = {"info", "low", "medium", "high", "critical"}
+_MITRE_TACTICS = [
+    "reconnaissance", "initial_access", "execution", "persistence",
+    "privilege_escalation", "lateral_movement", "command_and_control", "exfiltration",
+]
+
+
+class AttackSimulationDbEngine:
+    """SQLite WAL-backed, multi-tenant Attack Simulation engine.
+
+    Stores simulation runs, attack paths, findings, and MITRE coverage.
+    Thread-safe via RLock. Multi-tenant via org_id.
+    """
+
+    def __init__(self, db_path: str = _DEFAULT_SIM_DB) -> None:
+        self.db_path = db_path
+        self._lock = _threading.RLock()
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Schema
+    # ------------------------------------------------------------------
+
+    def _init_db(self) -> None:
+        _Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        with self._conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS simulation_runs (
+                    sim_id           TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    name             TEXT NOT NULL,
+                    simulation_type  TEXT NOT NULL DEFAULT 'BAS',
+                    scope            TEXT NOT NULL DEFAULT '',
+                    target_profile   TEXT NOT NULL DEFAULT '{}',
+                    status           TEXT NOT NULL DEFAULT 'planned',
+                    started_at       TEXT,
+                    completed_at     TEXT,
+                    created_at       TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_sim_runs_org
+                    ON simulation_runs (org_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS attack_paths (
+                    path_id                TEXT PRIMARY KEY,
+                    org_id                 TEXT NOT NULL,
+                    sim_id                 TEXT NOT NULL,
+                    tactic                 TEXT NOT NULL DEFAULT '',
+                    technique_id           TEXT NOT NULL DEFAULT '',
+                    technique_name         TEXT NOT NULL DEFAULT '',
+                    success                INTEGER NOT NULL DEFAULT 0,
+                    detection_time_seconds REAL,
+                    created_at             TEXT NOT NULL,
+                    FOREIGN KEY (sim_id) REFERENCES simulation_runs(sim_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_attack_paths_sim
+                    ON attack_paths (org_id, sim_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS simulation_findings (
+                    finding_id            TEXT PRIMARY KEY,
+                    org_id                TEXT NOT NULL,
+                    sim_id                TEXT NOT NULL,
+                    technique_id          TEXT NOT NULL DEFAULT '',
+                    title                 TEXT NOT NULL,
+                    severity              TEXT NOT NULL DEFAULT 'medium',
+                    remediation_priority  INTEGER NOT NULL DEFAULT 2,
+                    created_at            TEXT NOT NULL,
+                    FOREIGN KEY (sim_id) REFERENCES simulation_runs(sim_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_findings_sim
+                    ON simulation_findings (org_id, sim_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS mitre_coverage (
+                    coverage_id  TEXT PRIMARY KEY,
+                    org_id       TEXT NOT NULL,
+                    sim_id       TEXT NOT NULL,
+                    tactic       TEXT NOT NULL,
+                    technique_id TEXT NOT NULL,
+                    success      INTEGER NOT NULL DEFAULT 0,
+                    recorded_at  TEXT NOT NULL,
+                    UNIQUE(org_id, sim_id, technique_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_mitre_org
+                    ON mitre_coverage (org_id, tactic);
+                """
+            )
+
+    def _conn(self) -> _sqlite3.Connection:
+        conn = _sqlite3.connect(self.db_path, timeout=10)
+        conn.row_factory = _sqlite3.Row
+        return conn
+
+    @staticmethod
+    def _row_to_dict(row: _sqlite3.Row) -> dict:
+        d = dict(row)
+        # Deserialise JSON blob fields
+        if "target_profile" in d and isinstance(d["target_profile"], str):
+            try:
+                d["target_profile"] = _json.loads(d["target_profile"])
+            except Exception:
+                pass
+        # Convert SQLite int bools
+        if "success" in d:
+            d["success"] = bool(d["success"])
+        return d
+
+    @staticmethod
+    def _now() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    # ------------------------------------------------------------------
+    # Simulation Runs
+    # ------------------------------------------------------------------
+
+    def create_simulation(self, org_id: str, data: dict) -> dict:
+        """Create a new simulation run. Returns the full simulation dict."""
+        sim_id = str(uuid.uuid4())
+        now = self._now()
+
+        sim_type = data.get("simulation_type", "BAS")
+        if sim_type not in _SIMULATION_TYPES:
+            sim_type = "BAS"
+
+        status = data.get("status", "planned")
+        if status not in _SIM_STATUSES:
+            status = "planned"
+
+        target_profile = data.get("target_profile", {})
+        if not isinstance(target_profile, dict):
+            target_profile = {}
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO simulation_runs
+                        (sim_id, org_id, name, simulation_type, scope,
+                         target_profile, status, started_at, completed_at, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        sim_id, org_id,
+                        data.get("name", "Unnamed Simulation"),
+                        sim_type,
+                        data.get("scope", ""),
+                        _json.dumps(target_profile),
+                        status,
+                        data.get("started_at"),
+                        data.get("completed_at"),
+                        now,
+                    ),
+                )
+
+        return self.get_simulation(org_id, sim_id)  # type: ignore[return-value]
+
+    def get_simulation(self, org_id: str, sim_id: str) -> Optional[dict]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM simulation_runs WHERE sim_id=? AND org_id=?",
+                (sim_id, org_id),
+            ).fetchone()
+        return self._row_to_dict(row) if row else None
+
+    def list_simulations(self, org_id: str, status: Optional[str] = None) -> list:
+        """List simulation runs for an org, optionally filtered by status."""
+        if status:
+            query = (
+                "SELECT * FROM simulation_runs WHERE org_id=? AND status=? "
+                "ORDER BY created_at DESC"
+            )
+            params: tuple = (org_id, status)
+        else:
+            query = "SELECT * FROM simulation_runs WHERE org_id=? ORDER BY created_at DESC"
+            params = (org_id,)
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row_to_dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Attack Paths
+    # ------------------------------------------------------------------
+
+    def add_attack_path(self, org_id: str, sim_id: str, data: dict) -> dict:
+        """Add an attack path step to a simulation. Returns the path dict."""
+        path_id = str(uuid.uuid4())
+        now = self._now()
+
+        success = bool(data.get("success", False))
+        detection_time = data.get("detection_time_seconds")
+        if detection_time is not None:
+            detection_time = float(detection_time)
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO attack_paths
+                        (path_id, org_id, sim_id, tactic, technique_id, technique_name,
+                         success, detection_time_seconds, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        path_id, org_id, sim_id,
+                        data.get("tactic", ""),
+                        data.get("technique_id", ""),
+                        data.get("technique_name", ""),
+                        1 if success else 0,
+                        detection_time,
+                        now,
+                    ),
+                )
+
+                # Also upsert into mitre_coverage
+                technique_id = data.get("technique_id", "")
+                tactic = data.get("tactic", "")
+                if technique_id:
+                    coverage_id = str(uuid.uuid4())
+                    conn.execute(
+                        """
+                        INSERT INTO mitre_coverage
+                            (coverage_id, org_id, sim_id, tactic, technique_id, success, recorded_at)
+                        VALUES (?,?,?,?,?,?,?)
+                        ON CONFLICT(org_id, sim_id, technique_id) DO UPDATE SET
+                            success = MAX(success, excluded.success),
+                            recorded_at = excluded.recorded_at
+                        """,
+                        (
+                            coverage_id, org_id, sim_id,
+                            tactic, technique_id,
+                            1 if success else 0,
+                            now,
+                        ),
+                    )
+
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM attack_paths WHERE path_id=?", (path_id,)
+            ).fetchone()
+        return self._row_to_dict(row)  # type: ignore[return-value]
+
+    def list_attack_paths(self, org_id: str, sim_id: str) -> list:
+        """List all attack paths for a simulation."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM attack_paths WHERE org_id=? AND sim_id=? ORDER BY created_at ASC",
+                (org_id, sim_id),
+            ).fetchall()
+        return [self._row_to_dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Findings
+    # ------------------------------------------------------------------
+
+    def create_finding(self, org_id: str, sim_id: str, data: dict) -> dict:
+        """Create a simulation finding. Returns the finding dict."""
+        finding_id = str(uuid.uuid4())
+        now = self._now()
+
+        severity = data.get("severity", "medium")
+        if severity not in _SEVERITIES:
+            severity = "medium"
+
+        # Default remediation_priority: critical=1, high=2, medium=3, low=4, info=5
+        _priority_map = {"critical": 1, "high": 2, "medium": 3, "low": 4, "info": 5}
+        remediation_priority = int(
+            data.get("remediation_priority", _priority_map.get(severity, 3))
+        )
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO simulation_findings
+                        (finding_id, org_id, sim_id, technique_id, title,
+                         severity, remediation_priority, created_at)
+                    VALUES (?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        finding_id, org_id, sim_id,
+                        data.get("technique_id", ""),
+                        data.get("title", "Unnamed Finding"),
+                        severity,
+                        remediation_priority,
+                        now,
+                    ),
+                )
+
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM simulation_findings WHERE finding_id=?", (finding_id,)
+            ).fetchone()
+        return self._row_to_dict(row)  # type: ignore[return-value]
+
+    def list_findings(self, org_id: str, sim_id: Optional[str] = None) -> list:
+        """List findings for an org, optionally filtered by sim_id."""
+        if sim_id:
+            query = (
+                "SELECT * FROM simulation_findings WHERE org_id=? AND sim_id=? "
+                "ORDER BY remediation_priority ASC, created_at DESC"
+            )
+            params: tuple = (org_id, sim_id)
+        else:
+            query = (
+                "SELECT * FROM simulation_findings WHERE org_id=? "
+                "ORDER BY remediation_priority ASC, created_at DESC"
+            )
+            params = (org_id,)
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row_to_dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # MITRE Coverage
+    # ------------------------------------------------------------------
+
+    def get_mitre_coverage(self, org_id: str) -> dict:
+        """Return per-tactic coverage percentage across all simulations for an org."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT tactic,
+                       COUNT(*) AS total,
+                       SUM(success) AS succeeded
+                FROM mitre_coverage
+                WHERE org_id=?
+                GROUP BY tactic
+                """,
+                (org_id,),
+            ).fetchall()
+
+        coverage: dict = {}
+        for r in rows:
+            tactic = r["tactic"]
+            total = r["total"] or 0
+            succeeded = r["succeeded"] or 0
+            coverage[tactic] = {
+                "total_techniques": total,
+                "succeeded": succeeded,
+                "coverage_pct": round((succeeded / total * 100) if total else 0.0, 1),
+            }
+
+        # Ensure all standard tactics appear even if no data yet
+        for tactic in _MITRE_TACTICS:
+            if tactic not in coverage:
+                coverage[tactic] = {
+                    "total_techniques": 0,
+                    "succeeded": 0,
+                    "coverage_pct": 0.0,
+                }
+
+        return coverage
+
+    # ------------------------------------------------------------------
+    # Stats
+    # ------------------------------------------------------------------
+
+    def get_simulation_stats(self, org_id: str) -> dict:
+        """Return aggregate simulation statistics for an org."""
+        with self._conn() as conn:
+            sim_row = conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_simulations,
+                    SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
+                    SUM(CASE WHEN status='running' THEN 1 ELSE 0 END) AS running,
+                    SUM(CASE WHEN status='planned' THEN 1 ELSE 0 END) AS planned
+                FROM simulation_runs WHERE org_id=?
+                """,
+                (org_id,),
+            ).fetchone()
+
+            path_row = conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_paths,
+                    SUM(success) AS successful_paths,
+                    AVG(detection_time_seconds) AS avg_detection_time
+                FROM attack_paths WHERE org_id=?
+                """,
+                (org_id,),
+            ).fetchone()
+
+            finding_row = conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_findings,
+                    SUM(CASE WHEN severity='critical' THEN 1 ELSE 0 END) AS critical_findings,
+                    SUM(CASE WHEN severity='high' THEN 1 ELSE 0 END) AS high_findings
+                FROM simulation_findings WHERE org_id=?
+                """,
+                (org_id,),
+            ).fetchone()
+
+        total_paths = path_row["total_paths"] or 0
+        successful_paths = path_row["successful_paths"] or 0
+
+        return {
+            "total_simulations": sim_row["total_simulations"] or 0,
+            "completed": sim_row["completed"] or 0,
+            "running": sim_row["running"] or 0,
+            "planned": sim_row["planned"] or 0,
+            "total_attack_paths": total_paths,
+            "successful_attack_paths": successful_paths,
+            "success_rate_pct": round(
+                (successful_paths / total_paths * 100) if total_paths else 0.0, 1
+            ),
+            "avg_detection_time_seconds": round(
+                float(path_row["avg_detection_time"] or 0.0), 2
+            ),
+            "total_findings": finding_row["total_findings"] or 0,
+            "critical_findings": finding_row["critical_findings"] or 0,
+            "high_findings": finding_row["high_findings"] or 0,
+        }
