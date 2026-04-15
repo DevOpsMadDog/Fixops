@@ -12,12 +12,16 @@
  * API stubs: GET /api/v1/threat-modeling/models, /api/v1/threat-modeling/threats
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Layers, AlertTriangle, Shield, Wrench, RefreshCw,
   Cpu, Zap, CheckCircle, Clock,
 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const apiKey = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const apiFetch = (path: string) => fetch(`/api/v1${path}`, { headers: { "X-API-Key": apiKey } });
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -156,13 +160,42 @@ const HEATMAP_MAX = Math.max(...STRIDE_COUNTS.map((c) => c.count));
 export default function ThreatModelDashboard() {
   const [selected, setSelected] = useState<string>("tm1");
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  const threats = THREATS_BY_MODEL[selected] ?? [];
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/threat-model-generator/models?org_id=default&limit=20`).then((r) => r.json()),
+      apiFetch(`/threat-model-generator/stats?org_id=default`).then((r) => r.json()),
+    ]).then(([modelsRes, statsRes]) => {
+      const models = modelsRes.status === "fulfilled" ? modelsRes.value : null;
+      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
+      if (models || stats) setLiveData({ models, stats });
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  const displayModels: typeof MODELS = Array.isArray(liveData?.models?.items ?? liveData?.models) && (liveData?.models?.items ?? liveData?.models).length > 0
+    ? (liveData.models.items ?? liveData.models).map((m: any) => ({
+        id:          m.model_id ?? m.id ?? String(Math.random()),
+        name:        m.name ?? m.system_name ?? "—",
+        system_type: m.system_type ?? "api",
+        methodology: m.methodology ?? "STRIDE",
+        data_class:  m.data_classification ?? m.data_class ?? "Internal",
+        status:      m.status ?? "Draft",
+        threats:     m.threat_count ?? m.threats ?? 0,
+      }))
+    : MODELS;
+
+  const threats = THREATS_BY_MODEL[selected] ?? [];
 
   return (
     <motion.div
@@ -176,18 +209,18 @@ export default function ThreatModelDashboard() {
         title="Threat Models"
         description="STRIDE auto-generation, risk rating, and mitigation tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Models"            value={8}  icon={Layers}        trend="up"   />
-        <KpiCard title="Open Threats"             value={34} icon={AlertTriangle}  trend="up"  className="border-amber-500/20" />
-        <KpiCard title="Critical Risks"           value={7}  icon={Zap}           trend="up"  className="border-red-500/20" />
-        <KpiCard title="Mitigations In Progress"  value={12} icon={Wrench}        trend="up"  />
+        <KpiCard title="Active Models"            value={liveData?.stats?.total_models ?? liveData?.stats?.active_models ?? 8}  icon={Layers}        trend="up"   />
+        <KpiCard title="Open Threats"             value={liveData?.stats?.open_threats ?? liveData?.stats?.total_threats ?? 34} icon={AlertTriangle}  trend="up"  className="border-amber-500/20" />
+        <KpiCard title="Critical Risks"           value={liveData?.stats?.critical_risks ?? liveData?.stats?.critical_count ?? 7}  icon={Zap}           trend="up"  className="border-red-500/20" />
+        <KpiCard title="Mitigations In Progress"  value={liveData?.stats?.mitigations_in_progress ?? liveData?.stats?.open_mitigations ?? 12} icon={Wrench}        trend="up"  />
       </div>
 
       {/* Models table */}
@@ -198,7 +231,7 @@ export default function ThreatModelDashboard() {
               <Cpu className="h-4 w-4 text-purple-400" />
               Threat Models
             </CardTitle>
-            <Badge className="text-[10px] border border-border">{MODELS.length} models</Badge>
+            <Badge className="text-[10px] border border-border">{displayModels.length} models</Badge>
           </div>
           <CardDescription className="text-xs">Click a row to view threats for that model</CardDescription>
         </CardHeader>
@@ -217,7 +250,7 @@ export default function ThreatModelDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MODELS.map((m) => (
+                {displayModels.map((m) => (
                   <TableRow
                     key={m.id}
                     onClick={() => setSelected(m.id)}
@@ -297,7 +330,7 @@ export default function ThreatModelDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-400" />
-                Threats — {MODELS.find((m) => m.id === selected)?.name}
+                Threats — {displayModels.find((m) => m.id === selected)?.name}
               </CardTitle>
               <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
                 {threats.length} threats
