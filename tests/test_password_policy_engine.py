@@ -1,4 +1,4 @@
-"""Tests for PasswordPolicyEngine — 22 tests covering all public methods."""
+"""Tests for PasswordPolicyEngine — 38+ tests covering all public methods."""
 
 import os
 import tempfile
@@ -265,3 +265,259 @@ def test_org_isolation_violations(engine):
     engine.create_violation("org2", {"policy_id": pol2["policy_id"], "user_id": "u2", "violation_type": "expired"})
     assert len(engine.list_violations("org1")) == 1
     assert len(engine.list_violations("org2")) == 1
+
+
+# ------------------------------------------------------------------
+# activate_policy
+# ------------------------------------------------------------------
+
+def test_activate_policy_returns_true(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    result = engine.activate_policy("org1", pol["policy_id"])
+    assert result is True
+
+
+def test_activate_policy_deactivates_others(engine):
+    p1 = engine.create_policy("org1", {"name": "P1"})
+    p2 = engine.create_policy("org1", {"name": "P2"})
+    engine.activate_policy("org1", p1["policy_id"])
+    engine.activate_policy("org1", p2["policy_id"])
+    policies = engine.list_policies("org1")
+    active = [p for p in policies if p["is_active"]]
+    assert len(active) == 1
+    assert active[0]["policy_id"] == p2["policy_id"]
+
+
+def test_activate_policy_wrong_org_returns_false(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    result = engine.activate_policy("org2", pol["policy_id"])
+    assert result is False
+
+
+def test_list_policies_filter_is_active(engine):
+    p1 = engine.create_policy("org1", {"name": "P1"})
+    engine.create_policy("org1", {"name": "P2"})
+    engine.activate_policy("org1", p1["policy_id"])
+    active = engine.list_policies("org1", is_active=True)
+    inactive = engine.list_policies("org1", is_active=False)
+    assert len(active) == 1
+    assert len(inactive) == 1
+
+
+# ------------------------------------------------------------------
+# check_password_strength (static)
+# ------------------------------------------------------------------
+
+def test_check_password_strength_strong():
+    result = PasswordPolicyEngine.check_password_strength("C0mpl3x!P@ssw0rd#2026")
+    assert result["score"] >= 75
+    assert result["grade"] in ("A", "B")
+    assert "breakdown" in result
+
+
+def test_check_password_strength_weak():
+    result = PasswordPolicyEngine.check_password_strength("abc")
+    assert result["score"] < 40
+    assert result["grade"] == "F"
+
+
+def test_check_password_strength_medium():
+    result = PasswordPolicyEngine.check_password_strength("Password1")
+    assert 0 <= result["score"] <= 100
+    assert result["grade"] in ("A", "B", "C", "D", "F")
+
+
+def test_check_password_strength_empty():
+    result = PasswordPolicyEngine.check_password_strength("")
+    assert result["score"] == 0
+    assert result["grade"] == "F"
+
+
+def test_check_password_strength_breakdown_keys():
+    result = PasswordPolicyEngine.check_password_strength("Test@123")
+    assert "length" in result["breakdown"]
+    assert "char_classes" in result["breakdown"]
+    assert "entropy" in result["breakdown"]
+
+
+def test_check_password_strength_all_lower():
+    result = PasswordPolicyEngine.check_password_strength("onlylowercase")
+    assert result["breakdown"]["char_classes"]["lower"] is True
+    assert result["breakdown"]["char_classes"]["upper"] is False
+    assert result["breakdown"]["char_classes"]["special"] is False
+
+
+def test_check_password_strength_score_range():
+    for pw in ("a", "Abcdef1!", "Th!sIsAV3ryLongAndComplexP@ssw0rd!"):
+        result = PasswordPolicyEngine.check_password_strength(pw)
+        assert 0 <= result["score"] <= 100
+
+
+# ------------------------------------------------------------------
+# report_violation (alias) + list_violations filters
+# ------------------------------------------------------------------
+
+def test_report_violation_alias(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    v = engine.report_violation("org1", {
+        "policy_id": pol["policy_id"],
+        "user_id": "user-xyz",
+        "violation_type": "weak_password",
+        "severity": "high",
+        "user_email": "user@example.com",
+    })
+    assert v["violation_id"]
+    assert v["violation_type"] == "weak_password"
+    assert v["user_email"] == "user@example.com"
+
+
+def test_list_violations_filter_by_user_id(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    engine.create_violation("org1", {"policy_id": pol["policy_id"], "user_id": "alice", "violation_type": "expired"})
+    engine.create_violation("org1", {"policy_id": pol["policy_id"], "user_id": "bob", "violation_type": "short"})
+    alice_v = engine.list_violations("org1", user_id="alice")
+    assert len(alice_v) == 1
+    assert alice_v[0]["user_id"] == "alice"
+
+
+def test_list_violations_filter_by_violation_type(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    engine.create_violation("org1", {"policy_id": pol["policy_id"], "user_id": "u1", "violation_type": "expired"})
+    engine.create_violation("org1", {"policy_id": pol["policy_id"], "user_id": "u2", "violation_type": "short"})
+    expired = engine.list_violations("org1", violation_type="expired")
+    assert len(expired) == 1
+
+
+# ------------------------------------------------------------------
+# run_audit / enhanced audits
+# ------------------------------------------------------------------
+
+def test_run_audit_returns_full_record(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    audit = engine.run_audit("org1", pol["policy_id"], {
+        "total_users_checked": 200,
+        "compliant": 180,
+        "non_compliant": 20,
+        "weak_count": 10,
+        "expired_count": 5,
+        "no_mfa_count": 8,
+        "audit_date": "2026-04-16",
+    })
+    assert audit["audit_id"]
+    assert audit["total_users_checked"] == 200
+    assert audit["compliant"] == 180
+    assert audit["weak_count"] == 10
+    assert audit["expired_count"] == 5
+    assert audit["no_mfa_count"] == 8
+    assert audit["compliance_rate"] == 90.0
+    assert audit["audit_date"] == "2026-04-16"
+
+
+def test_run_audit_auto_computes_compliance_rate(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    audit = engine.run_audit("org1", pol["policy_id"], {
+        "total_users_checked": 100,
+        "compliant": 75,
+    })
+    assert audit["compliance_rate"] == 75.0
+
+
+def test_list_audits_limit(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    for i in range(5):
+        engine.record_audit("org1", pol["policy_id"], 100, i, float(100 - i))
+    audits = engine.list_audits("org1", limit=3)
+    assert len(audits) == 3
+
+
+# ------------------------------------------------------------------
+# MFA enrollment
+# ------------------------------------------------------------------
+
+def test_register_mfa_returns_record(engine):
+    rec = engine.register_mfa("org1", {
+        "user_id": "user-mfa-1",
+        "user_email": "mfa@example.com",
+        "mfa_type": "totp",
+        "enrolled": True,
+    })
+    assert rec["id"]
+    assert rec["user_id"] == "user-mfa-1"
+    assert rec["mfa_type"] == "totp"
+    assert rec["enrolled"] is True
+
+
+def test_register_mfa_invalid_type_raises(engine):
+    with pytest.raises(ValueError):
+        engine.register_mfa("org1", {"user_id": "u1", "mfa_type": "carrier_pigeon"})
+
+
+def test_register_mfa_missing_user_id_raises(engine):
+    with pytest.raises(ValueError):
+        engine.register_mfa("org1", {"mfa_type": "totp"})
+
+
+def test_list_mfa_enrollments_filter_enrolled(engine):
+    engine.register_mfa("org1", {"user_id": "u1", "mfa_type": "totp", "enrolled": True})
+    engine.register_mfa("org1", {"user_id": "u2", "mfa_type": "sms", "enrolled": False})
+    enrolled = engine.list_mfa_enrollments("org1", enrolled=True)
+    not_enrolled = engine.list_mfa_enrollments("org1", enrolled=False)
+    assert len(enrolled) == 1
+    assert len(not_enrolled) == 1
+    assert enrolled[0]["enrolled"] is True
+    assert not_enrolled[0]["enrolled"] is False
+
+
+def test_list_mfa_enrollments_all(engine):
+    engine.register_mfa("org1", {"user_id": "u1", "mfa_type": "totp", "enrolled": True})
+    engine.register_mfa("org1", {"user_id": "u2", "mfa_type": "hardware_key", "enrolled": True})
+    engine.register_mfa("org1", {"user_id": "u3", "mfa_type": "push", "enrolled": False})
+    all_mfa = engine.list_mfa_enrollments("org1")
+    assert len(all_mfa) == 3
+
+
+def test_mfa_org_isolation(engine):
+    engine.register_mfa("org1", {"user_id": "u1", "mfa_type": "totp", "enrolled": True})
+    engine.register_mfa("org2", {"user_id": "u2", "mfa_type": "sms", "enrolled": True})
+    assert len(engine.list_mfa_enrollments("org1")) == 1
+    assert len(engine.list_mfa_enrollments("org2")) == 1
+
+
+# ------------------------------------------------------------------
+# get_policy_stats (enhanced)
+# ------------------------------------------------------------------
+
+def test_get_policy_stats_has_mfa_fields(engine):
+    engine.register_mfa("org1", {"user_id": "u1", "mfa_type": "totp", "enrolled": True})
+    engine.register_mfa("org1", {"user_id": "u2", "mfa_type": "sms", "enrolled": False})
+    stats = engine.get_policy_stats("org1")
+    assert "mfa_enrollment_rate" in stats
+    assert "users_without_mfa" in stats
+    assert stats["mfa_enrollment_rate"] == 50.0
+    assert stats["users_without_mfa"] == 1
+
+
+def test_get_policy_stats_active_policy(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    engine.activate_policy("org1", pol["policy_id"])
+    stats = engine.get_policy_stats("org1")
+    assert stats["active_policy"] is not None
+    assert stats["active_policy"]["policy_id"] == pol["policy_id"]
+
+
+def test_get_policy_stats_by_type(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    engine.create_violation("org1", {"policy_id": pol["policy_id"], "user_id": "u1", "violation_type": "expired"})
+    engine.create_violation("org1", {"policy_id": pol["policy_id"], "user_id": "u2", "violation_type": "short"})
+    stats = engine.get_policy_stats("org1")
+    assert "by_type" in stats
+    assert "expired" in stats["by_type"] or "short" in stats["by_type"]
+
+
+def test_get_policy_stats_compliance_rate_latest(engine):
+    pol = engine.create_policy("org1", {"name": "P"})
+    engine.run_audit("org1", pol["policy_id"], {
+        "total_users_checked": 100, "compliant": 80,
+    })
+    stats = engine.get_policy_stats("org1")
+    assert stats["compliance_rate_latest"] == 80.0

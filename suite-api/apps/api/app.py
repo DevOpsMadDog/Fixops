@@ -6281,6 +6281,17 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.api_security_engine_router import router as api_security_engine_router
+        app.include_router(api_security_engine_router)
+    except ImportError:
+        pass
+    try:
+        from apps.api.vuln_intelligence_router import router as vuln_intelligence_router
+        app.include_router(vuln_intelligence_router)
+    except ImportError:
+        pass
+
     return app
 
 
