@@ -766,6 +766,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 31 — Autonomous parallel build)
+
+**Wave 31 New Backend Engines:**
+- ✅ user_access_review_engine.py — UserAccessReview (6 review types, 4 decisions, auto-complete when all items decided, overdue detection) — 43 tests
+- ✅ security_posture_history_engine.py — SecurityPostureHistory (8 domains, snapshots, trend improving/declining/stable, baseline gap) — 35 tests
+- ✅ incident_lessons_engine.py — IncidentLessons (8 lesson types, auto-promote to implemented when all actions complete, review outcomes) — 48 tests
+- ✅ cloud_account_monitoring_engine.py — CloudAccountMonitoring (7 providers, risk_score→status auto-mapping, 8 event types, policy evaluation) — 38 tests
+- ✅ threat_intel_enrichment_engine.py — ThreatIntelEnrichment (8 indicator types, auto-complete on sources_responded, SHA-256 api_key hashing, bulk enrich) — 37 tests
+- ✅ security_okr_engine.py — SecurityOKR (7 periods, KR progress = min(100, value/target*100), objective = avg KR progress, velocity history) — 37 tests
+
+**Wave 31 Routers wired:** /api/v1/access-reviews, /api/v1/posture-history, /api/v1/incident-lessons, /api/v1/cloud-accounts, /api/v1/intel-enrichment, /api/v1/security-okrs
+
+**Wave 31 Frontend Pages (Wave 30 domains):**
+- ✅ ComplianceMappingDashboard (/compliance-mapping), VulnScanDashboard (/vuln-scans)
+- ✅ ThreatBriefDashboard (/threat-briefs), IncidentCommsDashboard (/incident-comms)
+- ✅ AssetTagsDashboard (/asset-tags), SecurityRegistryDashboard (/security-registry)
+
+**Engine total: 284+ engines | Router total: 514+ routers | Test total: 6,399+ tests | Frontend: 236+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
