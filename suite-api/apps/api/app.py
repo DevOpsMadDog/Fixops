@@ -6316,6 +6316,11 @@ def create_app() -> FastAPI:
         app.include_router(dlp_router)
     except ImportError:
         pass
+    try:
+        from apps.api.attack_surface_engine_router import router as attack_surface_mgmt_router
+        app.include_router(attack_surface_mgmt_router)
+    except ImportError:
+        pass
 
     return app
 
