@@ -399,6 +399,14 @@ const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmark
 const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
 const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
+// Wave 41 domain dashboards (frontend pages for Wave 40 engines)
+const ArchReviewDashboard = lazy(() => import("@/pages/ArchReviewDashboard"));
+const HuntingPlaybookDashboard = lazy(() => import("@/pages/HuntingPlaybookDashboard"));
+const ProgramMaturityDashboard = lazy(() => import("@/pages/ProgramMaturityDashboard"));
+const CloudIRDashboard = lazy(() => import("@/pages/CloudIRDashboard"));
+const IdentityLifecycleDashboard = lazy(() => import("@/pages/IdentityLifecycleDashboard"));
+const DependencyMappingDashboard = lazy(() => import("@/pages/DependencyMappingDashboard"));
+
 // Wave 40 domain dashboards (frontend pages for Wave 39 engines)
 const RiskQuantDashboard = lazy(() => import("@/pages/RiskQuantDashboard"));
 const CyberThreatModelingDashboard = lazy(() => import("@/pages/CyberThreatModelingDashboard"));
@@ -858,6 +866,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 41 domain dashboards (pages for Wave 40 engines) */}
+            <Route path="/arch-review" element={<ArchReviewDashboard />} />
+            <Route path="/hunting-playbooks" element={<HuntingPlaybookDashboard />} />
+            <Route path="/program-maturity" element={<ProgramMaturityDashboard />} />
+            <Route path="/cloud-ir" element={<CloudIRDashboard />} />
+            <Route path="/identity-lifecycle" element={<IdentityLifecycleDashboard />} />
+            <Route path="/dependency-mapping" element={<DependencyMappingDashboard />} />
 
             {/* Wave 40 domain dashboards (pages for Wave 39 engines) */}
             <Route path="/risk-quant" element={<RiskQuantDashboard />} />

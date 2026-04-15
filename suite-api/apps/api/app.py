@@ -7798,6 +7798,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 41 pre-wiring (engines pending creation)
+    try:
+        from apps.api.privacy_impact_assessment_router import router as privacy_impact_assessment_router
+        app.include_router(privacy_impact_assessment_router)
+        _logger.info("Mounted Privacy Impact Assessment router at /api/v1/privacy-impact")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_indicator_router import router as threat_indicator_router
+        app.include_router(threat_indicator_router)
+        _logger.info("Mounted Threat Indicator router at /api/v1/threat-indicators")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ransomware_protection_router import router as ransomware_protection_router
+        app.include_router(ransomware_protection_router)
+        _logger.info("Mounted Ransomware Protection router at /api/v1/ransomware-protection")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.access_anomaly_router import router as access_anomaly_router
+        app.include_router(access_anomaly_router)
+        _logger.info("Mounted Access Anomaly router at /api/v1/access-anomaly")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_training_effectiveness_router import router as security_training_effectiveness_router
+        app.include_router(security_training_effectiveness_router)
+        _logger.info("Mounted Security Training Effectiveness router at /api/v1/training-effectiveness")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_cost_optimization_router import router as cloud_cost_optimization_router
+        app.include_router(cloud_cost_optimization_router)
+        _logger.info("Mounted Cloud Cost Optimization router at /api/v1/cost-optimization")
+    except ImportError:
+        pass
+
     return app
 
 
