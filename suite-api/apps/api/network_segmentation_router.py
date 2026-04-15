@@ -1,0 +1,150 @@
+"""Network Segmentation Router — ALDECI.
+
+Prefix: /api/v1/network-segmentation
+Auth: api_key_auth dependency
+
+Routes:
+  POST   /api/v1/network-segmentation/segments                      create_segment
+  GET    /api/v1/network-segmentation/segments                      list_segments
+  POST   /api/v1/network-segmentation/flow-policies                 add_flow_policy
+  GET    /api/v1/network-segmentation/flow-policies                 list_flow_policies
+  POST   /api/v1/network-segmentation/check-flow                    check_flow_allowed
+  GET    /api/v1/network-segmentation/lateral-movement-risk         detect_lateral_movement_risk
+  GET    /api/v1/network-segmentation/score                         get_segmentation_score
+  GET    /api/v1/network-segmentation/stats                         get_segmentation_stats
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from apps.api.auth_deps import api_key_auth
+
+_logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/v1/network-segmentation",
+    tags=["Network Segmentation"],
+)
+
+_engine = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        from core.network_segmentation_engine import NetworkSegmentationEngine
+        _engine = NetworkSegmentationEngine()
+    return _engine
+
+
+# ---------------------------------------------------------------------------
+# Request models
+# ---------------------------------------------------------------------------
+
+class SegmentCreate(BaseModel):
+    name: str
+    cidr: str = ""
+    segment_type: str
+    trust_level: int = Field(default=5, ge=0, le=10)
+    description: str = ""
+
+
+class FlowPolicyCreate(BaseModel):
+    src_segment_id: str
+    dst_segment_id: str
+    action: str
+    ports: List[str] = []
+    justification: str = ""
+
+
+class FlowCheckRequest(BaseModel):
+    src_segment_id: str
+    dst_segment_id: str
+    port: int = Field(..., ge=0, le=65535)
+
+
+# ---------------------------------------------------------------------------
+# Segment routes
+# ---------------------------------------------------------------------------
+
+@router.post("/segments", dependencies=[Depends(api_key_auth)], status_code=201)
+def create_segment(body: SegmentCreate, org_id: str = Query(...)):
+    """Create a network segment."""
+    try:
+        return _get_engine().create_segment(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/segments", dependencies=[Depends(api_key_auth)])
+def list_segments(
+    org_id: str = Query(...),
+    segment_type: Optional[str] = Query(None),
+):
+    """List segments with optional type filter."""
+    return _get_engine().list_segments(org_id, segment_type=segment_type)
+
+
+# ---------------------------------------------------------------------------
+# Flow policy routes
+# ---------------------------------------------------------------------------
+
+@router.post("/flow-policies", dependencies=[Depends(api_key_auth)], status_code=201)
+def add_flow_policy(body: FlowPolicyCreate, org_id: str = Query(...)):
+    """Add a flow policy between two segments."""
+    try:
+        return _get_engine().add_flow_policy(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/flow-policies", dependencies=[Depends(api_key_auth)])
+def list_flow_policies(org_id: str = Query(...)):
+    """List all flow policies for the org."""
+    return _get_engine().list_flow_policies(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Flow check
+# ---------------------------------------------------------------------------
+
+@router.post("/check-flow", dependencies=[Depends(api_key_auth)])
+def check_flow_allowed(body: FlowCheckRequest, org_id: str = Query(...)):
+    """Check whether traffic between two segments on a given port is allowed."""
+    return _get_engine().check_flow_allowed(
+        org_id,
+        body.src_segment_id,
+        body.dst_segment_id,
+        body.port,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Risk analysis routes
+# ---------------------------------------------------------------------------
+
+@router.get("/lateral-movement-risk", dependencies=[Depends(api_key_auth)])
+def detect_lateral_movement_risk(org_id: str = Query(...)):
+    """Detect segment pairs with risky allow-all flows between different trust levels."""
+    return _get_engine().detect_lateral_movement_risk(org_id)
+
+
+@router.get("/score", dependencies=[Depends(api_key_auth)])
+def get_segmentation_score(org_id: str = Query(...)):
+    """Return segmentation score (0-100), grade (A-F), and findings."""
+    return _get_engine().get_segmentation_score(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+@router.get("/stats", dependencies=[Depends(api_key_auth)])
+def get_segmentation_stats(org_id: str = Query(...)):
+    """Return aggregated segmentation statistics for the org."""
+    return _get_engine().get_segmentation_stats(org_id)
