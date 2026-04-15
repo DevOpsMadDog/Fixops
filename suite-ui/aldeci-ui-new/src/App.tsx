@@ -284,6 +284,14 @@ const NetworkSegmentationDashboard = lazy(() => import("@/pages/NetworkSegmentat
 
 // MFA Management, Threat Scores, Security Budget, Compliance Gaps
 const MFAManagementDashboard = lazy(() => import("@/pages/MFAManagementDashboard"));
+
+// Wave 18 domain dashboards
+const AIGovernanceDashboard = lazy(() => import("@/pages/AIGovernanceDashboard"));
+const DigitalIdentityDashboard = lazy(() => import("@/pages/DigitalIdentityDashboard"));
+const AttackChainDashboard = lazy(() => import("@/pages/AttackChainDashboard"));
+const ThreatExposureDashboard = lazy(() => import("@/pages/ThreatExposureDashboard"));
+const SoftwareLicenseDashboard = lazy(() => import("@/pages/SoftwareLicenseDashboard"));
+const CloudIdentityDashboard = lazy(() => import("@/pages/CloudIdentityDashboard"));
 const ThreatScoreDashboard = lazy(() => import("@/pages/ThreatScoreDashboard"));
 const SecurityBudgetDashboard = lazy(() => import("@/pages/SecurityBudgetDashboard"));
 const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard"));
@@ -580,6 +588,14 @@ export default function App() {
             <Route path="/threat-scores" element={<ThreatScoreDashboard />} />
             <Route path="/security-budget" element={<SecurityBudgetDashboard />} />
             <Route path="/compliance-gaps" element={<ComplianceGapDashboard />} />
+
+            {/* Wave 18 domain dashboards */}
+            <Route path="/ai-governance" element={<AIGovernanceDashboard />} />
+            <Route path="/digital-identity" element={<DigitalIdentityDashboard />} />
+            <Route path="/attack-chains" element={<AttackChainDashboard />} />
+            <Route path="/threat-exposure" element={<ThreatExposureDashboard />} />
+            <Route path="/license-security" element={<SoftwareLicenseDashboard />} />
+            <Route path="/cloud-identity" element={<CloudIdentityDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
