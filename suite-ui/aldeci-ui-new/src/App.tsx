@@ -227,6 +227,9 @@ const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerD
 const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
 const CCMDashboard = lazy(() => import("@/pages/CCMDashboard"));
 
+// System Health Dashboard
+const SystemHealthDashboard = lazy(() => import("@/pages/SystemHealthDashboard"));
+
 // Security Maturity, Privacy/GDPR, Network Traffic, Container Security
 const SecurityMaturityDashboard = lazy(() => import("@/pages/SecurityMaturityDashboard"));
 const PrivacyGDPRDashboard = lazy(() => import("@/pages/PrivacyGDPRDashboard"));
@@ -493,6 +496,7 @@ export default function App() {
             <Route path="/regulatory-tracker" element={<RegulatoryTrackerDashboard />} />
             <Route path="/security-scorecard" element={<SecurityScorecardDashboard />} />
             <Route path="/ccm" element={<CCMDashboard />} />
+            <Route path="/system-health" element={<SystemHealthDashboard />} />
 
             {/* OpenClaw + SOC Triage AI + SBOM */}
             <Route path="/openclaw" element={<Suspense fallback={<div>Loading...</div>}><OpenClawDashboard /></Suspense>} />
