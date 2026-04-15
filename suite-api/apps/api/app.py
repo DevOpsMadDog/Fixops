@@ -6782,6 +6782,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.mfa_management_router import router as mfa_management_router
+        app.include_router(mfa_management_router)
+        _logger.info("Mounted MFA Management router at /api/v1/mfa")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_score_router import router as threat_score_router
+        app.include_router(threat_score_router)
+        _logger.info("Mounted Threat Score router at /api/v1/threat-scores")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_budget_router import router as security_budget_router
+        app.include_router(security_budget_router)
+        _logger.info("Mounted Security Budget router at /api/v1/security-budget")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.compliance_gap_router import router as compliance_gap_router
+        app.include_router(compliance_gap_router)
+        _logger.info("Mounted Compliance Gap router at /api/v1/compliance-gaps")
+    except ImportError:
+        pass
+
     return app
 
 
