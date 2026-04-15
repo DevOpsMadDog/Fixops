@@ -6852,6 +6852,48 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.dark_web_monitoring_router import router as dark_web_monitoring_router
+        app.include_router(dark_web_monitoring_router)
+        _logger.info("Mounted Dark Web Monitoring router at /api/v1/dark-web")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.itdr_router import router as itdr_router
+        app.include_router(itdr_router)
+        _logger.info("Mounted ITDR router at /api/v1/itdr")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.container_runtime_security_router import router as container_runtime_security_router
+        app.include_router(container_runtime_security_router)
+        _logger.info("Mounted Container Runtime Security router at /api/v1/container-runtime")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.api_discovery_router import router as api_discovery_router
+        app.include_router(api_discovery_router)
+        _logger.info("Mounted API Discovery router at /api/v1/api-discovery")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_chaos_router import router as security_chaos_router
+        app.include_router(security_chaos_router)
+        _logger.info("Mounted Security Chaos router at /api/v1/security-chaos")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_metrics_router import router as incident_metrics_router
+        app.include_router(incident_metrics_router)
+        _logger.info("Mounted Incident Metrics router at /api/v1/incident-metrics")
+    except ImportError:
+        pass
+
     return app
 
 
