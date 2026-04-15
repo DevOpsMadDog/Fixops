@@ -5559,6 +5559,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Report scheduler router not loaded: {e}")
 
+    # IGA — Identity Governance & Administration (access reviews, orphan detection, SoD)
+    try:
+        from apps.api.iga_router import router as iga_router
+        app.include_router(iga_router)
+        _logger.info("Mounted IGA router")
+    except Exception as e:
+        _logger.warning(f"IGA router not loaded: {e}")
+
     return app
 
 
