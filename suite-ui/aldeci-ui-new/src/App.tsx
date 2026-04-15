@@ -147,6 +147,9 @@ const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
 const EmailSecurity = lazy(() => import("@/pages/EmailSecurity"));
 const SLADashboardPage = lazy(() => import("@/pages/SLADashboard"));
 const SecurityMetricsDashboard = lazy(() => import("@/pages/SecurityMetricsDashboard"));
+const MobileSecurity = lazy(() => import("@/pages/MobileSecurity"));
+const PasswordPolicy = lazy(() => import("@/pages/PasswordPolicy"));
+const AppSecurity = lazy(() => import("@/pages/AppSecurity"));
 const VulnRiskQueue = lazy(() => import("@/pages/VulnRiskQueue"));
 const RedTeamStatus = lazy(() => import("@/pages/RedTeamStatus"));
 
@@ -320,6 +323,9 @@ export default function App() {
             <Route path="/security-metrics" element={<SecurityMetricsDashboard />} />
             <Route path="/vuln-risk" element={<VulnRiskQueue />} />
             <Route path="/red-team" element={<RedTeamStatus />} />
+            <Route path="/mobile-security" element={<MobileSecurity />} />
+            <Route path="/password-policy" element={<PasswordPolicy />} />
+            <Route path="/app-security" element={<AppSecurity />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
