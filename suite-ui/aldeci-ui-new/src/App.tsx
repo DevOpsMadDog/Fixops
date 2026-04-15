@@ -391,6 +391,14 @@ const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
 
+// Wave 35 domain dashboards
+const ExceptionWorkflowDashboard = lazy(() => import("@/pages/ExceptionWorkflowDashboard"));
+const ActorTrackingDashboard = lazy(() => import("@/pages/ActorTrackingDashboard"));
+const VulnScoringDashboard = lazy(() => import("@/pages/VulnScoringDashboard"));
+const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmarksDashboard"));
+const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
+const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
+
 // Wave 34 domain dashboards
 const SecurityQuestionnaireDashboard = lazy(() => import("@/pages/SecurityQuestionnaireDashboard"));
 const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
@@ -810,6 +818,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 35 domain dashboards */}
+            <Route path="/exception-workflow" element={<ExceptionWorkflowDashboard />} />
+            <Route path="/actor-tracking" element={<ActorTrackingDashboard />} />
+            <Route path="/vuln-scoring" element={<VulnScoringDashboard />} />
+            <Route path="/security-benchmarks" element={<SecurityBenchmarksDashboard />} />
+            <Route path="/incident-costs" element={<IncidentCostsDashboard />} />
+            <Route path="/security-culture" element={<SecurityCultureDashboard />} />
 
             {/* Wave 34 domain dashboards */}
             <Route path="/security-questionnaires" element={<SecurityQuestionnaireDashboard />} />
