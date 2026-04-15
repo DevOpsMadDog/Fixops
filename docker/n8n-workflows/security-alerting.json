@@ -1,0 +1,98 @@
+{
+  "name": "ALDECI Critical Finding Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "aldeci-critical-finding",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/alerts/log",
+        "method": "POST",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParametersJson": "={{ $json }}",
+        "options": {}
+      },
+      "id": "http-logger",
+      "name": "Log to ALDECI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        550,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWithOptions": {
+          "responseWith": "firstInputData"
+        }
+      },
+      "id": "response",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "http-logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-logger": {
+      "main": [
+        [
+          {
+            "node": "response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "meta": {
+    "instanceId": "aldeci-n8n"
+  },
+  "id": "aldeci-critical-finding-alert",
+  "tags": [
+    "security",
+    "alerting",
+    "aldeci"
+  ]
+}

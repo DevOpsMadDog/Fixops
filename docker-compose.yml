@@ -120,6 +120,32 @@ services:
     profiles:
       - dtrack
 
+  # n8n — Workflow orchestration & connector bridge (400+ integrations)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: aldeci-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_PUBLIC_API_SWAGGERUI_DISABLED=false
+      - GENERIC_TIMEZONE=UTC
+      - N8N_SECURE_COOKIE=false
+      - N8N_API_KEY=${N8N_API_KEY:-}
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - aldeci-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
 networks:
   aldeci-net:
     driver: bridge
@@ -128,4 +154,5 @@ volumes:
   aldeci-data:
   aldeci-state:
   dtrack-data:
+  n8n_data:
 
