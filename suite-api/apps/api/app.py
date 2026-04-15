@@ -5644,6 +5644,17 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Data Classification router not loaded: {e}")
 
+    # Threat Actor Intelligence — actor profiles, campaigns, IOCs, watchlist
+    try:
+        from apps.api.threat_actor_router import router as threat_actor_router
+        app.include_router(
+            threat_actor_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Threat Actor router at /api/v1/threat-actors")
+    except Exception as e:
+        _logger.warning(f"Threat Actor router not loaded: {e}")
+
     # Compliance Gap Analysis & Audit Readiness — gap analysis, audit readiness scoring, remediation tasks
     try:
         from apps.api.compliance_gap_router import router as compliance_gap_router
