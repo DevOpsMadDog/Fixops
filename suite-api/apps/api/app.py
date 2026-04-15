@@ -591,6 +591,13 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Incident Response router not available: %s", e)
 
+breach_response_router: Optional[APIRouter] = None
+try:
+    from apps.api.breach_response_router import router as breach_response_router
+    logging.getLogger(__name__).info("Loaded Breach Response router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Breach Response router not available: %s", e)
+
 soc_automation_router: Optional[APIRouter] = None
 try:
     from apps.api.soc_automation_router import router as soc_automation_router
@@ -3228,6 +3235,7 @@ def create_app() -> FastAPI:
         (executive_report_router, "Executive Report", "read:evidence"),
         (exec_security_reports_router, "Executive Security Reports", "read:evidence"),
         (feed_manager_router, "Feed Manager", "read:feeds"),
+        (breach_response_router, "Breach Response", "write:findings"),
         (fix_engine_router, "Fix Engine", "write:findings"),
         (incident_response_router, "Incident Response", "write:findings"),
         (integration_health_router, "Integration Health", "read:findings"),
