@@ -6981,20 +6981,6 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
-        app.include_router(supply_chain_attack_detection_router)
-        _logger.info("Mounted Supply Chain Attack Detection router at /api/v1/supply-chain-attacks")
-    except ImportError:
-        pass
-
-    try:
-        from apps.api.cloud_workload_protection_router import router as cloud_workload_protection_router
-        app.include_router(cloud_workload_protection_router)
-        _logger.info("Mounted Cloud Workload Protection router at /api/v1/cwp")
-    except ImportError:
-        pass
-
     return app
 
 
