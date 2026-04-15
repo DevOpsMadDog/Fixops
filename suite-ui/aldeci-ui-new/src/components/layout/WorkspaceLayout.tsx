@@ -330,6 +330,7 @@ const navGroups: NavGroup[] = [
     label: "Risk & Attack",
     icon: Swords,
     items: [
+      { label: "Pentest Management", to: "/pentest-mgmt", icon: Crosshair, badge: "NEW" },
       { label: "Risk Quantification", to: "/risk-quantification", icon: Scale, badge: "NEW" },
       { label: "Attack Simulation", to: "/attack-simulation", icon: Swords, badge: "NEW" },
       { label: "Threat Models", to: "/threat-models", icon: Layers, badge: "NEW" },
@@ -347,6 +348,7 @@ const navGroups: NavGroup[] = [
     label: "Identity & Access",
     icon: UserX,
     items: [
+      { label: "Identity Analytics", to: "/identity-analytics", icon: BarChart3, badge: "NEW" },
       { label: "Insider Threats", to: "/insider-threats", icon: UserX, badge: "NEW" },
       { label: "Zero Trust", to: "/zero-trust", icon: Lock },
       { label: "Zero Trust Policies", to: "/zero-trust-policies", icon: Shield, badge: "NEW" },
@@ -392,6 +394,7 @@ const navGroups: NavGroup[] = [
     label: "Cloud & Compliance",
     icon: Cloud,
     items: [
+      { label: "CNAPP", to: "/cnapp", icon: Shield, badge: "NEW" },
       { label: "Cloud Security", to: "/cloud-security", icon: Cloud, badge: "NEW" },
       { label: "Network Topology", to: "/network-topology", icon: GitBranch, badge: "NEW" },
       { label: "CMDB", to: "/cmdb", icon: Database, badge: "NEW" },
@@ -407,6 +410,7 @@ const navGroups: NavGroup[] = [
     icon: Code2,
     items: [
       { label: "DevSecOps Dashboard", to: "/devsecops", icon: GitBranch, badge: "NEW" },
+      { label: "Supply Chain Intel", to: "/supply-chain-intel", icon: Package, badge: "NEW" },
     ],
   },
   {

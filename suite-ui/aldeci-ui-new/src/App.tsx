@@ -208,6 +208,12 @@ const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
 const AwarenessScoreDashboard = lazy(() => import("@/pages/AwarenessScoreDashboard"));
 const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
 
+// New Beast Mode pages — Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel
+const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsDashboard"));
+const CNAPPDashboard = lazy(() => import("@/pages/CNAPPDashboard"));
+const PentestManagementDashboard = lazy(() => import("@/pages/PentestManagementDashboard"));
+const SupplyChainIntelDashboard = lazy(() => import("@/pages/SupplyChainIntelDashboard"));
+
 // Governance + Executive pages
 const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
 const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerDashboard"));
@@ -442,6 +448,12 @@ export default function App() {
             <Route path="/xdr" element={<XDRDashboard />} />
             <Route path="/awareness-score" element={<AwarenessScoreDashboard />} />
             <Route path="/edr" element={<EDRDashboard />} />
+
+            {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
+            <Route path="/identity-analytics" element={<IdentityAnalyticsDashboard />} />
+            <Route path="/cnapp" element={<CNAPPDashboard />} />
+            <Route path="/pentest-mgmt" element={<PentestManagementDashboard />} />
+            <Route path="/supply-chain-intel" element={<SupplyChainIntelDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
