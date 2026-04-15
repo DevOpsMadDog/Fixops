@@ -335,6 +335,14 @@ const CloudSecurityAnalyticsDashboard = lazy(() => import("@/pages/CloudSecurity
 const IdentityRiskDashboard = lazy(() => import("@/pages/IdentityRiskDashboard"));
 const OTSecurityDashboard = lazy(() => import("@/pages/OTSecurityDashboard"));
 
+// Wave 24 domain dashboards
+const NetworkForensicsDashboard = lazy(() => import("@/pages/NetworkForensicsDashboard"));
+const MalwareAnalysisDashboard = lazy(() => import("@/pages/MalwareAnalysisDashboard"));
+const ApplicationRiskDashboard = lazy(() => import("@/pages/ApplicationRiskDashboard"));
+const PAGDashboard = lazy(() => import("@/pages/PAGDashboard"));
+const SecurityGamificationDashboard = lazy(() => import("@/pages/SecurityGamificationDashboard"));
+const VulnPrioritizationDashboard = lazy(() => import("@/pages/VulnPrioritizationDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -674,6 +682,14 @@ export default function App() {
             <Route path="/cloud-security-analytics" element={<CloudSecurityAnalyticsDashboard />} />
             <Route path="/identity-risk" element={<IdentityRiskDashboard />} />
             <Route path="/ot-security" element={<OTSecurityDashboard />} />
+
+            {/* Wave 24 domain dashboards */}
+            <Route path="/network-forensics" element={<NetworkForensicsDashboard />} />
+            <Route path="/malware-analysis" element={<MalwareAnalysisDashboard />} />
+            <Route path="/application-risk" element={<ApplicationRiskDashboard />} />
+            <Route path="/pag" element={<PAGDashboard />} />
+            <Route path="/security-gamification" element={<SecurityGamificationDashboard />} />
+            <Route path="/vuln-prioritization" element={<VulnPrioritizationDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
