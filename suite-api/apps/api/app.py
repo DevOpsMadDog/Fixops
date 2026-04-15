@@ -5845,6 +5845,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"CWPP router not loaded: {e}")
 
+    # Cloud Workload Protection Engine — runtime threats, policies, risk scoring
+    try:
+        from apps.api.cloud_workload_protection_router import router as cloud_workload_protection_router
+        app.include_router(cloud_workload_protection_router)
+        _logger.info("Mounted Cloud Workload Protection router at /api/v1/cwp")
+    except Exception as e:
+        _logger.warning(f"Cloud Workload Protection router not loaded: {e}")
+
     # FAIR-based financial risk quantification — scenarios, Monte Carlo, treatments, impacts
     try:
         from apps.api.risk_quantification_router import router as risk_quantification_router
@@ -6744,6 +6752,13 @@ def create_app() -> FastAPI:
         from apps.api.supply_chain_monitoring_router import router as supply_chain_monitoring_router
         app.include_router(supply_chain_monitoring_router)
         _logger.info("Mounted Supply Chain Monitoring router at /api/v1/supply-chain-monitoring")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
+        app.include_router(supply_chain_attack_detection_router)
+        _logger.info("Mounted Supply Chain Attack Detection router at /api/v1/supply-chain-attacks")
     except ImportError:
         pass
 
