@@ -13,8 +13,24 @@
  * API: GET /api/v1/email-security/dmarc-reports, /api/v1/email-security/threats (mock fallback)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Mail,
   Shield,
@@ -270,14 +286,33 @@ function RiskScoreBadge({ score }: { score: number }) {
 
 export default function EmailSecurity() {
   const [enforcing, setEnforcing] = useState<Set<string>>(new Set());
+  const [liveData, setLiveData] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/email-security/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/email-security/threats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/email-security/dmarc-reports?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/email-security/domains?org_id=${ORG_ID}`),
+    ]).then(([statsRes, threatsRes, reportsRes, domainsRes]) => {
+      const stats   = statsRes.status   === "fulfilled" ? statsRes.value   : null;
+      const threats = threatsRes.status === "fulfilled" ? threatsRes.value : null;
+      const reports = reportsRes.status === "fulfilled" ? reportsRes.value : null;
+      const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
+      if (stats || threats || reports || domains) {
+        setLiveData({ stats, threats, reports, domains });
+      }
+    });
+  }, []);
 
   const handleEnforce = (domainId: string) => {
     setEnforcing((prev) => new Set(prev).add(domainId));
   };
 
   // Bar chart max for scaling
+  const dmarcBars = liveData?.reports ?? MOCK_DMARC_BARS;
   const maxTotal = Math.max(
-    ...MOCK_DMARC_BARS.map((b) => b.pass + b.fail + b.quarantine + b.reject)
+    ...dmarcBars.map((b: any) => (b.pass ?? b.pass_count ?? 0) + (b.fail ?? b.fail_count ?? 0) + (b.quarantine ?? b.quarantine_count ?? 0) + (b.reject ?? b.reject_count ?? 0))
   );
 
   return (
@@ -292,28 +327,28 @@ export default function EmailSecurity() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="DMARC Pass Rate"
-          value="87%"
+          value={liveData?.stats?.dmarc_pass_rate != null ? `${liveData.stats.dmarc_pass_rate.toFixed(0)}%` : "87%"}
           icon={Shield}
           trend="up"
           trendLabel="+2.1% this week"
         />
         <KpiCard
           title="Blocked Phishing Today"
-          value={234}
+          value={liveData?.stats?.blocked_count ?? liveData?.threats?.filter((t: any) => t.status === "blocked").length ?? 234}
           icon={AlertTriangle}
           trend="down"
           trendLabel="-18 vs yesterday"
         />
         <KpiCard
           title="Spoofing Attempts"
-          value={12}
+          value={liveData?.stats?.spoofing_count ?? liveData?.threats?.filter((t: any) => t.threat_type === "spoofing").length ?? 12}
           icon={AlertCircle}
           trend="up"
           trendLabel="+3 vs yesterday"
         />
         <KpiCard
           title="Email Volume"
-          value="45,234"
+          value={liveData?.stats?.total_volume ?? "45,234"}
           icon={Mail}
           description="Last 24 hours"
         />
@@ -406,13 +441,17 @@ export default function EmailSecurity() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="flex items-end gap-2 h-40">
-              {MOCK_DMARC_BARS.map((bar, idx) => {
-                const total = bar.pass + bar.fail + bar.quarantine + bar.reject;
-                const scale = (total / maxTotal) * 100;
-                const passH = (bar.pass / total) * scale;
-                const failH = (bar.fail / total) * scale;
-                const quarH = (bar.quarantine / total) * scale;
-                const rejH = (bar.reject / total) * scale;
+              {dmarcBars.map((bar: any, idx: number) => {
+                const total = (bar.pass ?? bar.pass_count ?? 0) + (bar.fail ?? bar.fail_count ?? 0) + (bar.quarantine ?? bar.quarantine_count ?? 0) + (bar.reject ?? bar.reject_count ?? 0);
+                const scale = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+                const passV = bar.pass ?? bar.pass_count ?? 0;
+                const failV = bar.fail ?? bar.fail_count ?? 0;
+                const quarV = bar.quarantine ?? bar.quarantine_count ?? 0;
+                const rejV  = bar.reject ?? bar.reject_count ?? 0;
+                const passH = total > 0 ? (passV / total) * scale : 0;
+                const failH = total > 0 ? (failV / total) * scale : 0;
+                const quarH = total > 0 ? (quarV / total) * scale : 0;
+                const rejH  = total > 0 ? (rejV  / total) * scale : 0;
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex flex-col justify-end" style={{ height: "120px" }}>
@@ -427,7 +466,7 @@ export default function EmailSecurity() {
                         <div className="bg-green-500/70 flex-1" />
                       </div>
                     </div>
-                    <span className="text-xs text-slate-500 whitespace-nowrap">{bar.date}</span>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">{bar.date ?? bar.report_date ?? ""}</span>
                   </div>
                 );
               })}
@@ -463,9 +502,13 @@ export default function EmailSecurity() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_THREATS.map((threat, idx) => (
+                  {(liveData?.threats ?? MOCK_THREATS).map((threat: any, idx: number) => {
+                    const threatType = (threat.threat_type ?? "Phishing") as ThreatType;
+                    const actionTaken = (threat.action_taken ?? threat.status ?? "Blocked") as ActionTaken;
+                    const simScore = threat.similarity_score != null ? `${Math.round(threat.similarity_score * 100)}%` : (threat.similarity ?? "—");
+                    return (
                     <motion.tr
-                      key={threat.id}
+                      key={threat.id ?? idx}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.25 + idx * 0.04 }}
@@ -473,35 +516,36 @@ export default function EmailSecurity() {
                     >
                       <TableCell className="text-slate-400 font-mono text-xs whitespace-nowrap">
                         <Clock className="w-3 h-3 inline mr-1.5 text-slate-500" />
-                        {threat.timestamp}
+                        {threat.timestamp ?? threat.detected_at ?? ""}
                       </TableCell>
                       <TableCell className="text-slate-300 text-sm font-mono">
-                        {threat.from_address}
+                        {threat.from_address ?? threat.sender ?? ""}
                       </TableCell>
                       <TableCell className="text-slate-400 text-sm max-w-[200px] truncate">
-                        {threat.subject_preview}
+                        {threat.subject_preview ?? ""}
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("text-xs", THREAT_BADGE[threat.threat_type])}>
-                          {threat.threat_type}
+                        <Badge className={cn("text-xs", THREAT_BADGE[threatType] ?? "bg-slate-500/10 text-slate-400")}>
+                          {threatType}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("text-xs", ACTION_BADGE[threat.action_taken])}>
-                          {threat.action_taken}
+                        <Badge className={cn("text-xs", ACTION_BADGE[actionTaken] ?? "bg-blue-500/10 text-blue-400")}>
+                          {actionTaken}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <span className={cn(
                           "font-bold tabular-nums text-sm",
-                          parseInt(threat.similarity) >= 90 ? "text-red-400" :
-                          parseInt(threat.similarity) >= 75 ? "text-orange-400" : "text-slate-400"
+                          parseInt(simScore) >= 90 ? "text-red-400" :
+                          parseInt(simScore) >= 75 ? "text-orange-400" : "text-slate-400"
                         )}>
-                          {threat.similarity}
+                          {simScore}
                         </span>
                       </TableCell>
                     </motion.tr>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

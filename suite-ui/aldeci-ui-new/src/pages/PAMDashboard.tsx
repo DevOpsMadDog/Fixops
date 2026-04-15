@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/pam/accounts, /api/v1/pam/sessions, /api/v1/pam/requests
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Key, Clock, AlertTriangle, RefreshCw, Video, CheckCircle, XCircle, Lock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -119,6 +135,24 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function PAMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/pam/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/pam/accounts?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/pam/sessions?org_id=${ORG_ID}`),
+    ]).then(([statsRes, accountsRes, sessionsRes]) => {
+      const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
+      const accounts = accountsRes.status === "fulfilled" ? accountsRes.value : null;
+      const sessions = sessionsRes.status === "fulfilled" ? sessionsRes.value : null;
+      if (stats || accounts || sessions) {
+        setLiveData({ stats, accounts, sessions });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -137,18 +171,18 @@ export default function PAMDashboard() {
         title="Privileged Access Management"
         description="Vault, session control, and just-in-time access"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Privileged Accounts"      value={347} icon={Key}           />
-        <KpiCard title="Active Sessions"          value={12}  icon={Shield}        trend="up" className="border-blue-500/20" />
-        <KpiCard title="Pending Approvals"        value={8}   icon={Clock}         trend="up" className="border-yellow-500/20" />
-        <KpiCard title="Overdue Rotation"         value={23}  icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Privileged Accounts" value={liveData?.stats?.total_accounts ?? (liveData?.accounts?.length ?? 347)} icon={Key} />
+        <KpiCard title="Active Sessions"     value={liveData?.stats?.active_sessions ?? (liveData?.sessions?.filter((s: any) => s.approval_status === "approved").length ?? 12)} icon={Shield} trend="up" className="border-blue-500/20" />
+        <KpiCard title="Pending Approvals"   value={liveData?.stats?.pending_approvals ?? (liveData?.sessions?.filter((s: any) => s.approval_status === "pending").length ?? 8)} icon={Clock} trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Overdue Rotation"    value={liveData?.stats?.overdue_rotation ?? (liveData?.accounts?.filter((a: any) => a.status === "overdue").length ?? 23)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
       </div>
 
       {/* Privileged Accounts Table */}
@@ -160,7 +194,7 @@ export default function PAMDashboard() {
               Privileged Accounts
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {ACCOUNTS.filter(a => a.status === "overdue").length} overdue
+              {(liveData?.accounts ?? ACCOUNTS).filter((a: any) => a.status === "overdue").length} overdue
             </Badge>
           </div>
           <CardDescription className="text-xs">Managed credentials across all systems</CardDescription>
@@ -181,14 +215,14 @@ export default function PAMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ACCOUNTS.map((row, i) => (
-                  <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
+                {(liveData?.accounts ?? ACCOUNTS).map((row: any, i: number) => (
+                  <TableRow key={row.id ?? i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs font-mono py-2.5">{row.username}</TableCell>
-                    <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>
+                    <TableCell className="py-2.5"><TypeBadge type={row.account_type ?? row.type} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.system}</TableCell>
                     <TableCell className="text-xs py-2.5">{row.owner}</TableCell>
-                    <TableCell className="py-2.5"><RiskBar score={row.risk} /></TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{row.rotated}</TableCell>
+                    <TableCell className="py-2.5"><RiskBar score={row.risk_score ?? row.risk ?? 0} /></TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{row.last_rotated ?? row.rotated}</TableCell>
                     <TableCell className="py-2.5"><StatusBadge status={row.status} /></TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Rotate</Button>
@@ -210,7 +244,7 @@ export default function PAMDashboard() {
               Session Requests
             </CardTitle>
             <Badge className="text-[10px] border border-yellow-500/30 text-yellow-400 bg-yellow-500/10">
-              {SESSION_REQUESTS.filter(r => r.status === "pending").length} pending
+              {(liveData?.sessions ?? SESSION_REQUESTS).filter((r: any) => (r.approval_status ?? r.status) === "pending").length} pending
             </Badge>
           </div>
           <CardDescription className="text-xs">Just-in-time access requests awaiting review</CardDescription>
@@ -230,16 +264,18 @@ export default function PAMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SESSION_REQUESTS.map((row, i) => (
-                  <TableRow key={i} className="hover:bg-muted/30">
+                {(liveData?.sessions ?? SESSION_REQUESTS).map((row: any, i: number) => {
+                  const rowStatus = row.approval_status ?? row.status;
+                  return (
+                  <TableRow key={row.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.requester}</TableCell>
-                    <TableCell className="text-xs py-2.5 font-mono text-muted-foreground">{row.target}</TableCell>
-                    <TableCell className="py-2.5"><SessionTypeBadge type={row.type} /></TableCell>
+                    <TableCell className="text-xs py-2.5 font-mono text-muted-foreground">{row.target_system ?? row.target}</TableCell>
+                    <TableCell className="py-2.5"><SessionTypeBadge type={row.session_type ?? row.type} /></TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[220px] truncate text-muted-foreground">{row.justification}</TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums">{row.duration}</TableCell>
-                    <TableCell className="py-2.5"><ApprovalBadge status={row.status} /></TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums">{row.requested_duration_minutes ? `${row.requested_duration_minutes}m` : row.duration}</TableCell>
+                    <TableCell className="py-2.5"><ApprovalBadge status={rowStatus} /></TableCell>
                     <TableCell className="py-2.5 text-right">
-                      {row.status === "pending" ? (
+                      {rowStatus === "pending" ? (
                         <div className="flex items-center gap-1 justify-end">
                           <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">
                             <CheckCircle className="h-3 w-3 mr-0.5" /> Approve
@@ -253,7 +289,8 @@ export default function PAMDashboard() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

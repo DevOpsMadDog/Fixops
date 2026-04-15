@@ -12,8 +12,24 @@
  * API stubs: GET /api/v1/mdm/devices, /api/v1/mdm/threats, /api/v1/mdm/policies
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Smartphone, Shield, AlertTriangle, CheckCircle, XCircle,
   RefreshCw, BarChart3, Lock, Activity,
@@ -137,6 +153,24 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function MobileSecurity() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/mobile-security/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/mobile-security/devices?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/mobile-security/threats?org_id=${ORG_ID}`),
+    ]).then(([statsRes, devicesRes, threatsRes]) => {
+      const stats   = statsRes.status   === "fulfilled" ? statsRes.value   : null;
+      const devices = devicesRes.status === "fulfilled" ? devicesRes.value : null;
+      const threats = threatsRes.status === "fulfilled" ? threatsRes.value : null;
+      if (stats || devices || threats) {
+        setLiveData({ stats, devices, threats });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -155,18 +189,18 @@ export default function MobileSecurity() {
         title="Mobile Security (MDM)"
         description="Device enrollment, compliance, and threat management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"  value="1,247" icon={Smartphone}     trend="up" />
-        <KpiCard title="Enrolled"       value="1,189" icon={Shield}          trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Compliant"      value="1,041" icon={CheckCircle}     trend="up"   className="border-green-500/20" />
-        <KpiCard title="Active Threats" value={12}    icon={AlertTriangle}   trend="up"   className="border-red-500/20" />
+        <KpiCard title="Total Devices"  value={liveData?.stats?.total_devices  ?? (liveData?.devices?.count ?? "1,247")} icon={Smartphone}   trend="up" />
+        <KpiCard title="Enrolled"       value={liveData?.stats?.enrolled_count ?? "1,189"} icon={Shield}       trend="up" className="border-blue-500/20" />
+        <KpiCard title="Compliant"      value={liveData?.stats?.compliant_count ?? "1,041"} icon={CheckCircle}  trend="up" className="border-green-500/20" />
+        <KpiCard title="Active Threats" value={liveData?.stats?.active_threats  ?? (liveData?.threats?.count ?? 12)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
       </div>
 
       {/* Platform breakdown + Compliance trend */}
@@ -252,7 +286,7 @@ export default function MobileSecurity() {
               Enrolled Devices
             </CardTitle>
             <Badge className="text-[10px] border border-indigo-500/30 text-indigo-400 bg-indigo-500/10">
-              {DEVICES.length} devices
+              {liveData?.devices?.count ?? (liveData?.devices?.devices?.length ?? DEVICES.length)} devices
             </Badge>
           </div>
           <CardDescription className="text-xs">All managed mobile devices with compliance status and risk score</CardDescription>
@@ -273,35 +307,40 @@ export default function MobileSecurity() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {DEVICES.map((d, i) => (
-                  <TableRow key={i} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2.5 max-w-[160px] truncate">{d.name}</TableCell>
+                {(liveData?.devices?.devices ?? DEVICES).map((d: any, i: number) => {
+                  const enrolledStatus = d.enrollment_status ?? d.enrolled ?? "Active";
+                  const isCompliant = d.compliance_status === "compliant" || d.compliant === true;
+                  const riskScore = d.risk_score ?? d.risk ?? 0;
+                  return (
+                  <TableRow key={d.id ?? i} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-medium py-2.5 max-w-[160px] truncate">{d.device_name ?? d.name}</TableCell>
                     <TableCell className="py-2.5"><PlatformBadge platform={d.platform} /></TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{d.os}</TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{d.os_version ?? d.os}</TableCell>
                     <TableCell className="text-xs py-2.5">
                       <Badge className={cn("text-[10px] border",
-                        d.enrolled === "Active"  ? "border-green-500/30 text-green-400 bg-green-500/10" :
-                        d.enrolled === "Pending" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
+                        enrolledStatus === "Active"  || enrolledStatus === "enrolled" ? "border-green-500/30 text-green-400 bg-green-500/10" :
+                        enrolledStatus === "Pending" || enrolledStatus === "pending"  ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" :
                                                    "border-border text-muted-foreground"
-                      )}>{d.enrolled}</Badge>
+                      )}>{enrolledStatus}</Badge>
                     </TableCell>
                     <TableCell className="py-2.5">
-                      {d.compliant
+                      {isCompliant
                         ? <CheckCircle className="h-4 w-4 text-green-400" />
                         : <XCircle className="h-4 w-4 text-red-400" />
                       }
                     </TableCell>
                     <TableCell className="py-2.5">
                       <span className={cn("text-xs font-bold tabular-nums",
-                        d.risk >= 70 ? "text-red-400" : d.risk >= 40 ? "text-amber-400" : "text-green-400"
-                      )}>{d.risk}</span>
+                        riskScore >= 70 ? "text-red-400" : riskScore >= 40 ? "text-amber-400" : "text-green-400"
+                      )}>{riskScore}</span>
                     </TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{d.lastSeen}</TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{d.last_checkin ?? d.lastSeen}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Manage</Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -368,7 +407,7 @@ export default function MobileSecurity() {
               Active Threat Feed
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {THREATS.filter(t => t.status === "Active").length} active
+              {(liveData?.threats?.threats ?? THREATS).filter((t: any) => t.status === "Active" || t.status === "active").length} active
             </Badge>
           </div>
           <CardDescription className="text-xs">Recent mobile device security events requiring attention</CardDescription>
@@ -387,13 +426,13 @@ export default function MobileSecurity() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {THREATS.map((t, i) => (
-                  <TableRow key={i} className="hover:bg-muted/30">
-                    <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{t.device}</TableCell>
-                    <TableCell className="text-xs py-2.5">{t.type}</TableCell>
+                {(liveData?.threats?.threats ?? THREATS).map((t: any, i: number) => (
+                  <TableRow key={t.id ?? i} className="hover:bg-muted/30">
+                    <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{t.device_id ?? t.device}</TableCell>
+                    <TableCell className="text-xs py-2.5">{t.threat_type ?? t.type}</TableCell>
                     <TableCell className="py-2.5"><SeverityBadge sev={t.severity} /></TableCell>
                     <TableCell className="py-2.5"><StatusBadge status={t.status} /></TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{t.time}</TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{t.detected_at ?? t.time}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10">
                         Remediate

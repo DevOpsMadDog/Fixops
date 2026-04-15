@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/grc/frameworks, /api/v1/grc/risks, /api/v1/grc/controls
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, CheckCircle, BarChart3, FileText, RefreshCw, ClipboardList } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,6 +117,28 @@ function scoreColor(score: number) {
 
 export default function GRCDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/grc/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/frameworks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/risks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/assessments?org_id=${ORG_ID}`),
+    ]).then(([statsRes, frameworksRes, risksRes, controlsRes, assessmentsRes]) => {
+      const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
+      const frameworks  = frameworksRes.status  === "fulfilled" ? frameworksRes.value  : null;
+      const risks       = risksRes.status       === "fulfilled" ? risksRes.value       : null;
+      const controls    = controlsRes.status    === "fulfilled" ? controlsRes.value    : null;
+      const assessments = assessmentsRes.status === "fulfilled" ? assessmentsRes.value : null;
+      if (stats || frameworks || risks || controls || assessments) {
+        setLiveData({ stats, frameworks, risks, controls, assessments });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -119,18 +157,18 @@ export default function GRCDashboard() {
         title="GRC Dashboard"
         description="Governance, Risk & Compliance management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Frameworks"          value={6}       icon={ClipboardList} trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Avg Compliance"      value="82.4%"   icon={Shield}        trend="up"   className="border-green-500/20" />
-        <KpiCard title="Open Risks"          value={47}      icon={AlertTriangle} trend="down" className="border-amber-500/20" />
-        <KpiCard title="Controls Impl."      value="87.3%"   icon={CheckCircle}   trend="up"   className="border-purple-500/20" />
+        <KpiCard title="Frameworks"     value={liveData?.stats?.total_frameworks ?? (liveData?.frameworks?.length ?? 6)}       icon={ClipboardList} trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Avg Compliance" value={liveData?.stats?.avg_compliance_score != null ? `${liveData.stats.avg_compliance_score.toFixed(1)}%` : "82.4%"} icon={Shield} trend="up" className="border-green-500/20" />
+        <KpiCard title="Open Risks"     value={liveData?.stats?.open_risks ?? (liveData?.risks?.filter((r: any) => r.status === "open").length ?? 47)} icon={AlertTriangle} trend="down" className="border-amber-500/20" />
+        <KpiCard title="Controls Impl." value={liveData?.stats?.implemented_pct != null ? `${liveData.stats.implemented_pct.toFixed(1)}%` : "87.3%"} icon={CheckCircle} trend="up" className="border-purple-500/20" />
       </div>
 
       {/* Framework bars + Control status */}
@@ -145,22 +183,28 @@ export default function GRCDashboard() {
             <CardDescription className="text-xs">Current compliance score per framework (green ≥80%, yellow ≥60%, red &lt;60%)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {FRAMEWORKS.map((f) => (
-              <div key={f.name} className="space-y-1.5">
+            {(liveData?.frameworks ?? FRAMEWORKS).map((f: any) => {
+              const score = f.compliance_score ?? f.score ?? 0;
+              const name = f.name;
+              const colorCls = score >= 80 ? "bg-green-500" : score >= 60 ? "bg-yellow-500" : "bg-red-500";
+              const textCls  = score >= 80 ? "text-green-400" : score >= 60 ? "text-yellow-400" : "text-red-400";
+              return (
+              <div key={name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{f.name}</span>
-                  <span className={cn("font-bold tabular-nums", f.text)}>{f.score}%</span>
+                  <span className="font-medium">{name}</span>
+                  <span className={cn("font-bold tabular-nums", f.text ?? textCls)}>{score}%</span>
                 </div>
                 <div className="relative h-2 rounded-full bg-muted/30 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${f.score}%` }}
+                    animate={{ width: `${score}%` }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", f.color)}
+                    className={cn("h-full rounded-full", f.color ?? colorCls)}
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -197,14 +241,14 @@ export default function GRCDashboard() {
               <CardDescription className="text-xs">Latest compliance assessments</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {ASSESSMENTS.map((a) => (
-                <div key={a.framework} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/50">
+              {(liveData?.assessments ?? ASSESSMENTS).map((a: any, idx: number) => (
+                <div key={a.id ?? a.framework ?? idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/50">
                   <div className="min-w-0">
-                    <div className="text-xs font-medium truncate">{a.framework}</div>
-                    <div className="text-[10px] text-muted-foreground">{a.assessor} · {a.date}</div>
+                    <div className="text-xs font-medium truncate">{a.framework_id ?? a.framework}</div>
+                    <div className="text-[10px] text-muted-foreground">{a.assessor} · {a.assessment_date ?? a.date}</div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className={cn("text-xs font-bold tabular-nums", scoreColor(a.score))}>{a.score}%</span>
+                    <span className={cn("text-xs font-bold tabular-nums", scoreColor(a.overall_score ?? a.score ?? 0))}>{a.overall_score ?? a.score ?? 0}%</span>
                     <StatusBadge s={a.status} />
                     <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px]">View</Button>
                   </div>
@@ -224,7 +268,7 @@ export default function GRCDashboard() {
               Risk Register
             </CardTitle>
             <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-              {RISKS.filter(r => r.status === "open").length} open
+              {(liveData?.risks ?? RISKS).filter((r: any) => r.status === "open").length} open
             </Badge>
           </div>
           <CardDescription className="text-xs">Enterprise risk inventory — score = likelihood × impact</CardDescription>
@@ -245,11 +289,11 @@ export default function GRCDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {RISKS.map((row) => {
-                  const score = row.likelihood * row.impact;
+                {(liveData?.risks ?? RISKS).map((row: any) => {
+                  const score = (row.likelihood ?? 1) * (row.impact ?? 1);
                   const scoreClr = score >= 16 ? "text-red-400" : score >= 9 ? "text-amber-400" : "text-yellow-400";
                   return (
-                    <TableRow key={row.title} className="hover:bg-muted/30">
+                    <TableRow key={row.id ?? row.title} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2.5 max-w-[200px] truncate font-medium">{row.title}</TableCell>
                       <TableCell className="py-2.5"><CategoryBadge cat={row.category} /></TableCell>
                       <TableCell className="text-xs tabular-nums py-2.5 text-center">{row.likelihood}</TableCell>

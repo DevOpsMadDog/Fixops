@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/soar/playbooks, /api/v1/soar/executions, /api/v1/soar/integrations
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, PlayCircle, GitBranch, Clock, RefreshCw, Activity, Link2 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,6 +108,26 @@ function StatusBadge({ s }: { s: string }) {
 
 export default function SOARDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/soar/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/soar/playbooks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/soar/executions?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/soar/mttr?org_id=${ORG_ID}`),
+    ]).then(([statsRes, playbooksRes, executionsRes, mttrRes]) => {
+      const stats      = statsRes.status      === "fulfilled" ? statsRes.value      : null;
+      const playbooks  = playbooksRes.status  === "fulfilled" ? playbooksRes.value  : null;
+      const executions = executionsRes.status === "fulfilled" ? executionsRes.value : null;
+      const mttr       = mttrRes.status       === "fulfilled" ? mttrRes.value       : null;
+      if (stats || playbooks || executions || mttr) {
+        setLiveData({ stats, playbooks, executions, mttr });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -110,18 +146,18 @@ export default function SOARDashboard() {
         title="SOAR Automation"
         description="Playbook orchestration and incident response automation"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Playbooks"  value={24}      icon={GitBranch}  trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Executions Today"  value={187}     icon={PlayCircle} trend="up"   className="border-green-500/20" />
-        <KpiCard title="Automation Rate"   value="73.4%"   icon={Zap}        trend="up"   className="border-purple-500/20" />
-        <KpiCard title="MTTR Saved"        value="4.2h avg" icon={Clock}     trend="up"   className="border-cyan-500/20" />
+        <KpiCard title="Active Playbooks" value={liveData?.stats?.total_playbooks ?? (liveData?.playbooks?.length ?? 24)} icon={GitBranch} trend="up" className="border-blue-500/20" />
+        <KpiCard title="Executions Today" value={liveData?.stats?.total_executions ?? (liveData?.executions?.length ?? 187)} icon={PlayCircle} trend="up" className="border-green-500/20" />
+        <KpiCard title="Automation Rate"  value={liveData?.stats?.completion_rate != null ? `${liveData.stats.completion_rate.toFixed(1)}%` : "73.4%"} icon={Zap} trend="up" className="border-purple-500/20" />
+        <KpiCard title="MTTR Saved"       value={liveData?.mttr?.mttr_minutes != null ? `${liveData.mttr.mttr_minutes.toFixed(1)}m` : "4.2h avg"} icon={Clock} trend="up" className="border-cyan-500/20" />
       </div>
 
       {/* Playbook table */}
@@ -151,28 +187,34 @@ export default function SOARDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PLAYBOOKS.map((row) => (
-                  <TableRow key={row.name} className="hover:bg-muted/30">
+                {(liveData?.playbooks ?? PLAYBOOKS).map((row: any) => {
+                  const isEnabled = row.enabled !== false;
+                  const triggerVal = row.trigger ?? row.trigger_type ?? "Alert";
+                  const execCount = row.execution_count ?? row.execs ?? 0;
+                  const successPct = row.success_rate ?? row.success ?? 0;
+                  return (
+                  <TableRow key={row.id ?? row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[200px] truncate">{row.name}</TableCell>
-                    <TableCell className="py-2.5"><TriggerBadge t={row.trigger} /></TableCell>
+                    <TableCell className="py-2.5"><TriggerBadge t={typeof triggerVal === "string" ? triggerVal.charAt(0).toUpperCase() + triggerVal.slice(1) : String(triggerVal)} /></TableCell>
                     <TableCell className="py-2.5">
-                      <span className={cn("text-[10px] font-semibold", row.enabled ? "text-green-400" : "text-muted-foreground")}>
-                        {row.enabled ? "Enabled" : "Disabled"}
+                      <span className={cn("text-[10px] font-semibold", isEnabled ? "text-green-400" : "text-muted-foreground")}>
+                        {isEnabled ? "Enabled" : "Disabled"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-right">{row.execs}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-right">{execCount}</TableCell>
                     <TableCell className={cn(
                       "text-xs tabular-nums py-2.5 font-bold text-right",
-                      row.success >= 97 ? "text-green-400" : row.success >= 90 ? "text-yellow-400" : "text-red-400"
+                      successPct >= 97 ? "text-green-400" : successPct >= 90 ? "text-yellow-400" : "text-red-400"
                     )}>
-                      {row.success}%
+                      {successPct}%
                     </TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.lastRun}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.last_executed_at ?? row.lastRun ?? "—"}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Run Now</Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -204,16 +246,25 @@ export default function SOARDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {EXECUTIONS.map((row, i) => (
-                    <TableRow key={i} className="hover:bg-muted/30">
-                      <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.playbook}</TableCell>
-                      <TableCell className="text-xs py-2 text-muted-foreground max-w-[160px] truncate">{row.event}</TableCell>
-                      <TableCell className="py-2"><StatusBadge s={row.status} /></TableCell>
-                      <TableCell className="text-xs tabular-nums py-2">{row.steps}</TableCell>
-                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.duration}</TableCell>
-                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.ts}</TableCell>
+                  {(liveData?.executions ?? EXECUTIONS).map((row: any, i: number) => {
+                    const execStatus = row.status ?? "completed";
+                    const stepsStr = row.steps_completed != null && row.total_steps != null
+                      ? `${row.steps_completed}/${row.total_steps}`
+                      : (row.steps ?? "—");
+                    const durationStr = row.duration_seconds != null
+                      ? `${row.duration_seconds.toFixed(1)}s`
+                      : (row.duration ?? "—");
+                    return (
+                    <TableRow key={row.id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.playbook_id ?? row.playbook}</TableCell>
+                      <TableCell className="text-xs py-2 text-muted-foreground max-w-[160px] truncate">{row.trigger_event ?? row.event ?? "—"}</TableCell>
+                      <TableCell className="py-2"><StatusBadge s={execStatus} /></TableCell>
+                      <TableCell className="text-xs tabular-nums py-2">{stepsStr}</TableCell>
+                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{durationStr}</TableCell>
+                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.started_at ?? row.ts ?? "—"}</TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
