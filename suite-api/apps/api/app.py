@@ -5776,6 +5776,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"PAM router not loaded: {e}")
 
+    # Vulnerability Scanner — scanners, schedules, results, findings, stats
+    try:
+        from apps.api.vuln_scanner_router import router as vuln_scanner_router
+        app.include_router(vuln_scanner_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Vuln Scanner router at /api/v1/vuln-scanner")
+    except Exception as e:
+        _logger.warning(f"Vuln Scanner router not loaded: {e}")
+
+    # Security Awareness Training — courses, enrollments, campaigns, progress
+    try:
+        from apps.api.security_training_router import router as security_training_router
+        app.include_router(security_training_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Security Training router at /api/v1/security-training")
+    except Exception as e:
+        _logger.warning(f"Security Training router not loaded: {e}")
+
     return app
 
 
