@@ -837,6 +837,247 @@ class OpenRouterProvider(BaseLLMProvider):
         return None
 
 
+class MuleRouterProvider(OpenRouterProvider):
+    """Adapter for mulerouter.ai — OpenRouter-compatible API with Qwen3-6b-Max.
+
+    mulerouter.ai is a drop-in OpenRouter-compatible endpoint. Configured as the
+    primary free model provider for the ALDECI LLM Council, using Qwen3-6b-Max
+    as the default model.
+
+    Falls back to OpenRouterProvider behaviour (and then to deterministic) if the
+    MULEROUTER_API_KEY is not set.
+
+    Environment variables:
+    - MULEROUTER_API_KEY: API key for mulerouter.ai
+    - FIXOPS_MULEROUTER_MODEL: Model override (default: qwen/qwen3-6b-max)
+    """
+
+    MULEROUTER_API_URL = "https://mulerouter.ai/api/v1/chat/completions"
+    MULEROUTER_MODELS_URL = "https://mulerouter.ai/api/v1/models"
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        model: str = "qwen/qwen3-6b-max",
+        api_key_envs: Sequence[str] | None = None,
+        timeout: float = 30.0,
+        focus: Sequence[str] | None = None,
+        style: str = "consensus",
+    ) -> None:
+        # Initialise BaseLLMProvider directly — we override everything OpenRouterProvider does
+        from core.llm_providers import BaseLLMProvider as _Base
+        _Base.__init__(self, name, style=style, focus=focus)
+        self.model = os.environ.get("FIXOPS_MULEROUTER_MODEL", model)
+        self.api_key_envs = list(
+            api_key_envs or ("MULEROUTER_API_KEY",)
+        )
+        self.timeout = timeout
+        self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
+
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant. Return JSON with keys "
+        "recommended_action, confidence, reasoning, mitre_techniques, "
+        "compliance_concerns, attack_vectors."
+    )
+
+    def analyse(
+        self,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str,
+        default_confidence: float,
+        default_reasoning: str,
+        mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
+    ) -> LLMResponse:
+        if not self.api_key:
+            # No MuleRouter key — fall back to deterministic base
+            return super(OpenRouterProvider, self).analyse(
+                prompt=prompt,
+                context=context,
+                default_action=default_action,
+                default_confidence=default_confidence,
+                default_reasoning=default_reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt or self._DEFAULT_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("FIXOPS_URL", "https://fixops.local"),
+            "X-Title": "ALDECI",
+        }
+        start = time.perf_counter()
+        try:
+            response = self._session.post(
+                self.MULEROUTER_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            response_json = response.json()
+
+            if "choices" not in response_json or not response_json["choices"]:
+                raise ValueError("MuleRouter response missing choices")
+
+            message = response_json["choices"][0].get("message", {})
+            content = message.get("content")
+
+            if not content:
+                raise ValueError("MuleRouter response missing message content")
+
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as json_exc:
+                raise ValueError(
+                    f"MuleRouter returned non-JSON content: {content[:100]}"
+                ) from json_exc
+        except requests.Timeout as exc:
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": f"Timeout after {self.timeout}s",
+                "model": self.model,
+                "error_type": "timeout",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[MuleRouter timeout: {exc}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except requests.HTTPError as exc:
+            error_detail = "HTTP error"
+            if exc.response is not None:
+                try:
+                    error_json = exc.response.json()
+                    error_detail = error_json.get("error", {}).get("message", f"HTTP {exc.response.status_code}")
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+                    error_detail = f"HTTP {exc.response.status_code}" if exc.response else type(exc).__name__
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": error_detail,
+                "model": self.model,
+                "error_type": "http_error",
+                "status_code": exc.response.status_code if exc.response else None,  # type: ignore[dict-item]
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[MuleRouter error: {error_detail}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except Exception as exc:  # noqa: BLE001 - capture provider error
+            logger.warning(
+                "MuleRouter provider %s failed, falling back to deterministic: %s",
+                self.name,
+                type(exc).__name__,
+            )
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": type(exc).__name__,
+                "model": self.model,
+                "error_type": type(exc).__name__,
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[MuleRouter fallback: {type(exc).__name__}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        duration = (time.perf_counter() - start) * 1000
+        return _response_from_payload(
+            parsed,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+            metadata={
+                "mode": "remote",
+                "provider": self.name,
+                "model": self.model,
+                "duration_ms": round(duration, 2),
+                "backend": "mulerouter",
+            },
+        )
+
+    def is_available(self) -> bool:
+        """Check if the MuleRouter API is available."""
+        if not self.api_key:
+            return False
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
+            resp = self._session.get(
+                self.MULEROUTER_MODELS_URL,
+                headers=headers,
+                timeout=5,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    def model_info(self) -> Dict[str, Any]:
+        """Return metadata about the configured MuleRouter model."""
+        return {
+            "backend": "mulerouter",
+            "url": "https://mulerouter.ai",
+            "model": self.model,
+            "cost": "$0/month (free tier)",
+            "available": self.is_available(),
+            "free_tier": True,
+        }
+
+
 class VLLMSelfHostedProvider(BaseLLMProvider):
     """Adapter for self-hosted vLLM inference servers (OpenAI-compatible API).
 
@@ -1342,6 +1583,7 @@ class LLMProviderManager:
             "openai": OpenAIChatProvider("openai"),
             "anthropic": AnthropicMessagesProvider("anthropic"),
             "gemini": GeminiProvider("gemini"),
+            "mulerouter": MuleRouterProvider("mulerouter"),
             "openrouter": OpenRouterProvider("openrouter"),
             "sentinel": SentinelCyberProvider("sentinel"),
             "vllm": VLLMSelfHostedProvider("vllm"),
@@ -1386,6 +1628,7 @@ __all__ = [
     "GeminiProvider",
     "LLMProviderManager",
     "LLMResponse",
+    "MuleRouterProvider",
     "OllamaSelfHostedProvider",
     "OpenAIChatProvider",
     "OpenRouterProvider",

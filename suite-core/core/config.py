@@ -113,6 +113,7 @@ class ALDECIConfig(BaseModel):
     openai_key: str = Field(description="OpenAI API key")
     anthropic_key: str = Field(description="Anthropic API key")
     openrouter_key: str = Field(description="OpenRouter API key (free models)")
+    mulerouter_key: str = Field(default="", description="MuleRouter API key (Qwen3-6b-Max, primary free council model)")
     use_council: bool = Field(description="Enable Karpathy LLM Council for decisions")
     consensus_threshold: float = Field(description="Minimum council vote fraction to reach consensus")
     ollama_url: str = Field(description="Ollama local inference base URL")
@@ -243,6 +244,7 @@ class ALDECIConfig(BaseModel):
             self.openai_key
             or self.anthropic_key
             or self.openrouter_key
+            or self.mulerouter_key
             or self.ollama_url
             or self.vllm_url
         )
@@ -310,6 +312,7 @@ class ALDECIConfig(BaseModel):
             openai_key=_env("OPENAI_API_KEY", ""),
             anthropic_key=_env("ANTHROPIC_API_KEY", ""),
             openrouter_key=_env("OPENROUTER_API_KEY", ""),
+            mulerouter_key=_env("MULEROUTER_API_KEY", ""),
             use_council=_env_bool("FIXOPS_USE_COUNCIL", False),
             consensus_threshold=_env_float("FIXOPS_CONSENSUS_THRESHOLD", 0.6),
             ollama_url=_env("FIXOPS_OLLAMA_URL", ""),
