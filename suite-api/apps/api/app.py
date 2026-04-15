@@ -5552,6 +5552,13 @@ def create_app() -> FastAPI:
     except ImportError as _wh_err:
         _logger.warning("Webhook router not available: %s", _wh_err)
 
+    try:
+        from apps.api.report_scheduler_router import router as report_scheduler_router
+        app.include_router(report_scheduler_router)
+        _logger.info("Mounted Report Scheduler router")
+    except Exception as e:
+        _logger.warning(f"Report scheduler router not loaded: {e}")
+
     return app
 
 

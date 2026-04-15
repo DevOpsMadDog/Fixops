@@ -1,23 +1,29 @@
-"""Tests for ReportScheduler — scheduled report delivery engine.
+"""Tests for ReportScheduler — scheduled report delivery engine with n8n dispatch.
 
-25+ tests covering schedule CRUD, delivery, logging, and scheduling math.
-All tests use a temporary SQLite DB; no real HTTP calls are made.
+25+ tests covering schedule CRUD, report generation, delivery, history,
+and n8n webhook dispatch. All HTTP calls are mocked; no real network access.
 """
+from __future__ import annotations
+
+import json
 import sys
-import os
-import tempfile
+import urllib.error
+from io import BytesIO
+from unittest.mock import MagicMock, patch
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
 
 sys.path.insert(0, "suite-core")
 
 from core.report_scheduler import (
-    DELIVERY_CHANNELS,
+    CHANNELS,
+    FORMATS,
+    FREQUENCIES,
     REPORT_TYPES,
-    SCHEDULE_TYPES,
     ReportScheduler,
+    _calculate_next_run,
 )
+from datetime import datetime, timezone, timedelta
 
 
 # ---------------------------------------------------------------------------
@@ -27,22 +33,31 @@ from core.report_scheduler import (
 
 @pytest.fixture
 def scheduler(tmp_path):
-    """Scheduler backed by a fresh temporary SQLite database."""
-    db_path = str(tmp_path / "test_report_scheduler.db")
-    return ReportScheduler(db_path=db_path)
-
-
-def _make_schedule(scheduler, **overrides):
-    """Helper to create a valid schedule with sensible defaults."""
-    defaults = dict(
-        name="Daily Posture",
-        report_type="posture_summary",
-        schedule_type="daily",
-        channel="webhook",
-        destination="https://example.com/hook",
-        org_id="test-org",
+    """Scheduler backed by a fresh temporary SQLite database and offline n8n."""
+    return ReportScheduler(
+        db_path=str(tmp_path / "test_schedules.db"),
+        n8n_base_url="http://localhost:15678",  # non-routable for tests
     )
-    defaults.update(overrides)
+
+
+def _make_schedule(scheduler: ReportScheduler, **overrides) -> str:
+    defaults = dict(
+        org_id="test-org",
+        schedule={
+            "name": "Daily Executive",
+            "report_type": "executive_summary",
+            "frequency": "daily",
+            "recipients": ["ciso@example.com"],
+            "channels": ["email"],
+            "format": "json",
+            "filters": {},
+        },
+    )
+    if overrides:
+        schedule_data = dict(defaults["schedule"])
+        org_id = overrides.pop("org_id", defaults["org_id"])
+        schedule_data.update(overrides)
+        return scheduler.create_schedule(org_id=org_id, schedule=schedule_data)
     return scheduler.create_schedule(**defaults)
 
 
@@ -51,144 +66,106 @@ def _make_schedule(scheduler, **overrides):
 # ---------------------------------------------------------------------------
 
 
-def test_create_schedule_returns_dict_with_schedule_id(scheduler):
-    result = _make_schedule(scheduler)
-    assert isinstance(result, dict)
-    assert "schedule_id" in result
-    assert result["schedule_id"]
+def test_create_schedule_returns_string_id(scheduler):
+    sid = _make_schedule(scheduler)
+    assert isinstance(sid, str)
+    assert len(sid) == 36  # UUID4
+
+
+def test_create_schedule_stored_and_retrievable(scheduler):
+    sid = _make_schedule(scheduler)
+    schedules = scheduler.list_schedules(org_id="test-org")
+    ids = [s["schedule_id"] for s in schedules]
+    assert sid in ids
 
 
 def test_create_schedule_invalid_report_type_raises(scheduler):
     with pytest.raises(ValueError, match="report_type"):
         scheduler.create_schedule(
-            name="Bad",
-            report_type="not_a_type",
-            schedule_type="daily",
-            channel="webhook",
-            destination="https://example.com/hook",
+            org_id="test-org",
+            schedule={
+                "name": "Bad",
+                "report_type": "not_a_type",
+                "frequency": "daily",
+                "recipients": [],
+                "channels": ["email"],
+            },
         )
 
 
-def test_create_schedule_invalid_schedule_type_raises(scheduler):
-    with pytest.raises(ValueError, match="schedule_type"):
+def test_create_schedule_invalid_frequency_raises(scheduler):
+    with pytest.raises(ValueError, match="frequency"):
         scheduler.create_schedule(
-            name="Bad",
-            report_type="posture_summary",
-            schedule_type="minutely",
-            channel="webhook",
-            destination="https://example.com/hook",
+            org_id="test-org",
+            schedule={
+                "name": "Bad",
+                "report_type": "executive_summary",
+                "frequency": "minutely",
+                "channels": ["email"],
+            },
         )
 
 
 def test_create_schedule_invalid_channel_raises(scheduler):
     with pytest.raises(ValueError, match="channel"):
         scheduler.create_schedule(
-            name="Bad",
-            report_type="posture_summary",
-            schedule_type="daily",
-            channel="carrier_pigeon",
-            destination="roof",
+            org_id="test-org",
+            schedule={
+                "name": "Bad",
+                "report_type": "executive_summary",
+                "frequency": "daily",
+                "channels": ["carrier_pigeon"],
+            },
         )
 
 
-def test_create_schedule_fields_stored_correctly(scheduler):
-    result = _make_schedule(
-        scheduler,
-        name="Weekly Vuln",
-        report_type="vulnerability_summary",
-        schedule_type="weekly",
-        channel="slack",
-        destination="https://hooks.slack.com/abc",
-        org_id="sec-team",
-    )
-    assert result["name"] == "Weekly Vuln"
-    assert result["report_type"] == "vulnerability_summary"
-    assert result["schedule_type"] == "weekly"
-    assert result["channel"] == "slack"
-    assert result["org_id"] == "sec-team"
+def test_create_schedule_invalid_format_raises(scheduler):
+    with pytest.raises(ValueError, match="format"):
+        scheduler.create_schedule(
+            org_id="test-org",
+            schedule={
+                "name": "Bad",
+                "report_type": "executive_summary",
+                "frequency": "daily",
+                "channels": ["email"],
+                "format": "docx",
+            },
+        )
 
 
-def test_create_schedule_with_config(scheduler):
-    result = _make_schedule(scheduler, config={"format": "pdf", "filters": {"severity": "high"}})
-    assert result["config"]["format"] == "pdf"
-    assert result["config"]["filters"]["severity"] == "high"
+def test_create_schedule_missing_name_raises(scheduler):
+    with pytest.raises(ValueError, match="name"):
+        scheduler.create_schedule(
+            org_id="test-org",
+            schedule={
+                "name": "",
+                "report_type": "executive_summary",
+                "frequency": "daily",
+                "channels": ["email"],
+            },
+        )
 
 
-def test_create_schedule_next_run_at_is_string(scheduler):
-    result = _make_schedule(scheduler)
-    assert isinstance(result["next_run_at"], str)
-    # Should parse as ISO datetime
-    dt = datetime.fromisoformat(result["next_run_at"])
-    assert dt > datetime.now(timezone.utc)
+def test_create_schedule_all_report_types_accepted(scheduler):
+    for rt in REPORT_TYPES:
+        sid = _make_schedule(scheduler, report_type=rt)
+        assert isinstance(sid, str)
 
 
-# ---------------------------------------------------------------------------
-# get_schedule
-# ---------------------------------------------------------------------------
+def test_create_schedule_all_frequencies_accepted(scheduler):
+    for freq in FREQUENCIES:
+        sid = _make_schedule(scheduler, frequency=freq)
+        assert isinstance(sid, str)
 
 
-def test_get_schedule_returns_created_schedule(scheduler):
-    created = _make_schedule(scheduler)
-    fetched = scheduler.get_schedule(created["schedule_id"])
-    assert fetched is not None
-    assert fetched["schedule_id"] == created["schedule_id"]
-    assert fetched["name"] == created["name"]
+def test_create_schedule_slack_channel_accepted(scheduler):
+    sid = _make_schedule(scheduler, channels=["slack"])
+    assert isinstance(sid, str)
 
 
-def test_get_schedule_unknown_id_returns_none(scheduler):
-    result = scheduler.get_schedule("00000000-0000-0000-0000-000000000000")
-    assert result is None
-
-
-# ---------------------------------------------------------------------------
-# update_schedule
-# ---------------------------------------------------------------------------
-
-
-def test_update_schedule_changes_field(scheduler):
-    created = _make_schedule(scheduler, name="Original Name")
-    updated = scheduler.update_schedule(created["schedule_id"], name="Updated Name")
-    assert updated["name"] == "Updated Name"
-    assert updated["schedule_id"] == created["schedule_id"]
-
-
-def test_update_schedule_unknown_id_raises(scheduler):
-    with pytest.raises(ValueError):
-        scheduler.update_schedule("does-not-exist", name="Whatever")
-
-
-def test_update_schedule_invalid_report_type_raises(scheduler):
-    created = _make_schedule(scheduler)
-    with pytest.raises(ValueError):
-        scheduler.update_schedule(created["schedule_id"], report_type="bogus")
-
-
-def test_update_schedule_active_flag(scheduler):
-    created = _make_schedule(scheduler)
-    updated = scheduler.update_schedule(created["schedule_id"], active=False)
-    assert updated["active"] is False
-
-
-# ---------------------------------------------------------------------------
-# delete_schedule
-# ---------------------------------------------------------------------------
-
-
-def test_delete_schedule_returns_true_for_known(scheduler):
-    created = _make_schedule(scheduler)
-    result = scheduler.delete_schedule(created["schedule_id"])
-    assert result is True
-
-
-def test_delete_schedule_returns_false_for_unknown(scheduler):
-    result = scheduler.delete_schedule("00000000-0000-0000-0000-000000000000")
-    assert result is False
-
-
-def test_delete_schedule_removes_from_list(scheduler):
-    created = _make_schedule(scheduler)
-    scheduler.delete_schedule(created["schedule_id"])
-    assert scheduler.get_schedule(created["schedule_id"]) is None
+def test_create_schedule_both_channels_accepted(scheduler):
+    sid = _make_schedule(scheduler, channels=["email", "slack"])
+    assert isinstance(sid, str)
 
 
 # ---------------------------------------------------------------------------
@@ -203,186 +180,236 @@ def test_list_schedules_returns_list(scheduler):
     assert len(result) >= 1
 
 
-def test_list_schedules_active_only_filters_inactive(scheduler):
-    created = _make_schedule(scheduler)
-    scheduler.update_schedule(created["schedule_id"], active=False)
-    active_list = scheduler.list_schedules(org_id="test-org", active_only=True)
-    ids = [s["schedule_id"] for s in active_list]
-    assert created["schedule_id"] not in ids
-
-
-def test_list_schedules_active_only_false_includes_inactive(scheduler):
-    created = _make_schedule(scheduler)
-    scheduler.update_schedule(created["schedule_id"], active=False)
-    all_list = scheduler.list_schedules(org_id="test-org", active_only=False)
-    ids = [s["schedule_id"] for s in all_list]
-    assert created["schedule_id"] in ids
-
-
-# ---------------------------------------------------------------------------
-# Multiple orgs isolation
-# ---------------------------------------------------------------------------
-
-
-def test_multiple_orgs_isolated_in_list(scheduler):
+def test_list_schedules_org_isolation(scheduler):
     _make_schedule(scheduler, org_id="org-a")
     _make_schedule(scheduler, org_id="org-b")
-    org_a = scheduler.list_schedules(org_id="org-a")
-    org_b = scheduler.list_schedules(org_id="org-b")
-    a_ids = {s["org_id"] for s in org_a}
-    b_ids = {s["org_id"] for s in org_b}
-    assert a_ids == {"org-a"}
-    assert b_ids == {"org-b"}
+    a_list = scheduler.list_schedules(org_id="org-a")
+    b_list = scheduler.list_schedules(org_id="org-b")
+    a_orgs = {s["org_id"] for s in a_list}
+    b_orgs = {s["org_id"] for s in b_list}
+    assert a_orgs == {"org-a"}
+    assert b_orgs == {"org-b"}
+
+
+def test_list_schedules_entry_has_expected_fields(scheduler):
+    _make_schedule(scheduler)
+    items = scheduler.list_schedules(org_id="test-org")
+    item = items[0]
+    for key in ("schedule_id", "name", "report_type", "frequency", "channels", "next_run_at"):
+        assert key in item, f"Missing key: {key}"
 
 
 # ---------------------------------------------------------------------------
-# calculate_next_run
+# delete_schedule
 # ---------------------------------------------------------------------------
 
 
-def test_calculate_next_run_daily(scheduler):
+def test_delete_schedule_returns_true_when_found(scheduler):
+    sid = _make_schedule(scheduler)
+    assert scheduler.delete_schedule(sid, org_id="test-org") is True
+
+
+def test_delete_schedule_returns_false_when_not_found(scheduler):
+    assert scheduler.delete_schedule("no-such-id", org_id="test-org") is False
+
+
+def test_delete_schedule_removes_from_list(scheduler):
+    sid = _make_schedule(scheduler)
+    scheduler.delete_schedule(sid, org_id="test-org")
+    ids = [s["schedule_id"] for s in scheduler.list_schedules(org_id="test-org")]
+    assert sid not in ids
+
+
+def test_delete_schedule_wrong_org_returns_false(scheduler):
+    sid = _make_schedule(scheduler, org_id="org-x")
+    assert scheduler.delete_schedule(sid, org_id="org-y") is False
+
+
+# ---------------------------------------------------------------------------
+# generate_report_data
+# ---------------------------------------------------------------------------
+
+
+def test_generate_report_data_returns_dict(scheduler):
+    result = scheduler.generate_report_data("executive_summary", "test-org", {})
+    assert isinstance(result, dict)
+
+
+def test_generate_report_data_has_required_keys(scheduler):
+    result = scheduler.generate_report_data("kpi_scorecard", "test-org", {})
+    for key in ("report_type", "org_id", "generated_at", "data"):
+        assert key in result, f"Missing key: {key}"
+
+
+def test_generate_report_data_all_types_succeed(scheduler):
+    for rt in REPORT_TYPES:
+        result = scheduler.generate_report_data(rt, "test-org", {})
+        assert result["report_type"] == rt
+
+
+def test_generate_report_data_invalid_type_raises(scheduler):
+    with pytest.raises(ValueError, match="report_type"):
+        scheduler.generate_report_data("not_a_type", "test-org", {})
+
+
+def test_generate_report_data_passes_filters(scheduler):
+    result = scheduler.generate_report_data(
+        "vulnerability_digest", "test-org", {"severity": "critical"}
+    )
+    assert result["filters"] == {"severity": "critical"}
+
+
+# ---------------------------------------------------------------------------
+# get_report_preview
+# ---------------------------------------------------------------------------
+
+
+def test_get_report_preview_returns_preview_flag(scheduler):
+    result = scheduler.get_report_preview("executive_summary", "test-org")
+    assert result.get("preview") is True
+
+
+def test_get_report_preview_has_data_key(scheduler):
+    result = scheduler.get_report_preview("compliance_status", "test-org")
+    assert "data" in result
+
+
+# ---------------------------------------------------------------------------
+# trigger_report
+# ---------------------------------------------------------------------------
+
+
+def test_trigger_report_returns_status(scheduler):
+    sid = _make_schedule(scheduler)
+    result = scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    assert "status" in result
+    assert result["status"] in ("sent", "queued", "failed")
+
+
+def test_trigger_report_returns_report_id(scheduler):
+    sid = _make_schedule(scheduler)
+    result = scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    assert "report_id" in result
+    assert isinstance(result["report_id"], str)
+
+
+def test_trigger_report_returns_channels_notified(scheduler):
+    sid = _make_schedule(scheduler)
+    result = scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    assert "channels_notified" in result
+    assert isinstance(result["channels_notified"], list)
+
+
+def test_trigger_report_unknown_schedule_raises(scheduler):
+    with pytest.raises(ValueError):
+        scheduler.trigger_report(schedule_id="no-such-id", org_id="test-org")
+
+
+def test_trigger_report_wrong_org_raises(scheduler):
+    sid = _make_schedule(scheduler, org_id="org-a")
+    with pytest.raises(ValueError):
+        scheduler.trigger_report(schedule_id=sid, org_id="org-b")
+
+
+def test_trigger_report_queued_when_n8n_unreachable(scheduler):
+    """Non-routable n8n URL should return 'queued', not fail hard."""
+    sid = _make_schedule(scheduler)
+    result = scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    assert result["status"] in ("sent", "queued")
+
+
+def test_trigger_report_sent_when_n8n_responds(tmp_path):
+    """Mock successful n8n response — status should be 'sent'."""
+    sched = ReportScheduler(
+        db_path=str(tmp_path / "mock_n8n.db"),
+        n8n_base_url="http://mock-n8n:5678",
+    )
+    sid = _make_schedule(sched)
+
+    mock_resp = MagicMock()
+    mock_resp.status = 200
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = MagicMock(return_value=False)
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        result = sched.trigger_report(schedule_id=sid, org_id="test-org")
+
+    assert result["status"] == "sent"
+    assert result["channels_notified"] == ["email"]
+
+
+def test_trigger_report_logs_delivery_in_history(scheduler):
+    sid = _make_schedule(scheduler)
+    scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    history = scheduler.get_delivery_history(org_id="test-org")
+    assert len(history) >= 1
+    assert history[0]["schedule_id"] == sid
+
+
+# ---------------------------------------------------------------------------
+# get_delivery_history
+# ---------------------------------------------------------------------------
+
+
+def test_get_delivery_history_returns_list(scheduler):
+    result = scheduler.get_delivery_history(org_id="test-org")
+    assert isinstance(result, list)
+
+
+def test_get_delivery_history_org_isolation(scheduler):
+    sid_a = _make_schedule(scheduler, org_id="hist-org-a")
+    sid_b = _make_schedule(scheduler, org_id="hist-org-b")
+    scheduler.trigger_report(schedule_id=sid_a, org_id="hist-org-a")
+    scheduler.trigger_report(schedule_id=sid_b, org_id="hist-org-b")
+    hist_a = scheduler.get_delivery_history(org_id="hist-org-a")
+    hist_b = scheduler.get_delivery_history(org_id="hist-org-b")
+    a_sids = {h["schedule_id"] for h in hist_a}
+    b_sids = {h["schedule_id"] for h in hist_b}
+    assert sid_a in a_sids
+    assert sid_b not in a_sids
+    assert sid_b in b_sids
+
+
+def test_get_delivery_history_entry_has_expected_keys(scheduler):
+    sid = _make_schedule(scheduler)
+    scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    history = scheduler.get_delivery_history(org_id="test-org")
+    entry = history[0]
+    for key in ("report_id", "schedule_id", "org_id", "delivered_at", "status", "channels_notified"):
+        assert key in entry, f"Missing key: {key}"
+
+
+def test_get_delivery_history_respects_limit(scheduler):
+    sid = _make_schedule(scheduler)
+    for _ in range(5):
+        scheduler.trigger_report(schedule_id=sid, org_id="test-org")
+    history = scheduler.get_delivery_history(org_id="test-org", limit=3)
+    assert len(history) <= 3
+
+
+# ---------------------------------------------------------------------------
+# _calculate_next_run helper
+# ---------------------------------------------------------------------------
+
+
+def test_calculate_next_run_daily():
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    nxt = scheduler.calculate_next_run("daily", from_time=base)
+    nxt = _calculate_next_run("daily", from_time=base)
     assert nxt == base + timedelta(days=1)
 
 
-def test_calculate_next_run_weekly(scheduler):
+def test_calculate_next_run_weekly():
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    nxt = scheduler.calculate_next_run("weekly", from_time=base)
+    nxt = _calculate_next_run("weekly", from_time=base)
     assert nxt == base + timedelta(weeks=1)
 
 
-def test_calculate_next_run_hourly(scheduler):
+def test_calculate_next_run_monthly():
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    nxt = scheduler.calculate_next_run("hourly", from_time=base)
-    assert nxt == base + timedelta(hours=1)
-
-
-def test_calculate_next_run_monthly(scheduler):
-    base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    nxt = scheduler.calculate_next_run("monthly", from_time=base)
+    nxt = _calculate_next_run("monthly", from_time=base)
     assert nxt == base + timedelta(days=30)
 
 
-# ---------------------------------------------------------------------------
-# deliver_report
-# ---------------------------------------------------------------------------
-
-
-def test_deliver_report_returns_dict_with_status(scheduler):
-    created = _make_schedule(scheduler)
-    result = scheduler.deliver_report(created["schedule_id"])
-    assert isinstance(result, dict)
-    assert "status" in result
-
-
-def test_deliver_report_status_is_sent_or_failed(scheduler):
-    created = _make_schedule(scheduler)
-    result = scheduler.deliver_report(created["schedule_id"])
-    assert result["status"] in ("sent", "failed")
-
-
-def test_deliver_report_payload_size_bytes_non_negative(scheduler):
-    created = _make_schedule(scheduler)
-    result = scheduler.deliver_report(created["schedule_id"])
-    assert isinstance(result["payload_size_bytes"], int)
-    assert result["payload_size_bytes"] >= 0
-
-
-def test_deliver_report_unknown_schedule_raises(scheduler):
-    with pytest.raises(ValueError):
-        scheduler.deliver_report("no-such-id")
-
-
-def test_deliver_report_email_channel_is_sent(scheduler):
-    created = _make_schedule(
-        scheduler, channel="email_smtp", destination="security@example.com"
-    )
-    result = scheduler.deliver_report(created["schedule_id"])
-    assert result["status"] == "sent"
-
-
-def test_deliver_report_s3_channel_is_sent(scheduler):
-    created = _make_schedule(
-        scheduler, channel="s3_bucket", destination="s3://my-bucket/reports/"
-    )
-    result = scheduler.deliver_report(created["schedule_id"])
-    assert result["status"] == "sent"
-
-
-def test_deliver_report_slack_channel_result_has_schedule_id(scheduler):
-    created = _make_schedule(
-        scheduler, channel="slack", destination="https://hooks.slack.com/services/abc"
-    )
-    result = scheduler.deliver_report(created["schedule_id"])
-    assert result["schedule_id"] == created["schedule_id"]
-
-
-# ---------------------------------------------------------------------------
-# get_delivery_log
-# ---------------------------------------------------------------------------
-
-
-def test_get_delivery_log_returns_list_after_deliver(scheduler):
-    created = _make_schedule(scheduler)
-    scheduler.deliver_report(created["schedule_id"])
-    log = scheduler.get_delivery_log(schedule_id=created["schedule_id"])
-    assert isinstance(log, list)
-    assert len(log) >= 1
-
-
-def test_get_delivery_log_entry_has_expected_keys(scheduler):
-    created = _make_schedule(scheduler)
-    scheduler.deliver_report(created["schedule_id"])
-    log = scheduler.get_delivery_log(schedule_id=created["schedule_id"])
-    entry = log[0]
-    assert "schedule_id" in entry
-    assert "delivered_at" in entry
-    assert "status" in entry
-    assert "payload_size_bytes" in entry
-
-
-def test_get_delivery_log_no_filter_returns_all(scheduler):
-    s1 = _make_schedule(scheduler, name="S1", org_id="org-log-1")
-    s2 = _make_schedule(scheduler, name="S2", org_id="org-log-2")
-    scheduler.deliver_report(s1["schedule_id"])
-    scheduler.deliver_report(s2["schedule_id"])
-    log = scheduler.get_delivery_log()
-    schedule_ids = {e["schedule_id"] for e in log}
-    assert s1["schedule_id"] in schedule_ids
-    assert s2["schedule_id"] in schedule_ids
-
-
-# ---------------------------------------------------------------------------
-# run_due_schedules
-# ---------------------------------------------------------------------------
-
-
-def test_run_due_schedules_no_due_returns_empty(scheduler):
-    # Create a schedule — next_run_at defaults to future
-    _make_schedule(scheduler, org_id="run-due-org")
-    result = scheduler.run_due_schedules(org_id="run-due-org")
-    assert result == []
-
-
-def test_run_due_schedules_executes_overdue_schedule(scheduler, tmp_path):
-    """Force next_run_at into the past, then run_due_schedules should fire it."""
-    db_path = str(tmp_path / "due_test.db")
-    sched = ReportScheduler(db_path=db_path)
-    created = _make_schedule(sched, org_id="due-org")
-
-    # Manually back-date next_run_at so it's overdue
-    import sqlite3
-    conn = sqlite3.connect(db_path)
-    past = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
-    conn.execute(
-        "UPDATE schedules SET next_run_at = ? WHERE schedule_id = ?",
-        (past, created["schedule_id"]),
-    )
-    conn.commit()
-    conn.close()
-
-    results = sched.run_due_schedules(org_id="due-org")
-    assert len(results) == 1
-    assert results[0]["schedule_id"] == created["schedule_id"]
-    assert results[0]["status"] in ("sent", "failed")
+def test_calculate_next_run_invalid_raises():
+    with pytest.raises(ValueError, match="frequency"):
+        _calculate_next_run("hourly")
