@@ -17,7 +17,10 @@ import { AlertTriangle, Bell, FileText, Clock, RefreshCw, Shield } from "lucide-
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY  = import.meta.env.VITE_API_KEY  || "dev-key";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
 const ORG_ID   = "aldeci-demo";
 
 async function apiFetch(path: string) {
@@ -150,9 +153,9 @@ export default function BreachResponse() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Resolve KPI values
-  const kpiActiveCases       = liveData?.stats?.active_cases       ?? liveData?.stats?.open_cases    ?? 7;
-  const kpiConfirmedBreaches  = liveData?.stats?.confirmed_breaches ?? liveData?.stats?.confirmed     ?? 3;
+  // Resolve KPI values — engine returns: total_cases, confirmed, notifications_sent
+  const kpiActiveCases       = liveData?.stats?.total_cases        ?? liveData?.stats?.active_cases  ?? 7;
+  const kpiConfirmedBreaches  = liveData?.stats?.confirmed          ?? liveData?.stats?.confirmed_breaches ?? 3;
   const kpiRecordsAffected   = liveData?.stats?.total_records_affected
     ? liveData.stats.total_records_affected.toLocaleString()
     : "47,823";
