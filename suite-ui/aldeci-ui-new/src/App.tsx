@@ -158,6 +158,9 @@ const SocialEngineering = lazy(() => import("@/pages/SocialEngineering"));
 const SOARDashboard = lazy(() => import("@/pages/SOARDashboard"));
 const GRCDashboard = lazy(() => import("@/pages/GRCDashboard"));
 const APISecurityDashboard = lazy(() => import("@/pages/APISecurityDashboard"));
+const ThreatCorrelation = lazy(() => import("@/pages/ThreatCorrelation"));
+const SupplyChainDashboard = lazy(() => import("@/pages/SupplyChainDashboard"));
+const CloudSecurityDashboard = lazy(() => import("@/pages/CloudSecurityDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -338,6 +341,9 @@ export default function App() {
             <Route path="/soar" element={<SOARDashboard />} />
             <Route path="/grc" element={<GRCDashboard />} />
             <Route path="/api-security" element={<APISecurityDashboard />} />
+            <Route path="/threat-correlation" element={<ThreatCorrelation />} />
+            <Route path="/supply-chain-risk" element={<SupplyChainDashboard />} />
+            <Route path="/cloud-security" element={<CloudSecurityDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
