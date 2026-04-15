@@ -921,6 +921,29 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 40 — Autonomous parallel build + CTO review)
+
+**Wave 40 New Backend Engines (all in suite-core/core/):**
+- ✅ security_architecture_review_engine.py — ArchReview (finding_count/critical_count, risk_level recomputation, complete_review AVG effectiveness, control gaps) — 47 tests
+- ✅ threat_hunting_playbook_engine.py — ThreatHuntingPlaybook (execution_count++, success_rate=COUNT(finding)/total, avg_duration julianday, hypothesis validation) — 35 tests
+- ✅ security_program_maturity_engine.py — SecurityProgramMaturity (CMMI 1-5, complete_assessment AVG, roadmap priority+effort sort, domains_at_target CASE SUM) — 55 tests
+- ✅ cloud_incident_response_engine.py — CloudIncidentResponse (containment/resolution mins julianday, blast_radius, playbook execution_count++, matching playbooks) — 50 tests
+- ✅ identity_lifecycle_engine.py — IdentityLifecycle (deprovision bulk-revokes entitlements, orphan julianday detection, event audit trail) — 52 tests
+- ✅ security_dependency_mapping_engine.py — SecurityDependencyMapping (BFS blast radius downstream/upstream, dependency_count/dependent_count atomic, MAX(0,n-1) floor) — 45 tests
+
+**CTO Review Verdict:** ✅ PASS — WAL+RLock+org_id verified, zero bare excepts, api_key_auth on all routers, 284/284 tests passing
+
+**Wave 40 Routers wired:** /api/v1/arch-review, /api/v1/hunting-playbooks, /api/v1/program-maturity, /api/v1/cloud-ir, /api/v1/identity-lifecycle, /api/v1/dependency-mapping
+
+**Wave 40 Frontend Pages (for Wave 39 engines):**
+- ✅ RiskQuantDashboard (/risk-quant), CyberThreatModelingDashboard (/cyber-threat-modeling)
+- ✅ CapacityPlanningDashboard (/capacity-planning), TprmExchangeDashboard (/tprm-exchange)
+- ✅ EventTimelineDashboard (/event-timeline), VulnIntelFusionDashboard (/vuln-intel-fusion)
+
+**Engine total: 338+ engines | Router total: 568+ routers | Test total: 8,651+ tests | Frontend: 290+ pages**
+
+---
+
 ### DONE (session 2026-04-16, Wave 39 — Autonomous parallel build + CTO review)
 
 **Wave 39 New Backend Engines (all in suite-core/core/):**
