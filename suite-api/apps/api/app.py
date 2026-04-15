@@ -5569,9 +5569,9 @@ def create_app() -> FastAPI:
 
     # Security Playbook Engine — automated response playbooks with execution tracking
     try:
-        from apps.api.playbook_router import router as playbook_router
+        from apps.api.playbook_router import router as _playbook_engine_router
         app.include_router(
-            playbook_router,
+            _playbook_engine_router,
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted Security Playbook router at /api/v1/playbooks")
