@@ -11,7 +11,7 @@
  * Fallback: mock data when API is unavailable
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, JSX } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -196,7 +196,7 @@ const MOCK_POSTURE_DATA: PostureData = {
 /**
  * Circular Progress Gauge (SVG stroke-dasharray)
  */
-const CircularGauge = ({ score, maxScore }: { score: number; maxScore: number }) => {
+const CircularGauge = ({ score, maxScore }: { score: number; maxScore: number }): JSX.Element => {
   const percentage = (score / maxScore) * 100;
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -245,7 +245,7 @@ const CircularGauge = ({ score, maxScore }: { score: number; maxScore: number })
  * Radar Chart (Static SVG polygon)
  * 7 categories plotted on a heptagon
  */
-const RadarChart = ({ categories }: { categories: Record<string, { count: number; impact: number }> }) => {
+const RadarChart = ({ categories }: { categories: Record<string, { count: number; impact: number }> }): JSX.Element => {
   const categoryNames = Object.keys(categories);
   const numCategories = categoryNames.length;
   const maxValue = 15; // Scale for impact
@@ -421,7 +421,7 @@ export default function PostureAdvisor() {
   );
 
   // Fetch posture data
-  const { data: postureData, isLoading, error } = useQuery({
+  const { data: postureData, isLoading } = useQuery<PostureData>({
     queryKey: ["posture-advisor"],
     queryFn: async () => {
       try {
@@ -445,9 +445,9 @@ export default function PostureAdvisor() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const data = postureData || MOCK_POSTURE_DATA;
+  const data: PostureData = postureData || MOCK_POSTURE_DATA;
   const activeRecommendations = data.recommendations.filter(
-    (r) => !dismissedRecommendations.has(r.id) && !acceptedRecommendations.has(r.id)
+    (r: Recommendation) => !dismissedRecommendations.has(r.id) && !acceptedRecommendations.has(r.id)
   );
 
   return (
@@ -456,7 +456,6 @@ export default function PostureAdvisor() {
       <PageHeader
         title="Security Posture Advisor"
         subtitle="AI-powered improvement recommendations from your virtual CISO"
-        icon={ShieldCheck}
       />
 
       {/* ── Current Posture Score ── */}
@@ -507,9 +506,9 @@ export default function PostureAdvisor() {
                   <p className="text-gray-400 text-sm mb-2">Top Opportunities</p>
                   <div className="space-y-1 text-sm">
                     {data.recommendations
-                      .sort((a, b) => b.score_impact - a.score_impact)
+                      .sort((a: Recommendation, b: Recommendation) => b.score_impact - a.score_impact)
                       .slice(0, 3)
-                      .map((rec) => (
+                      .map((rec: Recommendation) => (
                         <div key={rec.id} className="flex justify-between">
                           <span className="text-gray-300">{rec.title}</span>
                           <span className="text-blue-400 font-semibold">+{rec.score_impact}</span>
@@ -538,7 +537,7 @@ export default function PostureAdvisor() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
-              {data.roadmap.map((roadmapPhase, idx) => (
+              {data.roadmap.map((roadmapPhase: RoadmapPhase, idx: number) => (
                 <motion.div
                   key={roadmapPhase.phase}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -639,7 +638,7 @@ export default function PostureAdvisor() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activeRecommendations.map((rec) => (
+                    {activeRecommendations.map((rec: Recommendation) => (
                       <TableRow
                         key={rec.id}
                         className="border-slate-700/50 hover:bg-slate-800/30 transition-colors"
@@ -737,8 +736,8 @@ export default function PostureAdvisor() {
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   {Object.entries(data.categories)
-                    .sort((a, b) => b[1].impact - a[1].impact)
-                    .map(([category, data]) => (
+                    .sort((a: [string, { count: number; impact: number }], b: [string, { count: number; impact: number }]) => b[1].impact - a[1].impact)
+                    .map(([category, categoryData]: [string, { count: number; impact: number }]) => (
                       <div
                         key={category}
                         className="flex items-start gap-3 p-3 rounded-lg bg-slate-800/30 border border-slate-700/50 hover:border-slate-600 transition-colors"
@@ -752,10 +751,10 @@ export default function PostureAdvisor() {
                           </p>
                           <div className="flex items-center gap-4 mt-1">
                             <span className="text-xs text-gray-400">
-                              {data.count} recommendation{data.count !== 1 ? "s" : ""}
+                              {categoryData.count} recommendation{categoryData.count !== 1 ? "s" : ""}
                             </span>
                             <span className="text-xs font-semibold text-blue-400">
-                              +{data.impact} impact
+                              +{categoryData.impact} impact
                             </span>
                           </div>
                         </div>
