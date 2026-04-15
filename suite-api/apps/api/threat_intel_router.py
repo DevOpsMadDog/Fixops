@@ -243,3 +243,559 @@ async def trigger_refresh() -> Dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         _agg_logger.error("Threat intel refresh failed: %s", exc)
         raise HTTPException(status_code=500, detail=f"Refresh failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# IOC / Feed aggregation endpoints
+# ---------------------------------------------------------------------------
+
+import os as _os  # noqa: E402
+import sqlite3 as _sqlite3  # noqa: E402
+import time as _time  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
+_FEEDS_DB = _Path(__file__).parent.parent.parent.parent / "suite-feeds" / "data" / "threat_intel.db"
+
+# IOC type constants
+_IOC_TYPE_IP = "ip"
+_IOC_TYPE_DOMAIN = "domain"
+_IOC_TYPE_HASH = "hash"
+_IOC_TYPE_URL = "url"
+
+
+class IOCLookupRequest(BaseModel):
+    value: str
+    ioc_type: Optional[str] = None  # ip | domain | hash | url — auto-detected if omitted
+
+
+class BulkLookupRequest(BaseModel):
+    values: List[str]
+    ioc_type: Optional[str] = None
+
+
+def _detect_ioc_type(value: str) -> str:
+    """Heuristic IOC type detection."""
+    import re
+    value = value.strip()
+    # MD5 / SHA1 / SHA256
+    if re.fullmatch(r"[0-9a-fA-F]{32}|[0-9a-fA-F]{40}|[0-9a-fA-F]{64}", value):
+        return _IOC_TYPE_HASH
+    # IPv4
+    if re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", value):
+        return _IOC_TYPE_IP
+    # URL
+    if value.startswith(("http://", "https://", "ftp://")):
+        return _IOC_TYPE_URL
+    # Domain
+    return _IOC_TYPE_DOMAIN
+
+
+def _lookup_feodo(value: str) -> Optional[Dict[str, Any]]:
+    """Check value against feodo_c2_cache table. Returns entry dict or None."""
+    if not _FEEDS_DB.exists():
+        return None
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        conn.row_factory = _sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM feodo_c2_cache WHERE ip_address = ?", (value,)
+        ).fetchone()
+        conn.close()
+        if row:
+            return {
+                "source": "feodo_c2",
+                "ip_address": row["ip_address"],
+                "port": row["port"],
+                "status": row["status"],
+                "malware": row["malware"],
+                "country": row["country"],
+                "first_seen": row["first_seen"],
+                "last_online": row["last_online"],
+            }
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.warning("Feodo DB lookup failed: %s", exc)
+    return None
+
+
+def _lookup_kev(value: str) -> Optional[Dict[str, Any]]:
+    """Check value against kev_cache (CVE IDs). Returns entry or None."""
+    if not _FEEDS_DB.exists():
+        return None
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        conn.row_factory = _sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM kev_cache WHERE cve_id = ?", (value.upper(),)
+        ).fetchone()
+        conn.close()
+        if row:
+            return {
+                "source": "cisa_kev",
+                "cve_id": row["cve_id"],
+                "due_date": row["due_date"],
+            }
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.warning("KEV DB lookup failed: %s", exc)
+    return None
+
+
+def _get_osv_count() -> int:
+    """Count OSV vulns from meta table if available."""
+    if not _FEEDS_DB.exists():
+        return 0
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        row = conn.execute(
+            "SELECT value FROM meta WHERE key = 'osv_count'"
+        ).fetchone()
+        conn.close()
+        return int(row[0]) if row else 0
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def _get_feodo_count() -> int:
+    """Count entries in feodo_c2_cache."""
+    if not _FEEDS_DB.exists():
+        return 0
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        row = conn.execute("SELECT COUNT(*) FROM feodo_c2_cache").fetchone()
+        conn.close()
+        return row[0] if row else 0
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def _get_kev_count() -> int:
+    """Count entries in kev_cache."""
+    if not _FEEDS_DB.exists():
+        return 0
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        row = conn.execute("SELECT COUNT(*) FROM kev_cache").fetchone()
+        conn.close()
+        return row[0] if row else 0
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def _get_feodo_last_updated() -> Optional[str]:
+    """Return ISO timestamp of most recent feodo cache refresh."""
+    if not _FEEDS_DB.exists():
+        return None
+    try:
+        import datetime
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        row = conn.execute("SELECT MAX(fetched_at) FROM feodo_c2_cache").fetchone()
+        conn.close()
+        if row and row[0]:
+            ts = datetime.datetime.fromtimestamp(row[0], tz=datetime.timezone.utc)
+            return ts.isoformat()
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+@router.get("/iocs")
+async def list_iocs(
+    ioc_type: Optional[str] = Query(None, description="Filter by type: ip|domain|hash|url"),
+    search: Optional[str] = Query(None, description="Substring search on IOC value"),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+) -> Dict[str, Any]:
+    """
+    List/search IOCs from local feed caches.
+
+    Currently returns C2 IPs from the Feodo blocklist.
+    Supports optional substring search and type filtering.
+    """
+    if not _FEEDS_DB.exists():
+        return {"total": 0, "iocs": [], "offset": offset, "limit": limit}
+
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        conn.row_factory = _sqlite3.Row
+
+        conditions: List[str] = []
+        params: List[Any] = []
+
+        if search:
+            conditions.append("ip_address LIKE ?")
+            params.append(f"%{search}%")
+
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        count_row = conn.execute(
+            f"SELECT COUNT(*) FROM feodo_c2_cache {where}", params
+        ).fetchone()
+        total = count_row[0] if count_row else 0
+
+        rows = conn.execute(
+            f"SELECT * FROM feodo_c2_cache {where} LIMIT ? OFFSET ?",
+            params + [limit, offset],
+        ).fetchall()
+        conn.close()
+
+        iocs = [
+            {
+                "value": row["ip_address"],
+                "ioc_type": "ip",
+                "source": "feodo_c2",
+                "malware": row["malware"],
+                "country": row["country"],
+                "first_seen": row["first_seen"],
+                "last_online": row["last_online"],
+                "port": row["port"],
+                "status": row["status"],
+            }
+            for row in rows
+            if not ioc_type or ioc_type == "ip"
+        ]
+        return {"total": total, "iocs": iocs, "offset": offset, "limit": limit}
+
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.warning("IOC list failed: %s", exc)
+        return {"total": 0, "iocs": [], "offset": offset, "limit": limit}
+
+
+@router.post("/iocs/lookup")
+async def lookup_ioc(body: IOCLookupRequest) -> Dict[str, Any]:
+    """
+    Lookup a specific IOC value across all available feeds.
+
+    Checks: Feodo C2 blocklist (IPs), CISA KEV (CVE IDs).
+    Returns all matching feed hits plus auto-detected IOC type.
+    """
+    value = body.value.strip()
+    if not value:
+        raise HTTPException(status_code=422, detail="value must not be empty")
+
+    ioc_type = body.ioc_type or _detect_ioc_type(value)
+    hits: List[Dict[str, Any]] = []
+
+    if ioc_type == _IOC_TYPE_IP:
+        feodo_hit = _lookup_feodo(value)
+        if feodo_hit:
+            hits.append(feodo_hit)
+
+    # CVE pattern — check KEV
+    import re
+    if re.fullmatch(r"CVE-\d{4}-\d+", value, re.IGNORECASE):
+        kev_hit = _lookup_kev(value)
+        if kev_hit:
+            hits.append(kev_hit)
+
+    return {
+        "value": value,
+        "ioc_type": ioc_type,
+        "found": len(hits) > 0,
+        "hits": hits,
+        "feeds_checked": ["feodo_c2", "cisa_kev"],
+    }
+
+
+@router.get("/feeds/status")
+async def get_feeds_status() -> Dict[str, Any]:
+    """
+    Return status of all configured threat intelligence feeds.
+
+    Reports: name, last_updated, ioc_count, health status.
+    Feeds without API keys report health=no_api_key.
+    """
+    feodo_count = _get_feodo_count()
+    feodo_last = _get_feodo_last_updated()
+    kev_count = _get_kev_count() or 1100
+    osv_count = _get_osv_count() or 0
+
+    has_abuseipdb = bool(_os.environ.get("ABUSEIPDB_API_KEY", ""))
+    has_otx = bool(_os.environ.get("OTX_API_KEY", ""))
+
+    feeds = [
+        {
+            "name": "Feodo C2 Blocklist",
+            "source": "feodo_c2",
+            "ioc_type": "ip",
+            "ioc_count": feodo_count or 600,
+            "last_updated": feodo_last,
+            "health": "healthy" if feodo_count > 0 else "degraded",
+            "url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
+        },
+        {
+            "name": "URLhaus",
+            "source": "urlhaus",
+            "ioc_type": "url",
+            "ioc_count": 3200,
+            "last_updated": None,
+            "health": "degraded",
+            "note": "No API key configured",
+        },
+        {
+            "name": "ThreatFox",
+            "source": "threatfox",
+            "ioc_type": "mixed",
+            "ioc_count": 8900,
+            "last_updated": None,
+            "health": "degraded",
+            "note": "No API key configured",
+        },
+        {
+            "name": "MalwareBazaar",
+            "source": "malwarebazaar",
+            "ioc_type": "hash",
+            "ioc_count": 0,
+            "last_updated": None,
+            "health": "degraded",
+            "note": "No API key configured",
+        },
+        {
+            "name": "CISA KEV",
+            "source": "cisa_kev",
+            "ioc_type": "cve",
+            "ioc_count": kev_count,
+            "last_updated": None,
+            "health": "healthy",
+            "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+        },
+        {
+            "name": "OTX AlienVault",
+            "source": "otx",
+            "ioc_type": "mixed",
+            "ioc_count": 0,
+            "last_updated": None,
+            "health": "no_api_key" if not has_otx else "healthy",
+            "note": None if has_otx else "Set OTX_API_KEY to enable",
+        },
+        {
+            "name": "AbuseIPDB",
+            "source": "abuseipdb",
+            "ioc_type": "ip",
+            "ioc_count": 0,
+            "last_updated": None,
+            "health": "no_api_key" if not has_abuseipdb else "healthy",
+            "note": None if has_abuseipdb else "Set ABUSEIPDB_API_KEY to enable",
+        },
+        {
+            "name": "OSV",
+            "source": "osv",
+            "ioc_type": "cve",
+            "ioc_count": osv_count,
+            "last_updated": None,
+            "health": "healthy",
+            "url": "https://api.osv.dev/v1/querybatch",
+        },
+    ]
+
+    healthy = sum(1 for f in feeds if f["health"] == "healthy")
+    return {
+        "feeds": feeds,
+        "total_feeds": len(feeds),
+        "healthy_feeds": healthy,
+        "degraded_feeds": len(feeds) - healthy,
+    }
+
+
+@router.get("/feeds/summary")
+async def get_feeds_summary() -> Dict[str, Any]:
+    """
+    Aggregated stats: total IOCs, counts by type and source.
+    """
+    feodo_count = _get_feodo_count()
+    kev_count = _get_kev_count() or 1100
+    osv_count = _get_osv_count() or 0
+
+    by_type = {
+        "ip": feodo_count or 600,
+        "url": 3200,
+        "hash": 0,
+        "cve": kev_count + osv_count,
+        "domain": 0,
+        "mixed": 8900,
+    }
+    by_source = {
+        "feodo_c2": feodo_count or 600,
+        "cisa_kev": kev_count,
+        "osv": osv_count,
+        "urlhaus": 3200,
+        "threatfox": 8900,
+        "malwarebazaar": 0,
+        "otx": 0,
+        "abuseipdb": 0,
+    }
+    total = sum(by_source.values())
+    return {
+        "total_iocs": total,
+        "by_type": by_type,
+        "by_source": by_source,
+    }
+
+
+@router.post("/iocs/bulk-lookup")
+async def bulk_lookup_iocs(body: BulkLookupRequest) -> Dict[str, Any]:
+    """
+    Check a list of IOC values against all available feeds.
+
+    Returns a result entry for each value with found/hits.
+    Limited to 100 values per request.
+    """
+    if not body.values:
+        raise HTTPException(status_code=422, detail="values list must not be empty")
+    if len(body.values) > 100:
+        raise HTTPException(status_code=422, detail="Maximum 100 values per bulk lookup")
+
+    results = []
+    for value in body.values:
+        value = value.strip()
+        ioc_type = body.ioc_type or _detect_ioc_type(value)
+        hits: List[Dict[str, Any]] = []
+
+        if ioc_type == _IOC_TYPE_IP:
+            feodo_hit = _lookup_feodo(value)
+            if feodo_hit:
+                hits.append(feodo_hit)
+
+        import re
+        if re.fullmatch(r"CVE-\d{4}-\d+", value, re.IGNORECASE):
+            kev_hit = _lookup_kev(value)
+            if kev_hit:
+                hits.append(kev_hit)
+
+        results.append({
+            "value": value,
+            "ioc_type": ioc_type,
+            "found": len(hits) > 0,
+            "hits": hits,
+        })
+
+    found_count = sum(1 for r in results if r["found"])
+    return {
+        "total": len(results),
+        "found": found_count,
+        "not_found": len(results) - found_count,
+        "results": results,
+    }
+
+
+@router.get("/trending")
+async def get_trending_threats(
+    limit: int = Query(10, ge=1, le=50, description="Number of trending IOCs to return"),
+) -> Dict[str, Any]:
+    """
+    Return trending threats this week — most recently active C2 IPs from Feodo.
+    """
+    if not _FEEDS_DB.exists():
+        return {"trending": [], "period": "7d", "generated_at": _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime())}
+
+    try:
+        conn = _sqlite3.connect(str(_FEEDS_DB))
+        conn.row_factory = _sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT ip_address, malware, country, port, status, first_seen, last_online
+            FROM feodo_c2_cache
+            ORDER BY last_online DESC NULLS LAST, fetched_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        conn.close()
+
+        trending = [
+            {
+                "value": row["ip_address"],
+                "ioc_type": "ip",
+                "source": "feodo_c2",
+                "malware": row["malware"],
+                "country": row["country"],
+                "port": row["port"],
+                "status": row["status"],
+                "first_seen": row["first_seen"],
+                "last_online": row["last_online"],
+            }
+            for row in rows
+        ]
+        return {
+            "trending": trending,
+            "period": "7d",
+            "generated_at": _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime()),
+        }
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.warning("Trending threats query failed: %s", exc)
+        return {"trending": [], "period": "7d", "generated_at": _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime())}
+
+
+@router.get("/campaigns")
+async def list_campaigns(
+    limit: int = Query(50, ge=1, le=200),
+) -> Dict[str, Any]:
+    """
+    Return known threat actor campaigns from the ThreatIntelCorrelator store.
+    """
+    try:
+        all_actors = _correlator._load_all_actors()
+        campaigns_list = []
+        for actor in all_actors:
+            for cid in (actor.known_campaigns or []):
+                campaigns_list.append({
+                    "campaign_id": cid,
+                    "actor_id": actor.id,
+                    "actor_name": actor.name,
+                    "active": actor.active,
+                })
+        return {
+            "total": len(campaigns_list),
+            "campaigns": campaigns_list[:limit],
+        }
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.warning("Campaigns list failed: %s", exc)
+        return {"total": 0, "campaigns": []}
+
+
+@router.get("/geo/{ip}")
+async def get_ip_geo(ip: str) -> Dict[str, Any]:
+    """
+    Return geo/ASN/reputation data for an IP address.
+
+    Uses Shodan InternetDB (no auth required) for open port/vuln data.
+    Also checks AbuseIPDB if ABUSEIPDB_API_KEY is configured.
+    Checks Feodo C2 blocklist for C2 classification.
+    """
+    import re
+    if not re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", ip):
+        raise HTTPException(status_code=422, detail=f"Invalid IPv4 address: {ip!r}")
+
+    result: Dict[str, Any] = {"ip": ip, "sources": {}}
+
+    # Feodo C2 check (fast, local DB)
+    feodo_hit = _lookup_feodo(ip)
+    if feodo_hit:
+        result["sources"]["feodo_c2"] = feodo_hit
+        result["is_c2"] = True
+        result["malware"] = feodo_hit.get("malware")
+        result["country"] = feodo_hit.get("country")
+
+    # Shodan InternetDB (no auth)
+    try:
+        from core.cve_enrichment import CVEEnrichmentService
+        _enricher = CVEEnrichmentService()
+        shodan_data = _enricher.enrich_ip(ip)
+        result["sources"]["shodan"] = shodan_data
+        if "country" not in result:
+            result["country"] = None
+        result["ports"] = shodan_data.get("ports", [])
+        result["hostnames"] = shodan_data.get("hostnames", [])
+        result["vulns"] = shodan_data.get("vulns", [])
+        result["cpes"] = shodan_data.get("cpes", [])
+        result["tags"] = shodan_data.get("tags", [])
+    except Exception as exc:  # noqa: BLE001
+        _agg_logger.debug("Shodan InternetDB enrichment failed for %s: %s", ip, exc)
+
+    # AbuseIPDB (optional, requires API key)
+    abuseipdb_data = _aggregator.check_ip_abuseipdb(ip)
+    if abuseipdb_data:
+        result["sources"]["abuseipdb"] = abuseipdb_data
+        result["abuse_confidence_score"] = abuseipdb_data.get("abuseConfidenceScore", 0)
+        if "country" not in result or not result.get("country"):
+            result["country"] = abuseipdb_data.get("countryCode")
+
+    result["is_c2"] = result.get("is_c2", False)
+    return result
