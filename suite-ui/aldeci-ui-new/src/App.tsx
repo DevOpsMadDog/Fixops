@@ -134,6 +134,8 @@ const ExecutiveRiskReport = lazy(() => import("@/pages/ExecutiveRiskReport"));
 const NetworkAnalysis = lazy(() => import("@/pages/NetworkAnalysis"));
 const VulnHeatmap = lazy(() => import("@/pages/VulnHeatmap"));
 const AuditLog = lazy(() => import("@/pages/AuditLog"));
+const CSPMDashboard = lazy(() => import("@/pages/CSPMDashboard"));
+const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -244,6 +246,7 @@ export default function App() {
 
             {/* Threat Hunting */}
             <Route path="/hunting" element={<ThreatHunting />} />
+            <Route path="/threat-hunting" element={<ThreatHuntingPage />} />
 
             {/* Developer Portal */}
             <Route path="/developer" element={<DeveloperPortal />} />
@@ -290,6 +293,7 @@ export default function App() {
             <Route path="/network-analysis" element={<NetworkAnalysis />} />
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
+            <Route path="/cspm" element={<CSPMDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
