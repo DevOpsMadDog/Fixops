@@ -327,6 +327,14 @@ const QuantumCryptoDashboard = lazy(() => import("@/pages/QuantumCryptoDashboard
 const AIPoweredSOCDashboard = lazy(() => import("@/pages/AIPoweredSOCDashboard"));
 const DeceptionAnalyticsDashboard = lazy(() => import("@/pages/DeceptionAnalyticsDashboard"));
 
+// Wave 23 domain dashboards
+const ThreatIntelAutomation = lazy(() => import("@/pages/ThreatIntelAutomation"));
+const MetricsAggregatorDashboard = lazy(() => import("@/pages/MetricsAggregatorDashboard"));
+const EndpointHuntingDashboard = lazy(() => import("@/pages/EndpointHuntingDashboard"));
+const CloudSecurityAnalyticsDashboard = lazy(() => import("@/pages/CloudSecurityAnalyticsDashboard"));
+const IdentityRiskDashboard = lazy(() => import("@/pages/IdentityRiskDashboard"));
+const OTSecurityDashboard = lazy(() => import("@/pages/OTSecurityDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -658,6 +666,14 @@ export default function App() {
             <Route path="/quantum-crypto" element={<QuantumCryptoDashboard />} />
             <Route path="/ai-soc" element={<AIPoweredSOCDashboard />} />
             <Route path="/deception-analytics" element={<DeceptionAnalyticsDashboard />} />
+
+            {/* Wave 23 domain dashboards */}
+            <Route path="/threat-intel-automation" element={<ThreatIntelAutomation />} />
+            <Route path="/metrics-aggregator" element={<MetricsAggregatorDashboard />} />
+            <Route path="/endpoint-hunting" element={<EndpointHuntingDashboard />} />
+            <Route path="/cloud-security-analytics" element={<CloudSecurityAnalyticsDashboard />} />
+            <Route path="/identity-risk" element={<IdentityRiskDashboard />} />
+            <Route path="/ot-security" element={<OTSecurityDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
