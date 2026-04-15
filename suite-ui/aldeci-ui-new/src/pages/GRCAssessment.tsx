@@ -12,7 +12,7 @@
  *   5. Audit readiness gauge (circular, 82%)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardCheck, BarChart3, AlertTriangle, CheckCircle, RefreshCw, FileText, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -22,6 +22,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -213,6 +227,26 @@ function AuditGauge({ pct }: { pct: number }) {
 export default function GRCAssessment() {
   const [refreshing, setRefreshing] = useState(false);
   const [framework, setFramework] = useState<Framework>("SOC2");
+  const [liveStats, setLiveStats] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/grc/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/assessments?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID}`),
+    ]).then(([statsResult, assessmentsResult, controlsResult]) => {
+      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
+      const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
+      const controls    = controlsResult.status    === "fulfilled" ? controlsResult.value    : null;
+      if (stats || assessments || controls) {
+        setLiveStats({ stats, assessments, controls });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const controls = CONTROLS[framework];
   const implemented = controls.filter((c) => c.status === "implemented").length;
@@ -220,6 +254,7 @@ export default function GRCAssessment() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -235,18 +270,18 @@ export default function GRCAssessment() {
         title="GRC Assessment"
         description="Control testing, gap analysis, and audit readiness"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Assessments"      value={12}     icon={ClipboardCheck} trend="up"   />
-        <KpiCard title="Controls Tested"  value={847}    icon={BarChart3}      trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Pass Rate"        value="87.3%"  icon={CheckCircle}    trend="up"   className="border-green-500/20" />
-        <KpiCard title="Gaps Found"       value={108}    icon={AlertTriangle}  trend="down" className="border-amber-500/20" />
+        <KpiCard title="Assessments"     value={liveStats?.assessments?.length ?? liveStats?.stats?.total_assessments ?? 12}                                                                                      icon={ClipboardCheck} trend="up"   />
+        <KpiCard title="Controls Tested" value={liveStats?.stats?.total_controls ?? liveStats?.controls?.length ?? 847}                                                                                          icon={BarChart3}      trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Pass Rate"       value={liveStats?.stats?.compliance_score != null ? `${liveStats.stats.compliance_score.toFixed(1)}%` : liveStats?.stats?.pass_rate != null ? `${liveStats.stats.pass_rate.toFixed(1)}%` : "87.3%"} icon={CheckCircle} trend="up" className="border-green-500/20" />
+        <KpiCard title="Gaps Found"      value={liveStats?.stats?.total_risks ?? liveStats?.stats?.gaps_found ?? 108}                                                                                            icon={AlertTriangle}  trend="down" className="border-amber-500/20" />
       </div>
 
       {/* Framework selector */}

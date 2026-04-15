@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/cloud/accounts, /api/v1/cloud/findings, /api/v1/cloud/benchmarks
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cloud, AlertTriangle, Shield, BarChart3, RefreshCw, Zap, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -22,6 +22,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -157,9 +171,30 @@ function RemediationCard({ item }: { item: { id: string; title: string; severity
 
 export default function CloudSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/cloud-security-engine/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cloud-security-engine/accounts?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cloud-security-engine/findings?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, accountsResult, findingsResult]) => {
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const accounts = accountsResult.status === "fulfilled" ? accountsResult.value : null;
+      const findings = findingsResult.status === "fulfilled" ? findingsResult.value : null;
+      if (stats || accounts || findings) {
+        setLiveData({ stats, accounts, findings });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -175,18 +210,18 @@ export default function CloudSecurityDashboard() {
         title="Cloud Security Posture"
         description="Multi-cloud misconfiguration and compliance"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Cloud Accounts"    value={12}      icon={Cloud}         />
-        <KpiCard title="Open Findings"     value={234}     icon={AlertTriangle} trend="up" className="border-amber-500/20" />
-        <KpiCard title="Critical Misconfigs" value={18}    icon={Zap}           trend="up" className="border-red-500/20" />
-        <KpiCard title="Avg Posture Score" value="73.2%"   icon={Shield}        trend="up" className="border-green-500/20" />
+        <KpiCard title="Cloud Accounts"      value={liveData?.stats?.total_accounts    ?? liveData?.accounts?.length ?? 12}    icon={Cloud}         />
+        <KpiCard title="Open Findings"       value={liveData?.stats?.total_findings    ?? liveData?.findings?.length ?? 234}   icon={AlertTriangle} trend="up" className="border-amber-500/20" />
+        <KpiCard title="Critical Misconfigs" value={liveData?.stats?.critical_findings ?? liveData?.stats?.critical_count ?? 18} icon={Zap}         trend="up" className="border-red-500/20" />
+        <KpiCard title="Avg Posture Score"   value={liveData?.stats?.avg_risk_score != null ? `${(100 - liveData.stats.avg_risk_score).toFixed(1)}%` : "73.2%"} icon={Shield} trend="up" className="border-green-500/20" />
       </div>
 
       {/* Account health table */}
@@ -214,7 +249,18 @@ export default function CloudSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ACCOUNTS.map((acct) => (
+                {(Array.isArray(liveData?.accounts) && liveData.accounts.length > 0
+                  ? liveData.accounts.map((acct: any) => ({
+                      name:     acct.account_name || acct.account_id || acct.name || "",
+                      provider: acct.provider || "AWS",
+                      region:   acct.region || "",
+                      findings: acct.finding_count ?? acct.findings ?? 0,
+                      critical: acct.critical_count ?? acct.critical ?? 0,
+                      score:    acct.risk_score != null ? Math.round(100 - acct.risk_score) : acct.score ?? 75,
+                      scanned:  acct.last_scanned || acct.scanned || "–",
+                    }))
+                  : ACCOUNTS
+                ).map((acct: any) => (
                   <TableRow key={acct.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono font-medium py-2.5">{acct.name}</TableCell>
                     <TableCell className="py-2.5"><ProviderBadge provider={acct.provider} /></TableCell>
@@ -295,7 +341,16 @@ export default function CloudSecurityDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MISCONFIGS.map((m, i) => (
+                  {(Array.isArray(liveData?.findings) && liveData.findings.length > 0
+                    ? liveData.findings.slice(0, 10).map((f: any) => ({
+                        resource: f.resource_name || f.resource_type || f.resource || "Resource",
+                        type:     f.category || f.type || "misconfiguration",
+                        severity: f.severity ? f.severity.charAt(0).toUpperCase() + f.severity.slice(1) : "Medium",
+                        account:  f.account_id || f.account || "",
+                        status:   f.status === "open" ? "Open" : f.status === "in_review" ? "In Review" : f.status || "Open",
+                      }))
+                    : MISCONFIGS
+                  ).map((m: any, i: number) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{m.resource}</TableCell>
                       <TableCell className="py-2"><FindingTypeBadge type={m.type} /></TableCell>

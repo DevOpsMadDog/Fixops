@@ -11,12 +11,11 @@
  * Fallback: mock data when API is unavailable
  */
 
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Shield, AlertTriangle, Clock, TrendingUp, Zap, Download,
-  CheckCircle2, AlertCircle, Package, Calendar, BarChart3,
+  Shield, AlertTriangle, Clock, Zap, Download,
+  CheckCircle2, AlertCircle, Package, Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +25,20 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
-
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -304,21 +315,48 @@ const CompositeScoreBar = ({ score }: { score: number }) => (
 
 export default function PatchPrioritizer() {
   const [sortBy, setSortBy] = useState<"score" | "deadline" | "cvss">("score");
+  const [patchData, setPatchData] = useState<PatchPrioritizerData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch patch data
-  const { data: patchData, isLoading } = useQuery({
-    queryKey: ["patch-prioritizer"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${API_BASE}/api/v1/patch-prioritizer/queue`);
-        if (!response.ok) throw new Error("Failed to fetch");
-        return await response.json();
-      } catch {
-        return MOCK_PATCH_DATA;
+  useEffect(() => {
+    setIsLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/patch-automation/patches?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/patch-automation/stats?org_id=${ORG_ID}`),
+    ]).then(([patchesResult, statsResult]) => {
+      const patches = patchesResult.status === "fulfilled" ? patchesResult.value : null;
+      const stats   = statsResult.status   === "fulfilled" ? statsResult.value   : null;
+
+      if (patches || stats) {
+        const patchList: PatchItem[] = Array.isArray(patches)
+          ? patches.map((p: any) => ({
+              id:                 p.patch_id ?? p.id ?? "",
+              cve_id:             (p.cves_addressed?.[0]) ?? p.cve_id ?? "",
+              affected_asset:     p.product ?? p.affected_asset ?? "",
+              cvss_score:         p.cvss_score ?? 0,
+              epss_score:         p.epss_score ?? 0,
+              kev_status:         p.kev_status ?? "No",
+              composite_score:    p.composite_score ?? p.risk_score ?? 0,
+              recommended_action: p.recommended_action ?? p.kb_article ?? "",
+              sla_deadline:       p.sla_deadline ?? p.release_date ?? "",
+              vendor:             p.vendor ?? "",
+              product:            p.product ?? "",
+            }))
+          : MOCK_PATCH_DATA.patches;
+
+        setPatchData({
+          patches:                 patchList.length > 0 ? patchList : MOCK_PATCH_DATA.patches,
+          groups:                  MOCK_PATCH_DATA.groups,
+          critical_patches_due:    stats?.pending_critical   ?? stats?.critical_count    ?? MOCK_PATCH_DATA.critical_patches_due,
+          high_priority_this_week: stats?.deployments_today  ?? MOCK_PATCH_DATA.high_priority_this_week,
+          patches_in_sla:          stats?.total              ?? MOCK_PATCH_DATA.patches_in_sla,
+          avg_time_to_patch_days:  stats?.avg_patch_age_days ?? MOCK_PATCH_DATA.avg_time_to_patch_days,
+        });
+      } else {
+        setPatchData(MOCK_PATCH_DATA);
       }
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+    }).finally(() => setIsLoading(false));
+  }, []);
 
   // Sort patches
   const sortedPatches = useMemo(() => {
@@ -357,7 +395,7 @@ export default function PatchPrioritizer() {
 
   if (isLoading) return <PageSkeleton />;
 
-  const data = patchData || MOCK_PATCH_DATA;
+  const data: PatchPrioritizerData = patchData ?? MOCK_PATCH_DATA;
 
   return (
     <div className="space-y-8 p-6">
