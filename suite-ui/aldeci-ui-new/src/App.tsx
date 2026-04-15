@@ -138,6 +138,7 @@ const CSPMDashboard = lazy(() => import("@/pages/CSPMDashboard"));
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 const PentestManagement = lazy(() => import("@/pages/PentestManagement"));
 const DeceptionEngine = lazy(() => import("@/pages/DeceptionEngine"));
+const FirewallAnalyzer = lazy(() => import("@/pages/FirewallAnalyzer"));
 const RiskRegisterPage = lazy(() => import("@/pages/RiskRegister"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
@@ -299,6 +300,7 @@ export default function App() {
             <Route path="/cspm" element={<CSPMDashboard />} />
             <Route path="/pentest" element={<PentestManagement />} />
             <Route path="/deception" element={<DeceptionEngine />} />
+            <Route path="/firewall" element={<FirewallAnalyzer />} />
             <Route path="/risk-register" element={<RiskRegisterPage />} />
 
             {/* Legacy redirects */}
