@@ -170,3 +170,28 @@ async def reset_key(api_key_id: str) -> ResetResponse:
     limiter.reset_key(api_key_id)
     logger.info("rate_limit_reset api_key_id=%s", api_key_id)
     return ResetResponse(status="ok", api_key_id=api_key_id)
+
+
+# ---------------------------------------------------------------------------
+# Token-bucket middleware stats endpoints (new — uses RateLimitMiddleware)
+# ---------------------------------------------------------------------------
+
+from apps.api.rate_limit_middleware import get_rate_limit_stats  # noqa: E402
+
+
+class TokenBucketStatsResponse(BaseModel):
+    tracked_keys: int
+    buckets: Dict[str, Any]
+    config: Dict[str, Any]
+    warning: Optional[str] = None
+
+
+@router.get(
+    "/stats",
+    response_model=TokenBucketStatsResponse,
+    summary="Current token-bucket rate limit usage (admin only)",
+)
+async def get_stats() -> TokenBucketStatsResponse:
+    """Return per-bucket token counts from the RateLimitMiddleware instance."""
+    data = get_rate_limit_stats()
+    return TokenBucketStatsResponse(**data)
