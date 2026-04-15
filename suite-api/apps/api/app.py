@@ -5848,6 +5848,13 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Data Governance router not loaded: {e}")
 
+    try:
+        from apps.api.compliance_scanner_router import router as compliance_scanner_router
+        app.include_router(compliance_scanner_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Compliance Scanner router at /api/v1/compliance-scanner")
+    except Exception as e:
+        _logger.warning(f"Compliance Scanner router not loaded: {e}")
+
     return app
 
 
