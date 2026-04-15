@@ -5792,6 +5792,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Security Training router not loaded: {e}")
 
+    # Security Posture Score — weighted component scoring, history, benchmarks
+    try:
+        from apps.api.posture_score_router import router as posture_score_router
+        app.include_router(posture_score_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Posture Score router at /api/v1/posture-score")
+    except Exception as e:
+        _logger.warning(f"Posture Score router not loaded: {e}")
+
     return app
 
 
