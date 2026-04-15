@@ -157,7 +157,7 @@ export default function PostureReportingDashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
 
-  const trendData = (selectedReport.trend_history as Record<string, number[]>)[metricFilter] ?? [];
+  const trendData = ((selectedReport.trend_history as unknown) as Record<string, number[]>)[metricFilter] ?? [];
   const maxTrend = Math.max(...trendData, 1);
 
   const totalReports = MOCK_REPORTS.length;
