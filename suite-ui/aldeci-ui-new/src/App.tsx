@@ -152,6 +152,9 @@ const PasswordPolicy = lazy(() => import("@/pages/PasswordPolicy"));
 const AppSecurity = lazy(() => import("@/pages/AppSecurity"));
 const VulnRiskQueue = lazy(() => import("@/pages/VulnRiskQueue"));
 const RedTeamStatus = lazy(() => import("@/pages/RedTeamStatus"));
+const NetworkTopology = lazy(() => import("@/pages/NetworkTopology"));
+const IOCHunter = lazy(() => import("@/pages/IOCHunter"));
+const SocialEngineering = lazy(() => import("@/pages/SocialEngineering"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -323,6 +326,9 @@ export default function App() {
             <Route path="/security-metrics" element={<SecurityMetricsDashboard />} />
             <Route path="/vuln-risk" element={<VulnRiskQueue />} />
             <Route path="/red-team" element={<RedTeamStatus />} />
+            <Route path="/network-topology" element={<NetworkTopology />} />
+            <Route path="/ioc-hunter" element={<IOCHunter />} />
+            <Route path="/social-engineering" element={<SocialEngineering />} />
             <Route path="/mobile-security" element={<MobileSecurity />} />
             <Route path="/password-policy" element={<PasswordPolicy />} />
             <Route path="/app-security" element={<AppSecurity />} />
