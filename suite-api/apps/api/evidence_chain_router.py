@@ -1,174 +1,276 @@
-"""
-Evidence Chain API — tamper-proof cryptographic audit trail endpoints.
+"""Evidence Chain API Router — ALDECI.
 
-Provides 6 REST endpoints for appending, verifying, querying,
-and exporting the SHA-256 hash-chained audit log.
+Endpoints (all under /api/v1/evidence-chain):
+
+  Cases:
+    GET  /cases                     — list cases (filter: status)
+    POST /cases                     — create a new case
+    GET  /cases/{id}                — get a single case
+    POST /cases/{id}/close          — close a case
+
+  Evidence:
+    GET  /cases/{id}/evidence       — list evidence for a case
+    POST /cases/{id}/evidence       — add evidence to a case
+
+  Chain of Custody:
+    GET  /evidence/{id}/custody     — get full custody chain
+    POST /evidence/{id}/custody     — record a custody transfer
+    POST /evidence/{id}/seal        — seal evidence (immutable)
+    GET  /evidence/{id}/verify      — verify integrity
+
+  Stats:
+    GET  /stats                     — evidence statistics
 """
 from __future__ import annotations
 
-import json
-from datetime import datetime
+import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from apps.api.dependencies import get_org_id
-from core.evidence_chain import EvidenceChain
+from apps.api.auth_deps import api_key_auth
+from core.evidence_chain_engine import EvidenceChainEngine
 
-router = APIRouter(prefix="/api/v1/evidence-chain", tags=["evidence-chain"])
+logger = logging.getLogger(__name__)
 
-_chain = EvidenceChain()
+router = APIRouter(
+    prefix="/api/v1/evidence-chain",
+    tags=["evidence-chain"],
+    dependencies=[Depends(api_key_auth)],
+)
 
-
-# ---------------------------------------------------------------------------
-# Request / response models
-# ---------------------------------------------------------------------------
-
-
-class AppendRequest(BaseModel):
-    """Request body for appending a new evidence entry."""
-
-    event_type: str = Field(..., min_length=1, description="Type of security event")
-    data: Dict[str, Any] = Field(default_factory=dict, description="Event payload")
-
-
-class ChainEntryResponse(BaseModel):
-    """Single chain entry serialisation."""
-
-    id: str
-    sequence_number: int
-    event_type: str
-    data_hash: str
-    previous_hash: str
-    timestamp: str
-    signature: str
-    org_id: str
-
-
-class VerifyResponse(BaseModel):
-    org_id: str
-    chain_length: int
-    is_valid: bool
-    broken_links: List[int]
-    invalid_signatures: List[int]
-    verified_at: str
-
-
-class StatsResponse(BaseModel):
-    org_id: str
-    length: int
-    first_timestamp: Optional[str]
-    last_timestamp: Optional[str]
-    integrity_status: str
+_engine = EvidenceChainEngine()
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Request models
 # ---------------------------------------------------------------------------
 
 
-@router.post("/append", response_model=ChainEntryResponse, status_code=201)
-async def append_entry(
-    body: AppendRequest,
-    org_id: str = Depends(get_org_id),
-):
-    """Append a new event to the tamper-proof evidence chain.
-
-    Each entry is linked to the previous via SHA-256 (blockchain-style)
-    and signed with HMAC-SHA-256.
-    """
-    entry = _chain.append(event_type=body.event_type, data=body.data, org_id=org_id)
-    return ChainEntryResponse(
-        id=entry.id,
-        sequence_number=entry.sequence_number,
-        event_type=entry.event_type,
-        data_hash=entry.data_hash,
-        previous_hash=entry.previous_hash,
-        timestamp=entry.timestamp.isoformat(),
-        signature=entry.signature,
-        org_id=entry.org_id,
-    )
+class CaseIn(BaseModel):
+    case_number: str = ""
+    case_title: str = ""
+    case_type: str = "internal"
+    investigator: str = ""
+    created_at: Optional[str] = None
 
 
-@router.get("/verify", response_model=VerifyResponse)
-async def verify_chain(org_id: str = Depends(get_org_id)):
-    """Verify the integrity of the entire evidence chain for this org.
-
-    Re-derives all hash links and validates HMAC signatures.
-    Returns broken link positions and invalid signature positions.
-    """
-    result = _chain.verify_chain(org_id)
-    return VerifyResponse(**result)
+class CloseIn(BaseModel):
+    closed_by: str = ""
+    outcome: str = ""
 
 
-@router.get("/entries", response_model=List[ChainEntryResponse])
-async def get_chain(
-    org_id: str = Depends(get_org_id),
-    start: int = Query(0, ge=0, description="Start sequence number (inclusive)"),
-    end: Optional[int] = Query(None, ge=0, description="End sequence number (inclusive)"),
-):
-    """Retrieve a segment of the evidence chain by sequence number range."""
-    entries = _chain.get_chain(org_id=org_id, start=start, end=end)
-    return [
-        ChainEntryResponse(
-            id=e.id,
-            sequence_number=e.sequence_number,
-            event_type=e.event_type,
-            data_hash=e.data_hash,
-            previous_hash=e.previous_hash,
-            timestamp=e.timestamp.isoformat(),
-            signature=e.signature,
-            org_id=e.org_id,
-        )
-        for e in entries
-    ]
+class EvidenceIn(BaseModel):
+    evidence_type: str = "file"
+    filename: str = ""
+    hash_md5: str = ""
+    hash_sha256: str = ""
+    size_bytes: int = 0
+    collected_by: str = ""
+    collection_method: str = ""
+    storage_location: str = ""
 
 
-@router.get("/latest", response_model=ChainEntryResponse)
-async def get_latest(org_id: str = Depends(get_org_id)):
-    """Return the most recent entry in the evidence chain."""
-    entry = _chain.get_latest(org_id)
-    if entry is None:
-        raise HTTPException(status_code=404, detail="No entries in chain for this org")
-    return ChainEntryResponse(
-        id=entry.id,
-        sequence_number=entry.sequence_number,
-        event_type=entry.event_type,
-        data_hash=entry.data_hash,
-        previous_hash=entry.previous_hash,
-        timestamp=entry.timestamp.isoformat(),
-        signature=entry.signature,
-        org_id=entry.org_id,
-    )
+class TransferIn(BaseModel):
+    from_person: str = ""
+    to_person: str = ""
+    transfer_reason: str = ""
+    location_change: str = ""
 
 
-@router.get("/export")
-async def export_chain(org_id: str = Depends(get_org_id)):
-    """Export the full evidence chain as JSON for external audit."""
-    from fastapi.responses import Response
-
-    chain_data = _chain.export_chain(org_id)
-    payload = json.dumps(
-        {
-            "org_id": org_id,
-            "exported_at": datetime.utcnow().isoformat() + "Z",
-            "entry_count": len(chain_data),
-            "chain": chain_data,
-        },
-        indent=2,
-    )
-    return Response(
-        content=payload,
-        media_type="application/json",
-        headers={
-            "Content-Disposition": f"attachment; filename=evidence_chain_{org_id}.json"
-        },
-    )
+class SealIn(BaseModel):
+    sealed_by: str = ""
 
 
-@router.get("/stats", response_model=StatsResponse)
-async def get_stats(org_id: str = Depends(get_org_id)):
-    """Return summary statistics for the evidence chain: length, timestamps, integrity."""
-    stats = _chain.get_chain_stats(org_id)
-    return StatsResponse(**stats)
+# ---------------------------------------------------------------------------
+# Cases
+# ---------------------------------------------------------------------------
+
+
+@router.get("/cases")
+def list_cases(
+    org_id: str = Query("default"),
+    status: Optional[str] = Query(None),
+) -> List[Dict[str, Any]]:
+    """List all investigation cases for an org."""
+    try:
+        return _engine.list_cases(org_id, status=status)
+    except Exception as exc:
+        logger.exception("list_cases failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/cases", status_code=201)
+def create_case(
+    payload: CaseIn,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Create a new investigation case."""
+    try:
+        return _engine.create_case(org_id, payload.model_dump(exclude_none=True))
+    except Exception as exc:
+        logger.exception("create_case failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/cases/{case_id}")
+def get_case(
+    case_id: str,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Get a single investigation case."""
+    try:
+        result = _engine._get_case(org_id, case_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("get_case failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/cases/{case_id}/close")
+def close_case(
+    case_id: str,
+    payload: CloseIn,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Close a case with outcome."""
+    try:
+        result = _engine.close_case(org_id, case_id, payload.closed_by, payload.outcome)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("close_case failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Evidence
+# ---------------------------------------------------------------------------
+
+
+@router.get("/cases/{case_id}/evidence")
+def list_evidence(
+    case_id: str,
+    org_id: str = Query("default"),
+) -> List[Dict[str, Any]]:
+    """List all evidence items for a case."""
+    try:
+        return _engine.list_evidence(org_id, case_id)
+    except Exception as exc:
+        logger.exception("list_evidence failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/cases/{case_id}/evidence", status_code=201)
+def add_evidence(
+    case_id: str,
+    payload: EvidenceIn,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Add an evidence item to a case."""
+    try:
+        return _engine.add_evidence(org_id, case_id, payload.model_dump())
+    except Exception as exc:
+        logger.exception("add_evidence failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Chain of Custody
+# ---------------------------------------------------------------------------
+
+
+@router.get("/evidence/{evidence_id}/custody")
+def get_custody_chain(
+    evidence_id: str,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Get the complete chain of custody for an evidence item."""
+    try:
+        result = _engine.get_custody_chain(org_id, evidence_id)
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("get_custody_chain failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/evidence/{evidence_id}/custody", status_code=201)
+def transfer_custody(
+    evidence_id: str,
+    payload: TransferIn,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Record a custody transfer for an evidence item."""
+    try:
+        result = _engine.transfer_custody(org_id, evidence_id, payload.model_dump())
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("transfer_custody failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/evidence/{evidence_id}/seal")
+def seal_evidence(
+    evidence_id: str,
+    payload: SealIn,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Seal evidence to prevent further custody transfers."""
+    try:
+        result = _engine.seal_evidence(org_id, evidence_id, payload.sealed_by)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("seal_evidence failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/evidence/{evidence_id}/verify")
+def verify_integrity(
+    evidence_id: str,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Verify hash consistency and chain integrity for an evidence item."""
+    try:
+        return _engine.verify_integrity(org_id, evidence_id)
+    except Exception as exc:
+        logger.exception("verify_integrity failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stats")
+def get_stats(
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Return evidence statistics for an org."""
+    try:
+        return _engine.get_evidence_stats(org_id)
+    except Exception as exc:
+        logger.exception("get_evidence_stats failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

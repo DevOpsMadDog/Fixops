@@ -6376,6 +6376,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.data_retention_router import router as data_retention_router
+        app.include_router(data_retention_router)
+        _logger.info("Mounted Data Retention router at /api/v1/data-retention")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.evidence_chain_router import router as evidence_chain_router
+        app.include_router(evidence_chain_router)
+        _logger.info("Mounted Evidence Chain router at /api/v1/evidence-chain")
+    except ImportError:
+        pass
+
     return app
 
 
