@@ -15,15 +15,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -131,9 +127,9 @@ export default function WatchlistManager() {
   const fetchData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/ioc-enrichment/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/ioc-enrichment/iocs?org_id=${ORG_ID}&limit=50`),
-      apiFetch(`/api/v1/threat-actors?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/ioc-enrichment/stats?org_id=${ORG_ID}`),
+      apiFetch(`/ioc-enrichment/iocs?org_id=${ORG_ID}&limit=50`),
+      apiFetch(`/threat-actors?org_id=${ORG_ID}&limit=20`),
     ]).then(([statsResult, iocsResult, actorsResult]) => {
       const stats   = statsResult.status   === "fulfilled" ? statsResult.value   : null;
       const iocs    = iocsResult.status    === "fulfilled" ? iocsResult.value    : null;

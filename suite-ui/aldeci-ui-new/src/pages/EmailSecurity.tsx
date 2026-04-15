@@ -17,15 +17,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -290,17 +286,36 @@ export default function EmailSecurity() {
 
   useEffect(() => {
     Promise.allSettled([
-      apiFetch(`/api/v1/email-security/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/email-security/threats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/email-security/dmarc-reports?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/email-security/domains?org_id=${ORG_ID}`),
-    ]).then(([statsRes, threatsRes, reportsRes, domainsRes]) => {
-      const stats   = statsRes.status   === "fulfilled" ? statsRes.value   : null;
-      const threats = threatsRes.status === "fulfilled" ? threatsRes.value : null;
-      const reports = reportsRes.status === "fulfilled" ? reportsRes.value : null;
-      const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
-      if (stats || threats || reports || domains) {
-        setLiveData({ stats, threats, reports, domains });
+      apiFetch(`/threat-feeds/stats?org_id=${ORG_ID}`),
+      apiFetch(`/threat-feeds/items?org_id=${ORG_ID}&feed_type=phishing&limit=20`),
+    ]).then(([statsRes, itemsRes]) => {
+      const feedStats = statsRes.status === "fulfilled" ? statsRes.value : null;
+      const feedItems = itemsRes.status === "fulfilled" ? itemsRes.value : null;
+      // Map threat-feed shape to what the template expects
+      const stats = feedStats
+        ? {
+            dmarc_pass_rate: feedStats.feed_health_pct ?? null,
+            blocked_count:   feedStats.total_items ?? feedStats.total ?? null,
+            spoofing_count:  feedStats.by_type?.spoofing ?? null,
+            total_volume:    feedStats.total_items ?? null,
+          }
+        : null;
+      const items = Array.isArray(feedItems)
+        ? feedItems
+        : (Array.isArray(feedItems?.items) ? feedItems.items : null);
+      const threats = items
+        ? items.map((item: any) => ({
+            id:             item.id ?? item.ioc_id,
+            timestamp:      item.last_seen ?? item.created_at ?? "",
+            from_address:   item.value ?? item.indicator ?? "",
+            subject_preview: item.description ?? item.title ?? "",
+            threat_type:    item.feed_type === "phishing" ? "Phishing" : (item.threat_type ?? "Phishing"),
+            action_taken:   item.status === "blocked" ? "Blocked" : (item.status === "quarantined" ? "Quarantined" : "Blocked"),
+            similarity:     item.confidence != null ? `${item.confidence}%` : "—",
+          }))
+        : null;
+      if (stats || threats) {
+        setLiveData({ stats, threats, reports: null, domains: null });
       }
     });
   }, []);

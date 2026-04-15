@@ -15,12 +15,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY  = import.meta.env.VITE_API_KEY  || "dev-key";
-const ORG_ID   = "aldeci-demo";
+const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID  = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -119,9 +118,9 @@ export default function SocialEngineering() {
   const loadData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/phishing/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/phishing/campaigns?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/phishing/templates?org_id=${ORG_ID}`),
+      apiFetch(`/phishing/stats?org_id=${ORG_ID}`),
+      apiFetch(`/phishing/campaigns?org_id=${ORG_ID}`),
+      apiFetch(`/phishing/templates?org_id=${ORG_ID}`),
     ]).then(([statsRes, campaignsRes, templatesRes]) => {
       const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
       const campaigns = campaignsRes.status === "fulfilled" ? campaignsRes.value : null;

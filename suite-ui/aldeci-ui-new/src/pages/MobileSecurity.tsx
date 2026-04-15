@@ -16,15 +16,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -159,15 +155,38 @@ export default function MobileSecurity() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/mobile-security/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/mobile-security/devices?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/mobile-security/threats?org_id=${ORG_ID}`),
-    ]).then(([statsRes, devicesRes, threatsRes]) => {
-      const stats   = statsRes.status   === "fulfilled" ? statsRes.value   : null;
-      const devices = devicesRes.status === "fulfilled" ? devicesRes.value : null;
-      const threats = threatsRes.status === "fulfilled" ? threatsRes.value : null;
-      if (stats || devices || threats) {
-        setLiveData({ stats, devices, threats });
+      apiFetch(`/edr/stats?org_id=${ORG_ID}`),
+      apiFetch(`/edr/endpoints?org_id=${ORG_ID}&endpoint_type=mobile&limit=20`),
+    ]).then(([statsRes, endpointsRes]) => {
+      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const endpoints = endpointsRes.status === "fulfilled" ? endpointsRes.value : null;
+      // Map EDR endpoint shape to the device shape the template expects
+      const devices = endpoints
+        ? {
+            count: endpoints.total ?? (Array.isArray(endpoints.endpoints) ? endpoints.endpoints.length : 0),
+            devices: (Array.isArray(endpoints.endpoints) ? endpoints.endpoints : (Array.isArray(endpoints) ? endpoints : [])).map((e: any) => ({
+              id: e.endpoint_id ?? e.id,
+              device_name: e.hostname ?? e.device_name ?? e.name,
+              platform: e.os_type ?? e.platform ?? "Unknown",
+              os_version: e.os_version ?? "—",
+              enrollment_status: e.enrollment_status ?? (e.is_managed ? "enrolled" : "pending"),
+              compliance_status: e.compliance_status ?? (e.is_compliant ? "compliant" : "non_compliant"),
+              risk_score: e.risk_score ?? 0,
+              last_checkin: e.last_seen ?? e.last_checkin ?? "—",
+            })),
+          }
+        : null;
+      // Map EDR stats to mobile stats shape
+      const mobileStats = stats
+        ? {
+            total_devices:   stats.total_endpoints ?? stats.total ?? 0,
+            enrolled_count:  stats.managed_count   ?? stats.enrolled ?? 0,
+            compliant_count: stats.compliant_count  ?? 0,
+            active_threats:  stats.alert_count      ?? stats.active_threats ?? 0,
+          }
+        : null;
+      if (mobileStats || devices) {
+        setLiveData({ stats: mobileStats, devices, threats: null });
       }
     }).finally(() => setDataLoading(false));
   }, []);

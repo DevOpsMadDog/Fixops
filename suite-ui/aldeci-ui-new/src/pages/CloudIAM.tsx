@@ -34,12 +34,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
+const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
@@ -233,50 +232,53 @@ export default function CloudIAM() {
   const [activeProvider, setActiveProvider] = useState<"All" | Provider>("All");
   const [liveStats, setLiveStats] = useState<{ total: number; critical: number; high: number } | null>(null);
 
-  // Fetch CIEM risks and derive principals + stats
-  const { data: ciemRisks } = useQuery<any[]>({
-    queryKey: ["ciem-risks"],
-    queryFn: () => apiFetch(`/api/v1/ciem/risks?limit=200`),
+  // Fetch identity analytics sessions and stats
+  const { data: iaSessions } = useQuery<any>({
+    queryKey: ["identity-analytics-sessions"],
+    queryFn: () => apiFetch(`/identity-analytics/sessions?org_id=${ORG_ID}&limit=20`),
     retry: false,
   });
 
-  // Derive principals from CIEM risks (group by principal)
-  const principalsFromRisks: Principal[] = (() => {
-    if (!ciemRisks || ciemRisks.length === 0) return MOCK_PRINCIPALS;
-    const byPrincipal = new Map<string, any[]>();
-    for (const r of ciemRisks) {
-      const key = r.principal ?? "unknown";
-      if (!byPrincipal.has(key)) byPrincipal.set(key, []);
-      byPrincipal.get(key)!.push(r);
-    }
-    return Array.from(byPrincipal.entries()).map(([name, risks], idx) => {
-      const maxSev = risks.some(r => r.severity === "critical") ? "critical"
-        : risks.some(r => r.severity === "high") ? "high"
-        : risks.some(r => r.severity === "medium") ? "medium" : "low";
+  const { data: iaStats } = useQuery<any>({
+    queryKey: ["identity-analytics-stats"],
+    queryFn: () => apiFetch(`/identity-analytics/stats?org_id=${ORG_ID}`),
+    retry: false,
+  });
+
+  // Derive principals from identity analytics sessions
+  const principalsFromSessions: Principal[] = (() => {
+    const sessions = Array.isArray(iaSessions) ? iaSessions : (iaSessions?.sessions ?? []);
+    if (!sessions.length) return MOCK_PRINCIPALS;
+    return sessions.slice(0, 10).map((s: any, idx: number) => {
+      const riskScore = s.risk_score ?? s.anomaly_score ?? 50;
+      const riskLevel: RiskLevel = riskScore >= 80 ? "critical" : riskScore >= 60 ? "high" : riskScore >= 40 ? "medium" : "low";
       return {
         id: String(idx + 1),
-        principal_name: name,
+        principal_name: s.user_id ?? s.username ?? s.principal ?? "unknown",
         principal_type: "User" as PrincipalType,
         provider: "AWS" as Provider,
-        last_activity: "—",
-        permissions_count: risks.length * 10,
-        unused_permissions_pct: Math.min(95, risks.length * 15),
-        risk_score: maxSev === "critical" ? 90 + idx : maxSev === "high" ? 70 + idx : 40 + idx,
-        risk_level: maxSev as RiskLevel,
+        last_activity: s.last_seen ?? s.timestamp ?? "—",
+        permissions_count: s.event_count ?? s.actions ?? 0,
+        unused_permissions_pct: s.unused_pct ?? 0,
+        risk_score: riskScore,
+        risk_level: riskLevel,
       };
-    }).sort((a, b) => b.risk_score - a.risk_score).slice(0, 10);
+    });
   })();
 
-  // Compute live stats from risks
+  // Compute live stats from identity analytics
   useEffect(() => {
-    if (!ciemRisks) return;
-    const uniquePrincipals = new Set(ciemRisks.map(r => r.principal)).size;
-    const critical = ciemRisks.filter(r => r.severity === "critical").length;
-    const high = ciemRisks.filter(r => r.severity === "high").length;
-    setLiveStats({ total: uniquePrincipals || ciemRisks.length, critical, high });
-  }, [ciemRisks]);
+    if (!iaStats) return;
+    setLiveStats({
+      total: iaStats.total_users ?? iaStats.user_count ?? iaStats.total ?? 0,
+      critical: iaStats.high_risk_count ?? iaStats.critical ?? 0,
+      high: iaStats.medium_risk_count ?? iaStats.high ?? 0,
+    });
+  }, [iaStats]);
 
-  const principals = principalsFromRisks.length > 0 ? principalsFromRisks : MOCK_PRINCIPALS;
+  const principals = principalsFromSessions.length > 0 && principalsFromSessions[0].principal_name !== "unknown"
+    ? principalsFromSessions
+    : MOCK_PRINCIPALS;
   const filtered = activeProvider === "All" ? principals : principals.filter(p => p.provider === activeProvider);
 
   return (
