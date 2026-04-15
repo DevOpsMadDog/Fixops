@@ -6488,6 +6488,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.firewall_policy_router import router as firewall_policy_router
+        app.include_router(firewall_policy_router)
+        _logger.info("Mounted Firewall Policy router at /api/v1/firewall-policy")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.network_segmentation_router import router as network_segmentation_router
+        app.include_router(network_segmentation_router)
+        _logger.info("Mounted Network Segmentation router at /api/v1/network-segmentation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.crypto_key_management_router import router as crypto_key_management_router
+        app.include_router(crypto_key_management_router)
+        _logger.info("Mounted Crypto Key Management router at /api/v1/crypto-keys")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.certificate_lifecycle_router import router as certificate_lifecycle_router
+        app.include_router(certificate_lifecycle_router)
+        _logger.info("Mounted Certificate Lifecycle router at /api/v1/certificates")
+    except ImportError:
+        pass
+
     return app
 
 
