@@ -238,6 +238,11 @@ const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsD
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
 
+// Secret Scanner, TIP, Attack Surface dashboards (wave 9)
+const SecretScannerDashboard = lazy(() => import("@/pages/SecretScannerDashboard"));
+const ThreatIntelPlatformDashboard = lazy(() => import("@/pages/ThreatIntelPlatformDashboard"));
+const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard"));
+
 // AI Security Advisor
 const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
 
@@ -373,6 +378,11 @@ export default function App() {
             {/* DLP & API Abuse Detection */}
             <Route path="/dlp" element={<DLPDashboard />} />
             <Route path="/api-abuse" element={<APIAbuseDashboard />} />
+
+            {/* Secret Scanner, Threat Intel Platform, Attack Surface Dashboard */}
+            <Route path="/secret-scanner" element={<SecretScannerDashboard />} />
+            <Route path="/threat-intel-platform" element={<ThreatIntelPlatformDashboard />} />
+            <Route path="/attack-surface-dashboard" element={<AttackSurfaceDashboard />} />
 
             {/* New standalone pages */}
             <Route path="/threat-intel" element={<ThreatIntelDashboardPage />} />
