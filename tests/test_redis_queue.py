@@ -25,7 +25,33 @@ def q() -> RedisQueue:
     # Patch _REDIS_AVAILABLE so no connection is attempted
     original = rq_module._REDIS_AVAILABLE
     rq_module._REDIS_AVAILABLE = False
-    queue = RedisQueue(prefix="test:queue")
+    queue = RedisQueue(prefix="test:queue", org_id="test-org")
+    queue.clear()
+    yield queue
+    rq_module._REDIS_AVAILABLE = original
+
+
+@pytest.fixture()
+def q_org_a() -> RedisQueue:
+    """RedisQueue scoped to org_a."""
+    import core.redis_queue as rq_module
+
+    original = rq_module._REDIS_AVAILABLE
+    rq_module._REDIS_AVAILABLE = False
+    queue = RedisQueue(prefix="test:queue", org_id="org_a")
+    queue.clear()
+    yield queue
+    rq_module._REDIS_AVAILABLE = original
+
+
+@pytest.fixture()
+def q_org_b() -> RedisQueue:
+    """RedisQueue scoped to org_b."""
+    import core.redis_queue as rq_module
+
+    original = rq_module._REDIS_AVAILABLE
+    rq_module._REDIS_AVAILABLE = False
+    queue = RedisQueue(prefix="test:queue", org_id="org_b")
     queue.clear()
     yield queue
     rq_module._REDIS_AVAILABLE = original
@@ -242,3 +268,79 @@ def test_workers_returns_int_gte_1(q: RedisQueue) -> None:
     w = q.workers()
     assert isinstance(w, int)
     assert w >= 1
+
+
+# ---------------------------------------------------------------------------
+# Multi-tenant isolation
+# ---------------------------------------------------------------------------
+
+
+def test_org_isolation_enqueue_dequeue(q_org_a: RedisQueue, q_org_b: RedisQueue) -> None:
+    """Tasks enqueued for org_a must not be visible to org_b and vice versa."""
+    q_org_a.enqueue({"job": "scan_a", "org_id": "org_a"})
+    q_org_b.enqueue({"job": "scan_b", "org_id": "org_b"})
+
+    task_a = q_org_a.dequeue()
+    task_b = q_org_b.dequeue()
+
+    assert task_a is not None
+    assert task_a["job"] == "scan_a"
+    assert task_a["org_id"] == "org_a"
+
+    assert task_b is not None
+    assert task_b["job"] == "scan_b"
+    assert task_b["org_id"] == "org_b"
+
+    # Both queues should now be empty — no cross-contamination
+    assert q_org_a.dequeue() is None
+    assert q_org_b.dequeue() is None
+
+
+def test_org_isolation_depth_is_independent(q_org_a: RedisQueue, q_org_b: RedisQueue) -> None:
+    """depth() for each org reflects only that org's tasks."""
+    for _ in range(3):
+        q_org_a.enqueue({"job": "task"})
+    for _ in range(7):
+        q_org_b.enqueue({"job": "task"})
+
+    assert q_org_a.depth() == 3
+    assert q_org_b.depth() == 7
+
+    # Draining org_a does not affect org_b
+    q_org_a.clear()
+    assert q_org_a.depth() == 0
+    assert q_org_b.depth() == 7
+
+
+def test_org_isolation_clear_does_not_affect_other_org(
+    q_org_a: RedisQueue, q_org_b: RedisQueue
+) -> None:
+    """clear() on one org must not remove tasks belonging to another org."""
+    q_org_a.enqueue({"job": "important"})
+    q_org_b.enqueue({"job": "keep_me"})
+
+    cleared = q_org_a.clear()
+    assert cleared == 1
+    assert q_org_a.depth() == 0
+
+    # org_b task must still be present
+    task = q_org_b.dequeue()
+    assert task is not None
+    assert task["job"] == "keep_me"
+
+
+def test_task_org_id_in_payload_overrides_queue_org_id(q_org_a: RedisQueue) -> None:
+    """When a task dict carries its own org_id, that value is used for routing."""
+    task_id = q_org_a.enqueue({"job": "routed", "org_id": "org_a"})
+    task = q_org_a.dequeue()
+    assert task is not None
+    assert task["task_id"] == task_id
+    assert task["org_id"] == "org_a"
+
+
+def test_default_org_id_used_when_task_has_none(q: RedisQueue) -> None:
+    """When a task dict has no org_id, the queue's own org_id is injected."""
+    q.enqueue({"job": "no_org"})
+    task = q.dequeue()
+    assert task is not None
+    assert task["org_id"] == "test-org"
