@@ -117,10 +117,12 @@ const InsiderThreatMonitor = lazy(() => import("@/pages/InsiderThreatMonitor"));
 const SecurityKPIDashboard = lazy(() => import("@/pages/SecurityKPIDashboard"));
 const VendorRiskDashboard = lazy(() => import("@/pages/VendorRiskDashboard"));
 const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
+const ZeroTrustDashboard = lazy(() => import("@/pages/ZeroTrustDashboard"));
 const PatchPrioritizer = lazy(() => import("@/pages/PatchPrioritizer"));
 const CVESearch = lazy(() => import("@/pages/CVESearch"));
 const IPReputation = lazy(() => import("@/pages/IPReputation"));
 const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
+const SupplyChainSecurity = lazy(() => import("@/pages/SupplyChainSecurity"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -257,9 +259,11 @@ export default function App() {
             <Route path="/insider-threats" element={<InsiderThreatMonitor />} />
             <Route path="/security-kpis" element={<SecurityKPIDashboard />} />
             <Route path="/posture-advisor" element={<PostureAdvisor />} />
+            <Route path="/patch-prioritizer" element={<PatchPrioritizer />} />
             <Route path="/vendor-risk" element={<VendorRiskDashboard />} />
             <Route path="/cve-search" element={<CVESearch />} />
             <Route path="/ip-reputation" element={<IPReputation />} />
+            <Route path="/secrets-rotation" element={<SecretsRotation />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
