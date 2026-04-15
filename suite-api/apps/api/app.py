@@ -7196,6 +7196,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 27 routers
+    try:
+        from apps.api.alert_triage_router import router as alert_triage_router
+        app.include_router(alert_triage_router)
+        _logger.info("Mounted Alert Triage router at /api/v1/alert-triage")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_awareness_metrics_router import router as security_awareness_metrics_router
+        app.include_router(security_awareness_metrics_router)
+        _logger.info("Mounted Security Awareness Metrics router at /api/v1/awareness-metrics")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.patch_management_router import router as patch_management_router
+        app.include_router(patch_management_router)
+        _logger.info("Mounted Patch Management router at /api/v1/patch-management")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.container_security_posture_router import router as container_security_posture_router
+        app.include_router(container_security_posture_router)
+        _logger.info("Mounted Container Security Posture router at /api/v1/container-posture")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cyber_threat_intelligence_router import router as cyber_threat_intelligence_router
+        app.include_router(cyber_threat_intelligence_router)
+        _logger.info("Mounted Cyber Threat Intelligence router at /api/v1/cyber-threat-intel")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.digital_twin_security_router import router as digital_twin_security_router
+        app.include_router(digital_twin_security_router)
+        _logger.info("Mounted Digital Twin Security router at /api/v1/digital-twin")
+    except ImportError:
+        pass
+
     return app
 
 

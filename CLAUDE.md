@@ -661,6 +661,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 26 — Autonomous parallel build)
+
+**Wave 26 New Backend Engines:**
+- ✅ compliance_automation_engine.py — ComplianceAutomation (job lifecycle, control results, pass-rate stats) — 47 tests
+- ✅ threat_attribution_engine.py — ThreatAttribution (actors, attributions, indicators, nation-state count) — 54 tests
+- ✅ cloud_access_security_engine.py — CloudAccessSecurity (SaaS/PaaS apps, access events, policies, unique users) — 33 tests
+- ✅ behavioral_analytics_engine.py — BehavioralAnalytics (UNIQUE baselines upsert, anomalies, user risk profile) — 33 tests
+- ✅ vulnerability_workflow_engine.py — VulnWorkflow (SLA tiers p1-p4, overdue detection, comment threading) — 45 tests
+- ✅ security_data_pipeline_engine.py — SecurityDataPipeline (8 source types, records_processed counter, error_rate) — 38 tests
+
+**Wave 26 Routers wired:** /api/v1/compliance-automation, /api/v1/threat-attribution, /api/v1/cloud-access-security, /api/v1/behavioral-analytics, /api/v1/vuln-workflow, /api/v1/data-pipeline
+
+**Wave 26 Frontend Pages (Wave 25 domains):**
+- ✅ ThreatDeceptionDashboard (/threat-deception), PostureScoringDashboard (/posture-scoring)
+- ✅ CloudPostureDashboard (/cloud-posture), APIThreatProtectionDashboard (/api-threat-protection)
+- ✅ RiskRegisterDashboard (/risk-register-engine), ChangeManagementDashboard (/change-management)
+
+**Engine total: 254+ engines | Router total: 484+ routers | Test total: 5,086+ tests | Frontend: 206+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
