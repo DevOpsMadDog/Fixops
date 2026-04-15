@@ -391,6 +391,14 @@ const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
 
+// Wave 32 domain dashboards
+const ComplianceWorkflowDashboard = lazy(() => import("@/pages/ComplianceWorkflowDashboard"));
+const ThreatLandscapeDashboard = lazy(() => import("@/pages/ThreatLandscapeDashboard"));
+const PostureTrendsDashboard = lazy(() => import("@/pages/PostureTrendsDashboard"));
+const AccessGovernanceDashboard = lazy(() => import("@/pages/AccessGovernanceDashboard"));
+const NetworkThreatsDashboard = lazy(() => import("@/pages/NetworkThreatsDashboard"));
+const IncidentKBDashboard = lazy(() => import("@/pages/IncidentKBDashboard"));
+
 // Wave 31 domain dashboards
 const UserAccessReviewDashboard = lazy(() => import("@/pages/UserAccessReviewDashboard"));
 const PostureHistoryDashboard = lazy(() => import("@/pages/PostureHistoryDashboard"));
@@ -794,6 +802,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 32 domain dashboards */}
+            <Route path="/compliance-workflows" element={<ComplianceWorkflowDashboard />} />
+            <Route path="/threat-landscape" element={<ThreatLandscapeDashboard />} />
+            <Route path="/posture-trends" element={<PostureTrendsDashboard />} />
+            <Route path="/access-governance" element={<AccessGovernanceDashboard />} />
+            <Route path="/network-threats" element={<NetworkThreatsDashboard />} />
+            <Route path="/incident-kb" element={<IncidentKBDashboard />} />
 
             {/* Wave 31 domain dashboards */}
             <Route path="/access-reviews" element={<UserAccessReviewDashboard />} />
