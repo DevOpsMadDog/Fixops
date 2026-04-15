@@ -306,12 +306,26 @@ const MATRIX_DOTS: { l: number; i: number; label: string }[] = [
 // ═══════════════════════════════════════════════════════════
 
 async function fetchRisks(): Promise<Risk[]> {
-  const res = await fetch(`${API_BASE}/api/v1/risk-quantification/risks?org_id=${ORG_ID}&limit=20`, {
+  // GET /api/v1/risks — risk_register_router (prefix /api/v1/risks)
+  const res = await fetch(`${API_BASE}/api/v1/risks?org_id=${ORG_ID}&limit=50`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) ? data : (data.risks ?? data.items ?? MOCK_RISKS);
+  // Router returns array of Risk model_dump(); normalise field names to UI shape
+  const raw: any[] = Array.isArray(data) ? data : (data.risks ?? data.items ?? []);
+  if (raw.length === 0) return MOCK_RISKS;
+  return raw.map((r: any): Risk => ({
+    risk_id:    r.risk_id    ?? r.id     ?? "RSK-???",
+    risk_title: r.risk_title ?? r.title  ?? "Unknown Risk",
+    category:   r.category               ?? "Technical",
+    likelihood: r.likelihood             ?? 3,
+    impact:     r.impact                 ?? 3,
+    risk_score: r.risk_score ?? (r.likelihood ?? 3) * (r.impact ?? 3),
+    owner:      r.owner                  ?? "",
+    status:     r.status                 ?? "Open",
+    due_date:   r.due_date ?? r.target_date ?? "",
+  }));
 }
 
 // ═══════════════════════════════════════════════════════════

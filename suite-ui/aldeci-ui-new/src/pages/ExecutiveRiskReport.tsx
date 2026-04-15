@@ -449,11 +449,34 @@ export default function ExecutiveRiskReport() {
     queryKey: ["executive-report-summary"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/executive-report/summary`, {
-          headers: { "X-API-Key": API_KEY },
-        });
+        // GET /api/v1/reports/executive — returns list sorted newest-first
+        const res = await fetch(
+          `${API_BASE}/api/v1/reports/executive?org_id=${ORG_ID}&limit=1`,
+          { headers: { "X-API-Key": API_KEY } },
+        );
         if (!res.ok) throw new Error("API error");
-        return res.json() as Promise<ExecutiveReportData>;
+        const list = await res.json();
+        // Router returns an array; take the first (most recent) report
+        const raw = Array.isArray(list) ? list[0] : list;
+        if (!raw) return MOCK_DATA;
+        // Map engine fields → UI shape (fall back to mock for any missing fields)
+        return {
+          ...MOCK_DATA,
+          current_month: raw.current_month ?? MOCK_DATA.current_month,
+          year: raw.year ?? MOCK_DATA.year,
+          overall_grade: raw.overall_grade ?? MOCK_DATA.overall_grade,
+          overall_grade_plus: raw.overall_grade_plus ?? raw.overall_grade ?? MOCK_DATA.overall_grade_plus,
+          overall_score: raw.overall_score ?? MOCK_DATA.overall_score,
+          previous_grade: raw.previous_grade ?? MOCK_DATA.previous_grade,
+          score_change: raw.score_change ?? MOCK_DATA.score_change,
+          summary_sentence: raw.summary_sentence ?? raw.executive_summary ?? MOCK_DATA.summary_sentence,
+          pillars: raw.pillars ?? MOCK_DATA.pillars,
+          business_risks: raw.business_risks ?? raw.top_risks ?? MOCK_DATA.business_risks,
+          quarterly_wins: raw.quarterly_wins ?? raw.wins ?? MOCK_DATA.quarterly_wins,
+          investment_recommendations: raw.investment_recommendations ?? raw.recommendations ?? MOCK_DATA.investment_recommendations,
+          quarterly_trend: raw.quarterly_trend ?? raw.trend ?? MOCK_DATA.quarterly_trend,
+          last_updated: raw.last_updated ?? raw.generated_at ?? MOCK_DATA.last_updated,
+        } as ExecutiveReportData;
       } catch {
         return MOCK_DATA;
       }
