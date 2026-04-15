@@ -7454,6 +7454,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 33 pre-wiring (engines pending creation)
+    try:
+        from apps.api.security_questionnaire_router import router as security_questionnaire_router
+        app.include_router(security_questionnaire_router)
+        _logger.info("Mounted Security Questionnaire router at /api/v1/security-questionnaires")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.risk_scenario_router import router as risk_scenario_router
+        app.include_router(risk_scenario_router)
+        _logger.info("Mounted Risk Scenario router at /api/v1/risk-scenarios")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_feed_subscription_router import router as threat_feed_subscription_router
+        app.include_router(threat_feed_subscription_router)
+        _logger.info("Mounted Threat Feed Subscription router at /api/v1/feed-subscriptions")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.asset_group_router import router as asset_group_router
+        app.include_router(asset_group_router)
+        _logger.info("Mounted Asset Group router at /api/v1/asset-groups")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_findings_router import router as security_findings_router
+        app.include_router(security_findings_router)
+        _logger.info("Mounted Security Findings router at /api/v1/security-findings")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.control_testing_router import router as control_testing_router
+        app.include_router(control_testing_router)
+        _logger.info("Mounted Control Testing router at /api/v1/control-testing")
+    except ImportError:
+        pass
+
     return app
 
 
