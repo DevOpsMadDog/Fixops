@@ -94,19 +94,33 @@ class SSOBridge:
         with self._conn() as conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS sso_providers (
-                    name          TEXT PRIMARY KEY,
+                    name          TEXT NOT NULL,
                     provider_type TEXT NOT NULL,
                     config        TEXT NOT NULL DEFAULT '{}',
-                    created_at    REAL NOT NULL
+                    created_at    REAL NOT NULL,
+                    org_id        TEXT NOT NULL DEFAULT 'default',
+                    PRIMARY KEY (name, org_id)
                 );
                 CREATE TABLE IF NOT EXISTS sso_sessions (
                     token         TEXT PRIMARY KEY,
                     user_json     TEXT NOT NULL,
-                    expires_at    REAL NOT NULL
+                    expires_at    REAL NOT NULL,
+                    org_id        TEXT NOT NULL DEFAULT 'default'
                 );
             """)
+        # Migration: add org_id column to pre-existing tables that lack it
+        for table in ("sso_providers", "sso_sessions"):
+            try:
+                with self._conn() as conn:
+                    conn.execute(
+                        f"ALTER TABLE {table} ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'"
+                    )
+            except Exception:
+                pass  # column already exists — expected on fresh or already-migrated DBs
 
-    def register_provider(self, name: str, provider_type: str, config: dict) -> dict:
+    def register_provider(
+        self, name: str, provider_type: str, config: dict, org_id: str = "default"
+    ) -> dict:
         """Register an SSO provider. provider_type: 'saml' or 'oidc'."""
         if provider_type not in ("saml", "oidc"):
             raise ValueError(f"Unsupported provider_type: {provider_type!r}")
@@ -114,19 +128,19 @@ class SSOBridge:
         with self._conn() as conn:
             conn.execute(
                 """
-                INSERT OR REPLACE INTO sso_providers (name, provider_type, config, created_at)
-                VALUES (?, ?, ?, ?)
+                INSERT OR REPLACE INTO sso_providers (name, provider_type, config, created_at, org_id)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (name, provider_type, json.dumps(config), now),
+                (name, provider_type, json.dumps(config), now, org_id),
             )
-        _logger.info("sso.provider_registered", name=name, type=provider_type)
-        return {"name": name, "type": provider_type, "config": config}
+        _logger.info("sso.provider_registered", name=name, type=provider_type, org_id=org_id)
+        return {"name": name, "type": provider_type, "config": config, "org_id": org_id}
 
-    def get_provider_config(self, provider_name: str) -> Optional[dict]:
-        """Return provider config by name, or None if not found."""
+    def get_provider_config(self, provider_name: str, org_id: str = "default") -> Optional[dict]:
+        """Return provider config by name and org_id, or None if not found."""
         row = self._conn().execute(
-            "SELECT name, provider_type, config FROM sso_providers WHERE name = ?",
-            (provider_name,),
+            "SELECT name, provider_type, config, org_id FROM sso_providers WHERE name = ? AND org_id = ?",
+            (provider_name, org_id),
         ).fetchone()
         if row is None:
             return None
@@ -134,15 +148,22 @@ class SSOBridge:
             "name": row["name"],
             "type": row["provider_type"],
             "config": json.loads(row["config"]),
+            "org_id": row["org_id"],
         }
 
-    def list_providers(self) -> list[dict]:
-        """List all configured providers."""
+    def list_providers(self, org_id: str = "default") -> list[dict]:
+        """List all configured providers for the given org."""
         rows = self._conn().execute(
-            "SELECT name, provider_type, config FROM sso_providers ORDER BY name"
+            "SELECT name, provider_type, config, org_id FROM sso_providers WHERE org_id = ? ORDER BY name",
+            (org_id,),
         ).fetchall()
         return [
-            {"name": r["name"], "type": r["provider_type"], "config": json.loads(r["config"])}
+            {
+                "name": r["name"],
+                "type": r["provider_type"],
+                "config": json.loads(r["config"]),
+                "org_id": r["org_id"],
+            }
             for r in rows
         ]
 
@@ -258,30 +279,40 @@ class SSOBridge:
         """Create ALDECI session for SSO user. Returns session token."""
         token = "sso_" + secrets.token_hex(24)
         expires_at = time.time() + _SESSION_TTL
+        org_id = user.org_id or "default"
         user_json = json.dumps({
             "user_id": user.user_id,
             "email": user.email,
             "roles": user.roles,
-            "org_id": user.org_id,
+            "org_id": org_id,
             "provider": user.provider,
             "raw_claims": user.raw_claims,
         })
         with self._conn() as conn:
             conn.execute(
-                "INSERT INTO sso_sessions (token, user_json, expires_at) VALUES (?, ?, ?)",
-                (token, user_json, expires_at),
+                "INSERT INTO sso_sessions (token, user_json, expires_at, org_id) VALUES (?, ?, ?, ?)",
+                (token, user_json, expires_at, org_id),
             )
-        _logger.info("sso.session_created", user_id=user.user_id)
+        _logger.info("sso.session_created", user_id=user.user_id, org_id=org_id)
         return token
 
-    def validate_session(self, session_token: str) -> Optional[SSOUser]:
-        """Return SSOUser for a valid session token, or None if invalid/expired."""
+    def validate_session(self, session_token: str, org_id: Optional[str] = None) -> Optional[SSOUser]:
+        """Return SSOUser for a valid session token, or None if invalid/expired.
+
+        If org_id is provided, the session must belong to that org.
+        """
         if not session_token:
             return None
-        row = self._conn().execute(
-            "SELECT user_json, expires_at FROM sso_sessions WHERE token = ?",
-            (session_token,),
-        ).fetchone()
+        if org_id is not None:
+            row = self._conn().execute(
+                "SELECT user_json, expires_at FROM sso_sessions WHERE token = ? AND org_id = ?",
+                (session_token, org_id),
+            ).fetchone()
+        else:
+            row = self._conn().execute(
+                "SELECT user_json, expires_at FROM sso_sessions WHERE token = ?",
+                (session_token,),
+            ).fetchone()
         if row is None:
             return None
         if time.time() > row["expires_at"]:
