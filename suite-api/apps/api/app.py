@@ -7024,6 +7024,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 23 routers
+    try:
+        from apps.api.threat_intelligence_automation_router import router as threat_intelligence_automation_router
+        app.include_router(threat_intelligence_automation_router)
+        _logger.info("Mounted Threat Intelligence Automation router at /api/v1/ti-automation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_metrics_aggregator_router import router as security_metrics_aggregator_router
+        app.include_router(security_metrics_aggregator_router)
+        _logger.info("Mounted Security Metrics Aggregator router at /api/v1/metrics-aggregator")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.endpoint_threat_hunting_router import router as endpoint_threat_hunting_router
+        app.include_router(endpoint_threat_hunting_router)
+        _logger.info("Mounted Endpoint Threat Hunting router at /api/v1/endpoint-hunting")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_security_analytics_router import router as cloud_security_analytics_router
+        app.include_router(cloud_security_analytics_router)
+        _logger.info("Mounted Cloud Security Analytics router at /api/v1/cloud-analytics")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.identity_risk_router import router as identity_risk_router
+        app.include_router(identity_risk_router)
+        _logger.info("Mounted Identity Risk router at /api/v1/identity-risk")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.operational_technology_security_router import router as operational_technology_security_router
+        app.include_router(operational_technology_security_router)
+        _logger.info("Mounted Operational Technology Security router at /api/v1/ot-sec")
+    except ImportError:
+        pass
+
     return app
 
 
