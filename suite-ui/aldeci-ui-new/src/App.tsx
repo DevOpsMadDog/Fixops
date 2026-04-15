@@ -310,6 +310,8 @@ export default function App() {
             <Route path="/playbooks" element={<PlaybookLibraryPage />} />
             <Route path="/bug-bounty" element={<BugBounty />} />
             <Route path="/cloud-iam" element={<CloudIAM />} />
+            <Route path="/email-security" element={<EmailSecurity />} />
+            <Route path="/sla-dashboard" element={<SLADashboardPage />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
