@@ -1,169 +1,169 @@
-"""IP Reputation API router.
+"""IP Reputation Router — ALDECI.
 
-Endpoints at /api/v1/reputation/* for tracking, scoring, and managing
-IP reputation records.
+IP reputation submission, bulk checking, and per-org blocklist management.
+
+Prefix: /api/v1/ip-reputation
+Auth: api_key_auth dependency
+
+Routes:
+  POST   /api/v1/ip-reputation/submit          submit_reputation
+  GET    /api/v1/ip-reputation/{ip}            get_reputation
+  POST   /api/v1/ip-reputation/bulk-check      bulk_check
+  POST   /api/v1/ip-reputation/blocklist       add_to_blocklist
+  DELETE /api/v1/ip-reputation/blocklist/{ip}  remove_from_blocklist
+  GET    /api/v1/ip-reputation/blocklist        get_blocklist
+  GET    /api/v1/ip-reputation/blocked/{ip}    is_blocked
+  GET    /api/v1/ip-reputation/stats           get_reputation_stats
 """
 
 from __future__ import annotations
 
-from typing import List, Optional
+import logging
+from typing import Any, Dict, List, Optional
 
-from apps.api.dependencies import get_org_id
-from core.ip_reputation import IPRecord, IPReputationEngine, ReputationLevel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/reputation", tags=["ip-reputation"])
-_engine = IPReputationEngine()
+from apps.api.auth_deps import api_key_auth
+
+_logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/v1/ip-reputation",
+    tags=["IP Reputation"],
+)
+
+_engine = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        from core.ip_reputation_engine import IPReputationEngine
+        _engine = IPReputationEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
-# Request / response models
+# Request models
 # ---------------------------------------------------------------------------
 
-
-class RecordIPRequest(BaseModel):
-    ip_address: str = Field(..., description="IPv4 or IPv6 address to record")
-    source: str = Field(..., min_length=1, description="Source of the sighting (e.g. 'scanner', 'threat_intel')")
+class SubmitReputationRequest(BaseModel):
+    org_id: str = Field(default="default", description="Organisation identifier")
+    ip: str = Field(..., description="IP address")
+    reputation_score: int = Field(
+        default=50, ge=0, le=100,
+        description="Reputation score 0-100 (lower = worse reputation)"
+    )
+    categories: List[str] = Field(
+        default_factory=list,
+        description="Threat categories: spam, botnet, proxy, tor, scanner, malware"
+    )
+    source: str = Field(default="", description="Data source / feed name")
 
 
 class BulkCheckRequest(BaseModel):
-    ips: List[str] = Field(..., min_items=1, max_items=500, description="List of IPs to score")
+    org_id: str = Field(default="default")
+    ips: List[str] = Field(..., description="List of IP addresses to check")
 
 
-class BlocklistAddRequest(BaseModel):
-    ip_address: str = Field(..., description="IP to block")
-    reason: str = Field(..., min_length=1, description="Reason for blocking")
-
-
-class EnrichResponse(BaseModel):
-    ip: str
-    country_code: Optional[str]
-    asn: Optional[str]
-    isp: Optional[str]
-    is_tor: bool
-    is_vpn: bool
-    is_datacenter: bool
-    enriched_at: str
-
-
-class StatsResponse(BaseModel):
-    total_tracked: int
-    by_level: dict
-    average_score: float
-    manual_blocklist_count: int
-    top_malicious: list
+class BlocklistRequest(BaseModel):
+    org_id: str = Field(default="default")
+    ip: str = Field(..., description="IP address to block")
+    reason: str = Field(default="", description="Reason for blocking")
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Routes
 # ---------------------------------------------------------------------------
 
-
-@router.post("/record", response_model=IPRecord, summary="Record an IP sighting")
-def record_ip(
-    body: RecordIPRequest,
-    org_id: str = Depends(get_org_id),
-) -> IPRecord:
-    """Record an IP sighting from any source and return its updated reputation."""
-    return _engine.record_ip(ip=body.ip_address, source=body.source, org_id=org_id)
-
-
-@router.get("/score/{ip}", response_model=IPRecord, summary="Score an IP address")
-def score_ip(
-    ip: str,
-    org_id: str = Depends(get_org_id),
-) -> IPRecord:
-    """Calculate (or recalculate) the reputation score for an IP address."""
-    return _engine.score_ip(ip=ip, org_id=org_id)
+@router.post("/submit", dependencies=[Depends(api_key_auth)])
+def submit_reputation(req: SubmitReputationRequest) -> Dict[str, Any]:
+    """Submit or update IP reputation data."""
+    try:
+        return _get_engine().submit_reputation(req.org_id, req.model_dump(exclude={"org_id"}))
+    except Exception as exc:
+        _logger.exception("submit_reputation failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/ip/{ip}", response_model=IPRecord, summary="Get stored IP record")
-def get_ip(
-    ip: str,
-    org_id: str = Depends(get_org_id),
-) -> IPRecord:
-    """Retrieve the stored reputation record for an IP without rescoring."""
-    record = _engine.get_ip(ip=ip, org_id=org_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail=f"IP {ip!r} not found for this org")
-    return record
+@router.get("/stats", dependencies=[Depends(api_key_auth)])
+def get_reputation_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Return aggregate IP reputation statistics for the org."""
+    try:
+        return _get_engine().get_reputation_stats(org_id)
+    except Exception as exc:
+        _logger.exception("get_reputation_stats failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/list", response_model=List[IPRecord], summary="List tracked IPs")
-def list_ips(
-    level: Optional[ReputationLevel] = Query(None, description="Filter by reputation level"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
-    org_id: str = Depends(get_org_id),
-) -> List[IPRecord]:
-    """List all tracked IPs for the org, optionally filtered by reputation level."""
-    return _engine.list_ips(org_id=org_id, level_filter=level, limit=limit)
+@router.get("/blocklist", dependencies=[Depends(api_key_auth)])
+def get_blocklist(
+    org_id: str = Query(default="default"),
+    limit: int = Query(default=100, ge=1, le=1000),
+) -> List[Dict[str, Any]]:
+    """Return the org IP blocklist."""
+    try:
+        return _get_engine().get_blocklist(org_id, limit)
+    except Exception as exc:
+        _logger.exception("get_blocklist failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/malicious", response_model=List[IPRecord], summary="List malicious IPs")
-def get_malicious(
-    org_id: str = Depends(get_org_id),
-) -> List[IPRecord]:
-    """Return all MALICIOUS and BLOCKLISTED IPs for the org."""
-    return _engine.get_malicious(org_id=org_id)
+@router.post("/bulk-check", dependencies=[Depends(api_key_auth)])
+def bulk_check(req: BulkCheckRequest) -> List[Dict[str, Any]]:
+    """Bulk check reputation scores for a list of IPs."""
+    try:
+        return _get_engine().bulk_check(req.org_id, req.ips)
+    except Exception as exc:
+        _logger.exception("bulk_check failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/check-blocklist/{ip}", summary="Check if IP is in built-in blocklist")
-def check_blocklist(ip: str) -> dict:
-    """Check whether an IP matches any built-in known-malicious CIDR range."""
-    is_blocked = _engine.check_blocklist(ip=ip)
-    return {"ip": ip, "in_blocklist": is_blocked}
+@router.post("/blocklist", dependencies=[Depends(api_key_auth)])
+def add_to_blocklist(req: BlocklistRequest) -> Dict[str, Any]:
+    """Add an IP to the org blocklist."""
+    try:
+        return _get_engine().add_to_blocklist(req.org_id, req.ip, req.reason)
+    except Exception as exc:
+        _logger.exception("add_to_blocklist failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/enrich/{ip}", response_model=EnrichResponse, summary="Enrich IP with geo/ASN/ISP data")
-def enrich_ip(ip: str) -> EnrichResponse:
-    """Return geo, ASN, and ISP enrichment data for an IP address."""
-    data = _engine.enrich_ip(ip=ip)
-    return EnrichResponse(**data)
-
-
-@router.get("/history/{ip}", summary="Get IP activity history")
-def get_ip_history(
-    ip: str,
-    org_id: str = Depends(get_org_id),
-) -> list:
-    """Return the full event history for an IP within the org."""
-    return _engine.get_ip_history(ip=ip, org_id=org_id)
-
-
-@router.post("/bulk-check", response_model=List[IPRecord], summary="Batch score multiple IPs")
-def bulk_check(
-    body: BulkCheckRequest,
-    org_id: str = Depends(get_org_id),
-) -> List[IPRecord]:
-    """Score multiple IP addresses in a single request."""
-    return _engine.bulk_check(ips=body.ips, org_id=org_id)
-
-
-@router.post("/blocklist/add", summary="Manually add IP to blocklist")
-def add_to_blocklist(
-    body: BlocklistAddRequest,
-    org_id: str = Depends(get_org_id),
-) -> dict:
-    """Add an IP to the manual org blocklist (forces BLOCKLISTED level)."""
-    _engine.add_to_blocklist(ip=body.ip_address, reason=body.reason, org_id=org_id)
-    return {"status": "blocked", "ip": body.ip_address, "reason": body.reason}
-
-
-@router.delete("/blocklist/remove/{ip}", summary="Remove IP from blocklist")
+@router.delete("/blocklist/{ip}", dependencies=[Depends(api_key_auth)])
 def remove_from_blocklist(
     ip: str,
-    org_id: str = Depends(get_org_id),
-) -> dict:
-    """Remove an IP from the manual org blocklist and rescore it."""
-    _engine.remove_from_blocklist(ip=ip, org_id=org_id)
-    return {"status": "unblocked", "ip": ip}
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Remove an IP from the org blocklist."""
+    try:
+        return _get_engine().remove_from_blocklist(org_id, ip)
+    except Exception as exc:
+        _logger.exception("remove_from_blocklist failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/stats", response_model=StatsResponse, summary="Get reputation statistics")
-def get_reputation_stats(
-    org_id: str = Depends(get_org_id),
-) -> StatsResponse:
-    """Return aggregate IP reputation statistics for the org."""
-    stats = _engine.get_reputation_stats(org_id=org_id)
-    return StatsResponse(**stats)
+@router.get("/blocked/{ip}", dependencies=[Depends(api_key_auth)])
+def is_blocked(ip: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Check if a specific IP is on the blocklist."""
+    try:
+        blocked = _get_engine().is_blocked(org_id, ip)
+        return {"ip": ip, "blocked": blocked}
+    except Exception as exc:
+        _logger.exception("is_blocked failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/{ip}", dependencies=[Depends(api_key_auth)])
+def get_reputation(ip: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Get reputation data for a single IP."""
+    try:
+        result = _get_engine().get_reputation(org_id, ip)
+        if not result:
+            raise HTTPException(status_code=404, detail=f"No reputation data for IP: {ip}")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _logger.exception("get_reputation failed")
+        raise HTTPException(status_code=500, detail=str(exc))
