@@ -6432,6 +6432,62 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.network_monitoring_router import router as network_monitoring_router
+        app.include_router(network_monitoring_router)
+        _logger.info("Mounted Network Monitoring router at /api/v1/network-monitoring")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.bandwidth_analysis_router import router as bandwidth_analysis_router
+        app.include_router(bandwidth_analysis_router)
+        _logger.info("Mounted Bandwidth Analysis router at /api/v1/bandwidth-analysis")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.service_account_auditor_router import router as service_account_auditor_router
+        app.include_router(service_account_auditor_router)
+        _logger.info("Mounted Service Account Auditor router at /api/v1/service-account-auditor")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.privilege_escalation_router import router as privilege_escalation_router
+        app.include_router(privilege_escalation_router)
+        _logger.info("Mounted Privilege Escalation router at /api/v1/privilege-escalation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_geolocation_router import router as threat_geolocation_router
+        app.include_router(threat_geolocation_router)
+        _logger.info("Mounted Threat Geolocation router at /api/v1/threat-geolocation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ip_reputation_router import router as ip_reputation_router
+        app.include_router(ip_reputation_router)
+        _logger.info("Mounted IP Reputation router at /api/v1/ip-reputation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_automation_router import router as security_automation_router
+        app.include_router(security_automation_router)
+        _logger.info("Mounted Security Automation router at /api/v1/security-automation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_orchestration_router import router as incident_orchestration_router
+        app.include_router(incident_orchestration_router)
+        _logger.info("Mounted Incident Orchestration router at /api/v1/incident-orchestration")
+    except ImportError:
+        pass
+
     return app
 
 
