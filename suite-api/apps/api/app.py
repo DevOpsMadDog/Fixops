@@ -7411,6 +7411,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 32 pre-wiring (engines pending creation)
+    try:
+        from apps.api.compliance_workflow_router import router as compliance_workflow_router
+        app.include_router(compliance_workflow_router)
+        _logger.info("Mounted Compliance Workflow router at /api/v1/compliance-workflows")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_landscape_router import router as threat_landscape_router
+        app.include_router(threat_landscape_router)
+        _logger.info("Mounted Threat Landscape router at /api/v1/threat-landscape")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_posture_trend_router import router as security_posture_trend_router
+        app.include_router(security_posture_trend_router)
+        _logger.info("Mounted Security Posture Trend router at /api/v1/posture-trends")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.access_governance_router import router as access_governance_router
+        app.include_router(access_governance_router)
+        _logger.info("Mounted Access Governance router at /api/v1/access-governance")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.network_threat_router import router as network_threat_router
+        app.include_router(network_threat_router)
+        _logger.info("Mounted Network Threat router at /api/v1/network-threats")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_kb_router import router as incident_kb_router
+        app.include_router(incident_kb_router)
+        _logger.info("Mounted Incident KB router at /api/v1/incident-kb")
+    except ImportError:
+        pass
+
     return app
 
 
