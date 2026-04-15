@@ -5768,6 +5768,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Cyber insurance router not loaded: {e}")
 
+    # PAM Engine — privileged accounts, sessions, approval workflow, policies, vault
+    try:
+        from apps.api.pam_router import router as pam_router
+        app.include_router(pam_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted PAM Engine router at /api/v1/pam")
+    except Exception as e:
+        _logger.warning(f"PAM router not loaded: {e}")
+
     return app
 
 

@@ -1,20 +1,15 @@
-"""
-Privileged Access Management (PAM) API Router.
+"""Privileged Access Management (PAM) Router — ALDECI.
 
 Endpoints:
-    POST   /api/v1/pam/requests              -- Request privilege elevation
-    POST   /api/v1/pam/requests/{id}/approve -- Approve a pending request
-    POST   /api/v1/pam/requests/{id}/deny    -- Deny a pending request
-    POST   /api/v1/pam/requests/{id}/revoke  -- Immediately revoke an approved elevation
-    GET    /api/v1/pam/check/{user_email}    -- Check current privilege level
-    GET    /api/v1/pam/elevations            -- List all active elevations for an org
-    GET    /api/v1/pam/history               -- Audit trail for an org
-    GET    /api/v1/pam/stats                 -- PAM statistics for an org
-    POST   /api/v1/pam/break-glass           -- Emergency break-glass (auto-approve)
-
-Security:
-    - All endpoints require API key
-    - Pydantic validation on all request bodies
+  GET  /api/v1/pam/accounts              — list privileged accounts
+  POST /api/v1/pam/accounts              — register a privileged account
+  GET  /api/v1/pam/sessions              — list PAM sessions
+  POST /api/v1/pam/sessions              — create a session request
+  POST /api/v1/pam/sessions/{id}/approve — approve or deny a session
+  POST /api/v1/pam/sessions/{id}/end     — end an active session
+  GET  /api/v1/pam/policies              — list PAM policies
+  POST /api/v1/pam/policies              — create a PAM policy
+  GET  /api/v1/pam/stats                 — PAM summary statistics
 """
 
 from __future__ import annotations
@@ -22,219 +17,200 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
-from core.pam import (
-    AccessRequest,
-    PAMManager,
-    PrivilegeLevel,
-    RequestStatus,
-    get_pam_manager,
-)
+from core.pam_engine import PAMEngine
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/pam", tags=["pam"])
 
-# Shared singleton
-_pam = get_pam_manager()
+# Module-level singleton
+_engine = PAMEngine()
+
+
+def _get_engine() -> PAMEngine:
+    return _engine
 
 
 # ---------------------------------------------------------------------------
-# Request / Response models
+# Request models
 # ---------------------------------------------------------------------------
 
 
-class ElevationRequestBody(BaseModel):
-    user_email: str = Field(..., description="Email of the user requesting elevation")
-    requested_level: PrivilegeLevel = Field(..., description="Target privilege level")
-    justification: str = Field(..., min_length=10, description="Business justification")
-    duration_minutes: int = Field(..., gt=0, le=480, description="Duration (max 480 min)")
-
-
-class ApproveRequestBody(BaseModel):
-    approver: str = Field(..., description="Email of the approver")
-
-
-class DenyRequestBody(BaseModel):
-    reviewer: str = Field(..., description="Email of the reviewer")
-    reason: str = Field(..., min_length=5, description="Reason for denial")
-
-
-class BreakGlassBody(BaseModel):
-    user_email: str = Field(..., description="Email of the user invoking break-glass")
-    justification: str = Field(..., min_length=10, description="Emergency justification")
-
-
-class PrivilegeCheckResponse(BaseModel):
-    user_email: str
-    privilege_level: PrivilegeLevel
-    org_id: str
-
-
-class ActiveElevationsResponse(BaseModel):
-    org_id: str
-    count: int
-    elevations: List[AccessRequest]
-
-
-class HistoryResponse(BaseModel):
-    org_id: str
-    total: int
-    limit: int
-    offset: int
-    requests: List[AccessRequest]
-
-
-class PAMStatsResponse(BaseModel):
-    org_id: str
-    total_requests: int
-    by_status: Dict[str, int]
-    avg_approved_duration_minutes: float
-    top_requesters: List[Dict[str, Any]]
-    break_glass_count: int
-    post_review_pending: int
-
-
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
-
-
-@router.post("/requests", response_model=AccessRequest, status_code=201)
-def create_elevation_request(
-    body: ElevationRequestBody,
-    org_id: str = Depends(get_org_id),
-) -> AccessRequest:
-    """Create a privilege elevation request (status: pending)."""
-    try:
-        return _pam.request_access(
-            user_email=body.user_email,
-            requested_level=body.requested_level,
-            justification=body.justification,
-            duration_minutes=body.duration_minutes,
-            org_id=org_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.post("/requests/{request_id}/approve", response_model=AccessRequest)
-def approve_elevation_request(
-    request_id: str,
-    body: ApproveRequestBody,
-    org_id: str = Depends(get_org_id),
-) -> AccessRequest:
-    """Approve a pending elevation request with time-bound access."""
-    try:
-        return _pam.approve_request(request_id=request_id, approver=body.approver)
-    except ValueError as exc:
-        status_code = 404 if "not found" in str(exc).lower() else 409
-        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
-
-
-@router.post("/requests/{request_id}/deny", response_model=AccessRequest)
-def deny_elevation_request(
-    request_id: str,
-    body: DenyRequestBody,
-    org_id: str = Depends(get_org_id),
-) -> AccessRequest:
-    """Deny a pending elevation request with a reason."""
-    try:
-        return _pam.deny_request(
-            request_id=request_id,
-            reviewer=body.reviewer,
-            reason=body.reason,
-        )
-    except ValueError as exc:
-        status_code = 404 if "not found" in str(exc).lower() else 409
-        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
-
-
-@router.post("/requests/{request_id}/revoke", response_model=AccessRequest)
-def revoke_elevation(
-    request_id: str,
-    org_id: str = Depends(get_org_id),
-) -> AccessRequest:
-    """Immediately revoke an approved elevation."""
-    try:
-        return _pam.revoke_access(request_id=request_id)
-    except ValueError as exc:
-        status_code = 404 if "not found" in str(exc).lower() else 409
-        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
-
-
-@router.get("/check/{user_email}", response_model=PrivilegeCheckResponse)
-def check_privilege(
-    user_email: str,
-    org_id: str = Depends(get_org_id),
-) -> PrivilegeCheckResponse:
-    """Return the current effective privilege level for a user."""
-    level = _pam.check_privilege(user_email=user_email, org_id=org_id)
-    return PrivilegeCheckResponse(
-        user_email=user_email,
-        privilege_level=level,
-        org_id=org_id,
+class RegisterAccountRequest(BaseModel):
+    username: str
+    account_type: str = Field(
+        default="admin",
+        description="One of: service, admin, root, sa, shared, emergency",
     )
+    system: str = ""
+    department: str = ""
+    owner: str = ""
+    is_vaulted: bool = False
+    rotation_days: int = 90
+    last_rotated: Optional[str] = None
+    risk_score: int = Field(default=50, ge=0, le=100)
+    status: str = "active"
 
 
-@router.get("/elevations", response_model=ActiveElevationsResponse)
-def get_active_elevations(
-    org_id: str = Depends(get_org_id),
-) -> ActiveElevationsResponse:
-    """List all currently active elevated access sessions for the org."""
-    elevations = _pam.get_active_elevations(org_id=org_id)
-    return ActiveElevationsResponse(
-        org_id=org_id,
-        count=len(elevations),
-        elevations=elevations,
+class CreateSessionRequest(BaseModel):
+    account_id: str
+    requester: str = ""
+    justification: str = ""
+    session_type: str = Field(
+        default="interactive",
+        description="One of: interactive, api, scheduled",
     )
+    target_system: str = ""
+    requested_duration_minutes: int = Field(default=60, ge=1, le=1440)
+    started_at: Optional[str] = None
+    recording_enabled: bool = True
 
 
-@router.get("/history", response_model=HistoryResponse)
-def get_request_history(
+class ApproveSessionRequest(BaseModel):
+    approver: str
+    approved: bool
+
+
+class CreatePolicyRequest(BaseModel):
+    name: str
+    require_approval: bool = True
+    max_session_minutes: int = Field(default=60, ge=1, le=1440)
+    allowed_hours: List[Any] = Field(default_factory=list)
+    mfa_required: bool = True
+    recording_required: bool = True
+
+
+# ---------------------------------------------------------------------------
+# Account endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/accounts", response_model=List[Dict[str, Any]])
+async def list_accounts(
+    account_type: Optional[str] = Query(None, description="Filter by account type"),
+    account_status: Optional[str] = Query(None, alias="status", description="Filter by status"),
     org_id: str = Depends(get_org_id),
-    limit: int = Query(default=50, ge=1, le=500),
-    offset: int = Query(default=0, ge=0),
-) -> HistoryResponse:
-    """Return the full PAM audit trail for the org."""
-    history = _pam.get_request_history(org_id=org_id, limit=limit, offset=offset)
-    return HistoryResponse(
-        org_id=org_id,
-        total=len(history),
-        limit=limit,
-        offset=offset,
-        requests=history,
+    engine: PAMEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    """List privileged accounts for the current org."""
+    return engine.list_accounts(org_id, account_type=account_type, status=account_status)
+
+
+@router.post("/accounts", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def register_account(
+    payload: RegisterAccountRequest,
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """Register a privileged account in the PAM vault."""
+    return engine.register_account(org_id, payload.model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Session endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/sessions", response_model=List[Dict[str, Any]])
+async def list_sessions(
+    approval_status: Optional[str] = Query(None, description="Filter by approval status"),
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    """List PAM sessions for the current org."""
+    return engine.list_sessions(org_id, approval_status=approval_status)
+
+
+@router.post("/sessions", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def create_session(
+    payload: CreateSessionRequest,
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """Create a PAM session request (requires approval unless policy allows)."""
+    return engine.create_session(org_id, payload.model_dump())
+
+
+@router.post("/sessions/{session_id}/approve", response_model=Dict[str, Any])
+async def approve_session(
+    session_id: str,
+    payload: ApproveSessionRequest,
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """Approve or deny a pending PAM session."""
+    updated = engine.approve_session(
+        org_id, session_id, payload.approver, payload.approved
     )
-
-
-@router.get("/stats", response_model=PAMStatsResponse)
-def get_pam_stats(
-    org_id: str = Depends(get_org_id),
-) -> PAMStatsResponse:
-    """Return aggregated PAM statistics for the org."""
-    stats = _pam.get_pam_stats(org_id=org_id)
-    return PAMStatsResponse(**stats)
-
-
-@router.post("/break-glass", response_model=AccessRequest, status_code=201)
-def break_glass(
-    body: BreakGlassBody,
-    org_id: str = Depends(get_org_id),
-) -> AccessRequest:
-    """Emergency break-glass: auto-approve EMERGENCY elevation with mandatory post-review."""
-    try:
-        req = _pam.break_glass(
-            user_email=body.user_email,
-            justification=body.justification,
-            org_id=org_id,
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session '{session_id}' not found or not in pending state",
         )
-        logger.warning(
-            "BREAK-GLASS invoked via API: user=%s org=%s req=%s",
-            body.user_email, org_id, req.id,
+    return {
+        "session_id": session_id,
+        "approved": payload.approved,
+        "approver": payload.approver,
+        "status": "approved" if payload.approved else "denied",
+    }
+
+
+@router.post("/sessions/{session_id}/end", response_model=Dict[str, Any])
+async def end_session(
+    session_id: str,
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """End an active PAM session."""
+    updated = engine.end_session(org_id, session_id)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session '{session_id}' not found or already ended",
         )
-        return req
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"session_id": session_id, "status": "ended"}
+
+
+# ---------------------------------------------------------------------------
+# Policy endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/policies", response_model=List[Dict[str, Any]])
+async def list_policies(
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> List[Dict[str, Any]]:
+    """List PAM policies for the current org."""
+    return engine.list_policies(org_id)
+
+
+@router.post("/policies", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def create_policy(
+    payload: CreatePolicyRequest,
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """Create a new PAM policy."""
+    return engine.create_policy(org_id, payload.model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Stats endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stats", response_model=Dict[str, Any])
+async def get_stats(
+    org_id: str = Depends(get_org_id),
+    engine: PAMEngine = Depends(_get_engine),
+) -> Dict[str, Any]:
+    """Return PAM summary statistics for the current org."""
+    return engine.get_pam_stats(org_id)
+
+
+__all__ = ["router"]
