@@ -245,6 +245,10 @@ const SecretScannerDashboard = lazy(() => import("@/pages/SecretScannerDashboard
 const ThreatIntelPlatformDashboard = lazy(() => import("@/pages/ThreatIntelPlatformDashboard"));
 const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard"));
 
+// API Security Management + Vuln Intelligence
+const APISecurityMgmtDashboard = lazy(() => import("@/pages/APISecurityMgmtDashboard"));
+const VulnIntelligenceDashboard = lazy(() => import("@/pages/VulnIntelligenceDashboard"));
+
 // AI Security Advisor
 const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
 
@@ -512,6 +516,10 @@ export default function App() {
             {/* Cloud Compliance + Endpoint Compliance */}
             <Route path="/cloud-compliance" element={<CloudComplianceDashboard />} />
             <Route path="/endpoint-compliance" element={<EndpointComplianceDashboard />} />
+
+            {/* API Security Management + Vuln Intelligence */}
+            <Route path="/api-security-mgmt" element={<APISecurityMgmtDashboard />} />
+            <Route path="/vuln-intelligence" element={<VulnIntelligenceDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
