@@ -153,12 +153,18 @@ export default function ExecutiveBriefing() {
       apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/posture-advisor/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/incidents/stats?org_id=${ORG_ID}`),
-    ]).then(([kpiResult, postureResult, incidentResult]) => {
-      const kpis     = kpiResult.status     === "fulfilled" ? kpiResult.value     : null;
-      const posture  = postureResult.status === "fulfilled" ? postureResult.value : null;
-      const incidents = incidentResult.status === "fulfilled" ? incidentResult.value : null;
-      if (kpis || posture || incidents) {
-        setLiveData({ kpis, posture, incidents });
+      apiFetch(`/api/v1/executive/kpis?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/executive/risk-summary?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/executive/trends?weeks=12`),
+    ]).then(([kpiResult, postureResult, incidentResult, execKpiResult, riskResult, trendResult]) => {
+      const kpis        = kpiResult.status       === "fulfilled" ? kpiResult.value       : null;
+      const posture     = postureResult.status   === "fulfilled" ? postureResult.value   : null;
+      const incidents   = incidentResult.status  === "fulfilled" ? incidentResult.value  : null;
+      const execKpis    = execKpiResult.status   === "fulfilled" ? execKpiResult.value   : null;
+      const riskSummary = riskResult.status      === "fulfilled" ? riskResult.value      : null;
+      const trends      = trendResult.status     === "fulfilled" ? trendResult.value     : null;
+      if (kpis || posture || incidents || execKpis || riskSummary || trends) {
+        setLiveData({ kpis, posture, incidents, execKpis, riskSummary, trends });
       }
     }).finally(() => setDataLoading(false));
   };
@@ -194,7 +200,7 @@ export default function ExecutiveBriefing() {
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col items-center gap-2">
           <AlertTriangle className="h-8 w-8 text-red-400" />
           <span className="text-5xl font-black text-red-400 tabular-nums">
-            {liveData?.incidents?.critical_count ?? liveData?.kpis?.critical_findings ?? 4}
+            {liveData?.incidents?.critical_count ?? liveData?.execKpis?.breached_count ?? liveData?.kpis?.critical_findings ?? 4}
           </span>
           <span className="text-sm font-semibold text-red-300">Critical Threats</span>
           <span className="text-[11px] text-muted-foreground text-center">Require immediate board attention</span>
@@ -212,6 +218,8 @@ export default function ExecutiveBriefing() {
           <span className="text-5xl font-black text-green-400 tabular-nums">
             {liveData?.posture?.overall_score != null
               ? `${liveData.posture.overall_score}%`
+              : liveData?.execKpis?.overall_health_score != null
+              ? `${Math.round(liveData.execKpis.overall_health_score)}%`
               : liveData?.kpis?.compliance_score != null
               ? `${liveData.kpis.compliance_score}%`
               : "87%"}

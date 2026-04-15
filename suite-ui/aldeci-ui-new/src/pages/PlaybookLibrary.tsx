@@ -12,8 +12,24 @@
  * API: GET /api/v1/playbooks, GET /api/v1/playbooks/executions (mock fallback)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   BookOpen,
   Play,
@@ -310,8 +326,36 @@ export default function PlaybookLibrary() {
   const [playbooks, setPlaybooks] = useState<Playbook[]>(MOCK_PLAYBOOKS);
   const [selectedExec, setSelectedExec] = useState<Execution | null>(null);
   const [showCreatePanel, setShowCreatePanel] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/security-playbooks/playbooks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-playbooks/executions?org_id=${ORG_ID}&limit=50`),
+    ]).then(([playbooksRes, executionsRes]) => {
+      const apiPlaybooks  = playbooksRes.status  === "fulfilled" ? playbooksRes.value  : null;
+      const apiExecutions = executionsRes.status === "fulfilled" ? executionsRes.value : null;
+      if (apiPlaybooks || apiExecutions) {
+        setLiveData({ apiPlaybooks, apiExecutions });
+        // Map API playbooks to UI shape if available
+        if (Array.isArray(apiPlaybooks) && apiPlaybooks.length > 0) {
+          const mapped: Playbook[] = apiPlaybooks.map((p: any) => ({
+            id:               p.playbook_id ?? p.id ?? "?",
+            name:             p.name ?? "Unnamed",
+            trigger_type:     (p.trigger_type === "auto_alert" ? "Auto" : p.trigger_type === "scheduled" ? "Scheduled" : "Manual") as TriggerType,
+            trigger_desc:     p.trigger_conditions ? JSON.stringify(p.trigger_conditions) : "—",
+            last_executed:    p.last_executed ?? "—",
+            executions_count: p.executions_count ?? 0,
+            enabled:          p.enabled ?? true,
+          }));
+          setPlaybooks(mapped);
+        }
+      }
+    });
+  }, []);
 
   const activeCount = playbooks.filter((p) => p.enabled).length;
+  const executionsToday = liveData?.apiExecutions?.length ?? 7;
 
   const togglePlaybook = (id: string) => {
     setPlaybooks((prev) =>
@@ -340,9 +384,9 @@ export default function PlaybookLibrary() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Playbooks" value={23} icon={BookOpen} />
+        <KpiCard title="Total Playbooks" value={liveData?.apiPlaybooks?.length ?? playbooks.length} icon={BookOpen} />
         <KpiCard title="Active (Enabled)" value={activeCount} icon={Shield} />
-        <KpiCard title="Executions Today" value={7} icon={Activity} />
+        <KpiCard title="Executions Today" value={executionsToday} icon={Activity} />
         <KpiCard title="Avg Execution Time" value="4.2 min" icon={Clock} />
       </div>
 
