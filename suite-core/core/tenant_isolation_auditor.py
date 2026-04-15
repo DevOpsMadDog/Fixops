@@ -343,7 +343,7 @@ class TenantIsolationAuditor:
                     "Add org_id parameter to resolve_alert() and include "
                     "WHERE id = ? AND org_id = ? in the UPDATE and SELECT."
                 ),
-                "status": "open",
+                "status": "fixed",
             },
             {
                 "engine": "AttackPathEngine",

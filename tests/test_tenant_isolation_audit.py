@@ -243,20 +243,29 @@ class TestInsiderThreatEngineIsolation:
         summary_b = insider_engine.get_org_risk_summary(org_id=ORG_B)
         assert summary_b["total_users_monitored"] == 0
 
-    def test_resolve_alert_gap_no_org_guard(self, insider_engine):
+    def test_resolve_alert_org_guard_enforced(self, insider_engine):
         """
-        KNOWN GAP: resolve_alert() uses alert_id only — no org_id guard.
-        A caller with the alert_id can resolve it regardless of their org context.
+        FIXED: resolve_alert() now requires org_id and enforces tenant isolation.
+        A caller from a different org cannot resolve another tenant's alert.
         """
         alert = insider_engine.create_alert(
             user_id="eve", indicator="policy_violation",
             evidence={}, severity="low", org_id=ORG_A,
         )
-        # No org_id check in resolve_alert — succeeds from any org context
+        # Cross-tenant resolve must raise — alert_id belongs to ORG_A, not ORG_B
+        with pytest.raises(ValueError, match="Alert not found"):
+            insider_engine.resolve_alert(
+                alert_id=alert["alert_id"],
+                resolution="false_positive",
+                resolved_by="attacker_from_org_b",
+                org_id=ORG_B,
+            )
+        # Correct org can still resolve the alert
         resolved = insider_engine.resolve_alert(
             alert_id=alert["alert_id"],
             resolution="false_positive",
-            resolved_by="attacker_from_org_b",
+            resolved_by="sec_analyst",
+            org_id=ORG_A,
         )
         assert resolved["status"] == "resolved"
 
@@ -500,7 +509,7 @@ class TestTenantIsolationAuditor:
         assert ap_finding["status"] == "open"
 
     def test_generate_isolation_report_insider_threat_low(self, auditor):
-        """InsiderThreatEngine is flagged as low severity for resolve_alert gap."""
+        """InsiderThreatEngine resolve_alert gap is low severity and now fixed."""
         report = auditor.generate_isolation_report()
         it_finding = next(
             (f for f in report["findings"] if f["engine"] == "InsiderThreatEngine"),
@@ -508,3 +517,4 @@ class TestTenantIsolationAuditor:
         )
         assert it_finding is not None
         assert it_finding["severity"] == "low"
+        assert it_finding["status"] == "fixed"

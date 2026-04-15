@@ -405,6 +405,7 @@ class InsiderThreatEngine:
         alert_id: str,
         resolution: str,
         resolved_by: str,
+        org_id: str = "default",
     ) -> Dict[str, Any]:
         """Resolve an alert. resolution: 'false_positive'|'confirmed'|'escalated'."""
         now = datetime.now(timezone.utc).isoformat()
@@ -414,12 +415,13 @@ class InsiderThreatEngine:
                     """
                     UPDATE threat_alerts
                     SET status = 'resolved', resolution = ?, resolved_by = ?, resolved_at = ?
-                    WHERE id = ?
+                    WHERE id = ? AND org_id = ?
                     """,
-                    (resolution, resolved_by, now, alert_id),
+                    (resolution, resolved_by, now, alert_id, org_id),
                 )
                 row = conn.execute(
-                    "SELECT * FROM threat_alerts WHERE id = ?", (alert_id,)
+                    "SELECT * FROM threat_alerts WHERE id = ? AND org_id = ?",
+                    (alert_id, org_id),
                 ).fetchone()
 
         if row is None:
