@@ -6607,6 +6607,41 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.physical_security_router import router as physical_security_router
+        app.include_router(physical_security_router)
+        _logger.info("Mounted Physical Security router at /api/v1/physical-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.access_control_router import router as access_control_router
+        app.include_router(access_control_router)
+        _logger.info("Mounted Access Control router at /api/v1/access-control")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.wireless_security_router import router as wireless_security_router
+        app.include_router(wireless_security_router)
+        _logger.info("Mounted Wireless Security router at /api/v1/wireless-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.log_management_router import router as log_management_router
+        app.include_router(log_management_router)
+        _logger.info("Mounted Log Management router at /api/v1/log-management")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.network_access_control_router import router as network_access_control_router
+        app.include_router(network_access_control_router)
+        _logger.info("Mounted Network Access Control router at /api/v1/nac")
+    except ImportError:
+        pass
+
     return app
 
 
