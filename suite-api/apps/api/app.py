@@ -6355,6 +6355,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.waf_engine_router import router as waf_engine_router
+        app.include_router(waf_engine_router)
+        _logger.info("Mounted WAF Engine router at /api/v1/waf-engine")
+    except ImportError:
+        pass
+
     return app
 
 
