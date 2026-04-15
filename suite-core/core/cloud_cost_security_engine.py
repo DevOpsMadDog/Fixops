@@ -149,6 +149,40 @@ class CloudCostSecurityEngine:
                     ON cost_anomalies (org_id, investigation_status, created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_ca_org_severity
                     ON cost_anomalies (org_id, severity);
+
+                CREATE TABLE IF NOT EXISTS cost_items (
+                    item_id              TEXT PRIMARY KEY,
+                    org_id               TEXT NOT NULL,
+                    cloud_provider       TEXT NOT NULL DEFAULT 'aws',
+                    service              TEXT NOT NULL DEFAULT '',
+                    resource_id          TEXT NOT NULL DEFAULT '',
+                    monthly_cost_usd     REAL NOT NULL DEFAULT 0.0,
+                    security_relevance   TEXT NOT NULL DEFAULT 'low',
+                    tags                 TEXT NOT NULL DEFAULT '{}',
+                    flagged              INTEGER NOT NULL DEFAULT 0,
+                    flag_reason          TEXT NOT NULL DEFAULT '',
+                    recorded_at          TEXT NOT NULL,
+                    prev_monthly_cost    REAL NOT NULL DEFAULT 0.0
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ci_org_provider
+                    ON cost_items (org_id, cloud_provider);
+                CREATE INDEX IF NOT EXISTS idx_ci_org_resource
+                    ON cost_items (org_id, resource_id);
+
+                CREATE TABLE IF NOT EXISTS cost_policies (
+                    policy_id        TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    name             TEXT NOT NULL DEFAULT '',
+                    max_monthly_usd  REAL NOT NULL DEFAULT 0.0,
+                    resource_type    TEXT NOT NULL DEFAULT '',
+                    action           TEXT NOT NULL DEFAULT 'alert',
+                    created_at       TEXT NOT NULL,
+                    updated_at       TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_cp_org
+                    ON cost_policies (org_id);
                 """
             )
 
@@ -573,4 +607,235 @@ class CloudCostSecurityEngine:
             "abandoned_resources": abandoned_count,
             "potential_savings_usd": round(potential_savings, 2),
             "budgets_exceeded": budgets_exceeded,
+        }
+
+    # ------------------------------------------------------------------
+    # Cost Items (security-lens resource tracking)
+    # ------------------------------------------------------------------
+
+    def record_cost_item(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Record a cloud resource cost item with security relevance tagging.
+
+        Fields: cloud_provider(aws/azure/gcp), service, resource_id,
+                monthly_cost_usd, security_relevance(high/medium/low), tags.
+        """
+        provider = data.get("cloud_provider", "aws")
+        if provider not in _VALID_PROVIDERS:
+            provider = "aws"
+        relevance = data.get("security_relevance", "low")
+        if relevance not in {"high", "medium", "low"}:
+            relevance = "low"
+        monthly_cost = float(data.get("monthly_cost_usd", 0.0))
+        resource_id = str(data.get("resource_id", ""))
+        tags = data.get("tags", {})
+        if not isinstance(tags, dict):
+            tags = {}
+
+        # Look up previous cost for the resource to enable MoM anomaly detection
+        prev_cost = 0.0
+        with self._lock:
+            with self._conn() as conn:
+                prev_row = conn.execute(
+                    "SELECT monthly_cost_usd FROM cost_items "
+                    "WHERE org_id=? AND resource_id=? ORDER BY recorded_at DESC LIMIT 1",
+                    (org_id, resource_id),
+                ).fetchone()
+                if prev_row:
+                    prev_cost = float(prev_row["monthly_cost_usd"])
+
+            item_id = str(uuid.uuid4())
+            now = _now_iso()
+            record: Dict[str, Any] = {
+                "item_id": item_id,
+                "org_id": org_id,
+                "cloud_provider": provider,
+                "service": str(data.get("service", "")),
+                "resource_id": resource_id,
+                "monthly_cost_usd": monthly_cost,
+                "security_relevance": relevance,
+                "tags": json.dumps(tags),
+                "flagged": 0,
+                "flag_reason": "",
+                "recorded_at": now,
+                "prev_monthly_cost": prev_cost,
+            }
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO cost_items
+                       (item_id, org_id, cloud_provider, service, resource_id,
+                        monthly_cost_usd, security_relevance, tags, flagged,
+                        flag_reason, recorded_at, prev_monthly_cost)
+                       VALUES
+                       (:item_id,:org_id,:cloud_provider,:service,:resource_id,
+                        :monthly_cost_usd,:security_relevance,:tags,:flagged,
+                        :flag_reason,:recorded_at,:prev_monthly_cost)""",
+                    record,
+                )
+        return self._fmt_cost_item(record)
+
+    def list_cost_items(
+        self,
+        org_id: str,
+        cloud_provider: Optional[str] = None,
+        security_relevance: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List cost items with optional provider/relevance filters."""
+        sql = "SELECT * FROM cost_items WHERE org_id=?"
+        params: list = [org_id]
+        if cloud_provider:
+            sql += " AND cloud_provider=?"
+            params.append(cloud_provider)
+        if security_relevance:
+            sql += " AND security_relevance=?"
+            params.append(security_relevance)
+        sql += " ORDER BY recorded_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._fmt_cost_item(dict(r)) for r in rows]
+
+    def flag_unused_resource(self, org_id: str, resource_id: str, reason: str) -> dict:
+        """Flag a resource for decommission review."""
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    "UPDATE cost_items SET flagged=1, flag_reason=? "
+                    "WHERE org_id=? AND resource_id=?",
+                    (reason, org_id, resource_id),
+                )
+                row = conn.execute(
+                    "SELECT * FROM cost_items WHERE org_id=? AND resource_id=? "
+                    "ORDER BY recorded_at DESC LIMIT 1",
+                    (org_id, resource_id),
+                ).fetchone()
+        if not row:
+            return {"flagged": False, "resource_id": resource_id, "reason": reason}
+        return {**self._fmt_cost_item(dict(row)), "flagged": True, "flag_reason": reason}
+
+    def get_security_spend_breakdown(self, org_id: str) -> Dict[str, Any]:
+        """Break down cloud spend by provider and service with security tool %."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT cloud_provider, service, security_relevance, "
+                "SUM(monthly_cost_usd) as total "
+                "FROM cost_items WHERE org_id=? "
+                "GROUP BY cloud_provider, service, security_relevance",
+                (org_id,),
+            ).fetchall()
+
+        by_provider: Dict[str, float] = {}
+        by_service: Dict[str, float] = {}
+        total = 0.0
+        security_tool_spend = 0.0
+
+        for r in rows:
+            prov = r["cloud_provider"]
+            svc = r["service"]
+            amt = float(r["total"])
+            rel = r["security_relevance"]
+            by_provider[prov] = by_provider.get(prov, 0.0) + amt
+            by_service[svc] = by_service.get(svc, 0.0) + amt
+            total += amt
+            if rel == "high":
+                security_tool_spend += amt
+
+        security_tool_pct = round((security_tool_spend / total * 100) if total > 0 else 0.0, 2)
+        return {
+            "org_id": org_id,
+            "total_monthly_usd": round(total, 2),
+            "by_provider": {k: round(v, 2) for k, v in by_provider.items()},
+            "by_service": {k: round(v, 2) for k, v in by_service.items()},
+            "security_tool_spend_usd": round(security_tool_spend, 2),
+            "security_tool_pct": security_tool_pct,
+        }
+
+    def detect_cost_anomalies(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return resources with cost spike >50% month-over-month."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM cost_items WHERE org_id=? AND prev_monthly_cost > 0",
+                (org_id,),
+            ).fetchall()
+
+        anomalies = []
+        for r in rows:
+            prev = float(r["prev_monthly_cost"])
+            curr = float(r["monthly_cost_usd"])
+            if prev > 0 and curr > 0:
+                pct_change = (curr - prev) / prev * 100
+                if pct_change > 50:
+                    anomalies.append({
+                        **self._fmt_cost_item(dict(r)),
+                        "prev_monthly_cost_usd": round(prev, 2),
+                        "pct_increase": round(pct_change, 2),
+                    })
+        return anomalies
+
+    # ------------------------------------------------------------------
+    # Cost Policies
+    # ------------------------------------------------------------------
+
+    def create_cost_policy(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a cost enforcement policy (alert/block/flag)."""
+        action = data.get("action", "alert")
+        if action not in {"alert", "block", "flag"}:
+            action = "alert"
+        policy_id = str(uuid.uuid4())
+        now = _now_iso()
+        record: Dict[str, Any] = {
+            "policy_id": policy_id,
+            "org_id": org_id,
+            "name": str(data.get("name", "")),
+            "max_monthly_usd": float(data.get("max_monthly_usd", 0.0)),
+            "resource_type": str(data.get("resource_type", "")),
+            "action": action,
+            "created_at": now,
+            "updated_at": now,
+        }
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO cost_policies
+                       (policy_id, org_id, name, max_monthly_usd, resource_type,
+                        action, created_at, updated_at)
+                       VALUES
+                       (:policy_id,:org_id,:name,:max_monthly_usd,:resource_type,
+                        :action,:created_at,:updated_at)""",
+                    record,
+                )
+        return record
+
+    def list_cost_policies(self, org_id: str) -> List[Dict[str, Any]]:
+        """List all cost policies for the org."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM cost_policies WHERE org_id=? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _fmt_cost_item(row: Dict[str, Any]) -> Dict[str, Any]:
+        tags = row.get("tags", "{}")
+        if isinstance(tags, str):
+            try:
+                tags = json.loads(tags)
+            except (json.JSONDecodeError, TypeError):
+                tags = {}
+        return {
+            "item_id": row.get("item_id", ""),
+            "org_id": row.get("org_id", ""),
+            "cloud_provider": row.get("cloud_provider", ""),
+            "service": row.get("service", ""),
+            "resource_id": row.get("resource_id", ""),
+            "monthly_cost_usd": float(row.get("monthly_cost_usd", 0.0)),
+            "security_relevance": row.get("security_relevance", "low"),
+            "tags": tags,
+            "flagged": bool(row.get("flagged", 0)),
+            "flag_reason": row.get("flag_reason", ""),
+            "recorded_at": row.get("recorded_at", ""),
+            "prev_monthly_cost_usd": float(row.get("prev_monthly_cost", 0.0)),
         }

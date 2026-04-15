@@ -371,3 +371,205 @@ def test_org_isolation_budgets(engine):
     d_names = [b["budget_name"] for b in d_budgets]
     assert "C Budget" in c_names and "D Budget" not in c_names
     assert "D Budget" in d_names and "C Budget" not in d_names
+
+
+# ===========================================================================
+# NEW V2 TESTS — record_cost_item, flag_unused_resource, detect_cost_anomalies,
+#               get_security_spend_breakdown, create_cost_policy, list_cost_policies
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Cost items
+# ---------------------------------------------------------------------------
+
+def test_record_cost_item_returns_dict(engine):
+    item = engine.record_cost_item("org1", {
+        "cloud_provider": "aws",
+        "service": "EC2",
+        "resource_id": "i-001",
+        "monthly_cost_usd": 200.0,
+        "security_relevance": "high",
+        "tags": {"env": "prod"},
+    })
+    assert isinstance(item, dict)
+    assert item["item_id"]
+    assert item["cloud_provider"] == "aws"
+    assert item["monthly_cost_usd"] == 200.0
+    assert item["security_relevance"] == "high"
+    assert item["tags"] == {"env": "prod"}
+
+
+def test_record_cost_item_invalid_provider_defaults_aws(engine):
+    item = engine.record_cost_item("org1", {"cloud_provider": "oracle", "resource_id": "r1"})
+    assert item["cloud_provider"] == "aws"
+
+
+def test_record_cost_item_invalid_relevance_defaults_low(engine):
+    item = engine.record_cost_item("org1", {"security_relevance": "critical", "resource_id": "r2"})
+    assert item["security_relevance"] == "low"
+
+
+def test_list_cost_items_empty(engine):
+    assert engine.list_cost_items("no-org") == []
+
+
+def test_list_cost_items_returns_recorded(engine):
+    engine.record_cost_item("org2", {"resource_id": "r1", "cloud_provider": "aws"})
+    engine.record_cost_item("org2", {"resource_id": "r2", "cloud_provider": "azure"})
+    items = engine.list_cost_items("org2")
+    assert len(items) == 2
+
+
+def test_list_cost_items_provider_filter(engine):
+    engine.record_cost_item("orgF", {"resource_id": "a", "cloud_provider": "aws"})
+    engine.record_cost_item("orgF", {"resource_id": "b", "cloud_provider": "gcp"})
+    aws_items = engine.list_cost_items("orgF", cloud_provider="aws")
+    assert all(i["cloud_provider"] == "aws" for i in aws_items)
+    assert len(aws_items) == 1
+
+
+def test_list_cost_items_relevance_filter(engine):
+    engine.record_cost_item("orgR", {"resource_id": "c", "security_relevance": "high"})
+    engine.record_cost_item("orgR", {"resource_id": "d", "security_relevance": "low"})
+    high = engine.list_cost_items("orgR", security_relevance="high")
+    assert len(high) == 1 and high[0]["security_relevance"] == "high"
+
+
+def test_cost_item_org_isolation(engine):
+    engine.record_cost_item("orgX", {"resource_id": "x1"})
+    engine.record_cost_item("orgY", {"resource_id": "y1"})
+    assert len(engine.list_cost_items("orgX")) == 1
+    assert len(engine.list_cost_items("orgY")) == 1
+
+
+# ---------------------------------------------------------------------------
+# Flag unused resource
+# ---------------------------------------------------------------------------
+
+def test_flag_unused_resource(engine):
+    engine.record_cost_item("orgF", {"resource_id": "idle-001", "monthly_cost_usd": 50.0})
+    result = engine.flag_unused_resource("orgF", "idle-001", "No traffic in 60 days")
+    assert result["flagged"] is True
+    assert "traffic" in result["flag_reason"].lower()
+
+
+def test_flag_nonexistent_resource_returns_flagged_false(engine):
+    result = engine.flag_unused_resource("orgF", "ghost-resource", "reason")
+    assert result["flagged"] is False
+
+
+def test_list_cost_items_shows_flagged(engine):
+    engine.record_cost_item("orgG", {"resource_id": "idle-002", "monthly_cost_usd": 30.0})
+    engine.flag_unused_resource("orgG", "idle-002", "zombie")
+    items = engine.list_cost_items("orgG")
+    flagged = [i for i in items if i["flagged"]]
+    assert len(flagged) == 1
+
+
+# ---------------------------------------------------------------------------
+# Detect cost anomalies
+# ---------------------------------------------------------------------------
+
+def test_detect_anomalies_empty(engine):
+    assert engine.detect_cost_anomalies("no-org") == []
+
+
+def test_detect_anomalies_spike_detected(engine):
+    # Record initial cost
+    engine.record_cost_item("orgA", {"resource_id": "db-001", "monthly_cost_usd": 100.0})
+    # Record spiked cost (200% increase)
+    engine.record_cost_item("orgA", {"resource_id": "db-001", "monthly_cost_usd": 300.0})
+    anomalies = engine.detect_cost_anomalies("orgA")
+    assert len(anomalies) >= 1
+    assert anomalies[0]["pct_increase"] > 50
+
+
+def test_detect_anomalies_no_spike_below_threshold(engine):
+    engine.record_cost_item("orgB", {"resource_id": "svc-001", "monthly_cost_usd": 100.0})
+    # 10% increase — not anomalous
+    engine.record_cost_item("orgB", {"resource_id": "svc-001", "monthly_cost_usd": 110.0})
+    anomalies = engine.detect_cost_anomalies("orgB")
+    assert len(anomalies) == 0
+
+
+def test_detect_anomalies_has_pct_increase(engine):
+    engine.record_cost_item("orgD", {"resource_id": "fn-001", "monthly_cost_usd": 50.0})
+    engine.record_cost_item("orgD", {"resource_id": "fn-001", "monthly_cost_usd": 200.0})
+    anomalies = engine.detect_cost_anomalies("orgD")
+    assert "pct_increase" in anomalies[0]
+    assert anomalies[0]["pct_increase"] == 300.0
+
+
+# ---------------------------------------------------------------------------
+# Security spend breakdown
+# ---------------------------------------------------------------------------
+
+def test_spend_breakdown_empty(engine):
+    result = engine.get_security_spend_breakdown("no-org")
+    assert result["total_monthly_usd"] == 0.0
+    assert result["security_tool_pct"] == 0.0
+
+
+def test_spend_breakdown_by_provider(engine):
+    engine.record_cost_item("orgBD", {"cloud_provider": "aws", "service": "GuardDuty",
+                                       "monthly_cost_usd": 100.0, "security_relevance": "high"})
+    engine.record_cost_item("orgBD", {"cloud_provider": "azure", "service": "Defender",
+                                       "monthly_cost_usd": 200.0, "security_relevance": "high"})
+    result = engine.get_security_spend_breakdown("orgBD")
+    assert result["by_provider"]["aws"] == 100.0
+    assert result["by_provider"]["azure"] == 200.0
+
+
+def test_spend_breakdown_security_tool_pct(engine):
+    engine.record_cost_item("orgSP", {"cloud_provider": "aws", "service": "GuardDuty",
+                                       "monthly_cost_usd": 100.0, "security_relevance": "high"})
+    engine.record_cost_item("orgSP", {"cloud_provider": "aws", "service": "EC2",
+                                       "monthly_cost_usd": 300.0, "security_relevance": "low"})
+    result = engine.get_security_spend_breakdown("orgSP")
+    assert result["security_tool_pct"] == 25.0
+    assert result["security_tool_spend_usd"] == 100.0
+
+
+# ---------------------------------------------------------------------------
+# Cost policies
+# ---------------------------------------------------------------------------
+
+def test_create_cost_policy_returns_dict(engine):
+    policy = engine.create_cost_policy("org1", {
+        "name": "EC2 budget cap",
+        "max_monthly_usd": 1000.0,
+        "resource_type": "ec2",
+        "action": "alert",
+    })
+    assert policy["policy_id"]
+    assert policy["name"] == "EC2 budget cap"
+    assert policy["action"] == "alert"
+
+
+def test_create_cost_policy_invalid_action_defaults_alert(engine):
+    policy = engine.create_cost_policy("org1", {"name": "p", "action": "terminate"})
+    assert policy["action"] == "alert"
+
+
+def test_list_cost_policies_empty(engine):
+    assert engine.list_cost_policies("no-org") == []
+
+
+def test_list_cost_policies_returns_created(engine):
+    engine.create_cost_policy("orgP", {"name": "p1", "action": "flag"})
+    engine.create_cost_policy("orgP", {"name": "p2", "action": "block"})
+    policies = engine.list_cost_policies("orgP")
+    assert len(policies) == 2
+
+
+def test_cost_policies_org_isolation(engine):
+    engine.create_cost_policy("orgPA", {"name": "a"})
+    engine.create_cost_policy("orgPB", {"name": "b"})
+    assert len(engine.list_cost_policies("orgPA")) == 1
+    assert len(engine.list_cost_policies("orgPB")) == 1
+
+
+def test_cost_policy_all_actions(engine):
+    for action in ("alert", "block", "flag"):
+        p = engine.create_cost_policy("orgAC", {"name": action, "action": action})
+        assert p["action"] == action

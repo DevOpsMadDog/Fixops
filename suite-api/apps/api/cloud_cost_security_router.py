@@ -203,3 +203,87 @@ def resolve_anomaly(
 def get_cost_stats(org_id: str = Query("default")) -> Dict[str, Any]:
     engine = _get_engine()
     return engine.get_cost_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Cost Items — security-lens resource cost tracking
+# ---------------------------------------------------------------------------
+
+class CostItemCreate(BaseModel):
+    org_id: str = Field("default")
+    cloud_provider: str = Field("aws")
+    service: str = Field("")
+    resource_id: str = Field("")
+    monthly_cost_usd: float = Field(0.0)
+    security_relevance: str = Field("low")
+    tags: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CostPolicyCreate(BaseModel):
+    org_id: str = Field("default")
+    name: str
+    max_monthly_usd: float = Field(0.0)
+    resource_type: str = Field("")
+    action: str = Field("alert")
+
+
+class FlagResourceRequest(BaseModel):
+    resource_id: str
+    reason: str
+    org_id: str = Field("default")
+
+
+@router.post("/items", summary="Record cost item", dependencies=[Depends(api_key_auth)], status_code=201)
+def record_cost_item(req: CostItemCreate) -> Dict[str, Any]:
+    """Record a cloud resource cost item with security relevance tagging."""
+    engine = _get_engine()
+    try:
+        return engine.record_cost_item(req.org_id, req.model_dump())
+    except Exception as exc:
+        _logger.exception("Error recording cost item")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/items", summary="List cost items", dependencies=[Depends(api_key_auth)])
+def list_cost_items(
+    org_id: str = Query("default"),
+    cloud_provider: Optional[str] = Query(None),
+    security_relevance: Optional[str] = Query(None),
+) -> List[Dict[str, Any]]:
+    engine = _get_engine()
+    return engine.list_cost_items(org_id, cloud_provider=cloud_provider, security_relevance=security_relevance)
+
+
+@router.post("/items/flag", summary="Flag unused resource", dependencies=[Depends(api_key_auth)])
+def flag_unused_resource(req: FlagResourceRequest) -> Dict[str, Any]:
+    """Flag a resource for decommission review."""
+    engine = _get_engine()
+    return engine.flag_unused_resource(req.org_id, req.resource_id, req.reason)
+
+
+@router.get("/items/spend-breakdown", summary="Security spend breakdown", dependencies=[Depends(api_key_auth)])
+def get_security_spend_breakdown(org_id: str = Query("default")) -> Dict[str, Any]:
+    engine = _get_engine()
+    return engine.get_security_spend_breakdown(org_id)
+
+
+@router.get("/items/anomalies", summary="Detect cost anomalies (MoM >50%)", dependencies=[Depends(api_key_auth)])
+def detect_cost_anomalies(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+    engine = _get_engine()
+    return engine.detect_cost_anomalies(org_id)
+
+
+@router.post("/policies", summary="Create cost policy", dependencies=[Depends(api_key_auth)], status_code=201)
+def create_cost_policy(req: CostPolicyCreate) -> Dict[str, Any]:
+    engine = _get_engine()
+    try:
+        return engine.create_cost_policy(req.org_id, req.model_dump())
+    except Exception as exc:
+        _logger.exception("Error creating cost policy")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/policies", summary="List cost policies", dependencies=[Depends(api_key_auth)])
+def list_cost_policies(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+    engine = _get_engine()
+    return engine.list_cost_policies(org_id)
