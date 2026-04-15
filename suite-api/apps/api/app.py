@@ -6061,6 +6061,27 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.workflow_router import router as workflow_router
+        app.include_router(workflow_router)
+        _logger.info("Mounted Workflow Engine router at /api/v1/workflows")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.policy_router import router as policy_router
+        app.include_router(policy_router)
+        _logger.info("Mounted Policy Engine router at /api/v1/policies")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_playbook_router import router as security_playbook_router
+        app.include_router(security_playbook_router)
+        _logger.info("Mounted Security Playbook router at /api/v1/security-playbooks")
+    except ImportError:
+        pass
+
     return app
 
 
