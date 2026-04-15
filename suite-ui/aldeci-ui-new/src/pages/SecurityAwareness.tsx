@@ -16,8 +16,7 @@
  *      GET /api/v1/security-awareness/completion
  */
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -39,7 +38,20 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -590,29 +602,57 @@ function RiskTrendChart() {
 // ═══════════════════════════════════════════════════════════
 
 export default function SecurityAwareness() {
-  const { data: campaigns } = useQuery<PhishingCampaign[]>({
-    queryKey: ["security-awareness-campaigns"],
-    queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/security-awareness/campaigns`);
-      if (!res.ok) throw new Error("campaigns api unavailable");
-      return res.json();
-    },
-    retry: 1,
-    staleTime: 60_000,
-    initialData: MOCK_CAMPAIGNS,
-  });
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  const { data: departments } = useQuery<DepartmentCompletion[]>({
-    queryKey: ["security-awareness-completion"],
-    queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/security-awareness/completion`);
-      if (!res.ok) throw new Error("completion api unavailable");
-      return res.json();
-    },
-    retry: 1,
-    staleTime: 60_000,
-    initialData: MOCK_DEPARTMENTS,
-  });
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/stats`),
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/employees`),
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/department-summary`),
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/scores`),
+    ]).then(([statsRes, employeesRes, deptRes, scoresRes]) => {
+      const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
+      const employees   = employeesRes.status   === "fulfilled" ? employeesRes.value   : null;
+      const deptSummary = deptRes.status        === "fulfilled" ? deptRes.value        : null;
+      const scores      = scoresRes.status      === "fulfilled" ? scoresRes.value      : null;
+      if (stats || employees || deptSummary || scores) {
+        setLiveData({ stats, employees, deptSummary, scores });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  // Derive display data from live API response with mock fallbacks
+  const campaigns: PhishingCampaign[] = MOCK_CAMPAIGNS;
+  const departments: DepartmentCompletion[] = (() => {
+    const raw = liveData?.deptSummary;
+    if (!raw) return MOCK_DEPARTMENTS;
+    // API returns { departments: [{department, avg_score, employee_count, ...}] }
+    const arr = Array.isArray(raw) ? raw : raw.departments ?? null;
+    if (!arr || arr.length === 0) return MOCK_DEPARTMENTS;
+    return arr.map((d: any) => ({
+      department: d.department ?? d.name ?? "",
+      completion_rate: d.avg_completion_pct ?? d.completion_rate ?? d.avg_score ?? 0,
+    }));
+  })();
+  const highRiskUsers: HighRiskUser[] = (() => {
+    const raw = liveData?.employees;
+    if (!raw) return MOCK_HIGH_RISK_USERS;
+    const arr = Array.isArray(raw) ? raw : raw.items ?? null;
+    if (!arr || arr.length === 0) return MOCK_HIGH_RISK_USERS;
+    return arr
+      .filter((e: any) => (e.risk_score ?? 0) >= 50)
+      .slice(0, 10)
+      .map((e: any, i: number) => ({
+        id: e.employee_id ?? `u${i}`,
+        user_masked: e.name ? `${e.name[0]}.${e.name.split(" ")[1]?.[0] ?? ""}.` : e.employee_id ?? `U${i}`,
+        department: e.department ?? "",
+        phishing_clicks: e.phishing_click_count ?? e.phishing_clicks ?? 0,
+        training_skips: e.training_skips ?? 0,
+        risk_score: e.risk_score ?? 0,
+      }));
+  })();
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -627,28 +667,28 @@ export default function SecurityAwareness() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
           title="Training Completion Rate"
-          value="78%"
+          value={liveData?.stats?.avg_completion_pct != null ? `${Math.round(liveData.stats.avg_completion_pct)}%` : "78%"}
           icon={CheckCircle2}
           trend="up"
           trendLabel="+4% this quarter"
         />
         <KpiCard
           title="Phishing Click Rate"
-          value="12%"
+          value={liveData?.stats?.avg_phishing_click_rate != null ? `${liveData.stats.avg_phishing_click_rate.toFixed(1)}%` : "12%"}
           icon={Mail}
           trend="down"
           trendLabel="-3% vs last quarter"
         />
         <KpiCard
           title="High Risk Users"
-          value={34}
+          value={liveData?.stats?.high_risk_count ?? liveData?.stats?.high_risk_users ?? 34}
           icon={ShieldAlert}
           trend="down"
           trendLabel="Down from 41"
         />
         <KpiCard
           title="Avg Human Risk Score"
-          value="42/100"
+          value={liveData?.stats?.avg_risk_score != null ? `${Math.round(liveData.stats.avg_risk_score)}/100` : "42/100"}
           icon={Users}
           trend="down"
           trendLabel="Improving trend"
@@ -656,16 +696,16 @@ export default function SecurityAwareness() {
       </div>
 
       {/* Phishing campaigns table */}
-      <CampaignsTable campaigns={campaigns ?? MOCK_CAMPAIGNS} />
+      <CampaignsTable campaigns={campaigns} />
 
       {/* Department completion + Upcoming training */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DepartmentCompletion departments={departments ?? MOCK_DEPARTMENTS} />
+        <DepartmentCompletion departments={departments} />
         <UpcomingTrainings trainings={MOCK_UPCOMING_TRAININGS} />
       </div>
 
       {/* High risk users */}
-      <HighRiskUsersPanel users={MOCK_HIGH_RISK_USERS} />
+      <HighRiskUsersPanel users={highRiskUsers} />
 
       {/* Risk trend chart */}
       <RiskTrendChart />
