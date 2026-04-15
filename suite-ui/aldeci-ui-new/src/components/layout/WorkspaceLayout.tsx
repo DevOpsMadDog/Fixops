@@ -100,6 +100,9 @@ import {
   GraduationCap,
   Map,
   Eye,
+  Mail,
+  Monitor,
+  Award,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,7 +132,7 @@ const navGroups: NavGroup[] = [
       { label: "Command Dashboard", to: "/mission-control", icon: LayoutDashboard },
       { label: "SOC Alert Triage", to: "/mission-control/soc", icon: AlertTriangle, badge: "P03" },
       { label: "Executive View", to: "/mission-control/executive", icon: Crown, roles: ["admin", "security_analyst"] },
-      { label: "SLA Dashboard", to: "/mission-control/sla", icon: Clock, roles: ["admin", "security_analyst"] },
+      { label: "SLA Dashboard", to: "/sla-dashboard", icon: Clock, roles: ["admin", "security_analyst"] },
       { label: "Live Feed", to: "/mission-control/live-feed", icon: Activity },
       { label: "Risk Overview", to: "/mission-control/risk", icon: AlertTriangle },
       { label: "Risk Register", to: "/mission-control/risk-register", icon: ClipboardCheck },
@@ -254,6 +257,9 @@ const navGroups: NavGroup[] = [
       { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
       { label: "Incident Timeline", to: "/incident-timeline", icon: AlertTriangle, badge: "NEW" },
       { label: "Network Analysis", to: "/network-analysis", icon: Network, badge: "NEW" },
+      { label: "Firewall Analyzer", to: "/firewall", icon: Shield, badge: "NEW" },
+      { label: "Email Security", to: "/email-security", icon: Mail, badge: "NEW" },
+      { label: "Endpoint Security (EDR)", to: "/endpoint-security", icon: Monitor, badge: "NEW" },
     ],
   },
   {
@@ -273,6 +279,7 @@ const navGroups: NavGroup[] = [
       { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
       { label: "Attack Paths", to: "/attack-paths", icon: Route },
       { label: "Vuln Heatmap", to: "/vuln-heatmap", icon: Map, badge: "NEW" },
+      { label: "Bug Bounty", to: "/bug-bounty", icon: Award, badge: "NEW" },
     ],
   },
   {
@@ -288,6 +295,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Insider Threats", to: "/insider-threats", icon: UserX, badge: "NEW" },
       { label: "Zero Trust", to: "/zero-trust", icon: Lock },
+      { label: "Cloud IAM", to: "/cloud-iam", icon: KeyRound, badge: "NEW" },
       { label: "Identity Governance", to: "/identity-governance", icon: UserCheck, badge: "NEW" },
       { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap, badge: "NEW" },
     ],
@@ -312,6 +320,7 @@ const navGroups: NavGroup[] = [
       { label: "Threat Modeling", to: "/threat-modeling", icon: Layers },
       { label: "Supply Chain", to: "/supply-chain", icon: Link2 },
       { label: "CSPM", to: "/cspm", icon: Cloud, badge: "NEW" },
+      { label: "Certificate Manager", to: "/certificates", icon: ShieldCheck, badge: "NEW" },
     ],
   },
   {
