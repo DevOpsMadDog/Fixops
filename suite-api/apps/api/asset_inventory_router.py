@@ -178,6 +178,17 @@ def get_stale_assets(
     return _inv().get_stale_assets(org_id, days=days)
 
 
+@router.get("/exposed", response_model=List[ManagedAsset], summary="Internet-exposed high-risk assets")
+def get_exposed_assets(
+    org_id: str = Query("default"),
+) -> List[ManagedAsset]:
+    """Return internet-facing assets with a risk score >= 6.0 (high or critical).
+
+    An asset is treated as internet-facing when metadata['internet_facing'] is truthy.
+    """
+    return _inv().find_exposed_assets(org_id)
+
+
 @router.get("/compliance/{framework}", response_model=List[ManagedAsset], summary="Assets by compliance scope")
 def get_assets_by_compliance(
     framework: ComplianceFramework,
@@ -444,6 +455,37 @@ def get_impact_graph(
     """
     _require_asset(asset_id)
     return _inv().get_impact_graph(asset_id, max_depth=max_depth)
+
+
+@router.get("/{asset_id}/risk-score", summary="Risk score for asset")
+def get_risk_score(
+    asset_id: str,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Compute and return a 0-10 risk score for an asset.
+
+    Score factors: criticality weight + internet exposure + vuln count + patch age.
+    Returns: {score, factors, risk_level}.
+    """
+    _require_asset(asset_id)
+    result = _inv().calculate_risk_score(asset_id, org_id)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Asset '{asset_id}' not found in org '{org_id}'")
+    return result
+
+
+@router.get("/{asset_id}/timeline", summary="Asset event history")
+def get_asset_timeline(
+    asset_id: str,
+    org_id: str = Query("default"),
+) -> List[Dict[str, Any]]:
+    """Return chronological history of changes and security events for an asset.
+
+    Merges discovery event, CMDB sync records, lifecycle transitions, and
+    finding updates into a single ascending timeline.
+    """
+    _require_asset(asset_id)
+    return _inv().get_asset_timeline(asset_id, org_id)
 
 
 @router.delete("/relationships/{rel_id}", summary="Delete relationship")

@@ -1059,6 +1059,206 @@ class AssetInventory:
         cloud provider, and data classification."""
         return self._db.get_stats(org_id)
 
+    # ---- Aliases for spec compatibility ----
+
+    def add_asset(self, org_id: str, asset: Dict[str, Any]) -> str:
+        """Add an asset and return its asset_id.
+
+        Wraps register_asset() accepting a plain dict. The dict may use
+        simplified keys (name, type, ip_address, os, owner, criticality,
+        environment, tags, metadata).  'type' is mapped to 'asset_type'.
+        """
+        raw = dict(asset)
+        raw["org_id"] = org_id
+        if "type" in raw and "asset_type" not in raw:
+            raw["asset_type"] = raw.pop("type")
+        if "owner" in raw and "owner_name" not in raw:
+            raw["owner_name"] = raw.pop("owner")
+        if "os" in raw:
+            raw.setdefault("metadata", {})["os"] = raw.pop("os")
+        # Coerce enums
+        for field, enum_cls in (
+            ("criticality", AssetCriticality),
+            ("criticality_tier", CriticalityTier),
+            ("environment", Environment),
+            ("lifecycle", AssetLifecycle),
+            ("data_classification", DataClassification),
+        ):
+            if field in raw and isinstance(raw[field], str):
+                raw[field] = enum_cls(raw[field])
+        managed = ManagedAsset(**raw)
+        result = self.register_asset(managed)
+        return result.id
+
+    def get_asset_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return asset stats summary.
+
+        Returns total, by_type, by_criticality, avg_risk_score, and
+        critical_exposed count (critical/high assets with internet_facing=True
+        in metadata).
+        """
+        stats = self.get_inventory_stats(org_id)
+        assets = self._db.list_assets(org_id)
+        risk_scores = [a.risk_score for a in assets if a.risk_score]
+        avg_risk = round(sum(risk_scores) / len(risk_scores), 2) if risk_scores else 0.0
+        critical_exposed = sum(
+            1 for a in assets
+            if a.criticality in (AssetCriticality.CRITICAL, AssetCriticality.HIGH)
+            and a.metadata.get("internet_facing")
+        )
+        return {
+            "total": stats.get("total", 0),
+            "by_type": stats.get("by_type", {}),
+            "by_criticality": stats.get("by_criticality", {}),
+            "avg_risk_score": avg_risk,
+            "critical_exposed": critical_exposed,
+        }
+
+    # ---- Risk scoring ----
+
+    def calculate_risk_score(self, asset_id: str, org_id: str) -> Dict[str, Any]:
+        """Compute a 0-10 risk score for an asset.
+
+        Formula:
+          base = criticality weight (critical=8, high=6, medium=4, low=2, info=1)
+          exposure = +1.5 if internet_facing in metadata, else 0
+          vuln_penalty = min(finding_count * 0.2, 2.0)
+          patch_age = days since last_seen / 90 capped at 1.0 (proxy for patch lag)
+          raw = base + exposure + vuln_penalty + patch_age * 0.5
+          score = min(raw, 10.0), rounded to 1 dp
+
+        Returns: {score, factors, risk_level}
+        """
+        asset = self._db.get_asset(asset_id)
+        if not asset or asset.org_id != org_id:
+            return {}
+
+        _crit_weight = {
+            AssetCriticality.CRITICAL: 8.0,
+            AssetCriticality.HIGH: 6.0,
+            AssetCriticality.MEDIUM: 4.0,
+            AssetCriticality.LOW: 2.0,
+            AssetCriticality.INFORMATIONAL: 1.0,
+        }
+        criticality_weight = _crit_weight.get(asset.criticality, 4.0)
+        exposure = 1.5 if asset.metadata.get("internet_facing") else 0.0
+        vuln_count = asset.finding_count
+        vuln_penalty = min(vuln_count * 0.2, 2.0)
+
+        try:
+            last_seen_dt = datetime.fromisoformat(asset.last_seen.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            last_seen_dt = datetime.now(timezone.utc)
+        days_stale = max((datetime.now(timezone.utc) - last_seen_dt).days, 0)
+        patch_age = min(days_stale / 90.0, 1.0)
+
+        raw = criticality_weight + exposure + vuln_penalty + patch_age * 0.5
+        score = round(min(raw, 10.0), 1)
+
+        if score >= 8.0:
+            risk_level = "critical"
+        elif score >= 6.0:
+            risk_level = "high"
+        elif score >= 4.0:
+            risk_level = "medium"
+        else:
+            risk_level = "low"
+
+        result = {
+            "score": score,
+            "factors": {
+                "criticality_weight": criticality_weight,
+                "exposure": exposure,
+                "vuln_count": vuln_count,
+                "patch_age": round(patch_age, 3),
+            },
+            "risk_level": risk_level,
+        }
+        # Persist the score back onto the asset
+        self.update_asset(asset_id, {"risk_score": score})
+        return result
+
+    # ---- Exposure detection ----
+
+    def find_exposed_assets(self, org_id: str) -> List[ManagedAsset]:
+        """Return internet-facing assets with high or critical risk score.
+
+        An asset is considered exposed when metadata["internet_facing"] is
+        truthy. We recalculate risk scores on the fly and return assets whose
+        score >= 6.0 (high/critical tier).
+        """
+        assets = self._db.list_assets(org_id)
+        exposed = []
+        for asset in assets:
+            if not asset.metadata.get("internet_facing"):
+                continue
+            result = self.calculate_risk_score(asset.id, org_id)
+            if result and result.get("score", 0) >= 6.0:
+                # Re-fetch with updated risk_score
+                updated = self._db.get_asset(asset.id)
+                if updated:
+                    exposed.append(updated)
+        return exposed
+
+    # ---- Timeline ----
+
+    def get_asset_timeline(self, asset_id: str, org_id: str) -> List[Dict[str, Any]]:
+        """Return a chronological history of changes and security events for an asset.
+
+        Sources merged into the timeline:
+        - CMDB sync records (type=cmdb_sync)
+        - finding_count increments inferred from current finding_count (type=finding_update)
+        - Lifecycle as recorded in metadata.__lifecycle_history (type=lifecycle_change)
+
+        Returns list of {timestamp, event_type, description, detail} sorted ascending.
+        """
+        asset = self._db.get_asset(asset_id)
+        if not asset or asset.org_id != org_id:
+            return []
+
+        timeline: List[Dict[str, Any]] = []
+
+        # Discovery event
+        timeline.append({
+            "timestamp": asset.first_discovered,
+            "event_type": "discovery",
+            "description": f"Asset first discovered via {asset.discovery_source or 'unknown'}",
+            "detail": {"discovery_source": asset.discovery_source},
+        })
+
+        # CMDB sync events
+        sync_records = self._db.get_sync_history(asset_id)
+        for rec in sync_records:
+            timeline.append({
+                "timestamp": rec.synced_at,
+                "event_type": "cmdb_sync",
+                "description": f"CMDB sync to {rec.cmdb_system} — {rec.sync_status}",
+                "detail": {"cmdb_system": rec.cmdb_system, "external_id": rec.external_id,
+                            "status": rec.sync_status, "changes": rec.changes},
+            })
+
+        # Lifecycle history stored in metadata
+        for entry in asset.metadata.get("__lifecycle_history", []):
+            timeline.append({
+                "timestamp": entry.get("timestamp", asset.first_discovered),
+                "event_type": "lifecycle_change",
+                "description": f"Lifecycle changed to {entry.get('to', '?')}",
+                "detail": entry,
+            })
+
+        # Current finding summary as a single event if any findings
+        if asset.finding_count > 0:
+            timeline.append({
+                "timestamp": asset.last_seen,
+                "event_type": "finding_update",
+                "description": f"{asset.finding_count} security finding(s) associated",
+                "detail": {"finding_count": asset.finding_count},
+            })
+
+        # Sort ascending by timestamp
+        timeline.sort(key=lambda e: e.get("timestamp", ""))
+        return timeline
+
     # ---- Bulk import ----
 
     def bulk_import(self, assets: List[Dict[str, Any]], org_id: str) -> int:

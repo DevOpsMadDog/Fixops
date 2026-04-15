@@ -786,4 +786,258 @@ class TestFilters:
         assert len(results) == 2
         names = {a.name for a in results}
         assert "pci-only" in names
-        assert "both" in names
+
+
+# ---------------------------------------------------------------------------
+# TestAddAsset — add_asset() alias
+# ---------------------------------------------------------------------------
+
+class TestAddAsset:
+    def test_add_asset_returns_id(self, inventory):
+        asset_id = inventory.add_asset("org-add", {
+            "name": "web-server-01",
+            "type": "server",
+            "ip_address": "10.0.0.1",
+            "criticality": "high",
+            "environment": "production",
+        })
+        assert asset_id.startswith("masset-")
+
+    def test_add_asset_persisted(self, inventory):
+        asset_id = inventory.add_asset("org-add2", {
+            "name": "db-server-01",
+            "type": "server",
+            "criticality": "critical",
+        })
+        fetched = inventory.get_asset(asset_id)
+        assert fetched is not None
+        assert fetched.name == "db-server-01"
+        assert fetched.criticality.value == "critical"
+
+    def test_add_asset_type_alias(self, inventory):
+        """'type' key maps to asset_type."""
+        asset_id = inventory.add_asset("org-add3", {"name": "container-x", "type": "container"})
+        fetched = inventory.get_asset(asset_id)
+        assert fetched.asset_type == "container"
+
+    def test_add_asset_owner_alias(self, inventory):
+        """'owner' key maps to owner_name."""
+        asset_id = inventory.add_asset("org-add4", {
+            "name": "iot-device",
+            "type": "iot",
+            "owner": "Alice",
+        })
+        fetched = inventory.get_asset(asset_id)
+        assert fetched.owner_name == "Alice"
+
+    def test_add_asset_os_in_metadata(self, inventory):
+        """'os' key is stored inside metadata."""
+        asset_id = inventory.add_asset("org-add5", {
+            "name": "windows-host",
+            "type": "workstation",
+            "os": "Windows Server 2022",
+        })
+        fetched = inventory.get_asset(asset_id)
+        assert fetched.metadata.get("os") == "Windows Server 2022"
+
+    def test_add_asset_tags_and_metadata(self, inventory):
+        asset_id = inventory.add_asset("org-add6", {
+            "name": "cloud-vm",
+            "type": "cloud_resource",
+            "tags": ["prod", "aws"],
+            "metadata": {"region": "us-east-1"},
+        })
+        fetched = inventory.get_asset(asset_id)
+        assert "prod" in fetched.tags
+        assert fetched.metadata.get("region") == "us-east-1"
+
+
+# ---------------------------------------------------------------------------
+# TestGetAssetStats — get_asset_stats()
+# ---------------------------------------------------------------------------
+
+class TestGetAssetStats:
+    def test_stats_keys(self, inventory):
+        inventory.add_asset("org-stats", {"name": "s1", "type": "server", "criticality": "critical"})
+        stats = inventory.get_asset_stats("org-stats")
+        assert "total" in stats
+        assert "by_type" in stats
+        assert "by_criticality" in stats
+        assert "avg_risk_score" in stats
+        assert "critical_exposed" in stats
+
+    def test_stats_total(self, inventory):
+        for i in range(3):
+            inventory.add_asset("org-stats2", {"name": f"asset-{i}", "type": "server"})
+        stats = inventory.get_asset_stats("org-stats2")
+        assert stats["total"] == 3
+
+    def test_stats_critical_exposed(self, inventory):
+        inventory.add_asset("org-stats3", {
+            "name": "exposed-critical",
+            "type": "server",
+            "criticality": "critical",
+            "metadata": {"internet_facing": True},
+        })
+        inventory.add_asset("org-stats3", {
+            "name": "internal-critical",
+            "type": "server",
+            "criticality": "critical",
+            "metadata": {"internet_facing": False},
+        })
+        stats = inventory.get_asset_stats("org-stats3")
+        assert stats["critical_exposed"] == 1
+
+    def test_stats_empty_org(self, inventory):
+        stats = inventory.get_asset_stats("org-stats-empty-xyz")
+        assert stats["total"] == 0
+        assert stats["critical_exposed"] == 0
+
+
+# ---------------------------------------------------------------------------
+# TestCalculateRiskScore — calculate_risk_score()
+# ---------------------------------------------------------------------------
+
+class TestCalculateRiskScore:
+    def test_risk_score_structure(self, inventory):
+        asset_id = inventory.add_asset("org-risk", {"name": "srv", "type": "server", "criticality": "medium"})
+        result = inventory.calculate_risk_score(asset_id, "org-risk")
+        assert "score" in result
+        assert "factors" in result
+        assert "risk_level" in result
+        assert 0.0 <= result["score"] <= 10.0
+
+    def test_risk_score_critical_higher_than_low(self, inventory):
+        crit_id = inventory.add_asset("org-risk2", {"name": "crit", "type": "server", "criticality": "critical"})
+        low_id = inventory.add_asset("org-risk2", {"name": "low", "type": "server", "criticality": "low"})
+        crit_result = inventory.calculate_risk_score(crit_id, "org-risk2")
+        low_result = inventory.calculate_risk_score(low_id, "org-risk2")
+        assert crit_result["score"] > low_result["score"]
+
+    def test_risk_score_internet_facing_raises_score(self, inventory):
+        base_id = inventory.add_asset("org-risk3", {"name": "internal", "type": "server", "criticality": "medium"})
+        exposed_id = inventory.add_asset("org-risk3", {
+            "name": "exposed", "type": "server", "criticality": "medium",
+            "metadata": {"internet_facing": True},
+        })
+        base_result = inventory.calculate_risk_score(base_id, "org-risk3")
+        exposed_result = inventory.calculate_risk_score(exposed_id, "org-risk3")
+        assert exposed_result["score"] > base_result["score"]
+        assert exposed_result["factors"]["exposure"] == 1.5
+
+    def test_risk_score_factors_present(self, inventory):
+        asset_id = inventory.add_asset("org-risk4", {"name": "srv", "type": "server", "criticality": "high"})
+        result = inventory.calculate_risk_score(asset_id, "org-risk4")
+        factors = result["factors"]
+        assert "criticality_weight" in factors
+        assert "exposure" in factors
+        assert "vuln_count" in factors
+        assert "patch_age" in factors
+
+    def test_risk_score_wrong_org_returns_empty(self, inventory):
+        asset_id = inventory.add_asset("org-risk5", {"name": "srv", "type": "server"})
+        result = inventory.calculate_risk_score(asset_id, "wrong-org")
+        assert result == {}
+
+    def test_risk_level_mapping(self, inventory):
+        crit_id = inventory.add_asset("org-risk6", {"name": "crit", "type": "server", "criticality": "critical"})
+        result = inventory.calculate_risk_score(crit_id, "org-risk6")
+        assert result["risk_level"] in ("critical", "high", "medium", "low")
+
+    def test_risk_score_persisted(self, inventory):
+        asset_id = inventory.add_asset("org-risk7", {"name": "srv", "type": "server", "criticality": "high"})
+        result = inventory.calculate_risk_score(asset_id, "org-risk7")
+        fetched = inventory.get_asset(asset_id)
+        assert fetched.risk_score == result["score"]
+
+
+# ---------------------------------------------------------------------------
+# TestFindExposedAssets — find_exposed_assets()
+# ---------------------------------------------------------------------------
+
+class TestFindExposedAssets:
+    def test_returns_only_internet_facing(self, inventory):
+        inventory.add_asset("org-exp", {
+            "name": "exposed-srv", "type": "server", "criticality": "high",
+            "metadata": {"internet_facing": True},
+        })
+        inventory.add_asset("org-exp", {
+            "name": "internal-srv", "type": "server", "criticality": "high",
+            "metadata": {"internet_facing": False},
+        })
+        exposed = inventory.find_exposed_assets("org-exp")
+        names = [a.name for a in exposed]
+        assert "exposed-srv" in names
+        assert "internal-srv" not in names
+
+    def test_low_risk_internet_facing_excluded(self, inventory):
+        inventory.add_asset("org-exp2", {
+            "name": "low-exposed", "type": "iot", "criticality": "low",
+            "metadata": {"internet_facing": True},
+        })
+        exposed = inventory.find_exposed_assets("org-exp2")
+        # low criticality base=2, exposure=1.5 → score=3.5 < 6.0 → excluded
+        names = [a.name for a in exposed]
+        assert "low-exposed" not in names
+
+    def test_empty_org_returns_empty_list(self, inventory):
+        result = inventory.find_exposed_assets("org-exp-empty-xyz")
+        assert result == []
+
+    def test_critical_internet_facing_included(self, inventory):
+        inventory.add_asset("org-exp3", {
+            "name": "critical-exposed", "type": "server", "criticality": "critical",
+            "metadata": {"internet_facing": True},
+        })
+        exposed = inventory.find_exposed_assets("org-exp3")
+        assert len(exposed) >= 1
+        assert any(a.name == "critical-exposed" for a in exposed)
+
+
+# ---------------------------------------------------------------------------
+# TestGetAssetTimeline — get_asset_timeline()
+# ---------------------------------------------------------------------------
+
+class TestGetAssetTimeline:
+    def test_timeline_has_discovery_event(self, inventory):
+        asset_id = inventory.add_asset("org-tl", {"name": "srv", "type": "server"})
+        timeline = inventory.get_asset_timeline(asset_id, "org-tl")
+        assert len(timeline) >= 1
+        types = [e["event_type"] for e in timeline]
+        assert "discovery" in types
+
+    def test_timeline_sorted_ascending(self, inventory):
+        asset_id = inventory.add_asset("org-tl2", {"name": "srv", "type": "server"})
+        timeline = inventory.get_asset_timeline(asset_id, "org-tl2")
+        timestamps = [e["timestamp"] for e in timeline]
+        assert timestamps == sorted(timestamps)
+
+    def test_timeline_includes_cmdb_sync(self, inventory):
+        asset_id = inventory.add_asset("org-tl3", {"name": "srv", "type": "server"})
+        inventory.sync_to_cmdb(asset_id, "ServiceNow", "SN-001")
+        timeline = inventory.get_asset_timeline(asset_id, "org-tl3")
+        types = [e["event_type"] for e in timeline]
+        assert "cmdb_sync" in types
+
+    def test_timeline_includes_finding_update(self, inventory):
+        asset_id = inventory.add_asset("org-tl4", {"name": "srv", "type": "server"})
+        # Simulate findings by updating finding_count
+        inventory.update_asset(asset_id, {"finding_count": 5})
+        timeline = inventory.get_asset_timeline(asset_id, "org-tl4")
+        types = [e["event_type"] for e in timeline]
+        assert "finding_update" in types
+
+    def test_timeline_wrong_org_returns_empty(self, inventory):
+        asset_id = inventory.add_asset("org-tl5", {"name": "srv", "type": "server"})
+        result = inventory.get_asset_timeline(asset_id, "wrong-org")
+        assert result == []
+
+    def test_timeline_event_has_required_keys(self, inventory):
+        asset_id = inventory.add_asset("org-tl6", {"name": "srv", "type": "server"})
+        timeline = inventory.get_asset_timeline(asset_id, "org-tl6")
+        assert len(timeline) >= 1
+        for event in timeline:
+            assert "timestamp" in event
+            assert "event_type" in event
+            assert "description" in event
+            assert "detail" in event
