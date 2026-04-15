@@ -266,6 +266,12 @@ const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
 const AISecurityAdvisorDashboard = lazy(() => import("@/pages/AISecurityAdvisorDashboard"));
 const ScheduledReportsDashboard = lazy(() => import("@/pages/ScheduledReportsDashboard"));
 
+// Crypto Key, Certificate, Privilege Escalation, Security Automation dashboards
+const CryptoKeyDashboard = lazy(() => import("@/pages/CryptoKeyDashboard"));
+const CertificateDashboard = lazy(() => import("@/pages/CertificateDashboard"));
+const PrivilegeEscalationDashboard = lazy(() => import("@/pages/PrivilegeEscalationDashboard"));
+const SecurityAutomationDashboard = lazy(() => import("@/pages/SecurityAutomationDashboard"));
+
 // Cloud Compliance + Endpoint Compliance dashboards
 const CloudComplianceDashboard = lazy(() => import("@/pages/CloudComplianceDashboard"));
 const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianceDashboard"));
@@ -410,6 +416,12 @@ export default function App() {
             {/* DLP & API Abuse Detection */}
             <Route path="/dlp" element={<DLPDashboard />} />
             <Route path="/api-abuse" element={<APIAbuseDashboard />} />
+
+            {/* Crypto Key, Certificate, Privilege Escalation, Security Automation */}
+            <Route path="/crypto-keys" element={<CryptoKeyDashboard />} />
+            <Route path="/certificates" element={<CertificateDashboard />} />
+            <Route path="/privilege-escalation" element={<PrivilegeEscalationDashboard />} />
+            <Route path="/security-automation" element={<SecurityAutomationDashboard />} />
 
             {/* Secret Scanner, Threat Intel Platform, Attack Surface Dashboard */}
             <Route path="/secret-scanner" element={<SecretScannerDashboard />} />
