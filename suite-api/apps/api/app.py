@@ -5917,6 +5917,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Config Benchmark router not loaded: {e}")
 
+    # Threat model auto-generator — STRIDE auto-generation, risk rating, mitigations
+    try:
+        from apps.api.threat_model_generator_router import router as threat_model_generator_router
+        app.include_router(threat_model_generator_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Model Generator router at /api/v1/threat-model-gen")
+    except Exception as e:
+        _logger.warning(f"Threat Model Generator router not loaded: {e}")
+
+    # Security exception manager — exception lifecycle, approvals, expiry tracking
+    try:
+        from apps.api.security_exception_router import router as security_exception_router
+        app.include_router(security_exception_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Security Exception router at /api/v1/security-exceptions")
+    except Exception as e:
+        _logger.warning(f"Security Exception router not loaded: {e}")
+
     return app
 
 
