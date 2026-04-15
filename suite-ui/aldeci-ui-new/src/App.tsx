@@ -220,6 +220,10 @@ const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerD
 const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
 const CCMDashboard = lazy(() => import("@/pages/CCMDashboard"));
 
+// Threat Actor Intelligence + Security Champions
+const ThreatActorDashboard = lazy(() => import("@/pages/ThreatActorDashboard"));
+const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsDashboard"));
+
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
 
@@ -454,6 +458,10 @@ export default function App() {
             <Route path="/cnapp" element={<CNAPPDashboard />} />
             <Route path="/pentest-mgmt" element={<PentestManagementDashboard />} />
             <Route path="/supply-chain-intel" element={<SupplyChainIntelDashboard />} />
+
+            {/* Threat Actor Intelligence + Security Champions */}
+            <Route path="/threat-actors" element={<ThreatActorDashboard />} />
+            <Route path="/security-champions" element={<SecurityChampionsDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

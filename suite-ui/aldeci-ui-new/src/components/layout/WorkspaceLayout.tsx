@@ -110,6 +110,8 @@ import {
   Key,
   Tag,
   GitBranch,
+  Flag,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -306,6 +308,7 @@ const navGroups: NavGroup[] = [
     icon: Radar,
     items: [
       { label: "Threat Intel Dashboard", to: "/threat-intel", icon: Radar, badge: "NEW" },
+      { label: "Threat Actors", to: "/threat-actors", icon: Flag, badge: "NEW" },
       { label: "CVE Search", to: "/cve-search", icon: ScanSearch },
       { label: "IP Reputation", to: "/ip-reputation", icon: Globe },
       { label: "Threat Feeds", to: "/threat-feeds", icon: Rss, badge: "NEW" },
@@ -439,6 +442,13 @@ const navGroups: NavGroup[] = [
     icon: FileCheck,
     items: [
       { label: "Cyber Insurance", to: "/cyber-insurance", icon: FileCheck, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Culture & Awareness",
+    icon: Award,
+    items: [
+      { label: "Security Champions", to: "/security-champions", icon: Trophy, badge: "NEW" },
     ],
   },
 ];
