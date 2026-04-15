@@ -264,6 +264,7 @@ export default function App() {
             <Route path="/cve-search" element={<CVESearch />} />
             <Route path="/ip-reputation" element={<IPReputation />} />
             <Route path="/secrets-rotation" element={<SecretsRotation />} />
+            <Route path="/supply-chain" element={<SupplyChainSecurity />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
