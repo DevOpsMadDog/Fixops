@@ -143,12 +143,12 @@ export default function CWPPDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/cwpp/summary?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/cwpp/workloads?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/cwpp/threats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cnapp/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cnapp/workloads?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/cnapp/threats?org_id=${ORG_ID}`),
     ]).then(([summaryRes, workloadsRes, threatsRes]) => {
       const summary  = summaryRes.status  === "fulfilled" ? summaryRes.value  : null;
       const workloads = workloadsRes.status === "fulfilled" ? workloadsRes.value : null;
@@ -157,21 +157,14 @@ export default function CWPPDashboard() {
         setLiveData({ summary, workloads, threats });
       }
     }).finally(() => setDataLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setDataLoading(true);
-    Promise.allSettled([
-      apiFetch(`/api/v1/cwpp/summary?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/cwpp/workloads?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/cwpp/threats?org_id=${ORG_ID}`),
-    ]).then(([summaryRes, workloadsRes, threatsRes]) => {
-      const summary   = summaryRes.status  === "fulfilled" ? summaryRes.value  : null;
-      const workloads = workloadsRes.status === "fulfilled" ? workloadsRes.value : null;
-      const threats   = threatsRes.status   === "fulfilled" ? threatsRes.value  : null;
-      if (summary || workloads || threats) setLiveData({ summary, workloads, threats });
-    }).finally(() => { setRefreshing(false); setDataLoading(false); });
+    loadData();
+    setTimeout(() => setRefreshing(false), 800);
   };
 
   return (
