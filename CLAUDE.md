@@ -295,6 +295,51 @@ from core.brain_pipeline import BrainPipeline  # just works
 - ✅ All new routers wired into app.py
 - ✅ Multi-tenant isolation fixes — Redis queue org_id keys, attack_path guards, SSO bridge org_id column, insider threat resolve_alert guard (all 4 findings from b9d5aabe resolved)
 
+### DONE (session 2026-04-16, Wave 9+10 — Autonomous parallel build)
+
+**Wave 9 Backend Engines (all in suite-core/core/):**
+- ✅ cyber_insurance_engine.py — CyberInsurance (policies_v2/claims_v2/coverage_gaps, tier assignment) — 30+ tests
+- ✅ executive_reporting_engine.py — Executive Reporting (reports/KPIs/board decks) — 30+ tests
+- ✅ cloud_compliance_engine.py — Cloud Compliance (CIS/NIST/SOC2/PCI-DSS, drift detection) — 40 tests
+- ✅ endpoint_compliance_engine.py — Endpoint Compliance (severity-weighted scoring, bulk ingestion) — 38 tests
+- ✅ api_security_mgmt_engine.py — API Security Mgmt (OWASP API Top 10, SHA-256 key hashing) — 34 tests
+- ✅ vuln_intelligence_engine.py — Vulnerability Intelligence (CVE upserts, EPSS/KEV, advisories) — 38 tests
+- ✅ password_policy_engine.py — Enhanced (MFA enrollment, password strength scoring, run_audit) — 52 tests
+- ✅ security_training_engine.py — Enhanced (certificates, assignments, department compliance) — 45 tests
+- ✅ threat_intel_platform_engine.py — TIP (IOC dedup, TLP reports, bulk ingest, relationship graph) — 34 tests
+- ✅ attack_surface_engine.py — ASM (severity-weighted risk scoring, exposure lifecycle, change events) — 29 tests
+- ✅ UBA, VulnScanner, VulnTrend test suites committed (engines existed, tests added)
+
+**Wave 9 New Routers wired into app.py:**
+- ✅ /api/v1/cloud-compliance, /api/v1/endpoint-compliance, /api/v1/exec-reporting
+- ✅ /api/v1/api-security-engine, /api/v1/vuln-intel
+- ✅ /api/v1/tip (ThreatIntelPlatform), /api/v1/asm (AttackSurface)
+
+**Wave 9 New Frontend Pages:**
+- ✅ /dlp — DLPDashboard (PII detection bars, SVG gauges, policy/incident feed)
+- ✅ /secret-scanner — SecretScannerDashboard (scan jobs, findings with entropy, trigger form)
+- ✅ /threat-intel-platform — ThreatIntelPlatformDashboard (TLP badges, IOC search, check form)
+- ✅ /attack-surface-dashboard — AttackSurfaceDashboard (SVG surface score gauge, exposure feed)
+- ✅ /cyber-insurance — CyberInsuranceDashboard (policies table, claims, coverage assessment)
+- ✅ /executive-reporting — ExecutiveReportingDashboard (reports, KPIs, board presentations)
+- ✅ /cloud-compliance — CloudComplianceDashboard (framework scores, failed controls, remediation)
+- ✅ /endpoint-compliance — EndpointComplianceDashboard (OS distribution, department stacked bars)
+- ✅ /api-security-mgmt — APISecurityMgmtDashboard (OWASP tracking, abuse events, scan results)
+- ✅ /vuln-intelligence — VulnIntelligenceDashboard (CVE table with EPSS/KEV, advisor subscriptions)
+
+**Wave 9 Mock→Live API wiring (30+ pages converted):**
+- ✅ AwarenessScore, ConfigBenchmark, CCM, CVESearch, DataGovernance, DevSecOps, Regulatory, DLP
+- ✅ AppSecurity, SecurityTraining, PasswordPolicy, CrossDomainAnalytics (DuckDB)
+- ✅ VulnHeatmap, SecurityRoadmap, SLA, CMDB, SupplyChain
+- ✅ DataClassification, DigitalForensics, SecurityAwareness (fixed wrong API paths)
+- ✅ PentestManagement, RedTeam, BugBounty (confirmed already wired correctly)
+
+**Bug fixes:**
+- ✅ CyberInsuranceEngine._v2_initialized moved from class var to instance var (test isolation)
+- ✅ SecurityAwareness page was hitting /api/v1/security-awareness (wrong) → /api/v1/awareness-score (fixed)
+
+**Test totals:** 1,400+ tests across Beast Mode suite, zero regressions
+
 ---
 
 ## OPERATING RULES

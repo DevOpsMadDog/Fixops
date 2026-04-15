@@ -131,10 +131,18 @@ export default function PrivacyGDPRDashboard() {
     Promise.allSettled([
       apiFetch(`/api/v1/privacy/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/privacy/dsrs?org_id=${ORG_ID}&limit=20`),
-    ]).then(([statsR, dsrsR]) => {
-      const stats = statsR.status === "fulfilled" ? statsR.value : null;
-      const dsrs  = dsrsR.status  === "fulfilled" ? dsrsR.value  : null;
-      if (stats || dsrs) setLiveData({ stats, dsrs });
+      apiFetch(`/api/v1/privacy/consents?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/privacy/incidents?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/privacy/processing-activities?org_id=${ORG_ID}`),
+    ]).then(([statsR, dsrsR, consentsR, incidentsR, activitiesR]) => {
+      const stats      = statsR.status      === "fulfilled" ? statsR.value      : null;
+      const dsrs       = dsrsR.status       === "fulfilled" ? dsrsR.value       : null;
+      const consents   = consentsR.status   === "fulfilled" ? consentsR.value   : null;
+      const incidents  = incidentsR.status  === "fulfilled" ? incidentsR.value  : null;
+      const activities = activitiesR.status === "fulfilled" ? activitiesR.value : null;
+      if (stats || dsrs || consents || incidents || activities) {
+        setLiveData({ stats, dsrs, consents, incidents, activities });
+      }
     });
   }, []);
 
@@ -251,12 +259,12 @@ export default function PrivacyGDPRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CONSENTS.map((c) => (
-                  <TableRow key={c.id} className="hover:bg-muted/30">
-                    <TableCell className="py-2 text-xs font-medium max-w-[140px] truncate">{c.purpose}</TableCell>
-                    <TableCell className="py-2 text-[10px] text-muted-foreground">{c.legal_basis}</TableCell>
-                    <TableCell className="py-2 text-right text-xs tabular-nums text-green-400 font-semibold">{c.given.toLocaleString()}</TableCell>
-                    <TableCell className="py-2 text-right text-xs tabular-nums text-red-400">{c.withdrawn.toLocaleString()}</TableCell>
+                {(liveData?.consents ?? CONSENTS).map((c: any) => (
+                  <TableRow key={c.id ?? c.consent_id} className="hover:bg-muted/30">
+                    <TableCell className="py-2 text-xs font-medium max-w-[140px] truncate">{c.purpose ?? c.subject_email}</TableCell>
+                    <TableCell className="py-2 text-[10px] text-muted-foreground">{c.legal_basis ?? (c.consent_given ? "Consent" : "Withdrawn")}</TableCell>
+                    <TableCell className="py-2 text-right text-xs tabular-nums text-green-400 font-semibold">{(c.given ?? (c.consent_given ? 1 : 0)).toLocaleString()}</TableCell>
+                    <TableCell className="py-2 text-right text-xs tabular-nums text-red-400">{(c.withdrawn ?? (!c.consent_given ? 1 : 0)).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -274,7 +282,7 @@ export default function PrivacyGDPRDashboard() {
             <CardDescription className="text-xs">Breaches, unauthorized access, and DPA notification status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {INCIDENTS.map((inc) => (
+            {(liveData?.incidents ?? INCIDENTS).map((inc: any) => (
               <div key={inc.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-[11px] text-muted-foreground">{inc.id}</span>
@@ -320,12 +328,12 @@ export default function PrivacyGDPRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PROCESSING_ACTIVITIES.map((pa) => (
-                  <TableRow key={pa.id} className="hover:bg-muted/30">
-                    <TableCell className="py-2 text-xs font-medium">{pa.activity}</TableCell>
+                {(liveData?.activities ?? PROCESSING_ACTIVITIES).map((pa: any) => (
+                  <TableRow key={pa.id ?? pa.activity_id} className="hover:bg-muted/30">
+                    <TableCell className="py-2 text-xs font-medium">{pa.activity ?? pa.activity_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{pa.legal_basis}</TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[200px] truncate">{pa.categories}</TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{pa.retention}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[200px] truncate">{pa.categories ?? (Array.isArray(pa.data_categories) ? pa.data_categories.join(", ") : pa.data_categories)}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{pa.retention ?? (pa.retention_period_days ? `${pa.retention_period_days} days` : "—")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -220,12 +220,14 @@ export default function ThreatActorDashboard() {
       apiFetch(`/api/v1/threat-actors/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-actors/actors?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/threat-actors/watchlist?org_id=${ORG_ID}`),
-    ]).then(([statsResult, actorsResult, watchlistResult]) => {
+      apiFetch(`/api/v1/threat-actors/iocs?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, actorsResult, watchlistResult, iocsResult]) => {
       const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
       const actors    = actorsResult.status    === "fulfilled" ? actorsResult.value    : null;
       const watchlist = watchlistResult.status === "fulfilled" ? watchlistResult.value : null;
-      if (stats || actors || watchlist) {
-        setLiveData({ stats, actors, watchlist });
+      const iocs      = iocsResult.status      === "fulfilled" ? iocsResult.value      : null;
+      if (stats || actors || watchlist || iocs) {
+        setLiveData({ stats, actors, watchlist, iocs });
       }
     }).finally(() => setDataLoading(false));
   }, []);
