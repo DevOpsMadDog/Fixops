@@ -6421,7 +6421,14 @@ def create_app() -> FastAPI:
     try:
         from apps.api.cloud_native_security_router import router as cloud_native_security_router
         app.include_router(cloud_native_security_router)
-        _logger.info("Mounted Cloud Native Security router at /api/v1/cloud-native-security")
+        _logger.info("Mounted Cloud Native Security router at /api/v1/cloud-native")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.kubernetes_security_router import router as kubernetes_security_router
+        app.include_router(kubernetes_security_router)
+        _logger.info("Mounted Kubernetes Security router at /api/v1/kubernetes-security")
     except ImportError:
         pass
 
