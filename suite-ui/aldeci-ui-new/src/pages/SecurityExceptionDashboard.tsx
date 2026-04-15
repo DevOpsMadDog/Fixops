@@ -9,9 +9,23 @@
  *   5. Stats panel — by_type bars + by_risk horizontal bars
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShieldAlert, Clock, AlertTriangle, CheckCircle, XCircle, HelpCircle, RefreshCw, BarChart3 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const key =
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key";
+  const res = await fetch(`${API_BASE}/api/v1${path}`, { headers: { "X-API-Key": key } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -170,11 +184,50 @@ function CountdownBar({ days }: { days: number }) {
 
 export default function SecurityExceptionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/security-exceptions/list?org_id=${ORG_ID}&limit=50`),
+      apiFetch(`/security-exceptions/stats?org_id=${ORG_ID}`),
+    ]).then(([listResult, statsResult]) => {
+      const list  = listResult.status  === "fulfilled" ? listResult.value  : null;
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      if (list || stats) {
+        setLiveData({ list, stats });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // KPI values — live with mock fallback
+  const totalExceptions  = liveData?.stats?.total_exceptions  ?? liveData?.list?.length ?? 47;
+  const pendingApproval  = liveData?.stats?.pending_count     ?? liveData?.stats?.pending ?? 8;
+  const expiringSoon     = liveData?.stats?.expiring_soon     ?? 5;
+  const criticalAccepted = liveData?.stats?.critical_accepted ?? liveData?.stats?.critical_count ?? 3;
+
+  // Exception rows — live list mapped to table shape, fall back to mock
+  const exceptions: typeof EXCEPTIONS = liveData?.list?.length
+    ? liveData.list.slice(0, 50).map((e: any) => ({
+        id:        e.id ?? e.exception_id ?? "—",
+        title:     e.title ?? e.description ?? "—",
+        type:      e.type ?? e.exception_type ?? "policy",
+        risk:      e.risk ?? e.risk_level ?? "medium",
+        status:    e.status ?? "pending",
+        requestor: e.requestor ?? e.requested_by ?? "—",
+        expires:   e.expires ?? e.expiry_date ?? e.expires_at ?? "—",
+        daysLeft:  e.days_left ?? e.days_remaining ?? 0,
+      }))
+    : EXCEPTIONS;
 
   return (
     <motion.div
@@ -187,18 +240,18 @@ export default function SecurityExceptionDashboard() {
         title="Security Exceptions"
         description="Risk-accepted exceptions with approval workflows and expiry tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Exceptions"   value={47}  icon={ShieldAlert}    className="border-blue-500/20" />
-        <KpiCard title="Pending Approval"   value={8}   icon={Clock}          trend="up" className="border-amber-500/20" />
-        <KpiCard title="Expiring Soon"      value={5}   icon={AlertTriangle}  trend="up" className="border-yellow-500/20" />
-        <KpiCard title="Critical Accepted"  value={3}   icon={CheckCircle}    className="border-red-500/20" />
+        <KpiCard title="Total Exceptions"   value={totalExceptions}  icon={ShieldAlert}    className="border-blue-500/20" />
+        <KpiCard title="Pending Approval"   value={pendingApproval}  icon={Clock}          trend="up" className="border-amber-500/20" />
+        <KpiCard title="Expiring Soon"      value={expiringSoon}     icon={AlertTriangle}  trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Critical Accepted"  value={criticalAccepted} icon={CheckCircle}    className="border-red-500/20" />
       </div>
 
       {/* Exception table */}
@@ -209,7 +262,7 @@ export default function SecurityExceptionDashboard() {
               <ShieldAlert className="h-4 w-4 text-amber-400" />
               Exception Registry
             </CardTitle>
-            <Badge className="text-[10px] border border-border text-muted-foreground">{EXCEPTIONS.length} exceptions</Badge>
+            <Badge className="text-[10px] border border-border text-muted-foreground">{exceptions.length} exceptions</Badge>
           </div>
           <CardDescription className="text-xs">All active, pending, and recently expired security exceptions</CardDescription>
         </CardHeader>
@@ -230,7 +283,7 @@ export default function SecurityExceptionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EXCEPTIONS.map((row) => (
+                {exceptions.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
