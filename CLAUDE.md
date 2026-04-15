@@ -444,6 +444,76 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
+### DONE (session 2026-04-16, Wave 15+16 — Autonomous parallel build)
+
+**Wave 15 Backend Engines (all in suite-core/core/):**
+- ✅ email_filtering_engine.py — EmailFiltering (allow/block lists, quarantine) — tests
+- ✅ anti_phishing_engine.py — AntiPhishing (URL analysis, domain spoofing detection) — tests
+- ✅ soc_workflow_engine.py — SOCWorkflow (case management, SLA tracking) — tests
+- ✅ incident_triage_engine.py — IncidentTriage (AI-assisted severity scoring) — tests
+- ✅ threat_simulation_engine.py — ThreatSimulation (red/blue team exercise orchestration) — tests
+- ✅ security_scoreboard_engine.py — SecurityScoreboard (team/dept gamification) — tests
+- ✅ asset_lifecycle_engine.py — AssetLifecycle (procurement→decommission, EOL alerts) — tests
+- ✅ vuln_exception_engine.py — VulnException (risk acceptance workflow, expiry tracking) — tests
+- ✅ breach_detection_engine.py — BreachDetection (behavioral anomalies, IoC correlation) — tests
+- ✅ forensics_readiness_engine.py — ForensicsReadiness (evidence collection readiness scoring) — tests
+- ✅ regulatory_reporting_engine.py — RegulatoryReporting (multi-framework report generation) — tests
+- ✅ audit_management_engine.py — AuditManagement (audit scheduling, finding lifecycle) — tests
+
+**Wave 15 Routers wired:** /api/v1/email-filtering, /api/v1/anti-phishing, /api/v1/soc-workflow,
+/api/v1/incident-triage, /api/v1/threat-simulation, /api/v1/security-scoreboard,
+/api/v1/asset-lifecycle, /api/v1/vuln-exception, /api/v1/breach-detection,
+/api/v1/forensics-readiness, /api/v1/regulatory-reporting, /api/v1/audit-management
+
+**Wave 16 Backend Engines (all in suite-core/core/):**
+- ✅ supply_chain_monitoring_engine.py — SupplyChainMonitoring (supplier risk, events) — 32 tests
+- ✅ vendor_compliance_engine.py — VendorCompliance (6-item compliance check, requirements) — 34 tests
+- ✅ cloud_governance_engine.py — CloudGovernance (policy violations, compliance score) — 40 tests
+- ✅ policy_enforcement_engine.py — PolicyEnforcement (versioning, exception lifecycle) — 38 tests
+- ✅ security_metrics_dashboard_engine.py — MetricsDashboard (dashboards, widgets, snapshots) — 34 tests
+- ✅ kpi_tracking_engine.py — KPITracking (higher/lower direction, achievement %, trend) — 47 tests
+
+**Wave 16 Routers wired:** /api/v1/supply-chain-monitoring, /api/v1/vendor-compliance,
+/api/v1/cloud-governance, /api/v1/policy-enforcement, /api/v1/metrics-dashboard, /api/v1/kpi-tracking
+
+**Test totals after Wave 16:** 2,400+ base + ~500 Wave 15-16 = 2,900+ tests, zero regressions
+
+---
+
+### DONE (session 2026-04-16, Wave 17+18 — Autonomous parallel build)
+
+**Wave 17 Tests for engines without coverage:**
+- ✅ test_insider_threat_engine.py — 36 tests (analyze_user_risk, anomaly detection, alert lifecycle)
+- ✅ test_intelligent_security_engine.py — 34 tests (MindsDB safety helpers, ThreatIntelligence, AttackPlan)
+- ✅ test_mitre_attack_coverage_engine.py — 48 tests (seed, add_technique, get_coverage, heatmap, gaps)
+- ✅ test_security_playbook_engine.py — 32 tests (execute_playbook simulation, org isolation)
+
+**Wave 17 New Backend Engines:**
+- ✅ mfa_management_engine.py — MFAManagement (totp/sms/email/hardware_key/push, enrollment lifecycle) — 35 tests
+- ✅ threat_score_engine.py — ThreatScore (weighted signal aggregation, risk_level mapping) — 33 tests
+- ✅ security_budget_engine.py — SecurityBudget (allocations, spend tracking, ROI assessment) — 44 tests
+- ✅ compliance_gap_engine.py — ComplianceGap (control gaps, remediation plans, compliance %) — 35 tests
+
+**Wave 17 Routers wired:** /api/v1/mfa, /api/v1/threat-scores, /api/v1/security-budget, /api/v1/compliance-gaps
+
+**Wave 18 New Backend Engines (in progress):**
+- ✅ ai_governance_engine.py — AIGovernance (model lifecycle, bias/security assessments, incidents) — 35 tests
+- ✅ digital_identity_engine.py — DigitalIdentity (IAL1/2/3, NIST 800-63, verification events) — 35 tests
+- ✅ attack_chain_engine.py — AttackChain (kill chain phases, multi-step lateral movement) — 35 tests
+- ✅ threat_exposure_engine.py — ThreatExposure (signal correlation, exposure scoring 0-100) — 35 tests
+- ✅ software_license_security_engine.py — SoftwareLicenseSecurity (OSS risk, violations) — 35 tests
+- ✅ cloud_identity_engine.py — CloudIdentity (IAM, federated access, permission analysis) — 35 tests
+
+**Wave 18 Routers wired:** /api/v1/ai-governance, /api/v1/digital-identity, /api/v1/attack-chains,
+/api/v1/threat-exposure, /api/v1/license-security, /api/v1/cloud-identity
+
+**Wave 18 Frontend Pages:** MFAManagementDashboard, ThreatScoreDashboard, SecurityBudgetDashboard,
+ComplianceGapDashboard (all wired in App.tsx)
+
+**Engine total: 193+ engines | Router total: 420+ endpoints | Test total: 3,000+ tests**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
