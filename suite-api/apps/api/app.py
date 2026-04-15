@@ -6139,6 +6139,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.asset_criticality_router import router as asset_criticality_router
+        app.include_router(asset_criticality_router)
+        _logger.info("Mounted Asset Criticality router at /api/v1/asset-criticality")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.zero_trust_enforcement_router import router as zero_trust_enforcement_router
         app.include_router(zero_trust_enforcement_router)
         _logger.info("Mounted Zero Trust Enforcement router at /api/v1/zero-trust")
