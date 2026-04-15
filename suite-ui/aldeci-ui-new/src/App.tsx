@@ -164,6 +164,9 @@ const CloudSecurityDashboard = lazy(() => import("@/pages/CloudSecurityDashboard
 const BreachResponse = lazy(() => import("@/pages/BreachResponse"));
 const SecurityOperationsCenter = lazy(() => import("@/pages/SecurityOperationsCenter"));
 const WatchlistManager = lazy(() => import("@/pages/WatchlistManager"));
+const UBADashboard = lazy(() => import("@/pages/UBADashboard"));
+const CMDBDashboard = lazy(() => import("@/pages/CMDBDashboard"));
+const IncidentResponseDashboard = lazy(() => import("@/pages/IncidentResponseDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -350,6 +353,9 @@ export default function App() {
             <Route path="/breach-response" element={<BreachResponse />} />
             <Route path="/soc" element={<SecurityOperationsCenter />} />
             <Route path="/watchlist" element={<WatchlistManager />} />
+            <Route path="/uba" element={<UBADashboard />} />
+            <Route path="/cmdb" element={<CMDBDashboard />} />
+            <Route path="/incident-response" element={<IncidentResponseDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
