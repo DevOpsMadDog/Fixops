@@ -104,7 +104,7 @@ const VendorManagement = lazy(() => import("@/pages/vendors/VendorManagement"));
 const IncidentResponse = lazy(() => import("@/pages/incidents/IncidentResponse"));
 
 // Risk Acceptance
-const RiskAcceptance = lazy(() => import("@/pages/risk/RiskAcceptance"));
+const RiskAcceptance = lazy(() => import("@/pages/RiskAcceptance"));
 
 // SBOM Management
 const SBOMManagement = lazy(() => import("@/pages/sbom/SBOMManagement"));
@@ -117,8 +117,10 @@ const InsiderThreatMonitor = lazy(() => import("@/pages/InsiderThreatMonitor"));
 const SecurityKPIDashboard = lazy(() => import("@/pages/SecurityKPIDashboard"));
 const VendorRiskDashboard = lazy(() => import("@/pages/VendorRiskDashboard"));
 const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
+const PatchPrioritizer = lazy(() => import("@/pages/PatchPrioritizer"));
 const CVESearch = lazy(() => import("@/pages/CVESearch"));
 const IPReputation = lazy(() => import("@/pages/IPReputation"));
+const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
