@@ -6029,6 +6029,38 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Threat Intel Sharing router not loaded: {e}")
 
+    try:
+        from apps.api.phishing_simulation_router import router as phishing_simulation_router
+        app.include_router(phishing_simulation_router)
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ioc_enrichment_router import router as ioc_enrichment_router
+        app.include_router(ioc_enrichment_router)
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ctem_router import router as ctem_router
+        app.include_router(ctem_router)
+    except ImportError:
+        pass
+
+    # Security Champions Program — champion registry, activities, certifications, campaigns
+    try:
+        from apps.api.security_champions_router import router as security_champions_router
+        app.include_router(security_champions_router)
+    except ImportError:
+        pass
+
+    # Red Team Management — engagements, findings, TTPs, operators
+    try:
+        from apps.api.red_team_mgmt_router import router as red_team_mgmt_router
+        app.include_router(red_team_mgmt_router)
+    except ImportError:
+        pass
+
     return app
 
 
