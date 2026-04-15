@@ -151,23 +151,51 @@ function RiskBar({ score, idx }: { score: number; idx: number }) {
 export default function ContainerSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [policies, setPolicies] = useState<any[]>([]);
+  const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     setDataLoading(true);
-    // Fetch policies list from the actual GET endpoint
-    apiFetch("/api/v1/containers/policies")
-      .then((data) => { if (data?.policies) setPolicies(data.policies); })
-      .catch(() => {}) // silent fallback
-      .finally(() => setDataLoading(false));
-  }, []);
+    Promise.allSettled([
+      apiFetch("/api/v1/containers/policies"),
+      apiFetch("/api/v1/k8s/posture"),
+      apiFetch("/api/v1/k8s/findings?limit=50"),
+    ]).then(([policiesRes, postureRes, findingsRes]) => {
+      if (policiesRes.status === "fulfilled" && policiesRes.value?.policies) {
+        setPolicies(policiesRes.value.policies);
+      }
+      const posture  = postureRes.status  === "fulfilled" ? postureRes.value  : null;
+      const findings = findingsRes.status === "fulfilled" ? findingsRes.value : null;
+      if (posture || findings) {
+        setLiveData({ posture, findings });
+      }
+    }).finally(() => setDataLoading(false));
+  };
 
-  const totalContainers     = CONTAINERS.length;
-  const vulnerable          = CONTAINERS.filter((c) => c.vuln_count > 0).length;
-  const criticalVulns       = VULNERABILITIES.filter((v) => v.severity === "critical").length;
-  const privilegedContainers= CONTAINERS.filter((c) => c.privileged).length;
+  useEffect(() => { loadData(); }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  // KPI values — live posture with mock fallback
+  const totalContainers      = liveData?.posture?.total_checks      ?? CONTAINERS.length;
+  const vulnerable           = liveData?.posture?.failed_checks     ?? CONTAINERS.filter((c) => c.vuln_count > 0).length;
+  const criticalVulns        = liveData?.posture?.critical_findings  ?? VULNERABILITIES.filter((v) => v.severity === "critical").length;
+  const privilegedContainers = liveData?.posture?.high_findings      ?? CONTAINERS.filter((c) => c.privileged).length;
+
+  // Findings — map live findings to display shape, fall back to mock
+  const displayVulns: typeof VULNERABILITIES = liveData?.findings?.findings?.length
+    ? liveData.findings.findings.slice(0, 8).map((f: any) => ({
+        id:            f.check_id ?? f.id ?? "FINDING",
+        container:     f.resource_name ?? f.namespace ?? "unknown",
+        severity:      f.severity ?? "medium",
+        fix_available: f.remediation != null,
+        description:   f.title ?? f.description ?? "",
+      }))
+    : VULNERABILITIES;
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
   return (
     <motion.div
@@ -189,10 +217,10 @@ export default function ContainerSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Containers"      value={totalContainers}      icon={Box}          trend="up"   />
-        <KpiCard title="Vulnerable"            value={vulnerable}           icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Vulns"        value={criticalVulns}        icon={Bug}          trend="up"   className="border-red-500/20" />
-        <KpiCard title="Privileged Containers" value={privilegedContainers} icon={Shield}       trend="down" className="border-orange-500/20" />
+        <KpiCard title={liveData?.posture ? "Total Checks" : "Total Containers"}    value={totalContainers}      icon={Box}          trend="up"   />
+        <KpiCard title={liveData?.posture ? "Failed Checks" : "Vulnerable"}         value={vulnerable}           icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Findings"                                           value={criticalVulns}        icon={Bug}          trend="up"   className="border-red-500/20" />
+        <KpiCard title={liveData?.posture ? "High Findings" : "Privileged"}         value={privilegedContainers} icon={Shield}       trend="down" className="border-orange-500/20" />
       </div>
 
       {/* Container Inventory */}
@@ -270,7 +298,7 @@ export default function ContainerSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {VULNERABILITIES.map((v) => (
+                {displayVulns.map((v) => (
                   <TableRow key={v.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-blue-400">{v.id}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{v.container}</TableCell>

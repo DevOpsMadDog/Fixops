@@ -309,19 +309,22 @@ export default function PAMDashboard() {
             <CardDescription className="text-xs">Live privileged sessions with recording status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {ACTIVE_SESSIONS.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/10 px-3 py-2.5">
+            {(liveData?.sessions?.filter((s: any) => (s.approval_status ?? s.status) === "approved") ?? ACTIVE_SESSIONS).map((s: any, i: number) => (
+              <div key={s.id ?? s.session_id ?? i} className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/10 px-3 py-2.5">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted-foreground">{s.id}</span>
-                    {s.recording && (
+                    <span className="text-xs font-mono text-muted-foreground">{s.id ?? s.session_id ?? `SES-${i}`}</span>
+                    {(s.recording ?? s.recording_enabled) && (
                       <Badge className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10 flex items-center gap-0.5">
                         <Video className="h-2.5 w-2.5" /> REC
                       </Badge>
                     )}
                   </div>
-                  <span className="text-xs font-medium truncate">{s.requester} → {s.target}</span>
-                  <span className="text-[10px] text-muted-foreground">Started {s.started} · Elapsed {s.elapsed}</span>
+                  <span className="text-xs font-medium truncate">{s.requester} → {s.target_system ?? s.target}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {s.started_at ? new Date(s.started_at).toLocaleTimeString() : s.started ? `Started ${s.started}` : ""}
+                    {s.elapsed ? ` · Elapsed ${s.elapsed}` : ""}
+                  </span>
                 </div>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0 ml-2">
                   End
