@@ -5662,6 +5662,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Email Security router not loaded: {e}")
 
+    # Network Topology — asset graph, subnet mapping, lateral movement paths
+    try:
+        from apps.api.network_topology_router import router as network_topology_router
+        app.include_router(network_topology_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Network Topology router at /api/v1/network-topology")
+    except Exception as e:
+        _logger.warning(f"Network Topology router not loaded: {e}")
+
     return app
 
 
