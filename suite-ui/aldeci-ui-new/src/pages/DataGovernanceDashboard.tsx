@@ -9,9 +9,25 @@
  *   5. Data flow map — 6 flows with source → destination
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, AlertTriangle, Shield, Globe, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,6 +143,26 @@ function StatusBadge({ val }: { val: string }) {
 
 export default function DataGovernanceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/data-governance/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/data-governance/assets?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/data-governance/violations?org_id=${ORG_ID}&resolved=false`),
+      apiFetch(`/api/v1/data-governance/policies?org_id=${ORG_ID}`),
+    ]).then(([statsResult, assetsResult, violationsResult, policiesResult]) => {
+      const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
+      const assets     = assetsResult.status     === "fulfilled" ? assetsResult.value     : null;
+      const violations = violationsResult.status === "fulfilled" ? violationsResult.value : null;
+      const policies   = policiesResult.status   === "fulfilled" ? policiesResult.value   : null;
+      if (stats || assets || violations || policies) {
+        setLiveData({ stats, assets, violations, policies });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -145,18 +181,18 @@ export default function DataGovernanceDashboard() {
         title="Data Governance"
         description="Data classification, policies, and compliance"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"      value="847"   icon={Database} />
-        <KpiCard title="Policy Violations" value={12}    icon={AlertTriangle} trend="up" className="border-red-500/20" />
-        <KpiCard title="Classified Assets" value="94.2%" icon={Shield}    trend="up" className="border-green-500/20" />
-        <KpiCard title="Cross-Border Flows" value={34}   icon={Globe} />
+        <KpiCard title="Total Assets"      value={liveData?.stats?.total_assets ?? "847"}   icon={Database} />
+        <KpiCard title="Policy Violations" value={liveData?.stats?.open_violations ?? liveData?.stats?.total_violations ?? 12}    icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Classified Assets" value={liveData?.stats?.classified_pct != null ? `${liveData.stats.classified_pct}%` : "94.2%"} icon={Shield}    trend="up" className="border-green-500/20" />
+        <KpiCard title="Cross-Border Flows" value={liveData?.stats?.cross_border_flows ?? 34}   icon={Globe} />
       </div>
 
       {/* Asset table + Violations panel */}
@@ -184,7 +220,7 @@ export default function DataGovernanceDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ASSETS.map((row) => (
+                  {(liveData?.assets ?? ASSETS).map((row: any) => (
                     <TableRow key={row.name} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-mono py-2.5 max-w-[160px] truncate">{row.name}</TableCell>
                       <TableCell className="py-2.5">
@@ -217,13 +253,13 @@ export default function DataGovernanceDashboard() {
                 Open Violations
               </CardTitle>
               <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-                {VIOLATIONS.length}
+                {(liveData?.violations ?? VIOLATIONS).length}
               </Badge>
             </div>
             <CardDescription className="text-xs">Active policy violations requiring remediation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {VIOLATIONS.map((v) => (
+            {(liveData?.violations ?? VIOLATIONS).map((v: any) => (
               <div key={v.id} className="flex items-start gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <SeverityDot sev={v.severity} />
                 <div className="flex-1 min-w-0">
@@ -260,7 +296,7 @@ export default function DataGovernanceDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {POLICIES.map((p) => (
+                  {(liveData?.policies ?? POLICIES).map((p: any) => (
                     <TableRow key={p.name} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{p.name}</TableCell>
                       <TableCell className="py-2.5">

@@ -9,9 +9,25 @@
  *   5. Test history — last 8 test runs as timeline
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, XCircle, AlertTriangle, CheckCircle, RefreshCw, BarChart3, Play, Clock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,6 +164,24 @@ function PassRateBar({ rate }: { rate: number }) {
 
 export default function CCMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/ccm/orgs/${ORG_ID}/stats`),
+      apiFetch(`/api/v1/ccm/orgs/${ORG_ID}/controls`),
+      apiFetch(`/api/v1/ccm/orgs/${ORG_ID}/failures?remediated=false`),
+    ]).then(([statsResult, controlsResult, failuresResult]) => {
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const controls = controlsResult.status === "fulfilled" ? controlsResult.value : null;
+      const failures = failuresResult.status === "fulfilled" ? failuresResult.value : null;
+      if (stats || controls || failures) {
+        setLiveData({ stats, controls, failures });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -165,18 +199,18 @@ export default function CCMDashboard() {
         title="Continuous Control Monitoring"
         description="Automated control testing, failure detection, and remediation tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Controls Monitored" value={87}    icon={ShieldCheck}   className="border-blue-500/20" />
-        <KpiCard title="Pass Rate"          value="81%"   icon={CheckCircle}   trend="up" className="border-green-500/20" />
-        <KpiCard title="Open Failures"      value={12}    icon={XCircle}       trend="up" className="border-red-500/20" />
-        <KpiCard title="Untested Controls"  value={9}     icon={AlertTriangle} className="border-amber-500/20" />
+        <KpiCard title="Controls Monitored" value={liveData?.stats?.total_controls ?? 87}    icon={ShieldCheck}   className="border-blue-500/20" />
+        <KpiCard title="Pass Rate"          value={liveData?.stats?.pass_rate != null ? `${liveData.stats.pass_rate}%` : "81%"}   icon={CheckCircle}   trend="up" className="border-green-500/20" />
+        <KpiCard title="Open Failures"      value={liveData?.stats?.open_failures ?? liveData?.stats?.total_failures ?? 12}    icon={XCircle}       trend="up" className="border-red-500/20" />
+        <KpiCard title="Untested Controls"  value={liveData?.stats?.untested_controls ?? 9}     icon={AlertTriangle} className="border-amber-500/20" />
       </div>
 
       {/* Framework coverage */}
@@ -244,7 +278,7 @@ export default function CCMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CONTROLS.map((row, i) => (
+                {(liveData?.controls?.items ?? liveData?.controls ?? CONTROLS).map((row: any, i: number) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "fail" && "bg-red-500/5")}>
                     <TableCell className="text-xs font-mono py-2.5">{row.ref}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.name}</TableCell>
@@ -276,12 +310,12 @@ export default function CCMDashboard() {
                 <XCircle className="h-4 w-4" />
                 Open Failure Tracker
               </CardTitle>
-              <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{FAILURES.length} open</Badge>
+              <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{(liveData?.failures?.items ?? liveData?.failures ?? FAILURES).length} open</Badge>
             </div>
             <CardDescription className="text-xs">Active control failures requiring remediation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {FAILURES.map((f, i) => (
+            {(liveData?.failures?.items ?? liveData?.failures ?? FAILURES).map((f: any, i: number) => (
               <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                 <SeverityDot severity={f.severity} />
                 <div className="flex-1 min-w-0">

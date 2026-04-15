@@ -9,9 +9,25 @@
  *   5. Gate policies (6 policies)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GitBranch, Shield, AlertTriangle, RefreshCw, Code2, CheckCircle2, XCircle, Clock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -123,6 +139,24 @@ const MAX_DURATION = 7;
 
 export default function DevSecOpsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/devsecops/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/devsecops/pipelines?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/devsecops/findings?org_id=${ORG_ID}&suppressed=false`),
+    ]).then(([statsResult, pipelinesResult, findingsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const pipelines = pipelinesResult.status === "fulfilled" ? pipelinesResult.value : null;
+      const findings  = findingsResult.status  === "fulfilled" ? findingsResult.value  : null;
+      if (stats || pipelines || findings) {
+        setLiveData({ stats, pipelines, findings });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -141,18 +175,18 @@ export default function DevSecOpsDashboard() {
         title="DevSecOps"
         description="Pipeline security gates, SAST/SCA/secrets scanning, and gate policies"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Pipelines"  value={12}     icon={GitBranch}     trend="up" />
-        <KpiCard title="Pass Rate"         value="73.4%"  icon={CheckCircle2}  trend="down" className="border-amber-500/20" />
-        <KpiCard title="Blocked Builds"    value={8}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Critical Findings" value={5}      icon={Shield}        trend="up"   className="border-red-500/20" />
+        <KpiCard title="Active Pipelines"  value={liveData?.stats?.total_pipelines ?? 12}     icon={GitBranch}     trend="up" />
+        <KpiCard title="Pass Rate"         value={liveData?.stats?.pass_rate != null ? `${liveData.stats.pass_rate}%` : "73.4%"}  icon={CheckCircle2}  trend="down" className="border-amber-500/20" />
+        <KpiCard title="Blocked Builds"    value={liveData?.stats?.blocked_runs ?? liveData?.stats?.total_blocked ?? 8}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Critical Findings" value={liveData?.stats?.critical_findings ?? liveData?.stats?.findings_critical ?? 5}      icon={Shield}        trend="up"   className="border-red-500/20" />
       </div>
 
       {/* Pipeline Table */}
@@ -182,7 +216,7 @@ export default function DevSecOpsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PIPELINES.map((row) => (
+                {(liveData?.pipelines?.items ?? liveData?.pipelines ?? PIPELINES).map((row: any) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -259,7 +293,7 @@ export default function DevSecOpsDashboard() {
               <Code2 className="h-4 w-4 text-red-400" />
               Security Findings
             </CardTitle>
-            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{FINDINGS.length} findings</Badge>
+            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{(liveData?.findings?.items ?? liveData?.findings ?? FINDINGS).length} findings</Badge>
           </div>
           <CardDescription className="text-xs">Aggregated SAST, SCA, and secrets findings across all pipelines</CardDescription>
         </CardHeader>
@@ -278,7 +312,7 @@ export default function DevSecOpsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {FINDINGS.map((f, i) => (
+                {(liveData?.findings?.items ?? liveData?.findings ?? FINDINGS).map((f: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2.5 w-4"><SevDot sev={f.sev} /></TableCell>
                     <TableCell className="py-2.5"><ScannerBadge type={f.scanner} /></TableCell>
