@@ -391,6 +391,14 @@ const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
 
+// Wave 31 domain dashboards
+const UserAccessReviewDashboard = lazy(() => import("@/pages/UserAccessReviewDashboard"));
+const PostureHistoryDashboard = lazy(() => import("@/pages/PostureHistoryDashboard"));
+const IncidentLessonsDashboard = lazy(() => import("@/pages/IncidentLessonsDashboard"));
+const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard"));
+const IntelEnrichmentDashboard = lazy(() => import("@/pages/IntelEnrichmentDashboard"));
+const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -786,6 +794,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 31 domain dashboards */}
+            <Route path="/access-reviews" element={<UserAccessReviewDashboard />} />
+            <Route path="/posture-history" element={<PostureHistoryDashboard />} />
+            <Route path="/incident-lessons" element={<IncidentLessonsDashboard />} />
+            <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
+            <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
+            <Route path="/security-okrs" element={<SecurityOKRDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
