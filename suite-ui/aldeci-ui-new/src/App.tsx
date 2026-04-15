@@ -245,6 +245,10 @@ const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashb
 
 // Secret Scanner, TIP, Attack Surface dashboards (wave 9)
 const SecretScannerDashboard = lazy(() => import("@/pages/SecretScannerDashboard"));
+const ContainerRegistryDashboard = lazy(() => import("@/pages/ContainerRegistryDashboard"));
+const NetworkMonitoringDashboard = lazy(() => import("@/pages/NetworkMonitoringDashboard"));
+const SCADashboard = lazy(() => import("@/pages/SCADashboard"));
+const ServiceAccountAuditDashboard = lazy(() => import("@/pages/ServiceAccountAuditDashboard"));
 const ThreatIntelPlatformDashboard = lazy(() => import("@/pages/ThreatIntelPlatformDashboard"));
 const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard"));
 
@@ -262,6 +266,12 @@ const ScheduledReportsDashboard = lazy(() => import("@/pages/ScheduledReportsDas
 // Cloud Compliance + Endpoint Compliance dashboards
 const CloudComplianceDashboard = lazy(() => import("@/pages/CloudComplianceDashboard"));
 const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianceDashboard"));
+
+// Container Registry, SCA, Firewall Policy, Network Segmentation dashboards
+const ContainerRegistryDashboard = lazy(() => import("@/pages/ContainerRegistryDashboard"));
+const SCADashboard = lazy(() => import("@/pages/SCADashboard"));
+const FirewallPolicyDashboard = lazy(() => import("@/pages/FirewallPolicyDashboard"));
+const NetworkSegmentationDashboard = lazy(() => import("@/pages/NetworkSegmentationDashboard"));
 
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
@@ -402,6 +412,10 @@ export default function App() {
 
             {/* Secret Scanner, Threat Intel Platform, Attack Surface Dashboard */}
             <Route path="/secret-scanner" element={<SecretScannerDashboard />} />
+            <Route path="/container-registry" element={<ContainerRegistryDashboard />} />
+            <Route path="/network-monitoring" element={<NetworkMonitoringDashboard />} />
+            <Route path="/sca" element={<SCADashboard />} />
+            <Route path="/service-account-audit" element={<ServiceAccountAuditDashboard />} />
             <Route path="/threat-intel-platform" element={<ThreatIntelPlatformDashboard />} />
             <Route path="/attack-surface-dashboard" element={<AttackSurfaceDashboard />} />
 
@@ -532,6 +546,12 @@ export default function App() {
             {/* API Security Management + Vuln Intelligence */}
             <Route path="/api-security-mgmt" element={<APISecurityMgmtDashboard />} />
             <Route path="/vuln-intelligence" element={<VulnIntelligenceDashboard />} />
+
+            {/* Container Registry, SCA, Firewall Policy, Network Segmentation */}
+            <Route path="/container-registry" element={<ContainerRegistryDashboard />} />
+            <Route path="/sca" element={<SCADashboard />} />
+            <Route path="/firewall-policy" element={<FirewallPolicyDashboard />} />
+            <Route path="/network-segmentation" element={<NetworkSegmentationDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
