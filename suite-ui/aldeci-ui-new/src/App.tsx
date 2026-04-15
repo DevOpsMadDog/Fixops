@@ -375,6 +375,14 @@ const SecurityTelemetryDashboard = lazy(() => import("@/pages/SecurityTelemetryD
 const MicrosegmentationPolicyDashboard = lazy(() => import("@/pages/MicrosegmentationPolicyDashboard"));
 const ThirdPartyVendorDashboard = lazy(() => import("@/pages/ThirdPartyVendorDashboard"));
 
+// Wave 29 domain dashboards
+const SaasSecurityPostureDashboard = lazy(() => import("@/pages/SaasSecurityPostureDashboard"));
+const APIInventoryDashboard = lazy(() => import("@/pages/APIInventoryDashboard"));
+const ThreatVectorDashboard = lazy(() => import("@/pages/ThreatVectorDashboard"));
+const AwarenessCampaignDashboard = lazy(() => import("@/pages/AwarenessCampaignDashboard"));
+const RiskTreatmentDashboard = lazy(() => import("@/pages/RiskTreatmentDashboard"));
+const DataDiscoveryDashboard = lazy(() => import("@/pages/DataDiscoveryDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -754,6 +762,14 @@ export default function App() {
             <Route path="/security-telemetry" element={<SecurityTelemetryDashboard />} />
             <Route path="/microsegmentation" element={<MicrosegmentationPolicyDashboard />} />
             <Route path="/third-party-vendor" element={<ThirdPartyVendorDashboard />} />
+
+            {/* Wave 29 domain dashboards */}
+            <Route path="/sspm" element={<SaasSecurityPostureDashboard />} />
+            <Route path="/api-inventory" element={<APIInventoryDashboard />} />
+            <Route path="/threat-vectors" element={<ThreatVectorDashboard />} />
+            <Route path="/awareness-campaigns" element={<AwarenessCampaignDashboard />} />
+            <Route path="/risk-treatment" element={<RiskTreatmentDashboard />} />
+            <Route path="/data-discovery" element={<DataDiscoveryDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
