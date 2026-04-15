@@ -6544,6 +6544,41 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.alerting_notification_router import router as alerting_notification_router
+        app.include_router(alerting_notification_router)
+        _logger.info("Mounted Alerting Notification router at /api/v1/alerting")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.risk_aggregator_router import router as risk_aggregator_router
+        app.include_router(risk_aggregator_router)
+        _logger.info("Mounted Risk Aggregator router at /api/v1/risk-aggregator")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_event_correlation_router import router as security_event_correlation_router
+        app.include_router(security_event_correlation_router)
+        _logger.info("Mounted Security Event Correlation router at /api/v1/event-correlation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_intel_fusion_router import router as threat_intel_fusion_router
+        app.include_router(threat_intel_fusion_router)
+        _logger.info("Mounted Threat Intel Fusion router at /api/v1/threat-intel-fusion")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.data_lake_security_router import router as data_lake_security_router
+        app.include_router(data_lake_security_router)
+        _logger.info("Mounted Data Lake Security router at /api/v1/data-lake-security")
+    except ImportError:
+        pass
+
     return app
 
 
