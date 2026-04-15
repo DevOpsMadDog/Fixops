@@ -5965,6 +5965,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Awareness Score router not loaded: {e}")
 
+    # NDR Engine — network flow ingestion, risk scoring, alerts, baselines, anomaly detection
+    try:
+        from apps.api.ndr_router import router as ndr_router
+        app.include_router(ndr_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted NDR Engine router at /api/v1/ndr")
+    except Exception as e:
+        _logger.warning(f"NDR Engine router not loaded: {e}")
+
+    # XDR Correlation Engine — cross-domain signal ingestion, incident correlation, rules
+    try:
+        from apps.api.xdr_router import router as xdr_router
+        app.include_router(xdr_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted XDR Correlation Engine router at /api/v1/xdr")
+    except Exception as e:
+        _logger.warning(f"XDR Correlation Engine router not loaded: {e}")
+
     return app
 
 
