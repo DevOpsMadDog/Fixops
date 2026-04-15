@@ -6152,6 +6152,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.soc_triage_router import router as soc_triage_router
+        app.include_router(soc_triage_router)
+        _logger.info("Mounted SOC Triage router at /api/v1/soc-triage")
+    except ImportError:
+        pass
+
     return app
 
 
