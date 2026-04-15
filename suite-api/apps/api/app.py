@@ -6299,6 +6299,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.mitre_attack_router import router as mitre_attack_router
+        app.include_router(mitre_attack_router)
+        _logger.info("Mounted MITRE ATT&CK router at /api/v1/mitre-attack")
+    except ImportError:
+        pass
+
     return app
 
 

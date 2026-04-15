@@ -15,13 +15,13 @@ def test_check_all_returns_dict(agg):
 
 def test_check_all_has_required_keys(agg):
     result = agg.check_all("org-test")
-    for key in ("score", "overall_status", "engines", "summary"):
+    for key in ("system_score", "overall_status", "engines", "summary"):
         assert key in result, f"Missing key: {key}"
 
 
 def test_check_all_score_in_range(agg):
     result = agg.check_all("org-test")
-    assert 0 <= result["score"] <= 100
+    assert 0 <= result["system_score"] <= 100
 
 
 def test_check_all_overall_status_valid(agg):
@@ -37,7 +37,7 @@ def test_check_all_engines_is_list(agg):
 def test_check_all_engines_have_required_fields(agg):
     result = agg.check_all("org-test")
     for engine in result["engines"]:
-        assert "name" in engine
+        assert "engine" in engine
         assert "status" in engine
 
 
