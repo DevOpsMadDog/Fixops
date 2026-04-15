@@ -263,3 +263,162 @@ class N8nConnector:
                     json.dumps(payload),
                 ),
             )
+
+
+# ---------------------------------------------------------------------------
+# N8nAPIClient — manages n8n workflows via REST API
+# ---------------------------------------------------------------------------
+
+_INTEGRATION_NODE_TYPES = {
+    "slack": "n8n-nodes-base.slack",
+    "jira": "n8n-nodes-base.jira",
+    "pagerduty": "n8n-nodes-base.pagerDuty",
+}
+
+
+class N8nAPIClient:
+    """Manages n8n workflows via REST API (POST /api/v1/workflows etc.)"""
+
+    def __init__(self, base_url: str = None, api_key: str = None):
+        import os
+        self._base = (base_url or os.environ.get("N8N_BASE_URL", "http://localhost:5678")).rstrip("/")
+        self._key = api_key or os.environ.get("N8N_API_KEY", "")
+        self._api = f"{self._base}/api/v1"
+
+    def _headers(self) -> dict:
+        h = {"Content-Type": "application/json"}
+        if self._key:
+            h["X-N8N-API-KEY"] = self._key
+        return h
+
+    def _request(self, method: str, url: str, body: Optional[dict] = None) -> dict | list:
+        """Make an HTTP request. Returns parsed JSON or error dict on failure."""
+        try:
+            data = json.dumps(body).encode() if body is not None else None
+            req = urllib.request.Request(url, data=data, headers=self._headers(), method=method)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            _logger.warning("n8n_api_http_error", method=method, url=url, code=exc.code)
+            try:
+                detail = json.loads(exc.read().decode())
+            except Exception:
+                detail = str(exc)
+            return {"error": f"HTTP {exc.code}", "detail": detail}
+        except Exception as exc:
+            _logger.warning("n8n_api_unavailable", method=method, url=url, error=str(exc))
+            return {"error": "n8n unavailable", "detail": str(exc)}
+
+    def create_workflow(self, name: str, nodes: list, connections: dict, settings: dict = None) -> dict:
+        """POST /api/v1/workflows — returns {id, name, active, ...}"""
+        body: dict = {"name": name, "nodes": nodes, "connections": connections}
+        if settings is not None:
+            body["settings"] = settings
+        return self._request("POST", f"{self._api}/workflows", body)
+
+    def activate_workflow(self, workflow_id: str) -> dict:
+        """POST /api/v1/workflows/{id}/activate"""
+        return self._request("POST", f"{self._api}/workflows/{workflow_id}/activate")
+
+    def deactivate_workflow(self, workflow_id: str) -> dict:
+        """POST /api/v1/workflows/{id}/deactivate"""
+        return self._request("POST", f"{self._api}/workflows/{workflow_id}/deactivate")
+
+    def list_workflows(self) -> list:
+        """GET /api/v1/workflows"""
+        result = self._request("GET", f"{self._api}/workflows")
+        if isinstance(result, list):
+            return result
+        # n8n wraps in {"data": [...]}
+        if isinstance(result, dict) and "data" in result:
+            return result["data"]
+        return result  # may be an error dict; callers should check
+
+    def get_workflow(self, workflow_id: str) -> dict:
+        """GET /api/v1/workflows/{id}"""
+        return self._request("GET", f"{self._api}/workflows/{workflow_id}")
+
+    def delete_workflow(self, workflow_id: str) -> bool:
+        """DELETE /api/v1/workflows/{id} — returns True on success."""
+        result = self._request("DELETE", f"{self._api}/workflows/{workflow_id}")
+        return "error" not in result
+
+    def list_executions(self, workflow_id: str = None) -> list:
+        """GET /api/v1/executions"""
+        url = f"{self._api}/executions"
+        if workflow_id:
+            url = f"{url}?workflowId={workflow_id}"
+        result = self._request("GET", url)
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict) and "data" in result:
+            return result["data"]
+        return result
+
+    def get_execution(self, execution_id: str) -> dict:
+        """GET /api/v1/executions/{id}"""
+        return self._request("GET", f"{self._api}/executions/{execution_id}")
+
+    def get_webhook_url(self, path: str) -> str:
+        """Returns http://{n8n_host}/webhook/{path}"""
+        return f"{self._base}/webhook/{path}"
+
+    def provision_security_workflow(self, event_type: str, integrations: list) -> dict:
+        """
+        Create + activate a workflow: Webhook trigger → configured output nodes.
+        integrations: list of "slack", "jira", "pagerduty"
+        Returns: {workflow_id, webhook_url, active}
+        """
+        webhook_path = f"aldeci-{event_type}"
+        webhook_node = {
+            "id": "webhook-trigger",
+            "name": "ALDECI Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [200, 300],
+            "parameters": {
+                "path": webhook_path,
+                "responseMode": "onReceived",
+                "httpMethod": "POST",
+            },
+        }
+        nodes = [webhook_node]
+        connections: dict = {"ALDECI Webhook": {"main": [[]]}}
+
+        for idx, integration in enumerate(integrations):
+            node_type = _INTEGRATION_NODE_TYPES.get(integration, f"n8n-nodes-base.{integration}")
+            node_id = f"{integration}-output-{idx}"
+            node_name = f"{integration.title()} Output"
+            output_node = {
+                "id": node_id,
+                "name": node_name,
+                "type": node_type,
+                "typeVersion": 1,
+                "position": [500, 200 + idx * 150],
+                "parameters": {},
+            }
+            nodes.append(output_node)
+            connections["ALDECI Webhook"]["main"][0].append(
+                {"node": node_name, "type": "main", "index": 0}
+            )
+
+        workflow_name = f"ALDECI {event_type} → {', '.join(integrations) or 'none'}"
+        created = self.create_workflow(
+            name=workflow_name,
+            nodes=nodes,
+            connections=connections,
+            settings={"executionOrder": "v1"},
+        )
+
+        if "error" in created:
+            return created
+
+        workflow_id = created.get("id", "")
+        activated = self.activate_workflow(workflow_id)
+        active = activated.get("active", False) if "error" not in activated else False
+
+        return {
+            "workflow_id": workflow_id,
+            "webhook_url": self.get_webhook_url(webhook_path),
+            "active": active,
+        }
