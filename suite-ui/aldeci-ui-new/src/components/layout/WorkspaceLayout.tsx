@@ -146,6 +146,15 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Executive",
+    icon: Crown,
+    items: [
+      { label: "Security Posture", to: "/security-posture", icon: Shield, badge: "NEW" },
+      { label: "Executive Briefing", to: "/executive-briefing", icon: Crown, badge: "NEW" },
+      { label: "Security Roadmap", to: "/security-roadmap", icon: Map, badge: "NEW" },
+    ],
+  },
+  {
     label: "Discover",
     icon: Search,
     items: [
@@ -281,6 +290,7 @@ const navGroups: NavGroup[] = [
       { label: "Threat Intel Dashboard", to: "/threat-intel", icon: Radar, badge: "NEW" },
       { label: "CVE Search", to: "/cve-search", icon: ScanSearch },
       { label: "IP Reputation", to: "/ip-reputation", icon: Globe },
+      { label: "Threat Feeds", to: "/threat-feeds", icon: Rss, badge: "NEW" },
     ],
   },
   {
@@ -294,6 +304,15 @@ const navGroups: NavGroup[] = [
       { label: "Bug Bounty", to: "/bug-bounty", icon: Award, badge: "NEW" },
       { label: "Security Metrics", to: "/security-metrics", icon: BarChart2, badge: "NEW" },
       { label: "Vuln Risk Queue", to: "/vuln-risk", icon: List, badge: "NEW" },
+      { label: "Vuln Scanner Mgmt", to: "/vuln-scanner-mgmt", icon: ScanSearch, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Risk & Attack",
+    icon: Swords,
+    items: [
+      { label: "Risk Quantification", to: "/risk-quantification", icon: Scale, badge: "NEW" },
+      { label: "Attack Simulation", to: "/attack-simulation", icon: Swords, badge: "NEW" },
     ],
   },
   {
@@ -315,6 +334,7 @@ const navGroups: NavGroup[] = [
       { label: "Security Training", to: "/security-training", icon: GraduationCap, badge: "NEW" },
       { label: "Password Policy", to: "/password-policy", icon: Key, badge: "NEW" },
       { label: "Mobile Security", to: "/mobile-security", icon: Smartphone, badge: "NEW" },
+      { label: "PAM", to: "/pam", icon: Key, badge: "NEW" },
     ],
   },
   {
@@ -346,12 +366,15 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Cloud & Infrastructure",
+    label: "Cloud & Compliance",
     icon: Cloud,
     items: [
       { label: "Cloud Security", to: "/cloud-security", icon: Cloud, badge: "NEW" },
       { label: "Network Topology", to: "/network-topology", icon: GitBranch, badge: "NEW" },
       { label: "CMDB", to: "/cmdb", icon: Database, badge: "NEW" },
+      { label: "CWPP", to: "/cwpp", icon: Container, badge: "NEW" },
+      { label: "Digital Forensics", to: "/digital-forensics", icon: HardDrive, badge: "NEW" },
+      { label: "GRC Assessment", to: "/grc-assessment", icon: ClipboardCheck, badge: "NEW" },
     ],
   },
   {
@@ -372,6 +395,14 @@ const navGroups: NavGroup[] = [
       { label: "Data Loss Prevention", to: "/dlp", icon: ShieldOff, badge: "NEW" },
       { label: "API Abuse Detection", to: "/api-abuse", icon: AlertTriangle },
       { label: "Secrets Rotation", to: "/secrets-rotation", icon: RefreshCcw },
+      { label: "Data Governance", to: "/data-governance", icon: Database, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Cyber Risk",
+    icon: FileCheck,
+    items: [
+      { label: "Cyber Insurance", to: "/cyber-insurance", icon: FileCheck, badge: "NEW" },
     ],
   },
 ];
