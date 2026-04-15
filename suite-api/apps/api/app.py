@@ -6145,6 +6145,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.openclaw_router import router as openclaw_router
+        app.include_router(openclaw_router)
+        _logger.info("Mounted OpenClaw Pentest Swarm router at /api/v1/openclaw")
+    except ImportError:
+        pass
+
     return app
 
 
