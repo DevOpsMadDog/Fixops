@@ -9,9 +9,25 @@
  *   5. Regulation catalog — 10 regulations
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, AlertTriangle, ClipboardCheck, BarChart3, RefreshCw, Globe, Calendar } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -172,6 +188,24 @@ function ComplianceBar({ pct }: { pct: number }) {
 
 export default function RegulatoryTrackerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/regulatory/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/regulatory/regulations/upcoming?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/regulatory/regulations/active?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, upcomingResult, activeResult]) => {
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const upcoming = upcomingResult.status === "fulfilled" ? upcomingResult.value : null;
+      const active   = activeResult.status   === "fulfilled" ? activeResult.value   : null;
+      if (stats || upcoming || active) {
+        setLiveData({ stats, upcoming, active });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -189,18 +223,18 @@ export default function RegulatoryTrackerDashboard() {
         title="Regulatory Tracker"
         description="Multi-jurisdiction change tracking, obligations, and compliance assessments"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Regulations"   value={24}    icon={ScrollText}     className="border-blue-500/20" />
-        <KpiCard title="Pending Changes"      value={8}     icon={Calendar}       trend="up" className="border-amber-500/20" />
-        <KpiCard title="Overdue Obligations"  value={3}     icon={AlertTriangle}  trend="up" className="border-red-500/20" />
-        <KpiCard title="Avg Compliance"       value="78%"   icon={BarChart3}      trend="down" className="border-yellow-500/20" />
+        <KpiCard title="Active Regulations"   value={liveData?.stats?.total_regulations ?? liveData?.active?.length ?? 24}    icon={ScrollText}     className="border-blue-500/20" />
+        <KpiCard title="Pending Changes"      value={liveData?.stats?.pending_changes ?? liveData?.upcoming?.length ?? 8}     icon={Calendar}       trend="up" className="border-amber-500/20" />
+        <KpiCard title="Overdue Obligations"  value={liveData?.stats?.overdue_obligations ?? 3}     icon={AlertTriangle}  trend="up" className="border-red-500/20" />
+        <KpiCard title="Avg Compliance"       value={liveData?.stats?.avg_compliance ? `${liveData.stats.avg_compliance}%` : "78%"}   icon={BarChart3}      trend="down" className="border-yellow-500/20" />
       </div>
 
       {/* Upcoming changes timeline */}
@@ -229,20 +263,20 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {UPCOMING_CHANGES.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2.5">{row.reg}</TableCell>
-                    <TableCell className="py-2.5"><ChangeTypeBadge type={row.changeType} /></TableCell>
-                    <TableCell className="py-2.5"><ImpactBadge impact={row.impact} /></TableCell>
+                {(liveData?.upcoming ?? UPCOMING_CHANGES).map((row: any, idx: number) => (
+                  <TableRow key={row.id ?? idx} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-medium py-2.5">{row.reg ?? row.regulation_name ?? row.name}</TableCell>
+                    <TableCell className="py-2.5"><ChangeTypeBadge type={row.changeType ?? row.change_type ?? "amendment"} /></TableCell>
+                    <TableCell className="py-2.5"><ImpactBadge impact={row.impact ?? row.impact_level ?? "medium"} /></TableCell>
                     <TableCell className="py-2.5">
                       <div className="flex flex-wrap gap-1">
-                        {row.domains.map((d) => (
+                        {(row.domains ?? row.affected_domains ?? []).map((d: string) => (
                           <span key={d} className="text-[10px] rounded bg-muted/50 px-1.5 py-0.5 text-muted-foreground">{d}</span>
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.effectiveAt}</TableCell>
-                    <TableCell className="py-2.5"><DaysUntilChip days={row.daysUntil} /></TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.effectiveAt ?? row.effective_date ?? row.effective_at}</TableCell>
+                    <TableCell className="py-2.5"><DaysUntilChip days={row.daysUntil ?? row.days_until ?? 0} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

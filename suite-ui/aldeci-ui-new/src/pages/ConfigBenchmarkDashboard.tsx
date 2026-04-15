@@ -9,7 +9,7 @@
  *   5. Score by standard bar chart (5 bars)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardCheck, Shield, AlertTriangle, RefreshCw, BarChart3, ChevronDown, ChevronRight, CheckCircle2, XCircle, Minus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,6 +19,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -175,6 +191,24 @@ function StatusIcon({ status }: { status: string }) {
 export default function ConfigBenchmarkDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedCheck, setExpandedCheck] = useState<string | null>(null);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/config-benchmark/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/config-benchmark/profiles?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/config-benchmark/assessments?org_id=${ORG_ID}`),
+    ]).then(([statsResult, profilesResult, assessmentsResult]) => {
+      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
+      const profiles    = profilesResult.status    === "fulfilled" ? profilesResult.value    : null;
+      const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
+      if (stats || profiles || assessments) {
+        setLiveData({ stats, profiles, assessments });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -193,18 +227,18 @@ export default function ConfigBenchmarkDashboard() {
         title="Configuration Benchmarks"
         description="CIS, DISA STIG, and custom hardening assessments"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Profiles"          value={8}      icon={ClipboardCheck} trend="up" />
-        <KpiCard title="Assessments Run"   value={34}     icon={Shield}         trend="up" />
-        <KpiCard title="Avg Score"         value="65.2%"  icon={BarChart3}      trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Failures" value={23}     icon={AlertTriangle}  trend="down" className="border-red-500/20" />
+        <KpiCard title="Profiles"          value={liveData?.stats?.total_profiles ?? liveData?.profiles?.length ?? 8}      icon={ClipboardCheck} trend="up" />
+        <KpiCard title="Assessments Run"   value={liveData?.stats?.total_assessments ?? liveData?.assessments?.length ?? 34}     icon={Shield}         trend="up" />
+        <KpiCard title="Avg Score"         value={liveData?.stats?.avg_score ? `${liveData.stats.avg_score.toFixed(1)}%` : "65.2%"}  icon={BarChart3}      trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Failures" value={liveData?.stats?.critical_failures ?? liveData?.stats?.failed_checks ?? 23}     icon={AlertTriangle}  trend="down" className="border-red-500/20" />
       </div>
 
       {/* Assessment Profiles */}
@@ -234,18 +268,18 @@ export default function ConfigBenchmarkDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PROFILES.map((p) => (
-                  <TableRow key={p.name} className="hover:bg-muted/30">
+                {(liveData?.profiles ?? PROFILES).map((p: any) => (
+                  <TableRow key={p.name ?? p.profile_id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[180px] truncate">{p.name}</TableCell>
                     <TableCell className="py-2.5">
                       <Badge className={cn("text-[10px] border", STANDARD_COLORS[p.standard] ?? "border-border text-muted-foreground")}>{p.standard}</Badge>
                     </TableCell>
                     <TableCell className="py-2.5">
-                      <Badge className={cn("text-[10px] border", TARGET_COLORS[p.target] ?? "border-border text-muted-foreground")}>{p.target}</Badge>
+                      <Badge className={cn("text-[10px] border", TARGET_COLORS[p.target ?? p.target_type] ?? "border-border text-muted-foreground")}>{p.target ?? p.target_type}</Badge>
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground font-mono">{p.version}</TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{p.last_assessed}</TableCell>
-                    <TableCell className="py-2.5"><ScoreBar score={p.score} /></TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{p.last_assessed ?? p.created_at ?? "—"}</TableCell>
+                    <TableCell className="py-2.5"><ScoreBar score={p.score ?? 0} /></TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Assess Now</Button>
                     </TableCell>

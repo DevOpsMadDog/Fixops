@@ -33,6 +33,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -131,7 +135,9 @@ export default function CVESearch() {
 
       // Try API first
       try {
-        const response = await fetch(`${API}/api/v1/cve/${selectedCVE}`);
+        const response = await fetch(`${API}/api/v1/cve/${selectedCVE}`, {
+          headers: { "X-API-Key": API_KEY },
+        });
         if (response.ok) {
           return await response.json();
         }

@@ -159,23 +159,16 @@ export default function AwarenessScoreDashboard() {
 
   useEffect(() => {
     setDataLoading(true);
-    // Try both possible prefixes for awareness endpoint
     Promise.allSettled([
-      apiFetch(`/api/v1/awareness/stats?org_id=${ORG_ID}`).catch(() =>
-        apiFetch(`/api/v1/security-awareness/stats?org_id=${ORG_ID}`)
-      ),
-      apiFetch(`/api/v1/awareness/employees?org_id=${ORG_ID}&limit=20`).catch(() =>
-        apiFetch(`/api/v1/security-awareness/employees?org_id=${ORG_ID}&limit=20`)
-      ),
-      apiFetch(`/api/v1/awareness/campaigns?org_id=${ORG_ID}`).catch(() =>
-        apiFetch(`/api/v1/security-awareness/campaigns?org_id=${ORG_ID}`)
-      ),
-    ]).then(([statsResult, employeesResult, campaignsResult]) => {
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/stats`),
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/employees`),
+      apiFetch(`/api/v1/awareness-score/orgs/${ORG_ID}/scores`),
+    ]).then(([statsResult, employeesResult, scoresResult]) => {
       const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
       const employees = employeesResult.status === "fulfilled" ? employeesResult.value : null;
-      const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : null;
-      if (stats || employees || campaigns) {
-        setLiveData({ stats, employees, campaigns });
+      const scores    = scoresResult.status    === "fulfilled" ? scoresResult.value    : null;
+      if (stats || employees || scores) {
+        setLiveData({ stats, employees, scores });
       }
     }).finally(() => setDataLoading(false));
   }, []);
@@ -205,9 +198,9 @@ export default function AwarenessScoreDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Employees Tracked" value={liveData?.stats?.trained_employees ?? 342}    icon={Users}          trend="up"   />
-        <KpiCard title="Champions"         value={liveData?.stats?.certifications_expiring ?? 47}     icon={Award}          trend="up"   className="border-green-500/20" />
-        <KpiCard title="At Risk"           value={liveData?.stats?.phishing_click_rate ?? 23}     icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
+        <KpiCard title="Employees Tracked" value={liveData?.stats?.total_employees ?? liveData?.stats?.trained_employees ?? 342}    icon={Users}          trend="up"   />
+        <KpiCard title="Champions"         value={liveData?.stats?.champions ?? liveData?.stats?.certifications_expiring ?? 47}     icon={Award}          trend="up"   className="border-green-500/20" />
+        <KpiCard title="At Risk"           value={liveData?.stats?.at_risk ?? liveData?.stats?.phishing_click_rate ?? 23}     icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
         <KpiCard title="Avg Score"         value={liveData?.stats?.avg_score ?? "71.4"}   icon={GraduationCap}  trend="up"   className="border-blue-500/20" />
       </div>
 
@@ -269,7 +262,7 @@ export default function AwarenessScoreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.employees?.items ?? liveData?.employees ?? EMPLOYEES).map((emp: any) => (
+                {(liveData?.employees?.items ?? liveData?.employees ?? liveData?.scores ?? EMPLOYEES).map((emp: any) => (
                   <TableRow key={emp.name} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{emp.name}</TableCell>
                     <TableCell className="py-2"><DeptBadge dept={emp.department} /></TableCell>
