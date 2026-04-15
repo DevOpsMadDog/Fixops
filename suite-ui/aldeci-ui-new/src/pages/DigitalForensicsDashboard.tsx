@@ -10,9 +10,25 @@
  *   5. Chain of custody table (6 entries)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FolderOpen, Database, FlaskConical, Clock, RefreshCw, Shield, FileText, ChevronRight } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,11 +150,29 @@ function CustodyActionBadge({ action }: { action: string }) {
 export default function DigitalForensicsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCase, setSelectedCase] = useState("DF-2024-001");
+  const [liveData, setLiveData] = useState<Record<string, any> | null>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/digital-forensics/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/digital-forensics/cases?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, casesResult]) => {
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      const cases = casesResult.status === "fulfilled" ? casesResult.value : null;
+      if (stats || cases) {
+        setLiveData({ stats, cases });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  const liveCases = liveData?.cases?.items ?? liveData?.cases ?? CASES;
 
   return (
     <motion.div
@@ -152,18 +186,18 @@ export default function DigitalForensicsDashboard() {
         title="Digital Forensics"
         description="Case management, evidence chain of custody, and analysis"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Open Cases"           value={8}       icon={FolderOpen}   trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Evidence Items"       value={47}      icon={Database}     trend="up"   />
-        <KpiCard title="Analyses Completed"   value={23}      icon={FlaskConical} trend="up"   className="border-green-500/20" />
-        <KpiCard title="Avg Case Duration"    value="12.4d"   icon={Clock}        trend="down" />
+        <KpiCard title="Open Cases"           value={liveData?.stats?.open_cases ?? liveData?.stats?.total_open ?? 8}      icon={FolderOpen}   trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Evidence Items"       value={liveData?.stats?.total_evidence ?? liveData?.stats?.evidence_count ?? 47} icon={Database}  trend="up"   />
+        <KpiCard title="Analyses Completed"   value={liveData?.stats?.analyses_completed ?? liveData?.stats?.closed_cases ?? 23} icon={FlaskConical} trend="up" className="border-green-500/20" />
+        <KpiCard title="Avg Case Duration"    value={liveData?.stats?.avg_case_duration_days != null ? `${liveData.stats.avg_case_duration_days}d` : "12.4d"} icon={Clock} trend="down" />
       </div>
 
       {/* Case Table */}
@@ -192,7 +226,7 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CASES.map((c) => (
+                {liveCases.map((c: any) => (
                   <TableRow
                     key={c.id}
                     className={cn("hover:bg-muted/30 cursor-pointer", selectedCase === c.id && "bg-primary/5 border-l-2 border-l-primary")}

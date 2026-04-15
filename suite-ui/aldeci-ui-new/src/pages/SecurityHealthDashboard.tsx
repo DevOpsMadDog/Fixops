@@ -10,9 +10,25 @@
  * API stubs: GET /api/v1/security-health/score, /api/v1/security-health/domains, /api/v1/security-health/checks
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, RefreshCw, Activity, CheckCircle, XCircle, BarChart3, Clock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,28 +138,52 @@ function domainScoreColor(score: number) {
 
 export default function SecurityHealthDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<Record<string, any> | null>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/security-health/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-health/checks?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/security-health/incidents?org_id=${ORG_ID}&status=open`),
+    ]).then(([statsResult, checksResult, incidentsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const checks    = checksResult.status    === "fulfilled" ? checksResult.value    : null;
+      const incidents = incidentsResult.status === "fulfilled" ? incidentsResult.value : null;
+      if (stats || checks || incidents) {
+        setLiveData({ stats, checks, incidents });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  const liveScore = liveData?.stats?.overall_score ?? liveData?.stats?.health_score ?? OVERALL_SCORE;
+  const overallScore = typeof liveScore === "number" ? liveScore : OVERALL_SCORE;
+
   const overallColor =
-    OVERALL_SCORE >= 80 ? "text-green-400" :
-    OVERALL_SCORE >= 60 ? "text-amber-400" : "text-red-400";
+    overallScore >= 80 ? "text-green-400" :
+    overallScore >= 60 ? "text-amber-400" : "text-red-400";
 
   const overallLabel =
-    OVERALL_SCORE >= 80 ? "Good" :
-    OVERALL_SCORE >= 60 ? "Fair" : "Poor";
+    overallScore >= 80 ? "Good" :
+    overallScore >= 60 ? "Fair" : "Poor";
 
   const overallRingColor =
-    OVERALL_SCORE >= 80 ? "stroke-green-500" :
-    OVERALL_SCORE >= 60 ? "stroke-amber-500" : "stroke-red-500";
+    overallScore >= 80 ? "stroke-green-500" :
+    overallScore >= 60 ? "stroke-amber-500" : "stroke-red-500";
 
   // SVG circle gauge params
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - (OVERALL_SCORE / 100) * circumference;
+  const dashOffset = circumference - (overallScore / 100) * circumference;
+
+  const liveChecks    = liveData?.checks?.items    ?? liveData?.checks    ?? CHECKS;
+  const liveIncidents = liveData?.incidents?.items ?? liveData?.incidents ?? INCIDENTS;
 
   return (
     <motion.div
@@ -157,8 +197,8 @@ export default function SecurityHealthDashboard() {
         title="Security Health"
         description="Continuous health monitoring across all security domains"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
@@ -197,7 +237,7 @@ export default function SecurityHealthDashboard() {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={cn("text-4xl font-black tabular-nums", overallColor)}>{OVERALL_SCORE}</span>
+                <span className={cn("text-4xl font-black tabular-nums", overallColor)}>{overallScore}</span>
                 <span className={cn("text-sm font-semibold", overallColor)}>{overallLabel}</span>
               </div>
             </div>
@@ -264,7 +304,7 @@ export default function SecurityHealthDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {CHECKS.map((row) => {
+                  {liveChecks.map((row: any) => {
                     const colors = domainScoreColor(row.score);
                     return (
                       <TableRow key={row.name} className="hover:bg-muted/30">
@@ -305,11 +345,11 @@ export default function SecurityHealthDashboard() {
                   <AlertTriangle className="h-4 w-4" />
                   Open Incidents
                 </CardTitle>
-                <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{INCIDENTS.length}</Badge>
+                <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{liveIncidents.length}</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {INCIDENTS.map((inc) => (
+              {liveIncidents.map((inc: any) => (
                 <div key={inc.id} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <SeverityBadge sev={inc.sev} />

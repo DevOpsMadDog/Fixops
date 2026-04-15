@@ -10,7 +10,7 @@
  * Falls back to mock data on failure.
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -39,6 +39,17 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API}${path}`, { headers: { "X-API-Key": API_KEY } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -250,7 +261,18 @@ function KanbanColumn({
 
 export default function VulnLifecycle() {
   const [sevFilter, setSevFilter] = useState<Severity | "all">("all");
+  const [liveStats, setLiveStats] = useState<Record<string, any> | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/vuln-lifecycle/stats?org_id=${ORG_ID}`),
+    ]).then(([statsResult]) => {
+      if (statsResult.status === "fulfilled") {
+        setLiveStats(statsResult.value);
+      }
+    });
+  }, []);
 
   const { data: vulns } = useQuery<Vuln[]>({
     queryKey: ["vuln-lifecycle"],
@@ -306,12 +328,14 @@ export default function VulnLifecycle() {
     return vulns.filter((v) => v.severity === sevFilter);
   }, [vulns, sevFilter]);
 
-  // Metrics
-  const openCount        = vulns?.filter((v) => !["fixed", "closed"].includes(v.state)).length ?? 0;
-  const inRemCount       = vulns?.filter((v) => v.state === "in_remediation").length ?? 0;
-  const fixedCount       = vulns?.filter((v) => v.state === "fixed").length ?? 0;
-  const closedCount      = vulns?.filter((v) => v.state === "closed").length ?? 0;
-  const fpRate           = closedCount > 0 ? Math.round((1 / closedCount) * 100) : 0;
+  // Metrics — prefer live stats from API, fall back to local computation
+  const openCount  = liveStats?.open_count  ?? liveStats?.total_open  ?? vulns?.filter((v) => !["fixed", "closed"].includes(v.state)).length ?? 0;
+  const inRemCount = liveStats?.in_remediation_count ?? vulns?.filter((v) => v.state === "in_remediation").length ?? 0;
+  const fixedCount = liveStats?.fixed_count ?? vulns?.filter((v) => v.state === "fixed").length ?? 0;
+  const closedCount = vulns?.filter((v) => v.state === "closed").length ?? 0;
+  const mttr       = liveStats?.mttr_days   ?? liveStats?.avg_remediation_days ?? null;
+  const mttd       = liveStats?.mttd_hours  ?? liveStats?.avg_detection_hours  ?? null;
+  const fpRate     = closedCount > 0 ? Math.round((1 / closedCount) * 100) : 0;
 
   const SEV_FILTERS: Array<{ label: string; value: Severity | "all" }> = [
     { label: "All",      value: "all"      },
@@ -368,18 +392,18 @@ export default function VulnLifecycle() {
             trendLabel="Being worked"
           />
           <KpiCard
-            title="Fixed This Week"
-            value={fixedCount}
+            title={mttr != null ? "MTTR (days)" : "Fixed This Week"}
+            value={mttr != null ? `${mttr}d` : fixedCount}
             icon={CheckCircle2}
             trend="up"
-            trendLabel="Good velocity"
+            trendLabel={mttr != null ? "Mean time to remediate" : "Good velocity"}
           />
           <KpiCard
-            title="False Positive Rate"
-            value={`${fpRate}%`}
+            title={mttd != null ? "MTTD (hours)" : "False Positive Rate"}
+            value={mttd != null ? `${mttd}h` : `${fpRate}%`}
             icon={Percent}
             trend="flat"
-            trendLabel="Across closed"
+            trendLabel={mttd != null ? "Mean time to detect" : "Across closed"}
           />
         </div>
 

@@ -33,6 +33,11 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -181,35 +186,47 @@ const FRAMEWORK_ICONS: Record<string, React.ElementType> = {
 // API fetch helpers
 // ══════════════════════════════════════════════════════════════
 
-function apiKey(): string {
-  return localStorage.getItem("aldeci_api_key") ?? "";
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
 }
 
 async function fetchComplianceStatus(): Promise<Framework[]> {
-  const res = await fetch(`${API_BASE}/api/v1/compliance/status`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
-  });
-  if (!res.ok) throw new Error(`${res.status}`);
-  const data = await res.json();
+  // Try new compliance-scanner endpoint first, fall back to legacy
+  try {
+    const data = await apiFetch(`/api/v1/compliance-scanner/scans?org_id=${ORG_ID}&limit=10`);
+    const items = Array.isArray(data) ? data : data.items ?? data.scans ?? [];
+    if (items.length > 0) return items;
+  } catch {
+    // fall through to legacy
+  }
+  const data = await apiFetch(`/api/v1/compliance/status`);
   return Array.isArray(data) ? data : data.frameworks ?? data.data ?? MOCK_FRAMEWORKS;
 }
 
 async function fetchGaps(): Promise<ComplianceGap[]> {
-  const res = await fetch(`${API_BASE}/api/v1/compliance/gaps`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
-  });
-  if (!res.ok) throw new Error(`${res.status}`);
-  const data = await res.json();
+  // Try new compliance-scanner findings endpoint
+  try {
+    const data = await apiFetch(`/api/v1/compliance-scanner/findings?org_id=${ORG_ID}&status=open&limit=20`);
+    const items = Array.isArray(data) ? data : data.items ?? data.findings ?? [];
+    if (items.length > 0) return items;
+  } catch {
+    // fall through to legacy
+  }
+  const data = await apiFetch(`/api/v1/compliance/gaps`);
   return Array.isArray(data) ? data : data.gaps ?? data.data ?? MOCK_GAPS;
 }
 
 async function fetchEvidence(): Promise<EvidenceItem[]> {
-  const res = await fetch(`${API_BASE}/api/v1/evidence/list`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
-  });
-  if (!res.ok) throw new Error(`${res.status}`);
-  const data = await res.json();
+  const data = await apiFetch(`/api/v1/evidence/list`);
   return Array.isArray(data) ? data : data.items ?? data.data ?? MOCK_EVIDENCE;
+}
+
+async function fetchScannerStats(): Promise<Record<string, any>> {
+  return apiFetch(`/api/v1/compliance-scanner/stats?org_id=${ORG_ID}`);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -548,6 +565,12 @@ export default function ComplianceDashboard() {
     placeholderData: MOCK_EVIDENCE,
   });
 
+  const { data: scannerStats } = useQuery<Record<string, any>>({
+    queryKey: ["compliance-scanner-stats"],
+    queryFn: fetchScannerStats,
+    retry: 1,
+  });
+
   const handleUpload = useCallback((id: string) => {
     setUploadingId(id);
     // In production: open file picker / upload modal
@@ -561,10 +584,12 @@ export default function ComplianceDashboard() {
   const gapsData = gaps ?? MOCK_GAPS;
   const evidenceData = evidence ?? MOCK_EVIDENCE;
 
-  // KPI derivations
-  const avgProgress = Math.round(fwData.reduce((s, f) => s + f.progress, 0) / fwData.length);
+  // KPI derivations — prefer live scanner stats when available
+  const avgProgress = scannerStats?.compliance_rate != null
+    ? Math.round(scannerStats.compliance_rate)
+    : Math.round(fwData.reduce((s, f) => s + f.progress, 0) / fwData.length);
   const certifiedCount = fwData.filter((f) => f.status === "certified").length;
-  const gapCount = fwData.filter((f) => f.status === "gap").length;
+  const gapCount = scannerStats?.failed != null ? scannerStats.failed : fwData.filter((f) => f.status === "gap").length;
   const missingEvidence = evidenceData.filter((e) => e.status === "Missing" || e.status === "Expired").length;
   const criticalGaps = gapsData.filter((g) => g.risk_level === "critical").length;
 
