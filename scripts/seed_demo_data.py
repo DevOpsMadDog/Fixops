@@ -792,6 +792,907 @@ def seed_vuln_trends(org_id: str = ORG_ID, reset: bool = False) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 11. CyberInsuranceEngine
+# ---------------------------------------------------------------------------
+
+def seed_cyber_insurance(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed 3 insurance policies with assessments and claims."""
+    try:
+        from core.cyber_insurance_engine import CyberInsuranceEngine
+    except ImportError as exc:
+        return {"engine": "CyberInsuranceEngine", "error": str(exc)}
+
+    engine = CyberInsuranceEngine()
+
+    policies_def = [
+        {
+            "carrier": "Lloyd's of London",
+            "policy_number": "LLY-CYB-2025-00142",
+            "coverage_type": "both",
+            "coverage_limit": 10_000_000.0,
+            "deductible": 100_000.0,
+            "premium_annual": 285_000.0,
+            "effective_date": _date(days_ago=180),
+            "expiry_date": _date(days_ahead=185),
+            "status": "active",
+            "covered_events": ["ransomware", "data_breach", "business_interruption",
+                               "social_engineering", "network_failure"],
+        },
+        {
+            "carrier": "AIG CyberEdge",
+            "policy_number": "AIG-CE-2024-87631",
+            "coverage_type": "first_party",
+            "coverage_limit": 5_000_000.0,
+            "deductible": 50_000.0,
+            "premium_annual": 142_000.0,
+            "effective_date": _date(days_ago=300),
+            "expiry_date": _date(days_ago=30),
+            "status": "expired",
+            "covered_events": ["ransomware", "business_interruption"],
+        },
+        {
+            "carrier": "Chubb Cyber Enterprise Risk Management",
+            "policy_number": "CHB-CERM-2025-00451",
+            "coverage_type": "third_party",
+            "coverage_limit": 3_000_000.0,
+            "deductible": 25_000.0,
+            "premium_annual": 98_000.0,
+            "effective_date": _date(days_ahead=30),
+            "expiry_date": _date(days_ahead=395),
+            "status": "pending",
+            "covered_events": ["data_breach", "social_engineering"],
+        },
+    ]
+
+    policy_ids = []
+    for p in policies_def:
+        result = engine.add_policy(org_id, p)
+        policy_ids.append(result["policy_id"])
+
+    # Coverage assessment for active policy
+    engine.create_assessment(org_id, policy_ids[0], {
+        "mfa_score": 88,
+        "backup_score": 92,
+        "incident_response_score": 79,
+        "patch_score": 74,
+        "training_score": 85,
+        "recommendations": [
+            "Enable FIDO2 hardware keys for all privileged accounts",
+            "Reduce patch SLA for critical CVEs from 30 to 7 days",
+            "Conduct tabletop exercise with insurer within 90 days",
+        ],
+        "assessed_at": _ts(days_ago=14),
+    })
+
+    # File one active claim on the expired AIG policy
+    engine.file_claim(org_id, {
+        "policy_id": policy_ids[1],
+        "incident_type": "ransomware",
+        "incident_date": _ts(days_ago=90),
+        "estimated_loss": 1_250_000.0,
+        "adjuster": "James Thornton (AIG CyberEdge Claims)",
+    })
+
+    policies = engine.list_policies(org_id)
+    claims = engine.list_claims(org_id)
+    return {"engine": "CyberInsuranceEngine",
+            "policies": len(policies), "claims": len(claims)}
+
+
+# ---------------------------------------------------------------------------
+# 12. ExecutiveReportingEngine
+# ---------------------------------------------------------------------------
+
+def seed_executive_reporting(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed board reports, KPIs, and a board presentation."""
+    try:
+        from core.executive_reporting_engine import ExecutiveReportingEngine
+    except ImportError as exc:
+        return {"engine": "ExecutiveReportingEngine", "error": str(exc)}
+
+    engine = ExecutiveReportingEngine()
+
+    # Monthly report (published)
+    monthly = engine.create_report(org_id, {
+        "report_type": "monthly",
+        "title": "ALDECI Security Report — April 2026",
+        "period_start": _date(days_ago=30),
+        "period_end": _date(),
+        "created_by": "ciso@aldeci.io",
+        "sections": [
+            {"title": "Executive Summary",     "content": "Overall security posture improved by 3 points to 74/100 (Grade C). Zero critical incidents. Patch cadence ahead of SLA targets."},
+            {"title": "Threat Landscape",      "content": "APT41 supply-chain campaign active. 14 KEV vulns addressed this month. Phishing attempt rate down 18% vs March."},
+            {"title": "Vulnerability Metrics", "content": "541 open vulns (down from 603). Critical: 7 (down from 9). MTTR critical: 4.2 days (SLA: 7 days). 100% SLA compliance."},
+            {"title": "Compliance Posture",    "content": "SOC 2 Type II readiness at 87%. PCI-DSS gap assessment complete. ISO 27001 surveillance audit passed."},
+            {"title": "Upcoming Actions",      "content": "Zero Trust Phase 2 pilot (prod zone A) launching May 1. Board presentation scheduled May 15."},
+        ],
+    })
+    report_id = monthly["id"]
+
+    for metric in [
+        {"metric_name": "Mean Time to Detect (MTTD)", "metric_value": 2.4,  "metric_unit": "hours",   "trend": "down", "comparison_value": 3.1,  "comparison_period": "March 2026", "narrative": "Improved correlation rules in SIEM reduced detection time by 23%."},
+        {"metric_name": "Mean Time to Respond (MTTR)", "metric_value": 4.2, "metric_unit": "hours",   "trend": "down", "comparison_value": 5.8,  "comparison_period": "March 2026", "narrative": "SOAR playbook automation reduced manual IR steps by 40%."},
+        {"metric_name": "Critical Vulnerabilities",    "metric_value": 7,   "metric_unit": "count",   "trend": "down", "comparison_value": 9,    "comparison_period": "March 2026", "narrative": "2 critical CVEs patched. Remaining 7 in 4-day remediation window."},
+        {"metric_name": "Security Posture Score",      "metric_value": 74,  "metric_unit": "score",   "trend": "up",   "comparison_value": 71,   "comparison_period": "March 2026", "narrative": "Identity security and training scores drove 3-point improvement."},
+        {"metric_name": "Phishing Click Rate",         "metric_value": 4.2, "metric_unit": "percent", "trend": "down", "comparison_value": 5.1,  "comparison_period": "March 2026", "narrative": "Phishing simulation campaign with targeted re-training delivered 18% improvement."},
+        {"metric_name": "Patch Compliance Rate",       "metric_value": 94.7,"metric_unit": "percent", "trend": "up",   "comparison_value": 91.2, "comparison_period": "March 2026", "narrative": "Automated patch orchestration deployed to 850 endpoints."},
+    ]:
+        engine.add_metric(org_id, report_id, metric)
+
+    engine.publish_report(org_id, report_id)
+
+    # Quarterly board report (draft)
+    engine.create_report(org_id, {
+        "report_type": "board",
+        "title": "Q1 2026 Board Security Briefing",
+        "period_start": "2026-01-01",
+        "period_end": "2026-03-31",
+        "created_by": "ciso@aldeci.io",
+        "sections": [
+            {"title": "Risk Posture Summary",  "content": "Posture score improved from 58 (F) to 71 (C) over Q1. 3 critical incidents, all resolved within SLA. No regulatory fines or breaches."},
+            {"title": "Investment ROI",        "content": "Security tooling consolidated: $420K annual savings vs prior vendor stack. Incident cost avoidance estimated at $2.1M (ransomware prevention)."},
+            {"title": "Regulatory Readiness",  "content": "SOC 2 Type II on track for Q3 certification. GDPR DPA audit passed in February. PCI-DSS gap assessment complete."},
+            {"title": "Strategic Roadmap",     "content": "Zero Trust Phase 2 on schedule. Insider Threat Detection Program launching Q2. SBOM generation live for all containerised services."},
+        ],
+    })
+
+    # KPIs
+    kpi_defs = [
+        ("Security Posture Score",         74.0,  80.0,  "score",   "improving"),
+        ("MTTD (Mean Time to Detect)",      2.4,   4.0,   "hours",   "improving"),
+        ("MTTR (Mean Time to Respond)",     4.2,   8.0,   "hours",   "improving"),
+        ("Patch SLA Compliance",           94.7,  95.0,  "percent", "improving"),
+        ("Phishing Click Rate",             4.2,   5.0,   "percent", "improving"),
+        ("MFA Adoption Rate",              97.3,  100.0, "percent", "stable"),
+        ("Critical Vulns Open",             7.0,   0.0,   "count",   "improving"),
+        ("SOC 2 Readiness Score",          87.0,  100.0, "percent", "improving"),
+    ]
+    for kpi_name, value, target, unit, trend in kpi_defs:
+        engine.set_kpi(org_id, kpi_name, value, target, unit, trend)
+
+    # Board presentation
+    engine.create_board_presentation(org_id, {
+        "title": "ALDECI Board Security Briefing — May 2026",
+        "presentation_date": _date(days_ahead=29),
+        "audience": "board",
+        "risk_summary": "Security posture at 74/100, trending +16 points YTD. No material breaches. Zero Trust architecture 35% deployed. Cyber insurance renewed with Lloyd's at $10M coverage.",
+        "key_metrics": {
+            "posture_score": 74,
+            "critical_vulns": 7,
+            "mttd_hours": 2.4,
+            "mttr_hours": 4.2,
+            "patch_compliance_pct": 94.7,
+            "mfa_adoption_pct": 97.3,
+        },
+        "action_items": [
+            "Approve $450K Zero Trust Phase 2 budget (due May 20)",
+            "Review and sign cyber insurance renewal (Lloyd's — due June 1)",
+            "Endorse SOC 2 Type II external audit engagement (Q3 target)",
+            "Acknowledge updated IR Tabletop exercise findings",
+        ],
+    })
+
+    reports = engine.list_reports(org_id)
+    presentations = engine.list_board_presentations(org_id)
+    return {"engine": "ExecutiveReportingEngine",
+            "reports": len(reports), "kpis": len(kpi_defs),
+            "board_presentations": len(presentations)}
+
+
+# ---------------------------------------------------------------------------
+# 13. CloudComplianceEngine
+# ---------------------------------------------------------------------------
+
+def seed_cloud_compliance(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed CIS AWS + Azure assessments with control results."""
+    try:
+        from core.cloud_compliance_engine import CloudComplianceEngine, _db_path_for_org
+    except ImportError as exc:
+        return {"engine": "CloudComplianceEngine", "error": str(exc)}
+
+    engine = CloudComplianceEngine(db_path=_db_path_for_org(org_id))
+
+    # AWS CIS v1.5 assessment
+    aws_assessment = engine.create_assessment(org_id, {
+        "cloud_provider": "aws",
+        "framework": "cis_aws_v1.5",
+        "scope": {"accounts": ["123456789012", "234567890123"],
+                  "regions": ["us-east-1", "us-west-2", "eu-west-1"]},
+        "total_controls": 58,
+    })
+    aws_id = aws_assessment["id"]
+
+    aws_controls = [
+        # Identity & Access
+        {"control_id": "1.1",  "control_name": "Avoid the use of the root account",                  "section": "IAM", "severity": "critical", "status": "passed",   "resource_type": "aws::iam::rootaccount",    "resource_id": "root", "evidence": "Root account has no active access keys. MFA enabled.", "remediation": ""},
+        {"control_id": "1.5",  "control_name": "Ensure MFA is enabled for the root account",         "section": "IAM", "severity": "critical", "status": "passed",   "resource_type": "aws::iam::rootaccount",    "resource_id": "root", "evidence": "Virtual MFA device attached to root account.", "remediation": ""},
+        {"control_id": "1.10", "control_name": "Ensure MFA is enabled for all IAM users with console access", "section": "IAM", "severity": "high", "status": "failed", "resource_type": "aws::iam::user", "resource_id": "svc-deploy-user", "evidence": "3 IAM users with console access lack MFA.", "remediation": "Enable MFA for all console-access IAM users via IAM console or CLI."},
+        {"control_id": "1.14", "control_name": "Ensure access keys are rotated every 90 days",       "section": "IAM", "severity": "high",     "status": "failed",   "resource_type": "aws::iam::accesskey",      "resource_id": "AKIAIOSFODNN7EXAMPLE", "evidence": "Key age: 127 days.", "remediation": "Rotate access keys. Update CI/CD secrets."},
+        {"control_id": "1.16", "control_name": "Ensure IAM policies are attached only to groups or roles", "section": "IAM", "severity": "medium", "status": "passed", "resource_type": "aws::iam::user", "resource_id": "*", "evidence": "No direct user policy attachments found.", "remediation": ""},
+        # Logging
+        {"control_id": "2.1",  "control_name": "Ensure CloudTrail is enabled in all regions",        "section": "Logging", "severity": "critical", "status": "passed", "resource_type": "aws::cloudtrail::trail", "resource_id": "arn:aws:cloudtrail:us-east-1:123456789012:trail/aldeci-prod", "evidence": "Multi-region trail enabled with log validation.", "remediation": ""},
+        {"control_id": "2.2",  "control_name": "Ensure CloudTrail log file validation is enabled",   "section": "Logging", "severity": "high",     "status": "passed", "resource_type": "aws::cloudtrail::trail", "resource_id": "arn:aws:cloudtrail:us-east-1:123456789012:trail/aldeci-prod", "evidence": "LogFileValidationEnabled: true", "remediation": ""},
+        {"control_id": "2.6",  "control_name": "Ensure S3 bucket access logging is enabled on CloudTrail bucket", "section": "Logging", "severity": "medium", "status": "failed", "resource_type": "aws::s3::bucket", "resource_id": "aldeci-cloudtrail-logs", "evidence": "Access logging not configured.", "remediation": "Enable S3 access logging for the CloudTrail bucket."},
+        # Networking
+        {"control_id": "4.1",  "control_name": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 22", "section": "Networking", "severity": "critical", "status": "failed", "resource_type": "aws::ec2::securitygroup", "resource_id": "sg-0abc1234def56789a", "resource_name": "legacy-bastion-sg", "region": "us-east-1", "evidence": "Inbound rule: 0.0.0.0/0:22 found.", "remediation": "Restrict SSH to VPN CIDR 10.0.0.0/8 or use Systems Manager Session Manager."},
+        {"control_id": "4.2",  "control_name": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389", "section": "Networking", "severity": "critical", "status": "passed", "resource_type": "aws::ec2::securitygroup", "resource_id": "*", "evidence": "No security groups allow 0.0.0.0/0:3389.", "remediation": ""},
+        {"control_id": "4.3",  "control_name": "Ensure VPC flow logging is enabled in all VPCs",    "section": "Networking", "severity": "medium", "status": "passed", "resource_type": "aws::ec2::vpc", "resource_id": "vpc-0a1b2c3d4e5f67890", "evidence": "Flow logs enabled to CloudWatch Logs.", "remediation": ""},
+        # Storage
+        {"control_id": "2.1.1","control_name": "Ensure all S3 buckets employ encryption-at-rest",   "section": "Storage", "severity": "high",   "status": "passed",   "resource_type": "aws::s3::bucket", "resource_id": "aldeci-data-prod", "evidence": "SSE-KMS enabled with CMK.", "remediation": ""},
+        {"control_id": "2.1.2","control_name": "Ensure S3 Bucket Policy is set to deny HTTP requests","section": "Storage","severity": "medium",  "status": "failed",  "resource_type": "aws::s3::bucket", "resource_id": "aldeci-assets-cdn", "evidence": "Bucket policy does not enforce HTTPS.", "remediation": "Add bucket policy condition aws:SecureTransport=false Deny."},
+    ]
+
+    for ctrl in aws_controls:
+        engine.add_control_result(org_id, aws_id, ctrl)
+
+    # Azure CIS v1.5 assessment
+    az_assessment = engine.create_assessment(org_id, {
+        "cloud_provider": "azure",
+        "framework": "cis_azure_v1.5",
+        "scope": {"subscriptions": ["a1b2c3d4-e5f6-7890-abcd-ef1234567890"],
+                  "regions": ["eastus", "westeurope"]},
+        "total_controls": 42,
+    })
+    az_id = az_assessment["id"]
+
+    az_controls = [
+        {"control_id": "1.1",  "control_name": "Ensure that multi-factor authentication is enabled for all privileged users", "section": "IAM", "severity": "critical", "status": "passed", "resource_type": "azure::aad::user", "resource_id": "*", "evidence": "Conditional Access policy enforces MFA for all Global Admins.", "remediation": ""},
+        {"control_id": "1.3",  "control_name": "Ensure guest users are reviewed on a monthly basis", "section": "IAM", "severity": "medium", "status": "failed", "resource_type": "azure::aad::guestuser", "resource_id": "*", "evidence": "12 guest accounts not reviewed in 90+ days.", "remediation": "Implement Azure AD Access Reviews for guest accounts quarterly."},
+        {"control_id": "2.1",  "control_name": "Ensure that Azure Defender is set to On for Servers",  "section": "Defender", "severity": "high", "status": "passed", "resource_type": "azure::security::defenderplan", "resource_id": "Servers", "evidence": "Microsoft Defender for Servers P2 enabled.", "remediation": ""},
+        {"control_id": "3.1",  "control_name": "Ensure that storage account access keys are periodically regenerated", "section": "Storage", "severity": "medium", "status": "failed", "resource_type": "azure::storage::account", "resource_id": "aldecistorageprod", "evidence": "Keys not rotated in 180+ days.", "remediation": "Enable automatic key rotation in Azure Key Vault."},
+        {"control_id": "4.1",  "control_name": "Ensure that Azure SQL server audit is enabled",         "section": "Database", "severity": "high", "status": "passed", "resource_type": "azure::sql::server", "resource_id": "aldeci-sql-prod", "evidence": "Auditing enabled to Storage Account with 90-day retention.", "remediation": ""},
+    ]
+
+    for ctrl in az_controls:
+        engine.add_control_result(org_id, az_id, ctrl)
+
+    assessments = engine.list_assessments(org_id)
+    return {"engine": "CloudComplianceEngine",
+            "assessments": len(assessments),
+            "aws_controls": len(aws_controls),
+            "azure_controls": len(az_controls)}
+
+
+# ---------------------------------------------------------------------------
+# 14. EndpointComplianceEngine
+# ---------------------------------------------------------------------------
+
+def seed_endpoint_compliance(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed 6 endpoints with CIS benchmark checks."""
+    try:
+        from core.endpoint_compliance_engine import EndpointComplianceEngine, _db_path_for_org
+    except ImportError as exc:
+        return {"engine": "EndpointComplianceEngine", "error": str(exc)}
+
+    engine = EndpointComplianceEngine(db_path=_db_path_for_org(org_id))
+
+    endpoints_def = [
+        {"hostname": "ws-eng-001.aldeci.io",    "os_type": "windows", "os_version": "Windows 11 Pro 23H2",  "department": "Engineering",  "owner_id": "alice@aldeci.io"},
+        {"hostname": "ws-eng-002.aldeci.io",    "os_type": "windows", "os_version": "Windows 11 Pro 23H2",  "department": "Engineering",  "owner_id": "bob@aldeci.io"},
+        {"hostname": "srv-build-01.aldeci.io",  "os_type": "linux",   "os_version": "Ubuntu 24.04 LTS",     "department": "DevOps",       "owner_id": "ci-runner@aldeci.io"},
+        {"hostname": "srv-db-01.aldeci.io",     "os_type": "linux",   "os_version": "RHEL 9.4",             "department": "Engineering",  "owner_id": "dba@aldeci.io"},
+        {"hostname": "mbp-ciso-01.aldeci.io",   "os_type": "macos",   "os_version": "macOS Sequoia 15.3",   "department": "Security",     "owner_id": "ciso@aldeci.io"},
+        {"hostname": "ws-hr-007.aldeci.io",     "os_type": "windows", "os_version": "Windows 10 Pro 22H2",  "department": "HR",           "owner_id": "hr-admin@aldeci.io"},
+    ]
+
+    endpoint_ids = []
+    for ep in endpoints_def:
+        result = engine.register_endpoint(org_id, ep)
+        endpoint_ids.append(result["id"])
+
+    # Windows CIS checks for ws-eng-001
+    win_checks = [
+        {"check_id": "CIS.1.1.1",  "check_name": "Enforce password history (24 passwords)",       "benchmark": "cis_windows_l1", "category": "account_policy", "severity": "high",     "status": "passed",   "actual_value": "24",    "expected_value": "24"},
+        {"check_id": "CIS.1.1.2",  "check_name": "Maximum password age (60 days)",                 "benchmark": "cis_windows_l1", "category": "account_policy", "severity": "medium",   "status": "passed",   "actual_value": "60",    "expected_value": "60"},
+        {"check_id": "CIS.1.1.3",  "check_name": "Minimum password length (14 chars)",             "benchmark": "cis_windows_l1", "category": "account_policy", "severity": "high",     "status": "failed",   "actual_value": "8",     "expected_value": "14",  "remediation": "Set Minimum password length to 14 via Group Policy."},
+        {"check_id": "CIS.1.1.5",  "check_name": "Account lockout duration (15 minutes)",          "benchmark": "cis_windows_l1", "category": "account_policy", "severity": "medium",   "status": "passed",   "actual_value": "15",    "expected_value": ">=15"},
+        {"check_id": "CIS.2.2.1",  "check_name": "Windows Firewall: Domain profile enabled",       "benchmark": "cis_windows_l1", "category": "firewall",       "severity": "critical", "status": "passed",   "actual_value": "ON",    "expected_value": "ON"},
+        {"check_id": "CIS.2.2.2",  "check_name": "Windows Firewall: Public profile enabled",       "benchmark": "cis_windows_l1", "category": "firewall",       "severity": "critical", "status": "passed",   "actual_value": "ON",    "expected_value": "ON"},
+        {"check_id": "CIS.18.9.1", "check_name": "BitLocker: Require additional auth at startup",  "benchmark": "cis_windows_l1", "category": "registry",       "severity": "high",     "status": "passed",   "actual_value": "1",     "expected_value": "1"},
+        {"check_id": "CIS.18.9.2", "check_name": "BitLocker: Encrypt OS drive",                    "benchmark": "cis_windows_l1", "category": "registry",       "severity": "critical", "status": "passed",   "actual_value": "Encrypted","expected_value": "Encrypted"},
+        {"check_id": "CIS.19.7.1", "check_name": "Windows Update: Auto-download and schedule",     "benchmark": "cis_windows_l1", "category": "service",        "severity": "high",     "status": "failed",   "actual_value": "3",     "expected_value": "4",   "remediation": "Set Windows Update policy to auto-install via WSUS."},
+        {"check_id": "CIS.18.3.1", "check_name": "WannaCry mitigation: SMBv1 disabled",            "benchmark": "cis_windows_l1", "category": "network",        "severity": "critical", "status": "passed",   "actual_value": "Disabled","expected_value": "Disabled"},
+    ]
+    for chk in win_checks:
+        chk["scanned_at"] = _ts(days_ago=1)
+        engine.record_check(org_id, endpoint_ids[0], chk)
+
+    # Linux CIS checks for srv-build-01
+    linux_checks = [
+        {"check_id": "CIS.1.1.1",  "check_name": "Ensure /tmp is a separate partition",            "benchmark": "cis_ubuntu",     "category": "local_policy",   "severity": "low",      "status": "failed",   "actual_value": "not_separate", "expected_value": "separate_partition", "remediation": "Add /tmp to /etc/fstab as a separate mount."},
+        {"check_id": "CIS.3.1.1",  "check_name": "Ensure IPv6 is disabled if not used",            "benchmark": "cis_ubuntu",     "category": "network",        "severity": "low",      "status": "passed",   "actual_value": "disabled", "expected_value": "disabled"},
+        {"check_id": "CIS.5.2.1",  "check_name": "Ensure SSH Protocol is set to 2",                "benchmark": "cis_ubuntu",     "category": "network",        "severity": "critical", "status": "passed",   "actual_value": "2",         "expected_value": "2"},
+        {"check_id": "CIS.5.2.4",  "check_name": "Ensure SSH X11 forwarding is disabled",          "benchmark": "cis_ubuntu",     "category": "network",        "severity": "medium",   "status": "passed",   "actual_value": "no",        "expected_value": "no"},
+        {"check_id": "CIS.5.3.1",  "check_name": "Ensure password hashing algorithm is SHA-512",   "benchmark": "cis_ubuntu",     "category": "account_policy", "severity": "high",     "status": "passed",   "actual_value": "SHA-512",   "expected_value": "SHA-512"},
+        {"check_id": "CIS.6.2.1",  "check_name": "Ensure password fields are not empty",            "benchmark": "cis_ubuntu",     "category": "account_policy", "severity": "critical", "status": "passed",   "actual_value": "none_empty","expected_value": "none_empty"},
+        {"check_id": "CIS.4.1.2",  "check_name": "Ensure auditd service is enabled",               "benchmark": "cis_ubuntu",     "category": "event_log",      "severity": "high",     "status": "passed",   "actual_value": "enabled",   "expected_value": "enabled"},
+        {"check_id": "CIS.1.3.1",  "check_name": "Ensure AIDE is installed",                        "benchmark": "cis_ubuntu",     "category": "service",        "severity": "medium",   "status": "failed",   "actual_value": "not_installed", "expected_value": "installed", "remediation": "apt install aide && aideinit"},
+    ]
+    for chk in linux_checks:
+        chk["scanned_at"] = _ts(days_ago=1)
+        engine.record_check(org_id, endpoint_ids[2], chk)
+
+    endpoints = engine.list_endpoints(org_id)
+    return {"engine": "EndpointComplianceEngine",
+            "endpoints": len(endpoints),
+            "win_checks": len(win_checks),
+            "linux_checks": len(linux_checks)}
+
+
+# ---------------------------------------------------------------------------
+# 15. APISecurityEngine (api_security_mgmt_engine)
+# ---------------------------------------------------------------------------
+
+def seed_api_security_mgmt(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed API endpoints, keys, abuse events, and scan jobs."""
+    try:
+        from core.api_security_mgmt_engine import APISecurityEngine
+    except ImportError as exc:
+        return {"engine": "APISecurityEngine", "error": str(exc)}
+
+    engine = APISecurityEngine()
+
+    api_endpoints = [
+        {"endpoint_path": "/api/v1/vulnerabilities",    "http_method": "GET",    "service_name": "vuln-service",     "authentication_required": True,  "rate_limit_per_minute": 120, "is_public": False, "sensitivity_level": "sensitive",  "risk_score": 4.2},
+        {"endpoint_path": "/api/v1/vulnerabilities",    "http_method": "POST",   "service_name": "vuln-service",     "authentication_required": True,  "rate_limit_per_minute": 60,  "is_public": False, "sensitivity_level": "sensitive",  "risk_score": 5.8},
+        {"endpoint_path": "/api/v1/assets",             "http_method": "GET",    "service_name": "asset-service",    "authentication_required": True,  "rate_limit_per_minute": 200, "is_public": False, "sensitivity_level": "internal",   "risk_score": 3.1},
+        {"endpoint_path": "/api/v1/incidents",          "http_method": "POST",   "service_name": "ir-service",       "authentication_required": True,  "rate_limit_per_minute": 30,  "is_public": False, "sensitivity_level": "critical",   "risk_score": 7.5},
+        {"endpoint_path": "/api/v1/threat-intel",       "http_method": "GET",    "service_name": "tip-service",      "authentication_required": True,  "rate_limit_per_minute": 100, "is_public": False, "sensitivity_level": "sensitive",  "risk_score": 5.2},
+        {"endpoint_path": "/api/v1/reports/export",     "http_method": "POST",   "service_name": "reporting-service","authentication_required": True,  "rate_limit_per_minute": 10,  "is_public": False, "sensitivity_level": "critical",   "risk_score": 8.1},
+        {"endpoint_path": "/api/v1/health",             "http_method": "GET",    "service_name": "gateway",          "authentication_required": False, "rate_limit_per_minute": 600, "is_public": True,  "sensitivity_level": "public",     "risk_score": 0.5},
+        {"endpoint_path": "/api/v1/auth/token",         "http_method": "POST",   "service_name": "auth-service",     "authentication_required": False, "rate_limit_per_minute": 30,  "is_public": True,  "sensitivity_level": "critical",   "risk_score": 9.2},
+    ]
+
+    ep_ids = []
+    for ep in api_endpoints:
+        result = engine.register_endpoint(org_id, ep)
+        ep_ids.append(result["id"])
+
+    # API keys
+    key_defs = [
+        {"key_name": "SIEM Integration — Splunk Cloud",   "owner_id": "siem-team@aldeci.io",   "scopes": ["read:vulns", "read:incidents", "read:assets"], "rate_limit_per_hour": 5000},
+        {"key_name": "Vulnerability Scanner — Tenable",   "owner_id": "vuln-scanner@aldeci.io","scopes": ["read:assets", "write:vulns"],                   "rate_limit_per_hour": 2000},
+        {"key_name": "GRC Platform — ServiceNow",         "owner_id": "grc-admin@aldeci.io",   "scopes": ["read:compliance", "write:risks"],               "rate_limit_per_hour": 1000},
+        {"key_name": "CI/CD Pipeline — GitHub Actions",   "owner_id": "devops@aldeci.io",      "scopes": ["read:sbom", "write:scan_results"],              "rate_limit_per_hour": 500},
+    ]
+    for kd in key_defs:
+        engine.create_api_key(org_id, kd)
+
+    # Abuse events
+    abuse_events = [
+        {"event_type": "rate_limit_breach",           "endpoint_id": ep_ids[7], "source_ip": "45.139.122.174", "severity": "high",   "request_payload_preview": "POST /api/v1/auth/token — 847 requests in 60s from single IP", "detected_at": _ts(days_ago=3)},
+        {"event_type": "injection_attempt",           "endpoint_id": ep_ids[0], "source_ip": "91.243.44.148",  "severity": "critical","request_payload_preview": "GET /api/v1/vulnerabilities?filter=1 OR 1=1--", "detected_at": _ts(days_ago=5)},
+        {"event_type": "bola_attempt",                "endpoint_id": ep_ids[2], "source_ip": "185.220.101.55", "severity": "high",   "request_payload_preview": "GET /api/v1/assets/org_uuid_999 — cross-tenant traversal attempt", "detected_at": _ts(days_ago=8)},
+        {"event_type": "sensitive_data_exposure",     "endpoint_id": ep_ids[5], "source_ip": "203.0.113.7",    "severity": "critical","request_payload_preview": "POST /api/v1/reports/export — response contained 4200 PII records", "detected_at": _ts(days_ago=12)},
+        {"event_type": "auth_bypass",                 "endpoint_id": ep_ids[7], "source_ip": "194.61.55.219",  "severity": "critical","request_payload_preview": "JWT alg:none attack attempt on /api/v1/auth/token", "detected_at": _ts(days_ago=15)},
+    ]
+    for ev in abuse_events:
+        engine.record_abuse_event(org_id, ev)
+
+    # OWASP API Top 10 scan
+    engine.create_scan(org_id, {
+        "scan_type": "owasp_api_top10",
+        "target_service": "aldeci-gateway",
+    })
+
+    endpoints_list = engine.list_endpoints(org_id)
+    return {"engine": "APISecurityEngine",
+            "endpoints": len(endpoints_list),
+            "api_keys": len(key_defs),
+            "abuse_events": len(abuse_events)}
+
+
+# ---------------------------------------------------------------------------
+# 16. VulnIntelligenceEngine
+# ---------------------------------------------------------------------------
+
+def seed_vuln_intelligence(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed 10 high-profile CVEs with EPSS, KEV data, and subscriptions."""
+    try:
+        from core.vuln_intelligence_engine import VulnIntelligenceEngine
+    except ImportError as exc:
+        return {"engine": "VulnIntelligenceEngine", "error": str(exc)}
+
+    engine = VulnIntelligenceEngine()
+
+    cves = [
+        {
+            "cve_id": "CVE-2024-3400",
+            "title": "Palo Alto PAN-OS GlobalProtect OS Command Injection",
+            "description": "OS command injection in GlobalProtect feature allows unauthenticated RCE. Exploited by UTA0218 (Volt Typhoon). CVSS 10.0.",
+            "cvss_score": 10.0, "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+            "epss_score": 0.97, "kev_listed": True, "kev_added_date": "2024-04-12",
+            "severity": "critical",
+            "affected_products": ["Palo Alto PAN-OS 10.2", "Palo Alto PAN-OS 11.0", "Palo Alto PAN-OS 11.1"],
+            "exploit_available": True, "exploit_type": "in_the_wild",
+            "patch_available": True, "patch_url": "https://security.paloaltonetworks.com/CVE-2024-3400",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2024-3400"],
+            "threat_actors_using": ["UTA0218", "Volt Typhoon"],
+            "affected_org_assets": ["vpn-gw-01.aldeci.io", "vpn-gw-02.aldeci.io"],
+            "status": "patched",
+        },
+        {
+            "cve_id": "CVE-2024-6387",
+            "title": "OpenSSH regreSSHion — Remote Unauthenticated RCE",
+            "description": "Signal handler race condition in OpenSSH sshd allows unauthenticated RCE as root on glibc-based Linux systems. Affects OpenSSH < 4.4p1 and 8.5p1 to 9.8p1.",
+            "cvss_score": 8.1, "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "epss_score": 0.82, "kev_listed": True, "kev_added_date": "2024-07-01",
+            "severity": "critical",
+            "affected_products": ["OpenSSH < 4.4p1", "OpenSSH 8.5p1 - 9.8p1"],
+            "exploit_available": True, "exploit_type": "poc",
+            "patch_available": True, "patch_url": "https://www.openssh.com/txt/release-9.8",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2024-6387", "https://www.qualys.com/2024/07/01/cve-2024-6387/regresshion.txt"],
+            "threat_actors_using": [],
+            "affected_org_assets": ["srv-build-01.aldeci.io", "srv-db-01.aldeci.io", "srv-api-03.aldeci.io"],
+            "status": "patched",
+        },
+        {
+            "cve_id": "CVE-2023-44487",
+            "title": "HTTP/2 Rapid Reset Attack — DDoS Amplification",
+            "description": "The HTTP/2 protocol allows a denial of service attack (server resource consumption) because request cancellation can reset streams at a very high rate.",
+            "cvss_score": 7.5, "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "epss_score": 0.91, "kev_listed": True, "kev_added_date": "2023-10-10",
+            "severity": "high",
+            "affected_products": ["nginx < 1.25.3", "Apache httpd < 2.4.58", "Golang < 1.21.3"],
+            "exploit_available": True, "exploit_type": "in_the_wild",
+            "patch_available": True, "patch_url": "https://nginx.org/en/CHANGES-1.25",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2023-44487"],
+            "threat_actors_using": ["Various DDoS actors"],
+            "affected_org_assets": ["nginx-prod-01.aldeci.io", "nginx-prod-02.aldeci.io"],
+            "status": "mitigated",
+        },
+        {
+            "cve_id": "CVE-2024-49138",
+            "title": "Windows CLFS Driver — Privilege Escalation (KEV)",
+            "description": "Windows Common Log File System Driver heap-based buffer overflow allows local privilege escalation to SYSTEM. Actively exploited by ransomware groups.",
+            "cvss_score": 7.8, "cvss_vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+            "epss_score": 0.78, "kev_listed": True, "kev_added_date": "2024-12-10",
+            "severity": "high",
+            "affected_products": ["Windows 10", "Windows 11", "Windows Server 2016", "Windows Server 2019", "Windows Server 2022"],
+            "exploit_available": True, "exploit_type": "in_the_wild",
+            "patch_available": True, "patch_url": "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-49138",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2024-49138"],
+            "threat_actors_using": ["BlackCat/ALPHV", "Cl0p"],
+            "affected_org_assets": ["ws-eng-001.aldeci.io", "ws-eng-002.aldeci.io", "ws-hr-007.aldeci.io"],
+            "status": "patched",
+        },
+        {
+            "cve_id": "CVE-2025-0282",
+            "title": "Ivanti Connect Secure — Pre-Auth Stack Overflow RCE",
+            "description": "A stack-based buffer overflow in Ivanti Connect Secure allows unauthenticated RCE. Exploited by UNC5337 (China-nexus) since December 2024.",
+            "cvss_score": 9.0, "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H",
+            "epss_score": 0.95, "kev_listed": True, "kev_added_date": "2025-01-08",
+            "severity": "critical",
+            "affected_products": ["Ivanti Connect Secure < 22.7R2.5", "Ivanti Policy Secure < 22.7R1.2"],
+            "exploit_available": True, "exploit_type": "in_the_wild",
+            "patch_available": True, "patch_url": "https://forums.ivanti.com/s/article/Security-Advisory-January-2025",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2025-0282"],
+            "threat_actors_using": ["UNC5337"],
+            "affected_org_assets": [],
+            "status": "new",
+        },
+        {
+            "cve_id": "CVE-2024-55956",
+            "title": "Cleo Harmony/VLTrader — Unauthenticated RCE (CLOP)",
+            "description": "Unauthenticated Java deserialization RCE in Cleo Harmony and VLTrader file transfer products. Actively exploited by CLOP ransomware group.",
+            "cvss_score": 9.8, "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "epss_score": 0.93, "kev_listed": True, "kev_added_date": "2024-12-13",
+            "severity": "critical",
+            "affected_products": ["Cleo Harmony < 5.8.0.24", "Cleo VLTrader < 5.8.0.24", "Cleo LexiCom < 5.8.0.24"],
+            "exploit_available": True, "exploit_type": "weaponized",
+            "patch_available": True, "patch_url": "https://www.cleo.com/security-bulletin-dec-2024",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2024-55956"],
+            "threat_actors_using": ["CLOP"],
+            "affected_org_assets": [],
+            "status": "analyzed",
+        },
+        {
+            "cve_id": "CVE-2024-21413",
+            "title": "Microsoft Outlook — Moniker Link RCE (MFA Bypass)",
+            "description": "Improper input validation in Microsoft Outlook allows an attacker to send a crafted URL that bypasses the Protected View Office security feature.",
+            "cvss_score": 9.8, "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "epss_score": 0.72, "kev_listed": False,
+            "severity": "critical",
+            "affected_products": ["Microsoft Office 2016", "Microsoft Office LTSC 2021", "Microsoft 365 Apps"],
+            "exploit_available": True, "exploit_type": "poc",
+            "patch_available": True, "patch_url": "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21413",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2024-21413"],
+            "threat_actors_using": [],
+            "affected_org_assets": ["outlook-clients"],
+            "status": "patched",
+        },
+        {
+            "cve_id": "CVE-2024-38021",
+            "title": "Microsoft Outlook — Zero-Click RCE (No Preview Required)",
+            "description": "Remote code execution vulnerability in Microsoft Outlook that can be triggered without user interaction — no preview needed.",
+            "cvss_score": 9.8, "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "epss_score": 0.68, "kev_listed": False,
+            "severity": "critical",
+            "affected_products": ["Microsoft 365 Apps for Enterprise", "Microsoft Office 2019"],
+            "exploit_available": False, "exploit_type": None,
+            "patch_available": True, "patch_url": "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-38021",
+            "references": ["https://nvd.nist.gov/vuln/detail/CVE-2024-38021"],
+            "threat_actors_using": [],
+            "affected_org_assets": [],
+            "status": "patched",
+        },
+    ]
+
+    for cve in cves:
+        engine.add_cve(org_id, cve)
+
+    # Add subscriptions for vendor tracking
+    subs = [
+        {"subscription_type": "vendor", "value": "Microsoft",      "notify_severity": "high",     "active": True},
+        {"subscription_type": "vendor", "value": "Palo Alto Networks", "notify_severity": "critical","active": True},
+        {"subscription_type": "vendor", "value": "Ivanti",         "notify_severity": "critical", "active": True},
+        {"subscription_type": "product","value": "OpenSSH",        "notify_severity": "high",     "active": True},
+        {"subscription_type": "product","value": "nginx",          "notify_severity": "high",     "active": True},
+    ]
+    for sub in subs:
+        try:
+            engine.add_subscription(org_id, sub)
+        except Exception:
+            pass  # subscription may already exist
+
+    cve_list = engine.list_cves(org_id)
+    return {"engine": "VulnIntelligenceEngine",
+            "cves_seeded": len(cve_list),
+            "kev_count": sum(1 for c in cves if c.get("kev_listed")),
+            "critical_count": sum(1 for c in cves if c["severity"] == "critical")}
+
+
+# ---------------------------------------------------------------------------
+# 17. ThreatIntelPlatformEngine
+# ---------------------------------------------------------------------------
+
+def seed_threat_intel_platform(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed TIP with intel sources, indicators, and a flash report."""
+    try:
+        from core.threat_intel_platform_engine import ThreatIntelPlatformEngine
+    except ImportError as exc:
+        return {"engine": "ThreatIntelPlatformEngine", "error": str(exc)}
+
+    engine = ThreatIntelPlatformEngine()
+
+    sources = [
+        {"source_name": "Mandiant Advantage",         "source_type": "commercial", "feed_url": "https://api.intelligence.mandiant.com/v4/",              "reliability_score": 0.97, "update_frequency_hours": 1,   "total_indicators": 2_847_000},
+        {"source_name": "Recorded Future",             "source_type": "commercial", "feed_url": "https://api.recordedfuture.com/v2/",                     "reliability_score": 0.95, "update_frequency_hours": 1,   "total_indicators": 1_420_000},
+        {"source_name": "CISA AIS (Automated Intel Sharing)", "source_type": "government", "feed_url": "https://api.dhs.gov/ais/",                        "reliability_score": 0.98, "update_frequency_hours": 4,   "total_indicators": 340_000},
+        {"source_name": "AlienVault OTX",              "source_type": "osint",      "feed_url": "https://otx.alienvault.com/api/v1/",                     "reliability_score": 0.88, "update_frequency_hours": 6,   "total_indicators": 18_500_000},
+        {"source_name": "FS-ISAC (Financial Sector)",  "source_type": "isac",       "feed_url": "https://feeds.fsisac.com/stix/",                         "reliability_score": 0.96, "update_frequency_hours": 12,  "total_indicators": 85_000},
+        {"source_name": "abuse.ch Feodo Tracker",      "source_type": "osint",      "feed_url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json","reliability_score": 0.94, "update_frequency_hours": 1,   "total_indicators": 420},
+        {"source_name": "Internal SIEM Correlation",   "source_type": "internal",   "feed_url": "http://siem.aldeci.io/api/v1/iocs/export",               "reliability_score": 0.99, "update_frequency_hours": 0,   "total_indicators": 1_247},
+    ]
+
+    source_ids = {}
+    for src in sources:
+        result = engine.add_source(org_id, src)
+        source_ids[src["source_name"]] = result["id"]
+
+    indicators = [
+        # IP indicators (C2 infrastructure)
+        {"indicator_type": "ip",          "value": "185.220.101.55",              "severity": "critical", "confidence": 0.97, "threat_category": "c2",        "tags": ["emotet", "botnet", "tor-exit"],       "tlp_level": "amber", "source_id": source_ids.get("AlienVault OTX", "")},
+        {"indicator_type": "ip",          "value": "91.243.44.148",               "severity": "critical", "confidence": 0.95, "threat_category": "c2",        "tags": ["icedid", "banking-trojan"],           "tlp_level": "amber", "source_id": source_ids.get("abuse.ch Feodo Tracker", "")},
+        {"indicator_type": "ip",          "value": "45.139.122.174",              "severity": "high",     "confidence": 0.88, "threat_category": "scanner",   "tags": ["mass-scanner", "shodan"],             "tlp_level": "green", "source_id": source_ids.get("Internal SIEM Correlation", "")},
+        {"indicator_type": "ip",          "value": "194.61.55.219",               "severity": "high",     "confidence": 0.91, "threat_category": "apt",       "tags": ["fin7", "carbanak"],                   "tlp_level": "amber", "source_id": source_ids.get("Recorded Future", "")},
+        # Domain indicators
+        {"indicator_type": "domain",      "value": "apt41-c2.hk-hosting.com",     "severity": "critical", "confidence": 0.98, "threat_category": "apt",       "tags": ["apt41", "supply-chain", "china-nexus"],"tlp_level": "red",  "source_id": source_ids.get("Mandiant Advantage", "")},
+        {"indicator_type": "domain",      "value": "lazarus-job-offer.malware.io", "severity": "critical", "confidence": 0.96, "threat_category": "apt",       "tags": ["lazarus", "dprk", "crypto-theft"],    "tlp_level": "red",  "source_id": source_ids.get("CISA AIS (Automated Intel Sharing)", "")},
+        {"indicator_type": "domain",      "value": "malware-c2.badactor.ru",       "severity": "high",     "confidence": 0.89, "threat_category": "malware",   "tags": ["agenttesla", "stealer"],              "tlp_level": "amber", "source_id": source_ids.get("AlienVault OTX", "")},
+        # File hashes (malware samples)
+        {"indicator_type": "file_hash",   "value": "a3f9b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1", "severity": "critical", "confidence": 0.99, "threat_category": "ransomware", "tags": ["blackcat", "alphv", "byovd"],         "tlp_level": "amber", "source_id": source_ids.get("Mandiant Advantage", "")},
+        {"indicator_type": "file_hash",   "value": "70efdf2ec9b086079795c442636b55fb",  "severity": "high",     "confidence": 0.92, "threat_category": "malware",   "tags": ["agenttesla", "keylogger"],            "tlp_level": "amber", "source_id": source_ids.get("Internal SIEM Correlation", "")},
+        # CVE indicators
+        {"indicator_type": "cve",         "value": "CVE-2024-3400",               "severity": "critical", "confidence": 1.00, "threat_category": "exploit",   "tags": ["panos", "globalprotect", "rce", "kev"],"tlp_level": "white","source_id": source_ids.get("CISA AIS (Automated Intel Sharing)", "")},
+        {"indicator_type": "cve",         "value": "CVE-2024-6387",               "severity": "critical", "confidence": 1.00, "threat_category": "exploit",   "tags": ["openssh", "regresshion", "rce", "kev"],"tlp_level": "white","source_id": source_ids.get("CISA AIS (Automated Intel Sharing)", "")},
+        # URL
+        {"indicator_type": "url",         "value": "hxxp://evil-cdn.biz/payload.exe", "severity": "high", "confidence": 0.87, "threat_category": "malware",   "tags": ["raccoon-stealer", "dropper-url"],     "tlp_level": "amber", "source_id": source_ids.get("AlienVault OTX", "")},
+    ]
+
+    for ind in indicators:
+        try:
+            engine.add_indicator(org_id, ind)
+        except Exception:
+            pass
+
+    # Flash intel report
+    engine.create_report(org_id, {
+        "report_name": "FLASH: APT41 Supply Chain Campaign — SaaS Vendor Targeting",
+        "report_type": "flash",
+        "classification": "confidential",
+        "tlp_level": "amber",
+        "summary": "APT41 (China-nexus) is actively targeting SaaS vendors via CI/CD pipeline compromise. DLL sideloading TTPs observed. ALDECI supply chain exposure assessed as LOW due to GitHub Actions OIDC hardening.",
+        "iocs": ["apt41-c2.hk-hosting.com", "update-srv.software-cdn.net"],
+        "mitre_ttps": ["T1195.002", "T1574.002", "T1071.001"],
+    })
+
+    indicator_list = engine.search_indicators(org_id, query="", limit=500)
+    source_list = engine.list_sources(org_id)
+    return {"engine": "ThreatIntelPlatformEngine",
+            "sources": len(source_list), "indicators": len(indicator_list)}
+
+
+# ---------------------------------------------------------------------------
+# 18. AttackSurfaceEngine
+# ---------------------------------------------------------------------------
+
+def seed_attack_surface(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed attack surface assets and exposure findings."""
+    try:
+        from core.attack_surface_engine import AttackSurfaceEngine
+    except ImportError as exc:
+        return {"engine": "AttackSurfaceEngine", "error": str(exc)}
+
+    engine = AttackSurfaceEngine()
+
+    assets = [
+        {"asset_type": "domain",       "value": "aldeci.io",              "risk_score": 2.1, "tags": ["primary-domain", "prod"], "notes": "Primary production domain"},
+        {"asset_type": "subdomain",    "value": "api.aldeci.io",          "risk_score": 5.4, "tags": ["api-gateway", "public"], "notes": "Public REST API gateway"},
+        {"asset_type": "subdomain",    "value": "app.aldeci.io",          "risk_score": 4.2, "tags": ["frontend", "public"],    "notes": "Customer-facing web application"},
+        {"asset_type": "subdomain",    "value": "admin.aldeci.io",        "risk_score": 7.8, "tags": ["admin", "internal"],     "notes": "Admin portal — should not be internet-exposed"},
+        {"asset_type": "subdomain",    "value": "staging.aldeci.io",      "risk_score": 6.1, "tags": ["staging", "dev"],        "notes": "Staging environment — TLS cert expired"},
+        {"asset_type": "ip",           "value": "203.0.113.10",           "risk_score": 3.5, "tags": ["prod", "load-balancer"], "notes": "Primary load balancer IP"},
+        {"asset_type": "ip",           "value": "203.0.113.28",           "risk_score": 8.2, "tags": ["legacy", "redis"],       "notes": "Unauthenticated Redis — requires firewall rule"},
+        {"asset_type": "certificate",  "value": "CN=aldeci.io,O=ALDECI",  "risk_score": 1.2, "tags": ["ssl", "valid"],          "notes": "Let's Encrypt cert, expires 2026-07-15"},
+        {"asset_type": "certificate",  "value": "CN=staging.aldeci.io",   "risk_score": 7.1, "tags": ["ssl", "expired"],        "notes": "Certificate expired 2026-01-10 — renewal overdue"},
+        {"asset_type": "api_endpoint", "value": "api.aldeci.io/api/v1/vulnerabilities", "risk_score": 4.8, "tags": ["sensitive", "authenticated"], "notes": "Requires JWT auth"},
+        {"asset_type": "cloud_resource","value": "aldeci-data-prod (S3 bucket)", "risk_score": 3.1, "tags": ["aws", "s3", "encrypted"], "notes": "SSE-KMS encrypted. Public access blocked."},
+        {"asset_type": "cloud_resource","value": "aldeci-assets-cdn (S3 bucket)", "risk_score": 5.9, "tags": ["aws", "s3", "public"], "notes": "Public bucket — no HTTPS enforcement policy"},
+    ]
+
+    asset_ids = {}
+    for asset in assets:
+        result = engine.add_asset(org_id, asset)
+        asset_ids[asset["value"]] = result["id"]
+
+    # Exposures mapped to assets
+    exposures = [
+        {
+            "asset_id": asset_ids.get("203.0.113.28", ""),
+            "data": {"exposure_type": "open_port",              "severity": "critical", "title": "Unauthenticated Redis on port 6379 exposed to internet", "description": "Redis 7.0.15 on 203.0.113.28:6379 is internet-accessible with no authentication. Risk: cryptominer deployment, data theft.", "evidence": "nmap: 203.0.113.28 port 6379/tcp open (redis-server 7.0.15 AUTH disabled)", "cvss_score": 9.8, "remediation": "Apply requirepass in redis.conf. Add security group rule to restrict 6379 to VPN CIDR only."},
+        },
+        {
+            "asset_id": asset_ids.get("admin.aldeci.io", ""),
+            "data": {"exposure_type": "exposed_admin",          "severity": "high",     "title": "Admin portal exposed on public internet", "description": "admin.aldeci.io is accessible from the internet. Admin portals should be VPN-gated.", "evidence": "curl -I https://admin.aldeci.io returns HTTP 200 from external IP.", "cvss_score": 7.5, "remediation": "Add IP allowlist or WAF rule restricting admin.aldeci.io to corporate VPN CIDR 10.0.0.0/8."},
+        },
+        {
+            "asset_id": asset_ids.get("staging.aldeci.io", ""),
+            "data": {"exposure_type": "weak_ssl",               "severity": "high",     "title": "Expired TLS certificate on staging.aldeci.io", "description": "TLS certificate for staging.aldeci.io expired 2026-01-10. Browsers show security warning.", "evidence": "SSL Labs: Certificate expired. Subject: CN=staging.aldeci.io. Expiry: 2026-01-10.", "cvss_score": 5.9, "remediation": "Renew Let's Encrypt certificate via certbot renew. Automate renewal with cron."},
+        },
+        {
+            "asset_id": asset_ids.get("aldeci-assets-cdn (S3 bucket)", ""),
+            "data": {"exposure_type": "public_bucket",          "severity": "medium",   "title": "S3 bucket lacks HTTPS-only policy", "description": "aldeci-assets-cdn S3 bucket does not enforce HTTPS. Objects could be accessed over HTTP, enabling MITM attacks.", "evidence": "AWS Config: BucketPolicy missing aws:SecureTransport condition.", "cvss_score": 5.3, "remediation": "Add bucket policy to deny requests where aws:SecureTransport is false."},
+        },
+        {
+            "asset_id": asset_ids.get("api.aldeci.io", ""),
+            "data": {"exposure_type": "cors_misconfiguration",  "severity": "medium",   "title": "API gateway returns wildcard CORS header", "description": "Access-Control-Allow-Origin: * returned for authenticated endpoints. Enables cross-origin requests from any domain.", "evidence": "curl -H 'Origin: https://evil.example.com' returns ACAO: *", "cvss_score": 6.1, "remediation": "Restrict CORS to allowlisted origins: aldeci.io, app.aldeci.io. Remove wildcard."},
+        },
+    ]
+
+    exposures_added = 0
+    for exp in exposures:
+        if exp["asset_id"]:
+            engine.add_exposure(org_id, exp["asset_id"], exp["data"])
+            exposures_added += 1
+
+    # Scan job
+    engine.create_scan(org_id, {"scan_type": "full", "targets": ["aldeci.io", "203.0.113.0/28"]})
+
+    assets_list = engine.list_assets(org_id)
+    return {"engine": "AttackSurfaceEngine",
+            "assets": len(assets_list), "exposures": exposures_added}
+
+
+# ---------------------------------------------------------------------------
+# 19. PasswordPolicyEngine
+# ---------------------------------------------------------------------------
+
+def seed_password_policy(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed password policies, audit results, violations, and MFA enrollments."""
+    try:
+        from core.password_policy_engine import PasswordPolicyEngine
+    except ImportError as exc:
+        return {"engine": "PasswordPolicyEngine", "error": str(exc)}
+
+    engine = PasswordPolicyEngine()
+
+    # Primary NIST 800-63B compliant policy (all users)
+    primary = engine.create_policy(org_id, {
+        "name": "ALDECI Corporate Password Policy v3 (NIST 800-63B)",
+        "min_length": 14,
+        "require_uppercase": True,
+        "require_lowercase": True,
+        "require_numbers": True,
+        "require_symbols": True,
+        "require_digits": True,
+        "require_special": True,
+        "max_age_days": 365,
+        "min_age_days": 1,
+        "min_history": 12,
+        "history_count": 24,
+        "lockout_attempts": 10,
+        "lockout_duration_minutes": 30,
+        "complexity_score_min": 75,
+        "is_active": True,
+        "applies_to": ["all_users"],
+    })
+    primary_id = primary["policy_id"]
+
+    # Privileged accounts policy (stricter)
+    engine.create_policy(org_id, {
+        "name": "Privileged Account Policy (PAM) — CIS L2",
+        "min_length": 20,
+        "require_uppercase": True,
+        "require_lowercase": True,
+        "require_numbers": True,
+        "require_symbols": True,
+        "require_digits": True,
+        "require_special": True,
+        "max_age_days": 90,
+        "min_age_days": 1,
+        "min_history": 24,
+        "history_count": 24,
+        "lockout_attempts": 5,
+        "lockout_duration_minutes": 60,
+        "complexity_score_min": 90,
+        "is_active": True,
+        "applies_to": ["admins", "privileged_users", "service_accounts"],
+    })
+
+    # Password audit results
+    engine.run_audit(org_id, primary_id, {
+        "users_audited": 487,
+        "total_users_checked": 487,
+        "violations_found": 23,
+        "compliant": 464,
+        "non_compliant": 23,
+        "weak_count": 8,
+        "expired_count": 11,
+        "no_mfa_count": 14,
+        "compliance_rate": 95.3,
+        "audit_date": _date(days_ago=7),
+    })
+
+    # Policy violations
+    violations = [
+        {"policy_id": primary_id, "user_id": "u-001", "user_email": "contractor-ext01@vendor.com", "violation_type": "weak_password", "severity": "high"},
+        {"policy_id": primary_id, "user_id": "u-002", "user_email": "intern-2025@aldeci.io",        "violation_type": "expired_password","severity": "medium"},
+        {"policy_id": primary_id, "user_id": "u-003", "user_email": "legacy-svc@aldeci.io",         "violation_type": "no_mfa",          "severity": "high"},
+        {"policy_id": primary_id, "user_id": "u-004", "user_email": "temp-user01@aldeci.io",        "violation_type": "reused_password", "severity": "medium"},
+        {"policy_id": primary_id, "user_id": "u-005", "user_email": "old-admin@aldeci.io",          "violation_type": "expired_password","severity": "high"},
+    ]
+    for v in violations:
+        try:
+            engine.create_violation(org_id, v)
+        except Exception:
+            pass
+
+    # MFA enrollments (representative sample)
+    mfa_users = [
+        {"user_id": "u-ciso-01",   "user_email": "ciso@aldeci.io",          "mfa_type": "hardware_key", "enrolled": True},
+        {"user_id": "u-eng-001",   "user_email": "alice@aldeci.io",          "mfa_type": "totp",         "enrolled": True},
+        {"user_id": "u-eng-002",   "user_email": "bob@aldeci.io",            "mfa_type": "totp",         "enrolled": True},
+        {"user_id": "u-grc-001",   "user_email": "grc-lead@aldeci.io",       "mfa_type": "hardware_key", "enrolled": True},
+        {"user_id": "u-soc-001",   "user_email": "soc-analyst@aldeci.io",    "mfa_type": "push",         "enrolled": True},
+        {"user_id": "u-hr-007",    "user_email": "hr-admin@aldeci.io",        "mfa_type": "sms",          "enrolled": True},
+        {"user_id": "u-003",       "user_email": "legacy-svc@aldeci.io",      "mfa_type": "totp",         "enrolled": False},
+        {"user_id": "u-ext-01",    "user_email": "contractor-ext01@vendor.com","mfa_type": "email_otp",   "enrolled": True},
+    ]
+    for mu in mfa_users:
+        try:
+            engine.register_mfa(org_id, mu)
+        except Exception:
+            pass
+
+    policies = engine.list_policies(org_id)
+    audits = engine.list_audits(org_id)
+    mfa = engine.list_mfa_enrollments(org_id)
+    return {"engine": "PasswordPolicyEngine",
+            "policies": len(policies), "audits": len(audits),
+            "mfa_enrollments": len(mfa),
+            "violations": len(violations)}
+
+
+# ---------------------------------------------------------------------------
+# 20. SecurityTrainingEngine
+# ---------------------------------------------------------------------------
+
+def seed_security_training(org_id: str = ORG_ID, reset: bool = False) -> dict:
+    """Seed training courses, enrollments, completions, and a campaign."""
+    try:
+        from core.security_training_engine import SecurityTrainingEngine
+    except ImportError as exc:
+        return {"engine": "SecurityTrainingEngine", "error": str(exc)}
+
+    engine = SecurityTrainingEngine()
+
+    courses_def = [
+        {"title": "Phishing Awareness & Social Engineering Defense",       "course_type": "phishing_awareness", "difficulty": "beginner",     "format": "interactive", "duration_minutes": 45,  "passing_score": 80, "mandatory": True,  "frequency": "annual",    "cpe_credits": 1.0, "description": "Recognise and report phishing, spear-phishing, and social engineering attacks. Includes simulated phishing test."},
+        {"title": "Secure Coding Fundamentals (OWASP Top 10)",             "course_type": "secure_coding",      "difficulty": "intermediate", "format": "interactive", "duration_minutes": 120, "passing_score": 75, "mandatory": True,  "frequency": "annual",    "cpe_credits": 2.0, "description": "OWASP Top 10 2021 — SQL injection, XSS, SSRF, insecure deserialization. Hands-on labs in ALDECI code."},
+        {"title": "GDPR & Privacy by Design",                              "course_type": "gdpr",               "difficulty": "beginner",     "format": "video",       "duration_minutes": 60,  "passing_score": 70, "mandatory": True,  "frequency": "annual",    "cpe_credits": 1.0, "description": "GDPR obligations, data subject rights, breach notification. Mandatory for all staff handling personal data."},
+        {"title": "Incident Response Procedures & Playbooks",              "course_type": "incident_response",  "difficulty": "intermediate", "format": "interactive", "duration_minutes": 90,  "passing_score": 80, "mandatory": True,  "frequency": "annual",    "cpe_credits": 1.5, "description": "IR lifecycle, ALDECI playbooks, escalation procedures, evidence preservation. Scenario-based exercises."},
+        {"title": "Zero Trust Security Architecture",                      "course_type": "zero_trust",         "difficulty": "advanced",     "format": "video",       "duration_minutes": 75,  "passing_score": 75, "mandatory": False, "frequency": "once",      "cpe_credits": 1.5, "description": "Zero Trust principles, identity-centric access, microsegmentation, and ALDECI Zero Trust roadmap."},
+        {"title": "AI & LLM Security Risks",                               "course_type": "ai_security",        "difficulty": "intermediate", "format": "video",       "duration_minutes": 60,  "passing_score": 70, "mandatory": False, "frequency": "annual",    "cpe_credits": 1.0, "description": "Prompt injection, training data poisoning, model theft, and ALDECI AI security governance framework."},
+        {"title": "Password Security & MFA Best Practices",                "course_type": "password_security",  "difficulty": "beginner",     "format": "interactive", "duration_minutes": 30,  "passing_score": 80, "mandatory": True,  "frequency": "annual",    "cpe_credits": 0.5, "description": "NIST 800-63B compliant password hygiene, passphrase selection, MFA enrollment walkthrough."},
+        {"title": "PCI DSS v4.0 Awareness for Engineering",                "course_type": "pci_dss",            "difficulty": "intermediate", "format": "quiz",        "duration_minutes": 50,  "passing_score": 85, "mandatory": True,  "frequency": "annual",    "cpe_credits": 1.0, "description": "PCI DSS v4.0 requirements 6 and 8 for developers handling cardholder data environments."},
+    ]
+
+    course_ids = []
+    for cd in courses_def:
+        result = engine.create_course(org_id, cd)
+        course_ids.append(result["course_id"])
+
+    # Enrollments: 3 engineers + HR user + CISO
+    users = [
+        {"user_id": "u-eng-001", "user_email": "alice@aldeci.io",       "department": "Engineering"},
+        {"user_id": "u-eng-002", "user_email": "bob@aldeci.io",         "department": "Engineering"},
+        {"user_id": "u-grc-001", "user_email": "grc-lead@aldeci.io",    "department": "GRC"},
+        {"user_id": "u-hr-007",  "user_email": "hr-admin@aldeci.io",    "department": "HR"},
+        {"user_id": "u-ciso-01", "user_email": "ciso@aldeci.io",        "department": "Security"},
+    ]
+
+    enrollment_count = 0
+    # Track enrollment_id by (user_id, course_idx) for completions
+    enrollment_map: dict = {}
+    for user in users:
+        # Enroll all users in mandatory courses
+        mandatory_idxs = [0, 2, 3, 6]  # phishing, gdpr, IR, password
+        for idx in mandatory_idxs:
+            rec = engine.enroll_user(
+                org_id, course_ids[idx], user["user_id"],
+                user_email=user["user_email"], department=user["department"],
+                due_date=_date(days_ahead=30),
+            )
+            enrollment_map[(user["user_id"], idx)] = rec["enrollment_id"]
+            enrollment_count += 1
+
+    # Enroll engineers in secure coding + PCI
+    for uid, email in [("u-eng-001", "alice@aldeci.io"), ("u-eng-002", "bob@aldeci.io")]:
+        for idx in [1, 7]:
+            rec = engine.enroll_user(org_id, course_ids[idx], uid, user_email=email, department="Engineering", due_date=_date(days_ahead=45))
+            enrollment_map[(uid, idx)] = rec["enrollment_id"]
+            enrollment_count += 1
+
+    # Mark some completions using enrollment_id
+    completions = [
+        ("u-eng-001", 0, 94),   # phishing — passed
+        ("u-eng-001", 1, 88),   # secure coding — passed
+        ("u-eng-001", 2, 91),   # gdpr — passed
+        ("u-eng-002", 0, 76),   # phishing — failed (below passing score 80)
+        ("u-grc-001", 2, 98),   # gdpr — passed
+        ("u-grc-001", 3, 85),   # IR — passed
+        ("u-ciso-01", 3, 100),  # IR — perfect score
+    ]
+    completions_count = 0
+    for user_id, course_idx, score in completions:
+        enrollment_id = enrollment_map.get((user_id, course_idx))
+        if not enrollment_id:
+            continue
+        try:
+            engine.complete_course(org_id, enrollment_id, score=score)
+            completions_count += 1
+        except Exception:
+            pass
+
+    # Training campaign
+    engine.create_campaign(org_id, {
+        "campaign_name": "Q2 2026 Security Awareness — All Staff",
+        "description": "Mandatory Q2 training covering phishing awareness, password security, and GDPR refresh. Completion deadline: 2026-06-30.",
+        "course_ids": [course_ids[0], course_ids[2], course_ids[6]],
+        "target_departments": ["Engineering", "HR", "Finance", "Sales", "GRC", "Security"],
+        "start_date": _date(days_ago=7),
+        "end_date": _date(days_ahead=75),
+        "status": "active",
+    })
+
+    courses = engine.list_courses(org_id)
+    return {"engine": "SecurityTrainingEngine",
+            "courses": len(courses), "enrollments": enrollment_count,
+            "completions": completions_count}
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -814,16 +1715,27 @@ def main() -> None:
     print(f"  Time   : {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}\n")
 
     seeders = [
-        ("Posture Score Engine",      lambda r: seed_posture(org_id, r)),
-        ("Threat Feed Aggregator",    lambda r: seed_threat_feeds(org_id, r)),
-        ("Digital Forensics Engine",  lambda r: seed_forensics(org_id, r)),
-        ("Security Roadmap Engine",   lambda r: seed_roadmap(org_id, r)),
-        ("Data Governance Engine",    lambda r: seed_data_governance(org_id, r)),
-        ("Compliance Scanner Engine", lambda r: seed_compliance(org_id, r)),
-        ("Asset Risk Calculator",     lambda r: seed_asset_risk(org_id, r)),
-        ("Security Health Engine",    lambda r: seed_health(org_id, r)),
-        ("Incident Timeline Engine",  lambda r: seed_timelines(org_id, r)),
-        ("Vuln Trend Engine",         lambda r: seed_vuln_trends(org_id, r)),
+        ("Posture Score Engine",        lambda r: seed_posture(org_id, r)),
+        ("Threat Feed Aggregator",      lambda r: seed_threat_feeds(org_id, r)),
+        ("Digital Forensics Engine",    lambda r: seed_forensics(org_id, r)),
+        ("Security Roadmap Engine",     lambda r: seed_roadmap(org_id, r)),
+        ("Data Governance Engine",      lambda r: seed_data_governance(org_id, r)),
+        ("Compliance Scanner Engine",   lambda r: seed_compliance(org_id, r)),
+        ("Asset Risk Calculator",       lambda r: seed_asset_risk(org_id, r)),
+        ("Security Health Engine",      lambda r: seed_health(org_id, r)),
+        ("Incident Timeline Engine",    lambda r: seed_timelines(org_id, r)),
+        ("Vuln Trend Engine",           lambda r: seed_vuln_trends(org_id, r)),
+        # Wave 9+10 engines
+        ("Cyber Insurance Engine",      lambda r: seed_cyber_insurance(org_id, r)),
+        ("Executive Reporting Engine",  lambda r: seed_executive_reporting(org_id, r)),
+        ("Cloud Compliance Engine",     lambda r: seed_cloud_compliance(org_id, r)),
+        ("Endpoint Compliance Engine",  lambda r: seed_endpoint_compliance(org_id, r)),
+        ("API Security Mgmt Engine",    lambda r: seed_api_security_mgmt(org_id, r)),
+        ("Vuln Intelligence Engine",    lambda r: seed_vuln_intelligence(org_id, r)),
+        ("Threat Intel Platform Engine",lambda r: seed_threat_intel_platform(org_id, r)),
+        ("Attack Surface Engine",       lambda r: seed_attack_surface(org_id, r)),
+        ("Password Policy Engine",      lambda r: seed_password_policy(org_id, r)),
+        ("Security Training Engine",    lambda r: seed_security_training(org_id, r)),
     ]
 
     ok = skip = fail = 0
