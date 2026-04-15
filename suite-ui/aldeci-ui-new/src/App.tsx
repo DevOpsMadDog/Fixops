@@ -202,6 +202,11 @@ const SecurityMetricsDashboard2 = lazy(() => import("@/pages/SecurityMetricsDash
 const ZeroTrustPolicyDashboard = lazy(() => import("@/pages/ZeroTrustPolicyDashboard"));
 const ThreatModelDashboard = lazy(() => import("@/pages/ThreatModelDashboard"));
 
+// OpenClaw + SOC Triage AI + SBOM Dashboard
+const OpenClawDashboard = lazy(() => import("@/pages/OpenClawDashboard"));
+const SOCTriageDashboard = lazy(() => import("@/pages/SOCTriageDashboard"));
+const SBOMDashboard = lazy(() => import("@/pages/SBOMDashboard"));
+
 // NDR / XDR / Awareness / EDR pages
 const NDRDashboard = lazy(() => import("@/pages/NDRDashboard"));
 const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
@@ -452,6 +457,11 @@ export default function App() {
             <Route path="/regulatory-tracker" element={<RegulatoryTrackerDashboard />} />
             <Route path="/security-scorecard" element={<SecurityScorecardDashboard />} />
             <Route path="/ccm" element={<CCMDashboard />} />
+
+            {/* OpenClaw + SOC Triage AI + SBOM */}
+            <Route path="/openclaw" element={<Suspense fallback={<div>Loading...</div>}><OpenClawDashboard /></Suspense>} />
+            <Route path="/soc-triage" element={<Suspense fallback={<div>Loading...</div>}><SOCTriageDashboard /></Suspense>} />
+            <Route path="/sbom-dashboard" element={<Suspense fallback={<div>Loading...</div>}><SBOMDashboard /></Suspense>} />
 
             {/* NDR / XDR / Awareness / EDR */}
             <Route path="/ndr" element={<NDRDashboard />} />
