@@ -5611,6 +5611,25 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Compliance Gap Analysis router not loaded: {e}")
 
+    # Vulnerability Risk Scoring — contextual risk scores (CVSS + EPSS + KEV + asset context)
+    try:
+        from apps.api.vuln_risk_router import router as vuln_risk_router
+        app.include_router(
+            vuln_risk_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Vulnerability Risk Scoring router at /api/v1/vuln-risk")
+    except Exception as e:
+        _logger.warning(f"Vulnerability Risk Scoring router not loaded: {e}")
+
+    # TLS Certificate Management — expiry tracking, weak-config detection
+    try:
+        from apps.api.cert_router import router as cert_router
+        app.include_router(cert_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Certificate Manager router at /api/v1/certificates")
+    except Exception as e:
+        _logger.warning(f"Certificate Manager router not loaded: {e}")
+
     return app
 
 
