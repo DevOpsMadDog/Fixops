@@ -619,6 +619,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 24 — Autonomous parallel build)
+
+**Wave 24 New Backend Engines:**
+- ✅ network_forensics_engine.py — NetworkForensics (captures, artifacts, analyze, forensics stats) — 38 tests
+- ✅ malware_analysis_engine.py — MalwareAnalysis (samples, verdicts, IOC extraction, stats) — 38 tests
+- ✅ application_risk_engine.py — ApplicationRisk (app registration, risk scoring, findings lifecycle) — ~40 tests
+- ✅ privileged_access_governance_engine.py — PAG (PA accounts, sessions, anomaly detection) — ~39 tests
+- ✅ security_awareness_gamification_engine.py — SAGamification (challenges, completions, leaderboard, badges) — ~39 tests
+- ✅ vulnerability_prioritization_engine.py — VulnPrioritization (CVSS+EPSS+KEV priority scoring, remediation queue) — ~39 tests
+
+**Wave 24 Routers wired:** /api/v1/network-forensics, /api/v1/malware-analysis, /api/v1/app-risk, /api/v1/pag, /api/v1/awareness-gamification, /api/v1/vuln-prioritization
+
+**Wave 24 Frontend Pages (Wave 23 domains):**
+- ✅ ThreatIntelAutomation (/threat-intel-automation), MetricsAggregatorDashboard (/metrics-aggregator)
+- ✅ EndpointHuntingDashboard (/endpoint-hunting), CloudSecurityAnalyticsDashboard (/cloud-security-analytics)
+- ✅ IdentityRiskDashboard (/identity-risk), OTSecurityDashboard (/ot-security)
+
+**Engine total: 242+ engines | Router total: 472+ routers | Test total: 4,600+ tests | Frontend: 194+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code

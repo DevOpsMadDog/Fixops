@@ -7110,6 +7110,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 25 routers
+    try:
+        from apps.api.threat_deception_management_router import router as threat_deception_management_router
+        app.include_router(threat_deception_management_router)
+        _logger.info("Mounted Threat Deception Management router at /api/v1/threat-deception")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_posture_scoring_router import router as security_posture_scoring_router
+        app.include_router(security_posture_scoring_router)
+        _logger.info("Mounted Security Posture Scoring router at /api/v1/posture-scoring")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_posture_router import router as cloud_posture_router
+        app.include_router(cloud_posture_router)
+        _logger.info("Mounted Cloud Posture router at /api/v1/cloud-posture")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.api_threat_protection_router import router as api_threat_protection_router
+        app.include_router(api_threat_protection_router)
+        _logger.info("Mounted API Threat Protection router at /api/v1/api-threat-protection")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.risk_register_router import router as risk_register_router
+        app.include_router(risk_register_router)
+        _logger.info("Mounted Risk Register router at /api/v1/risk-register-engine")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_change_management_router import router as security_change_management_router
+        app.include_router(security_change_management_router)
+        _logger.info("Mounted Security Change Management router at /api/v1/change-management")
+    except ImportError:
+        pass
+
     return app
 
 
