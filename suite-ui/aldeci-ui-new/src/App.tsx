@@ -391,6 +391,14 @@ const IncidentCommsDashboard = lazy(() => import("@/pages/IncidentCommsDashboard
 const AssetTagsDashboard = lazy(() => import("@/pages/AssetTagsDashboard"));
 const SecurityRegistryDashboard = lazy(() => import("@/pages/SecurityRegistryDashboard"));
 
+// Wave 34 domain dashboards
+const SecurityQuestionnaireDashboard = lazy(() => import("@/pages/SecurityQuestionnaireDashboard"));
+const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
+const FeedSubscriptionsDashboard = lazy(() => import("@/pages/FeedSubscriptionsDashboard"));
+const AssetGroupsDashboard = lazy(() => import("@/pages/AssetGroupsDashboard"));
+const SecurityFindingsDashboard = lazy(() => import("@/pages/SecurityFindingsDashboard"));
+const ControlTestingDashboard = lazy(() => import("@/pages/ControlTestingDashboard"));
+
 // Wave 32 domain dashboards
 const ComplianceWorkflowDashboard = lazy(() => import("@/pages/ComplianceWorkflowDashboard"));
 const ThreatLandscapeDashboard = lazy(() => import("@/pages/ThreatLandscapeDashboard"));
@@ -802,6 +810,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 34 domain dashboards */}
+            <Route path="/security-questionnaires" element={<SecurityQuestionnaireDashboard />} />
+            <Route path="/risk-scenarios" element={<RiskScenarioDashboard />} />
+            <Route path="/feed-subscriptions" element={<FeedSubscriptionsDashboard />} />
+            <Route path="/asset-groups" element={<AssetGroupsDashboard />} />
+            <Route path="/security-findings" element={<SecurityFindingsDashboard />} />
+            <Route path="/control-testing" element={<ControlTestingDashboard />} />
 
             {/* Wave 32 domain dashboards */}
             <Route path="/compliance-workflows" element={<ComplianceWorkflowDashboard />} />
