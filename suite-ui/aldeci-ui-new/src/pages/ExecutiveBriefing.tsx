@@ -13,8 +13,24 @@
  * API stub: GET /api/v1/executive/briefing
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Shield, AlertTriangle, CheckCircle2, TrendingDown,
   TrendingUp, Download, RefreshCw, DollarSign,
@@ -127,7 +143,27 @@ function LikelihoodBadge({ l }: { l: string }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ExecutiveBriefing() {
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [liveData, setLiveData]       = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/posture-advisor/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/incidents/stats?org_id=${ORG_ID}`),
+    ]).then(([kpiResult, postureResult, incidentResult]) => {
+      const kpis     = kpiResult.status     === "fulfilled" ? kpiResult.value     : null;
+      const posture  = postureResult.status === "fulfilled" ? postureResult.value : null;
+      const incidents = incidentResult.status === "fulfilled" ? incidentResult.value : null;
+      if (kpis || posture || incidents) {
+        setLiveData({ kpis, posture, incidents });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   return (
     <motion.div
@@ -142,8 +178,8 @@ export default function ExecutiveBriefing() {
         description="Board-level security posture summary — Q2 2026"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
-              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); fetchData(); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
+              <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
             <Button size="sm" className="gap-1.5">
               <Download className="h-4 w-4" />
@@ -157,19 +193,29 @@ export default function ExecutiveBriefing() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col items-center gap-2">
           <AlertTriangle className="h-8 w-8 text-red-400" />
-          <span className="text-5xl font-black text-red-400 tabular-nums">4</span>
+          <span className="text-5xl font-black text-red-400 tabular-nums">
+            {liveData?.incidents?.critical_count ?? liveData?.kpis?.critical_findings ?? 4}
+          </span>
           <span className="text-sm font-semibold text-red-300">Critical Threats</span>
           <span className="text-[11px] text-muted-foreground text-center">Require immediate board attention</span>
         </div>
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 flex flex-col items-center gap-2">
           <Shield className="h-8 w-8 text-amber-400" />
-          <span className="text-5xl font-black text-amber-400 tabular-nums">47</span>
+          <span className="text-5xl font-black text-amber-400 tabular-nums">
+            {liveData?.kpis?.open_findings ?? liveData?.incidents?.open_count ?? 47}
+          </span>
           <span className="text-sm font-semibold text-amber-300">High Findings</span>
           <span className="text-[11px] text-muted-foreground text-center">Open security vulnerabilities</span>
         </div>
         <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-6 flex flex-col items-center gap-2">
           <CheckCircle2 className="h-8 w-8 text-green-400" />
-          <span className="text-5xl font-black text-green-400 tabular-nums">87%</span>
+          <span className="text-5xl font-black text-green-400 tabular-nums">
+            {liveData?.posture?.overall_score != null
+              ? `${liveData.posture.overall_score}%`
+              : liveData?.kpis?.compliance_score != null
+              ? `${liveData.kpis.compliance_score}%`
+              : "87%"}
+          </span>
           <span className="text-sm font-semibold text-green-300">Compliance Score</span>
           <span className="text-[11px] text-muted-foreground text-center">Across 6 regulatory frameworks</span>
         </div>

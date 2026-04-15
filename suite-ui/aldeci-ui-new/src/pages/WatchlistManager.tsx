@@ -11,8 +11,24 @@
  * API stubs: GET /api/v1/watchlist, /api/v1/watchlist/matches, /api/v1/watchlist/add
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Shield, Eye, Zap, List, Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -104,14 +120,35 @@ function SeverityBadge({ sev }: { sev: string }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function WatchlistManager() {
-  const [refreshing, setRefreshing] = useState(false);
-  const [iocInput, setIocInput] = useState("");
-  const [iocType, setIocType] = useState("ip");
-  const [targetList, setTargetList] = useState(WATCHLIST_OPTIONS[0]);
-  const [added, setAdded] = useState<string[]>([]);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [iocInput, setIocInput]       = useState("");
+  const [iocType, setIocType]         = useState("ip");
+  const [targetList, setTargetList]   = useState(WATCHLIST_OPTIONS[0]);
+  const [added, setAdded]             = useState<string[]>([]);
+  const [liveData, setLiveData]       = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/ioc-enrichment/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ioc-enrichment/iocs?org_id=${ORG_ID}&limit=50`),
+      apiFetch(`/api/v1/threat-actors?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, iocsResult, actorsResult]) => {
+      const stats   = statsResult.status   === "fulfilled" ? statsResult.value   : null;
+      const iocs    = iocsResult.status    === "fulfilled" ? iocsResult.value    : null;
+      const actors  = actorsResult.status  === "fulfilled" ? actorsResult.value  : null;
+      if (stats || iocs || actors) {
+        setLiveData({ stats, iocs, actors });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -141,10 +178,10 @@ export default function WatchlistManager() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Watchlists"   value={12}     icon={List}   trend="up"   />
-        <KpiCard title="Total Indicators"    value="4,782"  icon={Shield} trend="up"   />
-        <KpiCard title="Matches Today"       value={23}     icon={Eye}    trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Auto-Blocked"        value={187}    icon={Zap}    trend="up"   className="border-green-500/20" />
+        <KpiCard title="Active Watchlists"   value={liveData?.stats?.watchlist_count ?? 12}    icon={List}   trend="up" />
+        <KpiCard title="Total Indicators"    value={liveData?.stats?.total_iocs ?? "4,782"}    icon={Shield} trend="up" />
+        <KpiCard title="Matches Today"       value={liveData?.stats?.malicious_count ?? 23}    icon={Eye}    trend="up" className="border-amber-500/20" />
+        <KpiCard title="Auto-Blocked"        value={liveData?.stats?.enriched_count ?? 187}    icon={Zap}    trend="up" className="border-green-500/20" />
       </div>
 
       {/* Watchlist Table */}

@@ -15,7 +15,7 @@
  * Fallback: mock data on API failure
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -43,6 +43,19 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -414,12 +427,31 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
 
 export default function ExecutiveRiskReport() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [liveSupplemental, setLiveSupplemental] = useState<any>(null);
+
+  // Fetch supplemental data from real endpoints
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/risk-quantification/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/posture-advisor/stats?org_id=${ORG_ID}`),
+    ]).then(([riskResult, kpiResult, postureResult]) => {
+      const riskStats = riskResult.status   === "fulfilled" ? riskResult.value   : null;
+      const kpis      = kpiResult.status    === "fulfilled" ? kpiResult.value    : null;
+      const posture   = postureResult.status === "fulfilled" ? postureResult.value : null;
+      if (riskStats || kpis || posture) {
+        setLiveSupplemental({ riskStats, kpis, posture });
+      }
+    });
+  }, []);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ["executive-report-summary"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/executive-report/summary`);
+        const res = await fetch(`${API_BASE}/api/v1/executive-report/summary`, {
+          headers: { "X-API-Key": API_KEY },
+        });
         if (!res.ok) throw new Error("API error");
         return res.json() as Promise<ExecutiveReportData>;
       } catch {
@@ -431,6 +463,19 @@ export default function ExecutiveRiskReport() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    // Refresh supplemental data too
+    Promise.allSettled([
+      apiFetch(`/api/v1/risk-quantification/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/posture-advisor/stats?org_id=${ORG_ID}`),
+    ]).then(([riskResult, kpiResult, postureResult]) => {
+      const riskStats = riskResult.status   === "fulfilled" ? riskResult.value   : null;
+      const kpis      = kpiResult.status    === "fulfilled" ? kpiResult.value    : null;
+      const posture   = postureResult.status === "fulfilled" ? postureResult.value : null;
+      if (riskStats || kpis || posture) {
+        setLiveSupplemental({ riskStats, kpis, posture });
+      }
+    });
     await new Promise((resolve) => setTimeout(resolve, 800));
     setIsRefreshing(false);
   };
@@ -438,6 +483,13 @@ export default function ExecutiveRiskReport() {
   if (isLoading) return <PageSkeleton />;
 
   const d = report ?? MOCK_DATA;
+
+  // Overlay live data onto the report where available
+  const liveScore: number =
+    liveSupplemental?.posture?.total_recommendations != null
+      ? undefined as unknown as number  // posture/stats doesn't have a score — skip
+      : liveSupplemental?.kpis?.overall_score ?? d.overall_score;
+  const displayScore = typeof liveScore === "number" && !isNaN(liveScore) ? liveScore : d.overall_score;
 
   return (
     <div className="space-y-6 p-6">
@@ -501,7 +553,7 @@ export default function ExecutiveRiskReport() {
 
             {/* Score + trend */}
             <div className="flex items-center justify-center gap-4">
-              <span className="text-3xl font-bold text-slate-100">{d.overall_score}/100</span>
+              <span className="text-3xl font-bold text-slate-100">{displayScore}/100</span>
               <div className="flex items-center gap-1 bg-emerald-500/20 text-emerald-400 rounded-full px-3 py-1 text-sm font-semibold">
                 <TrendingUp className="w-4 h-4" />
                 <span>

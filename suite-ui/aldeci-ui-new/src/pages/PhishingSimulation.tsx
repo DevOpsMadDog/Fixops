@@ -11,8 +11,24 @@
  * API stubs: GET /api/v1/phishing/campaigns, /api/v1/phishing/templates, /api/v1/phishing/training
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Mail, Users, MousePointer, Flag, RefreshCw, BookOpen, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,11 +131,36 @@ function DifficultyBadge({ diff }: { diff: string }) {
 
 export default function PhishingSimulation() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData]     = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/phishing/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/phishing/campaigns?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/phishing/templates?org_id=${ORG_ID}`),
+    ]).then(([statsResult, campaignsResult, templatesResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : null;
+      const templates = templatesResult.status === "fulfilled" ? templatesResult.value : null;
+      if (stats || campaigns || templates) {
+        setLiveData({ stats, campaigns, templates });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Derive display values — live data takes precedence over mock
+  const displayCampaigns = liveData?.campaigns ?? CAMPAIGNS;
+  const displayTemplates = liveData?.templates ?? TEMPLATES;
 
   return (
     <motion.div
@@ -144,10 +185,10 @@ export default function PhishingSimulation() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Campaigns Run"     value={47}      icon={Mail}          />
-        <KpiCard title="Employees Tested"  value="2,847"   icon={Users}         />
-        <KpiCard title="Click Rate"        value="8.3%"    icon={MousePointer}  trend="down" className="border-amber-500/20" />
-        <KpiCard title="Report Rate"       value="34.7%"   icon={Flag}          trend="up"   className="border-green-500/20" />
+        <KpiCard title="Campaigns Run"     value={liveData?.stats?.total_campaigns ?? 47}    icon={Mail}         />
+        <KpiCard title="Employees Tested"  value={liveData?.stats?.total_targets ?? "2,847"} icon={Users}        />
+        <KpiCard title="Click Rate"        value={liveData?.stats?.click_rate != null ? `${liveData.stats.click_rate}%` : "8.3%"} icon={MousePointer} trend="down" className="border-amber-500/20" />
+        <KpiCard title="Report Rate"       value={liveData?.stats?.report_rate != null ? `${liveData.stats.report_rate}%` : "34.7%"} icon={Flag} trend="up" className="border-green-500/20" />
       </div>
 
       {/* Campaign table */}
@@ -159,7 +200,7 @@ export default function PhishingSimulation() {
               Campaigns
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {CAMPAIGNS.length} total
+              {displayCampaigns.length} total
             </Badge>
           </div>
           <CardDescription className="text-xs">All phishing campaigns with click and report metrics</CardDescription>
@@ -182,7 +223,7 @@ export default function PhishingSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CAMPAIGNS.map((row) => (
+                {displayCampaigns.map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[160px] truncate">{row.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>
@@ -256,7 +297,7 @@ export default function PhishingSimulation() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
-              {TEMPLATES.map((t) => (
+              {displayTemplates.map((t: any) => (
                 <div
                   key={t.id}
                   className="rounded-lg border border-border bg-muted/10 p-3 flex flex-col gap-2 hover:bg-muted/20 transition-colors"

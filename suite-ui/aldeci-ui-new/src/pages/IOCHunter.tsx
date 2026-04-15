@@ -12,8 +12,24 @@
  * API stubs: GET /api/v1/ioc/search, /api/v1/ioc/watchlists, /api/v1/ioc/recent
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Search, Shield, AlertTriangle, Eye, RefreshCw,
   Upload, Globe, Hash, Mail, Link, MapPin, Crosshair,
@@ -112,13 +128,34 @@ export default function IOCHunter() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery]           = useState("");
   const [iocType, setIocType]       = useState("All");
+  const [liveData, setLiveData]     = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/ioc-enrichment/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ioc-enrichment/iocs?org_id=${ORG_ID}&limit=50`),
+    ]).then(([statsResult, iocsResult]) => {
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      const iocs  = iocsResult.status  === "fulfilled" ? iocsResult.value  : null;
+      if (stats || iocs) {
+        setLiveData({ stats, iocs });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const firstIoc = IOCS[0];
+  // Derive display values — live data takes precedence over mock
+  const displayIocs = liveData?.iocs ?? IOCS;
+  const firstIoc = displayIocs[0] ?? IOCS[0];
 
   return (
     <motion.div
@@ -140,10 +177,10 @@ export default function IOCHunter() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total IOCs"   value="4,782" icon={Crosshair} />
-        <KpiCard title="Enriched"     value="3,421" icon={Search}    description="71.5% coverage" />
-        <KpiCard title="Malicious"    value={892}   icon={AlertTriangle} trend="up" className="border-red-500/20" />
-        <KpiCard title="On Watchlist" value={234}   icon={Eye} />
+        <KpiCard title="Total IOCs"   value={liveData?.stats?.total_iocs ?? "4,782"} icon={Crosshair} />
+        <KpiCard title="Enriched"     value={liveData?.stats?.enriched_count ?? "3,421"} icon={Search} description="71.5% coverage" />
+        <KpiCard title="Malicious"    value={liveData?.stats?.malicious_count ?? 892} icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="On Watchlist" value={liveData?.stats?.watchlist_count ?? 234} icon={Eye} />
       </div>
 
       {/* Search bar */}
@@ -193,7 +230,7 @@ export default function IOCHunter() {
               IOC Library
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {IOCS.length} results
+              {displayIocs.length} results
             </Badge>
           </div>
           <CardDescription className="text-xs">All tracked indicators with enrichment and verdict</CardDescription>
@@ -214,7 +251,7 @@ export default function IOCHunter() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {IOCS.map((ioc, i) => (
+                {displayIocs.map((ioc: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[180px] truncate">{ioc.value}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={ioc.type} /></TableCell>
