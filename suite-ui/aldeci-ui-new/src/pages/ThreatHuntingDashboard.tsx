@@ -131,15 +131,13 @@ export default function ThreatHuntingDashboard() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/hunting/sessions?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/hunting/queries`),
-    ]).then(([statsResult, sessionsResult, queriesResult]) => {
-      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
-      const sessions = sessionsResult.status === "fulfilled" ? sessionsResult.value : null;
-      const queries  = queriesResult.status  === "fulfilled" ? queriesResult.value  : null;
-      if (stats || sessions || queries) {
-        setLiveData({ stats, sessions, queries });
+      apiFetch(`/api/v1/threat-hunting/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-hunting/hunts?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, huntsResult]) => {
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      const hunts = huntsResult.status === "fulfilled" ? huntsResult.value : null;
+      if (stats || hunts) {
+        setLiveData({ stats, sessions: hunts });
       }
     }).finally(() => setDataLoading(false));
   }, []);
