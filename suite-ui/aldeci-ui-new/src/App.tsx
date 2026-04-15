@@ -351,6 +351,14 @@ const APIThreatProtectionDashboard = lazy(() => import("@/pages/APIThreatProtect
 const RiskRegisterDashboard = lazy(() => import("@/pages/RiskRegisterDashboard"));
 const ChangeManagementDashboard = lazy(() => import("@/pages/ChangeManagementDashboard"));
 
+// Wave 26 domain dashboards
+const ComplianceAutomationDashboard = lazy(() => import("@/pages/ComplianceAutomationDashboard"));
+const ThreatAttributionDashboard = lazy(() => import("@/pages/ThreatAttributionDashboard"));
+const CloudAccessSecurityDashboard = lazy(() => import("@/pages/CloudAccessSecurityDashboard"));
+const BehavioralAnalyticsDashboard = lazy(() => import("@/pages/BehavioralAnalyticsDashboard"));
+const VulnWorkflowDashboard = lazy(() => import("@/pages/VulnWorkflowDashboard"));
+const DataPipelineDashboard = lazy(() => import("@/pages/DataPipelineDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -706,6 +714,14 @@ export default function App() {
             <Route path="/api-threat-protection" element={<APIThreatProtectionDashboard />} />
             <Route path="/risk-register-engine" element={<RiskRegisterDashboard />} />
             <Route path="/change-management" element={<ChangeManagementDashboard />} />
+
+            {/* Wave 26 domain dashboards */}
+            <Route path="/compliance-automation" element={<ComplianceAutomationDashboard />} />
+            <Route path="/threat-attribution" element={<ThreatAttributionDashboard />} />
+            <Route path="/cloud-access-security" element={<CloudAccessSecurityDashboard />} />
+            <Route path="/behavioral-analytics" element={<BehavioralAnalyticsDashboard />} />
+            <Route path="/vuln-workflow" element={<VulnWorkflowDashboard />} />
+            <Route path="/data-pipeline" element={<DataPipelineDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
