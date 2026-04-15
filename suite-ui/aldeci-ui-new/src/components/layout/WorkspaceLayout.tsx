@@ -103,6 +103,13 @@ import {
   Mail,
   Monitor,
   Award,
+  Zap,
+  BarChart2,
+  List,
+  Smartphone,
+  Key,
+  Tag,
+  GitBranch,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -251,7 +258,7 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Incidents",
+    label: "Security Operations",
     icon: Siren,
     items: [
       { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
@@ -260,6 +267,11 @@ const navGroups: NavGroup[] = [
       { label: "Firewall Analyzer", to: "/firewall", icon: Shield, badge: "NEW" },
       { label: "Email Security", to: "/email-security", icon: Mail, badge: "NEW" },
       { label: "Endpoint Security (EDR)", to: "/endpoint-security", icon: Monitor, badge: "NEW" },
+      { label: "SOAR Automation", to: "/soar", icon: Zap, badge: "NEW" },
+      { label: "Threat Correlation", to: "/threat-correlation", icon: Link2, badge: "NEW" },
+      { label: "SOC", to: "/soc", icon: Monitor, badge: "NEW" },
+      { label: "User Behavior", to: "/uba", icon: Activity, badge: "NEW" },
+      { label: "Breach Response", to: "/breach-response", icon: AlertTriangle, badge: "NEW" },
     ],
   },
   {
@@ -280,6 +292,8 @@ const navGroups: NavGroup[] = [
       { label: "Attack Paths", to: "/attack-paths", icon: Route },
       { label: "Vuln Heatmap", to: "/vuln-heatmap", icon: Map, badge: "NEW" },
       { label: "Bug Bounty", to: "/bug-bounty", icon: Award, badge: "NEW" },
+      { label: "Security Metrics", to: "/security-metrics", icon: BarChart2, badge: "NEW" },
+      { label: "Vuln Risk Queue", to: "/vuln-risk", icon: List, badge: "NEW" },
     ],
   },
   {
@@ -298,6 +312,8 @@ const navGroups: NavGroup[] = [
       { label: "Cloud IAM", to: "/cloud-iam", icon: KeyRound, badge: "NEW" },
       { label: "Identity Governance", to: "/identity-governance", icon: UserCheck, badge: "NEW" },
       { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap, badge: "NEW" },
+      { label: "Password Policy", to: "/password-policy", icon: Key, badge: "NEW" },
+      { label: "Mobile Security", to: "/mobile-security", icon: Smartphone, badge: "NEW" },
     ],
   },
   {
@@ -310,6 +326,10 @@ const navGroups: NavGroup[] = [
       { label: "Security KPIs", to: "/security-kpis", icon: BarChart3 },
       { label: "Executive Report", to: "/executive-report", icon: BarChart3, badge: "NEW" },
       { label: "Audit Log", to: "/audit-log", icon: FileText, badge: "NEW" },
+      { label: "GRC Dashboard", to: "/grc", icon: ClipboardCheck, badge: "NEW" },
+      { label: "Supply Chain Risk", to: "/supply-chain-risk", icon: Package, badge: "NEW" },
+      { label: "Watchlist Manager", to: "/watchlist", icon: Eye, badge: "NEW" },
+      { label: "IOC Hunter", to: "/ioc-hunter", icon: Search, badge: "NEW" },
     ],
   },
   {
@@ -321,6 +341,24 @@ const navGroups: NavGroup[] = [
       { label: "Supply Chain", to: "/supply-chain", icon: Link2 },
       { label: "CSPM", to: "/cspm", icon: Cloud, badge: "NEW" },
       { label: "Certificate Manager", to: "/certificates", icon: ShieldCheck, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Cloud & Infrastructure",
+    icon: Cloud,
+    items: [
+      { label: "Cloud Security", to: "/cloud-security", icon: Cloud, badge: "NEW" },
+      { label: "Network Topology", to: "/network-topology", icon: GitBranch, badge: "NEW" },
+      { label: "CMDB", to: "/cmdb", icon: Database, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Application Security",
+    icon: Code,
+    items: [
+      { label: "AppSec (SAST/DAST)", to: "/app-security", icon: Code, badge: "NEW" },
+      { label: "API Security", to: "/api-security", icon: Wifi, badge: "NEW" },
+      { label: "Social Engineering", to: "/social-engineering", icon: Users, badge: "NEW" },
     ],
   },
   {
