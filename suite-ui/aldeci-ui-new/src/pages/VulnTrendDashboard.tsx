@@ -9,7 +9,7 @@
  *   5. Cohort analysis (5 cohorts)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Bug, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, BarChart3, Clock, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,6 +19,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API config ─────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const key = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    import.meta.env.VITE_API_KEY || "dev-key";
+  const res = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": key } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -80,10 +92,36 @@ const STACKED_MAX = 550; // scale denominator for bar widths
 
 export default function VulnTrendDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchAll = () =>
+    Promise.allSettled([
+      apiFetch(`/api/v1/vuln-trends/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vuln-trends/snapshots?org_id=${ORG_ID}&limit=6`),
+      apiFetch(`/api/v1/vuln-trends/analysis?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vuln-trends/cohorts?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vuln-trends/sla/breaches?org_id=${ORG_ID}`),
+    ]).then(([statsRes, snapshotsRes, analysisRes, cohortsRes, slaBreach]) => {
+      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const snapshots = snapshotsRes.status === "fulfilled" ? snapshotsRes.value : null;
+      const analysis  = analysisRes.status  === "fulfilled" ? analysisRes.value  : null;
+      const cohorts   = cohortsRes.status   === "fulfilled" ? cohortsRes.value   : null;
+      const breaches  = slaBreach.status    === "fulfilled" ? slaBreach.value    : null;
+      if (stats || snapshots || analysis || cohorts || breaches) {
+        setLiveData({ stats, snapshots, analysis, cohorts, breaches });
+      }
+    });
+
+  useEffect(() => {
+    setDataLoading(true);
+    fetchAll().finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    fetchAll().finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
   return (
@@ -98,18 +136,18 @@ export default function VulnTrendDashboard() {
         title="Vulnerability Trends"
         description="Trend analysis, SLA tracking, and cohort management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Tracked"       value="1,847"  icon={Bug}          trend="up" />
-        <KpiCard title="SLA Breach Rate"     value="8.4%"   icon={AlertTriangle} trend="up"  className="border-red-500/20" />
-        <KpiCard title="Critical Mean Age"   value="12.4d"  icon={Clock}        trend="down" className="border-amber-500/20" />
-        <KpiCard title="Resolved This Week"  value={47}     icon={TrendingDown}  trend="up" />
+        <KpiCard title="Total Tracked"       value={liveData?.stats?.total_vulns ?? liveData?.stats?.total_tracked ?? "1,847"}             icon={Bug}          trend="up" />
+        <KpiCard title="SLA Breach Rate"     value={liveData?.stats?.sla_breach_rate != null ? `${liveData.stats.sla_breach_rate}%` : "8.4%"} icon={AlertTriangle} trend="up"  className="border-red-500/20" />
+        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "12.4d"} icon={Clock}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="Resolved This Week"  value={liveData?.stats?.resolved_this_week ?? 47}                                              icon={TrendingDown}  trend="up" />
       </div>
 
       {/* 30-day trend + Trend Analysis */}
@@ -125,7 +163,13 @@ export default function VulnTrendDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {WEEKLY_TREND.map((w) => {
+              {(liveData?.snapshots?.map((s: any) => ({
+                week: s.taken_at ? s.taken_at.slice(0, 10) : "—",
+                critical: s.critical ?? 0,
+                high: s.high ?? 0,
+                medium: s.medium ?? 0,
+                low: s.low ?? 0,
+              })) ?? WEEKLY_TREND).map((w: any) => {
                 const total = w.critical + w.high + w.medium + w.low;
                 const scale = STACKED_MAX;
                 return (
@@ -186,8 +230,8 @@ export default function VulnTrendDashboard() {
                 </CardTitle>
                 <CardDescription className="text-xs">Week-over-week change per severity</CardDescription>
               </div>
-              <Badge className={cn("text-[10px] border", OVERALL_TREND.cls)}>
-                Overall: {OVERALL_TREND.label}
+              <Badge className={cn("text-[10px] border", liveData?.analysis?.overall_trend === "increasing" ? "border-red-500/30 text-red-400 bg-red-500/10" : liveData?.analysis?.overall_trend === "stable" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10" : OVERALL_TREND.cls)}>
+                Overall: {liveData?.analysis?.overall_trend ?? OVERALL_TREND.label}
               </Badge>
             </div>
           </CardHeader>
@@ -219,7 +263,7 @@ export default function VulnTrendDashboard() {
               SLA Tracking
             </CardTitle>
             <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-              {SLA_ROWS.filter(r => r.days_remaining < 0 && !r.resolved).length} breached
+              {liveData?.breaches?.length ?? SLA_ROWS.filter(r => r.days_remaining < 0 && !r.resolved).length} breached
             </Badge>
           </div>
           <CardDescription className="text-xs">Days remaining vs SLA deadline — red bars indicate breach</CardDescription>
@@ -299,15 +343,15 @@ export default function VulnTrendDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {COHORTS.map((c) => (
-                <TableRow key={c.name} className="hover:bg-muted/30">
-                  <TableCell className="text-xs font-medium py-2.5">{c.name}</TableCell>
-                  <TableCell className="text-xs tabular-nums py-2.5 text-right">{c.vuln_count}</TableCell>
-                  <TableCell className={cn("text-xs tabular-nums py-2.5 text-right font-medium", c.avg_age > 30 ? "text-red-400" : c.avg_age > 14 ? "text-amber-400" : "text-muted-foreground")}>
-                    {c.avg_age}d
+              {(liveData?.cohorts ?? COHORTS).map((c: any) => (
+                <TableRow key={c.name ?? c.cohort_name ?? c.cohort_id} className="hover:bg-muted/30">
+                  <TableCell className="text-xs font-medium py-2.5">{c.name ?? c.cohort_name}</TableCell>
+                  <TableCell className="text-xs tabular-nums py-2.5 text-right">{c.vuln_count ?? (c.vuln_ids?.length ?? 0)}</TableCell>
+                  <TableCell className={cn("text-xs tabular-nums py-2.5 text-right font-medium", (c.avg_age ?? c.avg_age_days ?? 0) > 30 ? "text-red-400" : (c.avg_age ?? c.avg_age_days ?? 0) > 14 ? "text-amber-400" : "text-muted-foreground")}>
+                    {c.avg_age ?? c.avg_age_days ?? 0}d
                   </TableCell>
-                  <TableCell className={cn("text-xs tabular-nums py-2.5 text-right font-bold", c.avg_cvss >= 7 ? "text-red-400" : c.avg_cvss >= 5 ? "text-amber-400" : "text-muted-foreground")}>
-                    {c.avg_cvss}
+                  <TableCell className={cn("text-xs tabular-nums py-2.5 text-right font-bold", (c.avg_cvss ?? 0) >= 7 ? "text-red-400" : (c.avg_cvss ?? 0) >= 5 ? "text-amber-400" : "text-muted-foreground")}>
+                    {c.avg_cvss ?? 0}
                   </TableCell>
                 </TableRow>
               ))}

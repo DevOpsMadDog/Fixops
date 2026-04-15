@@ -266,18 +266,17 @@ const VENDOR_COLORS: Record<Vendor, string> = {
 // Main Component
 // ══════════════════════════════════════════════════════════════
 
+const ORG_ID = "default";
+
 export default function FirewallAnalyzer() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
-    // TODO: wire when /api/v1/firewall-mgmt engine is deployed
-    // Endpoints: GET /api/v1/firewall-mgmt/stats, /firewalls, /violations
-    setDataLoading(true);
+  const fetchAll = () =>
     Promise.allSettled([
-      apiFetch("/api/v1/firewall-mgmt/stats"),
-      apiFetch("/api/v1/firewall-mgmt/firewalls"),
-      apiFetch("/api/v1/firewall-mgmt/violations"),
+      apiFetch(`/api/v1/firewall-mgmt/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/firewall-mgmt/firewalls?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/firewall-mgmt/violations?org_id=${ORG_ID}`),
     ]).then(([statsRes, firewallsRes, violationsRes]) => {
       const stats      = statsRes.status      === "fulfilled" ? statsRes.value      : null;
       const firewalls  = firewallsRes.status  === "fulfilled" ? firewallsRes.value  : null;
@@ -285,13 +284,22 @@ export default function FirewallAnalyzer() {
       if (stats || firewalls || violations) {
         setLiveData({ stats, firewalls, violations });
       }
-    }).finally(() => setDataLoading(false));
+    });
+
+  useEffect(() => {
+    setDataLoading(true);
+    fetchAll().finally(() => setDataLoading(false));
   }, []);
 
   const findings: FirewallFinding[] =
     (liveData?.violations?.items ?? liveData?.violations?.findings ?? liveData?.violations) ?? MOCK_FINDINGS;
   const firewallDevices: FirewallDevice[] =
     (liveData?.firewalls?.items ?? liveData?.firewalls?.firewalls ?? liveData?.firewalls) ?? MOCK_FIREWALLS;
+
+  const handleRefresh = () => {
+    setDataLoading(true);
+    fetchAll().finally(() => setDataLoading(false));
+  };
 
   const trendMax = Math.max(...TREND_DATA.map((d) => d.count));
   const trendMin = Math.min(...TREND_DATA.map((d) => d.count));
@@ -304,7 +312,7 @@ export default function FirewallAnalyzer() {
         title="Firewall Rule Analyzer"
         description="Detect shadow rules, overly permissive policies, and rule bloat"
         actions={
-          <Button variant="outline" size="sm" disabled={dataLoading}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={dataLoading}>
             <RefreshCw className={cn("h-4 w-4", dataLoading && "animate-spin")} />
           </Button>
         }

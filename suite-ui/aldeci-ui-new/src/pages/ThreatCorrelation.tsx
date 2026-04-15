@@ -132,41 +132,31 @@ export default function ThreatCorrelation() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
-    setDataLoading(true);
+  const fetchAll = () =>
     Promise.allSettled([
       apiFetch(`/api/v1/threat-correlation/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-correlation/rules?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-correlation/alerts?org_id=${ORG_ID}&limit=15`),
-      apiFetch(`/api/v1/threat-correlation/events?org_id=${ORG_ID}&hours_back=1`),
-    ]).then(([statsRes, rulesRes, alertsRes, eventsRes]) => {
-      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
-      const rules  = rulesRes.status  === "fulfilled" ? rulesRes.value  : null;
-      const alerts = alertsRes.status === "fulfilled" ? alertsRes.value : null;
-      const events = eventsRes.status === "fulfilled" ? eventsRes.value : null;
-      if (stats || rules || alerts || events) {
-        setLiveData({ stats, rules, alerts, events });
+      apiFetch(`/api/v1/threat-correlation/incidents?org_id=${ORG_ID}&limit=15`),
+      apiFetch(`/api/v1/threat-correlation/signals?org_id=${ORG_ID}&limit=15`),
+    ]).then(([statsRes, rulesRes, incidentsRes, signalsRes]) => {
+      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const rules     = rulesRes.status     === "fulfilled" ? rulesRes.value     : null;
+      const incidents = incidentsRes.status === "fulfilled" ? incidentsRes.value : null;
+      const signals   = signalsRes.status   === "fulfilled" ? signalsRes.value   : null;
+      if (stats || rules || incidents || signals) {
+        setLiveData({ stats, rules, incidents, signals });
       }
-    }).finally(() => setDataLoading(false));
+    });
+
+  useEffect(() => {
+    setDataLoading(true);
+    fetchAll().finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setDataLoading(true);
-    Promise.allSettled([
-      apiFetch(`/api/v1/threat-correlation/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-correlation/rules?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-correlation/alerts?org_id=${ORG_ID}&limit=15`),
-      apiFetch(`/api/v1/threat-correlation/events?org_id=${ORG_ID}&hours_back=1`),
-    ]).then(([statsRes, rulesRes, alertsRes, eventsRes]) => {
-      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
-      const rules  = rulesRes.status  === "fulfilled" ? rulesRes.value  : null;
-      const alerts = alertsRes.status === "fulfilled" ? alertsRes.value : null;
-      const events = eventsRes.status === "fulfilled" ? eventsRes.value : null;
-      if (stats || rules || alerts || events) {
-        setLiveData({ stats, rules, alerts, events });
-      }
-    }).finally(() => { setRefreshing(false); setDataLoading(false); });
+    fetchAll().finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
   return (
@@ -259,7 +249,7 @@ export default function ThreatCorrelation() {
               </CardTitle>
               <CardDescription className="text-xs">Multi-event alerts grouped by triggered rule</CardDescription>
             </div>
-            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.alerts?.alerts ?? ALERTS).length} alerts</Badge>
+            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.incidents?.incidents ?? ALERTS).length} alerts</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -277,7 +267,7 @@ export default function ThreatCorrelation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.alerts?.alerts ?? ALERTS).map((alert: any) => (
+                {(liveData?.incidents?.incidents ?? ALERTS).map((alert: any) => (
                   <TableRow key={alert.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{alert.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{alert.rule ?? alert.rule_name ?? alert.correlation_rule_id}</TableCell>
@@ -311,7 +301,7 @@ export default function ThreatCorrelation() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/40">
-              {(liveData?.events?.events ?? EVENT_STREAM).map((ev: any, i: number) => (
+              {(liveData?.signals?.signals ?? EVENT_STREAM).map((ev: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 transition-colors">
                   <SeverityDot sev={ev.severity ?? "low"} />
                   <Badge className="text-[9px] border border-border bg-muted/30 text-muted-foreground px-1 py-0 shrink-0 max-w-[100px] truncate">
