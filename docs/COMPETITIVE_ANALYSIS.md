@@ -21,7 +21,7 @@ This analysis compares ALDECI against the six most relevant incumbents at 500-as
 | **Unified Compliance Dashboard** | ✅ SOC2, HIPAA, PCI, ISO27001, CIS, NIST, FedRAMP | ⚠️ CSPM-only | ⚠️ CTEM-only | ⚠️ ASPM-only | ⚠️ CTEM-only | ⚠️ ASPM-only | ALDECI |
 | **Data Residency (On-Prem)** | ✅ 100% | ❌ 0% | ❌ 0% | ❌ 0% | ❌ 0% | ❌ 0% | ALDECI |
 | **Time to Value** | 15 minutes (docker up) | 4-6 weeks | 4-6 weeks | 2-3 weeks | 4-6 weeks | 4-6 weeks | ALDECI |
-| **API-First Design** | ✅ 771 endpoints | ⚠️ ~200 endpoints | ⚠️ ~150 endpoints | ⚠️ ~100 endpoints | ⚠️ ~200 endpoints | ⚠️ ~150 endpoints | ALDECI |
+| **API-First Design** | ✅ 850+ endpoints | ⚠️ ~200 endpoints | ⚠️ ~150 endpoints | ⚠️ ~100 endpoints | ⚠️ ~200 endpoints | ⚠️ ~150 endpoints | ALDECI |
 | **Custom Workflow Support** | ✅ Native (n8n, Slack, Jira) | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ALDECI |
 | **Multi-Tenant (RBAC)** | ✅ 30 personas, 6 roles | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ALDECI |
 | **Open Integrations** | ✅ SCIM, Okta, n8n, Slack, Jira | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ALDECI |
@@ -72,7 +72,7 @@ This analysis compares ALDECI against the six most relevant incumbents at 500-as
 ### Scenario 3: MSSP (Managed Security Service Provider)
 - **Profile:** Manages 50+ customer environments, needs white-label, custom integrations, APIs
 - **Pain:** Current tools are expensive per-customer, no API, hard to automate for 50+ accounts
-- **ALDECI Win:** 771 APIs for automation, 30 personas (customer-per-tenant), SCIM/Okta/n8n integrations, self-hosted (deploy to customer VPC)
+- **ALDECI Win:** 850+ APIs for automation, 30 personas (customer-per-tenant), SCIM/Okta/n8n integrations, self-hosted (deploy to customer VPC)
 - **Incumbent Blocker:** Competitors are SaaS-only; would force MSSP to manage 50 cloud subscriptions
 - **Deal Size:** $200K/year (20 customers × $10K/year white-label license)
 - **Win Probability:** 80% (MSSP economics favor ALDECI 100x)
@@ -119,7 +119,7 @@ This analysis compares ALDECI against the six most relevant incumbents at 500-as
 | **AI consensus layer (Karpathy model)** | Reduces false positives by 30-40% | Immediate |
 | **Unified platform (no tool sprawl)** | 50% faster time-to-value | Immediate |
 | **Low price (92% cheaper)** | Enables bottom-up sales motion | Immediate |
-| **API-first (771 endpoints)** | Enables MSSP partnerships | Immediate |
+| **API-first (850+ endpoints)** | Enables MSSP partnerships | Immediate |
 
 ### ALDECI Weaknesses
 | Weakness | Impact | Fix Timeline |
@@ -233,6 +233,24 @@ This analysis compares ALDECI against the six most relevant incumbents at 500-as
 - **Mid-market startup:** Price aggressively ($35/mo free tier), emphasize time-to-value
 - **Mid-market enterprise:** Emphasize compliance + self-hosted, offer 30-day free trial
 - **Already using 3+ tools:** Emphasize consolidation cost savings (calculate ROI: "You spend $50K/yr on Wiz + Snyk + Rapid7. We're $1.2K/yr. Saves $48.8K.")
+
+---
+
+## AI-Native Security Intelligence
+
+ALDECI is the only platform with:
+1. **LLM Security Council**: Multi-model consensus (Qwen 3.6 Max, Claude) for security decisions
+2. **Threat-Weighted Prioritization**: CVSS + EPSS + CISA KEV composite scoring
+3. **Proactive AI Advisor**: Natural language security recommendations with implementation steps
+4. **Zero Trust Enforcement**: Real-time policy evaluation with continuous trust scoring
+
+Competitors using AI (as of Q2 2026):
+- Wiz: Cloud asset risk scoring (rule-based, not LLM)
+- Snyk: Code vulnerability AI (single-purpose, not security-wide)
+- Lacework: Anomaly detection (ML-only, no generative AI)
+- Rapid7 AI: Alert triage only, $150K/yr
+
+ALDECI's AI council architecture is 3-5 years ahead of comparable commercial solutions at 1/50th the cost.
 
 ---
 

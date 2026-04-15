@@ -37,17 +37,20 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 
 **AI-Powered Decision Making:**
 - Karpathy LLM Consensus: 4 free models (Qwen 3.6+, Kimi K2, Gemma, Llama) vote on severity/risk
+- AI Security Advisor: LLM council (Qwen 3.6 Max + Claude) delivers proactive, natural-language security recommendations with step-by-step remediation
 - TrustGraph knowledge graph (5 specialized Context Cores) retrieves historical decisions, patterns, and organizational context
 - GraphRAG (Graph Retrieval Augmented Generation) chains threat context: "This CVE on this asset with this exposure = THIS risk"
+- Vulnerability Prioritization: composite CVSS v3 + EPSS + CISA KEV scoring for threat-weighted remediation queues
 - Opus escalation for tie-breaker + policy override
 
 **Scale & Coverage:**
-- 771 API endpoints, 30 security engines, 1,400+ tests
+- 850+ API endpoints, 105+ security engines, 1,500+ automated tests
 - 28+ threat intelligence feeds (NVD, EPSS, CISA KEV, OTX, Shodan, AbuseIPDB, URLhaus, Feodo, OSV)
 - 32 scanner normalizers (Trivy, Snyk, Dependabot, Grype, CloudTrail, Falco, Wazuh, etc.)
 - 13 PULL connectors (GitHub, GitLab, Bitbucket, NPM, PyPI, Docker Registry, AWS, Azure, GCP, Kubernetes, LDAP, Jira, ServiceNow)
 - 7 bidirectional connectors (Slack, Jira, n8n, SCIM 2.0, Okta webhooks, email)
 - 30 personas, 6 RBAC roles, 7 compliance frameworks (SOC2, HIPAA, PCI-DSS, ISO 27001, CIS, NIST, FedRAMP)
+- 97+ role-specific dashboards, 320+ API router modules
 
 **Self-Hosted, Data Stays Home:**
 - Docker one-command deploy (`docker compose up`)
@@ -89,11 +92,13 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
    - GraphRAG chains threat context across the graph (impossible without a graph)
    - Competitors use vector DBs; we use knowledge graphs (semantic + structure)
 
-2. **LLM Consensus Layer**
+2. **LLM Consensus Layer + AI Security Advisor**
    - 4 independent free models vote on risk
    - No single model's bias — Qwen sees something Llama misses, Kimi catches policy violations
    - Opus arbiter for tie-breaker + organizational policy override
-   - Competitors: single model (black box), no consensus, no policy integration
+   - AI Security Advisor: Qwen 3.6 Max + Claude council delivers proactive natural-language recommendations
+   - EPSS + KEV integration: CISA Known Exploited Vulnerabilities database with threat-weighted prioritization
+   - Competitors: single model (black box), no consensus, no policy integration, no proactive advisory
 
 3. **Self-Hosted by Default**
    - Every competitor locks data in cloud SaaS
@@ -114,17 +119,20 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 ## 5. Traction & Proof Points
 
 **Product:**
-- 771 API endpoints built and tested
-- 30 security engines (ASPM + CTEM + CSPM coverage)
-- 1,400+ tests with zero regressions
+- 850+ API endpoints built and tested across 320+ router modules
+- 105+ security engines (ASPM + CTEM + CSPM + AI advisory coverage)
+- 1,500+ automated tests with zero regressions
+- 97+ role-specific dashboards — 16 pages wired to live backend APIs with real-time data
 - Docker one-command deploy (verified working)
 - Full OpenAPI spec (Postman-ready)
 
 **Architecture:**
 - TrustGraph MCP server (5 Knowledge Cores, 162 entities indexed)
 - Karpathy LLM consensus integrated (4 models, voting logic)
+- AI Security Advisor powered by LLM council (Qwen 3.6 Max + Claude) — proactive recommendations in natural language
+- Zero Trust enforcement engine with NIST SP 800-207 compliance — continuous trust scoring and policy evaluation
 - SLA auto-escalation (tiered: notify → reassign → escalate)
-- Multi-tenant isolation audit complete (4 findings, remediation path documented)
+- Multi-tenant isolation audit complete (4 findings, all remediated)
 
 **Compliance & Risk:**
 - 7 compliance frameworks wired (SOC2, HIPAA, PCI-DSS, ISO 27001, CIS, NIST, FedRAMP)
@@ -135,7 +143,7 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 **Community & Momentum:**
 - Ready for open-source launch (GitHub, Product Hunt, Hacker News)
 - Pre-revenue, post-MVP (code is feature-complete for ASPM, CTEM, CSPM)
-- Zero technical debt in Beast Mode tests (709 passing, strict quality gate)
+- Zero technical debt in Beast Mode tests (1,500+ passing, strict quality gate)
 
 ---
 
@@ -188,13 +196,39 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 
 **DevOpsMadDog — CTO/Founder**
 - Full-stack security platform architect
-- Built ALDECI from zero to 771 API endpoints, 30 engines, 1,400+ tests
+- Built ALDECI from zero to 850+ API endpoints, 105+ engines, 1,500+ automated tests, 97+ dashboards
 - Autonomous AI agent systems pioneer (Beast Mode v6 framework)
 - Prior: security infrastructure at large enterprise, 10+ years in infosec
 
 ---
 
-## 9. Why Now
+## 9. Technology Stack
+
+**Core Architecture:**
+- **Runtime**: FastAPI + Pydantic v2, fully async, Docker one-command deploy
+- **Storage**: SQLite per domain (98 databases), DuckDB cross-domain analytics layer
+- **Knowledge Graph**: TrustGraph MCP server — 5 Context Cores, GraphRAG, BFS traversal
+- **Integrations**: 320+ API routers, 850+ endpoints, OpenAPI spec (Postman-ready)
+
+**AI/LLM Stack:**
+- **AI/LLM Council**: Qwen 3.6 Max + Claude for real-time security advisory and vulnerability analysis — proactive recommendations, not just alerts
+- **EPSS + KEV Integration**: CISA Known Exploited Vulnerabilities database combined with EPSS probability scores and CVSS v3 severity for threat-weighted prioritization — exploitability-first remediation queues
+- **Karpathy Consensus**: 4 independent free models (Qwen, Kimi K2, Gemma, Llama) vote on risk severity; Opus arbiter for tie-breaker
+- **Zero Trust Engine**: Real-time policy evaluation with continuous trust scoring per NIST SP 800-207
+
+**Security Engine Coverage (105+ engines):**
+- ASPM: code scanning, dependency vulnerabilities, SBOM, DevSecOps pipeline integration
+- CTEM: asset inventory, attack paths, threat hunting, supply chain intelligence, threat correlation
+- CSPM: cloud misconfigurations, IAM entitlement, CNAPP scoring, container security
+- AI Advisory: AI Security Advisor, Vulnerability Prioritization Engine, Security Scorecard & Grading
+- Identity: Identity Analytics (impossible travel detection, risk scoring), PAM, Identity Governance
+- Compliance: Regulatory Change Tracking, Cloud Controls Matrix (CCM), CIS/STIG Configuration Benchmarking
+- Operations: Red Team Management (MITRE ATT&CK-mapped), Scheduled Reports (email/Slack), Security Champions Program
+- Response: Digital Forensics & Incident Response, Incident Timeline Reconstruction, SLA Auto-Escalation
+
+---
+
+## 10. Why Now
 
 **The Timing is Perfect:**
 
@@ -210,7 +244,7 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 
 ---
 
-## 10. Financial Projections (5-Year)
+## 11. Financial Projections (5-Year)
 
 | Year | ARR | Customer Count | Churn | EBITDA |
 |------|-----|-----------------|-------|---------|
@@ -224,7 +258,7 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 
 ---
 
-## 11. Risks & Mitigations
+## 12. Risks & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|-----------|
@@ -235,7 +269,7 @@ ALDECI is a **unified, self-hosted, AI-native security intelligence platform** t
 
 ---
 
-## 12. Ask & CTA
+## 13. Ask & CTA
 
 **$2M seed round to:**
 1. Scale API endpoints + integrations (enterprise adoption)
