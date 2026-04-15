@@ -99,10 +99,13 @@ KEV_RESPONSE_FIXTURE: Dict[str, Any] = {
     ],
 }
 
+# querybatch response: {"results": [{"vulns": [...]}, {"vulns": []}, ...]}
+# Two packages return vulns; the rest return empty results.
 OSV_RESPONSE_FIXTURE: Dict[str, Any] = {
-    "vulns": [
-        {"id": "GHSA-xxxx-yyyy-zzzz", "summary": "Prototype pollution"},
-        {"id": "GHSA-aaaa-bbbb-cccc", "summary": "RCE via deserialization"},
+    "results": [
+        {"vulns": [{"id": "GHSA-xxxx-yyyy-zzzz", "summary": "Prototype pollution"}]},
+        {"vulns": [{"id": "GHSA-aaaa-bbbb-cccc", "summary": "RCE via deserialization"}]},
+        {"vulns": []},
     ]
 }
 
@@ -464,12 +467,18 @@ def test_aggregate_daily_mocked(aggregator: ThreatIntelAggregator) -> None:
     kev_resp.json.return_value = KEV_RESPONSE_FIXTURE
     kev_resp.raise_for_status = MagicMock()
 
+    # Feodo C2 blocklist (GET) — returns an empty list (no C2 IPs in test)
+    feodo_resp = MagicMock()
+    feodo_resp.json.return_value = []
+    feodo_resp.raise_for_status = MagicMock()
+
     osv_resp = MagicMock()
     osv_resp.json.return_value = OSV_RESPONSE_FIXTURE
     osv_resp.raise_for_status = MagicMock()
 
-    # GET: NVD, EPSS, KEV (in that order)
-    mock_get.side_effect = [nvd_resp, epss_resp, kev_resp]
+    # GET: NVD, EPSS, KEV, Feodo (in that order)
+    mock_get.side_effect = [nvd_resp, epss_resp, kev_resp, feodo_resp]
+    # POST: OSV querybatch (single batch covering both ecosystems)
     mock_post.return_value = osv_resp
 
     with patch.object(aggregator._session, "get", mock_get), \
@@ -480,4 +489,5 @@ def test_aggregate_daily_mocked(aggregator: ThreatIntelAggregator) -> None:
     assert report.total_cves == 1
     assert report.kev_count == 1
     assert report.critical_count == 1
-    assert report.osv_count == 4  # 2 ecosystems × 2 vulns each
+    # 2 unique vulns returned by the querybatch mock across both ecosystems
+    assert report.osv_count == 2

@@ -43,13 +43,30 @@ OTX_SAMPLE_PATH = DATA_DIR / "otx_sample.json"
 NVD_CVE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 EPSS_API_URL = "https://api.first.org/data/v1/epss"
 CISA_KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
-OSV_QUERY_URL = "https://api.osv.dev/v1/query"
+OSV_QUERYBATCH_URL = "https://api.osv.dev/v1/querybatch"
+FEODO_C2_URL = "https://feodotracker.abuse.ch/downloads/ipblocklist.json"
+ABUSEIPDB_CHECK_URL = "https://api.abuseipdb.com/api/v2/check"
 
 # Cache TTL constants (seconds)
 _CVE_CACHE_TTL = 3600        # 1 hour
 _KEV_CACHE_TTL = 21600       # 6 hours
 _EPSS_CACHE_TTL = 86400      # 24 hours
 _OSV_CACHE_TTL = 43200       # 12 hours
+_FEODO_CACHE_TTL = 3600      # 1 hour
+
+# Well-known packages to query OSV for (covers common vulnerable ecosystems)
+_OSV_KNOWN_PACKAGES: Dict[str, List[str]] = {
+    "PyPI": [
+        "requests", "urllib3", "setuptools", "pip", "cryptography",
+        "paramiko", "pillow", "django", "flask", "sqlalchemy",
+        "pyyaml", "certifi", "jinja2", "werkzeug", "twisted",
+    ],
+    "npm": [
+        "lodash", "axios", "express", "minimist", "node-fetch",
+        "semver", "tar", "ws", "json5", "vm2",
+        "sharp", "got", "superagent", "request", "path-to-regexp",
+    ],
+}
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -155,6 +172,17 @@ def _init_db(db_path: Path = DB_PATH) -> None:
                 key          TEXT PRIMARY KEY,
                 value        TEXT NOT NULL,
                 updated_at   REAL NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS feodo_c2_cache (
+                ip_address   TEXT PRIMARY KEY,
+                port         INTEGER,
+                status       TEXT,
+                malware      TEXT,
+                country      TEXT,
+                first_seen   TEXT,
+                last_online  TEXT,
+                fetched_at   REAL NOT NULL
             );
             """
         )
@@ -466,28 +494,52 @@ class ThreatIntelAggregator:
     # ------------------------------------------------------------------
 
     def fetch_osv_vulns(self, ecosystems: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """Query OSV for recent Python/npm vulnerabilities.
+        """Query OSV for vulnerabilities affecting known packages via querybatch.
 
-        Returns raw OSV vuln dicts (up to 100 per ecosystem).
+        Uses POST /v1/querybatch with explicit package names so OSV returns
+        real results (the old approach sent only an ecosystem with no package
+        name, which always returns 0 results).
+
+        Returns deduplicated raw OSV vuln dicts.
         """
         if ecosystems is None:
-            ecosystems = ["PyPI", "npm"]
+            ecosystems = list(_OSV_KNOWN_PACKAGES.keys())
 
-        results: List[Dict[str, Any]] = []
+        # Build batch queries: one entry per (ecosystem, package_name) pair
+        queries = []
         for ecosystem in ecosystems:
-            payload = {"package": {"ecosystem": ecosystem}, "page_size": 100}
+            pkg_names = _OSV_KNOWN_PACKAGES.get(ecosystem, [])
+            for pkg_name in pkg_names:
+                queries.append({"package": {"ecosystem": ecosystem, "name": pkg_name}})
+
+        if not queries:
+            return []
+
+        seen_ids: set = set()
+        results: List[Dict[str, Any]] = []
+
+        # OSV querybatch accepts up to 1000 queries per request; send in chunks
+        chunk_size = 100
+        for i in range(0, len(queries), chunk_size):
+            chunk = queries[i : i + chunk_size]
+            payload = {"queries": chunk}
             try:
                 resp = self._session.post(
-                    OSV_QUERY_URL, json=payload, timeout=self.request_timeout
+                    OSV_QUERYBATCH_URL, json=payload, timeout=self.request_timeout
                 )
                 resp.raise_for_status()
                 data = resp.json()
-                vulns = data.get("vulns", [])
-                results.extend(vulns)
-                logger.info("OSV: %d vulns for %s", len(vulns), ecosystem)
+                # Response: {"results": [{"vulns": [...]}, ...]}
+                for result_entry in data.get("results", []):
+                    for vuln in result_entry.get("vulns", []):
+                        vuln_id = vuln.get("id", "")
+                        if vuln_id and vuln_id not in seen_ids:
+                            seen_ids.add(vuln_id)
+                            results.append(vuln)
             except (RequestException, ValueError) as exc:
-                logger.warning("OSV fetch failed for %s: %s", ecosystem, exc)
+                logger.warning("OSV querybatch failed (chunk %d): %s", i // chunk_size, exc)
 
+        logger.info("OSV: %d unique vulns via querybatch (%d queries)", len(results), len(queries))
         return results
 
     # ------------------------------------------------------------------
@@ -511,6 +563,112 @@ class ThreatIntelAggregator:
         except (json.JSONDecodeError, OSError) as exc:
             logger.warning("OTX file load failed: %s", exc)
             return []
+
+    # ------------------------------------------------------------------
+    # Feodo C2 blocklist (abuse.ch)
+    # ------------------------------------------------------------------
+
+    def refresh_feodo_c2_blocklist(self) -> List[Dict[str, Any]]:
+        """Fetch the Feodo Tracker C2 IP blocklist from abuse.ch.
+
+        Results are cached in SQLite for _FEODO_CACHE_TTL seconds (1 hour).
+        Returns a list of C2 entry dicts with fields: ip_address, port, status,
+        malware, country, first_seen, last_online.
+        """
+        now = time.time()
+        conn = _get_conn(self.db_path)
+
+        # Return cached entries if still fresh
+        freshness_cutoff = now - _FEODO_CACHE_TTL
+        cached_rows = conn.execute(
+            "SELECT * FROM feodo_c2_cache WHERE fetched_at >= ?", (freshness_cutoff,)
+        ).fetchall()
+        if cached_rows:
+            conn.close()
+            entries = [dict(row) for row in cached_rows]
+            logger.info("Feodo C2: %d entries from cache", len(entries))
+            return entries
+        conn.close()
+
+        try:
+            resp = self._session.get(FEODO_C2_URL, timeout=self.request_timeout)
+            resp.raise_for_status()
+            data = resp.json()
+        except (RequestException, ValueError) as exc:
+            logger.warning("Feodo C2 fetch failed: %s", exc)
+            return []
+
+        # Response is a list of C2 objects
+        if not isinstance(data, list):
+            logger.warning("Feodo C2: unexpected response format")
+            return []
+
+        conn = _get_conn(self.db_path)
+        with conn:
+            conn.execute("DELETE FROM feodo_c2_cache")
+            for entry in data:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO feodo_c2_cache
+                        (ip_address, port, status, malware, country, first_seen, last_online, fetched_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        entry.get("ip_address", ""),
+                        entry.get("port"),
+                        entry.get("status", ""),
+                        entry.get("malware", ""),
+                        entry.get("country", ""),
+                        entry.get("first_seen", ""),
+                        entry.get("last_online", ""),
+                        now,
+                    ),
+                )
+        conn.close()
+
+        logger.info("Feodo C2: cached %d C2 IPs from abuse.ch", len(data))
+        return data
+
+    # ------------------------------------------------------------------
+    # AbuseIPDB IP reputation lookup (env-var gated)
+    # ------------------------------------------------------------------
+
+    def check_ip_abuseipdb(self, ip: str) -> Dict[str, Any]:
+        """Check an IP address against AbuseIPDB.
+
+        Requires the ABUSEIPDB_API_KEY environment variable to be set.
+        Returns an empty dict if the key is absent or a network error occurs.
+
+        Return fields: abuseConfidenceScore, countryCode, isp,
+                       totalReports, lastReportedAt.
+        """
+        import os
+
+        api_key = os.environ.get("ABUSEIPDB_API_KEY", "")
+        if not api_key:
+            logger.debug("AbuseIPDB: ABUSEIPDB_API_KEY not set — skipping lookup")
+            return {}
+
+        try:
+            resp = self._session.get(
+                ABUSEIPDB_CHECK_URL,
+                params={"ipAddress": ip, "maxAgeInDays": 90},
+                headers={"Key": api_key, "Accept": "application/json"},
+                timeout=self.request_timeout,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            raw = payload.get("data", {})
+            return {
+                "abuseConfidenceScore": raw.get("abuseConfidenceScore", 0),
+                "countryCode": raw.get("countryCode", ""),
+                "isp": raw.get("isp", ""),
+                "totalReports": raw.get("totalReports", 0),
+                "lastReportedAt": raw.get("lastReportedAt"),
+            }
+        except (RequestException, ValueError) as exc:
+            logger.warning("AbuseIPDB lookup failed for %s: %s", ip, exc)
+            return {}
 
     # ------------------------------------------------------------------
     # Daily aggregation
@@ -546,6 +704,9 @@ class ThreatIntelAggregator:
         # 5. OTX pulses
         otx_pulses = self.load_otx_pulses()
         otx_count = len(otx_pulses)
+
+        # 6. Feodo C2 blocklist
+        self.refresh_feodo_c2_blocklist()
 
         # Stats
         kev_count = sum(1 for c in cves if c.in_kev)
