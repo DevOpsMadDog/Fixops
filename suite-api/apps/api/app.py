@@ -5840,6 +5840,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Security Roadmap router not loaded: {e}")
 
+    # Data Governance — assets, policies, violations, data flows
+    try:
+        from apps.api.data_governance_router import router as data_governance_router
+        app.include_router(data_governance_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Data Governance router at /api/v1/data-governance")
+    except Exception as e:
+        _logger.warning(f"Data Governance router not loaded: {e}")
+
     return app
 
 
