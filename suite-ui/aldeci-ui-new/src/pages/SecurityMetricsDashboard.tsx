@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/kpi/metrics, /api/v1/kpi/trends, /api/v1/kpi/thresholds
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Clock,
@@ -33,6 +33,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ────────────────────────────────────────────────
+
+const apiKey = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const apiFetch = (path: string) =>
+  fetch(`/api/v1${path}`, { headers: { "X-API-Key": apiKey } }).then((r) => {
+    if (!r.ok) throw new Error(`API error: ${r.status}`);
+    return r.json();
+  });
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -97,11 +106,44 @@ function TrendArrow({ trend, meeting }: { trend: string; meeting: boolean }) {
 
 export default function SecurityMetricsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch("/security-metrics/metrics?org_id=default"),
+      apiFetch("/security-metrics/stats?org_id=default"),
+    ]).then(([metricsResult, statsResult]) => {
+      const metrics = metricsResult.status === "fulfilled" ? metricsResult.value : null;
+      const stats   = statsResult.status   === "fulfilled" ? statsResult.value   : null;
+      if (metrics || stats) setLiveData({ metrics, stats });
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  const liveMttd        = liveData?.stats?.mttd          ?? "4.2h";
+  const liveMttr        = liveData?.stats?.mttr          ?? "6.8h";
+  const liveScore       = liveData?.stats?.security_score ?? "78/100";
+  const liveSla         = liveData?.stats?.sla_compliance ?? "94.3%";
+  const liveTopMetrics: typeof TOP_METRICS =
+    Array.isArray(liveData?.metrics)
+      ? liveData.metrics.map((m: any) => ({
+          name:    m.name    ?? m.metric_name ?? m.title,
+          current: String(m.current ?? m.value ?? m.current_value ?? "—"),
+          target:  String(m.target  ?? m.target_value ?? "—"),
+          variance:String(m.variance ?? "—"),
+          meeting: Boolean(m.meeting ?? m.on_target ?? false),
+          trend:   m.trend  ?? "up",
+        }))
+      : TOP_METRICS;
 
   return (
     <motion.div
@@ -115,18 +157,18 @@ export default function SecurityMetricsDashboard() {
         title="Security Metrics Dashboard"
         description="Trend analysis and KPI tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="MTTD" value="4.2h" icon={Clock} trend="down" className="border-blue-500/20" />
-        <KpiCard title="MTTR" value="6.8h" icon={Activity} trend="down" className="border-green-500/20" />
-        <KpiCard title="Security Score" value="78/100" icon={Shield} trend="up" className="border-purple-500/20" />
-        <KpiCard title="SLA Compliance" value="94.3%" icon={CheckCircle2} trend="up" className="border-amber-500/20" />
+        <KpiCard title="MTTD" value={liveMttd} icon={Clock} trend="down" className="border-blue-500/20" />
+        <KpiCard title="MTTR" value={liveMttr} icon={Activity} trend="down" className="border-green-500/20" />
+        <KpiCard title="Security Score" value={liveScore} icon={Shield} trend="up" className="border-purple-500/20" />
+        <KpiCard title="SLA Compliance" value={liveSla} icon={CheckCircle2} trend="up" className="border-amber-500/20" />
       </div>
 
       {/* MTTD/MTTR 12-month trend chart */}
@@ -192,7 +234,7 @@ export default function SecurityMetricsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TOP_METRICS.map((row) => (
+                {liveTopMetrics.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-bold">{row.current}</TableCell>
