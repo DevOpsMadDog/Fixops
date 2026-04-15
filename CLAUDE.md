@@ -724,6 +724,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 29 — Autonomous parallel build)
+
+**Wave 29 New Backend Engines:**
+- ✅ saas_security_posture_engine.py — SaasSecurityPosture (9 app categories, assess_app score→risk_level, compliance_rate, high_risk_apps) — 40 tests
+- ✅ api_inventory_engine.py — APIInventory (6 api types, 6 auth types, endpoint_count increment, unauthenticated/undocumented tracking) — 39 tests
+- ✅ threat_vector_analysis_engine.py — ThreatVectorAnalysis (8 vector types, risk_score avg(freq+impact), indicator_count+mitigation_count) — 36 tests
+- ✅ awareness_campaign_engine.py — AwarenessCampaign (6 campaign types, pass_rate atomic recompute, best/worst campaign ranking) — 37 tests
+- ✅ risk_treatment_engine.py — RiskTreatment (4 treatment types, 5 statuses, overdue detection, completed_on_time, progress notes) — 43 tests
+- ✅ data_discovery_engine.py — DataDiscovery (7 datastore types, sensitive_record_count, risk escalation never downgrades, scan jobs) — 46 tests
+
+**Wave 29 Routers wired:** /api/v1/sspm, /api/v1/api-inventory, /api/v1/threat-vectors, /api/v1/awareness-campaigns, /api/v1/risk-treatment, /api/v1/data-discovery
+
+**Wave 29 Frontend Pages (Wave 28 domains):**
+- ✅ AccessRequestManagementDashboard (/access-requests), PrivilegedSessionRecordingDashboard (/session-recording)
+- ✅ CloudResourceInventoryDashboard (/cloud-inventory), SecurityTelemetryDashboard (/security-telemetry)
+- ✅ MicrosegmentationPolicyDashboard (/microsegmentation), ThirdPartyVendorDashboard (/third-party-vendor)
+
+**Engine total: 272+ engines | Router total: 502+ routers | Test total: 5,856+ tests | Frontend: 224+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
