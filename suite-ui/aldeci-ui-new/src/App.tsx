@@ -196,6 +196,12 @@ const DevSecOpsDashboard = lazy(() => import("@/pages/DevSecOpsDashboard"));
 const VulnTrendDashboard = lazy(() => import("@/pages/VulnTrendDashboard"));
 const ConfigBenchmarkDashboard = lazy(() => import("@/pages/ConfigBenchmarkDashboard"));
 
+// New Beast Mode pages
+const IncidentTimelineDashboard = lazy(() => import("@/pages/IncidentTimelineDashboard"));
+const SecurityMetricsDashboard2 = lazy(() => import("@/pages/SecurityMetricsDashboard2"));
+const ZeroTrustPolicyDashboard = lazy(() => import("@/pages/ZeroTrustPolicyDashboard"));
+const ThreatModelDashboard = lazy(() => import("@/pages/ThreatModelDashboard"));
+
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
 
@@ -410,6 +416,10 @@ export default function App() {
             <Route path="/devsecops" element={<DevSecOpsDashboard />} />
             <Route path="/vuln-trends" element={<VulnTrendDashboard />} />
             <Route path="/config-benchmark" element={<ConfigBenchmarkDashboard />} />
+            <Route path="/incident-timeline-dashboard" element={<IncidentTimelineDashboard />} />
+            <Route path="/security-metrics-live" element={<SecurityMetricsDashboard2 />} />
+            <Route path="/zero-trust-policies" element={<ZeroTrustPolicyDashboard />} />
+            <Route path="/threat-models" element={<ThreatModelDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

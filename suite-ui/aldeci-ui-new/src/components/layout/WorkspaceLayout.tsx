@@ -153,6 +153,7 @@ const navGroups: NavGroup[] = [
       { label: "Executive Briefing", to: "/executive-briefing", icon: Crown, badge: "NEW" },
       { label: "Security Roadmap", to: "/security-roadmap", icon: Map, badge: "NEW" },
       { label: "Security Health", to: "/security-health", icon: Activity, badge: "NEW" },
+      { label: "Security Metrics Live", to: "/security-metrics-live", icon: BarChart3, badge: "NEW" },
       { label: "Cross-Domain Analytics", to: "/cross-domain-analytics", icon: Database, badge: "NEW" },
     ],
   },
@@ -275,6 +276,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
       { label: "Incident Timeline", to: "/incident-timeline", icon: AlertTriangle, badge: "NEW" },
+      { label: "IR Timeline Dashboard", to: "/incident-timeline-dashboard", icon: Activity, badge: "NEW" },
       { label: "Network Analysis", to: "/network-analysis", icon: Network, badge: "NEW" },
       { label: "Firewall Analyzer", to: "/firewall", icon: Shield, badge: "NEW" },
       { label: "Email Security", to: "/email-security", icon: Mail, badge: "NEW" },
@@ -317,6 +319,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Risk Quantification", to: "/risk-quantification", icon: Scale, badge: "NEW" },
       { label: "Attack Simulation", to: "/attack-simulation", icon: Swords, badge: "NEW" },
+      { label: "Threat Models", to: "/threat-models", icon: Layers, badge: "NEW" },
     ],
   },
   {
@@ -333,6 +336,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Insider Threats", to: "/insider-threats", icon: UserX, badge: "NEW" },
       { label: "Zero Trust", to: "/zero-trust", icon: Lock },
+      { label: "Zero Trust Policies", to: "/zero-trust-policies", icon: Shield, badge: "NEW" },
       { label: "Cloud IAM", to: "/cloud-iam", icon: KeyRound, badge: "NEW" },
       { label: "Identity Governance", to: "/identity-governance", icon: UserCheck, badge: "NEW" },
       { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap, badge: "NEW" },
