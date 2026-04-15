@@ -7497,6 +7497,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 34 pre-wiring (engines pending creation)
+    try:
+        from apps.api.security_exception_workflow_router import router as security_exception_workflow_router
+        app.include_router(security_exception_workflow_router)
+        _logger.info("Mounted Security Exception Workflow router at /api/v1/exception-workflow")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_actor_tracking_router import router as threat_actor_tracking_router
+        app.include_router(threat_actor_tracking_router)
+        _logger.info("Mounted Threat Actor Tracking router at /api/v1/actor-tracking")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vulnerability_scoring_router import router as vulnerability_scoring_router
+        app.include_router(vulnerability_scoring_router)
+        _logger.info("Mounted Vulnerability Scoring router at /api/v1/vuln-scoring")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_benchmark_router import router as security_benchmark_router
+        app.include_router(security_benchmark_router)
+        _logger.info("Mounted Security Benchmark router at /api/v1/security-benchmarks")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_cost_router import router as incident_cost_router
+        app.include_router(incident_cost_router)
+        _logger.info("Mounted Incident Cost router at /api/v1/incident-costs")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_culture_router import router as security_culture_router
+        app.include_router(security_culture_router)
+        _logger.info("Mounted Security Culture router at /api/v1/security-culture")
+    except ImportError:
+        pass
+
     return app
 
 
