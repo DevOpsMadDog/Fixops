@@ -202,6 +202,12 @@ const SecurityMetricsDashboard2 = lazy(() => import("@/pages/SecurityMetricsDash
 const ZeroTrustPolicyDashboard = lazy(() => import("@/pages/ZeroTrustPolicyDashboard"));
 const ThreatModelDashboard = lazy(() => import("@/pages/ThreatModelDashboard"));
 
+// Governance + Executive pages
+const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
+const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerDashboard"));
+const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
+const CCMDashboard = lazy(() => import("@/pages/CCMDashboard"));
+
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
 
@@ -420,6 +426,10 @@ export default function App() {
             <Route path="/security-metrics-live" element={<SecurityMetricsDashboard2 />} />
             <Route path="/zero-trust-policies" element={<ZeroTrustPolicyDashboard />} />
             <Route path="/threat-models" element={<ThreatModelDashboard />} />
+            <Route path="/security-exceptions" element={<SecurityExceptionDashboard />} />
+            <Route path="/regulatory-tracker" element={<RegulatoryTrackerDashboard />} />
+            <Route path="/security-scorecard" element={<SecurityScorecardDashboard />} />
+            <Route path="/ccm" element={<CCMDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

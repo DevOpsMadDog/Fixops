@@ -155,6 +155,16 @@ const navGroups: NavGroup[] = [
       { label: "Security Health", to: "/security-health", icon: Activity, badge: "NEW" },
       { label: "Security Metrics Live", to: "/security-metrics-live", icon: BarChart3, badge: "NEW" },
       { label: "Cross-Domain Analytics", to: "/cross-domain-analytics", icon: Database, badge: "NEW" },
+      { label: "Security Scorecards", to: "/security-scorecard", icon: Award, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Governance",
+    icon: ClipboardCheck,
+    items: [
+      { label: "Security Exceptions", to: "/security-exceptions", icon: ShieldAlert, badge: "NEW" },
+      { label: "Regulatory Tracker", to: "/regulatory-tracker", icon: ScrollText, badge: "NEW" },
+      { label: "Continuous Control Mon.", to: "/ccm", icon: CheckCircle, badge: "NEW" },
     ],
   },
   {
