@@ -125,6 +125,8 @@ const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
 const SupplyChainSecurity = lazy(() => import("@/pages/SupplyChainSecurity"));
 const DLPDashboard = lazy(() => import("@/pages/DLPDashboard"));
 const APIAbuseDashboard = lazy(() => import("@/pages/APIAbuseDashboard"));
+const ThreatModeling = lazy(() => import("@/pages/ThreatModeling"));
+const AttackPathAnalysis = lazy(() => import("@/pages/AttackPathAnalysis"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -271,6 +273,9 @@ export default function App() {
             <Route path="/ip-reputation" element={<IPReputation />} />
             <Route path="/secrets-rotation" element={<SecretsRotation />} />
             <Route path="/supply-chain" element={<SupplyChainSecurity />} />
+            <Route path="/zero-trust" element={<ZeroTrustDashboard />} />
+            <Route path="/threat-modeling" element={<ThreatModeling />} />
+            <Route path="/attack-paths" element={<AttackPathAnalysis />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
