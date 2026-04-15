@@ -112,6 +112,10 @@ import {
   GitBranch,
   Flag,
   Trophy,
+  CalendarClock,
+  FileBarChart,
+  Gauge,
+  Scan,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -176,6 +180,7 @@ const navGroups: NavGroup[] = [
       { label: "Finding Explorer", to: "/discover", icon: Bug },
       { label: "Code Scanning", to: "/discover/code", icon: Code },
       { label: "Secrets", to: "/discover/secrets", icon: KeyRound },
+      { label: "Secret Scanner", to: "/secret-scanner", icon: Scan, badge: "NEW" },
       { label: "IaC Scanning", to: "/discover/iac", icon: Server },
       { label: "Cloud Posture", to: "/discover/cloud", icon: Cloud, roles: ["admin", "security_analyst"] },
       { label: "Containers", to: "/discover/containers", icon: Container },
@@ -238,6 +243,7 @@ const navGroups: NavGroup[] = [
     icon: Globe,
     items: [
       { label: "Surface Overview", to: "/attack-surface", icon: Globe, badge: "CTEM" },
+      { label: "Attack Surface Dashboard", to: "/attack-surface-dashboard", icon: Scan, badge: "NEW" },
     ],
   },
   {
@@ -261,6 +267,7 @@ const navGroups: NavGroup[] = [
     icon: Brain,
     items: [
       { label: "AI Advisor", to: "/ai-advisor", icon: Brain, badge: "NEW" },
+      { label: "Scheduled Reports", to: "/scheduled-reports", icon: CalendarClock, badge: "NEW" },
       { label: "Copilot", to: "/ai", icon: Bot },
       { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow, roles: ["admin", "security_analyst"] },
       { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale, roles: ["admin", "security_analyst"] },
@@ -309,6 +316,7 @@ const navGroups: NavGroup[] = [
     icon: Radar,
     items: [
       { label: "Threat Intel Dashboard", to: "/threat-intel", icon: Radar, badge: "NEW" },
+      { label: "Threat Intel Platform", to: "/threat-intel-platform", icon: Gauge, badge: "NEW" },
       { label: "Threat Actors", to: "/threat-actors", icon: Flag, badge: "NEW" },
       { label: "CVE Search", to: "/cve-search", icon: ScanSearch },
       { label: "IP Reputation", to: "/ip-reputation", icon: Globe },
@@ -320,6 +328,7 @@ const navGroups: NavGroup[] = [
     icon: Bug,
     items: [
       { label: "Vulnerability Lifecycle", to: "/vuln-lifecycle", icon: Bug, badge: "NEW" },
+      { label: "Vulnerability Intelligence", to: "/vuln-intelligence", icon: Radar, badge: "NEW" },
       { label: "Vuln Trends", to: "/vuln-trends", icon: TrendingUp, badge: "NEW" },
       { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
       { label: "Attack Paths", to: "/attack-paths", icon: Route },
@@ -375,6 +384,7 @@ const navGroups: NavGroup[] = [
       { label: "Vendor Risk", to: "/vendor-risk", icon: Building2 },
       { label: "Security KPIs", to: "/security-kpis", icon: BarChart3 },
       { label: "Executive Report", to: "/executive-report", icon: BarChart3, badge: "NEW" },
+      { label: "Executive Reporting", to: "/executive-reporting", icon: FileBarChart, badge: "NEW" },
       { label: "Audit Log", to: "/audit-log", icon: FileText, badge: "NEW" },
       { label: "GRC Dashboard", to: "/grc", icon: ClipboardCheck, badge: "NEW" },
       { label: "Supply Chain Risk", to: "/supply-chain-risk", icon: Package, badge: "NEW" },
@@ -400,6 +410,8 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "CNAPP", to: "/cnapp", icon: Shield, badge: "NEW" },
       { label: "Cloud Security", to: "/cloud-security", icon: Cloud, badge: "NEW" },
+      { label: "Cloud Compliance", to: "/cloud-compliance", icon: Cloud, badge: "NEW" },
+      { label: "Endpoint Compliance", to: "/endpoint-compliance", icon: Monitor, badge: "NEW" },
       { label: "Network Topology", to: "/network-topology", icon: GitBranch, badge: "NEW" },
       { label: "CMDB", to: "/cmdb", icon: Database, badge: "NEW" },
       { label: "CWPP", to: "/cwpp", icon: Container, badge: "NEW" },
@@ -423,6 +435,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "AppSec (SAST/DAST)", to: "/app-security", icon: Code, badge: "NEW" },
       { label: "API Security", to: "/api-security", icon: Wifi, badge: "NEW" },
+      { label: "API Security Mgmt", to: "/api-security-mgmt", icon: Wifi, badge: "NEW" },
       { label: "API Vuln Mgmt", to: "/api-sec", icon: Wifi, badge: "NEW" },
       { label: "Phishing Simulation", to: "/phishing", icon: Mail, badge: "NEW" },
       { label: "Social Engineering", to: "/social-engineering", icon: Users, badge: "NEW" },
@@ -450,6 +463,16 @@ const navGroups: NavGroup[] = [
     icon: Award,
     items: [
       { label: "Security Champions", to: "/security-champions", icon: Trophy, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Platform",
+    icon: Settings,
+    items: [
+      { label: "System Health", to: "/settings/health", icon: Activity, badge: "NEW" },
+      { label: "Security Scorecard", to: "/security-scorecard", icon: Award, badge: "NEW" },
+      { label: "Secret Scanner", to: "/secret-scanner", icon: Scan, badge: "NEW" },
+      { label: "DLP Dashboard", to: "/dlp", icon: ShieldOff, badge: "NEW" },
     ],
   },
 ];
