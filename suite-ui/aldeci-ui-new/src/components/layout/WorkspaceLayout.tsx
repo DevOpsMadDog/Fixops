@@ -88,6 +88,14 @@ import {
   Building2,
   ShieldAlert,
   Siren,
+  Radar,
+  HardDrive,
+  UserX,
+  ListChecks,
+  RefreshCcw,
+  Link2,
+  ShieldOff,
+  ScanSearch,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -239,6 +247,67 @@ const navGroups: NavGroup[] = [
     icon: Siren,
     items: [
       { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
+    ],
+  },
+  {
+    label: "Threat Intelligence",
+    icon: Radar,
+    items: [
+      { label: "Threat Intel Dashboard", to: "/threat-intel", icon: Radar, badge: "NEW" },
+      { label: "CVE Search", to: "/cve-search", icon: ScanSearch },
+      { label: "IP Reputation", to: "/ip-reputation", icon: Globe },
+    ],
+  },
+  {
+    label: "Vulnerability Mgmt",
+    icon: Bug,
+    items: [
+      { label: "Vulnerability Lifecycle", to: "/vuln-lifecycle", icon: Bug, badge: "NEW" },
+      { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
+      { label: "Attack Paths", to: "/attack-paths", icon: Route },
+    ],
+  },
+  {
+    label: "Asset Inventory",
+    icon: HardDrive,
+    items: [
+      { label: "Asset Inventory", to: "/assets", icon: HardDrive, badge: "NEW" },
+    ],
+  },
+  {
+    label: "Identity & Access",
+    icon: UserX,
+    items: [
+      { label: "Insider Threats", to: "/insider-threats", icon: UserX, badge: "NEW" },
+      { label: "Zero Trust", to: "/zero-trust", icon: Lock },
+    ],
+  },
+  {
+    label: "Risk & Compliance",
+    icon: ClipboardCheck,
+    items: [
+      { label: "Compliance Dashboard", to: "/compliance", icon: ClipboardCheck, badge: "P07" },
+      { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, roles: ["admin", "security_analyst"] },
+      { label: "Vendor Risk", to: "/vendor-risk", icon: Building2 },
+      { label: "Security KPIs", to: "/security-kpis", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Architecture",
+    icon: Layers,
+    items: [
+      { label: "Posture Advisor", to: "/posture-advisor", icon: Target, badge: "NEW" },
+      { label: "Threat Modeling", to: "/threat-modeling", icon: Layers },
+      { label: "Supply Chain", to: "/supply-chain", icon: Link2 },
+    ],
+  },
+  {
+    label: "Data Protection",
+    icon: ShieldOff,
+    items: [
+      { label: "Data Loss Prevention", to: "/dlp", icon: ShieldOff, badge: "NEW" },
+      { label: "API Abuse Detection", to: "/api-abuse", icon: AlertTriangle },
+      { label: "Secrets Rotation", to: "/secrets-rotation", icon: RefreshCcw },
     ],
   },
 ];
