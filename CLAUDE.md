@@ -553,8 +553,11 @@ ComplianceGapDashboard (all wired in App.tsx)
 | Bidirectional connectors | 7 | suite-core/core/connectors.py |
 | Scanner normalizers | 32 | suite-core/core/scanner_parsers.py |
 | Threat intel feeds | 28+ | suite-feeds/ |
-| API endpoints | 771 | 64 router files |
-| Beast Mode tests | ~709 | tests/test_phase*.py + related |
+| Backend engines | 198+ | suite-core/core/*_engine.py |
+| API router files | 426+ | suite-api/apps/api/*_router.py |
+| Engine test files | 200+ | tests/test_*_engine.py |
+| Frontend pages | 141+ | suite-ui/aldeci-ui-new/src/pages/ |
+| Beast Mode tests | 3,000+ | tests/test_phase*.py + engine tests |
 
 ---
 
