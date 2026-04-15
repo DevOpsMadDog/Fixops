@@ -127,6 +127,8 @@ export default function SupplyChainIntelDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
+  const [checkResult, setCheckResult] = useState<any>(null);
+  const [checkLoading, setCheckLoading] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
@@ -134,19 +136,36 @@ export default function SupplyChainIntelDashboard() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/supply-chain-intel/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/supply-chain-intel/packages?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/supply-chain-intel/sbom?org_id=${ORG_ID}&limit=10`),
-    ]).then(([statsResult, packagesResult, sbomResult]) => {
-      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
-      const packages = packagesResult.status === "fulfilled" ? packagesResult.value : null;
-      const sbom     = sbomResult.status     === "fulfilled" ? sbomResult.value     : null;
-      if (stats || packages || sbom) {
-        setLiveData({ stats, packages, sbom });
+      apiFetch(`/api/v1/supply-chain-intel/packages?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain-intel/sbom/snapshots?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain-intel/malicious?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain-intel/vulns?org_id=${ORG_ID}`),
+    ]).then(([statsResult, packagesResult, sbomResult, maliciousResult, vulnsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const packages  = packagesResult.status  === "fulfilled" ? packagesResult.value  : null;
+      const sbom      = sbomResult.status      === "fulfilled" ? sbomResult.value      : null;
+      const malicious = maliciousResult.status === "fulfilled" ? maliciousResult.value : null;
+      const vulns     = vulnsResult.status     === "fulfilled" ? vulnsResult.value     : null;
+      if (stats || packages || sbom || malicious || vulns) {
+        setLiveData({ stats, packages, sbom, malicious, vulns });
       }
     }).finally(() => setDataLoading(false));
   }, []);
 
-  const handleSearch = () => setSearched(true);
+  const handleSearch = () => {
+    if (!query.trim()) return;
+    setSearched(true);
+    setCheckLoading(true);
+    // Try npm first, fall back to pypi
+    apiFetch(`/api/v1/supply-chain-intel/check?org_id=${ORG_ID}&name=${encodeURIComponent(query.trim())}&ecosystem=npm`)
+      .then((data) => setCheckResult(data))
+      .catch(() =>
+        apiFetch(`/api/v1/supply-chain-intel/check?org_id=${ORG_ID}&name=${encodeURIComponent(query.trim())}&ecosystem=pypi`)
+          .then((data) => setCheckResult(data))
+          .catch(() => setCheckResult(null))
+      )
+      .finally(() => setCheckLoading(false));
+  };
 
   return (
     <motion.div
@@ -168,10 +187,10 @@ export default function SupplyChainIntelDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Tracked Packages" value={liveData?.stats?.vendor_count ?? liveData?.stats?.total ?? 847} icon={Package}       trend="up" />
-        <KpiCard title="Vulnerable"        value={liveData?.stats?.sbom_snapshots ?? 124} icon={Bug}           trend="up"  className="border-amber-500/20" />
-        <KpiCard title="Malicious Flags"   value={liveData?.stats?.malicious_packages_detected ?? 8}   icon={ShieldAlert}   trend="up"  className="border-red-500/20" />
-        <KpiCard title="Critical CVEs"     value={23}  icon={AlertTriangle} trend="up"  className="border-red-500/20" />
+        <KpiCard title="Tracked Packages" value={liveData?.stats?.total_packages ?? liveData?.stats?.vendor_count ?? liveData?.stats?.total ?? 847} icon={Package}       trend="up" />
+        <KpiCard title="Vulnerable"        value={liveData?.stats?.vulnerable_packages ?? liveData?.stats?.sbom_snapshots ?? 124} icon={Bug}           trend="up"  className="border-amber-500/20" />
+        <KpiCard title="Malicious Flags"   value={liveData?.stats?.malicious_packages ?? liveData?.stats?.malicious_packages_detected ?? (liveData?.malicious?.length ?? 8)}   icon={ShieldAlert}   trend="up"  className="border-red-500/20" />
+        <KpiCard title="Critical CVEs"     value={liveData?.stats?.critical_vulns ?? 23}  icon={AlertTriangle} trend="up"  className="border-red-500/20" />
       </div>
 
       {/* Malicious Package Alerts */}
@@ -182,23 +201,23 @@ export default function SupplyChainIntelDashboard() {
               <ShieldAlert className="h-4 w-4" />
               Malicious Package Alerts
             </CardTitle>
-            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">8 flagged</Badge>
+            <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{(liveData?.malicious ?? MALICIOUS_PKGS).length} flagged</Badge>
           </div>
           <CardDescription className="text-xs">Packages flagged as malicious by threat intel sources</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {MALICIOUS_PKGS.map((pkg, i) => (
+          {(liveData?.malicious ?? MALICIOUS_PKGS).map((pkg: any, i: number) => (
             <div key={i} className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2.5 space-y-1.5">
               <div className="flex items-center gap-2">
                 <code className="text-xs font-mono text-red-300 truncate flex-1">{pkg.name}</code>
-                <EcoBadge eco={pkg.eco} />
+                <EcoBadge eco={pkg.eco ?? pkg.ecosystem ?? "npm"} />
               </div>
-              <MalwareBadge t={pkg.malware} />
+              <MalwareBadge t={pkg.malware ?? pkg.malware_type ?? "unknown"} />
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>Confidence: <span className="text-red-400 font-bold">{pkg.confidence}%</span></span>
+                <span>Confidence: <span className="text-red-400 font-bold">{Math.round((pkg.confidence ?? 0.9) * (pkg.confidence <= 1 ? 100 : 1))}%</span></span>
               </div>
               <div className="text-[10px] text-muted-foreground truncate">
-                {pkg.source} · {pkg.reported}
+                {pkg.source ?? "—"} · {pkg.reported ?? pkg.reported_at ?? "—"}
               </div>
             </div>
           ))}
@@ -230,15 +249,15 @@ export default function SupplyChainIntelDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.packages?.items ?? liveData?.packages ?? VULN_PKGS).map((p: any, i: number) => (
+                {(liveData?.vulns ?? liveData?.packages?.items ?? liveData?.packages ?? VULN_PKGS).map((p: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{p.name}</TableCell>
-                    <TableCell className="py-2.5"><EcoBadge eco={p.eco} /></TableCell>
-                    <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{p.ver}</TableCell>
-                    <TableCell className="py-2.5"><SevBadge sev={p.sev} /></TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 font-bold">{p.vulns}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{p.license}</TableCell>
-                    <TableCell className="py-2.5"><RiskBadge r={p.risk} /></TableCell>
+                    <TableCell className="py-2.5"><EcoBadge eco={p.eco ?? p.ecosystem ?? "npm"} /></TableCell>
+                    <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{p.ver ?? p.version ?? "—"}</TableCell>
+                    <TableCell className="py-2.5"><SevBadge sev={p.sev ?? p.severity ?? "Medium"} /></TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 font-bold">{p.vulns ?? 1}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{p.license ?? "—"}</TableCell>
+                    <TableCell className="py-2.5"><RiskBadge r={p.risk ?? p.severity ?? "Medium"} /></TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">
                         Patch
@@ -264,38 +283,47 @@ export default function SupplyChainIntelDashboard() {
             <CardDescription className="text-xs">Latest dependency snapshots per project</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(liveData?.sbom?.items ?? liveData?.sbom ?? SBOM_SNAPSHOTS).map((snap: any, i: number) => (
+            {(liveData?.sbom ?? SBOM_SNAPSHOTS).map((snap: any, i: number) => {
+              const riskScore = snap.risk ?? snap.risk_score ?? 0;
+              const vulnCount = snap.vuln ?? snap.vulnerable_count ?? snap.packages?.filter((p: any) => p.cve_ids?.length > 0).length ?? 0;
+              const critCount = snap.critical ?? snap.critical_count ?? 0;
+              const licIssues = snap.licenses ?? snap.license_issues ?? 0;
+              const depCount  = snap.deps ?? snap.total_packages ?? snap.packages?.length ?? 0;
+              const takenAt   = snap.taken ?? snap.created_at ?? "—";
+              const projName  = snap.project ?? snap.project_name ?? "—";
+              return (
               <div key={i} className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium font-mono">{snap.project}</span>
-                  <span className="text-[10px] text-muted-foreground">{snap.taken}</span>
+                  <span className="text-xs font-medium font-mono">{projName}</span>
+                  <span className="text-[10px] text-muted-foreground">{takenAt}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] text-muted-foreground">{snap.deps} deps</span>
-                  <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{snap.vuln} vuln</Badge>
-                  {snap.critical > 0 && (
-                    <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{snap.critical} critical</Badge>
+                  <span className="text-[10px] text-muted-foreground">{depCount} deps</span>
+                  <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{vulnCount} vuln</Badge>
+                  {critCount > 0 && (
+                    <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{critCount} critical</Badge>
                   )}
-                  {snap.licenses > 0 && (
-                    <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{snap.licenses} license issues</Badge>
+                  {licIssues > 0 && (
+                    <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{licIssues} license issues</Badge>
                   )}
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>Risk Score</span>
-                    <span className={cn("font-bold", snap.risk >= 70 ? "text-red-400" : snap.risk >= 50 ? "text-amber-400" : "text-green-400")}>
-                      {snap.risk}
+                    <span className={cn("font-bold", riskScore >= 70 ? "text-red-400" : riskScore >= 50 ? "text-amber-400" : "text-green-400")}>
+                      {riskScore}
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
                     <div
-                      className={cn("h-full rounded-full", snap.risk >= 70 ? "bg-red-500" : snap.risk >= 50 ? "bg-amber-500" : "bg-green-500")}
-                      style={{ width: `${snap.risk}%` }}
+                      className={cn("h-full rounded-full", riskScore >= 70 ? "bg-red-500" : riskScore >= 50 ? "bg-amber-500" : "bg-green-500")}
+                      style={{ width: `${riskScore}%` }}
                     />
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -323,29 +351,59 @@ export default function SupplyChainIntelDashboard() {
               </Button>
             </div>
 
-            {/* Mock results — always shown as demo */}
+            {/* Check results — live API result or demo mock */}
             <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground">Showing results for "lodash"</p>
-              {PKG_CHECK_RESULTS.map((r, i) => (
-                <div key={i} className={cn(
-                  "flex items-center justify-between rounded-lg border px-3 py-2",
-                  r.malicious ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/10"
-                )}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <code className="text-xs font-mono truncate">{r.name}</code>
-                    <EcoBadge eco={r.eco} />
+              {searched && checkLoading && (
+                <p className="text-[10px] text-muted-foreground animate-pulse">Checking package "{query}"…</p>
+              )}
+              {searched && !checkLoading && checkResult && (
+                <>
+                  <p className="text-[10px] text-muted-foreground">Result for "{checkResult.name ?? query}"</p>
+                  <div className={cn(
+                    "flex items-center justify-between rounded-lg border px-3 py-2",
+                    checkResult.is_malicious ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/10"
+                  )}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <code className="text-xs font-mono truncate">{checkResult.name ?? query}</code>
+                      <EcoBadge eco={checkResult.ecosystem ?? "npm"} />
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {checkResult.is_malicious && (
+                        <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Malicious</Badge>
+                      )}
+                      {(checkResult.vuln_count ?? 0) > 0 && (
+                        <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{checkResult.vuln_count} CVEs</Badge>
+                      )}
+                      <RiskBadge r={checkResult.risk_level ?? checkResult.recommendation ?? "safe"} />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {r.malicious && (
-                      <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Malicious</Badge>
-                    )}
-                    {r.vulns > 0 && (
-                      <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{r.vulns} CVEs</Badge>
-                    )}
-                    <RiskBadge r={r.risk} />
-                  </div>
-                </div>
-              ))}
+                </>
+              )}
+              {(!searched || (!checkLoading && !checkResult)) && (
+                <>
+                  <p className="text-[10px] text-muted-foreground">{searched ? `No result for "${query}" — showing demo` : 'Showing demo results for "lodash"'}</p>
+                  {PKG_CHECK_RESULTS.map((r, i) => (
+                    <div key={i} className={cn(
+                      "flex items-center justify-between rounded-lg border px-3 py-2",
+                      r.malicious ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/10"
+                    )}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <code className="text-xs font-mono truncate">{r.name}</code>
+                        <EcoBadge eco={r.eco} />
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {r.malicious && (
+                          <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Malicious</Badge>
+                        )}
+                        {r.vulns > 0 && (
+                          <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{r.vulns} CVEs</Badge>
+                        )}
+                        <RiskBadge r={r.risk} />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
 
             <div className="rounded-lg border border-border bg-muted/10 p-3 space-y-1">

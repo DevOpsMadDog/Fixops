@@ -138,13 +138,19 @@ export default function ThreatCorrelation() {
       apiFetch(`/api/v1/threat-correlation/rules?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-correlation/incidents?org_id=${ORG_ID}&limit=15`),
       apiFetch(`/api/v1/threat-correlation/signals?org_id=${ORG_ID}&limit=15`),
-    ]).then(([statsRes, rulesRes, incidentsRes, signalsRes]) => {
-      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
-      const rules     = rulesRes.status     === "fulfilled" ? rulesRes.value     : null;
-      const incidents = incidentsRes.status === "fulfilled" ? incidentsRes.value : null;
-      const signals   = signalsRes.status   === "fulfilled" ? signalsRes.value   : null;
-      if (stats || rules || incidents || signals) {
-        setLiveData({ stats, rules, incidents, signals });
+      apiFetch(`/api/v1/threat-sharing/stats`),
+      apiFetch(`/api/v1/threat-sharing/groups`),
+      apiFetch(`/api/v1/threat-sharing/indicators`),
+    ]).then(([statsRes, rulesRes, incidentsRes, signalsRes, sharingStatsRes, groupsRes, indicatorsRes]) => {
+      const stats         = statsRes.status         === "fulfilled" ? statsRes.value         : null;
+      const rules         = rulesRes.status         === "fulfilled" ? rulesRes.value         : null;
+      const incidents     = incidentsRes.status     === "fulfilled" ? incidentsRes.value     : null;
+      const signals       = signalsRes.status       === "fulfilled" ? signalsRes.value       : null;
+      const sharingStats  = sharingStatsRes.status  === "fulfilled" ? sharingStatsRes.value  : null;
+      const groups        = groupsRes.status        === "fulfilled" ? groupsRes.value        : null;
+      const indicators    = indicatorsRes.status    === "fulfilled" ? indicatorsRes.value    : null;
+      if (stats || rules || incidents || signals || sharingStats || groups || indicators) {
+        setLiveData({ stats, rules, incidents, signals, sharingStats, groups, indicators });
       }
     });
 
@@ -352,6 +358,80 @@ export default function ThreatCorrelation() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Threat Intel Sharing Panel */}
+      <Card className="border-purple-500/20">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Zap className="h-4 w-4 text-purple-400" />
+              STIX Threat Intel Sharing
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {liveData?.sharingStats && (
+                <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
+                  {liveData.sharingStats.total_indicators ?? 0} indicators shared
+                </Badge>
+              )}
+              {liveData?.groups && (
+                <Badge className="text-[10px] border border-border text-muted-foreground">
+                  {liveData.groups.length} sharing groups
+                </Badge>
+              )}
+            </div>
+          </div>
+          <CardDescription className="text-xs">STIX 2.1 threat intelligence sharing groups and indicators ({`/api/v1/threat-sharing`})</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {liveData?.indicators && liveData.indicators.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[11px] h-8">Type</TableHead>
+                    <TableHead className="text-[11px] h-8">Value</TableHead>
+                    <TableHead className="text-[11px] h-8">Severity</TableHead>
+                    <TableHead className="text-[11px] h-8">TLP</TableHead>
+                    <TableHead className="text-[11px] h-8">Confidence</TableHead>
+                    <TableHead className="text-[11px] h-8">Source</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {liveData.indicators.slice(0, 8).map((ind: any, i: number) => (
+                    <TableRow key={i} className="hover:bg-muted/30">
+                      <TableCell className="py-2">
+                        <Badge className="text-[9px] border border-border bg-muted/30 text-muted-foreground">{ind.indicator_type ?? ind.type ?? "ip"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs font-mono py-2 max-w-[180px] truncate">{ind.value ?? "—"}</TableCell>
+                      <TableCell className="py-2"><SeverityBadge sev={ind.severity ?? "medium"} /></TableCell>
+                      <TableCell className="py-2">
+                        <Badge className="text-[9px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{ind.tlp_marking ?? ind.tlp ?? "AMBER"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs tabular-nums py-2">{Math.round((ind.confidence ?? 0.8) * 100)}%</TableCell>
+                      <TableCell className="text-[10px] py-2 text-muted-foreground">{ind.source ?? "aldeci"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 flex-wrap">
+              {[
+                { label: "Sharing Groups", value: liveData?.sharingStats?.total_groups ?? liveData?.groups?.length ?? 0 },
+                { label: "Indicators Shared", value: liveData?.sharingStats?.total_indicators ?? 0 },
+                { label: "Auto-share Policy", value: liveData?.sharingStats?.auto_share_enabled ? "Active" : "—" },
+                { label: "STIX Bundles Exported", value: liveData?.sharingStats?.bundles_exported ?? 0 },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-col items-center gap-1 rounded-lg border border-border bg-muted/10 px-4 py-3 min-w-[110px]">
+                  <span className="text-lg font-black tabular-nums">{item.value}</span>
+                  <span className="text-[10px] text-muted-foreground text-center">{item.label}</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground ml-2">No indicators shared yet — sharing groups will appear here once configured.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
