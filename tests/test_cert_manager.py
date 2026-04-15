@@ -277,17 +277,27 @@ def test_check_certificate_unreachable_domain():
 # Test: HTTP router
 # ---------------------------------------------------------------------------
 
-def test_router_add_and_list():
+def _make_test_client(mgr):
+    """Build a TestClient with auth bypassed and manager overridden."""
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from apps.api.cert_router import router, _get_manager
+    from apps.api.auth_deps import api_key_auth
 
-    tmp_mgr = _make_manager()
+    async def _noop_auth():
+        return None
+
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[_get_manager] = lambda: tmp_mgr
-
+    app.dependency_overrides[_get_manager] = lambda: mgr
+    app.dependency_overrides[api_key_auth] = _noop_auth
     client = TestClient(app)
+    return client
+
+
+def test_router_add_and_list():
+    tmp_mgr = _make_manager()
+    client = _make_test_client(tmp_mgr)
 
     payload = {
         "org_id": "orgA",
@@ -314,32 +324,44 @@ def test_router_add_and_list():
 
 
 def test_router_get_404():
-    from fastapi import FastAPI
-    from fastapi.testclient import TestClient
-    from apps.api.cert_router import router, _get_manager
-
     tmp_mgr = _make_manager()
-    app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[_get_manager] = lambda: tmp_mgr
-
-    client = TestClient(app)
+    client = _make_test_client(tmp_mgr)
     resp = client.get("/api/v1/certificates/nonexistent-id", params={"org_id": "orgX"})
     assert resp.status_code == 404
 
 
 def test_router_stats_endpoint():
-    from fastapi import FastAPI
-    from fastapi.testclient import TestClient
-    from apps.api.cert_router import router, _get_manager
-
     tmp_mgr = _make_manager()
-    app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[_get_manager] = lambda: tmp_mgr
-
-    client = TestClient(app)
+    client = _make_test_client(tmp_mgr)
     resp = client.get("/api/v1/certificates/stats", params={"org_id": "orgEmpty"})
     assert resp.status_code == 200
     stats = resp.json()
     assert stats["total"] == 0
+
+
+def test_router_delete_certificate():
+    tmp_mgr = _make_manager()
+    client = _make_test_client(tmp_mgr)
+
+    payload = {
+        "org_id": "orgDel",
+        "domain": "to-delete.com",
+        "issuer": "Test CA",
+        "serial": "99",
+        "not_before": _past(5),
+        "not_after": _future(60),
+        "algorithm": "sha256WithRSAEncryption",
+        "key_size": 2048,
+        "san_list": [],
+        "wildcard": False,
+    }
+    add_resp = client.post("/api/v1/certificates/", json=payload)
+    cert_id = add_resp.json()["cert_id"]
+
+    del_resp = client.delete(f"/api/v1/certificates/{cert_id}", params={"org_id": "orgDel"})
+    assert del_resp.status_code == 200
+    assert del_resp.json()["deleted"] is True
+
+    # Confirm gone
+    get_resp = client.get(f"/api/v1/certificates/{cert_id}", params={"org_id": "orgDel"})
+    assert get_resp.status_code == 404
