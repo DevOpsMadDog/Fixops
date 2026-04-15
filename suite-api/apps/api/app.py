@@ -5816,6 +5816,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Risk Quantification router not loaded: {e}")
 
+    # Digital forensics — case management, evidence, chain of custody, analysis results
+    try:
+        from apps.api.digital_forensics_router import router as digital_forensics_router
+        app.include_router(digital_forensics_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Digital Forensics router at /api/v1/digital-forensics")
+    except Exception as e:
+        _logger.warning(f"Digital Forensics router not loaded: {e}")
+
+    # Threat feed aggregator — IOC feeds, APT campaigns, search
+    try:
+        from apps.api.threat_feed_aggregator_router import router as threat_feed_aggregator_router
+        app.include_router(threat_feed_aggregator_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Feed Aggregator router at /api/v1/threat-feeds")
+    except Exception as e:
+        _logger.warning(f"Threat Feed Aggregator router not loaded: {e}")
+
     return app
 
 
