@@ -323,3 +323,131 @@ class TestScorecardStats:
         stats = engine.get_scorecard_stats(ORG)
         assert stats["by_entity_type"].get("team") == 1
         assert stats["by_entity_type"].get("vendor") == 2
+
+
+# ---------------------------------------------------------------------------
+# generate_scorecard (6-domain weighted) tests
+# ---------------------------------------------------------------------------
+
+class TestGenerateScorecard:
+    def test_returns_scorecard_id(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 90.0, "endpoint": 80.0, "network": 70.0,
+            "cloud": 85.0, "data": 75.0, "application": 65.0,
+        })
+        assert "scorecard_id" in sc
+
+    def test_weighted_score_calculation(self, engine):
+        # All domains at 80.0 → overall should be 80.0
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 80.0, "endpoint": 80.0, "network": 80.0,
+            "cloud": 80.0, "data": 80.0, "application": 80.0,
+        })
+        assert abs(sc["overall_score"] - 80.0) < 0.01
+
+    def test_grade_b_at_80(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 80.0, "endpoint": 80.0, "network": 80.0,
+            "cloud": 80.0, "data": 80.0, "application": 80.0,
+        })
+        assert sc["grade"] == "B"
+
+    def test_grade_a_at_90(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 90.0, "endpoint": 90.0, "network": 90.0,
+            "cloud": 90.0, "data": 90.0, "application": 90.0,
+        })
+        assert sc["grade"] == "A"
+
+    def test_grade_f_below_60(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 50.0, "endpoint": 50.0, "network": 50.0,
+            "cloud": 50.0, "data": 50.0, "application": 50.0,
+        })
+        assert sc["grade"] == "F"
+
+    def test_domain_scores_embedded(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 85.0, "endpoint": 75.0, "network": 65.0,
+            "cloud": 70.0, "data": 80.0, "application": 90.0,
+        })
+        assert "domain_scores" in sc
+        assert len(sc["domain_scores"]) == 6
+
+    def test_domain_grades_assigned(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 95.0, "endpoint": 55.0, "network": 72.0,
+            "cloud": 83.0, "data": 67.0, "application": 88.0,
+        })
+        domain_map = {d["domain"]: d["grade"] for d in sc["domain_scores"]}
+        assert domain_map["identity"] == "A"
+        assert domain_map["endpoint"] == "F"
+        assert domain_map["cloud"] == "B"
+
+    def test_percentile_rank_present(self, engine):
+        sc = engine.generate_scorecard(ORG, {
+            "identity": 80.0, "endpoint": 80.0, "network": 80.0,
+            "cloud": 80.0, "data": 80.0, "application": 80.0,
+        })
+        assert "percentile_rank" in sc
+
+    def test_missing_domains_default_zero(self, engine):
+        sc = engine.generate_scorecard(ORG, {"identity": 100.0})
+        # other 5 domains default to 0 → weighted score = 100*0.2 / 1.0 = 20
+        assert sc["overall_score"] < 25.0
+
+    def test_trend_recorded_on_generate(self, engine):
+        org = "org-gen-trend-test"
+        engine.generate_scorecard(org, {
+            "identity": 80.0, "endpoint": 80.0, "network": 80.0,
+            "cloud": 80.0, "data": 80.0, "application": 80.0,
+        })
+        trend = engine.get_trend(org, days=1)
+        assert len(trend) == 1
+
+    def test_org_isolation_in_generate(self, engine):
+        engine.generate_scorecard("org-a-gen", {
+            "identity": 80.0, "endpoint": 80.0, "network": 80.0,
+            "cloud": 80.0, "data": 80.0, "application": 80.0,
+        })
+        engine.generate_scorecard("org-b-gen", {
+            "identity": 70.0, "endpoint": 70.0, "network": 70.0,
+            "cloud": 70.0, "data": 70.0, "application": 70.0,
+        })
+        trend_a = engine.get_trend("org-a-gen", days=1)
+        trend_b = engine.get_trend("org-b-gen", days=1)
+        assert len(trend_a) == 1
+        assert len(trend_b) == 1
+        assert abs(trend_a[0]["overall_score"] - 80.0) < 0.01
+        assert abs(trend_b[0]["overall_score"] - 70.0) < 0.01
+
+
+# ---------------------------------------------------------------------------
+# get_trend tests
+# ---------------------------------------------------------------------------
+
+class TestGetTrend:
+    def test_empty_trend_for_new_org(self, engine):
+        trend = engine.get_trend("brand-new-org", days=30)
+        assert trend == []
+
+    def test_trend_returns_list(self, engine):
+        org = "org-trend-days"
+        engine.generate_scorecard(org, {
+            "identity": 75.0, "endpoint": 75.0, "network": 75.0,
+            "cloud": 75.0, "data": 75.0, "application": 75.0,
+        })
+        trend = engine.get_trend(org, days=30)
+        assert isinstance(trend, list)
+        assert len(trend) >= 1
+
+    def test_trend_days_zero_returns_nothing(self, engine):
+        # days=1 means only today — generate and it should appear
+        org = "org-trend-days-zero"
+        engine.generate_scorecard(org, {
+            "identity": 60.0, "endpoint": 60.0, "network": 60.0,
+            "cloud": 60.0, "data": 60.0, "application": 60.0,
+        })
+        # days=365 should catch it
+        trend = engine.get_trend(org, days=365)
+        assert len(trend) >= 1

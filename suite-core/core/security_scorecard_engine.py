@@ -416,6 +416,108 @@ class SecurityScorecardEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Convenience wrappers for domain-weighted scorecard API
+    # ------------------------------------------------------------------
+
+    def generate_scorecard(
+        self, org_id: str, domain_scores: Dict[str, float]
+    ) -> Dict[str, Any]:
+        """Generate a scorecard from a 6-domain weighted score dict.
+
+        Domain weights: identity(20%), endpoint(20%), network(15%),
+        cloud(15%), data(15%), application(15%).
+
+        domain_scores keys: identity, endpoint, network, cloud, data, application.
+        Each score should be 0–100.
+
+        Returns: scorecard dict with overall_score, grade, per-domain grades,
+        and percentile_rank (static 50th for now — override via set_benchmark).
+        """
+        _DOMAIN_WEIGHTS: Dict[str, float] = {
+            "identity": 0.20,
+            "endpoint": 0.20,
+            "network": 0.15,
+            "cloud": 0.15,
+            "data": 0.15,
+            "application": 0.15,
+        }
+
+        now = datetime.now(timezone.utc).isoformat()
+        scorecard_id = str(uuid.uuid4())
+        weighted_sum = 0.0
+        total_weight = 0.0
+        domain_details: List[Dict[str, Any]] = []
+
+        for domain, weight in _DOMAIN_WEIGHTS.items():
+            raw_score = float(domain_scores.get(domain, 0.0))
+            score = max(0.0, min(100.0, raw_score))
+            weighted_sum += score * weight
+            total_weight += weight
+            domain_details.append({
+                "domain": domain,
+                "score": score,
+                "weight": weight,
+                "grade": _score_to_grade(score),
+            })
+
+        overall_score = round(weighted_sum / total_weight, 2) if total_weight > 0 else 0.0
+        overall_score = max(0.0, min(100.0, overall_score))
+        grade = _score_to_grade(overall_score)
+
+        # Flatten domain scores for storage (map to dimension names)
+        _domain_to_dim = {
+            "identity": "access_control",
+            "endpoint": "configuration_hardening",
+            "network": "vulnerability_hygiene",
+            "cloud": "threat_awareness",
+            "data": "patch_compliance",
+            "application": "code_security",
+        }
+        dimensions = []
+        for d in domain_details:
+            dim_name = _domain_to_dim.get(d["domain"], d["domain"])
+            dimensions.append({
+                "dimension": dim_name,
+                "score": d["score"],
+                "weight": d["weight"],
+                "evidence": d["domain"],
+            })
+
+        sc_data = {
+            "entity_type": "team",
+            "entity_id": org_id,
+            "entity_name": org_id,
+            "period_label": now[:7],  # YYYY-MM
+            "dimensions": dimensions,
+        }
+        sc = self.create_scorecard(org_id, sc_data)
+
+        # Enrich with domain-level detail and percentile
+        sc["domain_scores"] = domain_details
+        sc["percentile_rank"] = 50  # Default; callers may set via compare_to_benchmark
+
+        return sc
+
+    def get_trend(self, org_id: str, days: int = 30) -> List[Dict[str, Any]]:
+        """Return historical scorecard trend for the org over the last N days.
+
+        Queries scorecard_trends for the org_id entity (org's own trend),
+        filtered to the last `days` days.
+        """
+        from datetime import timedelta
+
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT * FROM scorecard_trends
+                       WHERE org_id = ? AND entity_id = ? AND recorded_at >= ?
+                       ORDER BY recorded_at ASC""",
+                    (org_id, org_id, cutoff),
+                ).fetchall()
+        return [dict(r) for r in rows]
+
     def get_scorecard_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate stats: total, by_grade, by_entity_type, avg_overall_score, top_performers."""
         with self._lock:

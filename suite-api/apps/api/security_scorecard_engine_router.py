@@ -59,6 +59,17 @@ class ScorecardCreate(BaseModel):
     dimensions: List[DimensionInput] = Field(default_factory=list)
 
 
+class DomainScorecardCreate(BaseModel):
+    """6-domain weighted scorecard (identity 20%, endpoint 20%, network 15%,
+    cloud 15%, data 15%, application 15%)."""
+    identity: float = Field(default=0.0, ge=0.0, le=100.0)
+    endpoint: float = Field(default=0.0, ge=0.0, le=100.0)
+    network: float = Field(default=0.0, ge=0.0, le=100.0)
+    cloud: float = Field(default=0.0, ge=0.0, le=100.0)
+    data: float = Field(default=0.0, ge=0.0, le=100.0)
+    application: float = Field(default=0.0, ge=0.0, le=100.0)
+
+
 class BenchmarkSet(BaseModel):
     industry: str = Field(..., min_length=1)
     entity_type: str = Field(..., min_length=1)
@@ -80,6 +91,20 @@ async def create_scorecard(
     engine = _get_engine()
     data = body.model_dump()
     return engine.create_scorecard(org_id, data)
+
+
+@router.post("/scorecards/domain", status_code=201, response_model=Dict[str, Any])
+async def generate_domain_scorecard(
+    body: DomainScorecardCreate,
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Generate a scorecard from 6 weighted domain scores.
+
+    Domains: identity(20%), endpoint(20%), network(15%), cloud(15%),
+    data(15%), application(15%).
+    """
+    engine = _get_engine()
+    return engine.generate_scorecard(org_id, body.model_dump())
 
 
 @router.get("/scorecards", response_model=List[Dict[str, Any]])
@@ -123,6 +148,19 @@ async def get_entity_trend(
     """Return trend records for an entity ordered by recorded_at ascending."""
     engine = _get_engine()
     return engine.get_entity_trend(org_id, entity_id, entity_type)
+
+
+@router.get("/trend", response_model=List[Dict[str, Any]])
+async def get_org_trend(
+    org_id: str = Query(default="default"),
+    days: int = Query(default=30, ge=1, le=365),
+) -> List[Dict[str, Any]]:
+    """Return the org's own scorecard trend for the last N days.
+
+    Uses generate_scorecard history where entity_id == org_id.
+    """
+    engine = _get_engine()
+    return engine.get_trend(org_id, days=days)
 
 
 # ------------------------------------------------------------------

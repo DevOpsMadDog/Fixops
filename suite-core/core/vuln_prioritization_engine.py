@@ -422,6 +422,72 @@ class VulnerabilityPrioritizationEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    def bulk_score_vulnerabilities(
+        self, org_id: str, vulns_list: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Score multiple vulnerabilities at once and return all results.
+
+        Unlike batch_score, this returns the full scored records list
+        instead of just a summary run record.
+        """
+        results = []
+        for vuln in vulns_list:
+            try:
+                scored = self.score_vulnerability(org_id, vuln)
+                results.append(scored)
+            except Exception as exc:
+                _logger.warning("bulk_score_vulnerabilities: skipping due to error: %s", exc)
+        return results
+
+    def get_top_critical(self, org_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return the top N vulnerabilities by composite priority score."""
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT * FROM vuln_scores
+                       WHERE org_id = ?
+                       ORDER BY priority_score DESC
+                       LIMIT ?""",
+                    (org_id, limit),
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def export_prioritized_csv(self, org_id: str) -> str:
+        """Return all scored vulnerabilities as a CSV string ordered by priority.
+
+        Columns: id, cve_id, asset_id, asset_criticality, cvss_score,
+                 epss_score, kev_listed, exploitability, exposure,
+                 priority_score, priority_tier, risk_explanation, created_at
+        """
+        import csv
+        import io
+
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT id, cve_id, asset_id, asset_criticality,
+                              cvss_score, epss_score, kev_listed,
+                              exploitability, exposure, priority_score,
+                              priority_tier, risk_explanation, created_at
+                       FROM vuln_scores
+                       WHERE org_id = ?
+                       ORDER BY priority_score DESC""",
+                    (org_id,),
+                ).fetchall()
+
+        buf = io.StringIO()
+        fieldnames = [
+            "id", "cve_id", "asset_id", "asset_criticality",
+            "cvss_score", "epss_score", "kev_listed",
+            "exploitability", "exposure", "priority_score",
+            "priority_tier", "risk_explanation", "created_at",
+        ]
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(dict(row))
+        return buf.getvalue()
+
     def get_stats(self, org_id: str) -> Dict[str, Any]:
         """Return high-level prioritization stats for an org."""
         today_str = _today().isoformat()
