@@ -6103,6 +6103,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.attack_simulation_router import router as attack_simulation_router
+        app.include_router(attack_simulation_router)
+        _logger.info("Mounted Attack Simulation router at /api/v1/attack-sim")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.compliance_router import router as compliance_router
+        app.include_router(compliance_router)
+        _logger.info("Mounted Compliance Automation router at /api/v1/compliance")
+    except ImportError:
+        pass
+
     return app
 
 
