@@ -6166,6 +6166,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.cloud_security_engine_router import router as cloud_security_engine_router
+        app.include_router(cloud_security_engine_router)
+        _logger.info("Mounted Cloud Security Engine router at /api/v1/cloud-security-engine")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.patch_automation_router import router as patch_automation_router
+        app.include_router(patch_automation_router)
+        _logger.info("Mounted Patch Automation router at /api/v1/patch-automation")
+    except ImportError:
+        pass
+
     return app
 
 
