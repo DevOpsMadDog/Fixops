@@ -5832,6 +5832,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Threat Feed Aggregator router not loaded: {e}")
 
+    # Security Roadmap / Strategic Planning Engine
+    try:
+        from apps.api.security_roadmap_router import router as security_roadmap_router
+        app.include_router(security_roadmap_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Security Roadmap router at /api/v1/security-roadmap")
+    except Exception as e:
+        _logger.warning(f"Security Roadmap router not loaded: {e}")
+
     return app
 
 
