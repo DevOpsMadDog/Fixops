@@ -136,6 +136,7 @@ const VulnHeatmap = lazy(() => import("@/pages/VulnHeatmap"));
 const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const CSPMDashboard = lazy(() => import("@/pages/CSPMDashboard"));
 const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
+const PentestManagement = lazy(() => import("@/pages/PentestManagement"));
 const DeceptionEngine = lazy(() => import("@/pages/DeceptionEngine"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
@@ -295,6 +296,7 @@ export default function App() {
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/cspm" element={<CSPMDashboard />} />
+            <Route path="/pentest" element={<PentestManagement />} />
             <Route path="/deception" element={<DeceptionEngine />} />
 
             {/* Legacy redirects */}
