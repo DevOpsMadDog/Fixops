@@ -131,6 +131,7 @@ const IncidentTimeline = lazy(() => import("@/pages/IncidentTimeline"));
 const IdentityGovernance = lazy(() => import("@/pages/IdentityGovernance"));
 const SecurityAwareness = lazy(() => import("@/pages/SecurityAwareness"));
 const ExecutiveRiskReport = lazy(() => import("@/pages/ExecutiveRiskReport"));
+const NetworkAnalysis = lazy(() => import("@/pages/NetworkAnalysis"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -284,6 +285,7 @@ export default function App() {
             <Route path="/incident-timeline" element={<IncidentTimeline />} />
             <Route path="/identity-governance" element={<IdentityGovernance />} />
             <Route path="/executive-report" element={<ExecutiveRiskReport />} />
+            <Route path="/network-analysis" element={<NetworkAnalysis />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
