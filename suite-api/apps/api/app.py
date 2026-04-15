@@ -7583,6 +7583,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 36 pre-wiring (engines pending creation)
+    try:
+        from apps.api.security_posture_maturity_router import router as security_posture_maturity_router
+        app.include_router(security_posture_maturity_router)
+        _logger.info("Mounted Security Posture Maturity router at /api/v1/posture-maturity")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_security_findings_router import router as cloud_security_findings_router
+        app.include_router(cloud_security_findings_router)
+        _logger.info("Mounted Cloud Security Findings router at /api/v1/cloud-findings")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_operations_metrics_router import router as security_operations_metrics_router
+        app.include_router(security_operations_metrics_router)
+        _logger.info("Mounted Security Operations Metrics router at /api/v1/soc-metrics")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vulnerability_age_router import router as vulnerability_age_router
+        app.include_router(vulnerability_age_router)
+        _logger.info("Mounted Vulnerability Age router at /api/v1/vuln-age")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_intelligence_confidence_router import router as threat_intelligence_confidence_router
+        app.include_router(threat_intelligence_confidence_router)
+        _logger.info("Mounted Threat Intelligence Confidence router at /api/v1/ti-confidence")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_dependency_risk_router import router as security_dependency_risk_router
+        app.include_router(security_dependency_risk_router)
+        _logger.info("Mounted Security Dependency Risk router at /api/v1/dependency-risk")
+    except ImportError:
+        pass
+
     return app
 
 
