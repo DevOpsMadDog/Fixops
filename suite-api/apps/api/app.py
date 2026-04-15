@@ -6194,6 +6194,30 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.security_maturity_router import router as security_maturity_router
+        app.include_router(security_maturity_router)
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_correlation_router import router as threat_correlation_router
+        app.include_router(threat_correlation_router)
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.privacy_gdpr_router import router as privacy_gdpr_router
+        app.include_router(privacy_gdpr_router)
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.firewall_management_router import router as firewall_management_router
+        app.include_router(firewall_management_router)
+    except ImportError:
+        pass
+
     return app
 
 
