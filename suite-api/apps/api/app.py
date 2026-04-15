@@ -5752,6 +5752,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"CMDB router not loaded: {e}")
 
+    # Supply Chain Risk — suppliers, components, risks, SBOM import
+    try:
+        from apps.api.supply_chain_risk_router import router as supply_chain_risk_router
+        app.include_router(supply_chain_risk_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Supply Chain Risk router at /api/v1/supply-chain")
+    except Exception as e:
+        _logger.warning(f"Supply chain risk router not loaded: {e}")
+
+    # Cyber Insurance — policies, assessments, claims, portfolio stats
+    try:
+        from apps.api.cyber_insurance_router import router as cyber_insurance_router
+        app.include_router(cyber_insurance_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Cyber Insurance router at /api/v1/cyber-insurance")
+    except Exception as e:
+        _logger.warning(f"Cyber insurance router not loaded: {e}")
+
     return app
 
 
