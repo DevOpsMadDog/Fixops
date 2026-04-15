@@ -5578,6 +5578,28 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Playbook router not loaded: {e}")
 
+    # Compliance Automation — 7-framework coverage (SOC2, PCI-DSS, HIPAA, FedRAMP, ISO 27001, NIST, CMMC)
+    try:
+        from apps.api.compliance_automation_router import router as compliance_automation_router
+        app.include_router(
+            compliance_automation_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Compliance Automation router at /api/v1/compliance")
+    except Exception as e:
+        _logger.warning(f"Compliance Automation router not loaded: {e}")
+
+    # Data Classification — SCIF-grade asset classification with audit trail
+    try:
+        from apps.api.data_classification_router import router as data_classification_router
+        app.include_router(
+            data_classification_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Data Classification router at /api/v1/classification")
+    except Exception as e:
+        _logger.warning(f"Data Classification router not loaded: {e}")
+
     return app
 
 
