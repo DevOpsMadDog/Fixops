@@ -399,6 +399,14 @@ const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmark
 const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
 const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
+// Wave 42 domain dashboards (frontend pages for Wave 41 engines)
+const PrivacyImpactDashboard = lazy(() => import("@/pages/PrivacyImpactDashboard"));
+const ThreatIndicatorDashboard = lazy(() => import("@/pages/ThreatIndicatorDashboard"));
+const RansomwareProtectionDashboard = lazy(() => import("@/pages/RansomwareProtectionDashboard"));
+const AccessAnomalyDashboard = lazy(() => import("@/pages/AccessAnomalyDashboard"));
+const TrainingEffectivenessDashboard = lazy(() => import("@/pages/TrainingEffectivenessDashboard"));
+const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptimizationDashboard"));
+
 // Wave 41 domain dashboards (frontend pages for Wave 40 engines)
 const ArchReviewDashboard = lazy(() => import("@/pages/ArchReviewDashboard"));
 const HuntingPlaybookDashboard = lazy(() => import("@/pages/HuntingPlaybookDashboard"));
@@ -866,6 +874,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 42 domain dashboards (pages for Wave 41 engines) */}
+            <Route path="/privacy-impact" element={<PrivacyImpactDashboard />} />
+            <Route path="/threat-indicators" element={<ThreatIndicatorDashboard />} />
+            <Route path="/ransomware-protection" element={<RansomwareProtectionDashboard />} />
+            <Route path="/access-anomaly" element={<AccessAnomalyDashboard />} />
+            <Route path="/training-effectiveness" element={<TrainingEffectivenessDashboard />} />
+            <Route path="/cost-optimization" element={<CloudCostOptimizationDashboard />} />
 
             {/* Wave 41 domain dashboards (pages for Wave 40 engines) */}
             <Route path="/arch-review" element={<ArchReviewDashboard />} />

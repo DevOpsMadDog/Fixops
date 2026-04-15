@@ -944,6 +944,29 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 41 — Autonomous parallel build + CTO review)
+
+**Wave 41 New Backend Engines (all in suite-core/core/):**
+- ✅ privacy_impact_assessment_engine.py — PrivacyImpactAssessment (PIA/DPIA workflow, risk_score=likelihood×impact, approve requires all required consultations completed) — 43 tests
+- ✅ threat_indicator_engine.py — ThreatIndicator (IOC lifecycle, confidence clamped 0-1, sighting_count++ atomic, expiry TTL, false_positive marks active=0) — 36 tests
+- ✅ ransomware_protection_engine.py — RansomwareProtection (detection patterns, backup_coverage_pct=valid/total*100, containment lifecycle, playbook execution_count++) — 45 tests
+- ✅ access_anomaly_engine.py — AccessAnomaly (impossible travel critical anomalies, upsert_baseline INSERT OR REPLACE COALESCE, risk_score sum of flagged signals, high_risk_users COUNT DISTINCT) — 45 tests
+- ✅ security_training_effectiveness_engine.py — SecurityTrainingEffectiveness (completion_rate recomputed from DB aggregates, score_improvement=post-pre, retention_trend 7/30/60/90-day buckets) — 45 tests
+- ✅ cloud_cost_optimization_engine.py — CloudCostOptimization (annual_cost=monthly*12, ROI=(incidents_prevented*avg_cost-annual)/max(1,annual)*100, underutilized ≤ threshold, high_roi_pct>100) — 45 tests
+
+**CTO Review Verdict:** ✅ PASS — zero bare excepts, all 6 routers auth-gated with dependencies=[Depends(api_key_auth)], 259/259 tests passing, 709/709 Beast Mode tests zero regressions
+
+**Wave 41 Routers wired:** /api/v1/privacy-impact, /api/v1/threat-indicators, /api/v1/ransomware-protection, /api/v1/access-anomaly, /api/v1/training-effectiveness, /api/v1/cost-optimization
+
+**Wave 41 Frontend Pages (for Wave 40 engines):**
+- ✅ ArchReviewDashboard (/arch-review), HuntingPlaybookDashboard (/hunting-playbooks)
+- ✅ ProgramMaturityDashboard (/program-maturity), CloudIRDashboard (/cloud-ir)
+- ✅ IdentityLifecycleDashboard (/identity-lifecycle), DependencyMappingDashboard (/dependency-mapping)
+
+**Engine total: 344+ engines | Router total: 574+ routers | Test total: 8,910+ tests | Frontend: 296+ pages**
+
+---
+
 ### DONE (session 2026-04-16, Wave 39 — Autonomous parallel build + CTO review)
 
 **Wave 39 New Backend Engines (all in suite-core/core/):**
