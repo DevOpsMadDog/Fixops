@@ -852,6 +852,29 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 35 — Autonomous parallel build + CTO review)
+
+**Wave 35 New Backend Engines:**
+- ✅ security_health_scorecard_engine.py — SecurityHealthScorecard (weighted domain scoring, A-F grade, snapshot history, improvement areas) — 35 tests
+- ✅ compliance_calendar_engine.py — ComplianceCalendar (8 event types, 8 frameworks, recurring events auto-next-occurrence, overdue detection) — 36 tests
+- ✅ cyber_resilience_engine.py — CyberResilience (NIST CSF 6 domains, maturity 1-5, exercises, resilience score avg) — 37 tests
+- ✅ asset_criticality_engine.py — AssetCriticality (weighted factor scoring, tier-1/2/3/4 thresholds, BFS critical path 3-hop) — 41 tests
+- ✅ security_investment_engine.py — SecurityInvestment (portfolio ROI, verified-outcome computation, budget over_budget flag) — 40 tests
+- ✅ threat_modeling_pipeline_engine.py — ThreatModelingPipeline (STRIDE, 16-cell risk matrix, unmitigated-only risk_score recomputation) — 45 tests
+
+**Wave 35 Routers wired:** /api/v1/health-scorecard, /api/v1/compliance-calendar, /api/v1/cyber-resilience, /api/v1/asset-criticality, /api/v1/security-investment, /api/v1/threat-modeling-pipeline
+
+**Wave 35 Frontend Pages (Wave 34 domains):**
+- ✅ ExceptionWorkflowDashboard (/exception-workflow), ActorTrackingDashboard (/actor-tracking)
+- ✅ VulnScoringDashboard (/vuln-scoring), SecurityBenchmarksDashboard (/security-benchmarks)
+- ✅ IncidentCostsDashboard (/incident-costs), SecurityCultureDashboard (/security-culture)
+
+**CTO Review Verdict:** ✅ PASS — 709 Beast Mode tests passing, zero regressions, WAL+RLock+org_id verified
+
+**Engine total: 308+ engines | Router total: 538+ routers | Test total: 7,342+ tests | Frontend: 260+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
