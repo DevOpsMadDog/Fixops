@@ -123,6 +123,8 @@ const CVESearch = lazy(() => import("@/pages/CVESearch"));
 const IPReputation = lazy(() => import("@/pages/IPReputation"));
 const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
 const SupplyChainSecurity = lazy(() => import("@/pages/SupplyChainSecurity"));
+const DLPDashboard = lazy(() => import("@/pages/DLPDashboard"));
+const APIAbuseDashboard = lazy(() => import("@/pages/APIAbuseDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -251,6 +253,10 @@ export default function App() {
 
             {/* Compliance Dashboard — P07 standalone */}
             <Route path="/compliance" element={<StandaloneComplianceDashboard />} />
+
+            {/* DLP & API Abuse Detection */}
+            <Route path="/dlp" element={<DLPDashboard />} />
+            <Route path="/api-abuse" element={<APIAbuseDashboard />} />
 
             {/* New standalone pages */}
             <Route path="/threat-intel" element={<ThreatIntelDashboardPage />} />
