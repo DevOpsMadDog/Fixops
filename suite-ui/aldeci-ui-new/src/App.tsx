@@ -399,6 +399,14 @@ const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmark
 const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
 const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
+// Wave 38 domain dashboards
+const SBOMExportDashboard = lazy(() => import("@/pages/SBOMExportDashboard"));
+const GapAnalysisDashboard = lazy(() => import("@/pages/GapAnalysisDashboard"));
+const AlertEnrichmentDashboard = lazy(() => import("@/pages/AlertEnrichmentDashboard"));
+const SecurityBaselineDashboard = lazy(() => import("@/pages/SecurityBaselineDashboard"));
+const ThreatResponseDashboard = lazy(() => import("@/pages/ThreatResponseDashboard"));
+const AwarenessProgramDashboard = lazy(() => import("@/pages/AwarenessProgramDashboard"));
+
 // Wave 37 domain dashboards
 const SecurityPostureMaturityDashboard = lazy(() => import("@/pages/SecurityPostureMaturityDashboard"));
 const CloudSecurityFindingsDashboard = lazy(() => import("@/pages/CloudSecurityFindingsDashboard"));
@@ -834,6 +842,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 38 domain dashboards */}
+            <Route path="/sbom-export" element={<SBOMExportDashboard />} />
+            <Route path="/gap-analysis" element={<GapAnalysisDashboard />} />
+            <Route path="/alert-enrichment" element={<AlertEnrichmentDashboard />} />
+            <Route path="/security-baselines" element={<SecurityBaselineDashboard />} />
+            <Route path="/threat-response" element={<ThreatResponseDashboard />} />
+            <Route path="/awareness-program" element={<AwarenessProgramDashboard />} />
 
             {/* Wave 37 domain dashboards */}
             <Route path="/posture-maturity" element={<SecurityPostureMaturityDashboard />} />
