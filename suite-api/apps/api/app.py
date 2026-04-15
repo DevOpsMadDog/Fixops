@@ -5638,6 +5638,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Endpoint Security router not loaded: {e}")
 
+    # Firewall Rule Analysis — inventory, rule analysis, findings
+    try:
+        from apps.api.firewall_rule_router import router as firewall_rule_router
+        app.include_router(firewall_rule_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Firewall Rule Analysis router at /api/v1/firewall")
+    except Exception as e:
+        _logger.warning(f"Firewall Rule Analysis router not loaded: {e}")
+
     return app
 
 
