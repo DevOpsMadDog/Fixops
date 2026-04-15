@@ -12,7 +12,7 @@
  * API: GET /api/v1/audit/events?limit=20 — falls back to mock data.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -722,19 +722,42 @@ export default function AuditLogPage() {
     queryKey: ["audit-events", dateRange, eventTypeFilter, severityFilter],
     queryFn: async () => {
       try {
-        const params = new URLSearchParams({ limit: "20" });
+        const params = new URLSearchParams({ limit: "100" });
         if (eventTypeFilter !== "all") params.set("event_type", eventTypeFilter);
-        if (severityFilter !== "all") params.set("severity", severityFilter);
         const res = await fetch(
-          `${API_BASE}/api/v1/audit/events?${params.toString()}`
+          `${API_BASE}/api/v1/audit/logs?${params.toString()}`,
+          { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "dev-key" } }
         );
         if (!res.ok) throw new Error("API unavailable");
-        return res.json();
+        const data = await res.json();
+        // Router returns { items: [...], total, limit, offset }
+        return Array.isArray(data) ? data : (data.items ?? MOCK_EVENTS);
       } catch {
         return MOCK_EVENTS;
       }
     },
   });
+
+  // Live stats from /api/v1/audit/user-activity for KPI enrichment
+  const [liveStats, setLiveStats] = useState<any>(null);
+  useEffect(() => {
+    Promise.allSettled([
+      fetch(`${API_BASE}/api/v1/audit/logs?limit=1000`, {
+        headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "dev-key" },
+      }).then((r) => (r.ok ? r.json() : null)),
+    ]).then(([logsRes]) => {
+      if (logsRes.status === "fulfilled" && logsRes.value) {
+        const data = logsRes.value;
+        const items = Array.isArray(data) ? data : (data.items ?? []);
+        setLiveStats({
+          eventsTotal: data.total ?? items.length,
+          failedAuth: items.filter((e: any) => e.event_type === "authentication" && (e.result === "failure" || e.action?.includes("FAIL"))).length,
+          configChanges: items.filter((e: any) => e.event_type === "configuration").length,
+          policyViolations: items.filter((e: any) => e.event_type === "policy_change" || e.action?.includes("POLICY")).length,
+        });
+      }
+    });
+  }, []);
 
   // Filter + search
   const filtered = useMemo(() => {
@@ -797,16 +820,16 @@ export default function AuditLogPage() {
     URL.revokeObjectURL(url);
   }, [filtered]);
 
-  // KPI derivation from mock
+  // KPI derivation — prefer live stats, fall back to mock-derived counts
   const kpis = {
-    eventsToday: 12847,
-    failedAuth: filtered.filter(
+    eventsToday: liveStats?.eventsTotal ?? 12847,
+    failedAuth: liveStats?.failedAuth ?? (filtered.filter(
       (e) => e.event_type === "authentication" && e.result === "failure"
-    ).length || 23,
-    configChanges: filtered.filter(
+    ).length || 23),
+    configChanges: liveStats?.configChanges ?? (filtered.filter(
       (e) => e.event_type === "configuration"
-    ).length || 7,
-    policyViolations: 3,
+    ).length || 7),
+    policyViolations: liveStats?.policyViolations ?? 3,
   };
 
   return (

@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/compliance-scanner/profiles, /api/v1/compliance-scanner/results
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardCheck, AlertTriangle, RefreshCw, BarChart3, CheckCircle, XCircle, AlertCircle, Play } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,6 +142,26 @@ function TaskStatusBadge({ s }: { s: string }) {
 
 export default function ComplianceScannerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/compliance-scanner/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/compliance-scanner/profiles?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/compliance-scanner/results?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/compliance-scanner/tasks?org_id=${ORG_ID}`),
+    ]).then(([statsRes, profilesRes, resultsRes, tasksRes]) => {
+      const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
+      const profiles = profilesRes.status === "fulfilled" ? profilesRes.value : null;
+      const results  = resultsRes.status  === "fulfilled" ? resultsRes.value  : null;
+      const tasks    = tasksRes.status    === "fulfilled" ? tasksRes.value    : null;
+      if (stats || profiles || results || tasks) {
+        setLiveData({ stats, profiles, results, tasks });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -144,18 +180,18 @@ export default function ComplianceScannerDashboard() {
         title="Compliance Scanner"
         description="Automated multi-framework scanning and remediation"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Scan Profiles"    value={6}       icon={ClipboardCheck} className="border-blue-500/20" />
-        <KpiCard title="Avg Score"        value="78.4%"   icon={BarChart3}      trend="up"   className="border-green-500/20" />
-        <KpiCard title="Open Tasks"       value={34}      icon={AlertTriangle}  trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Failures" value={5}      icon={XCircle}        trend="down" className="border-red-500/20" />
+        <KpiCard title="Scan Profiles"    value={liveData?.stats?.total_profiles ?? liveData?.profiles?.length ?? 6}                         icon={ClipboardCheck} className="border-blue-500/20" />
+        <KpiCard title="Avg Score"        value={liveData?.stats?.avg_score != null ? `${liveData.stats.avg_score}%` : "78.4%"}              icon={BarChart3}      trend="up"   className="border-green-500/20" />
+        <KpiCard title="Open Tasks"       value={liveData?.stats?.open_tasks ?? liveData?.stats?.total_open_tasks ?? 34}                     icon={AlertTriangle}  trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Failures" value={liveData?.stats?.critical_failures ?? liveData?.stats?.failed_critical ?? 5}               icon={XCircle}        trend="down" className="border-red-500/20" />
       </div>
 
       {/* Scan Profiles */}
@@ -181,7 +217,7 @@ export default function ComplianceScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PROFILES.map((row) => (
+                {(liveData?.profiles ?? PROFILES).map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -246,7 +282,7 @@ export default function ComplianceScannerDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {SCAN_RESULTS.map((row) => (
+                  {(liveData?.results?.items ?? liveData?.results ?? SCAN_RESULTS).map((row: any) => (
                     <TableRow key={row.control_id} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 pl-4"><ControlStatus status={row.status} /></TableCell>
                       <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{row.control_id}</TableCell>
@@ -302,7 +338,7 @@ export default function ComplianceScannerDashboard() {
               <AlertTriangle className="h-4 w-4 text-amber-400" />
               Remediation Tasks
             </CardTitle>
-            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{TASKS.length} tasks</Badge>
+            <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{(liveData?.tasks ?? TASKS).length} tasks</Badge>
           </div>
           <CardDescription className="text-xs">Open compliance remediation items sorted by priority</CardDescription>
         </CardHeader>
@@ -320,7 +356,7 @@ export default function ComplianceScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TASKS.map((row) => (
+                {(liveData?.tasks ?? TASKS).map((row: any) => (
                   <TableRow key={row.id} className={cn("hover:bg-muted/30", row.days < 0 && "bg-red-500/5")}>
                     <TableCell className="py-2.5"><PriorityBadge p={row.priority} /></TableCell>
                     <TableCell className="text-xs py-2.5 font-medium max-w-[220px] truncate">{row.title}</TableCell>

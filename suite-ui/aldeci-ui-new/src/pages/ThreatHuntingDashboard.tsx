@@ -131,15 +131,15 @@ export default function ThreatHuntingDashboard() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/threat-hunting/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-hunting/hunts?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/threat-hunting/findings?org_id=${ORG_ID}&limit=20`),
-    ]).then(([statsResult, huntsResult, findingsResult]) => {
+      apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/hunting/sessions?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/hunting/queries`),
+    ]).then(([statsResult, sessionsResult, queriesResult]) => {
       const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
-      const hunts    = huntsResult.status    === "fulfilled" ? huntsResult.value    : null;
-      const findings = findingsResult.status === "fulfilled" ? findingsResult.value : null;
-      if (stats || hunts || findings) {
-        setLiveData({ stats, hunts, findings });
+      const sessions = sessionsResult.status === "fulfilled" ? sessionsResult.value : null;
+      const queries  = queriesResult.status  === "fulfilled" ? queriesResult.value  : null;
+      if (stats || sessions || queries) {
+        setLiveData({ stats, sessions, queries });
       }
     }).finally(() => setDataLoading(false));
   }, []);
@@ -169,10 +169,10 @@ export default function ThreatHuntingDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Hunts"     value={liveData?.stats?.active_hunts ?? liveData?.stats?.hunt_count ?? 7}   icon={Crosshair}     trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Total Findings"   value={liveData?.stats?.findings ?? 43}  icon={Search}        trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Active Hunts"     value={liveData?.stats?.active_sessions ?? liveData?.stats?.active_hunts ?? liveData?.stats?.hunt_count ?? 7}   icon={Crosshair}     trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Total Findings"   value={liveData?.stats?.total_findings ?? liveData?.stats?.findings ?? 43}  icon={Search}        trend="up"   className="border-amber-500/20" />
         <KpiCard title="Critical Findings" value={liveData?.stats?.critical_findings ?? 8}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Queries Run"      value={284} icon={BarChart3}     trend="up" />
+        <KpiCard title="Queries Run"      value={liveData?.stats?.queries_run ?? liveData?.queries?.length ?? 284} icon={BarChart3}     trend="up" />
       </div>
 
       {/* Active Campaigns */}
@@ -203,7 +203,7 @@ export default function ThreatHuntingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.hunts?.items ?? liveData?.hunts ?? CAMPAIGNS).map((row: any) => (
+                {(liveData?.sessions?.items ?? liveData?.sessions ?? CAMPAIGNS).map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{row.name}</TableCell>

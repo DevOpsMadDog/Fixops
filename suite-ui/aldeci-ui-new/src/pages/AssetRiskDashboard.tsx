@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/asset-risk/scores, /api/v1/asset-risk/heatmap
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { HardDrive, AlertTriangle, RefreshCw, BarChart3, Globe, Shield } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,11 +167,63 @@ function ScoreIndicator({ score }: { score: number }) {
 
 export default function AssetRiskDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/asset-risk/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/asset-risk/scores?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/asset-risk/assets?org_id=${ORG_ID}`),
+    ]).then(([statsResult, scoresResult, assetsResult]) => {
+      const stats  = statsResult.status  === "fulfilled" ? statsResult.value  : null;
+      const scores = scoresResult.status === "fulfilled" ? scoresResult.value : null;
+      const assets = assetsResult.status === "fulfilled" ? assetsResult.value : null;
+      if (stats || scores || assets) {
+        setLiveData({ stats, scores, assets });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // KPI values — live data with mock fallback
+  const totalAssets   = liveData?.stats?.total_assets   ?? liveData?.assets?.length ?? 342;
+  const criticalRisk  = liveData?.stats?.critical_count ?? 18;
+  const highRisk      = liveData?.stats?.high_count     ?? 47;
+  const avgScore      = liveData?.stats?.avg_risk_score != null
+    ? liveData.stats.avg_risk_score.toFixed(1)
+    : "44.2";
+
+  // Top assets — map live scores list to table shape, fall back to TOP_ASSETS mock
+  const topAssets: typeof TOP_ASSETS = liveData?.scores?.length
+    ? liveData.scores.slice(0, 15).map((s: any) => ({
+        id:          s.asset_id ?? s.id ?? "—",
+        name:        s.asset_name ?? s.name ?? s.asset_id ?? "Unknown",
+        type:        s.asset_type ?? "Server",
+        criticality: s.criticality ?? "Medium",
+        exposure:    s.exposure ?? "internal",
+        score:       Math.round(s.composite_score ?? s.risk_score ?? s.score ?? 0),
+        top_factor:  s.top_factor ?? s.dominant_factor ?? "—",
+      }))
+    : TOP_ASSETS;
+
+  // Recent assets — use live assets list if available, fall back to mock
+  const recentAssets: typeof RECENT_ASSETS = liveData?.assets?.length
+    ? liveData.assets.slice(0, 8).map((a: any) => ({
+        name:  a.name ?? a.asset_id ?? "Unknown",
+        type:  a.asset_type ?? "Server",
+        score: Math.round(a.risk_score ?? a.score ?? 0),
+        added: a.registered_at ? new Date(a.registered_at).toLocaleDateString() : "—",
+      }))
+    : RECENT_ASSETS;
 
   return (
     <motion.div
@@ -169,18 +237,18 @@ export default function AssetRiskDashboard() {
         title="Asset Risk"
         description="Asset risk scoring, factor analysis, and prioritization"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"   value={342}    icon={HardDrive}     className="border-blue-500/20" />
-        <KpiCard title="Critical Risk"  value={18}     icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="High Risk"      value={47}     icon={Shield}        trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Avg Score"      value="44.2"   icon={BarChart3}     trend="up" />
+        <KpiCard title="Total Assets"   value={totalAssets}  icon={HardDrive}     className="border-blue-500/20" />
+        <KpiCard title="Critical Risk"  value={criticalRisk} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="High Risk"      value={highRisk}     icon={Shield}        trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Avg Score"      value={avgScore}     icon={BarChart3}     trend="up" />
       </div>
 
       {/* Heatmap + Risk Factors */}
@@ -271,7 +339,7 @@ export default function AssetRiskDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {RECENT_ASSETS.map((a) => (
+              {recentAssets.map((a) => (
                 <div key={a.name} className="flex items-center gap-2">
                   <ScoreIndicator score={a.score} />
                   <div className="flex-1 min-w-0">
@@ -312,7 +380,7 @@ export default function AssetRiskDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TOP_ASSETS.map((row) => (
+                {topAssets.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>

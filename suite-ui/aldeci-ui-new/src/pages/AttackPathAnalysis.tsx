@@ -9,8 +9,7 @@
  * Falls back to mock data on failure.
  */
 
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -31,6 +30,19 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -394,39 +406,47 @@ function CrownJewelRow({ jewel, index }: { jewel: CrownJewel; index: number }) {
 // ═══════════════════════════════════════════════════════════
 
 export default function AttackPathAnalysis() {
-  const { data: stats, isLoading, refetch } = useQuery<AttackPathsStats>({
-    queryKey: ["attack-paths-stats"],
-    queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/attack-paths/stats`);
-      if (!res.ok) throw new Error("attack paths api unavailable");
-      return res.json();
-    },
-    retry: 1,
-    staleTime: 60_000,
-    initialData: {
-      total_paths: MOCK_PATHS.length,
-      critical_paths: MOCK_PATHS.length,
-      avg_path_length: 2.5,
-      nodes_at_risk: MOCK_GRAPH_NODES.length,
-      graph: {
-        nodes: MOCK_GRAPH_NODES,
-        edges: MOCK_GRAPH_EDGES,
-      },
-      paths: MOCK_PATHS,
-    },
-  });
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  const { data: crownJewels } = useQuery<CrownJewel[]>({
-    queryKey: ["crown-jewels-at-risk"],
-    queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/attack-paths/crown-jewels-at-risk`);
-      if (!res.ok) throw new Error("crown jewels api unavailable");
-      return res.json();
-    },
-    retry: 1,
-    staleTime: 60_000,
-    initialData: MOCK_CROWN_JEWELS,
-  });
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/attack-paths/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/attack-paths/nodes?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/attack-paths/crown-jewels-at-risk?org_id=${ORG_ID}`),
+    ]).then(([statsResult, nodesResult, crownResult]) => {
+      const statsRaw    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const nodesRaw    = nodesResult.status    === "fulfilled" ? nodesResult.value    : null;
+      const crownRaw    = crownResult.status    === "fulfilled" ? crownResult.value    : null;
+      if (statsRaw || nodesRaw || crownRaw) {
+        setLiveData({ stats: statsRaw, nodes: nodesRaw, crown: crownRaw });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  // Build stats shape from live data or fall back to mock
+  const stats: AttackPathsStats = liveData?.stats
+    ? {
+        total_paths:    liveData.stats.total_paths    ?? liveData.stats.path_count   ?? MOCK_PATHS.length,
+        critical_paths: liveData.stats.critical_paths ?? liveData.stats.crown_jewels ?? MOCK_PATHS.length,
+        avg_path_length: liveData.stats.avg_hops      ?? 2.5,
+        nodes_at_risk:  liveData.stats.total_nodes    ?? MOCK_GRAPH_NODES.length,
+        graph: { nodes: liveData.nodes ?? MOCK_GRAPH_NODES, edges: MOCK_GRAPH_EDGES },
+        paths: MOCK_PATHS,
+      }
+    : {
+        total_paths: MOCK_PATHS.length,
+        critical_paths: MOCK_PATHS.length,
+        avg_path_length: 2.5,
+        nodes_at_risk: MOCK_GRAPH_NODES.length,
+        graph: { nodes: MOCK_GRAPH_NODES, edges: MOCK_GRAPH_EDGES },
+        paths: MOCK_PATHS,
+      };
+
+  const crownJewels: CrownJewel[] = liveData?.crown ?? MOCK_CROWN_JEWELS;
 
   const nodeMap = useMemo(() => {
     const map: Record<string, GraphNode> = {};
@@ -455,10 +475,11 @@ export default function AttackPathAnalysis() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => refetch()}
+            onClick={() => loadData()}
+            disabled={dataLoading}
             className="gap-2"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className={cn("w-3.5 h-3.5", dataLoading && "animate-spin")} />
             Refresh
           </Button>
         }

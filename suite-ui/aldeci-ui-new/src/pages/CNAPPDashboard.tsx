@@ -260,10 +260,10 @@ export default function CNAPPDashboard() {
               </TableHeader>
               <TableBody>
                 {(liveData?.workloads?.items ?? liveData?.workloads ?? WORKLOADS).map((w: any) => (
-                  <TableRow key={w.name} className="hover:bg-muted/30">
+                  <TableRow key={w.name ?? w.workload_id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[160px] truncate">{w.name}</TableCell>
-                    <TableCell className="py-2.5"><WorkloadTypeBadge t={w.type} /></TableCell>
-                    <TableCell className="py-2.5"><ProviderBadge p={w.provider} /></TableCell>
+                    <TableCell className="py-2.5"><WorkloadTypeBadge t={w.workload_type ?? w.type ?? "VM"} /></TableCell>
+                    <TableCell className="py-2.5"><ProviderBadge p={w.cloud_provider ?? w.provider ?? "AWS"} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{w.region}</TableCell>
                     <TableCell className="py-2.5">
                       <span className={cn("text-xs font-bold", w.running ? "text-green-400" : "text-muted-foreground")}>
@@ -279,11 +279,11 @@ export default function CNAPPDashboard() {
                       <div className="flex items-center gap-2">
                         <div className="relative h-1.5 w-16 rounded-full bg-muted/30 overflow-hidden">
                           <div
-                            className={cn("h-full rounded-full", w.score >= 80 ? "bg-red-500" : w.score >= 60 ? "bg-amber-500" : w.score >= 40 ? "bg-yellow-500" : "bg-green-500")}
-                            style={{ width: `${w.score}%` }}
+                            className={cn("h-full rounded-full", (w.risk_score ?? w.score) >= 80 ? "bg-red-500" : (w.risk_score ?? w.score) >= 60 ? "bg-amber-500" : (w.risk_score ?? w.score) >= 40 ? "bg-yellow-500" : "bg-green-500")}
+                            style={{ width: `${w.risk_score ?? w.score}%` }}
                           />
                         </div>
-                        <span className="text-xs tabular-nums">{w.score}</span>
+                        <span className="text-xs tabular-nums">{w.risk_score ?? w.score}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">5m ago</TableCell>

@@ -11,9 +11,24 @@
  * API stubs: GET /api/v1/attack-simulation/runs, /api/v1/attack-simulation/mitre-coverage
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Target, Clock, AlertTriangle, RefreshCw, Play, Eye } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,6 +128,55 @@ function coverageColor(pct: number) {
 
 export default function AttackSimulation() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch("/api/v1/attack-sim/scenarios"),
+      apiFetch("/api/v1/attack-sim/campaigns"),
+      apiFetch("/api/v1/attack-sim/mitre/heatmap"),
+    ]).then(([scenariosResult, campaignsResult, heatmapResult]) => {
+      const scenarios = scenariosResult.status === "fulfilled" ? scenariosResult.value : null;
+      const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : null;
+      const heatmap   = heatmapResult.status   === "fulfilled" ? heatmapResult.value   : null;
+      if (scenarios || campaigns || heatmap) {
+        setLiveData({ scenarios, campaigns, heatmap });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+    setTimeout(() => setRefreshing(false), 800);
+  };
+
+  // Derive KPI values from live data or fall back to mock constants
+  const scenariosList: any[] = liveData?.scenarios ?? SIMULATIONS;
+  const campaignsList: any[] = liveData?.campaigns ?? [];
+  const totalSims = liveData?.scenarios?.length ?? 24;
+  const completedCampaigns = campaignsList.filter((c: any) => c.status === "completed");
+  const detectedSteps = completedCampaigns.reduce((acc: number, c: any) => acc + (c.steps_succeeded ?? 0), 0);
+  const totalSteps    = completedCampaigns.reduce((acc: number, c: any) => acc + (c.steps_executed ?? 0), 0);
+  const detectionRate = totalSteps > 0 ? `${((detectedSteps / totalSteps) * 100).toFixed(1)}%` : "73.4%";
+  const criticalFindings = scenariosList.reduce((acc: number, s: any) => acc + (s.findings ?? 0), 0) || 18;
+
+  // Map live scenarios to table rows shape — fall back to SIMULATIONS mock
+  const tableRows = liveData?.scenarios
+    ? scenariosList.map((s: any) => ({
+        name:     s.name,
+        type:     s.threat_actor ?? "BAS",
+        scope:    s.target_assets?.join(", ") || "All assets",
+        target:   s.complexity ?? "medium",
+        status:   "completed",
+        started:  s.created_at?.slice(0, 10) ?? "—",
+        findings: s.objectives?.length ?? 0,
+      }))
+    : SIMULATIONS;
 
   return (
     <motion.div
@@ -127,8 +191,8 @@ export default function AttackSimulation() {
         description="BAS, purple team, and MITRE ATT&CK coverage"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
-              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+              <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
             <Button size="sm" className="gap-1.5">
               <Play className="h-3.5 w-3.5" /> New Simulation
@@ -139,10 +203,10 @@ export default function AttackSimulation() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Simulations Run"      value={24}      icon={Target}        />
-        <KpiCard title="Detection Rate"       value="73.4%"   icon={Shield}        trend="up"   className="border-green-500/20" />
-        <KpiCard title="Avg Detection Time"   value="4.2 min" icon={Clock}         trend="down" className="border-blue-500/20" />
-        <KpiCard title="Critical Findings"    value={18}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Simulations Run"      value={totalSims}        icon={Target}        />
+        <KpiCard title="Detection Rate"       value={detectionRate}    icon={Shield}        trend="up"   className="border-green-500/20" />
+        <KpiCard title="Avg Detection Time"   value="4.2 min"          icon={Clock}         trend="down" className="border-blue-500/20" />
+        <KpiCard title="Critical Findings"    value={criticalFindings} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
       </div>
 
       {/* Simulation Table */}
@@ -170,7 +234,7 @@ export default function AttackSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SIMULATIONS.map((row) => (
+                {tableRows.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[180px] truncate">{row.name}</TableCell>
                     <TableCell className="py-2.5"><SimTypeBadge type={row.type} /></TableCell>

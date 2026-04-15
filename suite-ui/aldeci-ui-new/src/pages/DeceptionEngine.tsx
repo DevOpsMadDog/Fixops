@@ -2,8 +2,25 @@
  * Deception Engine — /deception
  * API stubs: GET /api/v1/deception/honeypots, GET /api/v1/deception/canary-tokens
  */
+import { useState, useEffect } from "react";
 import { AlertTriangle, Shield, Eye, Server, Globe, Activity, Clock, MapPin, Key, FileText, Wifi, Link, Database, Folder, Cloud, Monitor, Terminal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
@@ -95,8 +112,25 @@ function scoreColor(s: number) {
 
 // ── Component ──────────────────────────────────────────────────
 export default function DeceptionEngine() {
-  const activeHoneypots = HONEYPOTS.filter((h) => h.status === "active").length;
-  const triggeredCanaries = CANARIES.filter((c) => c.triggered).length;
+  const [liveData, setLiveData] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/deception/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/deception/canaries?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/deception/alerts?org_id=${ORG_ID}&hours=168`),
+    ]).then(([statsRes, canariesRes, alertsRes]) => {
+      const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
+      const canaries = canariesRes.status === "fulfilled" ? canariesRes.value : null;
+      const alerts   = alertsRes.status   === "fulfilled" ? alertsRes.value   : null;
+      if (stats || canaries || alerts) {
+        setLiveData({ stats, canaries, alerts });
+      }
+    });
+  }, []);
+
+  const activeHoneypots = liveData?.stats?.active_honeypots ?? HONEYPOTS.filter((h) => h.status === "active").length;
+  const triggeredCanaries = liveData?.stats?.triggered_canaries ?? CANARIES.filter((c) => c.triggered).length;
 
   return (
     <div className="min-h-screen bg-slate-900 p-8 space-y-8">
@@ -104,10 +138,10 @@ export default function DeceptionEngine() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Active Honeypots"    value={activeHoneypots}        icon={Server}        changeLabel="2 cloud, 10 on-prem" />
-        <KpiCard title="Canary Tokens"       value={47}                     icon={Eye}           changeLabel="across 8 asset types" />
-        <KpiCard title="Triggered This Week" value={8}                      icon={AlertTriangle} change={60} changeLabel="vs last week" />
-        <KpiCard title="Unique Attackers"    value={ATTACKERS.length}       icon={Globe}         changeLabel="3 countries" />
+        <KpiCard title="Active Honeypots"    value={activeHoneypots}                                                            icon={Server}        changeLabel="2 cloud, 10 on-prem" />
+        <KpiCard title="Canary Tokens"       value={liveData?.stats?.total_canaries ?? liveData?.canaries?.length ?? 47}       icon={Eye}           changeLabel="across 8 asset types" />
+        <KpiCard title="Triggered This Week" value={liveData?.stats?.triggered_this_week ?? liveData?.alerts?.length ?? 8}    icon={AlertTriangle} changeLabel="vs last week" />
+        <KpiCard title="Unique Attackers"    value={liveData?.stats?.unique_attackers ?? ATTACKERS.length}                     icon={Globe}         changeLabel="3 countries" />
       </div>
 
       {/* Alert Feed */}
@@ -120,7 +154,7 @@ export default function DeceptionEngine() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 divide-y divide-slate-700/50">
-          {ALERTS.map((a) => (
+          {(liveData?.alerts ?? ALERTS).map((a: any) => (
             <div key={a.id} className="flex items-center gap-4 px-6 py-3 hover:bg-red-500/5 transition-colors">
               <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 animate-pulse" />
               <span className="text-xs font-mono text-slate-500 w-36 flex-shrink-0">{a.ts}</span>
@@ -172,7 +206,7 @@ export default function DeceptionEngine() {
         <CardHeader className="border-b border-slate-700">
           <CardTitle className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-yellow-400" /> Canary Tokens
-            <span className="ml-2 text-sm font-normal text-slate-400">{triggeredCanaries} triggered / {CANARIES.length} shown</span>
+            <span className="ml-2 text-sm font-normal text-slate-400">{triggeredCanaries} triggered / {(liveData?.canaries ?? CANARIES).length} shown</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -186,7 +220,7 @@ export default function DeceptionEngine() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {CANARIES.map((c) => (
+              {(liveData?.canaries ?? CANARIES).map((c: any) => (
                 <TableRow key={c.id} className={cn("border-b border-slate-700/50", c.triggered ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-slate-800/30")}>
                   <TableCell className="text-slate-200 font-medium text-sm">
                     <div className="flex items-center gap-2">{CANARY_ICON[c.type]}{c.name}</div>
