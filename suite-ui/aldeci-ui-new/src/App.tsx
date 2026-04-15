@@ -312,6 +312,13 @@ const DataExfiltrationDashboard = lazy(() => import("@/pages/DataExfiltrationDas
 const PKIManagementDashboard = lazy(() => import("@/pages/PKIManagementDashboard"));
 const SecurityToolInventoryDashboard = lazy(() => import("@/pages/SecurityToolInventoryDashboard"));
 
+// Wave 21 domain dashboards
+const FirmwareSecurityDashboard = lazy(() => import("@/pages/FirmwareSecurityDashboard"));
+const IoTSecurityDashboard = lazy(() => import("@/pages/IoTSecurityDashboard"));
+const MobileAppSecurityDashboard = lazy(() => import("@/pages/MobileAppSecurityDashboard"));
+const SupplyChainAttackDashboard = lazy(() => import("@/pages/SupplyChainAttackDashboard"));
+const CloudWorkloadProtectionDashboard = lazy(() => import("@/pages/CloudWorkloadProtectionDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -628,6 +635,13 @@ export default function App() {
             <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
             <Route path="/pki-management" element={<PKIManagementDashboard />} />
             <Route path="/tool-inventory" element={<SecurityToolInventoryDashboard />} />
+
+            {/* Wave 21 domain dashboards */}
+            <Route path="/firmware-security" element={<FirmwareSecurityDashboard />} />
+            <Route path="/iot-security" element={<IoTSecurityDashboard />} />
+            <Route path="/mobile-app-security" element={<MobileAppSecurityDashboard />} />
+            <Route path="/supply-chain-attacks" element={<SupplyChainAttackDashboard />} />
+            <Route path="/cwp" element={<CloudWorkloadProtectionDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
