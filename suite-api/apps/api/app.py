@@ -7712,6 +7712,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 39 pre-wiring (engines pending creation)
+    try:
+        from apps.api.risk_quantification_engine_router import router as risk_quantification_engine_router
+        app.include_router(risk_quantification_engine_router)
+        _logger.info("Mounted Risk Quantification router at /api/v1/risk-quant")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cyber_threat_modeling_router import router as cyber_threat_modeling_router
+        app.include_router(cyber_threat_modeling_router)
+        _logger.info("Mounted Cyber Threat Modeling router at /api/v1/cyber-threat-models")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_capacity_planning_router import router as security_capacity_planning_router
+        app.include_router(security_capacity_planning_router)
+        _logger.info("Mounted Security Capacity Planning router at /api/v1/capacity-planning")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.tprm_exchange_router import router as tprm_exchange_router
+        app.include_router(tprm_exchange_router)
+        _logger.info("Mounted TPRM Exchange router at /api/v1/tprm-exchange")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_event_timeline_router import router as security_event_timeline_router
+        app.include_router(security_event_timeline_router)
+        _logger.info("Mounted Security Event Timeline router at /api/v1/event-timeline")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vuln_intel_fusion_router import router as vuln_intel_fusion_router
+        app.include_router(vuln_intel_fusion_router)
+        _logger.info("Mounted Vuln Intel Fusion router at /api/v1/vuln-intel-fusion")
+    except ImportError:
+        pass
+
     return app
 
 
