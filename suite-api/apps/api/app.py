@@ -6131,6 +6131,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.vuln_prioritization_router import router as vuln_prioritization_router
+        app.include_router(vuln_prioritization_router)
+        _logger.info("Mounted Vuln Prioritization router at /api/v1/vuln-prioritization")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.zero_trust_enforcement_router import router as zero_trust_enforcement_router
+        app.include_router(zero_trust_enforcement_router)
+        _logger.info("Mounted Zero Trust Enforcement router at /api/v1/zero-trust")
+    except ImportError:
+        pass
+
     return app
 
 
