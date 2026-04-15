@@ -6489,6 +6489,20 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.security_metrics_dashboard_router import router as security_metrics_dashboard_router
+        app.include_router(security_metrics_dashboard_router)
+        _logger.info("Mounted Security Metrics Dashboard router at /api/v1/metrics-dashboard")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.kpi_tracking_router import router as kpi_tracking_router
+        app.include_router(kpi_tracking_router)
+        _logger.info("Mounted KPI Tracking router at /api/v1/kpi-tracking")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.firewall_policy_router import router as firewall_policy_router
         app.include_router(firewall_policy_router)
         _logger.info("Mounted Firewall Policy router at /api/v1/firewall-policy")
