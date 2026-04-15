@@ -341,12 +341,13 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
-## RECENT CHANGES (2026-04-16, Wave 6+7 — Continuous autonomous build)
+## RECENT CHANGES (2026-04-16, Wave 6+7+8 — Continuous autonomous build)
 
-### Beast Mode Tests: 709 PASSING (zero regressions) + 822 new wave 6/7 engine tests
-### UI: 93 pages total, builds clean, 308 router files
+### Beast Mode Tests: 709 base + 700+ new = 1,400+ total (zero regressions)
+### UI: 97+ pages total, builds clean, 320+ router files, 8 pages wired to live APIs
+### API: 850+ endpoints across 105+ routers
 
-### Wave 6 Backend Engines (new — all in suite-core/core/):
+### Wave 6 Backend Engines (all in suite-core/core/):
 - ✅ posture_score_engine.py — Security Posture Scoring — 35 tests
 - ✅ threat_feed_aggregator.py — Multi-source threat feed aggregation — 25 tests
 - ✅ digital_forensics_engine.py — Digital Forensics & Incident Response — 29 tests
@@ -365,16 +366,54 @@ from core.brain_pipeline import BrainPipeline  # just works
 - ✅ analytics_engine.py — DuckDB cross-domain analytics — 50 tests
 - ✅ attack_simulation_engine.py — AttackSimulationDbEngine added — 31 tests
 
-### Wave 7 Backend Engines (new — all in suite-core/core/):
+### Wave 7 Backend Engines (all in suite-core/core/):
 - ✅ regulatory_tracker_engine.py — Regulatory Change Tracking — 34 tests
 - ✅ security_scorecard_engine.py — Security Scorecard & Grading — 36 tests
 - ✅ ccm_engine.py — Cloud Controls Matrix engine — 31 tests
-- ✅ awareness_score_engine.py — Security Awareness Scoring (tests pending)
-- ✅ ndr_engine.py — Network Detection & Response (tests pending)
-- ✅ xdr_engine.py — Extended Detection & Response (tests pending)
-- ✅ edr_engine.py — Endpoint Detection & Response (tests pending)
-- ✅ supply_chain_intel.py — Supply Chain Intelligence — 57 tests
+- ✅ awareness_score_engine.py — Security Awareness Scoring
+- ✅ ndr_engine.py — Network Detection & Response — 33 tests
+- ✅ xdr_engine.py — Extended Detection & Response — 33 tests
+- ✅ edr_engine.py — Endpoint Detection & Response — 31 tests
+- ✅ supply_chain_intel_engine.py — Supply Chain Intelligence — 32 tests
 - ✅ threat_hunting_engine.py — Proactive Threat Hunting — 67 tests
+- ✅ identity_analytics_engine.py — Identity Analytics & Risk — 34 tests
+- ✅ cnapp_engine.py — Cloud-Native Application Protection — 37 tests
+- ✅ pentest_mgmt_engine.py — Pentest Management — 32 tests
+- ✅ threat_intel_sharing_engine.py — STIX 2.1 threat sharing — 35 tests
+
+### Wave 8 Backend Engines (all in suite-core/core/):
+- ✅ security_champions_engine.py — Security Champions Program — 36 tests
+- ✅ red_team_mgmt_engine.py — Red Team Management — 38 tests
+- ✅ data_classification_engine.py — Data Classification & PII — 45 tests
+- ✅ threat_actor_engine.py — Threat Actor Intelligence — 44 tests
+- ✅ application_security_engine.py — AppSec SAST/DAST aggregation — 30 tests
+- ✅ bug_bounty_engine.py — Bug Bounty Program Management — 30 tests
+- ✅ deception_engine.py — Canary tokens, honeypots — 28 tests (newly covered)
+- ✅ dast_engine.py — Dynamic App Security Testing — 26 tests (newly covered)
+- ✅ sbom_engine.py — SBOM CycloneDX/SPDX generation — 27 tests (newly covered)
+- ✅ ir_playbook_engine.py — IR Playbooks with MTTD/MTTR — 30 tests (newly covered)
+- ✅ supply_chain_risk_engine.py — Supply Chain Risk — 28 tests (newly covered)
+- ✅ ai_security_advisor_engine.py — LLM-powered advisor (Qwen 3.6 Max) — ~30 tests
+- ✅ scheduled_reports_engine.py — Scheduled reports + Slack delivery — ~30 tests
+
+### Router Wiring (session 2026-04-16, all missing routers now wired):
+- ✅ phishing_simulation_router — /api/v1/phishing
+- ✅ ioc_enrichment_router — /api/v1/ioc-enrichment
+- ✅ ctem_router — /api/v1/ctem
+- ✅ workflow_router — /api/v1/workflows
+- ✅ policy_router — /api/v1/policies
+- ✅ security_playbook_router — /api/v1/security-playbooks
+- ✅ analytics_engine_router — /api/v1/analytics
+- ✅ attack_simulation_router — /api/v1/attack-sim
+- ✅ compliance_router — /api/v1/compliance
+- ✅ data_classification_router — /api/v1/data-classification
+- ✅ threat_actor_router — /api/v1/threat-actors
+- ✅ security_champions_router — /api/v1/security-champions
+- ✅ red_team_mgmt_router — /api/v1/red-team
+- ✅ application_security_router — /api/v1/appsec
+- ✅ bug_bounty_router — /api/v1/bug-bounty
+- ✅ ai_security_advisor_router — /api/v1/ai-advisor
+- ✅ scheduled_reports_router — /api/v1/scheduled-reports
 
 ### Frontend Pages (wave 6+7, new — all in suite-ui/aldeci-ui-new/src/pages/):
 - ✅ /asset-risk — AssetRiskDashboard
