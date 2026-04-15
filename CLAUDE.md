@@ -703,6 +703,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 28 — Autonomous parallel build)
+
+**Wave 28 New Backend Engines:**
+- ✅ access_request_management_engine.py — AccessRequestManagement (6 access types, approve/reject/revoke, expires_at delta, rejection_rate) — 47 tests
+- ✅ privileged_session_recording_engine.py — PrivilegedSessionRecording (7 session types, alerts_count increment, high_risk_sessions>3) — 47 tests
+- ✅ cloud_resource_inventory_engine.py — CloudResourceInventory (7 providers, 10 resource types, security_score 0-100, critical<60) — 42 tests
+- ✅ security_telemetry_engine.py — SecurityTelemetry (8 telemetry types, p95/p99 percentiles, alert rules with trigger_count) — 44 tests
+- ✅ microsegmentation_policy_engine.py — MicrosegmentationPolicy (8 segment types, policy_count on src+dst, violation_count, high_violation>5) — 40 tests
+- ✅ third_party_vendor_engine.py — ThirdPartyVendorEngine (7 categories, risk_score auto-update, unassessed_vendors) — 34 tests
+
+**Wave 28 Routers wired:** /api/v1/access-requests, /api/v1/session-recording, /api/v1/cloud-inventory, /api/v1/security-telemetry, /api/v1/microsegmentation, /api/v1/third-party-vendor
+
+**Wave 28 Frontend Pages (Wave 27 domains):**
+- ✅ AlertTriageDashboard (/alert-triage), AwarenessMetricsDashboard (/awareness-metrics)
+- ✅ PatchManagementDashboard (/patch-management), ContainerPostureDashboard (/container-posture)
+- ✅ CyberThreatIntelDashboard (/cyber-threat-intel), DigitalTwinDashboard (/digital-twin)
+
+**Engine total: 266+ engines | Router total: 496+ routers | Test total: 5,615+ tests | Frontend: 218+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code

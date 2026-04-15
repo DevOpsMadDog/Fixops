@@ -7282,6 +7282,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 29 routers
+    try:
+        from apps.api.saas_security_posture_router import router as saas_security_posture_router
+        app.include_router(saas_security_posture_router)
+        _logger.info("Mounted SaaS Security Posture router at /api/v1/sspm")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.api_inventory_router import router as api_inventory_router
+        app.include_router(api_inventory_router)
+        _logger.info("Mounted API Inventory router at /api/v1/api-inventory")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_vector_analysis_router import router as threat_vector_analysis_router
+        app.include_router(threat_vector_analysis_router)
+        _logger.info("Mounted Threat Vector Analysis router at /api/v1/threat-vectors")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.awareness_campaign_router import router as awareness_campaign_router
+        app.include_router(awareness_campaign_router)
+        _logger.info("Mounted Awareness Campaign router at /api/v1/awareness-campaigns")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.risk_treatment_router import router as risk_treatment_router
+        app.include_router(risk_treatment_router)
+        _logger.info("Mounted Risk Treatment router at /api/v1/risk-treatment")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.data_discovery_router import router as data_discovery_router
+        app.include_router(data_discovery_router)
+        _logger.info("Mounted Data Discovery router at /api/v1/data-discovery")
+    except ImportError:
+        pass
+
     return app
 
 
