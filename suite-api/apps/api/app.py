@@ -6117,6 +6117,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.scheduled_reports_router import router as scheduled_reports_router
+        app.include_router(scheduled_reports_router)
+        _logger.info("Mounted Scheduled Reports router at /api/v1/scheduled-reports")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ai_security_advisor_router import router as ai_security_advisor_router
+        app.include_router(ai_security_advisor_router)
+        _logger.info("Mounted AI Security Advisor router at /api/v1/ai-advisor")
+    except ImportError:
+        pass
+
     return app
 
 
