@@ -6810,6 +6810,48 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.ai_governance_router import router as ai_governance_router
+        app.include_router(ai_governance_router)
+        _logger.info("Mounted AI Governance router at /api/v1/ai-governance")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.digital_identity_router import router as digital_identity_router
+        app.include_router(digital_identity_router)
+        _logger.info("Mounted Digital Identity router at /api/v1/digital-identity")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.attack_chain_router import router as attack_chain_router
+        app.include_router(attack_chain_router)
+        _logger.info("Mounted Attack Chain router at /api/v1/attack-chains")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_exposure_router import router as threat_exposure_router
+        app.include_router(threat_exposure_router)
+        _logger.info("Mounted Threat Exposure router at /api/v1/threat-exposure")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.software_license_security_router import router as software_license_security_router
+        app.include_router(software_license_security_router)
+        _logger.info("Mounted Software License Security router at /api/v1/license-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_identity_router import router as cloud_identity_router
+        app.include_router(cloud_identity_router)
+        _logger.info("Mounted Cloud Identity router at /api/v1/cloud-identity")
+    except ImportError:
+        pass
+
     return app
 
 
