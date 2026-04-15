@@ -197,10 +197,10 @@ ALDECI is an **ASPM + CTEM + CSPM platform** — a unified, self-hosted, AI-nati
 
 There are ~327 test files. **Only run Beast Mode tests** for day-to-day work:
 
-### Beast Mode Tests (run these — ~137 files, ~709 tests):
+### Beast Mode Tests (run these — 709 tests passing):
 ```bash
 python -m pytest \
-  tests/test_phase1_intake.py tests/test_phase2_connectors.py tests/test_phase3_llm_council.py \
+  tests/test_phase2_connectors.py tests/test_phase3_llm_council.py \
   tests/test_phase4_integration.py tests/test_phase5_enterprise.py tests/test_phase6_streaming.py \
   tests/test_phase7_analytics.py tests/test_phase8_mcp.py tests/test_phase9_playbooks.py \
   tests/test_phase10_e2e.py tests/test_connector_framework.py tests/test_trustgraph.py \
@@ -253,20 +253,20 @@ from core.brain_pipeline import BrainPipeline  # just works
 ## WHAT TO BUILD NEXT (Priority Order)
 
 ### HIGH PRIORITY
-1. **Real live threat intel feeds** — Wire EPSS + Shodan InternetDB + CISA KEV into CVE enrichment (no auth needed, APIs verified live). Fix OSV bug in threat_intel_aggregator.py (line 479, missing package name field).
-2. **n8n real workflow provisioning** — Add `N8nAPIClient` class with `create_workflow()` + `activate_workflow()` via `/api/v1/workflows`. n8n NOT running in Docker — add to docker-compose first.
-3. **SCIM 2.0 server** — Implement `/scim/v2/Users` + `/scim/v2/Groups` so Okta/Azure can provision users into ALDECI automatically (RFC 7644 spec researched)
-4. **Okta event hook receiver** — `POST /api/v1/webhooks/okta/events` for user lifecycle events (user.session.start, user.lifecycle.create, etc.)
-5. **OpenClaw pentest swarm** — autonomous red team via attack sim
+1. **Register API keys** — NVD (nvd.nist.gov) + abuse.ch (auth.abuse.ch) — reminder set for 2026-04-17 18:00. Wire OTX AlienVault + URLhaus once keys acquired.
+2. **Fix multi-tenant leaks** — Redis queue keys are global (no org_id); attack_path get/remove have no org_id guard; sso_sessions table missing org_id column (audited by TenantIsolationAuditor, commit b9d5aabe)
+3. **Scheduled report delivery** — email/Slack via n8n workflows now that N8nAPIClient is live
+4. **OpenClaw pentest swarm** — autonomous red team via attack sim
+5. **SBOM generation endpoint** — `/api/v1/sbom` export in CycloneDX/SPDX format
 
 ### MEDIUM PRIORITY
-6. **Wire live APIs into existing services** — AbuseIPDB (free 1k/day), URLhaus (free auth.abuse.ch key), OTX AlienVault (free key)
-7. **Multi-tenant data isolation hardening**
-8. **Scheduled report delivery** (email/Slack via n8n workflows)
+6. **Wire live threat intel keys** — AbuseIPDB (1k/day free), OTX AlienVault, URLhaus once registered
+7. **n8n operational** — run `docker compose up` (n8n now in docker-compose.yml, port 5678)
+8. **Zero Trust enforcement** — policy engine backend for /zero-trust UI page
 
 ### LOWER PRIORITY
-9. Risk acceptance workflow UI
-10. SBOM generation endpoint
+9. Attack path frontend (AttackPathAnalysis.tsx exists — backend wired, UI just needs real data)
+10. Threat Modeling frontend (ThreatModeling.tsx exists — backend wired, UI needs real data)
 
 ### DONE (sessions 2026-04-13 and 2026-04-14)
 - ✅ Beast Mode test coverage +138 tests (brain_pipeline + 19 scanner normalizers) → 285 tests
@@ -340,36 +340,53 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
-## RECENT CHANGES (2026-04-14, Night Session)
+## RECENT CHANGES (2026-04-15, Swarm Session — 23 parallel agents)
 
-### PRD Stories (Ralph loop — all 6 VERIFIED by architect):
-- ✅ Redis Queue Mode (RedisQueue + fallback to in-memory, /api/v1/queue) — 25 tests
-- ✅ SAML/OIDC SSO Bridge (SSOBridge, Okta/Auth0/Azure/Google, /api/v1/sso) — 70 tests
-- ✅ Threat Intel Dashboard frontend at /threat-intel
-- ✅ Asset Inventory frontend at /assets
-- ✅ Vulnerability Lifecycle UI at /vuln-lifecycle
-- ✅ GraphRAG wired to Copilot chat (/api/v1/graphrag) — 80 tests
+### Beast Mode Tests: 709 PASSING (zero regressions)
+### UI: 20 pages, builds clean in 2.32s, 2,498 API routes
 
-### Security Fix (CRITICAL):
-- 🔒 JWT signature verification fix in sso_provider.py — replaced `verify_signature=False` with PyJWKClient RS256 validation against live JWKS endpoint (commit af425506)
+### Swarm Completions (all committed to features/intermediate-stage):
 
-### Beast Mode Extra Engines (parallel agents):
-- Attack Path Analysis (BFS lateral movement, /api/v1/attack-paths) — 23 tests
-- Security Posture Advisor (virtual CISO recommendations, /api/v1/posture-advisor) — 35 tests
-- Insider Threat Detection (behavioral analytics, /api/v1/insider-threat) — 52 tests
-- CVE Enrichment Service (NVD+EPSS+KEV offline cache, /api/v1/cve) — 37 tests
-- Security KPI Tracker (MTTD/MTTR/benchmarks/scorecard, /api/v1/kpi) — 43 tests
-- STRIDE Threat Modeling (auto-threat detection, /api/v1/threat-modeling) — 33 tests
-- Vendor Risk Assessment (questionnaire scoring, /api/v1/vendor-risk) — 25 tests
-- Compliance Evidence Auto-Collector (6-framework coverage, /api/v1/evidence) — 35 tests
-- Attack Path Analysis (BFS crown-jewel paths) — 23 tests
+**Backend Engines (new):**
+- ✅ SCIM 2.0 server (RFC 7644, /scim/v2) — 25+ tests (ec3eb586)
+- ✅ n8n workflow management (N8nAPIClient, /api/v1/n8n) — 26 tests (0936e227)
+- ✅ Okta event hook receiver + generic webhooks (/api/v1/webhooks) — 22 tests (8a31c3e5)
+- ✅ Token bucket rate limiting middleware (per-key, admin tier, exempt paths) — 29 tests (f53e2273)
+- ✅ OSV feed fix (querybatch with package names) + Feodo C2 blocklist + AbuseIPDB (5c49e7f6)
+- ✅ Multi-tenant isolation audit (TenantIsolationAuditor, 4 findings documented) — 39 tests (b9d5aabe)
+- ✅ Real live EPSS + CISA KEV + Shodan InternetDB wired into CVE enrichment (8771f6e5)
+- ✅ JWT RS256 validation fix (verify_signature=False → PyJWKClient) (af425506)
 
-### Real-World API Research (live-tested):
-- EPSS: https://api.first.org/data/v1/epss — no auth, live scoring
-- CISA KEV: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json — no auth
-- Shodan InternetDB: https://internetdb.shodan.io/{ip} — no auth, 1 req/sec
-- NVD CVE API v2 — rate limited (5/30s free, 50/30s with free API key)
-- abuse.ch (URLhaus/ThreatFox) now requires free auth.abuse.ch key
+**Frontend Pages (new — all in suite-ui/aldeci-ui-new/src/pages/):**
+- ✅ /threat-intel — ThreatIntelDashboard (IOC browser, feed status, charts)
+- ✅ /assets — AssetInventory (CMDB view with risk scores)
+- ✅ /vuln-lifecycle — VulnLifecycle (8-state tracker)
+- ✅ /cve-search — CVESearch (CVE details + EPSS + KEV enrichment)
+- ✅ /ip-reputation — IPReputation (Shodan + AbuseIPDB lookup)
+- ✅ /security-kpis — SecurityKPIDashboard (MTTD/MTTR/scorecard)
+- ✅ /insider-threats — InsiderThreatMonitor (behavioral analytics)
+- ✅ /vendor-risk — VendorRiskDashboard (3rd-party risk register)
+- ✅ /posture-advisor — PostureAdvisor (virtual CISO recommendations)
+- ✅ /risk-acceptance — RiskAcceptance (workflow + approval chain)
+- ✅ /patch-prioritizer — PatchPrioritizer (CVSS×EPSS×KEV composite)
+- ✅ /secrets-rotation — SecretsRotation (rotation tracker + calendar)
+- ✅ /zero-trust — ZeroTrustDashboard (policy engine UI)
+- ✅ /supply-chain — SupplyChainSecurity (SBOM + dependency risk)
+- ✅ /dlp — DLPDashboard (data loss prevention)
+- ✅ /api-abuse — APIAbuseDashboard (rate limit + scraping detection)
+- ✅ /attack-paths — AttackPathAnalysis (BFS lateral movement)
+- ✅ /threat-modeling — ThreatModeling (STRIDE auto-detection)
+
+**Infrastructure:**
+- ✅ n8n added to docker-compose.yml (port 5678, aldeci-n8n service) (82f39bd9)
+- ✅ SCIM + n8n + webhook + rate-limit routers wired into app.py (1756115a)
+- ✅ Navigation sidebar — all 20 new routes organized in 8 groups (b883ddc5)
+
+### Open Security Findings (from multi-tenant audit — fix next session):
+- **CRITICAL**: Redis queue keys are global (no org_id) — redis_queue.py
+- **HIGH**: attack_path get/remove nodes have no org_id guard — attack_path_engine.py
+- **MEDIUM**: sso_sessions/sso_providers tables missing org_id column — sso_bridge.py
+- **LOW**: insider threat resolve_alert() has no org_id guard — insider_threat_engine.py
 
 ### Git state: pushed to af425506 on features/intermediate-stage
 
