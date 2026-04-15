@@ -12,8 +12,21 @@
  * API stubs: GET /api/v1/uba/users  GET /api/v1/uba/events
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY  || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Users,
   AlertTriangle,
@@ -121,11 +134,67 @@ function EventTypeBadge({ type }: { type: string }) {
 
 export default function UBADashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/uba/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/uba/users?org_id=${ORG_ID}&min_risk_score=40`),
+      apiFetch(`/api/v1/uba/events?org_id=${ORG_ID}&is_anomalous=true`),
+      apiFetch(`/api/v1/uba/alerts?org_id=${ORG_ID}&status=open`),
+    ]).then(([statsRes, usersRes, eventsRes, alertsRes]) => {
+      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
+      const users  = usersRes.status  === "fulfilled" ? usersRes.value  : null;
+      const events = eventsRes.status === "fulfilled" ? eventsRes.value : null;
+      const alerts = alertsRes.status === "fulfilled" ? alertsRes.value : null;
+      if (stats || users || events || alerts) {
+        setLiveData({ stats, users, events, alerts });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Resolve KPI values — prefer live, fall back to mock counts
+  const liveUsers  = Array.isArray(liveData?.users)  ? liveData.users  : null;
+  const liveEvents = Array.isArray(liveData?.events) ? liveData.events : null;
+  const liveAlerts = Array.isArray(liveData?.alerts) ? liveData.alerts : null;
+
+  const kpiTotalUsers      = liveData?.stats?.total_users     ?? "3,847";
+  const kpiHighRisk        = liveData?.stats?.high_risk_count ?? liveData?.stats?.users_at_risk ?? 23;
+  const kpiAnomaliestoday  = liveData?.stats?.anomalies_today ?? liveData?.stats?.total_events  ?? 47;
+  const kpiAlertsOpen      = liveData?.stats?.open_alerts     ?? (liveAlerts?.length)            ?? 12;
+
+  // Table data — map API shape to mock shape if live data available
+  const tableUsers = liveUsers && liveUsers.length > 0
+    ? liveUsers.map((u: any) => ({
+        username:  u.username ?? u.user_id ?? "—",
+        dept:      u.department ?? "—",
+        role:      u.role ?? "—",
+        score:     Math.round(u.risk_score ?? u.score ?? 0),
+        anomalies: u.anomaly_count ?? u.anomalies ?? 0,
+        lastAlert: u.last_alert_type ?? u.last_event_type ?? "failed_login",
+        status:    u.status ?? "active",
+      }))
+    : HIGH_RISK_USERS;
+
+  // Anomaly events feed
+  const tableEvents = liveEvents && liveEvents.length > 0
+    ? liveEvents.map((e: any) => ({
+        username: e.user_id ?? e.username ?? "—",
+        type:     e.event_type ?? "failed_login",
+        ip:       e.source_ip ?? "—",
+        ts:       e.timestamp ?? e.created_at ?? "—",
+      }))
+    : ANOMALY_EVENTS;
 
   return (
     <motion.div
@@ -139,18 +208,18 @@ export default function UBADashboard() {
         title="User Behavior Analytics"
         description="Insider threat detection and anomaly scoring"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Users"      value="3,847" icon={Users}         trend="up" />
-        <KpiCard title="High Risk (≥70)"  value={23}    icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
-        <KpiCard title="Anomalies Today"  value={47}    icon={Activity}       trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Alerts Open"      value={12}    icon={Bell}           trend="down" className="border-yellow-500/20" />
+        <KpiCard title="Total Users"      value={kpiTotalUsers}     icon={Users}         trend="up" />
+        <KpiCard title="High Risk (≥70)"  value={kpiHighRisk}       icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
+        <KpiCard title="Anomalies Today"  value={kpiAnomaliestoday} icon={Activity}       trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Alerts Open"      value={kpiAlertsOpen}     icon={Bell}           trend="down" className="border-yellow-500/20" />
       </div>
 
       {/* High-risk user table */}
@@ -183,7 +252,7 @@ export default function UBADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {HIGH_RISK_USERS.map((u) => (
+                {tableUsers.map((u) => (
                   <TableRow key={u.username} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{u.username}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{u.dept}</TableCell>
@@ -265,7 +334,7 @@ export default function UBADashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/50 max-h-80 overflow-y-auto">
-              {ANOMALY_EVENTS.map((e, i) => (
+              {tableEvents.map((e, i) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20">
                   <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">{e.username}</span>
                   <EventTypeBadge type={e.type} />

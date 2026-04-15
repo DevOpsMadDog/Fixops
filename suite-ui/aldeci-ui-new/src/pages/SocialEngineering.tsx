@@ -11,8 +11,21 @@
  * API stubs: GET /api/v1/phishing/campaigns, /api/v1/phishing/templates, /api/v1/training/completion
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY  || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Mail, Users, TrendingDown, TrendingUp, RefreshCw,
   BookOpen, ShieldCheck, AlertTriangle, BarChart3,
@@ -100,11 +113,70 @@ const DEPT_MAX = Math.max(...DEPT_CLICK_RATES.map((d) => d.rate));
 
 export default function SocialEngineering() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/phishing/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/phishing/campaigns?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/phishing/templates?org_id=${ORG_ID}`),
+    ]).then(([statsRes, campaignsRes, templatesRes]) => {
+      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const campaigns = campaignsRes.status === "fulfilled" ? campaignsRes.value : null;
+      const templates = templatesRes.status === "fulfilled" ? templatesRes.value : null;
+      if (stats || campaigns || templates) {
+        setLiveData({ stats, campaigns, templates });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Resolve KPI values
+  const kpiCampaignsRun    = liveData?.stats?.total_campaigns    ?? 47;
+  const kpiEmployeesTested = liveData?.stats?.total_targets != null
+    ? liveData.stats.total_targets.toLocaleString()
+    : "2,847";
+  const kpiClickRate       = liveData?.stats?.avg_click_rate != null
+    ? `${liveData.stats.avg_click_rate.toFixed(1)}%`
+    : "8.3%";
+  const kpiReportedRate    = liveData?.stats?.avg_report_rate != null
+    ? `${liveData.stats.avg_report_rate.toFixed(1)}%`
+    : "34.7%";
+
+  // Campaign table — map API shape to mock shape
+  const liveCampaignsArr = Array.isArray(liveData?.campaigns) ? liveData.campaigns : null;
+  const tableCampaigns = liveCampaignsArr && liveCampaignsArr.length > 0
+    ? liveCampaignsArr.map((c: any) => ({
+        name:     c.name ?? "—",
+        type:     c.campaign_type ?? "phishing",
+        group:    c.target_group ?? "—",
+        launched: c.start_date ?? c.created_at ?? "—",
+        sent:     c.total_targets   ?? c.sent     ?? 0,
+        clicked:  c.total_clicked   ?? c.clicked  ?? 0,
+        reported: c.total_reported  ?? c.reported ?? 0,
+        status:   c.status ?? "draft",
+      }))
+    : CAMPAIGNS;
+
+  // Templates — map API shape to mock shape
+  const liveTemplatesArr = Array.isArray(liveData?.templates) ? liveData.templates : null;
+  const tableTemplates = liveTemplatesArr && liveTemplatesArr.length > 0
+    ? liveTemplatesArr.slice(0, 6).map((t: any) => ({
+        name:      t.name ?? "—",
+        type:      t.template_type ?? "phishing",
+        clickRate: t.click_rate ?? t.avg_click_rate ?? 0,
+        lastUsed:  t.last_used ?? t.created_at ?? "—",
+      }))
+    : TEMPLATES;
 
   return (
     <motion.div
@@ -118,19 +190,19 @@ export default function SocialEngineering() {
         title="Social Engineering Defense"
         description="Phishing simulation and security awareness"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Campaigns Run"    value={47}      icon={Mail} />
-        <KpiCard title="Employees Tested" value="2,847"   icon={Users} />
+        <KpiCard title="Campaigns Run"    value={kpiCampaignsRun}    icon={Mail} />
+        <KpiCard title="Employees Tested" value={kpiEmployeesTested}  icon={Users} />
         <KpiCard
           title="Click Rate"
-          value="8.3%"
+          value={kpiClickRate}
           icon={AlertTriangle}
           trend="down"
           description="-2.1% vs last quarter"
@@ -138,7 +210,7 @@ export default function SocialEngineering() {
         />
         <KpiCard
           title="Reported Rate"
-          value="34.7%"
+          value={kpiReportedRate}
           icon={ShieldCheck}
           trend="up"
           description="+5.2% vs last quarter"
@@ -174,7 +246,7 @@ export default function SocialEngineering() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CAMPAIGNS.map((c) => {
+                {tableCampaigns.map((c) => {
                   const clickPct  = c.sent > 0 ? ((c.clicked / c.sent) * 100).toFixed(1) : "0.0";
                   const reportPct = c.sent > 0 ? ((c.reported / c.sent) * 100).toFixed(1) : "0.0";
                   return (
@@ -271,7 +343,7 @@ export default function SocialEngineering() {
           Top Phishing Templates
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {TEMPLATES.map((t) => (
+          {tableTemplates.map((t) => (
             <Card key={t.name} className={cn("hover:border-border/80 transition-colors", t.clickRate > 10 && "border-red-500/20")}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">

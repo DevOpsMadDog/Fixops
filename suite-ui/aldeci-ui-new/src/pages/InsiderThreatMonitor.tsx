@@ -9,7 +9,7 @@
  * Falls back to mock data on failure.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -40,6 +40,16 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -594,38 +604,77 @@ function ActiveInvestigations({ investigations, isLoading }: InvestigationsProps
 // ═══════════════════════════════════════════════════════════
 
 export default function InsiderThreatMonitor() {
+  const [liveStats, setLiveStats] = useState<any>(null);
+
+  // Fetch stats for KPI cards
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/insider-threat/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/insider-threat/distribution?org_id=${ORG_ID}`),
+    ]).then(([statsRes, distRes]) => {
+      const stats = statsRes.status === "fulfilled" ? statsRes.value : null;
+      const dist  = distRes.status  === "fulfilled" ? distRes.value  : null;
+      if (stats || dist) setLiveStats({ stats, dist });
+    });
+  }, []);
+
   // Fetch high-risk users
   const { data: highRiskUsers = MOCK_HIGH_RISK_USERS, isLoading: loadingUsers } = useQuery({
     queryKey: ["insider-threat-high-risk"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API}/api/v1/insider-threat/high-risk`);
-        if (!res.ok) throw new Error("Failed to fetch");
-        return res.json();
+        const data = await apiFetch(`/api/v1/insider-threat/high-risk?org_id=${ORG_ID}&threshold=50`);
+        // API returns List[UserRiskProfile] — map to page's shape
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((u: any) => ({
+            id: u.user_email ?? u.id ?? String(Math.random()),
+            user: u.user_email ?? u.user ?? "unknown",
+            department: u.department ?? "—",
+            risk_level: u.alert_level ?? u.risk_level ?? "low",
+            top_indicator: u.top_indicator ?? (u.indicators?.[0]?.indicator_type ?? "—"),
+            last_activity: u.last_activity ?? "—",
+            score: Math.round(u.risk_score ?? u.score ?? 0),
+          }));
+        }
+        return MOCK_HIGH_RISK_USERS;
       } catch {
         return MOCK_HIGH_RISK_USERS;
       }
     },
   });
 
-  // Fetch threat timeline
+  // Fetch threat indicators (distribution used as proxy; timeline needs a user_email)
   const { data: threatTimeline = MOCK_THREAT_TIMELINE, isLoading: loadingTimeline } = useQuery({
     queryKey: ["insider-threat-timeline"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API}/api/v1/insider-threat/timeline`);
-        if (!res.ok) throw new Error("Failed to fetch");
-        return res.json();
+        // Use the first high-risk user's email if available, else return mock
+        const users = Array.isArray(highRiskUsers) && highRiskUsers.length > 0 ? highRiskUsers : MOCK_HIGH_RISK_USERS;
+        const email = encodeURIComponent(users[0]?.user ?? "unknown@corp.com");
+        const data = await apiFetch(`/api/v1/insider-threat/timeline/${email}?org_id=${ORG_ID}&limit=20`);
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((a: any) => ({
+            id: a.id ?? a.activity_id ?? String(Math.random()),
+            timestamp: a.recorded_at ?? a.timestamp ?? "—",
+            user: a.user_email ?? a.user ?? "unknown",
+            indicator_type: a.activity_type ?? "policy_violation",
+            severity: a.severity ?? "medium",
+            resource: a.details?.resource ?? a.resource ?? "—",
+          }));
+        }
+        return MOCK_THREAT_TIMELINE;
       } catch {
         return MOCK_THREAT_TIMELINE;
       }
     },
+    enabled: true,
   });
 
-  const totalUsersMonitored = 2847;
-  const highRiskCount = highRiskUsers.filter((u: HighRiskUser) => u.risk_level === "critical" || u.risk_level === "high").length;
-  const activeAlertsCount = threatTimeline.length;
-  const incidentsThisMonth = 12;
+  const totalUsersMonitored = liveStats?.stats?.total_users ?? liveStats?.dist?.total ?? 2847;
+  const highRiskCount = liveStats?.stats?.high_risk_count ??
+    highRiskUsers.filter((u: HighRiskUser) => u.risk_level === "critical" || u.risk_level === "high").length;
+  const activeAlertsCount = liveStats?.stats?.total_alerts ?? threatTimeline.length;
+  const incidentsThisMonth = liveStats?.stats?.incidents_this_month ?? 12;
 
   return (
     <div className="min-h-screen bg-slate-950">

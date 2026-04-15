@@ -11,9 +11,22 @@
  * API stubs: GET /api/v1/breach/cases, /api/v1/breach/notifications, /api/v1/breach/reports
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Bell, FileText, Clock, RefreshCw, Shield } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY  || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,11 +127,51 @@ function NotifTypeBadge({ type }: { type: string }) {
 
 export default function BreachResponse() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/breach-response/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/breach-response/cases?org_id=${ORG_ID}`),
+    ]).then(([statsRes, casesRes]) => {
+      const stats = statsRes.status === "fulfilled" ? statsRes.value : null;
+      const cases = casesRes.status === "fulfilled" ? casesRes.value : null;
+      if (stats || cases) setLiveData({ stats, cases });
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  // Resolve KPI values
+  const kpiActiveCases       = liveData?.stats?.active_cases       ?? liveData?.stats?.open_cases    ?? 7;
+  const kpiConfirmedBreaches  = liveData?.stats?.confirmed_breaches ?? liveData?.stats?.confirmed     ?? 3;
+  const kpiRecordsAffected   = liveData?.stats?.total_records_affected
+    ? liveData.stats.total_records_affected.toLocaleString()
+    : "47,823";
+  const kpiNotificationsSent = liveData?.stats?.notifications_sent ?? 12;
+
+  // Live cases table — map API shape to mock shape
+  const liveCasesArr = liveData?.cases?.cases ?? liveData?.cases;
+  const tableCases = Array.isArray(liveCasesArr) && liveCasesArr.length > 0
+    ? liveCasesArr.map((c: any) => ({
+        id:          c.case_id ?? c.id ?? "—",
+        title:       c.title ?? "—",
+        type:        c.breach_type ?? "external_attack",
+        discovered:  c.discovered_at ?? c.created_at ?? "—",
+        status:      c.status ?? "suspected",
+        records:     c.estimated_records_affected ?? 0,
+        notifiable:  c.notifiable ?? false,
+        deadline:    c.regulatory_deadline ?? "—",
+      }))
+    : BREACH_CASES;
 
   return (
     <motion.div
@@ -132,18 +185,18 @@ export default function BreachResponse() {
         title="Data Breach Response"
         description="Breach case management and regulatory notification tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Cases"       value={7}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Confirmed Breaches" value={3}      icon={Shield}        trend="up"   className="border-red-500/20" />
-        <KpiCard title="Records Affected"   value="47,823" icon={FileText}      trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Notifications Sent" value={12}     icon={Bell}          trend="down" />
+        <KpiCard title="Active Cases"       value={kpiActiveCases}       icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Confirmed Breaches" value={kpiConfirmedBreaches}  icon={Shield}        trend="up"   className="border-red-500/20" />
+        <KpiCard title="Records Affected"   value={kpiRecordsAffected}   icon={FileText}      trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Notifications Sent" value={kpiNotificationsSent} icon={Bell}          trend="down" />
       </div>
 
       {/* Response Timeline */}
@@ -198,7 +251,7 @@ export default function BreachResponse() {
               Breach Cases
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {BREACH_CASES.length} cases
+              {tableCases.length} cases
             </Badge>
           </div>
           <CardDescription className="text-xs">All active and resolved breach cases with notification status</CardDescription>
@@ -220,7 +273,7 @@ export default function BreachResponse() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {BREACH_CASES.map((row) => (
+                {tableCases.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2">{row.id}</TableCell>
                     <TableCell className="text-xs py-2 max-w-[180px] truncate">{row.title}</TableCell>
