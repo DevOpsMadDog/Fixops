@@ -120,7 +120,7 @@ const PostureAdvisor = lazy(() => import("@/pages/PostureAdvisor"));
 const ZeroTrustDashboard = lazy(() => import("@/pages/ZeroTrustDashboard"));
 const PatchPrioritizer = lazy(() => import("@/pages/PatchPrioritizer"));
 const CVESearch = lazy(() => import("@/pages/CVESearch"));
-const IPReputation = lazy(() => import("@/pages/IPReputation"));
+const IPReputationDashboard = lazy(() => import("@/pages/IPReputationDashboard"));
 const SecretsRotation = lazy(() => import("@/pages/SecretsRotation"));
 const SupplyChainSecurity = lazy(() => import("@/pages/SupplyChainSecurity"));
 const DLPDashboard = lazy(() => import("@/pages/DLPDashboard"));
@@ -242,6 +242,9 @@ const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsD
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
+
+// Threat Geolocation + IP Reputation dashboards
+const ThreatGeolocationDashboard = lazy(() => import("@/pages/ThreatGeolocationDashboard"));
 
 // Secret Scanner, TIP, Attack Surface dashboards (wave 9)
 const SecretScannerDashboard = lazy(() => import("@/pages/SecretScannerDashboard"));
@@ -427,7 +430,8 @@ export default function App() {
             <Route path="/patch-prioritizer" element={<PatchPrioritizer />} />
             <Route path="/vendor-risk" element={<VendorRiskDashboard />} />
             <Route path="/cve-search" element={<CVESearch />} />
-            <Route path="/ip-reputation" element={<IPReputation />} />
+            <Route path="/ip-reputation" element={<IPReputationDashboard />} />
+            <Route path="/threat-geolocation" element={<ThreatGeolocationDashboard />} />
             <Route path="/secrets-rotation" element={<SecretsRotation />} />
             <Route path="/security-awareness" element={<SecurityAwareness />} />
             <Route path="/supply-chain" element={<SupplyChainSecurity />} />
