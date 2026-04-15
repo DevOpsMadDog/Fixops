@@ -5267,6 +5267,16 @@ def create_app() -> FastAPI:
         _logger.warning("Container Runtime router not available: %s", _cr_err)
 
     # -----------------------------------------------------------------------
+    # Application Security — SAST/DAST findings, scan runs, appsec stats
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.application_security_router import router as application_security_router
+        app.include_router(application_security_router)
+        _logger.info("Mounted Application Security router")
+    except ImportError as _as_err:
+        _logger.warning("Application Security router not available: %s", _as_err)
+
+    # -----------------------------------------------------------------------
     # Bug Bounty / VDP — vulnerability disclosure program management
     # -----------------------------------------------------------------------
     try:
