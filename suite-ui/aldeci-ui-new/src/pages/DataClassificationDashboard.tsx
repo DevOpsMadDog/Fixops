@@ -12,9 +12,25 @@
  * API stubs: GET /api/v1/data-classification/summary, /api/v1/data-classification/violations, /api/v1/data-classification/scans
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, ShieldAlert, AlertTriangle, Search, RefreshCw, FileText, Lock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -130,6 +146,22 @@ const MAX_TYPE_COUNT = Math.max(...DATA_TYPES.map(d => d.count));
 
 export default function DataClassificationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/classification/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/classification/assets?org_id=${ORG_ID}`),
+    ]).then(([statsResult, assetsResult]) => {
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      const assets = assetsResult.status === "fulfilled" ? assetsResult.value : null;
+      if (stats || assets) {
+        setLiveData({ stats, assets });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   return (
     <motion.div
@@ -144,8 +176,8 @@ export default function DataClassificationDashboard() {
         description="Data sensitivity classification and DLP oversight"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
-              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
+              <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
             <Button size="sm">Run Scan</Button>
           </div>
@@ -154,10 +186,10 @@ export default function DataClassificationDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Classified Items"   value="148,274" icon={Database}    />
-        <KpiCard title="PII Detected"       value="23,847"  icon={Lock}        trend="up" className="border-amber-500/20" />
-        <KpiCard title="Unclassified"       value="4,123"   icon={FileText}    trend="up" className="border-yellow-500/20" />
-        <KpiCard title="Policy Violations"  value={234}     icon={ShieldAlert} trend="up" className="border-red-500/20" />
+        <KpiCard title="Classified Items"   value={liveData?.stats?.total_classified ?? liveData?.stats?.total_assets ?? "148,274"} icon={Database}    />
+        <KpiCard title="PII Detected"       value={liveData?.stats?.pii_count ?? liveData?.stats?.by_category?.PII ?? "23,847"}  icon={Lock}        trend="up" className="border-amber-500/20" />
+        <KpiCard title="Unclassified"       value={liveData?.stats?.unclassified_count ?? liveData?.stats?.unclassified ?? "4,123"}   icon={FileText}    trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Policy Violations"  value={liveData?.stats?.violations_count ?? liveData?.stats?.policy_violations ?? 234}     icon={ShieldAlert} trend="up" className="border-red-500/20" />
       </div>
 
       {/* Classification breakdown + Data type distribution */}
@@ -236,7 +268,7 @@ export default function DataClassificationDashboard() {
               Policy Violations
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {VIOLATIONS.filter(v => v.status === "open").length} open
+              {(liveData?.assets ?? VIOLATIONS).filter((v: any) => v.status === "open").length ?? VIOLATIONS.filter(v => v.status === "open").length} open
             </Badge>
           </div>
           <CardDescription className="text-xs">Data policy violations requiring remediation</CardDescription>

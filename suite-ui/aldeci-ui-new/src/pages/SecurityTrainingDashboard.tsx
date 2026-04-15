@@ -1,5 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GraduationCap, Users, CheckCircle, Star, Clock, ChevronRight, TrendingUp } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 const COURSES = [
   { id: 1, title: "Phishing Awareness Fundamentals", category: "phishing", difficulty: "Beginner", duration: "45 min", passingScore: 80, enrolled: 1240, completion: 92 },
@@ -96,6 +109,26 @@ function isOverdue(due: string) {
 
 export default function SecurityTrainingDashboard() {
   const [activeTab, setActiveTab] = useState<"catalog" | "enrollments" | "campaigns" | "categories">("catalog");
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/security-training/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-training/courses?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-training/enrollments?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-training/campaigns?org_id=${ORG_ID}`),
+    ]).then(([statsRes, coursesRes, enrollRes, campRes]) => {
+      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const courses   = coursesRes.status   === "fulfilled" ? coursesRes.value   : null;
+      const enrollments = enrollRes.status  === "fulfilled" ? enrollRes.value    : null;
+      const campaigns = campRes.status      === "fulfilled" ? campRes.value      : null;
+      if (stats || courses || enrollments || campaigns) {
+        setLiveData({ stats, courses, enrollments, campaigns });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -107,10 +140,10 @@ export default function SecurityTrainingDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KPICard label="Courses" value="24" sub="8 active this quarter" icon={GraduationCap} color="bg-primary/10 text-primary" />
-        <KPICard label="Active Enrollments" value="3,847" sub="+214 this week" icon={Users} color="bg-blue-500/10 text-blue-400" />
-        <KPICard label="Completion Rate" value="78.4%" sub="+3.2% vs last quarter" icon={CheckCircle} color="bg-green-500/10 text-green-400" />
-        <KPICard label="Avg Score" value="82.7" sub="Passing threshold: 80" icon={Star} color="bg-yellow-500/10 text-yellow-400" />
+        <KPICard label="Courses" value={String(liveData?.stats?.total_courses ?? liveData?.courses?.length ?? 24)} sub="8 active this quarter" icon={GraduationCap} color="bg-primary/10 text-primary" />
+        <KPICard label="Active Enrollments" value={liveData?.stats?.active_enrollments ? liveData.stats.active_enrollments.toLocaleString() : "3,847"} sub="+214 this week" icon={Users} color="bg-blue-500/10 text-blue-400" />
+        <KPICard label="Completion Rate" value={liveData?.stats?.completion_rate ? `${liveData.stats.completion_rate.toFixed(1)}%` : "78.4%"} sub="+3.2% vs last quarter" icon={CheckCircle} color="bg-green-500/10 text-green-400" />
+        <KPICard label="Avg Score" value={liveData?.stats?.average_score ? liveData.stats.average_score.toFixed(1) : "82.7"} sub="Passing threshold: 80" icon={Star} color="bg-yellow-500/10 text-yellow-400" />
       </div>
 
       {/* Tabs */}
@@ -133,7 +166,7 @@ export default function SecurityTrainingDashboard() {
       {/* Course Catalog */}
       {activeTab === "catalog" && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {COURSES.map((c) => (
+          {(liveData?.courses ?? COURSES).map((c: any) => (
             <div key={c.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">
                 <span className="text-sm font-semibold text-foreground leading-snug">{c.title}</span>
@@ -176,7 +209,7 @@ export default function SecurityTrainingDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {ENROLLMENTS.map((e, i) => (
+              {(liveData?.enrollments ?? ENROLLMENTS).map((e: any, i: number) => (
                 <tr key={i} className="hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{e.user}</td>
                   <td className="px-4 py-3 text-xs text-foreground max-w-[180px] truncate">{e.course}</td>
@@ -204,7 +237,7 @@ export default function SecurityTrainingDashboard() {
       {/* Training Campaigns */}
       {activeTab === "campaigns" && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {CAMPAIGNS.map((c, i) => (
+          {(liveData?.campaigns ?? CAMPAIGNS).map((c: any, i: number) => (
             <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>

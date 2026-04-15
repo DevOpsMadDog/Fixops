@@ -11,12 +11,25 @@
  * API stubs: GET /api/v1/password-policy/policies, /api/v1/password-policy/violations, /api/v1/password-policy/audits
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Key, Shield, AlertTriangle, CheckCircle, XCircle,
   RefreshCw, BarChart3, ClipboardList, Users,
 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,10 +131,44 @@ function SeverityBadge({ sev }: { sev: string }) {
 
 export default function PasswordPolicy() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/password-policy/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/violations?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/audits?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/policies?org_id=${ORG_ID}`),
+    ]).then(([statsRes, violRes, auditRes, policiesRes]) => {
+      const stats      = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const violations = violRes.status      === "fulfilled" ? violRes.value      : null;
+      const audits     = auditRes.status     === "fulfilled" ? auditRes.value     : null;
+      const policies   = policiesRes.status  === "fulfilled" ? policiesRes.value  : null;
+      if (stats || violations || audits || policies) {
+        setLiveData({ stats, violations, audits, policies });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/password-policy/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/violations?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/audits?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/policies?org_id=${ORG_ID}`),
+    ]).then(([statsRes, violRes, auditRes, policiesRes]) => {
+      const stats      = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const violations = violRes.status      === "fulfilled" ? violRes.value      : null;
+      const audits     = auditRes.status     === "fulfilled" ? auditRes.value     : null;
+      const policies   = policiesRes.status  === "fulfilled" ? policiesRes.value  : null;
+      if (stats || violations || audits || policies) {
+        setLiveData({ stats, violations, audits, policies });
+      }
+    }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
 
   return (
@@ -136,18 +183,18 @@ export default function PasswordPolicy() {
         title="Password Policy Management"
         description="Policy enforcement and violation tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Policies"   value={4}       icon={Key}           trend="flat" />
-        <KpiCard title="Users Audited"     value="3,847"   icon={Users}         trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Violations Found"  value={234}     icon={AlertTriangle} trend="down" className="border-amber-500/20" />
-        <KpiCard title="Compliance Rate"   value="93.9%"   icon={Shield}        trend="up"   className="border-green-500/20" />
+        <KpiCard title="Active Policies"   value={liveData?.stats?.total_policies   ?? liveData?.policies?.count ?? 4}                                                                icon={Key}           trend="flat" />
+        <KpiCard title="Users Audited"     value={liveData?.stats?.users_audited    ? liveData.stats.users_audited.toLocaleString() : "3,847"}                                        icon={Users}         trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Violations Found"  value={liveData?.stats?.open_violations  ?? liveData?.violations?.count ?? 234}                                                            icon={AlertTriangle} trend="down" className="border-amber-500/20" />
+        <KpiCard title="Compliance Rate"   value={liveData?.stats?.compliance_rate  ? `${(liveData.stats.compliance_rate * 100).toFixed(1)}%` : "93.9%"}                             icon={Shield}        trend="up"   className="border-green-500/20" />
       </div>
 
       {/* Policy cards */}
@@ -213,7 +260,7 @@ export default function PasswordPolicy() {
               Policy Violations
             </CardTitle>
             <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
-              {VIOLATIONS.filter(v => v.status === "Open").length} open
+              {(liveData?.violations?.violations ?? VIOLATIONS).filter((v: any) => v.status === "Open" || v.status === "open").length} open
             </Badge>
           </div>
           <CardDescription className="text-xs">Detected password policy violations — user IDs are masked for privacy</CardDescription>
@@ -233,7 +280,7 @@ export default function PasswordPolicy() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {VIOLATIONS.map((v, i) => (
+                {(liveData?.violations?.violations ?? VIOLATIONS).map((v: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{v.userId}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[140px] truncate">{v.policy}</TableCell>
@@ -286,7 +333,7 @@ export default function PasswordPolicy() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {AUDITS.map((a, i) => (
+                {(liveData?.audits?.audits ?? AUDITS).map((a: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{a.date}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right">{a.checked.toLocaleString()}</TableCell>

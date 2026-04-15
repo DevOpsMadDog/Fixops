@@ -11,11 +11,24 @@
  * API stubs: GET /api/v1/appsec/apps, /api/v1/appsec/scans, /api/v1/appsec/findings
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Code2, Shield, AlertTriangle, Bug, RefreshCw, BarChart3, Zap, Search,
 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,10 +125,32 @@ function ScanTypeBadge({ type }: { type: string }) {
 
 export default function AppSecurity() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/appsec/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/appsec/apps?org_id=${ORG_ID}`),
+    ]).then(([statsResult, appsResult]) => {
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      const apps  = appsResult.status  === "fulfilled" ? appsResult.value  : null;
+      if (stats || apps) setLiveData({ stats, apps });
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/appsec/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/appsec/apps?org_id=${ORG_ID}`),
+    ]).then(([statsResult, appsResult]) => {
+      const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
+      const apps  = appsResult.status  === "fulfilled" ? appsResult.value  : null;
+      if (stats || apps) setLiveData({ stats, apps });
+    }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
 
   const owaspMax = Math.max(...OWASP_TOP10.map(o => o.count));
@@ -132,18 +167,18 @@ export default function AppSecurity() {
         title="Application Security (AppSec)"
         description="SAST/DAST scan results and finding management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Applications"   value={24}    icon={Code2}         trend="up" />
-        <KpiCard title="Total Scans"    value={187}   icon={Search}        trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Open Findings"  value={312}   icon={Bug}           trend="down" className="border-amber-500/20" />
-        <KpiCard title="Critical"       value={18}    icon={AlertTriangle} trend="down" className="border-red-500/20" />
+        <KpiCard title="Applications"   value={liveData?.stats?.total_apps      ?? 24}  icon={Code2}         trend="up" />
+        <KpiCard title="Total Scans"    value={liveData?.stats?.total_scans     ?? 187} icon={Search}        trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Open Findings"  value={liveData?.stats?.open_findings   ?? 312} icon={Bug}           trend="down" className="border-amber-500/20" />
+        <KpiCard title="Critical"       value={liveData?.stats?.critical_count  ?? 18}  icon={AlertTriangle} trend="down" className="border-red-500/20" />
       </div>
 
       {/* Application table + OWASP breakdown */}
@@ -171,21 +206,21 @@ export default function AppSecurity() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {APPLICATIONS.map((app, i) => (
+                  {(liveData?.apps?.items ?? liveData?.apps ?? APPLICATIONS).map((app: any, i: number) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2.5 max-w-[130px] truncate">{app.name}</TableCell>
-                      <TableCell className="py-2.5"><TypeBadge type={app.type} /></TableCell>
+                      <TableCell className="py-2.5"><TypeBadge type={app.type ?? app.app_type ?? "web"} /></TableCell>
                       <TableCell className="py-2.5">
                         <div className="flex gap-1 flex-wrap">
-                          {app.stack.map((t) => (
+                          {(app.stack ?? [app.language ?? "other"]).map((t: string) => (
                             <Badge key={t} className="text-[9px] border border-border bg-muted/20 text-muted-foreground">{t}</Badge>
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell className="py-2.5"><RiskBadge risk={app.risk} /></TableCell>
+                      <TableCell className="py-2.5"><RiskBadge risk={app.risk ?? app.criticality ?? "Medium"} /></TableCell>
                       <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">
                         <span className={app.findings > 40 ? "text-red-400" : app.findings > 20 ? "text-amber-400" : "text-muted-foreground"}>
-                          {app.findings}
+                          {app.findings ?? 0}
                         </span>
                       </TableCell>
                       <TableCell className="py-2.5 text-right">

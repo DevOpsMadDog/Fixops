@@ -10,9 +10,22 @@
  *   6. Cross-domain compliance trend (6-month animated bar chart)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, Activity } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID   = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,10 +125,55 @@ export default function CrossDomainAnalytics() {
   const [refreshing, setRefreshing] = useState(false);
   const [iocQuery, setIocQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [liveIocResults, setLiveIocResults] = useState<any>(null);
+  const [iocLoading, setIocLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/analytics-engine/executive?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/analytics-engine/asset-vuln?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/analytics-engine/compliance-trend?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/analytics-engine/domains`),
+    ]).then(([execRes, assetRes, trendRes, domainsRes]) => {
+      const exec    = execRes.status    === "fulfilled" ? execRes.value    : null;
+      const assets  = assetRes.status   === "fulfilled" ? assetRes.value   : null;
+      const trend   = trendRes.status   === "fulfilled" ? trendRes.value   : null;
+      const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
+      if (exec || assets || trend || domains) {
+        setLiveData({ exec, assets, trend, domains });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  const handleIocSearch = () => {
+    if (!iocQuery.trim()) { setShowResults(true); return; }
+    setIocLoading(true);
+    apiFetch(`/api/v1/analytics-engine/threat-ioc?org_id=${ORG_ID}&ioc=${encodeURIComponent(iocQuery)}`)
+      .then((data) => { setLiveIocResults(data); setShowResults(true); })
+      .catch(() => setShowResults(true))
+      .finally(() => setIocLoading(false));
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/analytics-engine/executive?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/analytics-engine/asset-vuln?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/analytics-engine/compliance-trend?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/analytics-engine/domains`),
+    ]).then(([execRes, assetRes, trendRes, domainsRes]) => {
+      const exec    = execRes.status    === "fulfilled" ? execRes.value    : null;
+      const assets  = assetRes.status   === "fulfilled" ? assetRes.value   : null;
+      const trend   = trendRes.status   === "fulfilled" ? trendRes.value   : null;
+      const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
+      if (exec || assets || trend || domains) {
+        setLiveData({ exec, assets, trend, domains });
+      }
+    }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
 
   return (
@@ -130,18 +188,18 @@ export default function CrossDomainAnalytics() {
         title="Cross-Domain Analytics"
         description="DuckDB-powered unified risk intelligence across all security domains"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Domains Connected"  value={18}      icon={Database}      trend="up" />
-        <KpiCard title="Active Alerts"      value={34}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Avg Risk Score"     value="62.4"    icon={Shield}        trend="down" className="border-amber-500/20" />
-        <KpiCard title="IOC Correlations"   value="847"     icon={Globe}         trend="up" />
+        <KpiCard title="Domains Connected"  value={liveData?.domains?.length          ?? 18}      icon={Database}      trend="up" />
+        <KpiCard title="Active Alerts"      value={liveData?.exec?.open_incidents      ?? 34}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Avg Risk Score"     value={liveData?.exec?.posture_score       ?? "62.4"}  icon={Shield}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="IOC Correlations"   value={liveData?.exec?.active_threats      ?? "847"}   icon={Globe}         trend="up" />
       </div>
 
       {/* Executive Summary + Compliance Trend */}
@@ -156,12 +214,22 @@ export default function CrossDomainAnalytics() {
             <CardDescription className="text-xs">Aggregated posture across all domains</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {EXEC_SUMMARY.map((row) => (
-              <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0">
-                <span className="text-xs text-muted-foreground">{row.label}</span>
-                <Badge className={cn("text-xs font-bold border", row.badge)}>{row.value}</Badge>
-              </div>
-            ))}
+            {EXEC_SUMMARY.map((row) => {
+              let displayValue = row.value;
+              if (liveData?.exec) {
+                if (row.label === "Security Posture") displayValue = liveData.exec.posture_score ?? row.value;
+                else if (row.label === "Open Cases")  displayValue = String(liveData.exec.open_incidents ?? row.value);
+                else if (row.label === "Critical Vulns") displayValue = String(liveData.exec.critical_vulns ?? row.value);
+                else if (row.label === "Hunt Findings") displayValue = String(liveData.exec.active_threats ?? row.value);
+                else if (row.label === "Compliance Score") displayValue = liveData.exec.compliance_avg ? `${liveData.exec.compliance_avg}%` : row.value;
+              }
+              return (
+                <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0">
+                  <span className="text-xs text-muted-foreground">{row.label}</span>
+                  <Badge className={cn("text-xs font-bold border", row.badge)}>{displayValue}</Badge>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -215,8 +283,8 @@ export default function CrossDomainAnalytics() {
               value={iocQuery}
               onChange={(e) => setIocQuery(e.target.value)}
             />
-            <Button size="sm" onClick={() => setShowResults(true)} className="h-9 px-4">
-              Search
+            <Button size="sm" onClick={handleIocSearch} disabled={iocLoading} className="h-9 px-4">
+              {iocLoading ? "Searching…" : "Search"}
             </Button>
           </div>
           {showResults && (
@@ -230,21 +298,38 @@ export default function CrossDomainAnalytics() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {IOC_RESULTS.map((r) => (
-                    <TableRow key={r.ioc} className="hover:bg-muted/30">
-                      <TableCell className="text-xs font-mono py-2">{r.ioc}</TableCell>
-                      <TableCell className="py-2">
-                        <Badge className="text-[10px] border border-border text-muted-foreground">{r.type}</Badge>
-                      </TableCell>
-                      <TableCell className="py-2">
-                        <div className="flex flex-wrap gap-1">
-                          {r.domains.map((d) => (
-                            <Badge key={d} className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{d}</Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {liveIocResults
+                    ? (
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="text-xs font-mono py-2">{iocQuery}</TableCell>
+                        <TableCell className="py-2">
+                          <Badge className="text-[10px] border border-border text-muted-foreground">IOC</Badge>
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <div className="flex flex-wrap gap-1">
+                            {liveIocResults.threat_feed_hits > 0 && <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">Feed Intel ({liveIocResults.threat_feed_hits})</Badge>}
+                            {liveIocResults.threat_hunt_hits > 0 && <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">Hunt Findings ({liveIocResults.threat_hunt_hits})</Badge>}
+                            {!liveIocResults.threat_feed_hits && !liveIocResults.threat_hunt_hits && <Badge className="text-[10px] border border-border text-muted-foreground">No hits found</Badge>}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                    : IOC_RESULTS.map((r) => (
+                      <TableRow key={r.ioc} className="hover:bg-muted/30">
+                        <TableCell className="text-xs font-mono py-2">{r.ioc}</TableCell>
+                        <TableCell className="py-2">
+                          <Badge className="text-[10px] border border-border text-muted-foreground">{r.type}</Badge>
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <div className="flex flex-wrap gap-1">
+                            {r.domains.map((d) => (
+                              <Badge key={d} className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{d}</Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  }
                 </TableBody>
               </Table>
             </div>
@@ -278,9 +363,9 @@ export default function CrossDomainAnalytics() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ASSET_VULN.map((row) => (
-                  <TableRow key={row.asset} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-mono py-2.5">{row.asset}</TableCell>
+                {(liveData?.assets ?? ASSET_VULN).map((row: any) => (
+                  <TableRow key={row.asset ?? row.asset_id} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-mono py-2.5">{row.asset ?? row.asset_id}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>
                     <TableCell className="py-2.5"><RiskBadge risk={row.risk} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground max-w-[160px] truncate">{row.vuln}</TableCell>
@@ -317,9 +402,9 @@ export default function CrossDomainAnalytics() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {DOMAINS.map((d) => (
+            {(liveData?.domains ?? DOMAINS).map((d: any) => (
               <div
-                key={d.name}
+                key={d.name ?? d.db_name}
                 className={cn(
                   "rounded-lg border p-2.5 flex flex-col gap-1",
                   d.stale
