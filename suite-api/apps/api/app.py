@@ -5600,6 +5600,17 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Data Classification router not loaded: {e}")
 
+    # Compliance Gap Analysis & Audit Readiness — gap analysis, audit readiness scoring, remediation tasks
+    try:
+        from apps.api.compliance_gap_router import router as compliance_gap_router
+        app.include_router(
+            compliance_gap_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted Compliance Gap Analysis router at /api/v1/compliance-automation")
+    except Exception as e:
+        _logger.warning(f"Compliance Gap Analysis router not loaded: {e}")
+
     return app
 
 

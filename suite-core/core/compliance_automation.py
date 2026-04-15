@@ -37,6 +37,155 @@ _logger = logging.getLogger(__name__)
 
 SUPPORTED_FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST-CSF", "CIS", "GDPR"]
 
+# ---------------------------------------------------------------------------
+# SOC2 Controls (20 simplified controls CC1–CC9 + A + PI)
+# ---------------------------------------------------------------------------
+
+SOC2_CONTROLS: List[Dict[str, Any]] = [
+    {"id": "CC1.1", "name": "COSO Principle 1 — Commitment to Integrity", "category": "CC",
+     "description": "The entity demonstrates a commitment to integrity and ethical values.",
+     "test_procedure": "Review code of conduct, ethics training records, disciplinary actions."},
+    {"id": "CC1.2", "name": "COSO Principle 2 — Board Independence", "category": "CC",
+     "description": "The board demonstrates independence from management and exercises oversight.",
+     "test_procedure": "Inspect board composition, meeting minutes, oversight evidence."},
+    {"id": "CC2.1", "name": "COSO Principle 13 — External Communication", "category": "CC",
+     "description": "The entity communicates with external parties about matters affecting operations.",
+     "test_procedure": "Review external communication policies and customer notification procedures."},
+    {"id": "CC3.1", "name": "COSO Principle 6 — Objectives Specification", "category": "CC",
+     "description": "The entity specifies objectives with sufficient clarity to enable risk identification.",
+     "test_procedure": "Review documented objectives aligned with security commitments."},
+    {"id": "CC4.1", "name": "COSO Principle 16 — Internal Control Evaluations", "category": "CC",
+     "description": "The entity selects, develops, and performs ongoing evaluations of internal controls.",
+     "test_procedure": "Inspect monitoring activities, control deficiency logs, remediation tracking."},
+    {"id": "CC5.1", "name": "COSO Principle 10 — Control Activities Selection", "category": "CC",
+     "description": "The entity selects and develops control activities that mitigate risks.",
+     "test_procedure": "Review control activity design against identified risks."},
+    {"id": "CC6.1", "name": "Logical Access Security — Access Controls", "category": "CC",
+     "description": "Logical access security software, infrastructure, and architectures are implemented.",
+     "test_procedure": "Inspect access control configs, user provisioning, MFA enforcement, access reviews."},
+    {"id": "CC6.2", "name": "Authentication — Prior to Access", "category": "CC",
+     "description": "Prior to issuing system credentials, entities register and authorise users.",
+     "test_procedure": "Review user registration process, credential issuance, access request approvals."},
+    {"id": "CC6.3", "name": "Access Removal — Termination", "category": "CC",
+     "description": "The entity removes access to protected information assets when no longer needed.",
+     "test_procedure": "Test offboarding process, inspect deprovisioning tickets and timing."},
+    {"id": "CC6.6", "name": "Security Threats — External", "category": "CC",
+     "description": "The entity implements controls to prevent or detect threats from outside system boundaries.",
+     "test_procedure": "Review firewall rules, intrusion detection, vulnerability scanning results."},
+    {"id": "CC6.7", "name": "Transmission of Data — Encryption in Transit", "category": "CC",
+     "description": "The entity restricts transmission of confidential information to authorised parties.",
+     "test_procedure": "Verify TLS configuration, certificate validity, data-in-transit encryption."},
+    {"id": "CC7.1", "name": "Vulnerability Detection — Scanning", "category": "CC",
+     "description": "The entity uses detection and monitoring procedures to identify vulnerabilities.",
+     "test_procedure": "Inspect vulnerability scan reports, frequency, remediation SLAs."},
+    {"id": "CC7.2", "name": "Security Incidents — Detection", "category": "CC",
+     "description": "The entity monitors system components and operations for anomalies.",
+     "test_procedure": "Review SIEM alerts, log monitoring, incident detection timelines."},
+    {"id": "CC7.3", "name": "Security Incidents — Response", "category": "CC",
+     "description": "The entity evaluates and communicates security incidents to affected parties.",
+     "test_procedure": "Inspect incident response plan, test scenarios, stakeholder notification logs."},
+    {"id": "CC8.1", "name": "Change Management — Authorisation", "category": "CC",
+     "description": "The entity authorises, designs, develops, and tests changes to infrastructure.",
+     "test_procedure": "Review change request tickets, approvals, testing evidence, rollback plans."},
+    {"id": "CC9.1", "name": "Risk Mitigation — Vendor Management", "category": "CC",
+     "description": "The entity identifies, selects, and develops risk mitigation activities for vendors.",
+     "test_procedure": "Inspect vendor risk assessments, contracts, BAAs, periodic reviews."},
+    {"id": "CC9.2", "name": "Risk Mitigation — Business Partners", "category": "CC",
+     "description": "The entity assesses and manages risks associated with business partners.",
+     "test_procedure": "Review partner assessments, data sharing agreements, monitoring processes."},
+    {"id": "A1.1", "name": "Availability — Performance Capacity", "category": "A",
+     "description": "Current processing capacity and usage are managed to meet SLA commitments.",
+     "test_procedure": "Review capacity reports, SLA dashboards, scaling configurations."},
+    {"id": "A1.2", "name": "Availability — Recovery Objectives", "category": "A",
+     "description": "Environmental protections, software, data backup and recovery meet objectives.",
+     "test_procedure": "Test backup restoration, inspect RTO/RPO documentation, DR test results."},
+    {"id": "PI1.1", "name": "Processing Integrity — Complete Processing", "category": "PI",
+     "description": "Policies address the completeness, accuracy, and timeliness of system processing.",
+     "test_procedure": "Review processing integrity controls, error detection, reconciliation procedures."},
+]
+
+# Cross-framework control coverage map
+_CROSS_FRAMEWORK_MAP: List[Dict[str, Any]] = [
+    {
+        "control_tag": "MFA / Access Control",
+        "description": "Multi-factor authentication and access control implementations",
+        "coverage": {
+            "SOC2": ["CC6.1", "CC6.2"],
+            "ISO27001": ["A.9.4.2", "A.9.2.1"],
+            "PCI-DSS": ["REQ-8"],
+            "HIPAA": ["164.312(a)(2)(i)"],
+            "NIST-CSF": ["PR.AC-1", "PR.AC-7"],
+            "CIS": ["CIS-5", "CIS-6"],
+            "GDPR": ["ART-32"],
+        },
+    },
+    {
+        "control_tag": "Audit Logging",
+        "description": "Audit log collection, retention, and review",
+        "coverage": {
+            "SOC2": ["CC7.2"],
+            "ISO27001": ["A.12.4.1"],
+            "PCI-DSS": ["REQ-10"],
+            "HIPAA": ["164.312(b)"],
+            "NIST-CSF": ["DE.CM-1", "DE.AE-3"],
+            "CIS": ["CIS-8"],
+            "GDPR": ["ART-5"],
+        },
+    },
+    {
+        "control_tag": "Vulnerability Management",
+        "description": "Vulnerability scanning, patching, and remediation tracking",
+        "coverage": {
+            "SOC2": ["CC7.1"],
+            "ISO27001": ["A.12.6.1"],
+            "PCI-DSS": ["REQ-6", "REQ-11"],
+            "HIPAA": ["164.308(a)(1)"],
+            "NIST-CSF": ["ID.RA-1", "RS.MI-3"],
+            "CIS": ["CIS-7"],
+            "GDPR": ["ART-32"],
+        },
+    },
+    {
+        "control_tag": "Encryption at Rest and Transit",
+        "description": "Data encryption in storage and during transmission",
+        "coverage": {
+            "SOC2": ["CC6.7"],
+            "ISO27001": ["A.10.1.1"],
+            "PCI-DSS": ["REQ-3", "REQ-4"],
+            "HIPAA": ["164.312(a)(2)(iv)", "164.312(e)(2)(ii)"],
+            "NIST-CSF": ["PR.DS-1", "PR.DS-2"],
+            "CIS": ["CIS-3"],
+            "GDPR": ["ART-32"],
+        },
+    },
+    {
+        "control_tag": "Incident Response",
+        "description": "Security incident detection, response, and communication",
+        "coverage": {
+            "SOC2": ["CC7.3"],
+            "ISO27001": ["A.16.1.1"],
+            "PCI-DSS": ["REQ-12"],
+            "HIPAA": ["164.308(a)(6)"],
+            "NIST-CSF": ["RS.RP-1", "RS.CO-1"],
+            "CIS": ["CIS-17"],
+            "GDPR": ["ART-33", "ART-34"],
+        },
+    },
+    {
+        "control_tag": "Change Management",
+        "description": "Authorised change control and configuration management",
+        "coverage": {
+            "SOC2": ["CC8.1"],
+            "ISO27001": ["A.12.1.2"],
+            "PCI-DSS": ["REQ-6"],
+            "HIPAA": ["164.308(a)(1)"],
+            "NIST-CSF": ["PR.IP-3"],
+            "CIS": ["CIS-4"],
+            "GDPR": ["ART-25"],
+        },
+    },
+]
+
 # Default recipes: framework -> list of (control_id, task_type, interval_hours)
 _AUTOMATION_RECIPES: Dict[str, List[Dict[str, Any]]] = {
     "SOC2": [
@@ -215,6 +364,46 @@ class ComplianceAutomation:
                     """
                     CREATE INDEX IF NOT EXISTS idx_tasks_status
                     ON compliance_tasks (status)
+                    """
+                )
+                # Control status table — tracks per-org/framework/control status
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS control_statuses (
+                        id TEXT PRIMARY KEY,
+                        org_id TEXT NOT NULL,
+                        framework TEXT NOT NULL,
+                        control_id TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'failing',
+                        evidence_url TEXT,
+                        updated_at DATETIME NOT NULL,
+                        UNIQUE(org_id, framework, control_id)
+                    )
+                    """
+                )
+                # Remediation tasks table
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS remediation_tasks (
+                        id TEXT PRIMARY KEY,
+                        org_id TEXT NOT NULL,
+                        framework TEXT NOT NULL,
+                        control_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT DEFAULT '',
+                        assignee TEXT DEFAULT '',
+                        due_date TEXT,
+                        priority TEXT DEFAULT 'medium',
+                        task_status TEXT DEFAULT 'open',
+                        created_at DATETIME NOT NULL,
+                        updated_at DATETIME NOT NULL
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_rem_org_framework
+                    ON remediation_tasks (org_id, framework)
                     """
                 )
                 conn.commit()
@@ -842,3 +1031,483 @@ class ComplianceAutomation:
         for framework in SUPPORTED_FRAMEWORKS:
             result[framework] = self.seed_framework_recipes(framework, org_id)
         return result
+
+    # ------------------------------------------------------------------
+    # Gap analysis
+    # ------------------------------------------------------------------
+
+    def run_gap_analysis(self, org_id: str, framework: str) -> Dict[str, Any]:
+        """
+        Run gap analysis for a framework against stored control statuses.
+
+        Returns a dict with score, passing/failing counts, and gap details.
+        """
+        if framework not in SUPPORTED_FRAMEWORKS:
+            raise ValueError(f"Unsupported framework '{framework}'. Choose from: {SUPPORTED_FRAMEWORKS}")
+
+        # Use SOC2_CONTROLS for SOC2; derive generic control list for others
+        if framework == "SOC2":
+            controls = SOC2_CONTROLS
+        else:
+            controls = self._generic_controls(framework)
+
+        with self._lock:
+            conn = self._connect()
+            try:
+                rows = conn.execute(
+                    "SELECT control_id, status, evidence_url FROM control_statuses "
+                    "WHERE org_id = ? AND framework = ?",
+                    (org_id, framework),
+                ).fetchall()
+            finally:
+                self._close(conn)
+
+        status_map: Dict[str, Dict[str, Any]] = {
+            row["control_id"]: {"status": row["status"], "evidence_url": row["evidence_url"]}
+            for row in rows
+        }
+
+        passing = 0
+        failing = 0
+        not_applicable = 0
+        in_remediation = 0
+        gaps: List[Dict[str, Any]] = []
+
+        for ctrl in controls:
+            cid = ctrl["id"]
+            entry = status_map.get(cid)
+            ctrl_status = entry["status"] if entry else "failing"
+
+            if ctrl_status == "passing":
+                passing += 1
+            elif ctrl_status == "not_applicable":
+                not_applicable += 1
+            elif ctrl_status == "in_remediation":
+                in_remediation += 1
+                gaps.append({
+                    "control_id": cid,
+                    "control_name": ctrl["name"],
+                    "requirement": ctrl["description"],
+                    "current_state": ctrl_status,
+                    "gap_description": f"Control {cid} is under active remediation.",
+                    "priority": self._gap_priority(cid),
+                })
+            else:  # failing or unknown
+                failing += 1
+                gaps.append({
+                    "control_id": cid,
+                    "control_name": ctrl["name"],
+                    "requirement": ctrl["description"],
+                    "current_state": ctrl_status,
+                    "gap_description": f"Control {cid} is not passing. Test: {ctrl.get('test_procedure', '')}",
+                    "priority": self._gap_priority(cid),
+                })
+
+        total = len(controls)
+        assessed = passing + not_applicable  # controls that are satisfied
+        score = round((assessed / total) * 100, 1) if total > 0 else 0.0
+
+        return {
+            "framework": framework,
+            "org_id": org_id,
+            "score": score,
+            "total_controls": total,
+            "passing": passing,
+            "failing": failing,
+            "not_applicable": not_applicable,
+            "in_remediation": in_remediation,
+            "gaps": sorted(gaps, key=lambda g: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(g["priority"], 4)),
+            "assessed_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _gap_priority(self, control_id: str) -> str:
+        """Assign priority based on control category."""
+        cid_upper = control_id.upper()
+        if any(cid_upper.startswith(p) for p in ("CC6", "CC7", "REQ-3", "REQ-10", "164.312", "AU-", "AC-")):
+            return "critical"
+        if any(cid_upper.startswith(p) for p in ("CC8", "CC9", "REQ-6", "REQ-8", "A.9", "A.12", "PR.AC")):
+            return "high"
+        if any(cid_upper.startswith(p) for p in ("CC1", "CC2", "CC3", "CC4", "CC5", "A1", "PI")):
+            return "medium"
+        return "low"
+
+    def _generic_controls(self, framework: str) -> List[Dict[str, Any]]:
+        """Return a simplified control list for non-SOC2 frameworks."""
+        recipes = _AUTOMATION_RECIPES.get(framework, [])
+        result = []
+        for r in recipes:
+            result.append({
+                "id": r["control_id"],
+                "name": r["description"],
+                "category": r["control_id"].split("-")[0] if "-" in r["control_id"] else "GEN",
+                "description": r["description"],
+                "test_procedure": f"Automated check for {r['control_id']}.",
+            })
+        # Supplement with a few extra controls so we have meaningful sets
+        _extra: Dict[str, List[Dict[str, Any]]] = {
+            "ISO27001": [
+                {"id": "A.9.2.1", "name": "User Access Provisioning", "category": "A",
+                 "description": "User access rights are allocated and de-allocated.", "test_procedure": "Review provisioning process."},
+                {"id": "A.10.1.1", "name": "Policy on Use of Cryptographic Controls", "category": "A",
+                 "description": "A policy on the use of cryptographic controls for protection of information.", "test_procedure": "Inspect crypto policy."},
+                {"id": "A.12.4.1", "name": "Event Logging", "category": "A",
+                 "description": "Event logs recording user activities are produced and retained.", "test_procedure": "Review log retention."},
+                {"id": "A.16.1.1", "name": "Responsibilities and Procedures", "category": "A",
+                 "description": "Management responsibilities for incident response are established.", "test_procedure": "Review IR procedures."},
+            ],
+            "PCI-DSS": [
+                {"id": "REQ-1", "name": "Install and maintain network security controls", "category": "REQ",
+                 "description": "Network security controls restrict inbound and outbound traffic.", "test_procedure": "Review firewall rulesets."},
+                {"id": "REQ-3", "name": "Protect stored account data", "category": "REQ",
+                 "description": "Stored account data is encrypted and protected.", "test_procedure": "Inspect encryption of PANs."},
+                {"id": "REQ-8", "name": "Identify users and authenticate access", "category": "REQ",
+                 "description": "User accounts use unique IDs and MFA for CDE access.", "test_procedure": "Verify MFA enforcement."},
+            ],
+            "HIPAA": [
+                {"id": "164.308(a)(3)", "name": "Workforce Security", "category": "OP",
+                 "description": "Policies governing workforce member access to ePHI.", "test_procedure": "Review access provisioning policies."},
+                {"id": "164.312(a)(1)", "name": "Access Control", "category": "TC",
+                 "description": "Unique user identification, emergency access, and auto logoff.", "test_procedure": "Verify access control implementation."},
+                {"id": "164.312(b)", "name": "Audit Controls", "category": "TC",
+                 "description": "Hardware, software, and procedural mechanisms to record ePHI access.", "test_procedure": "Review audit log completeness."},
+            ],
+            "NIST-CSF": [
+                {"id": "ID.AM-2", "name": "Software platforms and applications are inventoried", "category": "ID",
+                 "description": "Software assets are identified and documented.", "test_procedure": "Review software inventory."},
+                {"id": "PR.DS-1", "name": "Data-at-rest is protected", "category": "PR",
+                 "description": "Data at rest is encrypted in accordance with policy.", "test_procedure": "Verify encryption-at-rest config."},
+                {"id": "DE.AE-1", "name": "Baseline network operations established", "category": "DE",
+                 "description": "A baseline of network operations is established and managed.", "test_procedure": "Review network baseline documentation."},
+            ],
+            "CIS": [
+                {"id": "CIS-3", "name": "Data Protection", "category": "CIS",
+                 "description": "Data processes and infrastructure are protected.", "test_procedure": "Review data classification and encryption."},
+                {"id": "CIS-5", "name": "Account Management", "category": "CIS",
+                 "description": "Use processes and tools to assign and manage authorisation.", "test_procedure": "Inspect account lifecycle management."},
+                {"id": "CIS-12", "name": "Network Infrastructure Management", "category": "CIS",
+                 "description": "Establish, implement, and actively manage network devices.", "test_procedure": "Review network device configs."},
+            ],
+            "GDPR": [
+                {"id": "ART-5", "name": "Principles relating to processing of personal data", "category": "ART",
+                 "description": "Personal data shall be processed lawfully, fairly and transparently.", "test_procedure": "Review processing records for lawful basis."},
+                {"id": "ART-25", "name": "Data protection by design and by default", "category": "ART",
+                 "description": "Data protection is integrated into processing activities by design.", "test_procedure": "Review PbD and PbDF implementations."},
+                {"id": "ART-33", "name": "Notification of a personal data breach", "category": "ART",
+                 "description": "Personal data breaches are notified to supervisory authority within 72 hours.", "test_procedure": "Test breach notification process."},
+            ],
+        }
+        extras = _extra.get(framework, [])
+        existing_ids = {r["id"] for r in result}
+        for e in extras:
+            if e["id"] not in existing_ids:
+                result.append(e)
+        return result
+
+    # ------------------------------------------------------------------
+    # Audit readiness scoring
+    # ------------------------------------------------------------------
+
+    def get_audit_readiness_score(self, org_id: str, framework: str) -> Dict[str, Any]:
+        """
+        Compute audit readiness score (0-100) for a framework.
+
+        A score >= 80 is considered ready for audit.
+        """
+        gap_result = self.run_gap_analysis(org_id, framework)
+        score = gap_result["score"]
+        ready = score >= 80.0
+
+        blockers = [
+            g["control_id"]
+            for g in gap_result["gaps"]
+            if g["priority"] in ("critical", "high") and g["current_state"] == "failing"
+        ]
+
+        # Rough estimate: 2 days per failing critical, 1 day per failing high/medium
+        days = 0
+        for g in gap_result["gaps"]:
+            if g["current_state"] == "failing":
+                if g["priority"] == "critical":
+                    days += 2
+                elif g["priority"] == "high":
+                    days += 1
+                else:
+                    days += 1
+
+        return {
+            "framework": framework,
+            "org_id": org_id,
+            "score": score,
+            "ready_for_audit": ready,
+            "blockers": blockers,
+            "estimated_remediation_days": days,
+            "total_controls": gap_result["total_controls"],
+            "passing": gap_result["passing"],
+            "failing": gap_result["failing"],
+            "assessed_at": gap_result["assessed_at"],
+        }
+
+    # ------------------------------------------------------------------
+    # Control status management
+    # ------------------------------------------------------------------
+
+    def update_control_status(
+        self,
+        org_id: str,
+        framework: str,
+        control_id: str,
+        status: str,
+        evidence_url: Optional[str] = None,
+    ) -> bool:
+        """
+        Update the status of a specific control.
+
+        status must be one of: passing, failing, not_applicable, in_remediation.
+        """
+        valid_statuses = {"passing", "failing", "not_applicable", "in_remediation"}
+        if status not in valid_statuses:
+            raise ValueError(f"Invalid status '{status}'. Must be one of: {valid_statuses}")
+        if framework not in SUPPORTED_FRAMEWORKS:
+            raise ValueError(f"Unsupported framework '{framework}'")
+
+        now = datetime.now(timezone.utc).isoformat()
+        row_id = str(uuid.uuid4())
+
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO control_statuses (id, org_id, framework, control_id, status, evidence_url, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(org_id, framework, control_id)
+                    DO UPDATE SET status=excluded.status, evidence_url=excluded.evidence_url, updated_at=excluded.updated_at
+                    """,
+                    (row_id, org_id, framework, control_id, status, evidence_url, now),
+                )
+                conn.commit()
+            finally:
+                self._close(conn)
+
+        return True
+
+    # ------------------------------------------------------------------
+    # Remediation task management
+    # ------------------------------------------------------------------
+
+    def create_remediation_task(
+        self,
+        org_id: str,
+        control_id: str,
+        framework: str,
+        task: Dict[str, Any],
+    ) -> str:
+        """
+        Create a remediation task linked to a specific control gap.
+
+        Returns the task ID.
+        """
+        if framework not in SUPPORTED_FRAMEWORKS:
+            raise ValueError(f"Unsupported framework '{framework}'")
+
+        task_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO remediation_tasks
+                        (id, org_id, framework, control_id, title, description,
+                         assignee, due_date, priority, task_status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        task_id,
+                        org_id,
+                        framework,
+                        control_id,
+                        task.get("title", f"Remediate {control_id}"),
+                        task.get("description", ""),
+                        task.get("assignee", ""),
+                        task.get("due_date"),
+                        task.get("priority", "medium"),
+                        task.get("task_status", "open"),
+                        now,
+                        now,
+                    ),
+                )
+                conn.commit()
+            finally:
+                self._close(conn)
+
+        return task_id
+
+    def list_remediation_tasks(
+        self,
+        org_id: str,
+        framework: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        List remediation tasks for an org, optionally filtered by framework.
+        """
+        with self._lock:
+            conn = self._connect()
+            try:
+                if framework:
+                    rows = conn.execute(
+                        "SELECT * FROM remediation_tasks WHERE org_id = ? AND framework = ? ORDER BY created_at DESC",
+                        (org_id, framework),
+                    ).fetchall()
+                else:
+                    rows = conn.execute(
+                        "SELECT * FROM remediation_tasks WHERE org_id = ? ORDER BY created_at DESC",
+                        (org_id,),
+                    ).fetchall()
+            finally:
+                self._close(conn)
+
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Audit report generation
+    # ------------------------------------------------------------------
+
+    def generate_audit_report(self, org_id: str, framework: str) -> Dict[str, Any]:
+        """
+        Generate a complete audit report for a framework.
+
+        Includes gap analysis, control statuses, evidence summary, and remediation tasks.
+        """
+        if framework not in SUPPORTED_FRAMEWORKS:
+            raise ValueError(f"Unsupported framework '{framework}'")
+
+        gap_result = self.run_gap_analysis(org_id, framework)
+        readiness = self.get_audit_readiness_score(org_id, framework)
+        rem_tasks = self.list_remediation_tasks(org_id, framework)
+
+        # Pull control statuses
+        with self._lock:
+            conn = self._connect()
+            try:
+                rows = conn.execute(
+                    "SELECT control_id, status, evidence_url, updated_at "
+                    "FROM control_statuses WHERE org_id = ? AND framework = ?",
+                    (org_id, framework),
+                ).fetchall()
+            finally:
+                self._close(conn)
+
+        control_details = [dict(r) for r in rows]
+        evidence_summary = [
+            {"control_id": r["control_id"], "evidence_url": r["evidence_url"], "last_updated": r["updated_at"]}
+            for r in rows
+            if r["evidence_url"]
+        ]
+
+        framework_meta = {
+            "SOC2": {"full_name": "System and Organisation Controls 2", "issuer": "AICPA"},
+            "PCI-DSS": {"full_name": "Payment Card Industry Data Security Standard", "issuer": "PCI SSC"},
+            "HIPAA": {"full_name": "Health Insurance Portability and Accountability Act", "issuer": "HHS"},
+            "ISO27001": {"full_name": "ISO/IEC 27001 Information Security Management", "issuer": "ISO/IEC"},
+            "NIST-CSF": {"full_name": "NIST Cybersecurity Framework", "issuer": "NIST"},
+            "CIS": {"full_name": "CIS Critical Security Controls", "issuer": "CIS"},
+            "GDPR": {"full_name": "General Data Protection Regulation", "issuer": "EU"},
+        }
+        meta = framework_meta.get(framework, {"full_name": framework, "issuer": "Unknown"})
+
+        return {
+            "report_id": str(uuid.uuid4()),
+            "framework": framework,
+            "full_name": meta["full_name"],
+            "issuer": meta["issuer"],
+            "org_id": org_id,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "executive_summary": {
+                "score": gap_result["score"],
+                "ready_for_audit": readiness["ready_for_audit"],
+                "total_controls": gap_result["total_controls"],
+                "passing": gap_result["passing"],
+                "failing": gap_result["failing"],
+                "not_applicable": gap_result["not_applicable"],
+                "open_gaps": len(gap_result["gaps"]),
+                "blockers": readiness["blockers"],
+                "estimated_remediation_days": readiness["estimated_remediation_days"],
+            },
+            "gap_analysis": gap_result["gaps"],
+            "control_details": control_details,
+            "evidence_summary": evidence_summary,
+            "remediation_tasks": rem_tasks,
+        }
+
+    # ------------------------------------------------------------------
+    # Cross-framework coverage
+    # ------------------------------------------------------------------
+
+    def get_cross_framework_coverage(self, org_id: str) -> Dict[str, Any]:
+        """
+        Show which controls overlap across all 6 frameworks.
+
+        Returns coverage groups showing how a single implementation satisfies
+        controls across multiple frameworks simultaneously.
+        """
+        # Fetch all passing controls for this org
+        with self._lock:
+            conn = self._connect()
+            try:
+                rows = conn.execute(
+                    "SELECT framework, control_id FROM control_statuses "
+                    "WHERE org_id = ? AND status = 'passing'",
+                    (org_id,),
+                ).fetchall()
+            finally:
+                self._close(conn)
+
+        passing_set: Dict[str, set] = {}
+        for row in rows:
+            fw = row["framework"]
+            if fw not in passing_set:
+                passing_set[fw] = set()
+            passing_set[fw].add(row["control_id"])
+
+        coverage_groups = []
+        for group in _CROSS_FRAMEWORK_MAP:
+            frameworks_satisfied = []
+            frameworks_partial = []
+            for fw, ctrl_ids in group["coverage"].items():
+                fw_passing = passing_set.get(fw, set())
+                satisfied = all(cid in fw_passing for cid in ctrl_ids)
+                partial = any(cid in fw_passing for cid in ctrl_ids) and not satisfied
+                if satisfied:
+                    frameworks_satisfied.append(fw)
+                elif partial:
+                    frameworks_partial.append(fw)
+
+            coverage_groups.append({
+                "control_tag": group["control_tag"],
+                "description": group["description"],
+                "frameworks_covered": group["coverage"],
+                "total_frameworks": len(group["coverage"]),
+                "satisfied_in": frameworks_satisfied,
+                "partial_in": frameworks_partial,
+                "not_started_in": [
+                    fw for fw in group["coverage"]
+                    if fw not in frameworks_satisfied and fw not in frameworks_partial
+                ],
+            })
+
+        total_unique_implementations = len(_CROSS_FRAMEWORK_MAP)
+        total_framework_controls_covered = sum(
+            sum(len(v) for v in g["coverage"].values())
+            for g in _CROSS_FRAMEWORK_MAP
+        )
+
+        return {
+            "org_id": org_id,
+            "coverage_groups": coverage_groups,
+            "total_unique_implementations": total_unique_implementations,
+            "total_framework_controls_covered": total_framework_controls_covered,
+            "frameworks": SUPPORTED_FRAMEWORKS,
+            "assessed_at": datetime.now(timezone.utc).isoformat(),
+        }
