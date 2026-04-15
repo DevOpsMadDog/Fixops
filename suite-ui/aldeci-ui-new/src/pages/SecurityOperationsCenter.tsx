@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/soc/alerts, /api/v1/soc/analysts, /api/v1/soc/sources
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Users, Activity, Clock, RefreshCw, ArrowRightLeft, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,6 +21,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ───────────────────────────────────────────────────
 
@@ -105,11 +121,61 @@ function StatusDot({ status }: { status: string }) {
 
 export default function SecurityOperationsCenter() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/soar/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/soar/cases?org_id=${ORG_ID}&status=open&limit=20`),
+      apiFetch(`/api/v1/insider-threat/stats?org_id=${ORG_ID}`),
+    ]).then(([soarStatsResult, soarCasesResult, insiderStatsResult]) => {
+      const soarStats    = soarStatsResult.status    === "fulfilled" ? soarStatsResult.value    : null;
+      const soarCases    = soarCasesResult.status    === "fulfilled" ? soarCasesResult.value    : null;
+      const insiderStats = insiderStatsResult.status === "fulfilled" ? insiderStatsResult.value : null;
+      if (soarStats || soarCases || insiderStats) {
+        setLiveData({ soarStats, soarCases, insiderStats });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  const liveOpenAlerts  = liveData?.soarStats?.open_alerts   ?? liveData?.soarStats?.total_alerts  ?? liveData?.insiderStats?.total_alerts  ?? 234;
+  const liveCritical    = liveData?.soarStats?.critical       ?? liveData?.soarStats?.critical_alerts ?? liveData?.insiderStats?.high_risk   ?? 18;
+  const liveInTriage    = liveData?.soarStats?.in_triage      ?? liveData?.soarStats?.pending        ?? 47;
+  const liveMttd        = liveData?.soarStats?.mttd           ?? liveData?.insiderStats?.avg_mttd    ?? "4.2h";
+  const liveMttr        = liveData?.soarStats?.mttr           ?? liveData?.insiderStats?.avg_mttr    ?? "6.8h";
+  const liveSla         = liveData?.soarStats?.sla_met        ?? liveData?.soarStats?.sla_compliance ?? "94.3%";
+
+  const liveAlerts: typeof ALERTS =
+    Array.isArray(liveData?.soarCases)
+      ? liveData.soarCases.slice(0, 15).map((c: any) => ({
+          id: c.case_id ?? c.id ?? "ALT-????",
+          priority: c.priority ?? c.severity ?? "P3",
+          type: c.title ?? c.type ?? c.name ?? "Unknown alert",
+          source: c.source ?? c.detection_source ?? "SIEM",
+          asset: c.asset ?? c.target ?? "—",
+          analyst: c.assigned_to ?? c.analyst ?? "Unassigned",
+          open: c.age ?? c.open_duration ?? "—",
+          status: c.status ?? "new",
+        }))
+      : Array.isArray(liveData?.soarCases?.items)
+        ? liveData.soarCases.items.slice(0, 15).map((c: any) => ({
+            id: c.case_id ?? c.id ?? "ALT-????",
+            priority: c.priority ?? "P3",
+            type: c.title ?? "Unknown alert",
+            source: c.source ?? "SIEM",
+            asset: c.asset ?? "—",
+            analyst: c.assigned_to ?? "Unassigned",
+            open: c.age ?? "—",
+            status: c.status ?? "new",
+          }))
+        : ALERTS;
 
   return (
     <motion.div
@@ -123,20 +189,20 @@ export default function SecurityOperationsCenter() {
         title="Security Operations Center"
         description="24/7 monitoring, triage and response"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs — 2 rows of 3 */}
       <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
-        <KpiCard title="Open Alerts"  value={234}    icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Critical"     value={18}     icon={Zap}           trend="up"   className="border-red-500/20" />
-        <KpiCard title="In Triage"    value={47}     icon={Activity}      trend="up"   className="border-amber-500/20" />
-        <KpiCard title="MTTD"         value="4.2h"   icon={Clock}         trend="down" />
-        <KpiCard title="MTTR"         value="6.8h"   icon={Clock}         trend="down" />
-        <KpiCard title="SLA Met"      value="94.3%"  icon={Users}         trend="up"   className="border-green-500/20" />
+        <KpiCard title="Open Alerts"  value={liveOpenAlerts} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Critical"     value={liveCritical}   icon={Zap}           trend="up"   className="border-red-500/20" />
+        <KpiCard title="In Triage"    value={liveInTriage}   icon={Activity}      trend="up"   className="border-amber-500/20" />
+        <KpiCard title="MTTD"         value={liveMttd}       icon={Clock}         trend="down" />
+        <KpiCard title="MTTR"         value={liveMttr}       icon={Clock}         trend="down" />
+        <KpiCard title="SLA Met"      value={liveSla}        icon={Users}         trend="up"   className="border-green-500/20" />
       </div>
 
       {/* Live Alert Queue */}
@@ -170,7 +236,7 @@ export default function SecurityOperationsCenter() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ALERTS.map((row) => (
+                {liveAlerts.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(

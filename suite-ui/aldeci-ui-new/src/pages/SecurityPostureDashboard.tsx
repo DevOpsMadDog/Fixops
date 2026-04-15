@@ -12,7 +12,7 @@
  * API stub: GET /api/v1/posture/score
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Shield, TrendingUp, AlertTriangle, BarChart3,
@@ -24,6 +24,22 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -98,11 +114,46 @@ function effortBadge(effort: string) {
 
 export default function SecurityPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/posture-advisor/score?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/posture-advisor/components?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/posture-advisor/stats?org_id=${ORG_ID}`),
+    ]).then(([scoreResult, componentsResult, statsResult]) => {
+      const score      = scoreResult.status      === "fulfilled" ? scoreResult.value      : null;
+      const components = componentsResult.status === "fulfilled" ? componentsResult.value : null;
+      const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
+      if (score || components || stats) {
+        setLiveData({ score, components, stats });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  const liveScore = liveData?.score?.overall_score ?? liveData?.score?.score ?? MY_SCORE;
+  const liveGrade = liveData?.score?.grade ?? "B";
+  const liveTrend = liveData?.score?.trend ?? liveData?.stats?.trend ?? "+3 pts this month";
+  const liveComponents: typeof COMPONENTS =
+    Array.isArray(liveData?.components)
+      ? liveData.components.map((c: any) => ({
+          name: c.name ?? c.component ?? c.domain,
+          score: c.score ?? c.value ?? 0,
+          weight: c.weight ?? "—",
+          low: (c.score ?? c.value ?? 0) < 65,
+        }))
+      : COMPONENTS;
+  const liveOverallScore = liveScore;
+  const liveCriticalGaps = liveData?.stats?.critical_gaps ?? liveData?.stats?.gaps ?? 8;
+  const liveDaysSince = liveData?.stats?.days_since_incident ?? 47;
+  const livePercentile = liveData?.stats?.industry_percentile ?? liveData?.score?.percentile ?? "68th";
 
   const chartMin = SCORE_MIN;
   const chartRange = SCORE_MAX - chartMin;
@@ -119,8 +170,8 @@ export default function SecurityPostureDashboard() {
         title="Security Posture Score"
         description="Overall security health and component scoring"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
@@ -150,18 +201,18 @@ export default function SecurityPostureDashboard() {
                 }}
               />
               <div className="flex flex-col items-center">
-                <span className="text-4xl font-black tabular-nums text-foreground">{MY_SCORE}</span>
+                <span className="text-4xl font-black tabular-nums text-foreground">{liveOverallScore}</span>
                 <span className="text-xs text-muted-foreground">/100</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge className="text-base font-bold px-3 py-1 border border-blue-500/30 text-blue-400 bg-blue-500/10">
-                Grade B
+                Grade {liveGrade}
               </Badge>
             </div>
             <div className="flex items-center gap-1 text-green-400 text-sm font-medium">
               <ChevronUp className="h-4 w-4" />
-              <span>+3 pts this month</span>
+              <span>{typeof liveTrend === "string" ? liveTrend : `+${liveTrend} pts this month`}</span>
             </div>
             <p className="text-[11px] text-muted-foreground text-center px-2">
               Above industry avg of 70.4
@@ -171,10 +222,10 @@ export default function SecurityPostureDashboard() {
 
         {/* KPI cards 2×2 */}
         <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-          <KpiCard title="Overall Score"       value="74/100"  icon={Shield}        trend="up"   className="border-blue-500/20" />
-          <KpiCard title="Industry Percentile" value="68th"    icon={Target}        trend="up"   className="border-purple-500/20" />
-          <KpiCard title="Days Since Incident" value={47}      icon={CheckCircle2}  trend="up"   className="border-green-500/20" />
-          <KpiCard title="Critical Gaps"       value={8}       icon={AlertTriangle} trend="down" className="border-red-500/20" />
+          <KpiCard title="Overall Score"       value={`${liveOverallScore}/100`} icon={Shield}        trend="up"   className="border-blue-500/20" />
+          <KpiCard title="Industry Percentile" value={livePercentile}            icon={Target}        trend="up"   className="border-purple-500/20" />
+          <KpiCard title="Days Since Incident" value={liveDaysSince}             icon={CheckCircle2}  trend="up"   className="border-green-500/20" />
+          <KpiCard title="Critical Gaps"       value={liveCriticalGaps}          icon={AlertTriangle} trend="down" className="border-red-500/20" />
         </div>
       </div>
 
@@ -190,7 +241,7 @@ export default function SecurityPostureDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {COMPONENTS.map((c) => (
+          {liveComponents.map((c) => (
             <div key={c.name} className={cn("space-y-1.5 rounded-lg p-2", c.low && "bg-red-500/5 border border-red-500/15")}>
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
@@ -231,19 +282,19 @@ export default function SecurityPostureDashboard() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-blue-400">Your Organization</span>
-                <span className="font-bold tabular-nums">{MY_SCORE}</span>
+                <span className="font-bold tabular-nums">{liveOverallScore}</span>
               </div>
               <div className="relative h-3 rounded-full bg-muted/30 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${MY_SCORE}%` }}
+                  animate={{ width: `${liveOverallScore}%` }}
                   transition={{ duration: 0.8 }}
                   className="h-full rounded-full bg-blue-500"
                 />
               </div>
             </div>
             {BENCHMARKS.map((b) => {
-              const diff = MY_SCORE - b.avg;
+              const diff = liveOverallScore - b.avg;
               return (
                 <div key={b.sector} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">

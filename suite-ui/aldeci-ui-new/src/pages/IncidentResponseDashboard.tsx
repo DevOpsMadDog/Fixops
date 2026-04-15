@@ -15,7 +15,7 @@
  * API stubs: GET /api/v1/incidents  GET /api/v1/incidents/{id}/tasks
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -36,6 +36,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -126,11 +142,60 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export default function IncidentResponseDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/incidents/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/incidents?org_id=${ORG_ID}&status=open&limit=20`),
+      apiFetch(`/api/v1/playbooks?org_id=${ORG_ID}&limit=10`),
+    ]).then(([statsResult, incidentsResult, playbooksResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const incidents = incidentsResult.status === "fulfilled" ? incidentsResult.value : null;
+      const playbooks = playbooksResult.status === "fulfilled" ? playbooksResult.value : null;
+      if (stats || incidents || playbooks) {
+        setLiveData({ stats, incidents, playbooks });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  const liveActiveCount = liveData?.stats?.active_count ?? liveData?.stats?.open ?? 7;
+  const liveP1Count     = liveData?.stats?.p1_count ?? liveData?.stats?.critical ?? 2;
+  const liveMttr        = liveData?.stats?.mttr ?? liveData?.stats?.avg_mttr ?? "6.8h";
+  const liveSlaComp     = liveData?.stats?.sla_compliance ?? liveData?.stats?.sla_met ?? "91.4%";
+  const liveIncidents: typeof INCIDENTS =
+    Array.isArray(liveData?.incidents)
+      ? liveData.incidents.slice(0, 12).map((inc: any) => ({
+          id: inc.incident_id ?? inc.id ?? inc.title?.slice(0, 8) ?? "INC-???",
+          title: inc.title ?? inc.name ?? "Unknown incident",
+          type: inc.type ?? inc.incident_type ?? "phishing",
+          sev: inc.severity ?? inc.priority ?? "P3",
+          status: inc.status ?? "active",
+          analyst: inc.assigned_to ?? inc.analyst ?? "Unassigned",
+          open: inc.open_duration ?? inc.age ?? "—",
+          slaDue: inc.sla_due ?? inc.due_date ?? "—",
+          slaBreach: inc.sla_breached ?? false,
+        }))
+      : Array.isArray(liveData?.incidents?.items)
+        ? liveData.incidents.items.slice(0, 12).map((inc: any) => ({
+            id: inc.incident_id ?? inc.id ?? "INC-???",
+            title: inc.title ?? "Unknown incident",
+            type: inc.type ?? "phishing",
+            sev: inc.severity ?? "P3",
+            status: inc.status ?? "active",
+            analyst: inc.assigned_to ?? "Unassigned",
+            open: inc.open_duration ?? "—",
+            slaDue: inc.sla_due ?? "—",
+            slaBreach: inc.sla_breached ?? false,
+          }))
+        : INCIDENTS;
 
   return (
     <motion.div
@@ -144,18 +209,18 @@ export default function IncidentResponseDashboard() {
         title="Incident Response"
         description="Full lifecycle incident management and playbook execution"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Incidents"  value={7}       icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="P1 Critical"       value={2}       icon={Shield}        trend="up"   className="border-red-500/20" />
-        <KpiCard title="MTTR"              value="6.8h"    icon={Clock}         trend="down" />
-        <KpiCard title="SLA Compliance"    value="91.4%"   icon={Activity}      trend="up"   className="border-green-500/20" />
+        <KpiCard title="Active Incidents"  value={liveActiveCount} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="P1 Critical"       value={liveP1Count}     icon={Shield}        trend="up"   className="border-red-500/20" />
+        <KpiCard title="MTTR"              value={liveMttr}        icon={Clock}         trend="down" />
+        <KpiCard title="SLA Compliance"    value={liveSlaComp}     icon={Activity}      trend="up"   className="border-green-500/20" />
       </div>
 
       {/* Incidents table */}
@@ -167,7 +232,7 @@ export default function IncidentResponseDashboard() {
               Active &amp; Recent Incidents
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              7 active
+              {liveActiveCount} active
             </Badge>
           </div>
           <CardDescription className="text-xs">Full incident list — sorted by severity and open time</CardDescription>
@@ -189,7 +254,7 @@ export default function IncidentResponseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {INCIDENTS.map((inc) => (
+                {liveIncidents.map((inc) => (
                   <TableRow
                     key={inc.id}
                     className={cn("hover:bg-muted/30", inc.slaBreach && "bg-red-500/5 border-l-2 border-l-red-500")}

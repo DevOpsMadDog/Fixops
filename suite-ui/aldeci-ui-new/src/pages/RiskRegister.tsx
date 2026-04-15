@@ -13,7 +13,7 @@
  * Fallback: mock data when API unavailable
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -43,6 +43,19 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -292,17 +305,13 @@ const MATRIX_DOTS: { l: number; i: number; label: string }[] = [
 // API
 // ═══════════════════════════════════════════════════════════
 
-function apiKey(): string {
-  return localStorage.getItem("aldeci_api_key") ?? "";
-}
-
 async function fetchRisks(): Promise<Risk[]> {
-  const res = await fetch(`${API_BASE}/api/v1/risk-register/risks`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
+  const res = await fetch(`${API_BASE}/api/v1/risk-quantification/risks?org_id=${ORG_ID}&limit=20`, {
+    headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) ? data : data.risks ?? MOCK_RISKS;
+  return Array.isArray(data) ? data : (data.risks ?? data.items ?? MOCK_RISKS);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -311,6 +320,20 @@ async function fetchRisks(): Promise<Risk[]> {
 
 export default function RiskRegister() {
   const [showAddPanel, setShowAddPanel] = useState(false);
+  const [liveStats, setLiveStats] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.allSettled([
+      apiFetch(`/api/v1/risk-quantification/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vendor-risk/stats?org_id=${ORG_ID}`),
+    ]).then(([riskStatsResult, vendorStatsResult]) => {
+      const riskStats   = riskStatsResult.status   === "fulfilled" ? riskStatsResult.value   : null;
+      const vendorStats = vendorStatsResult.status === "fulfilled" ? vendorStatsResult.value : null;
+      if (riskStats || vendorStats) {
+        setLiveStats({ riskStats, vendorStats });
+      }
+    });
+  }, []);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["risk-register-risks"],
@@ -321,12 +344,12 @@ export default function RiskRegister() {
 
   const risks = data ?? MOCK_RISKS;
 
-  const totalRisks = risks.length;
-  const criticalRisks = risks.filter((r) => r.risk_score >= 15).length;
-  const acceptedRisks = risks.filter((r) => r.status === "Accepted").length;
-  const avgScore = (
-    risks.reduce((s, r) => s + r.risk_score, 0) / risks.length
-  ).toFixed(1);
+  const totalRisks    = liveStats?.riskStats?.total_risks    ?? liveStats?.riskStats?.total    ?? risks.length;
+  const criticalRisks = liveStats?.riskStats?.critical_risks ?? liveStats?.riskStats?.critical ?? risks.filter((r) => r.risk_score >= 15).length;
+  const acceptedRisks = liveStats?.riskStats?.accepted_risks ?? liveStats?.riskStats?.accepted ?? risks.filter((r) => r.status === "Accepted").length;
+  const avgScore = liveStats?.riskStats?.avg_score
+    ?? liveStats?.riskStats?.average_score
+    ?? (risks.reduce((s, r) => s + r.risk_score, 0) / risks.length).toFixed(1);
 
   const trendMax =
     Math.max(...TREND_DATA.map((d) => d.critical + d.high + d.medium)) || 1;
