@@ -640,6 +640,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 25 — Autonomous parallel build)
+
+**Wave 25 New Backend Engines:**
+- ✅ threat_deception_management_engine.py — ThreatDeceptionMgmt (decoys, interactions, campaigns, unique attacker COUNT DISTINCT) — 35 tests
+- ✅ security_posture_scoring_engine.py — SecurityPostureScoring (weighted controls, snapshots, score_level ≥80=excellent) — 39 tests
+- ✅ cloud_posture_engine.py — CloudPosture (accounts, findings, posture score ±delta on severity, 6 providers) — 35 tests
+- ✅ api_threat_protection_engine.py — APIThreatProtection (8 threat types, 5 actions, triggered_count increment) — 41 tests
+- ✅ risk_register_engine.py — RiskRegister (likelihood×impact scoring, treatments, top_risk) — 51 tests
+- ✅ security_change_management_engine.py — SecurityChangeMgmt (8 statuses, approval workflow, emergency_changes) — 35 tests
+
+**Wave 25 Routers wired:** /api/v1/threat-deception, /api/v1/posture-scoring, /api/v1/cloud-posture, /api/v1/api-threat-protection, /api/v1/risk-register-engine, /api/v1/change-management
+
+**Wave 25 Frontend Pages (Wave 24 domains):**
+- ✅ NetworkForensicsDashboard (/network-forensics), MalwareAnalysisDashboard (/malware-analysis)
+- ✅ ApplicationRiskDashboard (/application-risk), PAGDashboard (/pag)
+- ✅ SecurityGamificationDashboard (/security-gamification), VulnPrioritizationDashboard (/vuln-prioritization)
+
+**Engine total: 248+ engines | Router total: 478+ routers | Test total: 4,836+ tests | Frontend: 200+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code

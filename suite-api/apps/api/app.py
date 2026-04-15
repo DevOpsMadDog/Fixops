@@ -7140,9 +7140,9 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.risk_register_router import router as risk_register_router
-        app.include_router(risk_register_router)
-        _logger.info("Mounted Risk Register router at /api/v1/risk-register-engine")
+        from apps.api.risk_register_engine_router import router as risk_register_engine_router
+        app.include_router(risk_register_engine_router)
+        _logger.info("Mounted Risk Register Engine router at /api/v1/risk-register-engine")
     except ImportError:
         pass
 
@@ -7150,6 +7150,49 @@ def create_app() -> FastAPI:
         from apps.api.security_change_management_router import router as security_change_management_router
         app.include_router(security_change_management_router)
         _logger.info("Mounted Security Change Management router at /api/v1/change-management")
+    except ImportError:
+        pass
+
+    # Wave 26 routers
+    try:
+        from apps.api.compliance_automation_router import router as compliance_automation_router
+        app.include_router(compliance_automation_router)
+        _logger.info("Mounted Compliance Automation router at /api/v1/compliance-automation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_attribution_router import router as threat_attribution_router
+        app.include_router(threat_attribution_router)
+        _logger.info("Mounted Threat Attribution router at /api/v1/threat-attribution")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_access_security_router import router as cloud_access_security_router
+        app.include_router(cloud_access_security_router)
+        _logger.info("Mounted Cloud Access Security router at /api/v1/cloud-access-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.behavioral_analytics_router import router as behavioral_analytics_router
+        app.include_router(behavioral_analytics_router)
+        _logger.info("Mounted Behavioral Analytics router at /api/v1/behavioral-analytics")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vulnerability_workflow_router import router as vulnerability_workflow_router
+        app.include_router(vulnerability_workflow_router)
+        _logger.info("Mounted Vulnerability Workflow router at /api/v1/vuln-workflow")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_data_pipeline_router import router as security_data_pipeline_router
+        app.include_router(security_data_pipeline_router)
+        _logger.info("Mounted Security Data Pipeline router at /api/v1/data-pipeline")
     except ImportError:
         pass
 
