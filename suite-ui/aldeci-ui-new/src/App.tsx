@@ -367,6 +367,14 @@ const ContainerPostureDashboard = lazy(() => import("@/pages/ContainerPostureDas
 const CyberThreatIntelDashboard = lazy(() => import("@/pages/CyberThreatIntelDashboard"));
 const DigitalTwinDashboard = lazy(() => import("@/pages/DigitalTwinDashboard"));
 
+// Wave 28 domain dashboards
+const AccessRequestManagementDashboard = lazy(() => import("@/pages/AccessRequestManagementDashboard"));
+const PrivilegedSessionRecordingDashboard = lazy(() => import("@/pages/PrivilegedSessionRecordingDashboard"));
+const CloudResourceInventoryDashboard = lazy(() => import("@/pages/CloudResourceInventoryDashboard"));
+const SecurityTelemetryDashboard = lazy(() => import("@/pages/SecurityTelemetryDashboard"));
+const MicrosegmentationPolicyDashboard = lazy(() => import("@/pages/MicrosegmentationPolicyDashboard"));
+const ThirdPartyVendorDashboard = lazy(() => import("@/pages/ThirdPartyVendorDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -738,6 +746,14 @@ export default function App() {
             <Route path="/container-posture" element={<ContainerPostureDashboard />} />
             <Route path="/cyber-threat-intel" element={<CyberThreatIntelDashboard />} />
             <Route path="/digital-twin" element={<DigitalTwinDashboard />} />
+
+            {/* Wave 28 domain dashboards */}
+            <Route path="/access-requests" element={<AccessRequestManagementDashboard />} />
+            <Route path="/session-recording" element={<PrivilegedSessionRecordingDashboard />} />
+            <Route path="/cloud-inventory" element={<CloudResourceInventoryDashboard />} />
+            <Route path="/security-telemetry" element={<SecurityTelemetryDashboard />} />
+            <Route path="/microsegmentation" element={<MicrosegmentationPolicyDashboard />} />
+            <Route path="/third-party-vendor" element={<ThirdPartyVendorDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
