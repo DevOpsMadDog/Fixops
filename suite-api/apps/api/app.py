@@ -5522,6 +5522,36 @@ def create_app() -> FastAPI:
     except ImportError as _kpi_err:
         _logger.warning("Security KPI router not available: %s", _kpi_err)
 
+    # SCIM v2 — SCIM provisioning for enterprise IdP (Okta, Azure AD)
+    try:
+        from apps.api.scim_router import router as scim_router
+        app.include_router(
+            scim_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
+        )
+        _logger.info("Mounted SCIM router")
+    except ImportError as _scim_err:
+        _logger.warning("SCIM router not available: %s", _scim_err)
+
+    # n8n Management — orchestrate n8n workflows via 400+ integrations bridge
+    try:
+        from apps.api.n8n_mgmt_router import router as n8n_mgmt_router
+        app.include_router(
+            n8n_mgmt_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted n8n Management router")
+    except ImportError as _n8n_err:
+        _logger.warning("n8n Management router not available: %s", _n8n_err)
+
+    # Webhooks — inbound webhooks (Okta verify endpoint is unauthenticated by design)
+    try:
+        from apps.api.webhook_router import router as webhook_router
+        app.include_router(webhook_router)
+        _logger.info("Mounted Webhook router")
+    except ImportError as _wh_err:
+        _logger.warning("Webhook router not available: %s", _wh_err)
+
     return app
 
 
