@@ -29,6 +29,12 @@ _VALID_EVENT_TYPES = {"auth", "network", "endpoint", "application"}
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
 _VALID_ALERT_STATUSES = {"open", "acknowledged", "resolved"}
 
+# New source-based schema constants
+_VALID_SOURCE_TYPES = {
+    "syslog", "windows_event", "cloudtrail", "azure_monitor", "gcp_logging", "custom"
+}
+_VALID_EVENT_SEVERITIES = {"info", "low", "medium", "high", "critical"}
+
 
 class SIEMIntegrationEngine:
     """SQLite WAL-backed SIEM Integration engine.
@@ -106,6 +112,53 @@ class SIEMIntegrationEngine:
 
                 CREATE INDEX IF NOT EXISTS idx_alert_org_status
                     ON siem_alerts (org_id, status, severity);
+
+                CREATE TABLE IF NOT EXISTS siem_sources (
+                    id           TEXT PRIMARY KEY,
+                    org_id       TEXT NOT NULL,
+                    name         TEXT NOT NULL,
+                    source_type  TEXT NOT NULL,
+                    host         TEXT,
+                    port         INTEGER,
+                    status       TEXT NOT NULL DEFAULT 'active',
+                    events_per_day INTEGER NOT NULL DEFAULT 0,
+                    created_at   TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_siem_sources_org
+                    ON siem_sources (org_id);
+
+                CREATE TABLE IF NOT EXISTS siem_source_events (
+                    id            TEXT PRIMARY KEY,
+                    org_id        TEXT NOT NULL,
+                    source_id     TEXT NOT NULL,
+                    event_type    TEXT NOT NULL,
+                    severity      TEXT NOT NULL,
+                    raw_data      TEXT NOT NULL,
+                    parsed_fields TEXT,
+                    timestamp     TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_siem_source_events_org
+                    ON siem_source_events (org_id, timestamp);
+                CREATE INDEX IF NOT EXISTS idx_siem_source_events_src
+                    ON siem_source_events (org_id, source_id);
+
+                CREATE TABLE IF NOT EXISTS siem_correlation_alerts (
+                    id               TEXT PRIMARY KEY,
+                    org_id           TEXT NOT NULL,
+                    title            TEXT NOT NULL,
+                    rule_name        TEXT NOT NULL,
+                    severity         TEXT NOT NULL,
+                    matched_events   TEXT NOT NULL DEFAULT '[]',
+                    status           TEXT NOT NULL DEFAULT 'open',
+                    created_at       TEXT NOT NULL,
+                    acknowledged_at  TEXT,
+                    acknowledged_by  TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_siem_corr_alerts_org
+                    ON siem_correlation_alerts (org_id, status);
                 """
             )
 
@@ -548,3 +601,356 @@ class SIEMIntegrationEngine:
             except (json.JSONDecodeError, ValueError):
                 d["source_event_ids"] = []
         return d
+
+    # ==================================================================
+    # SOURCE-BASED API (new schema: siem_sources / siem_source_events /
+    # siem_correlation_alerts)
+    # ==================================================================
+
+    @staticmethod
+    def _now() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    # ------------------------------------------------------------------
+    # SIEM Sources
+    # ------------------------------------------------------------------
+
+    def register_siem_source(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new SIEM source. Validates name and source_type."""
+        name = data.get("name", "").strip()
+        if not name:
+            raise ValueError("name is required")
+        source_type = data.get("source_type", "")
+        if source_type not in _VALID_SOURCE_TYPES:
+            raise ValueError(
+                f"source_type must be one of {sorted(_VALID_SOURCE_TYPES)}, got '{source_type}'"
+            )
+        source_id = str(uuid.uuid4())
+        now = self._now()
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO siem_sources
+                   (id, org_id, name, source_type, host, port, status, events_per_day, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                (
+                    source_id, org_id, name, source_type,
+                    data.get("host"), data.get("port"),
+                    "active", 0, now,
+                ),
+            )
+        _logger.info("siem.source_registered org=%s id=%s type=%s", org_id, source_id, source_type)
+        return self.get_siem_source(org_id, source_id)
+
+    def list_siem_sources(
+        self,
+        org_id: str,
+        source_type: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List SIEM sources for org, optionally filtered by source_type or status."""
+        query = "SELECT * FROM siem_sources WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if source_type:
+            query += " AND source_type=?"
+            params.append(source_type)
+        if status:
+            query += " AND status=?"
+            params.append(status)
+        query += " ORDER BY created_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_siem_source(self, org_id: str, source_id: str) -> Dict[str, Any]:
+        """Fetch a single SIEM source scoped to org_id."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM siem_sources WHERE org_id=? AND id=?",
+                (org_id, source_id),
+            ).fetchone()
+        if not row:
+            raise ValueError(f"SIEM source {source_id} not found for org {org_id}")
+        return dict(row)
+
+    # ------------------------------------------------------------------
+    # SIEM Source Events
+    # ------------------------------------------------------------------
+
+    def ingest_siem_event(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Ingest a raw event for a SIEM source. Increments the source events_per_day counter."""
+        source_id = data.get("source_id", "")
+        event_type = data.get("event_type", "")
+        severity = data.get("severity", "info")
+        if severity not in _VALID_EVENT_SEVERITIES:
+            raise ValueError(f"severity must be one of {sorted(_VALID_EVENT_SEVERITIES)}")
+
+        raw_data = data.get("raw_data", {})
+        if isinstance(raw_data, dict):
+            raw_data_str = json.dumps(raw_data)
+        else:
+            raw_data_str = str(raw_data)
+
+        parsed_fields = data.get("parsed_fields")
+        parsed_fields_str = json.dumps(parsed_fields) if parsed_fields is not None else None
+
+        event_id = str(uuid.uuid4())
+        now = self._now()
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO siem_source_events
+                   (id, org_id, source_id, event_type, severity, raw_data, parsed_fields, timestamp)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (event_id, org_id, source_id, event_type, severity, raw_data_str, parsed_fields_str, now),
+            )
+            # Increment events_per_day on the source (best-effort)
+            conn.execute(
+                """UPDATE siem_sources SET events_per_day = events_per_day + 1
+                   WHERE org_id=? AND id=?""",
+                (org_id, source_id),
+            )
+        _logger.info("siem.event_ingested org=%s source_id=%s severity=%s", org_id, source_id, severity)
+        result: Dict[str, Any] = {
+            "id": event_id,
+            "org_id": org_id,
+            "source_id": source_id,
+            "event_type": event_type,
+            "severity": severity,
+            "raw_data": raw_data,
+            "parsed_fields": parsed_fields,
+            "timestamp": now,
+        }
+        return result
+
+    def list_siem_events(
+        self,
+        org_id: str,
+        source_id: Optional[str] = None,
+        severity: Optional[str] = None,
+        event_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List SIEM source events, ordered by timestamp DESC, limit 100."""
+        query = "SELECT * FROM siem_source_events WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if source_id:
+            query += " AND source_id=?"
+            params.append(source_id)
+        if severity:
+            query += " AND severity=?"
+            params.append(severity)
+        if event_type:
+            query += " AND event_type=?"
+            params.append(event_type)
+        query += " ORDER BY timestamp DESC LIMIT 100"
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        results = []
+        for r in rows:
+            row = dict(r)
+            for field in ("raw_data", "parsed_fields"):
+                if isinstance(row.get(field), str):
+                    try:
+                        row[field] = json.loads(row[field])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            results.append(row)
+        return results
+
+    # ------------------------------------------------------------------
+    # Correlation Alerts
+    # ------------------------------------------------------------------
+
+    def create_correlation_alert(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a correlation alert for org_id."""
+        title = data.get("title", "").strip()
+        rule_name = data.get("rule_name", "").strip()
+        severity = data.get("severity", "medium")
+        if not title:
+            raise ValueError("title is required")
+        if not rule_name:
+            raise ValueError("rule_name is required")
+        matched_events = data.get("matched_events", [])
+        if not isinstance(matched_events, list):
+            matched_events = []
+
+        alert_id = str(uuid.uuid4())
+        now = self._now()
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                """INSERT INTO siem_correlation_alerts
+                   (id, org_id, title, rule_name, severity, matched_events, status, created_at,
+                    acknowledged_at, acknowledged_by)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    alert_id, org_id, title, rule_name, severity,
+                    json.dumps(matched_events), "open", now, None, None,
+                ),
+            )
+        _logger.info("siem.corr_alert_created org=%s id=%s rule=%s", org_id, alert_id, rule_name)
+        return self._get_correlation_alert(org_id, alert_id)
+
+    def list_correlation_alerts(
+        self,
+        org_id: str,
+        status: Optional[str] = None,
+        severity: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List correlation alerts for org, optionally filtered."""
+        query = "SELECT * FROM siem_correlation_alerts WHERE org_id=?"
+        params: List[Any] = [org_id]
+        if status:
+            query += " AND status=?"
+            params.append(status)
+        if severity:
+            query += " AND severity=?"
+            params.append(severity)
+        query += " ORDER BY created_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._deserialize_corr_alert(dict(r)) for r in rows]
+
+    def acknowledge_alert(
+        self, org_id: str, alert_id: str, acknowledged_by: str
+    ) -> Dict[str, Any]:
+        """Acknowledge a correlation alert."""
+        now = self._now()
+        with self._lock, self._conn() as conn:
+            result = conn.execute(
+                """UPDATE siem_correlation_alerts
+                   SET status='acknowledged', acknowledged_at=?, acknowledged_by=?
+                   WHERE org_id=? AND id=?""",
+                (now, acknowledged_by, org_id, alert_id),
+            )
+            if result.rowcount == 0:
+                raise ValueError(f"Correlation alert {alert_id} not found for org {org_id}")
+        return self._get_correlation_alert(org_id, alert_id)
+
+    def _get_correlation_alert(self, org_id: str, alert_id: str) -> Dict[str, Any]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM siem_correlation_alerts WHERE org_id=? AND id=?",
+                (org_id, alert_id),
+            ).fetchone()
+        if not row:
+            raise ValueError(f"Correlation alert {alert_id} not found for org {org_id}")
+        return self._deserialize_corr_alert(dict(row))
+
+    @staticmethod
+    def _deserialize_corr_alert(row: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(row.get("matched_events"), str):
+            try:
+                row["matched_events"] = json.loads(row["matched_events"])
+            except (json.JSONDecodeError, TypeError):
+                row["matched_events"] = []
+        return row
+
+    # ------------------------------------------------------------------
+    # Source-based Stats
+    # ------------------------------------------------------------------
+
+    def get_siem_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return aggregate statistics for the org (combines legacy + new source-based stats)."""
+        now_dt = datetime.now(timezone.utc)
+        cutoff_24h = (now_dt - timedelta(hours=24)).isoformat()
+        cutoff_7d = (now_dt - timedelta(days=7)).isoformat()
+
+        with self._lock, self._conn() as conn:
+            # Legacy stats
+            total_siems = conn.execute(
+                "SELECT COUNT(*) FROM siem_integrations WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+
+            active_siems = conn.execute(
+                "SELECT COUNT(*) FROM siem_integrations WHERE org_id = ? AND enabled = 1",
+                (org_id,),
+            ).fetchone()[0]
+
+            events_24h_legacy = conn.execute(
+                "SELECT COUNT(*) FROM siem_events WHERE org_id = ? AND timestamp >= ?",
+                (org_id, cutoff_24h),
+            ).fetchone()[0]
+
+            events_7d = conn.execute(
+                "SELECT COUNT(*) FROM siem_events WHERE org_id = ? AND timestamp >= ?",
+                (org_id, cutoff_7d),
+            ).fetchone()[0]
+
+            type_rows = conn.execute(
+                """SELECT si.siem_type, COUNT(se.event_id) as cnt
+                   FROM siem_integrations si
+                   LEFT JOIN siem_events se ON si.siem_id = se.siem_id AND se.org_id = ?
+                   WHERE si.org_id = ?
+                   GROUP BY si.siem_type""",
+                (org_id, org_id),
+            ).fetchall()
+            by_siem_type = {r["siem_type"]: r["cnt"] for r in type_rows}
+
+            sev_rows_legacy = conn.execute(
+                """SELECT severity, COUNT(*) as cnt FROM siem_events
+                   WHERE org_id = ? AND timestamp >= ?
+                   GROUP BY severity""",
+                (org_id, cutoff_24h),
+            ).fetchall()
+
+            alert_count = conn.execute(
+                "SELECT COUNT(*) FROM siem_alerts WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+
+            open_alerts_legacy = conn.execute(
+                "SELECT COUNT(*) FROM siem_alerts WHERE org_id = ? AND status = 'open'",
+                (org_id,),
+            ).fetchone()[0]
+
+            # New source-based stats
+            total_sources = conn.execute(
+                "SELECT COUNT(*) FROM siem_sources WHERE org_id=?", (org_id,)
+            ).fetchone()[0]
+
+            active_sources = conn.execute(
+                "SELECT COUNT(*) FROM siem_sources WHERE org_id=? AND status='active'",
+                (org_id,),
+            ).fetchone()[0]
+
+            total_events_24h = conn.execute(
+                "SELECT COUNT(*) FROM siem_source_events WHERE org_id=? AND timestamp>=?",
+                (org_id, cutoff_24h),
+            ).fetchone()[0]
+
+            sev_rows = conn.execute(
+                """SELECT severity, COUNT(*) as cnt FROM siem_source_events
+                   WHERE org_id=? AND timestamp>=?
+                   GROUP BY severity""",
+                (org_id, cutoff_24h),
+            ).fetchall()
+            by_severity = {r["severity"]: r["cnt"] for r in sev_rows}
+
+            # Merge legacy severity counts
+            for r in sev_rows_legacy:
+                by_severity[r["severity"]] = by_severity.get(r["severity"], 0) + r["cnt"]
+
+            open_alerts = conn.execute(
+                "SELECT COUNT(*) FROM siem_correlation_alerts WHERE org_id=? AND status='open'",
+                (org_id,),
+            ).fetchone()[0]
+
+            critical_alerts = conn.execute(
+                "SELECT COUNT(*) FROM siem_correlation_alerts WHERE org_id=? AND severity='critical'",
+                (org_id,),
+            ).fetchone()[0]
+
+        return {
+            # Legacy fields (kept for backward compat)
+            "total_siems": total_siems,
+            "active_siems": active_siems,
+            "events_24h": events_24h_legacy + total_events_24h,
+            "events_7d": events_7d,
+            "by_siem_type": by_siem_type,
+            "by_severity": by_severity,
+            "alert_count": alert_count,
+            "open_alerts": open_alerts_legacy,
+            # New source-based fields
+            "total_sources": total_sources,
+            "active_sources": active_sources,
+            "total_events_24h": total_events_24h,
+            "open_alerts_count": open_alerts,
+            "critical_alerts": critical_alerts,
+        }
