@@ -5567,6 +5567,17 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"IGA router not loaded: {e}")
 
+    # Security Playbook Engine — automated response playbooks with execution tracking
+    try:
+        from apps.api.playbook_router import router as playbook_router
+        app.include_router(
+            playbook_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
+        )
+        _logger.info("Mounted Security Playbook router at /api/v1/playbooks")
+    except Exception as e:
+        _logger.warning(f"Playbook router not loaded: {e}")
+
     return app
 
 
