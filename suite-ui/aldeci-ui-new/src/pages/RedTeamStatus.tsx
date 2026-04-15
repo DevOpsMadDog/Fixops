@@ -11,8 +11,24 @@
  * API stubs: GET /api/v1/red-team/engagements, /api/v1/red-team/feed, /api/v1/red-team/findings
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Swords,
   AlertTriangle,
@@ -168,10 +184,34 @@ function SeverityBadge({ sev }: { sev: string }) {
 
 export default function RedTeamStatus() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/red-team/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/red-team/engagements?org_id=${ORG_ID}`),
+    ]).then(([statsResult, engagementsResult]) => {
+      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
+      const engagements = engagementsResult.status === "fulfilled" ? engagementsResult.value : null;
+      if (stats || engagements) {
+        setLiveData({ stats, engagements });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/red-team/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/red-team/engagements?org_id=${ORG_ID}`),
+    ]).then(([statsResult, engagementsResult]) => {
+      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
+      const engagements = engagementsResult.status === "fulfilled" ? engagementsResult.value : null;
+      if (stats || engagements) setLiveData({ stats, engagements });
+    }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
   return (
@@ -186,18 +226,18 @@ export default function RedTeamStatus() {
         title="Red Team Operations"
         description="Offensive security exercise tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Engagements" value={3}  icon={Swords}        trend="up"   className="border-red-500/20" />
-        <KpiCard title="Findings Total"     value={47} icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Findings"  value={8}  icon={Zap}           trend="up"   className="border-red-500/20" />
-        <KpiCard title="Remediated"         value="31 (66%)" icon={CheckCircle2} trend="up" className="border-green-500/20" />
+        <KpiCard title="Active Engagements" value={liveData?.stats?.active_engagements ?? liveData?.stats?.total_engagements ?? 3}  icon={Swords}        trend="up"   className="border-red-500/20" />
+        <KpiCard title="Findings Total"     value={liveData?.stats?.total_findings ?? 47} icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Critical Findings"  value={liveData?.stats?.critical_findings ?? 8}  icon={Zap}           trend="up"   className="border-red-500/20" />
+        <KpiCard title="Remediated"         value={liveData?.stats?.remediated_findings != null ? `${liveData.stats.remediated_findings}` : "31 (66%)"} icon={CheckCircle2} trend="up" className="border-green-500/20" />
       </div>
 
       {/* Engagement table */}
@@ -208,7 +248,9 @@ export default function RedTeamStatus() {
               <Target className="h-4 w-4 text-red-400" />
               Active &amp; Scheduled Engagements
             </CardTitle>
-            <Badge className="text-[10px] border border-border text-muted-foreground">{ENGAGEMENTS.length} engagements</Badge>
+            <Badge className="text-[10px] border border-border text-muted-foreground">
+              {(liveData?.engagements?.items ?? liveData?.engagements ?? ENGAGEMENTS).length} engagements
+            </Badge>
           </div>
           <CardDescription className="text-xs">All offensive security exercises — pentest, phishing, purple team, BAS</CardDescription>
         </CardHeader>
@@ -227,8 +269,8 @@ export default function RedTeamStatus() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ENGAGEMENTS.map((eng) => (
-                  <TableRow key={eng.name} className="hover:bg-muted/30">
+                {(liveData?.engagements?.items ?? liveData?.engagements ?? ENGAGEMENTS).map((eng: any) => (
+                  <TableRow key={eng.name ?? eng.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{eng.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={eng.type} /></TableCell>
                     <TableCell className="py-2.5"><EngagementStatusBadge status={eng.status} /></TableCell>

@@ -12,9 +12,25 @@
  * API stubs: GET /api/v1/supply-chain/suppliers, /api/v1/supply-chain/components, /api/v1/sbom/summary
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Package, AlertTriangle, Shield, RefreshCw, Upload, BarChart3, Globe } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,16 +115,38 @@ function ScoreBar({ value }: { value: number }) {
 
 export default function SupplyChainDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/supply-chain/risks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain/vendors?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain/components?org_id=${ORG_ID}&limit=20`),
+    ]).then(([risksResult, vendorsResult, componentsResult]) => {
+      const risks      = risksResult.status      === "fulfilled" ? risksResult.value      : null;
+      const vendors    = vendorsResult.status    === "fulfilled" ? vendorsResult.value    : null;
+      const components = componentsResult.status === "fulfilled" ? componentsResult.value : null;
+      if (risks || vendors || components) {
+        setLiveData({ risks, vendors, components });
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const totalComponents = 1_847;
-  const eolCount = 34;
-  const cveAffected = 112;
-  const licenseIssues = 9;
+  // Derived values — prefer live data, fall back to mock constants
+  const totalComponents = liveData?.risks?.total_components ?? 1_847;
+  const eolCount        = liveData?.risks?.eol_components   ?? 34;
+  const cveAffected     = liveData?.risks?.cve_affected     ?? 112;
+  const licenseIssues   = liveData?.risks?.license_issues   ?? 9;
 
   return (
     <motion.div
@@ -122,18 +160,18 @@ export default function SupplyChainDashboard() {
         title="Supply Chain Risk"
         description="Third-party vendor and component risk management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Suppliers"        value={142}  icon={Globe}         />
-        <KpiCard title="Critical Tier"    value={18}   icon={AlertTriangle} trend="up" className="border-red-500/20" />
-        <KpiCard title="EOL Components"   value={34}   icon={Package}       trend="up" className="border-amber-500/20" />
-        <KpiCard title="Open Risks"       value={67}   icon={Shield}        trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Suppliers"        value={liveData?.risks?.vendor_count ?? liveData?.vendors?.length ?? 142}  icon={Globe}         />
+        <KpiCard title="Critical Tier"    value={liveData?.risks?.critical_components ?? 18}   icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="EOL Components"   value={eolCount}   icon={Package}       trend="up" className="border-amber-500/20" />
+        <KpiCard title="Open Risks"       value={liveData?.risks?.policy_violations ?? liveData?.risks?.open_risks ?? 67}   icon={Shield}        trend="up" className="border-yellow-500/20" />
       </div>
 
       {/* Supplier table */}
@@ -161,20 +199,29 @@ export default function SupplyChainDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SUPPLIERS.map((s) => (
-                  <TableRow key={s.name} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2.5">{s.name}</TableCell>
-                    <TableCell className="py-2.5"><CategoryBadge cat={s.category} /></TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{s.country}</TableCell>
-                    <TableCell className="py-2.5"><TierBadge tier={s.tier} /></TableCell>
-                    <TableCell className="py-2.5"><ScoreBar value={s.score} /></TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{s.assessed}</TableCell>
-                    <TableCell className={cn("text-xs tabular-nums py-2.5 font-bold", s.risks >= 10 ? "text-red-400" : s.risks >= 5 ? "text-amber-400" : "text-muted-foreground")}>{s.risks}</TableCell>
+                {(liveData?.vendors ?? SUPPLIERS).map((s: any) => {
+                  const name     = s.name ?? s.vendor_name ?? "—";
+                  const category = s.category ?? s.vendor_url ?? "service";
+                  const country  = s.country ?? "—";
+                  const tier     = s.tier ?? "Medium";
+                  const score    = s.score ?? s.security_score ?? 0;
+                  const assessed = s.assessed ?? s.last_assessed ?? s.assessment_date ?? "—";
+                  const risks    = s.risks ?? s.known_breaches ?? 0;
+                  return (
+                  <TableRow key={name} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-medium py-2.5">{name}</TableCell>
+                    <TableCell className="py-2.5"><CategoryBadge cat={category} /></TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{country}</TableCell>
+                    <TableCell className="py-2.5"><TierBadge tier={tier} /></TableCell>
+                    <TableCell className="py-2.5"><ScoreBar value={score} /></TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{assessed}</TableCell>
+                    <TableCell className={cn("text-xs tabular-nums py-2.5 font-bold", risks >= 10 ? "text-red-400" : risks >= 5 ? "text-amber-400" : "text-muted-foreground")}>{risks}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">View</Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -205,31 +252,40 @@ export default function SupplyChainDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {COMPONENTS.map((c) => (
-                  <TableRow key={`${c.name}-${c.version}`} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium font-mono py-2.5">{c.name}</TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{c.version}</TableCell>
-                    <TableCell className="text-xs py-2.5">{c.supplier}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{c.license}</TableCell>
+                {(liveData?.components ?? COMPONENTS).map((c: any, idx: number) => {
+                  const name     = c.name ?? c.component_name ?? "—";
+                  const version  = c.version ?? "—";
+                  const supplier = c.supplier ?? c.publisher ?? "—";
+                  const license  = c.license ?? c.license_id ?? "—";
+                  const cves     = c.cves ?? c.cve_count ?? 0;
+                  const eol      = c.eol ?? c.is_eol ?? false;
+                  const purl     = c.purl ?? c.package_url ?? "—";
+                  return (
+                  <TableRow key={`${name}-${version}-${idx}`} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-medium font-mono py-2.5">{name}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{version}</TableCell>
+                    <TableCell className="text-xs py-2.5">{supplier}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{license}</TableCell>
                     <TableCell className="py-2.5">
-                      {c.cves > 0 ? (
-                        <Badge className={cn("text-[10px] border", c.cves >= 5 ? "border-red-500/30 text-red-400 bg-red-500/10" : "border-amber-500/30 text-amber-400 bg-amber-500/10")}>
-                          {c.cves} CVE{c.cves !== 1 ? "s" : ""}
+                      {cves > 0 ? (
+                        <Badge className={cn("text-[10px] border", cves >= 5 ? "border-red-500/30 text-red-400 bg-red-500/10" : "border-amber-500/30 text-amber-400 bg-amber-500/10")}>
+                          {cves} CVE{cves !== 1 ? "s" : ""}
                         </Badge>
                       ) : (
                         <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">Clean</Badge>
                       )}
                     </TableCell>
                     <TableCell className="py-2.5">
-                      {c.eol ? (
+                      {eol ? (
                         <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">EOL</Badge>
                       ) : (
                         <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">Active</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-[10px] font-mono py-2.5 text-muted-foreground max-w-[160px] truncate" title={c.purl}>{c.purl}</TableCell>
+                    <TableCell className="text-[10px] font-mono py-2.5 text-muted-foreground max-w-[160px] truncate" title={purl}>{purl}</TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

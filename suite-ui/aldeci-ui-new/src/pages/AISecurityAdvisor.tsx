@@ -13,8 +13,29 @@
  * API stub: GET /api/v1/ai-advisor/recommendations, /api/v1/ai-advisor/sessions
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string, options?: RequestInit) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": API_KEY,
+      ...(options?.headers ?? {}),
+    },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import {
   Brain,
   Bot,
@@ -44,6 +65,12 @@ type Priority = "critical" | "high" | "medium" | "low";
 type RecStatus = "pending" | "accepted" | "rejected" | "implemented";
 type SessionType = "posture_review" | "incident_analysis" | "threat_briefing" | "remediation_plan";
 type SessionStatus = "completed" | "failed" | "pending";
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  ts?: string;
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -177,10 +204,80 @@ function ImpactDots({ score }: { score: number }) {
 export default function AISecurityAdvisor() {
   const [refreshing, setRefreshing] = useState(false);
   const [question, setQuestion] = useState("");
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [liveRecs, setLiveRecs] = useState<Recommendation[] | null>(null);
+  const [liveSessions, setLiveSessions] = useState<Session[] | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/ai-advisor/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ai-advisor/recommendations?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ai-advisor/sessions?org_id=${ORG_ID}`),
+    ]).then(([statsRes, recsRes, sessionsRes]) => {
+      if (statsRes.status === "fulfilled") setLiveData(statsRes.value);
+      if (recsRes.status === "fulfilled") {
+        const recs = recsRes.value?.items ?? recsRes.value?.recommendations ?? recsRes.value;
+        if (Array.isArray(recs) && recs.length > 0) setLiveRecs(recs);
+      }
+      if (sessionsRes.status === "fulfilled") {
+        const sess = sessionsRes.value?.items ?? sessionsRes.value?.sessions ?? sessionsRes.value;
+        if (Array.isArray(sess) && sess.length > 0) setLiveSessions(sess);
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleSend = async () => {
+    const q = question.trim();
+    if (!q || chatLoading) return;
+    setQuestion("");
+    const userMsg: ChatMessage = { role: "user", content: q, ts: new Date().toLocaleTimeString() };
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatLoading(true);
+    try {
+      const resp = await apiFetch(`/api/v1/ai-advisor/ask?org_id=${ORG_ID}`, {
+        method: "POST",
+        body: JSON.stringify({ question: q }),
+      });
+      const answer = resp?.answer ?? resp?.response ?? resp?.content ?? JSON.stringify(resp);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: answer, ts: new Date().toLocaleTimeString() }]);
+    } catch {
+      setChatMessages((prev) => [...prev, {
+        role: "assistant",
+        content: "Unable to reach the AI advisor at this time. Please check your API connection.",
+        ts: new Date().toLocaleTimeString(),
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/ai-advisor/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ai-advisor/recommendations?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ai-advisor/sessions?org_id=${ORG_ID}`),
+    ]).then(([statsRes, recsRes, sessionsRes]) => {
+      if (statsRes.status === "fulfilled") setLiveData(statsRes.value);
+      if (recsRes.status === "fulfilled") {
+        const recs = recsRes.value?.items ?? recsRes.value?.recommendations ?? recsRes.value;
+        if (Array.isArray(recs) && recs.length > 0) setLiveRecs(recs);
+      }
+      if (sessionsRes.status === "fulfilled") {
+        const sess = sessionsRes.value?.items ?? sessionsRes.value?.sessions ?? sessionsRes.value;
+        if (Array.isArray(sess) && sess.length > 0) setLiveSessions(sess);
+      }
+    }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
   return (
@@ -195,18 +292,18 @@ export default function AISecurityAdvisor() {
         title="AI Security Advisor"
         description="LLM-powered security intelligence — proactive recommendations, incident analysis, and threat briefings"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Recommendations Generated" value={127} icon={Brain}    trend="up"   trendLabel="↑ 12 this week"           className="border-purple-500/20" />
-        <KpiCard title="Critical Findings Addressed" value={18}  icon={Shield}   trend="up"   trendLabel="85% acceptance rate"       className="border-green-500/20" />
-        <KpiCard title="Avg Risk Reduction"          value="34%" icon={Activity} trend="up"   trendLabel="per recommendation"        className="border-blue-500/20" />
-        <KpiCard title="Briefings Delivered"         value={24}  icon={FileText} trend="flat" trendLabel="last 30 days"              className="border-indigo-500/20" />
+        <KpiCard title="Recommendations Generated" value={liveData?.total_recommendations ?? liveData?.recommendations_generated ?? 127} icon={Brain}    trend="up"   trendLabel="↑ 12 this week"           className="border-purple-500/20" />
+        <KpiCard title="Critical Findings Addressed" value={liveData?.critical_addressed ?? liveData?.accepted_recommendations ?? 18}  icon={Shield}   trend="up"   trendLabel="85% acceptance rate"       className="border-green-500/20" />
+        <KpiCard title="Avg Risk Reduction"          value={liveData?.avg_risk_reduction != null ? `${liveData.avg_risk_reduction}%` : "34%"} icon={Activity} trend="up"   trendLabel="per recommendation"        className="border-blue-500/20" />
+        <KpiCard title="Briefings Delivered"         value={liveData?.total_sessions ?? liveData?.briefings_delivered ?? 24}  icon={FileText} trend="flat" trendLabel="last 30 days"              className="border-indigo-500/20" />
       </div>
 
       {/* Section 1: Ask the Advisor */}
@@ -221,37 +318,16 @@ export default function AISecurityAdvisor() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Input */}
-          <div className="flex gap-2">
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask your security question... e.g. 'What's our biggest risk right now?' or 'How do we handle this CVE?'"
-              className={cn(
-                "flex-1 min-h-[60px] max-h-[100px] resize-none rounded-md border border-purple-500/20 bg-purple-500/5",
-                "px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground",
-                "focus:outline-none focus:ring-1 focus:ring-purple-500/50 shadow-inner"
-              )}
-            />
-            <Button
-              size="sm"
-              className="self-end h-9 px-4 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white border-0"
-            >
-              <Send className="h-3.5 w-3.5 mr-1.5" />
-              Generate Insight
-            </Button>
-          </div>
-
-          {/* Seeded Q&A exchanges */}
+          {/* Chat history */}
           <div
             className={cn(
               "space-y-3 max-h-[420px] overflow-y-auto rounded-lg border border-muted/20 p-3",
               "bg-black/20 shadow-inner"
             )}
           >
-            {QA_EXCHANGES.map((item, idx) => (
+            {/* Seeded Q&A when no live messages yet */}
+            {chatMessages.length === 0 && QA_EXCHANGES.map((item, idx) => (
               <div key={idx} className="space-y-2">
-                {/* User question */}
                 <div className="flex items-start gap-2">
                   <div className="shrink-0 w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center">
                     <User className="h-3 w-3 text-muted-foreground" />
@@ -260,7 +336,6 @@ export default function AISecurityAdvisor() {
                     {item.q}
                   </div>
                 </div>
-                {/* AI answer */}
                 <div className="flex items-start gap-2">
                   <div className="shrink-0 w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center">
                     <Bot className="h-3 w-3 text-purple-400" />
@@ -271,6 +346,64 @@ export default function AISecurityAdvisor() {
                 </div>
               </div>
             ))}
+            {/* Live chat messages */}
+            {chatMessages.map((msg, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                {msg.role === "user" ? (
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center">
+                    <Bot className="h-3 w-3 text-purple-400" />
+                  </div>
+                )}
+                <div className={cn(
+                  "flex-1 rounded-md px-3 py-2 text-xs text-foreground leading-relaxed",
+                  msg.role === "user"
+                    ? "bg-muted/20"
+                    : "border border-purple-500/20 bg-purple-500/5"
+                )}>
+                  {msg.content}
+                  {msg.ts && <span className="ml-2 text-[10px] text-muted-foreground">{msg.ts}</span>}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex items-start gap-2">
+                <div className="shrink-0 w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center">
+                  <Bot className="h-3 w-3 text-purple-400 animate-pulse" />
+                </div>
+                <div className="flex-1 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2 text-xs text-muted-foreground italic">
+                  Analyzing...
+                </div>
+              </div>
+            )}
+            <div ref={chatBottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="flex gap-2">
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder="Ask your security question... e.g. 'What's our biggest risk right now?' or 'How do we handle this CVE?'"
+              className={cn(
+                "flex-1 min-h-[60px] max-h-[100px] resize-none rounded-md border border-purple-500/20 bg-purple-500/5",
+                "px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground",
+                "focus:outline-none focus:ring-1 focus:ring-purple-500/50 shadow-inner"
+              )}
+            />
+            <Button
+              size="sm"
+              onClick={handleSend}
+              disabled={chatLoading || !question.trim()}
+              className="self-end h-9 px-4 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white border-0"
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              {chatLoading ? "Thinking..." : "Generate Insight"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -289,7 +422,7 @@ export default function AISecurityAdvisor() {
               </CardDescription>
             </div>
             <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
-              {RECOMMENDATIONS.length} recommendations
+              {(liveRecs ?? RECOMMENDATIONS).length} recommendations
             </Badge>
           </div>
         </CardHeader>
@@ -308,7 +441,7 @@ export default function AISecurityAdvisor() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {RECOMMENDATIONS.map((rec) => (
+                {(liveRecs ?? RECOMMENDATIONS).map((rec: any) => (
                   <TableRow key={rec.id} className="hover:bg-muted/30">
                     <TableCell className="py-2.5"><PriorityBadge p={rec.priority} /></TableCell>
                     <TableCell className="py-2.5"><CategoryBadge cat={rec.category} /></TableCell>
@@ -422,7 +555,7 @@ export default function AISecurityAdvisor() {
               <CardDescription className="text-xs">Previous advisor sessions and generated outputs</CardDescription>
             </div>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {SESSIONS.length} sessions
+              {(liveSessions ?? SESSIONS).length} sessions
             </Badge>
           </div>
         </CardHeader>
@@ -440,28 +573,36 @@ export default function AISecurityAdvisor() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {SESSIONS.map((s) => (
-                <TableRow key={s.id} className="hover:bg-muted/30">
-                  <TableCell className="text-xs font-mono py-2.5">{s.id}</TableCell>
-                  <TableCell className="py-2.5"><SessionTypeBadge t={s.type} /></TableCell>
+              {(liveSessions ?? SESSIONS).map((s: any) => {
+                const sid      = s.id ?? s.session_id ?? "—";
+                const stype    = s.type ?? s.session_type ?? "posture_review";
+                const sstatus  = s.status ?? "completed";
+                const recsCount= s.recsCount ?? s.recommendations_count ?? s.rec_count ?? 0;
+                const duration = s.duration ?? s.duration_seconds != null ? `${s.duration_seconds}s` : "—";
+                const created  = s.createdAt ?? s.created_at ?? "—";
+                return (
+                <TableRow key={sid} className="hover:bg-muted/30">
+                  <TableCell className="text-xs font-mono py-2.5">{sid}</TableCell>
+                  <TableCell className="py-2.5"><SessionTypeBadge t={stype as SessionType} /></TableCell>
                   <TableCell className="py-2.5">
                     <div className="flex items-center gap-1">
-                      {s.status === "completed" ? <CheckCircle className="h-3 w-3 text-green-400" /> :
-                       s.status === "failed"    ? <XCircle className="h-3 w-3 text-red-400" /> :
-                                                  <Clock className="h-3 w-3 text-yellow-400" />}
-                      <StatusBadge s={s.status} />
+                      {sstatus === "completed" ? <CheckCircle className="h-3 w-3 text-green-400" /> :
+                       sstatus === "failed"    ? <XCircle className="h-3 w-3 text-red-400" /> :
+                                                 <Clock className="h-3 w-3 text-yellow-400" />}
+                      <StatusBadge s={sstatus as SessionStatus} />
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs py-2.5 tabular-nums text-center">{s.recsCount}</TableCell>
-                  <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{s.duration}</TableCell>
-                  <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{s.createdAt}</TableCell>
+                  <TableCell className="text-xs py-2.5 tabular-nums text-center">{recsCount}</TableCell>
+                  <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{duration}</TableCell>
+                  <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{created}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" disabled={s.status !== "completed"}>
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" disabled={sstatus !== "completed"}>
                       View
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
