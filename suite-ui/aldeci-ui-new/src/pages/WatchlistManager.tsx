@@ -179,8 +179,8 @@ export default function WatchlistManager() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Active Watchlists"   value={liveData?.stats?.watchlist_count ?? 12}    icon={List}   trend="up" />
-        <KpiCard title="Total Indicators"    value={liveData?.stats?.total_iocs ?? "4,782"}    icon={Shield} trend="up" />
-        <KpiCard title="Matches Today"       value={liveData?.stats?.malicious_count ?? 23}    icon={Eye}    trend="up" className="border-amber-500/20" />
+        <KpiCard title="Total Indicators"    value={liveData?.stats?.total ?? "4,782"}         icon={Shield} trend="up" />
+        <KpiCard title="Matches Today"       value={liveData?.stats?.by_severity ? ((liveData.stats.by_severity.critical ?? 0) + (liveData.stats.by_severity.high ?? 0)) : 23} icon={Eye} trend="up" className="border-amber-500/20" />
         <KpiCard title="Auto-Blocked"        value={liveData?.stats?.enriched_count ?? 187}    icon={Zap}    trend="up" className="border-green-500/20" />
       </div>
 

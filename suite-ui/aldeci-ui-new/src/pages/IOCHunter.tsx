@@ -154,7 +154,19 @@ export default function IOCHunter() {
   };
 
   // Derive display values — live data takes precedence over mock
-  const displayIocs = liveData?.iocs ?? IOCS;
+  // API returns ioc_type (not type) and last_seen (not lastSeen) — normalize here
+  const rawIocs = Array.isArray(liveData?.iocs) ? liveData.iocs : null;
+  const displayIocs = rawIocs
+    ? rawIocs.map((ioc: any) => ({
+        ...ioc,
+        type: ioc.ioc_type ?? ioc.type ?? "IP",
+        lastSeen: ioc.last_seen ?? ioc.lastSeen ?? "—",
+        confidence: ioc.confidence ?? 50,
+        severity: ioc.severity ? ioc.severity.charAt(0).toUpperCase() + ioc.severity.slice(1) : "Medium",
+        verdict: ioc.verdict ?? "unknown",
+        source: ioc.source ?? "—",
+      }))
+    : IOCS;
   const firstIoc = displayIocs[0] ?? IOCS[0];
 
   return (
@@ -177,9 +189,9 @@ export default function IOCHunter() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total IOCs"   value={liveData?.stats?.total_iocs ?? "4,782"} icon={Crosshair} />
+        <KpiCard title="Total IOCs"   value={liveData?.stats?.total ?? "4,782"} icon={Crosshair} />
         <KpiCard title="Enriched"     value={liveData?.stats?.enriched_count ?? "3,421"} icon={Search} description="71.5% coverage" />
-        <KpiCard title="Malicious"    value={liveData?.stats?.malicious_count ?? 892} icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Malicious"    value={liveData?.stats?.by_severity ? ((liveData.stats.by_severity.critical ?? 0) + (liveData.stats.by_severity.high ?? 0)) : 892} icon={AlertTriangle} trend="up" className="border-red-500/20" />
         <KpiCard title="On Watchlist" value={liveData?.stats?.watchlist_count ?? 234} icon={Eye} />
       </div>
 
