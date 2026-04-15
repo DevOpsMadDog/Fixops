@@ -1,0 +1,637 @@
+"""DevSecOps Pipeline Security Engine — ALDECI.
+
+Tracks CI/CD pipeline security configurations, runs, findings, and gate policies.
+Multi-tenant via org_id. SQLite WAL + threading.RLock for concurrency safety.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import random
+import sqlite3
+import threading
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+_logger = logging.getLogger(__name__)
+
+_DEFAULT_DB = str(
+    Path(__file__).resolve().parents[2] / ".fixops_data" / "devsecops.db"
+)
+
+_VALID_CI_PLATFORMS = {
+    "github_actions", "gitlab_ci", "jenkins", "circleci", "azure_devops",
+}
+_VALID_STATUSES = {"pending", "running", "passed", "failed", "blocked"}
+_VALID_SCANNER_TYPES = {"sast", "dast", "sca", "secret_scan", "container"}
+_VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
+
+
+class DevSecOpsEngine:
+    """SQLite WAL-backed DevSecOps pipeline security engine.
+
+    Thread-safe via RLock. Multi-tenant via org_id.
+    """
+
+    def __init__(self, db_path: str = _DEFAULT_DB) -> None:
+        self.db_path = db_path
+        self._lock = threading.RLock()
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Schema
+    # ------------------------------------------------------------------
+
+    def _init_db(self) -> None:
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        with self._conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS pipelines (
+                    pipeline_id             TEXT PRIMARY KEY,
+                    org_id                  TEXT NOT NULL,
+                    name                    TEXT NOT NULL,
+                    repo_url                TEXT NOT NULL DEFAULT '',
+                    branch                  TEXT NOT NULL DEFAULT 'main',
+                    ci_platform             TEXT NOT NULL DEFAULT 'github_actions',
+                    security_gates_enabled  INTEGER NOT NULL DEFAULT 1,
+                    sast_enabled            INTEGER NOT NULL DEFAULT 1,
+                    dast_enabled            INTEGER NOT NULL DEFAULT 0,
+                    sca_enabled             INTEGER NOT NULL DEFAULT 1,
+                    secret_scan_enabled     INTEGER NOT NULL DEFAULT 1,
+                    container_scan_enabled  INTEGER NOT NULL DEFAULT 0,
+                    created_at              DATETIME NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_pipelines_org
+                    ON pipelines (org_id);
+
+                CREATE TABLE IF NOT EXISTS pipeline_runs (
+                    run_id              TEXT PRIMARY KEY,
+                    org_id              TEXT NOT NULL,
+                    pipeline_id         TEXT NOT NULL,
+                    triggered_by        TEXT NOT NULL DEFAULT 'manual',
+                    commit_sha          TEXT NOT NULL DEFAULT '',
+                    branch              TEXT NOT NULL DEFAULT 'main',
+                    status              TEXT NOT NULL DEFAULT 'pending',
+                    started_at          DATETIME NOT NULL,
+                    completed_at        DATETIME,
+                    sast_findings       INTEGER NOT NULL DEFAULT 0,
+                    sca_findings        INTEGER NOT NULL DEFAULT 0,
+                    secret_findings     INTEGER NOT NULL DEFAULT 0,
+                    container_findings  INTEGER NOT NULL DEFAULT 0,
+                    gate_blocked        INTEGER NOT NULL DEFAULT 0,
+                    block_reason        TEXT NOT NULL DEFAULT '',
+                    FOREIGN KEY (pipeline_id) REFERENCES pipelines (pipeline_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_runs_org
+                    ON pipeline_runs (org_id, started_at DESC);
+
+                CREATE INDEX IF NOT EXISTS idx_runs_pipeline
+                    ON pipeline_runs (pipeline_id, started_at DESC);
+
+                CREATE TABLE IF NOT EXISTS security_findings (
+                    finding_id    TEXT PRIMARY KEY,
+                    org_id        TEXT NOT NULL,
+                    run_id        TEXT NOT NULL,
+                    pipeline_id   TEXT NOT NULL,
+                    scanner_type  TEXT NOT NULL DEFAULT 'sast',
+                    severity      TEXT NOT NULL DEFAULT 'medium',
+                    title         TEXT NOT NULL DEFAULT '',
+                    file_path     TEXT NOT NULL DEFAULT '',
+                    line_number   INTEGER NOT NULL DEFAULT 0,
+                    cve_id        TEXT NOT NULL DEFAULT '',
+                    suppressed    INTEGER NOT NULL DEFAULT 0,
+                    created_at    DATETIME NOT NULL,
+                    FOREIGN KEY (run_id) REFERENCES pipeline_runs (run_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_findings_org
+                    ON security_findings (org_id, created_at DESC);
+
+                CREATE INDEX IF NOT EXISTS idx_findings_run
+                    ON security_findings (run_id);
+
+                CREATE TABLE IF NOT EXISTS gate_policies (
+                    policy_id       TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL,
+                    name            TEXT NOT NULL,
+                    pipeline_id     TEXT NOT NULL DEFAULT '',
+                    block_on_critical INTEGER NOT NULL DEFAULT 1,
+                    block_on_high   INTEGER NOT NULL DEFAULT 0,
+                    max_critical    INTEGER NOT NULL DEFAULT 0,
+                    max_high        INTEGER NOT NULL DEFAULT 5,
+                    max_medium      INTEGER NOT NULL DEFAULT 20,
+                    enabled         INTEGER NOT NULL DEFAULT 1,
+                    created_at      DATETIME NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_policies_org
+                    ON gate_policies (org_id);
+                """
+            )
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    @staticmethod
+    def _row(row: sqlite3.Row) -> Dict[str, Any]:
+        return dict(row)
+
+    # ------------------------------------------------------------------
+    # Pipelines
+    # ------------------------------------------------------------------
+
+    def register_pipeline(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new CI/CD pipeline. Returns the created record."""
+        name = data.get("name", "")
+        if not name:
+            raise ValueError("name is required.")
+
+        ci_platform = data.get("ci_platform", "github_actions")
+        if ci_platform not in _VALID_CI_PLATFORMS:
+            raise ValueError(
+                f"Invalid ci_platform: {ci_platform}. Must be one of {_VALID_CI_PLATFORMS}"
+            )
+
+        pipeline_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        record = {
+            "pipeline_id": pipeline_id,
+            "org_id": org_id,
+            "name": name,
+            "repo_url": data.get("repo_url", ""),
+            "branch": data.get("branch", "main"),
+            "ci_platform": ci_platform,
+            "security_gates_enabled": int(data.get("security_gates_enabled", 1)),
+            "sast_enabled": int(data.get("sast_enabled", 1)),
+            "dast_enabled": int(data.get("dast_enabled", 0)),
+            "sca_enabled": int(data.get("sca_enabled", 1)),
+            "secret_scan_enabled": int(data.get("secret_scan_enabled", 1)),
+            "container_scan_enabled": int(data.get("container_scan_enabled", 0)),
+            "created_at": now,
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO pipelines
+                        (pipeline_id, org_id, name, repo_url, branch, ci_platform,
+                         security_gates_enabled, sast_enabled, dast_enabled,
+                         sca_enabled, secret_scan_enabled, container_scan_enabled,
+                         created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        record["pipeline_id"], record["org_id"], record["name"],
+                        record["repo_url"], record["branch"], record["ci_platform"],
+                        record["security_gates_enabled"], record["sast_enabled"],
+                        record["dast_enabled"], record["sca_enabled"],
+                        record["secret_scan_enabled"], record["container_scan_enabled"],
+                        record["created_at"],
+                    ),
+                )
+        return record
+
+    def list_pipelines(
+        self,
+        org_id: str,
+        ci_platform: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List pipelines for org with optional ci_platform filter."""
+        query = "SELECT * FROM pipelines WHERE org_id=?"
+        params: list = [org_id]
+        if ci_platform:
+            query += " AND ci_platform=?"
+            params.append(ci_platform)
+        query += " ORDER BY created_at DESC"
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row(r) for r in rows]
+
+    def _get_pipeline(self, org_id: str, pipeline_id: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM pipelines WHERE org_id=? AND pipeline_id=?",
+                (org_id, pipeline_id),
+            ).fetchone()
+        return self._row(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Runs
+    # ------------------------------------------------------------------
+
+    def trigger_run(
+        self, org_id: str, pipeline_id: str, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Trigger a new pipeline run.
+
+        Simulates scanner findings based on enabled scanner flags, evaluates
+        gate policies, and sets gate_blocked + final status accordingly.
+        """
+        pipeline = self._get_pipeline(org_id, pipeline_id)
+        if pipeline is None:
+            raise ValueError(f"Pipeline {pipeline_id} not found for org {org_id}.")
+
+        run_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        # Simulate findings per enabled scanner
+        sast_findings = random.randint(0, 8) if pipeline["sast_enabled"] else 0
+        sca_findings = random.randint(0, 6) if pipeline["sca_enabled"] else 0
+        secret_findings = random.randint(0, 2) if pipeline["secret_scan_enabled"] else 0
+        container_findings = random.randint(0, 4) if pipeline["container_scan_enabled"] else 0
+
+        # Build finding severity breakdown
+        finding_details = self._simulate_finding_severities(
+            pipeline, sast_findings, sca_findings, secret_findings, container_findings
+        )
+        n_critical = finding_details["critical"]
+        n_high = finding_details["high"]
+        n_medium = finding_details["medium"]
+
+        # Evaluate gate policies
+        gate_blocked = False
+        block_reason = ""
+        if pipeline["security_gates_enabled"]:
+            gate_blocked, block_reason = self._evaluate_gates(
+                org_id, pipeline_id, n_critical, n_high, n_medium
+            )
+
+        status = "blocked" if gate_blocked else "passed"
+
+        run = {
+            "run_id": run_id,
+            "org_id": org_id,
+            "pipeline_id": pipeline_id,
+            "triggered_by": data.get("triggered_by", "manual"),
+            "commit_sha": data.get("commit_sha", ""),
+            "branch": data.get("branch", pipeline["branch"]),
+            "status": status,
+            "started_at": now,
+            "completed_at": now,
+            "sast_findings": sast_findings,
+            "sca_findings": sca_findings,
+            "secret_findings": secret_findings,
+            "container_findings": container_findings,
+            "gate_blocked": int(gate_blocked),
+            "block_reason": block_reason,
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO pipeline_runs
+                        (run_id, org_id, pipeline_id, triggered_by, commit_sha, branch,
+                         status, started_at, completed_at, sast_findings, sca_findings,
+                         secret_findings, container_findings, gate_blocked, block_reason)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        run["run_id"], run["org_id"], run["pipeline_id"],
+                        run["triggered_by"], run["commit_sha"], run["branch"],
+                        run["status"], run["started_at"], run["completed_at"],
+                        run["sast_findings"], run["sca_findings"], run["secret_findings"],
+                        run["container_findings"], run["gate_blocked"], run["block_reason"],
+                    ),
+                )
+                # Persist simulated findings
+                self._insert_findings(conn, org_id, run_id, pipeline_id, finding_details["rows"])
+
+        run["finding_summary"] = {
+            "critical": n_critical,
+            "high": n_high,
+            "medium": n_medium,
+            "low": finding_details["low"],
+        }
+        return run
+
+    def _simulate_finding_severities(
+        self,
+        pipeline: Dict[str, Any],
+        sast_count: int,
+        sca_count: int,
+        secret_count: int,
+        container_count: int,
+    ) -> Dict[str, Any]:
+        """Generate mock findings with severity distribution."""
+        rows: List[Dict[str, Any]] = []
+        critical = high = medium = low = 0
+
+        scanner_map = [
+            ("sast", sast_count, ["SQL Injection", "XSS", "Path Traversal", "SSRF", "RCE"]),
+            ("sca", sca_count, ["Vulnerable dependency", "Outdated package", "License violation"]),
+            ("secret_scan", secret_count, ["Hardcoded API key", "AWS credential", "Private key exposed"]),
+            ("container", container_count, ["Base image CVE", "Privileged container", "Root user"]),
+        ]
+
+        for scanner_type, count, titles in scanner_map:
+            for i in range(count):
+                sev_roll = random.random()
+                if sev_roll < 0.12:
+                    severity = "critical"
+                    critical += 1
+                elif sev_roll < 0.35:
+                    severity = "high"
+                    high += 1
+                elif sev_roll < 0.70:
+                    severity = "medium"
+                    medium += 1
+                else:
+                    severity = "low"
+                    low += 1
+
+                title = random.choice(titles)
+                rows.append({
+                    "scanner_type": scanner_type,
+                    "severity": severity,
+                    "title": title,
+                    "file_path": f"src/module_{i}.py",
+                    "line_number": random.randint(1, 500),
+                    "cve_id": f"CVE-2024-{random.randint(1000, 9999)}" if scanner_type == "sca" else "",
+                })
+
+        return {"critical": critical, "high": high, "medium": medium, "low": low, "rows": rows}
+
+    def _insert_findings(
+        self,
+        conn: sqlite3.Connection,
+        org_id: str,
+        run_id: str,
+        pipeline_id: str,
+        rows: List[Dict[str, Any]],
+    ) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        for f in rows:
+            conn.execute(
+                """
+                INSERT INTO security_findings
+                    (finding_id, org_id, run_id, pipeline_id, scanner_type, severity,
+                     title, file_path, line_number, cve_id, suppressed, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    str(uuid.uuid4()), org_id, run_id, pipeline_id,
+                    f["scanner_type"], f["severity"], f["title"],
+                    f["file_path"], f["line_number"], f["cve_id"], 0, now,
+                ),
+            )
+
+    def _evaluate_gates(
+        self,
+        org_id: str,
+        pipeline_id: str,
+        n_critical: int,
+        n_high: int,
+        n_medium: int,
+    ) -> tuple[bool, str]:
+        """Evaluate gate policies. Returns (blocked, reason)."""
+        policies = self.list_gate_policies(org_id, pipeline_id=pipeline_id)
+        # Also include org-wide policies (no pipeline_id)
+        org_wide = self.list_gate_policies(org_id)
+        all_policies = {p["policy_id"]: p for p in policies + org_wide}
+
+        for policy in all_policies.values():
+            if not policy["enabled"]:
+                continue
+            if policy["block_on_critical"] and n_critical > policy["max_critical"]:
+                return True, (
+                    f"Policy '{policy['name']}': {n_critical} critical findings "
+                    f"exceeds max_critical={policy['max_critical']}"
+                )
+            if policy["block_on_high"] and n_high > policy["max_high"]:
+                return True, (
+                    f"Policy '{policy['name']}': {n_high} high findings "
+                    f"exceeds max_high={policy['max_high']}"
+                )
+            if n_medium > policy["max_medium"]:
+                return True, (
+                    f"Policy '{policy['name']}': {n_medium} medium findings "
+                    f"exceeds max_medium={policy['max_medium']}"
+                )
+        return False, ""
+
+    def get_run(self, org_id: str, run_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a single run by run_id and org_id."""
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM pipeline_runs WHERE org_id=? AND run_id=?",
+                (org_id, run_id),
+            ).fetchone()
+        return self._row(row) if row else None
+
+    def list_runs(
+        self,
+        org_id: str,
+        pipeline_id: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """List runs with optional pipeline_id / status filters."""
+        query = "SELECT * FROM pipeline_runs WHERE org_id=?"
+        params: list = [org_id]
+        if pipeline_id:
+            query += " AND pipeline_id=?"
+            params.append(pipeline_id)
+        if status:
+            query += " AND status=?"
+            params.append(status)
+        query += " ORDER BY started_at DESC LIMIT ?"
+        params.append(limit)
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Findings
+    # ------------------------------------------------------------------
+
+    def list_findings(
+        self,
+        org_id: str,
+        run_id: Optional[str] = None,
+        severity: Optional[str] = None,
+        suppressed: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """List security findings with optional filters."""
+        query = "SELECT * FROM security_findings WHERE org_id=? AND suppressed=?"
+        params: list = [org_id, int(suppressed)]
+        if run_id:
+            query += " AND run_id=?"
+            params.append(run_id)
+        if severity:
+            query += " AND severity=?"
+            params.append(severity)
+        query += " ORDER BY created_at DESC"
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row(r) for r in rows]
+
+    def suppress_finding(self, org_id: str, finding_id: str) -> bool:
+        """Mark a finding as suppressed. Returns True on success."""
+        with self._lock:
+            with self._conn() as conn:
+                cur = conn.execute(
+                    "UPDATE security_findings SET suppressed=1 WHERE org_id=? AND finding_id=?",
+                    (org_id, finding_id),
+                )
+        return cur.rowcount > 0
+
+    # ------------------------------------------------------------------
+    # Gate policies
+    # ------------------------------------------------------------------
+
+    def create_gate_policy(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a security gate policy. Returns the created record."""
+        name = data.get("name", "")
+        if not name:
+            raise ValueError("name is required.")
+
+        policy_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        record = {
+            "policy_id": policy_id,
+            "org_id": org_id,
+            "name": name,
+            "pipeline_id": data.get("pipeline_id", ""),
+            "block_on_critical": int(data.get("block_on_critical", 1)),
+            "block_on_high": int(data.get("block_on_high", 0)),
+            "max_critical": int(data.get("max_critical", 0)),
+            "max_high": int(data.get("max_high", 5)),
+            "max_medium": int(data.get("max_medium", 20)),
+            "enabled": int(data.get("enabled", 1)),
+            "created_at": now,
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO gate_policies
+                        (policy_id, org_id, name, pipeline_id, block_on_critical,
+                         block_on_high, max_critical, max_high, max_medium, enabled, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        record["policy_id"], record["org_id"], record["name"],
+                        record["pipeline_id"], record["block_on_critical"],
+                        record["block_on_high"], record["max_critical"],
+                        record["max_high"], record["max_medium"],
+                        record["enabled"], record["created_at"],
+                    ),
+                )
+        return record
+
+    def list_gate_policies(
+        self,
+        org_id: str,
+        pipeline_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List gate policies. If pipeline_id given, returns policies for that pipeline."""
+        query = "SELECT * FROM gate_policies WHERE org_id=?"
+        params: list = [org_id]
+        if pipeline_id is not None:
+            query += " AND pipeline_id=?"
+            params.append(pipeline_id)
+        query += " ORDER BY created_at DESC"
+
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Stats
+    # ------------------------------------------------------------------
+
+    def get_devsecops_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return aggregate DevSecOps statistics for an org."""
+        with self._conn() as conn:
+            total_pipelines = conn.execute(
+                "SELECT COUNT(*) FROM pipelines WHERE org_id=?", (org_id,)
+            ).fetchone()[0]
+
+            total_runs = conn.execute(
+                "SELECT COUNT(*) FROM pipeline_runs WHERE org_id=?", (org_id,)
+            ).fetchone()[0]
+
+            passed_runs = conn.execute(
+                "SELECT COUNT(*) FROM pipeline_runs WHERE org_id=? AND status='passed'",
+                (org_id,),
+            ).fetchone()[0]
+
+            blocked_runs = conn.execute(
+                "SELECT COUNT(*) FROM pipeline_runs WHERE org_id=? AND gate_blocked=1",
+                (org_id,),
+            ).fetchone()[0]
+
+            critical_findings = conn.execute(
+                "SELECT COUNT(*) FROM security_findings WHERE org_id=? AND severity='critical' AND suppressed=0",
+                (org_id,),
+            ).fetchone()[0]
+
+            high_findings = conn.execute(
+                "SELECT COUNT(*) FROM security_findings WHERE org_id=? AND severity='high' AND suppressed=0",
+                (org_id,),
+            ).fetchone()[0]
+
+            secret_findings = conn.execute(
+                "SELECT COUNT(*) FROM security_findings WHERE org_id=? AND scanner_type='secret_scan' AND suppressed=0",
+                (org_id,),
+            ).fetchone()[0]
+
+            # Per-platform breakdown
+            platform_rows = conn.execute(
+                """
+                SELECT p.ci_platform, COUNT(r.run_id) as run_count
+                FROM pipelines p
+                LEFT JOIN pipeline_runs r ON r.pipeline_id = p.pipeline_id AND r.org_id = p.org_id
+                WHERE p.org_id=?
+                GROUP BY p.ci_platform
+                """,
+                (org_id,),
+            ).fetchall()
+
+        pass_rate = (passed_runs / total_runs) if total_runs > 0 else 0.0
+        by_platform = {row[0]: row[1] for row in platform_rows}
+
+        return {
+            "total_pipelines": total_pipelines,
+            "total_runs": total_runs,
+            "pass_rate": round(pass_rate, 4),
+            "blocked_runs": blocked_runs,
+            "critical_findings": critical_findings,
+            "high_findings": high_findings,
+            "secret_findings": secret_findings,
+            "by_platform": by_platform,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Singleton accessor
+# ---------------------------------------------------------------------------
+
+_engine_instance: Optional[DevSecOpsEngine] = None
+_engine_lock = threading.Lock()
+
+
+def get_devsecops_engine() -> DevSecOpsEngine:
+    global _engine_instance
+    if _engine_instance is None:
+        with _engine_lock:
+            if _engine_instance is None:
+                _engine_instance = DevSecOpsEngine()
+    return _engine_instance
