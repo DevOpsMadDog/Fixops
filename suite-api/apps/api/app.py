@@ -7067,6 +7067,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 24 routers
+    try:
+        from apps.api.network_forensics_router import router as network_forensics_router
+        app.include_router(network_forensics_router)
+        _logger.info("Mounted Network Forensics router at /api/v1/network-forensics")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.malware_analysis_router import router as malware_analysis_router
+        app.include_router(malware_analysis_router)
+        _logger.info("Mounted Malware Analysis router at /api/v1/malware-analysis")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.application_risk_router import router as application_risk_router
+        app.include_router(application_risk_router)
+        _logger.info("Mounted Application Risk router at /api/v1/app-risk")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.privileged_access_governance_router import router as privileged_access_governance_router
+        app.include_router(privileged_access_governance_router)
+        _logger.info("Mounted Privileged Access Governance router at /api/v1/pag")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_awareness_gamification_router import router as security_awareness_gamification_router
+        app.include_router(security_awareness_gamification_router)
+        _logger.info("Mounted Security Awareness Gamification router at /api/v1/awareness-gamification")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vulnerability_prioritization_router import router as vulnerability_prioritization_router
+        app.include_router(vulnerability_prioritization_router)
+        _logger.info("Mounted Vulnerability Prioritization router at /api/v1/vuln-prioritization")
+    except ImportError:
+        pass
+
     return app
 
 

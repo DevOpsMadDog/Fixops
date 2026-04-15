@@ -598,6 +598,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 23 — Autonomous parallel build)
+
+**Wave 23 New Backend Engines:**
+- ✅ threat_intelligence_automation_engine.py — TIAutomation (feeds/automations/enrichments, SHA-256 key hashing, IOC JSON) — 46 tests
+- ✅ security_metrics_aggregator_engine.py — SecurityMetricsAggregator (sources/metrics/aggregations, get_latest_metric) — 39 tests
+- ✅ endpoint_threat_hunting_engine.py — EndpointThreatHunting (hunts/findings/iocs, planned→active→completed FSM) — 43 tests
+- ✅ cloud_security_analytics_engine.py — CloudSecurityAnalytics (events/anomalies/rules, match_count, rule trigger) — 39 tests
+- ✅ identity_risk_engine.py — IdentityRisk (identities/risk factors/access reviews, risk_level auto-update) — 47 tests
+- ✅ operational_technology_security_engine.py — OTSecurity (assets/incidents/zones, IEC 62443, Purdue 0-5) — 49 tests
+
+**Wave 23 Routers wired:** /api/v1/ti-automation, /api/v1/metrics-aggregator, /api/v1/endpoint-hunting, /api/v1/cloud-analytics, /api/v1/identity-risk, /api/v1/ot-sec
+
+**Wave 22+23 Frontend Pages:**
+- ✅ AutonomousRemediationDashboard (/autonomous-remediation), VulnerabilityCorrelationDashboard (/vuln-correlation)
+- ✅ PostureBenchmarkingDashboard (/posture-benchmarking), QuantumCryptoDashboard (/quantum-crypto)
+- ✅ AIPoweredSOCDashboard (/ai-soc), DeceptionAnalyticsDashboard (/deception-analytics)
+
+**Engine total: 236+ engines | Router total: 466+ routers | Test total: 4,400+ tests | Frontend: 188+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
@@ -637,11 +658,11 @@ ComplianceGapDashboard (all wired in App.tsx)
 | Bidirectional connectors | 7 | suite-core/core/connectors.py |
 | Scanner normalizers | 32 | suite-core/core/scanner_parsers.py |
 | Threat intel feeds | 28+ | suite-feeds/ |
-| Backend engines | 224+ | suite-core/core/*_engine.py |
-| API router files | 454+ | suite-api/apps/api/*_router.py |
-| Engine test files | 228+ | tests/test_*_engine.py |
-| Frontend pages | 176+ | suite-ui/aldeci-ui-new/src/pages/ |
-| Beast Mode tests | 4,100+ | tests/test_phase*.py + engine tests |
+| Backend engines | 236+ | suite-core/core/*_engine.py |
+| API router files | 466+ | suite-api/apps/api/*_router.py |
+| Engine test files | 240+ | tests/test_*_engine.py |
+| Frontend pages | 188+ | suite-ui/aldeci-ui-new/src/pages/ |
+| Beast Mode tests | 4,400+ | tests/test_phase*.py + engine tests |
 
 ---
 
