@@ -921,6 +921,29 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 39 — Autonomous parallel build + CTO review)
+
+**Wave 39 New Backend Engines (all in suite-core/core/):**
+- ✅ risk_quantification_engine_v2.py — FAIR methodology (SLE/ARO/ALE, control ROI, residual risk, portfolio snapshots) — 47 tests
+- ✅ cyber_threat_modeling_engine.py — CyberThreatModeling (4x4 risk matrix, attack tree mitigations, idempotent mitigate, model summary) — 54 tests
+- ✅ security_capacity_planning_engine.py — SecurityCapacityPlanning (gap_fte skill matching, fulfilled/partially_fulfilled, utilization clamping) — 41 tests
+- ✅ tprm_exchange_engine.py — TPRMExchange (criticality→tier-1..4, complete_assessment re-tiers by score, overdue detection) — 45 tests
+- ✅ security_event_timeline_engine.py — SecurityEventTimeline (event_count++, start_time=MIN/end_time=MAX, julianday duration, LIKE search) — 54 tests
+- ✅ vuln_intel_fusion_engine.py — VulnIntelFusion (source_count++, cvss=AVG/epss=MAX/kev=MAX, fusion score formula, INSERT OR IGNORE affected_assets) — 55 tests
+
+**CTO Review Verdict:** ✅ PASS — WAL+RLock+org_id on all engines, zero bare excepts, api_key_auth via dependencies=[Depends(api_key_auth)] on all routers
+
+**Wave 39 Routers wired:** /api/v1/risk-quant, /api/v1/cyber-threat-models, /api/v1/capacity-planning, /api/v1/tprm-exchange, /api/v1/event-timeline, /api/v1/vuln-intel-fusion
+
+**Wave 39 Frontend Pages (for Wave 38 engines):**
+- ✅ PostureReportingDashboard (/posture-reports), NetworkAnomalyDashboard (/network-anomaly)
+- ✅ PrivilegedIdentityDashboard (/privileged-identity), HuntingAutomationDashboard (/hunting-automation)
+- ✅ EvidenceVaultDashboard (/evidence-vault), ServiceCatalogDashboard (/service-catalog)
+
+**Engine total: 332+ engines | Router total: 562+ routers | Test total: 8,367+ tests | Frontend: 284+ pages**
+
+---
+
 ### DONE (session 2026-04-16, Wave 38 — Autonomous parallel build + CTO review)
 
 **Wave 38 New Backend Engines:**
