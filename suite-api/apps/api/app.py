@@ -6341,6 +6341,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.siem_integration_router import router as siem_integration_router
+        app.include_router(siem_integration_router)
+        _logger.info("Mounted SIEM Integration router at /api/v1/siem")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.nac_router import router as nac_router
+        app.include_router(nac_router)
+        _logger.info("Mounted NAC router at /api/v1/nac")
+    except ImportError:
+        pass
+
     return app
 
 
