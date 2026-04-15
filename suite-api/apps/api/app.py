@@ -5855,6 +5855,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Compliance Scanner router not loaded: {e}")
 
+    # Asset Risk Calculator — weighted composite risk scoring per asset
+    try:
+        from apps.api.asset_risk_calculator_router import router as asset_risk_calculator_router
+        app.include_router(asset_risk_calculator_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Asset Risk Calculator router at /api/v1/asset-risk")
+    except Exception as e:
+        _logger.warning(f"Asset Risk Calculator router not loaded: {e}")
+
+    # Security Health Engine — health checks, snapshots, and incident lifecycle
+    try:
+        from apps.api.security_health_router import router as security_health_router
+        app.include_router(security_health_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Security Health router at /api/v1/security-health")
+    except Exception as e:
+        _logger.warning(f"Security Health router not loaded: {e}")
+
     return app
 
 
