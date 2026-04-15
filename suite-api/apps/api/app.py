@@ -7626,6 +7626,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 37 pre-wiring (engines pending creation)
+    try:
+        from apps.api.sbom_export_router import router as sbom_export_router
+        app.include_router(sbom_export_router)
+        _logger.info("Mounted SBOM Export router at /api/v1/sbom-export")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_gap_analysis_router import router as security_gap_analysis_router
+        app.include_router(security_gap_analysis_router)
+        _logger.info("Mounted Security Gap Analysis router at /api/v1/gap-analysis")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.alert_enrichment_router import router as alert_enrichment_router
+        app.include_router(alert_enrichment_router)
+        _logger.info("Mounted Alert Enrichment router at /api/v1/alert-enrichment")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_baseline_router import router as security_baseline_router
+        app.include_router(security_baseline_router)
+        _logger.info("Mounted Security Baseline router at /api/v1/security-baselines")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_response_router import router as threat_response_router
+        app.include_router(threat_response_router)
+        _logger.info("Mounted Threat Response router at /api/v1/threat-response")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_awareness_program_router import router as security_awareness_program_router
+        app.include_router(security_awareness_program_router)
+        _logger.info("Mounted Security Awareness Program router at /api/v1/awareness-program")
+    except ImportError:
+        pass
+
     return app
 
 
