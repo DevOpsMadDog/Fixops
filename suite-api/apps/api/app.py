@@ -7239,6 +7239,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 28 routers
+    try:
+        from apps.api.access_request_management_router import router as access_request_management_router
+        app.include_router(access_request_management_router)
+        _logger.info("Mounted Access Request Management router at /api/v1/access-requests")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.privileged_session_recording_router import router as privileged_session_recording_router
+        app.include_router(privileged_session_recording_router)
+        _logger.info("Mounted Privileged Session Recording router at /api/v1/session-recording")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_resource_inventory_router import router as cloud_resource_inventory_router
+        app.include_router(cloud_resource_inventory_router)
+        _logger.info("Mounted Cloud Resource Inventory router at /api/v1/cloud-inventory")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_telemetry_router import router as security_telemetry_router
+        app.include_router(security_telemetry_router)
+        _logger.info("Mounted Security Telemetry router at /api/v1/security-telemetry")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.microsegmentation_policy_router import router as microsegmentation_policy_router
+        app.include_router(microsegmentation_policy_router)
+        _logger.info("Mounted Microsegmentation Policy router at /api/v1/microsegmentation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.third_party_vendor_router import router as third_party_vendor_router
+        app.include_router(third_party_vendor_router)
+        _logger.info("Mounted Third Party Vendor router at /api/v1/third-party-vendor")
+    except ImportError:
+        pass
+
     return app
 
 

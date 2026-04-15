@@ -682,6 +682,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 27 — Autonomous parallel build)
+
+**Wave 27 New Backend Engines:**
+- ✅ alert_triage_engine.py — AlertTriage (priority auto-assign, bulk_triage, queue ordering p1-first) — 41 tests
+- ✅ security_awareness_metrics_engine.py — SecurityAwarenessMetrics (trend computation, benchmark UPSERT, dept below benchmark) — 35 tests
+- ✅ patch_management_engine.py — PatchManagement (deployed_count/failed_count counters, undeployed_critical, success_rate) — 52 tests
+- ✅ container_security_posture_engine.py — ContainerSecurityPosture (posture_score ±delta, clusters_at_risk<70) — 47 tests
+- ✅ cyber_threat_intelligence_engine.py — CyberThreatIntelligence (reports, IOCs, TLP, confidence_score) — 51 tests
+- ✅ digital_twin_security_engine.py — DigitalTwinSecurity (deterministic simulation, findings, high_risk_twins) — 51 tests
+
+**Wave 27 Routers wired:** /api/v1/alert-triage, /api/v1/awareness-metrics, /api/v1/patch-management, /api/v1/container-posture, /api/v1/cyber-threat-intel, /api/v1/digital-twin
+
+**Wave 27 Frontend Pages (Wave 26 domains):**
+- ✅ ComplianceAutomationDashboard (/compliance-automation), ThreatAttributionDashboard (/threat-attribution)
+- ✅ CloudAccessSecurityDashboard (/cloud-access-security), BehavioralAnalyticsDashboard (/behavioral-analytics)
+- ✅ VulnWorkflowDashboard (/vuln-workflow), DataPipelineDashboard (/data-pipeline)
+
+**Engine total: 260+ engines | Router total: 490+ routers | Test total: 5,361+ tests | Frontend: 212+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
