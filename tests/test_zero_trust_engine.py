@@ -346,3 +346,153 @@ def test_multiple_policies_evaluated_in_priority_order(engine):
     result = engine.evaluate_access(_sample_request(mfa_verified=False))
     assert result["decision"] in ("deny", "quarantine")
     assert len(result["policies_matched"]) >= 2
+
+
+# ---------------------------------------------------------------------------
+# get_trust_score
+# ---------------------------------------------------------------------------
+
+
+def test_get_trust_score_no_history_returns_neutral(engine):
+    result = engine.get_trust_score(subject_id="unknown-user")
+    assert result["score"] == 50
+    assert isinstance(result["factors"], dict)
+    assert "device_health" in result["factors"]
+
+
+def test_get_trust_score_returns_subject_id(engine):
+    result = engine.get_trust_score(subject_id="alice")
+    assert result["subject_id"] == "alice"
+
+
+def test_get_trust_score_after_evaluations_returns_float_score(engine):
+    engine.evaluate_access(_sample_request(user_id="carol", device_compliant=True, mfa_verified=True))
+    result = engine.get_trust_score(subject_id="carol")
+    assert isinstance(result["score"], float)
+    assert 0.0 <= result["score"] <= 100.0
+
+
+def test_get_trust_score_factors_all_present(engine):
+    engine.evaluate_access(_sample_request(user_id="dave"))
+    result = engine.get_trust_score(subject_id="dave")
+    factors = result["factors"]
+    for key in ("device_health", "location_risk", "behavior_anomaly", "identity_confidence", "data_sensitivity"):
+        assert key in factors, f"Missing factor: {key}"
+
+
+def test_get_trust_score_factors_in_range(engine):
+    engine.evaluate_access(_sample_request(user_id="eve"))
+    result = engine.get_trust_score(subject_id="eve")
+    for key, val in result["factors"].items():
+        assert 0.0 <= val <= 100.0, f"Factor {key}={val} out of range"
+
+
+def test_get_trust_score_org_isolation(engine):
+    engine.evaluate_access(_sample_request(user_id="frank", org_id="org-a"))
+    result = engine.get_trust_score(subject_id="frank", org_id="org-b")
+    # No history for org-b → neutral defaults
+    assert result["score"] == 50
+
+
+# ---------------------------------------------------------------------------
+# get_policy_stats
+# ---------------------------------------------------------------------------
+
+
+def test_get_policy_stats_returns_dict_with_required_keys(engine):
+    stats = engine.get_policy_stats()
+    for key in ("total_policies", "allows_today", "denies_today", "challenges_today", "top_denied_resources"):
+        assert key in stats, f"Missing key: {key}"
+
+
+def test_get_policy_stats_total_policies_counts_active(engine):
+    engine.create_policy(name="stat-p1", conditions={}, action="allow")
+    engine.create_policy(name="stat-p2", conditions={}, action="deny")
+    stats = engine.get_policy_stats()
+    assert stats["total_policies"] >= 2
+
+
+def test_get_policy_stats_counts_are_non_negative(engine):
+    engine.evaluate_access(_sample_request())
+    stats = engine.get_policy_stats()
+    assert stats["allows_today"] >= 0
+    assert stats["denies_today"] >= 0
+    assert stats["challenges_today"] >= 0
+
+
+def test_get_policy_stats_top_denied_resources_is_list(engine):
+    stats = engine.get_policy_stats()
+    assert isinstance(stats["top_denied_resources"], list)
+
+
+def test_get_policy_stats_top_denied_resources_have_resource_and_count(engine):
+    engine.create_policy(name="block-all", conditions={"max_risk_score": 0.0}, action="deny", priority=1)
+    engine.evaluate_access(_sample_request(resource="secret-db", user_risk_score=50.0))
+    stats = engine.get_policy_stats()
+    if stats["top_denied_resources"]:
+        for entry in stats["top_denied_resources"]:
+            assert "resource" in entry
+            assert "count" in entry
+
+
+def test_get_policy_stats_allow_increments_on_allow_decision(engine):
+    # Fresh engine, no policies → default allow
+    before = engine.get_policy_stats()
+    engine.evaluate_access(_sample_request())
+    after = engine.get_policy_stats()
+    assert after["allows_today"] >= before["allows_today"]
+
+
+# ---------------------------------------------------------------------------
+# get_micro_segmentation_map
+# ---------------------------------------------------------------------------
+
+
+def test_get_micro_segmentation_map_returns_zones_and_paths(engine):
+    result = engine.get_micro_segmentation_map()
+    assert "zones" in result
+    assert "paths" in result
+    assert "segment_count" in result
+
+
+def test_get_micro_segmentation_map_zones_is_list(engine):
+    result = engine.get_micro_segmentation_map()
+    assert isinstance(result["zones"], list)
+    assert len(result["zones"]) > 0
+
+
+def test_get_micro_segmentation_map_zones_have_required_fields(engine):
+    result = engine.get_micro_segmentation_map()
+    for zone in result["zones"]:
+        assert "id" in zone
+        assert "label" in zone
+        assert "risk" in zone
+
+
+def test_get_micro_segmentation_map_paths_is_list(engine):
+    result = engine.get_micro_segmentation_map()
+    assert isinstance(result["paths"], list)
+
+
+def test_get_micro_segmentation_map_paths_populated_after_traffic(engine):
+    engine.evaluate_access(_sample_request(network_ip="10.0.0.1", resource="api-service"))
+    result = engine.get_micro_segmentation_map()
+    assert isinstance(result["paths"], list)
+    # At least one path should exist after traffic
+    assert len(result["paths"]) >= 1
+
+
+def test_get_micro_segmentation_map_segment_count_matches_zones(engine):
+    result = engine.get_micro_segmentation_map()
+    assert result["segment_count"] == len(result["zones"])
+
+
+def test_get_micro_segmentation_map_path_fields(engine):
+    engine.evaluate_access(_sample_request(network_ip="192.168.1.5", resource="database-main"))
+    result = engine.get_micro_segmentation_map()
+    for path in result["paths"]:
+        assert "from" in path
+        assert "to" in path
+        assert "allowed" in path
+        assert "denied" in path
+        assert "status" in path

@@ -195,3 +195,28 @@ async def get_analytics(
 ) -> Dict[str, Any]:
     """Return trust analytics: rates, averages, decision breakdown."""
     return _engine().get_trust_analytics(org_id=org_id)
+
+
+@router.get("/trust-score/{subject_id}", response_model=Dict[str, Any])
+async def get_trust_score(
+    subject_id: str,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Get trust score and factor breakdown for a subject (user or device)."""
+    return _engine().get_trust_score(subject_id=subject_id, org_id=org_id)
+
+
+@router.get("/stats", response_model=Dict[str, Any])
+async def get_policy_stats(
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Return policy effectiveness stats: allows/denies/challenges today, top denied resources."""
+    return _engine().get_policy_stats(org_id=org_id)
+
+
+@router.get("/segments", response_model=Dict[str, Any])
+async def get_micro_segmentation_map(
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Return network zone micro-segmentation map with allowed paths."""
+    return _engine().get_micro_segmentation_map(org_id=org_id)

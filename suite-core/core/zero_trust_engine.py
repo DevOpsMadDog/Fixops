@@ -593,6 +593,231 @@ class ZeroTrustEngine:
     # Analytics
     # ------------------------------------------------------------------
 
+    def get_trust_score(self, subject_id: str, org_id: str = "default") -> dict:
+        """Return trust score factors for a subject (user or device).
+
+        Factors are derived from the most recent access log entries for this subject.
+        Returns {score: 0-100, factors: {device_health, location_risk, behavior_anomaly,
+        identity_confidence, data_sensitivity}}
+        """
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT trust_score, risk_factors, decision, evaluated_at
+                FROM zt_access_log
+                WHERE org_id = ? AND user_id = ?
+                ORDER BY evaluated_at DESC
+                LIMIT 20
+                """,
+                (org_id, subject_id),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            # No history — return neutral defaults
+            return {
+                "subject_id": subject_id,
+                "score": 50,
+                "factors": {
+                    "device_health": 50,
+                    "location_risk": 50,
+                    "behavior_anomaly": 50,
+                    "identity_confidence": 50,
+                    "data_sensitivity": 50,
+                },
+            }
+
+        # Aggregate signals from recent entries
+        trust_scores = [float(r["trust_score"]) for r in rows]
+        avg_trust = sum(trust_scores) / len(trust_scores)
+
+        all_risk_factors: List[str] = []
+        for r in rows:
+            try:
+                all_risk_factors.extend(json.loads(r["risk_factors"]))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        deny_count = sum(1 for r in rows if r["decision"] in ("deny", "quarantine"))
+        deny_rate = deny_count / len(rows)
+
+        # Derive factor scores (0-100, higher = healthier)
+        device_health = max(0.0, 100.0 - 50.0 * all_risk_factors.count("non_compliant_device") / max(len(rows), 1))
+        location_risk = max(0.0, 100.0 - 60.0 * all_risk_factors.count("untrusted_network") / max(len(rows), 1))
+        behavior_anomaly = max(0.0, 100.0 - 80.0 * deny_rate)
+        identity_confidence = max(0.0, 100.0 - 50.0 * all_risk_factors.count("mfa_not_verified") / max(len(rows), 1))
+        data_sensitivity = max(0.0, 100.0 - 40.0 * all_risk_factors.count("insufficient_trust_level") / max(len(rows), 1))
+
+        return {
+            "subject_id": subject_id,
+            "score": round(avg_trust, 1),
+            "factors": {
+                "device_health": round(device_health, 1),
+                "location_risk": round(location_risk, 1),
+                "behavior_anomaly": round(behavior_anomaly, 1),
+                "identity_confidence": round(identity_confidence, 1),
+                "data_sensitivity": round(data_sensitivity, 1),
+            },
+        }
+
+    def get_policy_stats(self, org_id: str = "default") -> dict:
+        """Return policy effectiveness statistics for today.
+
+        Returns {total_policies, allows_today, denies_today, challenges_today,
+        top_denied_resources}
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        conn = self._connect()
+        try:
+            total_policies = conn.execute(
+                "SELECT COUNT(*) FROM zt_policies WHERE org_id = ? AND active = 1",
+                (org_id,),
+            ).fetchone()[0]
+
+            rows = conn.execute(
+                """
+                SELECT decision, COUNT(*) as cnt
+                FROM zt_access_log
+                WHERE org_id = ? AND date(evaluated_at) = ?
+                GROUP BY decision
+                """,
+                (org_id, today),
+            ).fetchall()
+            by_decision: Dict[str, int] = {r["decision"]: r["cnt"] for r in rows}
+
+            denied_resources = conn.execute(
+                """
+                SELECT resource, COUNT(*) as cnt
+                FROM zt_access_log
+                WHERE org_id = ? AND decision IN ('deny', 'quarantine')
+                  AND resource IS NOT NULL AND resource != ''
+                GROUP BY resource
+                ORDER BY cnt DESC
+                LIMIT 5
+                """,
+                (org_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        allows_today = by_decision.get("allow", 0)
+        denies_today = by_decision.get("deny", 0) + by_decision.get("quarantine", 0)
+        challenges_today = by_decision.get("step_up_auth", 0) + by_decision.get("monitor", 0)
+
+        return {
+            "total_policies": total_policies,
+            "allows_today": allows_today,
+            "denies_today": denies_today,
+            "challenges_today": challenges_today,
+            "top_denied_resources": [
+                {"resource": r["resource"], "count": r["cnt"]} for r in denied_resources
+            ],
+        }
+
+    def get_micro_segmentation_map(self, org_id: str = "default") -> dict:
+        """Return network zones and allowed paths between them.
+
+        Derives zones from access log traffic patterns. Returns
+        {zones: list, paths: list, segment_count: int}
+        """
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT network_ip, resource, decision
+                FROM zt_access_log
+                WHERE org_id = ? AND network_ip IS NOT NULL AND network_ip != ''
+                ORDER BY evaluated_at DESC
+                LIMIT 500
+                """,
+                (org_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        # Classify IPs into zones based on RFC-1918 ranges
+        zone_traffic: Dict[str, Dict[str, int]] = {}
+        resource_zone: Dict[str, str] = {}
+
+        for r in rows:
+            ip = r["network_ip"] or ""
+            resource = r["resource"] or "unknown"
+            decision = r["decision"]
+
+            # Classify source zone
+            if ip.startswith("10."):
+                src_zone = "internal-corporate"
+            elif ip.startswith("172.16.") or ip.startswith("172.31."):
+                src_zone = "internal-dmz"
+            elif ip.startswith("192.168."):
+                src_zone = "internal-office"
+            elif ip == "":
+                src_zone = "unknown"
+            else:
+                src_zone = "external-internet"
+
+            # Classify destination zone by resource name heuristics
+            res_lower = resource.lower()
+            if any(k in res_lower for k in ("db", "database", "sql", "postgres", "mysql")):
+                dst_zone = "data-tier"
+            elif any(k in res_lower for k in ("api", "service", "backend", "app")):
+                dst_zone = "app-tier"
+            elif any(k in res_lower for k in ("admin", "mgmt", "manage")):
+                dst_zone = "management"
+            elif any(k in res_lower for k in ("vpn", "gateway", "router")):
+                dst_zone = "network-perimeter"
+            else:
+                dst_zone = "general-services"
+
+            resource_zone[resource] = dst_zone
+
+            key = f"{src_zone}->{dst_zone}"
+            if key not in zone_traffic:
+                zone_traffic[key] = {"allow": 0, "deny": 0}
+            if decision in ("allow", "monitor"):
+                zone_traffic[key]["allow"] += 1
+            else:
+                zone_traffic[key]["deny"] += 1
+
+        # Build zone list
+        all_zone_names = set()
+        for k in zone_traffic:
+            src, dst = k.split("->")
+            all_zone_names.add(src)
+            all_zone_names.add(dst)
+
+        # Add default zones even if no traffic yet
+        default_zones = [
+            {"id": "external-internet", "label": "External Internet", "risk": "high", "color": "red"},
+            {"id": "network-perimeter", "label": "Network Perimeter", "risk": "medium", "color": "orange"},
+            {"id": "internal-corporate", "label": "Corporate Network", "risk": "low", "color": "blue"},
+            {"id": "internal-office", "label": "Office Network", "risk": "low", "color": "blue"},
+            {"id": "internal-dmz", "label": "DMZ", "risk": "medium", "color": "yellow"},
+            {"id": "app-tier", "label": "Application Tier", "risk": "medium", "color": "purple"},
+            {"id": "data-tier", "label": "Data Tier", "risk": "high", "color": "red"},
+            {"id": "management", "label": "Management Zone", "risk": "high", "color": "red"},
+            {"id": "general-services", "label": "General Services", "risk": "low", "color": "green"},
+        ]
+
+        paths = [
+            {
+                "from": k.split("->")[0],
+                "to": k.split("->")[1],
+                "allowed": v["allow"],
+                "denied": v["deny"],
+                "status": "active" if v["allow"] > 0 else "blocked",
+            }
+            for k, v in zone_traffic.items()
+        ]
+
+        return {
+            "zones": default_zones,
+            "paths": paths,
+            "segment_count": len(default_zones),
+        }
+
     def get_trust_analytics(self, org_id: str = "default") -> dict:
         """Return trust analytics for the org."""
         conn = self._connect()
