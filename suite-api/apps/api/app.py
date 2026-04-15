@@ -5879,6 +5879,44 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Analytics Engine router not loaded: {e}")
 
+    # DevSecOps Pipeline Security Engine — CI/CD gate policies, runs, findings
+    try:
+        from apps.api.devsecops_router import router as devsecops_router
+        app.include_router(devsecops_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted DevSecOps router at /api/v1/devsecops")
+    except Exception as e:
+        _logger.warning(f"DevSecOps router not loaded: {e}")
+
+    try:
+        from apps.api.incident_timeline_router import router as incident_timeline_router
+        app.include_router(incident_timeline_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Incident Timeline router at /api/v1/incident-timeline")
+    except Exception as e:
+        _logger.warning(f"Incident Timeline router not loaded: {e}")
+
+    try:
+        from apps.api.security_metrics_collector_router import router as security_metrics_collector_router
+        app.include_router(security_metrics_collector_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Security Metrics Collector router at /api/v1/security-metrics-collector")
+    except Exception as e:
+        _logger.warning(f"Security Metrics Collector router not loaded: {e}")
+
+    # Vulnerability trend analysis — snapshots, SLA tracking, cohorts
+    try:
+        from apps.api.vuln_trend_router import router as vuln_trend_router
+        app.include_router(vuln_trend_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Vuln Trend router at /api/v1/vuln-trends")
+    except Exception as e:
+        _logger.warning(f"Vuln Trend router not loaded: {e}")
+
+    # Configuration benchmark — CIS/DISA STIG/NIST assessments, gate checks
+    try:
+        from apps.api.config_benchmark_router import router as config_benchmark_router
+        app.include_router(config_benchmark_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Config Benchmark router at /api/v1/config-benchmark")
+    except Exception as e:
+        _logger.warning(f"Config Benchmark router not loaded: {e}")
+
     return app
 
 
