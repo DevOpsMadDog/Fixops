@@ -180,6 +180,9 @@ const VulnerabilityScannerPage = lazy(() => import("@/pages/VulnerabilityScanner
 const SecurityPostureDashboard = lazy(() => import("@/pages/SecurityPostureDashboard"));
 const ExecutiveBriefing = lazy(() => import("@/pages/ExecutiveBriefing"));
 const ThreatFeedDashboard = lazy(() => import("@/pages/ThreatFeedDashboard"));
+const CWPPDashboard = lazy(() => import("@/pages/CWPPDashboard"));
+const DigitalForensicsDashboard = lazy(() => import("@/pages/DigitalForensicsDashboard"));
+const GRCAssessment = lazy(() => import("@/pages/GRCAssessment"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -382,6 +385,9 @@ export default function App() {
             <Route path="/security-posture" element={<SecurityPostureDashboard />} />
             <Route path="/executive-briefing" element={<ExecutiveBriefing />} />
             <Route path="/threat-feeds" element={<ThreatFeedDashboard />} />
+            <Route path="/cwpp" element={<CWPPDashboard />} />
+            <Route path="/digital-forensics" element={<DigitalForensicsDashboard />} />
+            <Route path="/grc-assessment" element={<GRCAssessment />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
