@@ -115,9 +115,12 @@ def list_nodes(
 
 
 @router.delete("/nodes/{node_id}", summary="Remove a network node and its edges")
-def remove_node(node_id: str) -> dict:
+def remove_node(
+    node_id: str,
+    org_id: str = Query("default", description="Organisation ID"),
+) -> dict:
     try:
-        found = _get_engine().remove_node(node_id)
+        found = _get_engine().remove_node(node_id, org_id=org_id)
         if not found:
             raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
         return {"removed": True, "node_id": node_id}

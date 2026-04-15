@@ -190,11 +190,16 @@ class AttackPathEngine:
         _logger.debug("Node added", node_id=node_id, node_type=node_type)
         return node.to_dict()
 
-    def get_node(self, node_id: str) -> Optional[dict]:
-        """Return node dict or None if not found."""
+    def get_node(self, node_id: str, org_id: str = "default") -> Optional[dict]:
+        """Return node dict or None if not found.
+
+        org_id guard prevents cross-tenant reads: a caller who knows another
+        tenant's node_id will receive None instead of the node data.
+        """
         with self._conn() as conn:
             row = conn.execute(
-                "SELECT * FROM nodes WHERE node_id = ?", (node_id,)
+                "SELECT * FROM nodes WHERE node_id = ? AND org_id = ?",
+                (node_id, org_id),
             ).fetchone()
         return self._row_to_node(row) if row else None
 
@@ -213,14 +218,22 @@ class AttackPathEngine:
             rows = conn.execute(query, params).fetchall()
         return [self._row_to_node(r) for r in rows]
 
-    def remove_node(self, node_id: str) -> bool:
-        """Remove a node (and its edges). Returns True if node existed."""
+    def remove_node(self, node_id: str, org_id: str = "default") -> bool:
+        """Remove a node (and its org-scoped edges). Returns True if node existed.
+
+        org_id guard prevents cross-tenant deletes: only nodes belonging to
+        org_id are affected, so a caller with a foreign node_id gets False.
+        """
         with self._conn() as conn:
-            cur = conn.execute("DELETE FROM nodes WHERE node_id = ?", (node_id,))
-            conn.execute(
-                "DELETE FROM edges WHERE from_node = ? OR to_node = ?",
-                (node_id, node_id),
+            cur = conn.execute(
+                "DELETE FROM nodes WHERE node_id = ? AND org_id = ?",
+                (node_id, org_id),
             )
+            if cur.rowcount > 0:
+                conn.execute(
+                    "DELETE FROM edges WHERE (from_node = ? OR to_node = ?) AND org_id = ?",
+                    (node_id, node_id, org_id),
+                )
         return cur.rowcount > 0
 
     @staticmethod

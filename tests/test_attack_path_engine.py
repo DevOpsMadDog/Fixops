@@ -256,3 +256,38 @@ def test_get_graph_stats_returns_numeric_dict(simple_graph):
     assert stats["total_nodes"] == 4
     assert stats["total_edges"] == 3
     assert stats["crown_jewel_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Multi-tenant isolation tests
+# ---------------------------------------------------------------------------
+
+
+def test_get_node_cross_tenant_returns_none(engine):
+    """A node created in org1 must not be readable from org2."""
+    engine.add_node("host-secret", "server", "Org1 Server", org_id="org1")
+    # Same node_id, different org — must return None
+    result = engine.get_node("host-secret", org_id="org2")
+    assert result is None
+
+
+def test_get_node_correct_tenant_returns_node(engine):
+    """A node created in org1 is returned when queried with the correct org_id."""
+    engine.add_node("host-secret", "server", "Org1 Server", org_id="org1")
+    result = engine.get_node("host-secret", org_id="org1")
+    assert result is not None
+    assert result["node_id"] == "host-secret"
+    assert result["org_id"] == "org1"
+
+
+def test_remove_node_cross_tenant_returns_false_and_preserves_node(engine):
+    """Attempting to remove org1's node while passing org2 must fail silently
+    (returns False) and leave the original node intact."""
+    engine.add_node("crown", "database", "Org1 Crown", is_crown_jewel=True, org_id="org1")
+    # Cross-tenant delete — must not remove anything
+    deleted = engine.remove_node("crown", org_id="org2")
+    assert deleted is False
+    # Node must still exist in org1
+    still_there = engine.get_node("crown", org_id="org1")
+    assert still_there is not None
+    assert still_there["node_id"] == "crown"
