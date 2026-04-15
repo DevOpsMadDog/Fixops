@@ -5630,6 +5630,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Certificate Manager router not loaded: {e}")
 
+    # Application Security (AppSec) — SAST/DAST scans, findings, OWASP tracking
+    try:
+        from apps.api.app_security_router import router as app_security_router
+        app.include_router(app_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted AppSec router at /api/v1/app-security")
+    except Exception as e:
+        _logger.warning(f"AppSec router not loaded: {e}")
+
     # Endpoint Security / EDR — endpoint inventory, alerts, policies
     try:
         from apps.api.endpoint_security_router import router as endpoint_security_router
