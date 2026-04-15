@@ -227,6 +227,9 @@ const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsD
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
 
+// AI Security Advisor
+const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -313,6 +316,9 @@ export default function App() {
             <Route path="/settings/policies" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Policies /></RequireRole>} />
             <Route path="/settings/health" element={<SystemHealth />} />
             <Route path="/settings/logs" element={<LogViewer />} />
+
+            {/* AI Security Advisor */}
+            <Route path="/ai-advisor" element={<AISecurityAdvisor />} />
 
             {/* AI Copilot & AI Engine */}
             <Route path="/ai" element={<CopilotDashboard />} />

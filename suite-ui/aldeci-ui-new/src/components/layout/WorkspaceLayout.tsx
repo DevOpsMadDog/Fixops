@@ -260,6 +260,7 @@ const navGroups: NavGroup[] = [
     label: "AI Engine",
     icon: Brain,
     items: [
+      { label: "AI Advisor", to: "/ai-advisor", icon: Brain, badge: "NEW" },
       { label: "Copilot", to: "/ai", icon: Bot },
       { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow, roles: ["admin", "security_analyst"] },
       { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale, roles: ["admin", "security_analyst"] },
