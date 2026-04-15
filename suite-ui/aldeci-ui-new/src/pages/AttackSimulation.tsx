@@ -134,15 +134,13 @@ export default function AttackSimulation() {
   const loadData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/attack-sim/scenarios"),
-      apiFetch("/api/v1/attack-sim/campaigns"),
-      apiFetch("/api/v1/attack-sim/mitre/heatmap"),
-    ]).then(([scenariosResult, campaignsResult, heatmapResult]) => {
-      const scenarios = scenariosResult.status === "fulfilled" ? scenariosResult.value : null;
-      const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : null;
-      const heatmap   = heatmapResult.status   === "fulfilled" ? heatmapResult.value   : null;
-      if (scenarios || campaigns || heatmap) {
-        setLiveData({ scenarios, campaigns, heatmap });
+      apiFetch("/api/v1/attack-sim/simulations?org_id=default&limit=20"),
+      apiFetch("/api/v1/attack-sim/stats?org_id=default"),
+    ]).then(([simulationsResult, statsResult]) => {
+      const simulations = simulationsResult.status === "fulfilled" ? simulationsResult.value : null;
+      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
+      if (simulations || stats) {
+        setLiveData({ scenarios: simulations, campaigns: null, heatmap: null, stats });
       }
     }).finally(() => setDataLoading(false));
   };

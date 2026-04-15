@@ -136,14 +136,24 @@ export default function IncidentTimelineDashboard() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/incident-timeline/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/incident-timeline?org_id=${ORG_ID}`),
-    ]).then(([statsRes, timelinesRes]) => {
-      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
-      const timelines = timelinesRes.status === "fulfilled" ? timelinesRes.value : null;
+      apiFetch(`/api/v1/incident-timeline/events?org_id=${ORG_ID}&limit=50`),
+    ]).then(([statsRes, eventsRes]) => {
+      const stats  = statsRes.status  === "fulfilled" ? statsRes.value  : null;
+      const events = eventsRes.status === "fulfilled" ? eventsRes.value : null;
+      // Group events into timelines for the table view
+      const timelines = Array.isArray(events) && events.length > 0
+        ? Object.values(
+            events.reduce((acc: any, ev: any) => {
+              const id = ev.timeline_id ?? ev.incident_id ?? ev.id ?? "TL-unknown";
+              if (!acc[id]) acc[id] = { id, title: ev.title ?? ev.description ?? "Incident", type: ev.incident_type ?? "breach", severity: ev.severity ?? "Medium", status: ev.status ?? "Detection", started: ev.event_time ?? ev.created_at ?? "—", systems: 0, events: 0 };
+              acc[id].events++;
+              return acc;
+            }, {})
+          )
+        : null;
       if (stats || timelines) {
         setLiveData({ stats, timelines });
-        // auto-select the first live timeline
-        const first = Array.isArray(timelines) && timelines.length > 0 ? timelines[0] : null;
+        const first = Array.isArray(timelines) && timelines.length > 0 ? (timelines as any[])[0] : null;
         if (first?.id) setSelected(first.id);
       }
     }).finally(() => setDataLoading(false));

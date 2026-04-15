@@ -121,17 +121,15 @@ export default function SupplyChainDashboard() {
   const fetchData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/supply-chain/risks?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/supply-chain/suppliers?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/supply-chain/components?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/supply-chain/vendors?org_id=${ORG_ID}&limit=30`),
       apiFetch(`/api/v1/supply-chain/stats?org_id=${ORG_ID}`),
-    ]).then(([risksResult, suppliersResult, componentsResult, statsResult]) => {
-      const risks      = risksResult.status      === "fulfilled" ? risksResult.value      : null;
-      const suppliers  = suppliersResult.status  === "fulfilled" ? suppliersResult.value  : null;
-      const components = componentsResult.status === "fulfilled" ? componentsResult.value : null;
+      apiFetch(`/api/v1/supply-chain/components?org_id=${ORG_ID}`),
+    ]).then(([vendorsResult, statsResult, componentsResult]) => {
+      const vendors    = vendorsResult.status    === "fulfilled" ? vendorsResult.value    : null;
       const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
-      if (risks || suppliers || components || stats) {
-        setLiveData({ risks, vendors: suppliers, components, stats });
+      const components = componentsResult.status === "fulfilled" ? componentsResult.value : null;
+      if (vendors || stats || components) {
+        setLiveData({ risks: null, vendors, components, stats });
       }
     }).finally(() => setDataLoading(false));
   };

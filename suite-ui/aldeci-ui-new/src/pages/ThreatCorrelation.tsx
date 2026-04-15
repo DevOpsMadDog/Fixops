@@ -134,23 +134,23 @@ export default function ThreatCorrelation() {
 
   const fetchAll = () =>
     Promise.allSettled([
+      apiFetch(`/api/v1/incident-timeline/events?org_id=${ORG_ID}&limit=50`),
+      apiFetch(`/api/v1/threat-feeds/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-correlation/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-correlation/rules?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-correlation/incidents?org_id=${ORG_ID}&limit=15`),
-      apiFetch(`/api/v1/threat-correlation/signals?org_id=${ORG_ID}&limit=15`),
       apiFetch(`/api/v1/threat-sharing/stats`),
-      apiFetch(`/api/v1/threat-sharing/groups`),
       apiFetch(`/api/v1/threat-sharing/indicators`),
-    ]).then(([statsRes, rulesRes, incidentsRes, signalsRes, sharingStatsRes, groupsRes, indicatorsRes]) => {
-      const stats         = statsRes.status         === "fulfilled" ? statsRes.value         : null;
-      const rules         = rulesRes.status         === "fulfilled" ? rulesRes.value         : null;
-      const incidents     = incidentsRes.status     === "fulfilled" ? incidentsRes.value     : null;
-      const signals       = signalsRes.status       === "fulfilled" ? signalsRes.value       : null;
-      const sharingStats  = sharingStatsRes.status  === "fulfilled" ? sharingStatsRes.value  : null;
-      const groups        = groupsRes.status        === "fulfilled" ? groupsRes.value        : null;
-      const indicators    = indicatorsRes.status    === "fulfilled" ? indicatorsRes.value    : null;
-      if (stats || rules || incidents || signals || sharingStats || groups || indicators) {
-        setLiveData({ stats, rules, incidents, signals, sharingStats, groups, indicators });
+    ]).then(([incidentEventsRes, feedStatsRes, statsRes, rulesRes, sharingStatsRes, indicatorsRes]) => {
+      const incidents     = incidentEventsRes.status === "fulfilled" ? incidentEventsRes.value : null;
+      const feedStats     = feedStatsRes.status      === "fulfilled" ? feedStatsRes.value      : null;
+      const stats         = statsRes.status          === "fulfilled" ? statsRes.value          : null;
+      const rules         = rulesRes.status          === "fulfilled" ? rulesRes.value          : null;
+      const sharingStats  = sharingStatsRes.status   === "fulfilled" ? sharingStatsRes.value   : null;
+      const indicators    = indicatorsRes.status     === "fulfilled" ? indicatorsRes.value     : null;
+      // Merge feed stats into correlation stats for KPI display
+      const mergedStats = stats ?? (feedStats ? { total_events: feedStats.total_feeds ?? feedStats.total_indicators, active_rules: feedStats.active_feeds } : null);
+      if (incidents || feedStats || stats || rules || sharingStats || indicators) {
+        setLiveData({ stats: mergedStats, rules, incidents: incidents ? { incidents: Array.isArray(incidents) ? incidents : [] } : null, signals: null, sharingStats, groups: null, indicators });
       }
     });
 

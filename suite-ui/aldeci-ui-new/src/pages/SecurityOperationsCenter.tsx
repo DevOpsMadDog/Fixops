@@ -128,14 +128,12 @@ export default function SecurityOperationsCenter() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/soar/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/soar/cases?org_id=${ORG_ID}&status=open&limit=20`),
-      apiFetch(`/api/v1/insider-threat/stats?org_id=${ORG_ID}`),
-    ]).then(([soarStatsResult, soarCasesResult, insiderStatsResult]) => {
-      const soarStats    = soarStatsResult.status    === "fulfilled" ? soarStatsResult.value    : null;
-      const soarCases    = soarCasesResult.status    === "fulfilled" ? soarCasesResult.value    : null;
-      const insiderStats = insiderStatsResult.status === "fulfilled" ? insiderStatsResult.value : null;
-      if (soarStats || soarCases || insiderStats) {
-        setLiveData({ soarStats, soarCases, insiderStats });
+      apiFetch(`/api/v1/soar/executions?org_id=${ORG_ID}&limit=20`),
+    ]).then(([soarStatsResult, soarExecutionsResult]) => {
+      const soarStats      = soarStatsResult.status      === "fulfilled" ? soarStatsResult.value      : null;
+      const soarExecutions = soarExecutionsResult.status === "fulfilled" ? soarExecutionsResult.value : null;
+      if (soarStats || soarExecutions) {
+        setLiveData({ soarStats, soarCases: soarExecutions, insiderStats: null });
       }
     }).finally(() => setDataLoading(false));
   }, []);
