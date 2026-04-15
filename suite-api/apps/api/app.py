@@ -6306,6 +6306,17 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.secret_scanner_router import router as secret_scanner_router
+        app.include_router(secret_scanner_router)
+    except ImportError:
+        pass
+    try:
+        from apps.api.dlp_router import router as dlp_router
+        app.include_router(dlp_router)
+    except ImportError:
+        pass
+
     return app
 
 
