@@ -9,9 +9,25 @@
  *   5. Cloud policy table (8 policies)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cloud, AlertTriangle, Container, Shield, RefreshCw, Server, BarChart3, Lock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -141,7 +157,29 @@ function ScoreCircle({ label, score, grade, color, ring, subtitle }: {
 
 export default function CNAPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const compositeScore = Math.round((74 + 81 + 68) / 3);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/cnapp/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cnapp/findings?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/cnapp/workloads?org_id=${ORG_ID}`),
+    ]).then(([statsResult, findingsResult, workloadsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const findings  = findingsResult.status  === "fulfilled" ? findingsResult.value  : null;
+      const workloads = workloadsResult.status === "fulfilled" ? workloadsResult.value : null;
+      if (stats || findings || workloads) {
+        setLiveData({ stats, findings, workloads });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  const cspmScore = liveData?.stats?.cspm_score ?? 74;
+  const cwppScore = liveData?.stats?.cwpp_score ?? 81;
+  const ciemScore = liveData?.stats?.ciem_score ?? 68;
+  const compositeScore = Math.round((cspmScore + cwppScore + ciemScore) / 3);
 
   return (
     <motion.div
@@ -155,8 +193,8 @@ export default function CNAPPDashboard() {
         title="Cloud Native Application Protection"
         description="Unified CSPM + CWPP + CIEM cloud security posture"
         actions={
-          <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
@@ -172,7 +210,11 @@ export default function CNAPPDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-around flex-wrap gap-6 py-2">
-            {SCORES.map((s) => (
+            {[
+              { label: "CSPM",  score: cspmScore, grade: cspmScore >= 90 ? "A" : cspmScore >= 80 ? "B" : cspmScore >= 70 ? "C" : "D", color: cspmScore >= 80 ? "text-green-400" : "text-amber-400", ring: cspmScore >= 80 ? "stroke-green-500" : "stroke-amber-500", subtitle: "Cloud Security Posture" },
+              { label: "CWPP",  score: cwppScore, grade: cwppScore >= 90 ? "A" : cwppScore >= 80 ? "B" : cwppScore >= 70 ? "C" : "D", color: cwppScore >= 80 ? "text-green-400" : "text-amber-400", ring: cwppScore >= 80 ? "stroke-green-500" : "stroke-amber-500", subtitle: "Workload Protection" },
+              { label: "CIEM",  score: ciemScore, grade: ciemScore >= 90 ? "A" : ciemScore >= 80 ? "B" : ciemScore >= 70 ? "C" : "D", color: ciemScore >= 70 ? "text-amber-400" : "text-red-400",   ring: ciemScore >= 70 ? "stroke-amber-500" : "stroke-red-500",   subtitle: "Entitlement Mgmt" },
+            ].map((s) => (
               <ScoreCircle key={s.label} {...s} />
             ))}
           </div>
@@ -186,10 +228,10 @@ export default function CNAPPDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Cloud Workloads"       value={342} icon={Cloud}          trend="up" />
-        <KpiCard title="Critical Findings"     value={18}  icon={AlertTriangle}   trend="up"   className="border-red-500/20" />
-        <KpiCard title="Privileged Containers" value={7}   icon={Container}       trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Policies Active"       value={34}  icon={Lock}            trend="neutral" />
+        <KpiCard title="Cloud Workloads"       value={liveData?.stats?.total_workloads ?? 342}         icon={Cloud}         trend="up" />
+        <KpiCard title="Critical Findings"     value={liveData?.stats?.critical_findings ?? 18}        icon={AlertTriangle} trend="up"      className="border-red-500/20" />
+        <KpiCard title="Privileged Containers" value={liveData?.stats?.privileged_containers ?? 7}     icon={Container}     trend="up"      className="border-amber-500/20" />
+        <KpiCard title="Policies Active"       value={liveData?.stats?.active_policies ?? 34}          icon={Lock}          trend="neutral" />
       </div>
 
       {/* Workload Inventory */}
@@ -217,7 +259,7 @@ export default function CNAPPDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {WORKLOADS.map((w) => (
+                {(liveData?.workloads?.items ?? liveData?.workloads ?? WORKLOADS).map((w: any) => (
                   <TableRow key={w.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[160px] truncate">{w.name}</TableCell>
                     <TableCell className="py-2.5"><WorkloadTypeBadge t={w.type} /></TableCell>

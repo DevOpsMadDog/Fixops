@@ -49,6 +49,15 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+function authedFetch(url: string) {
+  return fetch(url, { headers: { "X-API-Key": API_KEY } });
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -273,8 +282,13 @@ export default function ThreatIntelDashboard() {
   const { data: feeds, isLoading: feedsLoading, refetch: refetchFeeds } = useQuery<Feed[]>({
     queryKey: ["feeds-status"],
     queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/feeds/status`);
-      if (!res.ok) throw new Error("feeds api unavailable");
+      const res = await authedFetch(`${API}/api/v1/threat-feeds/sources?org_id=${ORG_ID}`);
+      if (!res.ok) {
+        // fallback to legacy endpoint
+        const res2 = await authedFetch(`${API}/api/v1/feeds/status`);
+        if (!res2.ok) throw new Error("feeds api unavailable");
+        return res2.json();
+      }
       return res.json();
     },
     retry: 1,
@@ -285,13 +299,29 @@ export default function ThreatIntelDashboard() {
   const { data: iocs, isLoading: iocsLoading } = useQuery<IOC[]>({
     queryKey: ["threat-intel-iocs"],
     queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/threat-intel/iocs`);
-      if (!res.ok) throw new Error("iocs api unavailable");
+      const res = await authedFetch(`${API}/api/v1/threat-feeds/items?org_id=${ORG_ID}&limit=20`);
+      if (!res.ok) {
+        // fallback to legacy endpoint
+        const res2 = await authedFetch(`${API}/api/v1/threat-intel/iocs`);
+        if (!res2.ok) throw new Error("iocs api unavailable");
+        return res2.json();
+      }
       return res.json();
     },
     retry: 1,
     staleTime: 30_000,
     initialData: MOCK_IOCS,
+  });
+
+  const { data: feedStats } = useQuery<any>({
+    queryKey: ["threat-feeds-stats"],
+    queryFn: async () => {
+      const res = await authedFetch(`${API}/api/v1/threat-feeds/stats?org_id=${ORG_ID}`);
+      if (!res.ok) throw new Error("stats api unavailable");
+      return res.json();
+    },
+    retry: 1,
+    staleTime: 60_000,
   });
 
   const filteredIocs = useMemo(() => {
@@ -356,7 +386,7 @@ export default function ThreatIntelDashboard() {
         />
         <KpiCard
           title="New Today"
-          value="4,218"
+          value={feedStats?.new_today ?? "4,218"}
           icon={TrendingUp}
           trend="up"
           trendLabel="vs 3,901 yesterday"

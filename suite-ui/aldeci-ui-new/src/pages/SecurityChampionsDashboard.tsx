@@ -10,9 +10,25 @@
  *   6. Level distribution
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Award, Users, Shield, Star, RefreshCw, BookOpen, Trophy, CheckCircle, Clock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -221,6 +237,24 @@ const MAX_POINTS = 2847;
 
 export default function SecurityChampionsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/security-champions/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-champions/champions?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-champions/campaigns?org_id=${ORG_ID}`),
+    ]).then(([statsResult, championsResult, campaignsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const champions = championsResult.status === "fulfilled" ? championsResult.value : null;
+      const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : null;
+      if (stats || champions || campaigns) {
+        setLiveData({ stats, champions, campaigns });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -239,18 +273,18 @@ export default function SecurityChampionsDashboard() {
         title="Security Champions Program"
         description="Track champion activities, certifications, awareness campaigns, and program health"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Champions"      value={34}    icon={Users}    trend="up"   className="border-purple-500/20" />
-        <KpiCard title="Certifications Valid"  value={89}    icon={Award}    trend="up"   className="border-green-500/20" />
-        <KpiCard title="Active Campaigns"      value={5}     icon={Shield}   trend="flat" className="border-blue-500/20" />
-        <KpiCard title="Avg Points Score"      value="847"   icon={Star}     trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="Active Champions"      value={liveData?.stats?.active_champions ?? 34}                    icon={Users}  trend="up"   className="border-purple-500/20" />
+        <KpiCard title="Certifications Valid"  value={liveData?.stats?.valid_certifications ?? 89}                icon={Award}  trend="up"   className="border-green-500/20" />
+        <KpiCard title="Active Campaigns"      value={liveData?.stats?.active_campaigns ?? 5}                     icon={Shield} trend="flat" className="border-blue-500/20" />
+        <KpiCard title="Avg Points Score"      value={liveData?.stats?.avg_points_score ?? "847"}                 icon={Star}   trend="up"   className="border-yellow-500/20" />
       </div>
 
       {/* Champions Leaderboard */}
@@ -278,7 +312,7 @@ export default function SecurityChampionsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CHAMPIONS.map((c) => (
+                {(liveData?.champions?.items ?? liveData?.champions ?? CHAMPIONS).map((c: any) => (
                   <TableRow key={c.rank} className="hover:bg-muted/30">
                     <TableCell className="py-2.5"><RankBadge rank={c.rank} /></TableCell>
                     <TableCell className="text-xs font-semibold py-2.5">{c.name}</TableCell>
@@ -395,7 +429,7 @@ export default function SecurityChampionsDashboard() {
           Active Campaigns
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {CAMPAIGNS.map((c) => {
+          {(liveData?.campaigns?.items ?? liveData?.campaigns ?? CAMPAIGNS).map((c: any) => {
             const pct = Math.round((c.participants / c.total) * 100);
             return (
               <Card key={c.title} className="border-blue-500/20">

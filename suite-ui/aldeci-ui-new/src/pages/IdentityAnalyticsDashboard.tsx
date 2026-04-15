@@ -10,9 +10,25 @@
  *   6. Certification queue (5 pending)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, AlertTriangle, ShieldAlert, RefreshCw, UserCheck, Clock, Activity, Lock } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -139,6 +155,24 @@ function SevDot({ sev }: { sev: string }) {
 
 export default function IdentityAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/identity-analytics/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/identity-analytics/risks?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/identity-analytics/profiles?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, risksResult, profilesResult]) => {
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      const risks    = risksResult.status    === "fulfilled" ? risksResult.value    : null;
+      const profiles = profilesResult.status === "fulfilled" ? profilesResult.value : null;
+      if (stats || risks || profiles) {
+        setLiveData({ stats, risks, profiles });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   return (
     <motion.div
@@ -152,18 +186,18 @@ export default function IdentityAnalyticsDashboard() {
         title="Identity Analytics"
         description="User risk scoring, anomaly detection, and access certification"
         actions={
-          <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Identities Tracked"       value="1,247" icon={Users}      trend="up" />
-        <KpiCard title="Critical Risk"             value={12}    icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="MFA Off + Privileged"      value={8}     icon={Lock}       trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Pending Certifications"    value={23}    icon={UserCheck}  trend="neutral" className="border-yellow-500/20" />
+        <KpiCard title="Identities Tracked"       value={liveData?.stats?.total_identities ?? "1,247"} icon={Users}      trend="up" />
+        <KpiCard title="Critical Risk"             value={liveData?.stats?.high_risk_identities ?? 12}  icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="MFA Off + Privileged"      value={liveData?.stats?.mfa_disabled_privileged ?? 8} icon={Lock}       trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Pending Certifications"    value={liveData?.stats?.active_certifications ?? 23}  icon={UserCheck}  trend="neutral" className="border-yellow-500/20" />
       </div>
 
       {/* Risk Tier Distribution */}
@@ -223,7 +257,7 @@ export default function IdentityAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {IDENTITIES.map((row) => (
+                {(liveData?.profiles?.items ?? liveData?.profiles ?? IDENTITIES).map((row: any) => (
                   <TableRow key={row.user} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.user}</TableCell>
                     <TableCell className="py-2.5">
@@ -319,7 +353,7 @@ export default function IdentityAnalyticsDashboard() {
             <CardDescription className="text-xs">Open identity risks requiring attention</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {ACTIVE_RISKS.map((r, i) => (
+            {(liveData?.risks?.items ?? liveData?.risks ?? ACTIVE_RISKS).map((r: any, i: number) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-muted/10 px-3 py-2.5">
                 <SevDot sev={r.sev} />
                 <div className="flex-1 min-w-0">
