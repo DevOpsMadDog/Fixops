@@ -38,16 +38,20 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 // ── API helpers ─────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "default";
+
+function getApiKey(): string {
+  return (
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key"
+  );
+}
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": API_KEY },
+  const res = await fetch(`/api/v1${path}`, {
+    headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -165,13 +169,15 @@ export default function BugBounty() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/bounty/programs?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/bounty/submissions?org_id=${ORG_ID}`),
-    ]).then(([programsResult, submissionsResult]) => {
+      apiFetch(`/bug-bounty/programs?org_id=${ORG_ID}`),
+      apiFetch(`/bug-bounty/submissions?org_id=${ORG_ID}&status=open&limit=20`),
+      apiFetch(`/bug-bounty/stats?org_id=${ORG_ID}`),
+    ]).then(([programsResult, submissionsResult, statsResult]) => {
       const programs    = programsResult.status    === "fulfilled" ? programsResult.value    : null;
       const submissions = submissionsResult.status === "fulfilled" ? submissionsResult.value : null;
-      if (programs || submissions) {
-        setLiveData({ programs, submissions });
+      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
+      if (programs || submissions || stats) {
+        setLiveData({ programs, submissions, stats });
       }
     }).finally(() => setDataLoading(false));
   }, []);
@@ -193,9 +199,9 @@ export default function BugBounty() {
     }));
   })();
 
-  // KPI overrides from live programs
+  // KPI overrides from live stats or programs
   const firstProgram = liveData?.programs?.[0] ?? liveData?.programs;
-  const liveStats = firstProgram?.metrics ?? null;
+  const liveStats = liveData?.stats ?? firstProgram?.metrics ?? null;
 
   return (
     <div className="flex flex-col gap-6 p-6">

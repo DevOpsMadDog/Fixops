@@ -15,16 +15,20 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY =
-  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = "default";
+
+function getApiKey(): string {
+  return (
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    "dev-key"
+  );
+}
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": API_KEY },
+  const res = await fetch(`/api/v1${path}`, {
+    headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -190,13 +194,15 @@ export default function RedTeamStatus() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/red-team/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/red-team/engagements?org_id=${ORG_ID}`),
-    ]).then(([statsResult, engagementsResult]) => {
+      apiFetch(`/red-team/stats?org_id=${ORG_ID}`),
+      apiFetch(`/red-team/engagements?org_id=${ORG_ID}`),
+      apiFetch(`/red-team/findings?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, engagementsResult, findingsResult]) => {
       const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
       const engagements = engagementsResult.status === "fulfilled" ? engagementsResult.value : null;
-      if (stats || engagements) {
-        setLiveData({ stats, engagements });
+      const findings    = findingsResult.status    === "fulfilled" ? findingsResult.value    : null;
+      if (stats || engagements || findings) {
+        setLiveData({ stats, engagements, findings });
       }
     }).finally(() => setDataLoading(false));
   }, []);
@@ -205,12 +211,14 @@ export default function RedTeamStatus() {
     setRefreshing(true);
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/red-team/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/red-team/engagements?org_id=${ORG_ID}`),
-    ]).then(([statsResult, engagementsResult]) => {
+      apiFetch(`/red-team/stats?org_id=${ORG_ID}`),
+      apiFetch(`/red-team/engagements?org_id=${ORG_ID}`),
+      apiFetch(`/red-team/findings?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, engagementsResult, findingsResult]) => {
       const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
       const engagements = engagementsResult.status === "fulfilled" ? engagementsResult.value : null;
-      if (stats || engagements) setLiveData({ stats, engagements });
+      const findings    = findingsResult.status    === "fulfilled" ? findingsResult.value    : null;
+      if (stats || engagements || findings) setLiveData({ stats, engagements, findings });
     }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 

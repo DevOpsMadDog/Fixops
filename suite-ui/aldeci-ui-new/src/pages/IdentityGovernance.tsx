@@ -421,11 +421,28 @@ export default function IdentityGovernance() {
     new Set()
   );
   const [igaStats, setIgaStats] = useState<any>(null);
+  const [identityAnalytics, setIdentityAnalytics] = useState<any>(null);
 
-  // Fetch governance stats via apiFetch pattern
+  // Fetch governance stats + identity-analytics data
   useEffect(() => {
-    Promise.allSettled([fetchIgaStats()]).then(([statsRes]) => {
+    const key =
+      (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+      _API_KEY ||
+      "dev-key";
+    const iaFetch = (path: string) =>
+      fetch(`/api/v1${path}`, { headers: { "X-API-Key": key } }).then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      });
+    Promise.allSettled([
+      fetchIgaStats(),
+      iaFetch(`/identity-analytics/sessions?org_id=${ORG_ID}&limit=20`),
+      iaFetch(`/identity-analytics/stats?org_id=${ORG_ID}`),
+    ]).then(([statsRes, sessionsRes, iaStatsRes]) => {
       if (statsRes.status === "fulfilled") setIgaStats(statsRes.value);
+      const sessions  = sessionsRes.status  === "fulfilled" ? sessionsRes.value  : null;
+      const iaStats   = iaStatsRes.status   === "fulfilled" ? iaStatsRes.value   : null;
+      if (sessions || iaStats) setIdentityAnalytics({ sessions, stats: iaStats });
     });
   }, []);
 
