@@ -6579,6 +6579,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.mobile_device_management_router import router as mobile_device_management_router
+        app.include_router(mobile_device_management_router)
+        _logger.info("Mounted Mobile Device Management router at /api/v1/mdm")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ot_security_router import router as ot_security_router
+        app.include_router(ot_security_router)
+        _logger.info("Mounted OT Security router at /api/v1/ot-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.data_privacy_router import router as data_privacy_router
+        app.include_router(data_privacy_router)
+        _logger.info("Mounted Data Privacy router at /api/v1/data-privacy")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.gdpr_compliance_router import router as gdpr_compliance_router
+        app.include_router(gdpr_compliance_router)
+        _logger.info("Mounted GDPR Compliance router at /api/v1/gdpr")
+    except ImportError:
+        pass
+
     return app
 
 
