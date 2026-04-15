@@ -185,6 +185,10 @@ const DigitalForensicsDashboard = lazy(() => import("@/pages/DigitalForensicsDas
 const GRCAssessment = lazy(() => import("@/pages/GRCAssessment"));
 const DataGovernanceDashboard = lazy(() => import("@/pages/DataGovernanceDashboard"));
 const SecurityRoadmap = lazy(() => import("@/pages/SecurityRoadmap"));
+const ThreatHuntingDashboard = lazy(() => import("@/pages/ThreatHuntingDashboard"));
+const ComplianceScannerDashboard = lazy(() => import("@/pages/ComplianceScannerDashboard"));
+const AssetRiskDashboard = lazy(() => import("@/pages/AssetRiskDashboard"));
+const SecurityHealthDashboard = lazy(() => import("@/pages/SecurityHealthDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
@@ -392,6 +396,10 @@ export default function App() {
             <Route path="/grc-assessment" element={<GRCAssessment />} />
             <Route path="/data-governance" element={<DataGovernanceDashboard />} />
             <Route path="/security-roadmap" element={<SecurityRoadmap />} />
+            <Route path="/threat-hunting-dashboard" element={<ThreatHuntingDashboard />} />
+            <Route path="/compliance-scanner" element={<ComplianceScannerDashboard />} />
+            <Route path="/asset-risk" element={<AssetRiskDashboard />} />
+            <Route path="/security-health" element={<SecurityHealthDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

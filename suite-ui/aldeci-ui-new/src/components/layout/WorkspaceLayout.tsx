@@ -152,6 +152,7 @@ const navGroups: NavGroup[] = [
       { label: "Security Posture", to: "/security-posture", icon: Shield, badge: "NEW" },
       { label: "Executive Briefing", to: "/executive-briefing", icon: Crown, badge: "NEW" },
       { label: "Security Roadmap", to: "/security-roadmap", icon: Map, badge: "NEW" },
+      { label: "Security Health", to: "/security-health", icon: Activity, badge: "NEW" },
     ],
   },
   {
@@ -238,6 +239,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Hunt Operations", to: "/hunting", icon: Crosshair, badge: "P04" },
       { label: "Threat Hunting", to: "/threat-hunting", icon: Crosshair, badge: "NEW" },
+      { label: "Hunt Dashboard", to: "/threat-hunting-dashboard", icon: Radar, badge: "NEW" },
     ],
   },
   {
@@ -320,6 +322,7 @@ const navGroups: NavGroup[] = [
     icon: HardDrive,
     items: [
       { label: "Asset Inventory", to: "/assets", icon: HardDrive, badge: "NEW" },
+      { label: "Asset Risk", to: "/asset-risk", icon: AlertTriangle, badge: "NEW" },
     ],
   },
   {
@@ -375,6 +378,7 @@ const navGroups: NavGroup[] = [
       { label: "CWPP", to: "/cwpp", icon: Container, badge: "NEW" },
       { label: "Digital Forensics", to: "/digital-forensics", icon: HardDrive, badge: "NEW" },
       { label: "GRC Assessment", to: "/grc-assessment", icon: ClipboardCheck, badge: "NEW" },
+      { label: "Compliance Scanner", to: "/compliance-scanner", icon: ClipboardCheck, badge: "NEW" },
     ],
   },
   {

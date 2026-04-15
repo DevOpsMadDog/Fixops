@@ -5871,6 +5871,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Security Health router not loaded: {e}")
 
+    # DuckDB cross-domain analytics — unified risk intelligence across all SQLite engines
+    try:
+        from apps.api.analytics_engine_router import router as analytics_engine_router
+        app.include_router(analytics_engine_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Analytics Engine router at /api/v1/analytics-engine")
+    except Exception as e:
+        _logger.warning(f"Analytics Engine router not loaded: {e}")
+
     return app
 
 
