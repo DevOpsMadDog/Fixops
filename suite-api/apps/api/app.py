@@ -6516,6 +6516,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.secrets_management_router import router as secrets_management_router
+        app.include_router(secrets_management_router)
+        _logger.info("Mounted Secrets Management router at /api/v1/secrets-management")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vulnerability_remediation_router import router as vulnerability_remediation_router
+        app.include_router(vulnerability_remediation_router)
+        _logger.info("Mounted Vulnerability Remediation router at /api/v1/vuln-remediation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ddos_protection_router import router as ddos_protection_router
+        app.include_router(ddos_protection_router)
+        _logger.info("Mounted DDoS Protection router at /api/v1/ddos-protection")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.api_gateway_security_router import router as api_gateway_security_router
+        app.include_router(api_gateway_security_router)
+        _logger.info("Mounted API Gateway Security router at /api/v1/api-gateway-security")
+    except ImportError:
+        pass
+
     return app
 
 

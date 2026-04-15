@@ -208,6 +208,8 @@ const ThreatModelDashboard = lazy(() => import("@/pages/ThreatModelDashboard"));
 const OpenClawDashboard = lazy(() => import("@/pages/OpenClawDashboard"));
 const SOCTriageDashboard = lazy(() => import("@/pages/SOCTriageDashboard"));
 const SBOMDashboard = lazy(() => import("@/pages/SBOMDashboard"));
+const DASTDashboard = lazy(() => import("@/pages/DASTDashboard"));
+const IRPlaybookDashboard = lazy(() => import("@/pages/IRPlaybookDashboard"));
 
 // NDR / XDR / Awareness / EDR pages
 const NDRDashboard = lazy(() => import("@/pages/NDRDashboard"));
@@ -425,6 +427,8 @@ export default function App() {
 
             {/* Secret Scanner, Threat Intel Platform, Attack Surface Dashboard */}
             <Route path="/secret-scanner" element={<SecretScannerDashboard />} />
+            <Route path="/dast" element={<DASTDashboard />} />
+            <Route path="/ir-playbook" element={<IRPlaybookDashboard />} />
             <Route path="/container-registry" element={<ContainerRegistryDashboard />} />
             <Route path="/network-monitoring" element={<NetworkMonitoringDashboard />} />
             <Route path="/sca" element={<SCADashboard />} />
