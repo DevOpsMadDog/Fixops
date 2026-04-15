@@ -6981,6 +6981,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 22 routers
+    try:
+        from apps.api.autonomous_remediation_router import router as autonomous_remediation_router
+        app.include_router(autonomous_remediation_router)
+        _logger.info("Mounted Autonomous Remediation router at /api/v1/autonomous-remediation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vulnerability_correlation_router import router as vulnerability_correlation_router
+        app.include_router(vulnerability_correlation_router)
+        _logger.info("Mounted Vulnerability Correlation router at /api/v1/vuln-correlation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_posture_benchmarking_router import router as security_posture_benchmarking_router
+        app.include_router(security_posture_benchmarking_router)
+        _logger.info("Mounted Security Posture Benchmarking router at /api/v1/posture-benchmarking")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.quantum_safe_crypto_router import router as quantum_safe_crypto_router
+        app.include_router(quantum_safe_crypto_router)
+        _logger.info("Mounted Quantum-Safe Crypto router at /api/v1/quantum-crypto")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ai_powered_soc_router import router as ai_powered_soc_router
+        app.include_router(ai_powered_soc_router)
+        _logger.info("Mounted AI-Powered SOC router at /api/v1/ai-soc")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.deception_analytics_router import router as deception_analytics_router
+        app.include_router(deception_analytics_router)
+        _logger.info("Mounted Deception Analytics router at /api/v1/deception-analytics")
+    except ImportError:
+        pass
+
     return app
 
 
