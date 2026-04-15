@@ -745,6 +745,27 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-16, Wave 30 — Autonomous parallel build)
+
+**Wave 30 New Backend Engines:**
+- ✅ compliance_mapping_engine.py — ComplianceMapping (8 frameworks, add_control/mapping/evidence, implementation_rate auto-computed) — 47 tests
+- ✅ vuln_scan_engine.py — VulnScan (8 scanner types, findings_count/critical_count auto-increment per finding, scan lifecycle) — 50 tests
+- ✅ threat_brief_engine.py — ThreatBrief (6 brief types, distribute with recipient_count tracking, TLP classification) — 37 tests
+- ✅ incident_comms_engine.py — IncidentComms (7 comm types, 7 channels, send_comm lifecycle, stakeholder tracking) — 41 tests
+- ✅ asset_tagging_engine.py — AssetTagging (8 tag categories, idempotent assign_tag with INSERT OR IGNORE, bulk_tag_assets) — 66 tests
+- ✅ security_registry_engine.py — SecurityRegistry (8 artifact types, record_review auto-promotes draft→active, registry_stats) — 64 tests
+
+**Wave 30 Routers wired:** /api/v1/compliance-mapping, /api/v1/vuln-scans, /api/v1/threat-briefs, /api/v1/incident-comms, /api/v1/asset-tags, /api/v1/security-registry
+
+**Wave 30 Frontend Pages (Wave 29 domains):**
+- ✅ SaaSSecurityPostureDashboard (/saas-posture), APIInventoryDashboard (/api-inventory)
+- ✅ ThreatVectorAnalysisDashboard (/threat-vectors), AwarenessCampaignDashboard (/awareness-campaigns)
+- ✅ RiskTreatmentDashboard (/risk-treatment), DataDiscoveryDashboard (/data-discovery)
+
+**Engine total: 278+ engines | Router total: 508+ routers | Test total: 6,161+ tests | Frontend: 230+ pages**
+
+---
+
 ## OPERATING RULES
 
 1. **YOU ARE CTO** — delegate via `/team` or subagents, don't write code
