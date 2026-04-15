@@ -10,9 +10,25 @@
  *   6. Stats panel — type donut (text), sophistication bars, top targeted sectors
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Radar, Globe, Shield, Eye, AlertTriangle, RefreshCw, Search, Flag } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -195,13 +211,32 @@ function ThreatScoreBar({ score }: { score: number }) {
 export default function ThreatActorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/threat-actors/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/threat-actors/actors?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/threat-actors/watchlist?org_id=${ORG_ID}`),
+    ]).then(([statsResult, actorsResult, watchlistResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const actors    = actorsResult.status    === "fulfilled" ? actorsResult.value    : null;
+      const watchlist = watchlistResult.status === "fulfilled" ? watchlistResult.value : null;
+      if (stats || actors || watchlist) {
+        setLiveData({ stats, actors, watchlist });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const filteredActors = THREAT_ACTORS.filter((a) =>
+  const actorSource: typeof THREAT_ACTORS = liveData?.actors?.items ?? liveData?.actors ?? THREAT_ACTORS;
+  const filteredActors = actorSource.filter((a: any) =>
     search === "" || a.name.toLowerCase().includes(search.toLowerCase()) || a.country.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -220,18 +255,18 @@ export default function ThreatActorDashboard() {
         title="Threat Actor Intelligence"
         description="APT group tracking, campaign analysis, and IOC watchlist management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Threat Actors"  value={47}    icon={Radar}          trend="up"   className="border-red-500/20" />
-        <KpiCard title="Active Campaigns"       value={12}    icon={Flag}           trend="up"   className="border-orange-500/20" />
-        <KpiCard title="IOCs Tracked"           value="2,841" icon={Eye}            trend="up"   className="border-yellow-500/20" />
-        <KpiCard title="Watchlisted Actors"     value={8}     icon={AlertTriangle}  trend="flat" className="border-purple-500/20" />
+        <KpiCard title="Active Threat Actors"  value={liveData?.stats?.actor_count ?? 47}    icon={Radar}          trend="up"   className="border-red-500/20" />
+        <KpiCard title="Active Campaigns"       value={liveData?.stats?.active_campaigns ?? 12}    icon={Flag}           trend="up"   className="border-orange-500/20" />
+        <KpiCard title="IOCs Tracked"           value={liveData?.stats?.total_iocs ?? "2,841"} icon={Eye}            trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="Watchlisted Actors"     value={liveData?.stats?.watchlist_size ?? 8}     icon={AlertTriangle}  trend="flat" className="border-purple-500/20" />
       </div>
 
       {/* Threat Actor Table */}
@@ -360,7 +395,7 @@ export default function ThreatActorDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {IOCS.map((ioc, i) => (
+                {(liveData?.iocs?.items ?? liveData?.iocs ?? IOCS).map((ioc: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><IOCTypeBadge type={ioc.type} /></TableCell>
                     <TableCell className="text-xs font-mono py-2 max-w-[220px] truncate text-muted-foreground">{ioc.value}</TableCell>
@@ -393,7 +428,7 @@ export default function ThreatActorDashboard() {
             <CardDescription className="text-xs">Priority-monitored threat actors with alert status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {WATCHLIST.map((w) => (
+            {(liveData?.watchlist?.items ?? liveData?.watchlist ?? WATCHLIST).map((w: any) => (
               <div key={w.name} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/20 border border-border/40">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">

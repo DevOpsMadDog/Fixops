@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/ndr/alerts, /api/v1/ndr/flows, /api/v1/ndr/segments
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Network, AlertTriangle, Activity, Shield, RefreshCw, Eye, Radio } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,6 +164,24 @@ const MAX_BYTES = TOP_TALKERS[0].bytes_sent;
 
 export default function NDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/ndr/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ndr/alerts?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/ndr/flows?org_id=${ORG_ID}&limit=10`),
+    ]).then(([statsResult, alertsResult, flowsResult]) => {
+      const stats  = statsResult.status  === "fulfilled" ? statsResult.value  : null;
+      const alerts = alertsResult.status === "fulfilled" ? alertsResult.value : null;
+      const flows  = flowsResult.status  === "fulfilled" ? flowsResult.value  : null;
+      if (stats || alerts || flows) {
+        setLiveData({ stats, alerts, flows });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -166,18 +200,18 @@ export default function NDRDashboard() {
         title="Network Detection & Response"
         description="Traffic analysis, anomaly detection, and network threat hunting"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Monitored Flows"  value="47.2K" icon={Activity}      trend="up"   />
-        <KpiCard title="High-Risk Flows"  value={234}   icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
-        <KpiCard title="C2 Suspects"      value={8}     icon={Radio}         trend="up"   className="border-red-500/20" />
-        <KpiCard title="Open Alerts"      value={34}    icon={Shield}        trend="down" className="border-orange-500/20" />
+        <KpiCard title="Monitored Flows"  value={liveData?.stats?.monitored_segments ?? liveData?.stats?.total_flows ?? "47.2K"} icon={Activity}      trend="up"   />
+        <KpiCard title="High-Risk Flows"  value={liveData?.stats?.active_threats ?? 234}   icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
+        <KpiCard title="C2 Suspects"      value={liveData?.stats?.detection_rate ?? 8}     icon={Radio}         trend="up"   className="border-red-500/20" />
+        <KpiCard title="Open Alerts"      value={liveData?.stats?.total_alerts ?? 34}      icon={Shield}        trend="down" className="border-orange-500/20" />
       </div>
 
       {/* Network Alert Feed */}
@@ -208,7 +242,7 @@ export default function NDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ALERTS.map((a) => (
+                {(liveData?.alerts?.items ?? liveData?.alerts ?? ALERTS).map((a: any) => (
                   <TableRow key={a.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SevDot sev={a.severity} /></TableCell>
                     <TableCell className="py-2"><AlertTypeBadge type={a.alert_type} /></TableCell>
@@ -258,7 +292,7 @@ export default function NDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TOP_TALKERS.map((f, i) => (
+                {(liveData?.flows?.items ?? liveData?.flows ?? TOP_TALKERS).map((f: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{f.src_ip}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{f.dst_ip}</TableCell>

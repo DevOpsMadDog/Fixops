@@ -11,9 +11,25 @@
  * API stubs: GET /api/v1/xdr/incidents, /api/v1/xdr/signals, /api/v1/xdr/rules
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, Zap, GitMerge, RefreshCw, Activity, Layers } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,6 +193,24 @@ function killChainColor(count: number) {
 
 export default function XDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/xdr/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/xdr/incidents?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/xdr/signals?org_id=${ORG_ID}&limit=20`),
+    ]).then(([statsResult, incidentsResult, signalsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const incidents = incidentsResult.status === "fulfilled" ? incidentsResult.value : null;
+      const signals   = signalsResult.status   === "fulfilled" ? signalsResult.value   : null;
+      if (stats || incidents || signals) {
+        setLiveData({ stats, incidents, signals });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -195,18 +229,18 @@ export default function XDRDashboard() {
         title="Extended Detection & Response"
         description="Cross-domain signal correlation and unified incident management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Signals Today"     value="1,247" icon={Activity}      trend="up"   />
-        <KpiCard title="Active Incidents"  value={8}     icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Critical Incidents"value={2}     icon={Shield}        trend="up"   className="border-red-500/20" />
-        <KpiCard title="Auto-Correlated"   value={34}    icon={GitMerge}      trend="up"   className="border-purple-500/20" />
+        <KpiCard title="Signals Today"     value={liveData?.stats?.total_incidents ?? liveData?.stats?.signals_today ?? "1,247"} icon={Activity}      trend="up"   />
+        <KpiCard title="Active Incidents"  value={liveData?.stats?.active_incidents ?? 8}     icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Mean Detect Time"  value={liveData?.stats?.mean_time_to_detect ?? 2}  icon={Shield}        trend="up"   className="border-red-500/20" />
+        <KpiCard title="Auto-Correlated"   value={liveData?.stats?.alerts_correlated ?? 34}   icon={GitMerge}      trend="up"   className="border-purple-500/20" />
       </div>
 
       {/* Incident Command Center */}
@@ -218,7 +252,7 @@ export default function XDRDashboard() {
               Incident Command Center
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {INCIDENTS.filter(i => i.status === "active").length} active
+              {(liveData?.incidents?.items ?? liveData?.incidents ?? INCIDENTS).filter((i: any) => i.status === "active").length} active
             </Badge>
           </div>
           <CardDescription className="text-xs">Active incidents with kill chain stage and signal counts</CardDescription>
@@ -240,7 +274,7 @@ export default function XDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {INCIDENTS.map((inc) => (
+                {(liveData?.incidents?.items ?? liveData?.incidents ?? INCIDENTS).map((inc: any) => (
                   <TableRow key={inc.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-mono text-muted-foreground">{inc.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium max-w-[200px] truncate">{inc.title}</TableCell>
@@ -365,7 +399,7 @@ export default function XDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SIGNALS.map((s) => (
+                {(liveData?.signals?.items ?? liveData?.signals ?? SIGNALS).map((s: any) => (
                   <TableRow key={s.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SevDot sev={s.severity} /></TableCell>
                     <TableCell className="py-2"><SourceBadge type={s.source_type} /></TableCell>

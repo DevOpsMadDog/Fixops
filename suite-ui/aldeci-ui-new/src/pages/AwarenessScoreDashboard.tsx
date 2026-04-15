@@ -12,9 +12,25 @@
  * API stubs: GET /api/v1/awareness/scores, /api/v1/awareness/phishing, /api/v1/awareness/training
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GraduationCap, Users, AlertTriangle, Award, RefreshCw, Shield, CheckCircle } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -138,6 +154,31 @@ function ScoreBar({ score, small }: { score: number; small?: boolean }) {
 
 export default function AwarenessScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    // Try both possible prefixes for awareness endpoint
+    Promise.allSettled([
+      apiFetch(`/api/v1/awareness/stats?org_id=${ORG_ID}`).catch(() =>
+        apiFetch(`/api/v1/security-awareness/stats?org_id=${ORG_ID}`)
+      ),
+      apiFetch(`/api/v1/awareness/employees?org_id=${ORG_ID}&limit=20`).catch(() =>
+        apiFetch(`/api/v1/security-awareness/employees?org_id=${ORG_ID}&limit=20`)
+      ),
+      apiFetch(`/api/v1/awareness/campaigns?org_id=${ORG_ID}`).catch(() =>
+        apiFetch(`/api/v1/security-awareness/campaigns?org_id=${ORG_ID}`)
+      ),
+    ]).then(([statsResult, employeesResult, campaignsResult]) => {
+      const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
+      const employees = employeesResult.status === "fulfilled" ? employeesResult.value : null;
+      const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : null;
+      if (stats || employees || campaigns) {
+        setLiveData({ stats, employees, campaigns });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -156,18 +197,18 @@ export default function AwarenessScoreDashboard() {
         title="Security Awareness"
         description="Employee training scores, phishing resistance, and risk tier tracking"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Employees Tracked" value={342}    icon={Users}          trend="up"   />
-        <KpiCard title="Champions"         value={47}     icon={Award}          trend="up"   className="border-green-500/20" />
-        <KpiCard title="At Risk"           value={23}     icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
-        <KpiCard title="Avg Score"         value="71.4"   icon={GraduationCap}  trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Employees Tracked" value={liveData?.stats?.trained_employees ?? 342}    icon={Users}          trend="up"   />
+        <KpiCard title="Champions"         value={liveData?.stats?.certifications_expiring ?? 47}     icon={Award}          trend="up"   className="border-green-500/20" />
+        <KpiCard title="At Risk"           value={liveData?.stats?.phishing_click_rate ?? 23}     icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
+        <KpiCard title="Avg Score"         value={liveData?.stats?.avg_score ?? "71.4"}   icon={GraduationCap}  trend="up"   className="border-blue-500/20" />
       </div>
 
       {/* Risk Tier Distribution */}
@@ -228,7 +269,7 @@ export default function AwarenessScoreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EMPLOYEES.map((emp) => (
+                {(liveData?.employees?.items ?? liveData?.employees ?? EMPLOYEES).map((emp: any) => (
                   <TableRow key={emp.name} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{emp.name}</TableCell>
                     <TableCell className="py-2"><DeptBadge dept={emp.department} /></TableCell>
@@ -272,7 +313,7 @@ export default function AwarenessScoreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PHISHING_TESTS.map((t, i) => (
+                {(liveData?.campaigns?.items ?? liveData?.campaigns ?? PHISHING_TESTS).map((t: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{t.employee}</TableCell>
                     <TableCell className="py-2 text-xs text-muted-foreground truncate max-w-[140px]">{t.campaign}</TableCell>
@@ -348,7 +389,7 @@ export default function AwarenessScoreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TRAINING_COMPLETIONS.map((t, i) => (
+                {(liveData?.training?.items ?? liveData?.training ?? TRAINING_COMPLETIONS).map((t: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{t.employee}</TableCell>
                     <TableCell className="py-2"><TrainingTypeBadge type={t.training_type} /></TableCell>
