@@ -267,9 +267,7 @@ const ScheduledReportsDashboard = lazy(() => import("@/pages/ScheduledReportsDas
 const CloudComplianceDashboard = lazy(() => import("@/pages/CloudComplianceDashboard"));
 const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianceDashboard"));
 
-// Container Registry, SCA, Firewall Policy, Network Segmentation dashboards
-const ContainerRegistryDashboard = lazy(() => import("@/pages/ContainerRegistryDashboard"));
-const SCADashboard = lazy(() => import("@/pages/SCADashboard"));
+// Firewall Policy, Network Segmentation dashboards
 const FirewallPolicyDashboard = lazy(() => import("@/pages/FirewallPolicyDashboard"));
 const NetworkSegmentationDashboard = lazy(() => import("@/pages/NetworkSegmentationDashboard"));
 
@@ -547,9 +545,7 @@ export default function App() {
             <Route path="/api-security-mgmt" element={<APISecurityMgmtDashboard />} />
             <Route path="/vuln-intelligence" element={<VulnIntelligenceDashboard />} />
 
-            {/* Container Registry, SCA, Firewall Policy, Network Segmentation */}
-            <Route path="/container-registry" element={<ContainerRegistryDashboard />} />
-            <Route path="/sca" element={<SCADashboard />} />
+            {/* Firewall Policy, Network Segmentation */}
             <Route path="/firewall-policy" element={<FirewallPolicyDashboard />} />
             <Route path="/network-segmentation" element={<NetworkSegmentationDashboard />} />
 
