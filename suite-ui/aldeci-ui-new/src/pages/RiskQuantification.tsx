@@ -111,13 +111,17 @@ export default function RiskQuantification() {
       apiFetch(`/api/v1/risk-quantification/scenarios?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/risk-quantification/treatments?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/risk-quantification/financial-impacts?org_id=${ORG_ID}`),
-    ]).then(([statsRes, scenariosRes, treatmentsRes, impactsRes]) => {
-      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
-      const scenarios = scenariosRes.status === "fulfilled" ? scenariosRes.value : null;
-      const treatments = treatmentsRes.status === "fulfilled" ? treatmentsRes.value : null;
-      const impacts   = impactsRes.status   === "fulfilled" ? impactsRes.value   : null;
-      if (stats || scenarios || treatments || impacts) {
-        setLiveData({ stats, scenarios, treatments, impacts });
+      apiFetch(`/api/v1/posture-advisor/recommendations?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpi/scorecard?org_id=${ORG_ID}`),
+    ]).then(([statsRes, scenariosRes, treatmentsRes, impactsRes, postureRes, kpiRes]) => {
+      const stats        = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const scenarios    = scenariosRes.status === "fulfilled" ? scenariosRes.value : null;
+      const treatments   = treatmentsRes.status === "fulfilled" ? treatmentsRes.value : null;
+      const impacts      = impactsRes.status   === "fulfilled" ? impactsRes.value   : null;
+      const posture      = postureRes.status   === "fulfilled" ? postureRes.value   : null;
+      const kpi          = kpiRes.status       === "fulfilled" ? kpiRes.value       : null;
+      if (stats || scenarios || treatments || impacts || posture || kpi) {
+        setLiveData({ stats, scenarios, treatments, impacts, posture, kpi });
       }
     });
 

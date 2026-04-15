@@ -338,13 +338,13 @@ export default function RiskRegister() {
 
   useEffect(() => {
     Promise.allSettled([
-      apiFetch(`/api/v1/risk-quantification/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vendor-risk/assessments?org_id=${ORG_ID}&limit=50`),
       apiFetch(`/api/v1/vendor-risk/stats?org_id=${ORG_ID}`),
-    ]).then(([riskStatsResult, vendorStatsResult]) => {
-      const riskStats   = riskStatsResult.status   === "fulfilled" ? riskStatsResult.value   : null;
+    ]).then(([assessmentsResult, vendorStatsResult]) => {
+      const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
       const vendorStats = vendorStatsResult.status === "fulfilled" ? vendorStatsResult.value : null;
-      if (riskStats || vendorStats) {
-        setLiveStats({ riskStats, vendorStats });
+      if (assessments || vendorStats) {
+        setLiveStats({ riskStats: vendorStats, vendorStats, assessments });
       }
     });
   }, []);

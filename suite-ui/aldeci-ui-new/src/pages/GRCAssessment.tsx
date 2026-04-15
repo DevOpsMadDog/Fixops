@@ -233,15 +233,13 @@ export default function GRCAssessment() {
   const loadData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/grc/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/grc/assessments?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID}`),
-    ]).then(([statsResult, assessmentsResult, controlsResult]) => {
-      const stats       = statsResult.status       === "fulfilled" ? statsResult.value       : null;
-      const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
-      const controls    = controlsResult.status    === "fulfilled" ? controlsResult.value    : null;
-      if (stats || assessments || controls) {
-        setLiveStats({ stats, assessments, controls });
+      apiFetch(`/api/v1/compliance/frameworks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/compliance/stats?org_id=${ORG_ID}`),
+    ]).then(([frameworksResult, statsResult]) => {
+      const frameworks = frameworksResult.status === "fulfilled" ? frameworksResult.value : null;
+      const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
+      if (frameworks || stats) {
+        setLiveStats({ frameworks, stats });
       }
     }).finally(() => setDataLoading(false));
   };
@@ -278,10 +276,10 @@ export default function GRCAssessment() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Assessments"     value={liveStats?.assessments?.length ?? liveStats?.stats?.total_assessments ?? 12}                                                                                      icon={ClipboardCheck} trend="up"   />
-        <KpiCard title="Controls Tested" value={liveStats?.stats?.total_controls ?? liveStats?.controls?.length ?? 847}                                                                                          icon={BarChart3}      trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Assessments"     value={liveStats?.frameworks?.length ?? liveStats?.stats?.total_assessments ?? 12}                                                                                      icon={ClipboardCheck} trend="up"   />
+        <KpiCard title="Controls Tested" value={liveStats?.stats?.total_controls ?? 847}                                                                                                                        icon={BarChart3}      trend="up"   className="border-blue-500/20" />
         <KpiCard title="Pass Rate"       value={liveStats?.stats?.compliance_score != null ? `${liveStats.stats.compliance_score.toFixed(1)}%` : liveStats?.stats?.pass_rate != null ? `${liveStats.stats.pass_rate.toFixed(1)}%` : "87.3%"} icon={CheckCircle} trend="up" className="border-green-500/20" />
-        <KpiCard title="Gaps Found"      value={liveStats?.stats?.total_risks ?? liveStats?.stats?.gaps_found ?? 108}                                                                                            icon={AlertTriangle}  trend="down" className="border-amber-500/20" />
+        <KpiCard title="Gaps Found"      value={liveStats?.stats?.gaps_found ?? liveStats?.stats?.total_gaps ?? 108}                                                                                             icon={AlertTriangle}  trend="down" className="border-amber-500/20" />
       </div>
 
       {/* Framework selector */}
