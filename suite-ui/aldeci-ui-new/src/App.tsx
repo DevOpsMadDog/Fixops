@@ -304,6 +304,14 @@ const APIDiscoveryDashboard = lazy(() => import("@/pages/APIDiscoveryDashboard")
 const SecurityChaosDashboard = lazy(() => import("@/pages/SecurityChaosDashboard"));
 const IncidentMetricsDashboard = lazy(() => import("@/pages/IncidentMetricsDashboard"));
 
+// Wave 20 domain dashboards
+const ZeroDayIntelligenceDashboard = lazy(() => import("@/pages/ZeroDayIntelligenceDashboard"));
+const SecurityTabletopDashboard = lazy(() => import("@/pages/SecurityTabletopDashboard"));
+const BrowserSecurityDashboard = lazy(() => import("@/pages/BrowserSecurityDashboard"));
+const DataExfiltrationDashboard = lazy(() => import("@/pages/DataExfiltrationDashboard"));
+const PKIManagementDashboard = lazy(() => import("@/pages/PKIManagementDashboard"));
+const SecurityToolInventoryDashboard = lazy(() => import("@/pages/SecurityToolInventoryDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -612,6 +620,14 @@ export default function App() {
             <Route path="/api-discovery" element={<APIDiscoveryDashboard />} />
             <Route path="/security-chaos" element={<SecurityChaosDashboard />} />
             <Route path="/incident-metrics" element={<IncidentMetricsDashboard />} />
+
+            {/* Wave 20 domain dashboards */}
+            <Route path="/zero-day" element={<ZeroDayIntelligenceDashboard />} />
+            <Route path="/security-tabletop" element={<SecurityTabletopDashboard />} />
+            <Route path="/browser-security" element={<BrowserSecurityDashboard />} />
+            <Route path="/data-exfiltration" element={<DataExfiltrationDashboard />} />
+            <Route path="/pki-management" element={<PKIManagementDashboard />} />
+            <Route path="/tool-inventory" element={<SecurityToolInventoryDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
