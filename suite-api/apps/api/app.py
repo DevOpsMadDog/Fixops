@@ -7325,6 +7325,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 30 routers
+    try:
+        from apps.api.compliance_mapping_router import router as compliance_mapping_router
+        app.include_router(compliance_mapping_router)
+        _logger.info("Mounted Compliance Mapping router at /api/v1/compliance-mapping")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vuln_scan_router import router as vuln_scan_router
+        app.include_router(vuln_scan_router)
+        _logger.info("Mounted Vuln Scan router at /api/v1/vuln-scans")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_brief_router import router as threat_brief_router
+        app.include_router(threat_brief_router)
+        _logger.info("Mounted Threat Brief router at /api/v1/threat-briefs")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_comms_router import router as incident_comms_router
+        app.include_router(incident_comms_router)
+        _logger.info("Mounted Incident Comms router at /api/v1/incident-comms")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.asset_tagging_router import router as asset_tagging_router
+        app.include_router(asset_tagging_router)
+        _logger.info("Mounted Asset Tagging router at /api/v1/asset-tags")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_registry_router import router as security_registry_router
+        app.include_router(security_registry_router)
+        _logger.info("Mounted Security Registry router at /api/v1/security-registry")
+    except ImportError:
+        pass
+
     return app
 
 
