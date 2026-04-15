@@ -6362,6 +6362,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.mdm_router import router as mdm_router
+        app.include_router(mdm_router)
+        _logger.info("Mounted MDM router at /api/v1/mdm")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.casb_router import router as casb_router
+        app.include_router(casb_router)
+        _logger.info("Mounted CASB router at /api/v1/casb")
+    except ImportError:
+        pass
+
     return app
 
 
