@@ -343,6 +343,14 @@ const PAGDashboard = lazy(() => import("@/pages/PAGDashboard"));
 const SecurityGamificationDashboard = lazy(() => import("@/pages/SecurityGamificationDashboard"));
 const VulnPrioritizationDashboard = lazy(() => import("@/pages/VulnPrioritizationDashboard"));
 
+// Wave 25 domain dashboards
+const ThreatDeceptionDashboard = lazy(() => import("@/pages/ThreatDeceptionDashboard"));
+const PostureScoringDashboard = lazy(() => import("@/pages/PostureScoringDashboard"));
+const CloudPostureDashboard = lazy(() => import("@/pages/CloudPostureDashboard"));
+const APIThreatProtectionDashboard = lazy(() => import("@/pages/APIThreatProtectionDashboard"));
+const RiskRegisterDashboard = lazy(() => import("@/pages/RiskRegisterDashboard"));
+const ChangeManagementDashboard = lazy(() => import("@/pages/ChangeManagementDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -690,6 +698,14 @@ export default function App() {
             <Route path="/pag" element={<PAGDashboard />} />
             <Route path="/security-gamification" element={<SecurityGamificationDashboard />} />
             <Route path="/vuln-prioritization" element={<VulnPrioritizationDashboard />} />
+
+            {/* Wave 25 domain dashboards */}
+            <Route path="/threat-deception" element={<ThreatDeceptionDashboard />} />
+            <Route path="/posture-scoring" element={<PostureScoringDashboard />} />
+            <Route path="/cloud-posture" element={<CloudPostureDashboard />} />
+            <Route path="/api-threat-protection" element={<APIThreatProtectionDashboard />} />
+            <Route path="/risk-register-engine" element={<RiskRegisterDashboard />} />
+            <Route path="/change-management" element={<ChangeManagementDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
