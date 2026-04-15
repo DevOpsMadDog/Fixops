@@ -296,7 +296,7 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
   const filtered = useMemo(
     () =>
       users.filter(
-        (u) =>
+        (u: HighRiskUser) =>
           u.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
           u.department.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
@@ -623,7 +623,7 @@ export default function InsiderThreatMonitor() {
   });
 
   const totalUsersMonitored = 2847;
-  const highRiskCount = highRiskUsers.filter((u) => u.risk_level === "critical" || u.risk_level === "high").length;
+  const highRiskCount = highRiskUsers.filter((u: HighRiskUser) => u.risk_level === "critical" || u.risk_level === "high").length;
   const activeAlertsCount = threatTimeline.length;
   const incidentsThisMonth = 12;
 
@@ -632,8 +632,7 @@ export default function InsiderThreatMonitor() {
       {/* Page Header */}
       <PageHeader
         title="Insider Threat Monitor"
-        subtitle="Behavioral analytics for internal user risk"
-        icon={AlertTriangle}
+        description="Behavioral analytics for internal user risk"
         actions={
           <Button className="bg-red-600 hover:bg-red-700">
             <AlertTriangle className="w-4 h-4 mr-2" />
@@ -646,32 +645,32 @@ export default function InsiderThreatMonitor() {
         {/* KPI Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
-            label="Total Users Monitored"
+            title="Total Users Monitored"
             value={totalUsersMonitored.toLocaleString()}
-            trend="+2.4%"
+            trend="up"
+            trendLabel="+2.4%"
             icon={Users}
-            color="from-blue-600 to-cyan-600"
           />
           <KpiCard
-            label="High Risk Users"
+            title="High Risk Users"
             value={highRiskCount.toString()}
-            trend="+1 this week"
+            trend="up"
+            trendLabel="+1 this week"
             icon={AlertTriangle}
-            color="from-red-600 to-orange-600"
           />
           <KpiCard
-            label="Active Alerts"
+            title="Active Alerts"
             value={activeAlertsCount.toString()}
-            trend="Last 24h"
+            trend="flat"
+            trendLabel="Last 24h"
             icon={Activity}
-            color="from-orange-600 to-yellow-600"
           />
           <KpiCard
-            label="Incidents This Month"
+            title="Incidents This Month"
             value={incidentsThisMonth.toString()}
-            trend="+3 from last month"
+            trend="up"
+            trendLabel="+3 from last month"
             icon={TrendingUp}
-            color="from-purple-600 to-pink-600"
           />
         </div>
 
