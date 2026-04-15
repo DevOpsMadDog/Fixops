@@ -5800,6 +5800,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Posture Score router not loaded: {e}")
 
+    # CWPP — Cloud Workload Protection Platform (containers, VMs, serverless, K8s)
+    try:
+        from apps.api.cwpp_router import router as cwpp_router
+        app.include_router(cwpp_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CWPP router at /api/v1/cwpp")
+    except Exception as e:
+        _logger.warning(f"CWPP router not loaded: {e}")
+
     return app
 
 
