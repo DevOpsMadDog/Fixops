@@ -6146,6 +6146,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.zero_trust_policy_router import router as zero_trust_policy_router
+        app.include_router(zero_trust_policy_router)
+        _logger.info("Mounted Zero Trust Policy router at /api/v1/zero-trust-policy")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.openclaw_router import router as openclaw_router
         app.include_router(openclaw_router)
         _logger.info("Mounted OpenClaw Pentest Swarm router at /api/v1/openclaw")
@@ -6284,6 +6291,12 @@ def create_app() -> FastAPI:
     try:
         from apps.api.api_security_engine_router import router as api_security_engine_router
         app.include_router(api_security_engine_router)
+    except ImportError:
+        pass
+    try:
+        from apps.api.api_security_mgmt_router import router as api_security_mgmt_router
+        app.include_router(api_security_mgmt_router)
+        _logger.info("Mounted API Security Mgmt router at /api/v1/api-security-engine")
     except ImportError:
         pass
     try:
