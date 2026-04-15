@@ -556,7 +556,7 @@ export default function App() {
             <Route path="/cspm" element={<CSPMDashboard />} />
             <Route path="/pentest" element={<PentestManagement />} />
             <Route path="/deception" element={<DeceptionEngine />} />
-            <Route path="/certificates" element={<CertificateManager />} />
+            <Route path="/cert-manager" element={<CertificateManager />} />
             <Route path="/firewall" element={<FirewallAnalyzer />} />
             <Route path="/risk-register" element={<RiskRegisterPage />} />
             <Route path="/playbooks" element={<PlaybookLibraryPage />} />
