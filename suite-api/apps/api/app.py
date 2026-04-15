@@ -7669,6 +7669,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 38 pre-wiring (engines pending creation)
+    try:
+        from apps.api.security_posture_reporting_router import router as security_posture_reporting_router
+        app.include_router(security_posture_reporting_router)
+        _logger.info("Mounted Security Posture Reporting router at /api/v1/posture-reports")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.network_anomaly_router import router as network_anomaly_router
+        app.include_router(network_anomaly_router)
+        _logger.info("Mounted Network Anomaly router at /api/v1/network-anomaly")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.privileged_identity_router import router as privileged_identity_router
+        app.include_router(privileged_identity_router)
+        _logger.info("Mounted Privileged Identity router at /api/v1/privileged-identity")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.hunting_automation_router import router as hunting_automation_router
+        app.include_router(hunting_automation_router)
+        _logger.info("Mounted Hunting Automation router at /api/v1/hunting-automation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.evidence_vault_router import router as evidence_vault_router
+        app.include_router(evidence_vault_router)
+        _logger.info("Mounted Evidence Vault router at /api/v1/evidence-vault")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_service_catalog_router import router as security_service_catalog_router
+        app.include_router(security_service_catalog_router)
+        _logger.info("Mounted Security Service Catalog router at /api/v1/service-catalog")
+    except ImportError:
+        pass
+
     return app
 
 
