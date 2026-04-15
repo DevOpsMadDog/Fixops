@@ -144,6 +144,7 @@ const PlaybookLibraryPage = lazy(() => import("@/pages/PlaybookLibrary"));
 const BugBounty = lazy(() => import("@/pages/BugBounty"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
 const EmailSecurity = lazy(() => import("@/pages/EmailSecurity"));
+const SLADashboardPage = lazy(() => import("@/pages/SLADashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
