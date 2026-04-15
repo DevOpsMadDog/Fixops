@@ -805,6 +805,20 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Security Scorecard router not available: %s", e)
 
+regulatory_tracker_engine_router: Optional[APIRouter] = None
+try:
+    from apps.api.regulatory_tracker_engine_router import router as regulatory_tracker_engine_router
+    logging.getLogger(__name__).info("Loaded Regulatory Tracker Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Regulatory Tracker Engine router not available: %s", e)
+
+security_scorecard_engine_router: Optional[APIRouter] = None
+try:
+    from apps.api.security_scorecard_engine_router import router as security_scorecard_engine_router
+    logging.getLogger(__name__).info("Loaded Security Scorecard Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Security Scorecard Engine router not available: %s", e)
+
 questionnaire_router: Optional[APIRouter] = None
 try:
     from apps.api.questionnaire_router import router as questionnaire_router
@@ -3267,6 +3281,8 @@ def create_app() -> FastAPI:
         (user_analytics_router, "User Analytics", "read:findings"),
         (questionnaire_router, "Questionnaire Engine", "read:findings"),
         (security_scorecard_router, "Security Scorecard", "read:findings"),
+        (security_scorecard_engine_router, "Security Scorecard Engine", "read:findings"),
+        (regulatory_tracker_engine_router, "Regulatory Tracker Engine", "read:findings"),
         (vendor_scorecard_router, "Vendor Scorecard", "read:findings"),
         (versioning_router, "Versioning", "read:findings"),
         (webhook_events_router, "Webhook Events", "read:findings"),
