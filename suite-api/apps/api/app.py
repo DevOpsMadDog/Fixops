@@ -6292,6 +6292,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.ciso_report_router import router as ciso_report_router
+        app.include_router(ciso_report_router)
+        _logger.info("Mounted CISO Report router at /api/v1/ciso-report")
+    except ImportError:
+        pass
+
     return app
 
 
