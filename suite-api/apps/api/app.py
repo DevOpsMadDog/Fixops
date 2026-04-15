@@ -6894,6 +6894,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 20 routers
+    try:
+        from apps.api.zero_day_intelligence_router import router as zero_day_intelligence_router
+        app.include_router(zero_day_intelligence_router)
+        _logger.info("Mounted Zero Day Intelligence router at /api/v1/zero-day")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_tabletop_router import router as security_tabletop_router
+        app.include_router(security_tabletop_router)
+        _logger.info("Mounted Security Tabletop router at /api/v1/tabletop")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.browser_security_router import router as browser_security_router
+        app.include_router(browser_security_router)
+        _logger.info("Mounted Browser Security router at /api/v1/browser-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.data_exfiltration_router import router as data_exfiltration_router
+        app.include_router(data_exfiltration_router)
+        _logger.info("Mounted Data Exfiltration router at /api/v1/data-exfiltration")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.pki_management_router import router as pki_management_router
+        app.include_router(pki_management_router)
+        _logger.info("Mounted PKI Management router at /api/v1/pki")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_tool_inventory_router import router as security_tool_inventory_router
+        app.include_router(security_tool_inventory_router)
+        _logger.info("Mounted Security Tool Inventory router at /api/v1/tool-inventory")
+    except ImportError:
+        pass
+
     return app
 
 
