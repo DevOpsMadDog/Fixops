@@ -6937,6 +6937,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 21 routers
+    try:
+        from apps.api.firmware_security_router import router as firmware_security_router
+        app.include_router(firmware_security_router)
+        _logger.info("Mounted Firmware Security router at /api/v1/firmware-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.iot_security_router import router as iot_security_router
+        app.include_router(iot_security_router)
+        _logger.info("Mounted IoT Security router at /api/v1/iot-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.mobile_app_security_router import router as mobile_app_security_router
+        app.include_router(mobile_app_security_router)
+        _logger.info("Mounted Mobile App Security router at /api/v1/mobile-app-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.api_abuse_detection_router import router as api_abuse_detection_router
+        app.include_router(api_abuse_detection_router)
+        _logger.info("Mounted API Abuse Detection router at /api/v1/api-abuse")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.supply_chain_attack_detection_router import router as supply_chain_attack_detection_router
+        app.include_router(supply_chain_attack_detection_router)
+        _logger.info("Mounted Supply Chain Attack Detection router at /api/v1/supply-chain-attacks")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_workload_protection_router import router as cloud_workload_protection_router
+        app.include_router(cloud_workload_protection_router)
+        _logger.info("Mounted Cloud Workload Protection router at /api/v1/cwp")
+    except ImportError:
+        pass
+
     return app
 
 
