@@ -156,15 +156,21 @@ export default function ExecutiveBriefing() {
       apiFetch(`/api/v1/executive/kpis?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/executive/risk-summary?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/executive/trends?weeks=12`),
-    ]).then(([kpiResult, postureResult, incidentResult, execKpiResult, riskResult, trendResult]) => {
-      const kpis        = kpiResult.status       === "fulfilled" ? kpiResult.value       : null;
-      const posture     = postureResult.status   === "fulfilled" ? postureResult.value   : null;
-      const incidents   = incidentResult.status  === "fulfilled" ? incidentResult.value  : null;
-      const execKpis    = execKpiResult.status   === "fulfilled" ? execKpiResult.value   : null;
-      const riskSummary = riskResult.status      === "fulfilled" ? riskResult.value      : null;
-      const trends      = trendResult.status     === "fulfilled" ? trendResult.value     : null;
-      if (kpis || posture || incidents || execKpis || riskSummary || trends) {
-        setLiveData({ kpis, posture, incidents, execKpis, riskSummary, trends });
+      apiFetch(`/api/v1/ciso-report/executive-summary?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ciso-report/top-risks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/compliance-evidence/stats?org_id=${ORG_ID}`),
+    ]).then(([kpiResult, postureResult, incidentResult, execKpiResult, riskResult, trendResult, cisoSummaryResult, cisoRisksResult, evidenceStatsResult]) => {
+      const kpis          = kpiResult.status           === "fulfilled" ? kpiResult.value           : null;
+      const posture       = postureResult.status       === "fulfilled" ? postureResult.value       : null;
+      const incidents     = incidentResult.status      === "fulfilled" ? incidentResult.value      : null;
+      const execKpis      = execKpiResult.status       === "fulfilled" ? execKpiResult.value       : null;
+      const riskSummary   = riskResult.status          === "fulfilled" ? riskResult.value          : null;
+      const trends        = trendResult.status         === "fulfilled" ? trendResult.value         : null;
+      const cisoSummary   = cisoSummaryResult.status   === "fulfilled" ? cisoSummaryResult.value   : null;
+      const cisoRisks     = cisoRisksResult.status     === "fulfilled" ? cisoRisksResult.value     : null;
+      const evidenceStats = evidenceStatsResult.status === "fulfilled" ? evidenceStatsResult.value : null;
+      if (kpis || posture || incidents || execKpis || riskSummary || trends || cisoSummary || cisoRisks || evidenceStats) {
+        setLiveData({ kpis, posture, incidents, execKpis, riskSummary, trends, cisoSummary, cisoRisks, evidenceStats });
       }
     }).finally(() => setDataLoading(false));
   };
@@ -216,7 +222,9 @@ export default function ExecutiveBriefing() {
         <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-6 flex flex-col items-center gap-2">
           <CheckCircle2 className="h-8 w-8 text-green-400" />
           <span className="text-5xl font-black text-green-400 tabular-nums">
-            {liveData?.posture?.overall_score != null
+            {liveData?.evidenceStats?.overall_readiness_pct != null
+              ? `${liveData.evidenceStats.overall_readiness_pct}%`
+              : liveData?.posture?.overall_score != null
               ? `${liveData.posture.overall_score}%`
               : liveData?.execKpis?.overall_health_score != null
               ? `${Math.round(liveData.execKpis.overall_health_score)}%`

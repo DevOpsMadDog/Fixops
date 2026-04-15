@@ -6334,6 +6334,12 @@ def create_app() -> FastAPI:
         app.include_router(attack_surface_mgmt_router)
     except ImportError:
         pass
+    try:
+        from apps.api.compliance_evidence_router import router as compliance_evidence_router
+        app.include_router(compliance_evidence_router)
+        _logger.info("Mounted Compliance Evidence router at /api/v1/compliance-evidence")
+    except ImportError:
+        pass
 
     return app
 
