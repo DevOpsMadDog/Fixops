@@ -1,24 +1,21 @@
-"""
-SBOM Engine — ALDECI.
+"""Software Bill of Materials (SBOM) Generation Engine — ALDECI.
 
-Software Bill of Materials generation, import, and analysis engine.
+Generates, stores, and exports SBOMs in CycloneDX 1.4 and SPDX 2.3 formats.
 
 Capabilities:
-- Generate SBOMs in CycloneDX v1.4 (JSON) or SPDX 2.3 (JSON) format
-- Detect installed Python packages and derive components from requirements.txt
-- Import external SBOMs (CycloneDX or SPDX)
-- Cross-reference components with CVE enrichment data
-- License distribution summary
-- Dependency graph (DAG) with risk scores
+  - Asset and component registry (multi-tenant, org-scoped WAL SQLite)
+  - Package URL (purl) auto-generation from component metadata
+  - CycloneDX 1.4 JSON export with vulnerability mappings
+  - SPDX 2.3 JSON export with external references
+  - License risk classification (GPL→high, MIT/Apache→low, unknown→medium)
+  - Vulnerability exposure analytics per org
+  - Cross-org isolation — org_a data never visible from org_b
 
-Storage: SQLite WAL at data/sbom.db (thread-local connections)
-
-Compliance: NTIA SBOM minimum elements, EO 14028, NIST SSDF
+Compliance: NTIA SBOM Minimum Elements, CycloneDX 1.4, SPDX 2.3, EO 14028
 """
 
 from __future__ import annotations
 
-import importlib.metadata as importlib_metadata
 import json
 import logging
 import sqlite3
@@ -28,684 +25,761 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import structlog
+_logger = logging.getLogger(__name__)
 
-_logger = structlog.get_logger(__name__)
+_DATA_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
 
-# ---------------------------------------------------------------------------
-# Database path
-# ---------------------------------------------------------------------------
+_VALID_ASSET_TYPES = {"application", "container", "firmware", "device", "service"}
+_VALID_COMPONENT_TYPES = {"library", "framework", "os", "runtime", "tool", "device"}
+_VALID_SBOM_FORMATS = {"spdx", "cyclonedx"}
 
-_DEFAULT_DB_PATH = "data/sbom.db"
-
-# ---------------------------------------------------------------------------
-# DDL
-# ---------------------------------------------------------------------------
-
-_DDL = """
-PRAGMA journal_mode=WAL;
-PRAGMA foreign_keys=ON;
-
-CREATE TABLE IF NOT EXISTS sboms (
-    id          TEXT PRIMARY KEY,
-    org_id      TEXT NOT NULL DEFAULT 'default',
-    asset_id    TEXT NOT NULL DEFAULT '',
-    format      TEXT NOT NULL DEFAULT 'cyclonedx',
-    name        TEXT NOT NULL DEFAULT '',
-    version     TEXT NOT NULL DEFAULT '1',
-    component_count INTEGER NOT NULL DEFAULT 0,
-    sbom_json   TEXT NOT NULL DEFAULT '{}',
-    created_at  TEXT NOT NULL,
-    source      TEXT NOT NULL DEFAULT 'generated'
-);
-CREATE INDEX IF NOT EXISTS idx_sboms_org  ON sboms(org_id);
-CREATE INDEX IF NOT EXISTS idx_sboms_asset ON sboms(org_id, asset_id);
-
-CREATE TABLE IF NOT EXISTS sbom_components (
-    id          TEXT PRIMARY KEY,
-    sbom_id     TEXT NOT NULL REFERENCES sboms(id) ON DELETE CASCADE,
-    org_id      TEXT NOT NULL DEFAULT 'default',
-    name        TEXT NOT NULL,
-    version     TEXT NOT NULL DEFAULT '',
-    purl        TEXT NOT NULL DEFAULT '',
-    license     TEXT NOT NULL DEFAULT 'NOASSERTION',
-    component_type TEXT NOT NULL DEFAULT 'library',
-    metadata    TEXT NOT NULL DEFAULT '{}'
-);
-CREATE INDEX IF NOT EXISTS idx_comp_sbom  ON sbom_components(sbom_id);
-CREATE INDEX IF NOT EXISTS idx_comp_org   ON sbom_components(org_id);
-CREATE INDEX IF NOT EXISTS idx_comp_name  ON sbom_components(org_id, name);
-"""
-
-# ---------------------------------------------------------------------------
-# Internal DB helper
-# ---------------------------------------------------------------------------
+# SPDX license identifier → risk level
+_LICENSE_RISK_MAP: Dict[str, str] = {
+    "GPL-2.0": "high",
+    "GPL-2.0-only": "high",
+    "GPL-2.0-or-later": "high",
+    "GPL-3.0": "high",
+    "GPL-3.0-only": "high",
+    "GPL-3.0-or-later": "high",
+    "AGPL-3.0": "high",
+    "AGPL-3.0-only": "high",
+    "AGPL-3.0-or-later": "high",
+    "SSPL-1.0": "high",
+    "LGPL-2.0": "medium",
+    "LGPL-2.1": "medium",
+    "LGPL-3.0": "medium",
+    "BUSL-1.1": "medium",
+    "MPL-2.0": "medium",
+    "CDDL-1.0": "medium",
+    "EPL-1.0": "medium",
+    "EPL-2.0": "medium",
+    "MIT": "low",
+    "MIT-0": "low",
+    "Apache-2.0": "low",
+    "BSD-2-Clause": "low",
+    "BSD-3-Clause": "low",
+    "ISC": "low",
+    "Unlicense": "low",
+    "CC0-1.0": "low",
+}
 
 
-class _SBOMDb:
-    """Thread-local SQLite connection wrapper."""
-
-    def __init__(self, db_path: str) -> None:
-        self._path = db_path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._local = threading.local()
-        self._init_schema()
-
-    def _conn(self) -> sqlite3.Connection:
-        if not hasattr(self._local, "conn") or self._local.conn is None:
-            self._local.conn = sqlite3.connect(self._path, check_same_thread=False)
-            self._local.conn.row_factory = sqlite3.Row
-        return self._local.conn
-
-    def _init_schema(self) -> None:
-        conn = self._conn()
-        conn.executescript(_DDL)
-        conn.commit()
-
-    def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
-        return self._conn().execute(sql, params)
-
-    def executemany(self, sql: str, params_seq: list) -> None:
-        self._conn().executemany(sql, params_seq)
-
-    def commit(self) -> None:
-        self._conn().commit()
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
-# ---------------------------------------------------------------------------
-# Component discovery helpers
-# ---------------------------------------------------------------------------
+def _license_risk(spdx_id: str) -> str:
+    """Return high/medium/low risk for a given SPDX license identifier."""
+    if not spdx_id:
+        return "medium"
+    return _LICENSE_RISK_MAP.get(spdx_id, "medium")
 
 
-def _discover_installed_packages() -> List[Dict[str, Any]]:
-    """Return installed Python packages as component dicts."""
-    components: List[Dict[str, Any]] = []
-    try:
-        for dist in importlib_metadata.distributions():
-            name = dist.metadata.get("Name", "unknown")
-            version = dist.metadata.get("Version", "0.0.0")
-            license_val = dist.metadata.get("License", "NOASSERTION") or "NOASSERTION"
-            purl = f"pkg:pypi/{name.lower()}@{version}"
-            components.append({
-                "type": "library",
-                "name": name,
-                "version": version,
-                "purl": purl,
-                "licenses": [{"license": {"id": license_val}}],
-            })
-    except Exception as exc:
-        _logger.warning("package_discovery_failed", error=str(exc))
-    return components
+def _build_purl(component_type: str, name: str, version: str, ecosystem: str = "") -> str:
+    """Construct a Package URL (purl) from component metadata.
 
+    Examples:
+      npm + lodash + 4.17.21  → pkg:npm/lodash@4.17.21
+      pypi + requests + 2.28  → pkg:pypi/requests@2.28
+      generic + openssl + 3.0 → pkg:generic/openssl@3.0
+    """
+    eco = (ecosystem or "").lower().strip()
+    name_clean = (name or "unknown").strip()
+    ver_clean = (version or "").strip()
+    ver_suffix = f"@{ver_clean}" if ver_clean else ""
 
-def _parse_requirements(req_path: str) -> List[Dict[str, Any]]:
-    """Parse a requirements.txt file into component dicts."""
-    components: List[Dict[str, Any]] = []
-    try:
-        path = Path(req_path)
-        if not path.exists():
-            return components
-        for line in path.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or line.startswith("-"):
-                continue
-            # Handle ==, >=, <=, ~= specifiers
-            for sep in ("==", ">=", "<=", "~=", "!=", ">", "<"):
-                if sep in line:
-                    name, version = line.split(sep, 1)
-                    name = name.strip()
-                    version = version.strip().split(",")[0].strip()
-                    break
-            else:
-                name, version = line, "unknown"
-            purl = f"pkg:pypi/{name.lower()}@{version}"
-            components.append({
-                "type": "library",
-                "name": name,
-                "version": version,
-                "purl": purl,
-                "licenses": [{"license": {"id": "NOASSERTION"}}],
-            })
-    except Exception as exc:
-        _logger.warning("requirements_parse_failed", path=req_path, error=str(exc))
-    return components
-
-
-# ---------------------------------------------------------------------------
-# Format builders
-# ---------------------------------------------------------------------------
-
-
-def _build_cyclonedx(asset_id: str, components: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Build a CycloneDX 1.4 JSON SBOM document."""
-    now = datetime.now(timezone.utc).isoformat()
-    return {
-        "bomFormat": "CycloneDX",
-        "specVersion": "1.4",
-        "version": 1,
-        "serialNumber": f"urn:uuid:{uuid.uuid4()}",
-        "metadata": {
-            "timestamp": now,
-            "component": {
-                "type": "application",
-                "name": asset_id or "unknown",
-                "version": "1.0.0",
-            },
-        },
-        "components": [
-            {
-                "type": c.get("type", "library"),
-                "name": c.get("name", ""),
-                "version": c.get("version", ""),
-                "purl": c.get("purl", ""),
-                "licenses": c.get("licenses", []),
-            }
-            for c in components
-        ],
+    _KNOWN_ECOSYSTEMS = {
+        "npm", "pypi", "maven", "go", "cargo", "nuget", "gem", "hex",
+        "composer", "swift", "conan", "conda", "pub", "hackage",
     }
 
+    if eco in _KNOWN_ECOSYSTEMS:
+        pkg_type = eco
+    elif component_type in {"library", "framework"}:
+        # Heuristic: Java-style groupId.artifactId → maven
+        if "." in name_clean and name_clean[0].islower():
+            pkg_type = "maven"
+        else:
+            pkg_type = "generic"
+    else:
+        pkg_type = "generic"
 
-def _build_spdx(asset_id: str, components: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Build an SPDX 2.3 JSON SBOM document."""
-    now = datetime.now(timezone.utc).isoformat()
-    doc_name = asset_id or "unknown"
-    packages = []
-    for idx, c in enumerate(components):
-        spdx_id = f"SPDXRef-Package-{idx}"
-        license_val = "NOASSERTION"
-        if c.get("licenses"):
-            lic = c["licenses"][0]
-            if isinstance(lic, dict):
-                license_val = (
-                    lic.get("license", {}).get("id")
-                    or lic.get("expression")
-                    or "NOASSERTION"
-                )
-        packages.append({
-            "SPDXID": spdx_id,
-            "name": c.get("name", ""),
-            "versionInfo": c.get("version", ""),
-            "downloadLocation": "NOASSERTION",
-            "filesAnalyzed": False,
-            "licenseConcluded": license_val,
-            "licenseDeclared": license_val,
-            "copyrightText": "NOASSERTION",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": c.get("purl", ""),
-                }
-            ] if c.get("purl") else [],
-        })
-    return {
-        "spdxVersion": "SPDX-2.3",
-        "dataLicense": "CC0-1.0",
-        "SPDXID": "SPDXRef-DOCUMENT",
-        "name": doc_name,
-        "documentNamespace": f"https://aldeci.local/sbom/{uuid.uuid4()}",
-        "creationInfo": {
-            "created": now,
-            "creators": ["Tool: ALDECI SBOM Engine"],
-        },
-        "packages": packages,
-        "relationships": [
-            {
-                "spdxElementId": "SPDXRef-DOCUMENT",
-                "relationshipType": "DESCRIBES",
-                "relatedSpdxElement": f"SPDXRef-Package-{i}",
-            }
-            for i in range(len(packages))
-        ],
-    }
-
-
-# ---------------------------------------------------------------------------
-# Main engine
-# ---------------------------------------------------------------------------
+    return f"pkg:{pkg_type}/{name_clean}{ver_suffix}"
 
 
 class SBOMEngine:
-    """
-    SBOM generation and management engine for ALDECI.
+    """SQLite WAL-backed SBOM engine.
 
-    Generates SBOMs by discovering installed Python packages and parsing
-    requirements.txt (if present). Supports CycloneDX 1.4 and SPDX 2.3.
+    Thread-safe via per-org RLock. Multi-tenant via org_id-scoped DB files
+    at .fixops_data/{org_id}_sbom.db.
     """
 
-    def __init__(self, db_path: str = _DEFAULT_DB_PATH) -> None:
-        self._db = _SBOMDb(db_path)
+    def __init__(self, data_dir: Optional[str] = None) -> None:
+        self._data_dir = Path(data_dir) if data_dir else _DATA_DIR
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._locks: Dict[str, threading.RLock] = {}
+        self._locks_mutex = threading.Lock()
 
     # ------------------------------------------------------------------
-    # Public API
+    # Internal helpers
     # ------------------------------------------------------------------
 
-    def generate_sbom(
+    def _db_path(self, org_id: str) -> str:
+        return str(self._data_dir / f"{org_id}_sbom.db")
+
+    def _get_lock(self, org_id: str) -> threading.RLock:
+        with self._locks_mutex:
+            if org_id not in self._locks:
+                self._locks[org_id] = threading.RLock()
+            return self._locks[org_id]
+
+    def _conn(self, org_id: str) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._db_path(org_id), timeout=10)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    @staticmethod
+    def _row(row: sqlite3.Row) -> Dict[str, Any]:
+        return dict(row)
+
+    def _init_db(self, org_id: str) -> None:
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS sbom_assets (
+                        id              TEXT PRIMARY KEY,
+                        org_id          TEXT NOT NULL,
+                        asset_name      TEXT NOT NULL,
+                        asset_type      TEXT NOT NULL DEFAULT 'application',
+                        asset_version   TEXT NOT NULL DEFAULT '',
+                        description     TEXT NOT NULL DEFAULT '',
+                        team_owner      TEXT NOT NULL DEFAULT '',
+                        sbom_format     TEXT NOT NULL DEFAULT 'cyclonedx',
+                        component_count INTEGER NOT NULL DEFAULT 0,
+                        vuln_count      INTEGER NOT NULL DEFAULT 0,
+                        high_risk_count INTEGER NOT NULL DEFAULT 0,
+                        last_scan       TEXT NOT NULL DEFAULT '',
+                        created_at      TEXT NOT NULL
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_assets_org
+                        ON sbom_assets (org_id);
+
+                    CREATE TABLE IF NOT EXISTS sbom_components (
+                        id                TEXT PRIMARY KEY,
+                        org_id            TEXT NOT NULL,
+                        asset_id          TEXT NOT NULL,
+                        asset_name        TEXT NOT NULL DEFAULT '',
+                        asset_type        TEXT NOT NULL DEFAULT 'application',
+                        component_name    TEXT NOT NULL,
+                        component_version TEXT NOT NULL DEFAULT '',
+                        component_type    TEXT NOT NULL DEFAULT 'library',
+                        purl              TEXT NOT NULL DEFAULT '',
+                        cpe               TEXT NOT NULL DEFAULT '',
+                        license           TEXT NOT NULL DEFAULT '',
+                        supplier          TEXT NOT NULL DEFAULT '',
+                        known_vulns       TEXT NOT NULL DEFAULT '[]',
+                        risk_score        REAL NOT NULL DEFAULT 0.0,
+                        created_at        TEXT NOT NULL,
+                        updated_at        TEXT NOT NULL
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_comp_org_asset
+                        ON sbom_components (org_id, asset_id);
+
+                    CREATE INDEX IF NOT EXISTS idx_comp_purl
+                        ON sbom_components (org_id, purl);
+
+                    CREATE TABLE IF NOT EXISTS sbom_exports (
+                        id           TEXT PRIMARY KEY,
+                        org_id       TEXT NOT NULL,
+                        asset_id     TEXT NOT NULL,
+                        format       TEXT NOT NULL DEFAULT 'cyclonedx',
+                        spec_version TEXT NOT NULL DEFAULT '',
+                        sbom_content TEXT NOT NULL DEFAULT '{}',
+                        created_at   TEXT NOT NULL
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_exports_org_asset
+                        ON sbom_exports (org_id, asset_id);
+
+                    CREATE TABLE IF NOT EXISTS license_risks (
+                        id           TEXT PRIMARY KEY,
+                        org_id       TEXT NOT NULL,
+                        license_spdx TEXT NOT NULL,
+                        risk_level   TEXT NOT NULL DEFAULT 'medium',
+                        count        INTEGER NOT NULL DEFAULT 1,
+                        first_seen   TEXT NOT NULL,
+                        created_at   TEXT NOT NULL
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_licrisks_org
+                        ON license_risks (org_id, license_spdx);
+                    """
+                )
+
+    def _ensure_db(self, org_id: str) -> None:
+        """Initialize DB for org on first access."""
+        if not Path(self._db_path(org_id)).exists():
+            self._init_db(org_id)
+        else:
+            with self._conn(org_id) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+
+    # ------------------------------------------------------------------
+    # Assets
+    # ------------------------------------------------------------------
+
+    def register_asset(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new asset for SBOM tracking. Returns the created record."""
+        self._ensure_db(org_id)
+        asset_name = (data.get("asset_name") or "").strip()
+        if not asset_name:
+            raise ValueError("asset_name is required.")
+
+        asset_type = data.get("asset_type", "application")
+        if asset_type not in _VALID_ASSET_TYPES:
+            raise ValueError(
+                f"Invalid asset_type: {asset_type}. Must be one of {_VALID_ASSET_TYPES}"
+            )
+
+        sbom_format = data.get("sbom_format", "cyclonedx")
+        if sbom_format not in _VALID_SBOM_FORMATS:
+            sbom_format = "cyclonedx"
+
+        now = _now_iso()
+        record: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "asset_name": asset_name,
+            "asset_type": asset_type,
+            "asset_version": data.get("asset_version", ""),
+            "description": data.get("description", ""),
+            "team_owner": data.get("team_owner", ""),
+            "sbom_format": sbom_format,
+            "component_count": 0,
+            "vuln_count": 0,
+            "high_risk_count": 0,
+            "last_scan": now,
+            "created_at": now,
+        }
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                conn.execute(
+                    """INSERT INTO sbom_assets
+                       (id, org_id, asset_name, asset_type, asset_version, description,
+                        team_owner, sbom_format, component_count, vuln_count,
+                        high_risk_count, last_scan, created_at)
+                       VALUES (:id, :org_id, :asset_name, :asset_type, :asset_version,
+                               :description, :team_owner, :sbom_format, :component_count,
+                               :vuln_count, :high_risk_count, :last_scan, :created_at)""",
+                    record,
+                )
+        return record
+
+    def list_assets(self, org_id: str) -> List[Dict[str, Any]]:
+        """List all assets for an org."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            rows = conn.execute(
+                "SELECT * FROM sbom_assets WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
+    def get_asset(self, org_id: str, asset_id: str) -> Optional[Dict[str, Any]]:
+        """Get asset with live component summary."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            row = conn.execute(
+                "SELECT * FROM sbom_assets WHERE org_id = ? AND id = ?",
+                (org_id, asset_id),
+            ).fetchone()
+            if not row:
+                return None
+            asset = self._row(row)
+
+            comp_count = conn.execute(
+                "SELECT COUNT(*) FROM sbom_components WHERE org_id = ? AND asset_id = ?",
+                (org_id, asset_id),
+            ).fetchone()[0]
+
+            vuln_rows = conn.execute(
+                "SELECT known_vulns FROM sbom_components WHERE org_id = ? AND asset_id = ?",
+                (org_id, asset_id),
+            ).fetchall()
+            vuln_count = 0
+            for vr in vuln_rows:
+                try:
+                    vuln_count += len(json.loads(vr[0] or "[]"))
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            high_risk = conn.execute(
+                """SELECT COUNT(*) FROM sbom_components
+                   WHERE org_id = ? AND asset_id = ? AND risk_score >= 7.0""",
+                (org_id, asset_id),
+            ).fetchone()[0]
+
+        asset["component_count"] = comp_count
+        asset["vuln_count"] = vuln_count
+        asset["high_risk_count"] = high_risk
+        return asset
+
+    # ------------------------------------------------------------------
+    # Components
+    # ------------------------------------------------------------------
+
+    def add_component(
+        self, org_id: str, asset_id: str, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Add a component to an asset's SBOM. Auto-generates purl if missing."""
+        self._ensure_db(org_id)
+
+        component_name = (data.get("component_name") or "").strip()
+        if not component_name:
+            raise ValueError("component_name is required.")
+
+        component_type = data.get("component_type", "library")
+        if component_type not in _VALID_COMPONENT_TYPES:
+            raise ValueError(
+                f"Invalid component_type: {component_type}. "
+                f"Must be one of {_VALID_COMPONENT_TYPES}"
+            )
+
+        # Resolve asset metadata for denormalisation
+        asset_name = data.get("asset_name", "")
+        asset_type_val = data.get("asset_type", "application")
+        if not asset_name:
+            asset = self.get_asset(org_id, asset_id)
+            if asset:
+                asset_name = asset.get("asset_name", "")
+                asset_type_val = asset.get("asset_type", "application")
+
+        component_version = data.get("component_version", "")
+        ecosystem = data.get("ecosystem", "")
+
+        # Auto-generate purl when not supplied
+        purl = (data.get("purl") or "").strip()
+        if not purl:
+            purl = _build_purl(component_type, component_name, component_version, ecosystem)
+
+        known_vulns = data.get("known_vulns", [])
+        if isinstance(known_vulns, str):
+            try:
+                known_vulns = json.loads(known_vulns)
+            except (json.JSONDecodeError, ValueError):
+                known_vulns = []
+        if not isinstance(known_vulns, list):
+            known_vulns = []
+
+        vuln_count = len(known_vulns)
+        # risk_score: caller may supply; otherwise derive from vuln count (2 pts/vuln, max 10)
+        risk_score = float(data.get("risk_score", min(vuln_count * 2.0, 10.0)))
+
+        now = _now_iso()
+        record: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "asset_id": asset_id,
+            "asset_name": asset_name,
+            "asset_type": asset_type_val,
+            "component_name": component_name,
+            "component_version": component_version,
+            "component_type": component_type,
+            "purl": purl,
+            "cpe": data.get("cpe", ""),
+            "license": data.get("license", ""),
+            "supplier": data.get("supplier", ""),
+            "known_vulns": json.dumps(known_vulns),
+            "risk_score": risk_score,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                conn.execute(
+                    """INSERT INTO sbom_components
+                       (id, org_id, asset_id, asset_name, asset_type, component_name,
+                        component_version, component_type, purl, cpe, license, supplier,
+                        known_vulns, risk_score, created_at, updated_at)
+                       VALUES (:id, :org_id, :asset_id, :asset_name, :asset_type,
+                               :component_name, :component_version, :component_type,
+                               :purl, :cpe, :license, :supplier, :known_vulns,
+                               :risk_score, :created_at, :updated_at)""",
+                    record,
+                )
+                conn.execute(
+                    """UPDATE sbom_assets
+                       SET component_count = component_count + 1,
+                           last_scan = ?
+                       WHERE org_id = ? AND id = ?""",
+                    (now, org_id, asset_id),
+                )
+
+        # Upsert license_risks
+        lic = record["license"]
+        if lic:
+            self._upsert_license_risk(org_id, lic, now)
+
+        return record
+
+    def _upsert_license_risk(self, org_id: str, lic: str, now: str) -> None:
+        risk_lvl = _license_risk(lic)
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                existing = conn.execute(
+                    "SELECT id FROM license_risks WHERE org_id = ? AND license_spdx = ?",
+                    (org_id, lic),
+                ).fetchone()
+                if existing:
+                    conn.execute(
+                        "UPDATE license_risks SET count = count + 1 WHERE id = ?",
+                        (existing["id"],),
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO license_risks
+                           (id, org_id, license_spdx, risk_level, count, first_seen, created_at)
+                           VALUES (?, ?, ?, ?, 1, ?, ?)""",
+                        (str(uuid.uuid4()), org_id, lic, risk_lvl, now, now),
+                    )
+
+    def list_components(
+        self,
+        org_id: str,
+        asset_id: Optional[str] = None,
+        has_vulns: Optional[bool] = None,
+    ) -> List[Dict[str, Any]]:
+        """List components with optional asset_id and has_vulns filters."""
+        self._ensure_db(org_id)
+        sql = "SELECT * FROM sbom_components WHERE org_id = ?"
+        params: list = [org_id]
+        if asset_id:
+            sql += " AND asset_id = ?"
+            params.append(asset_id)
+        sql += " ORDER BY created_at DESC"
+
+        with self._conn(org_id) as conn:
+            rows = conn.execute(sql, params).fetchall()
+
+        results: List[Dict[str, Any]] = []
+        for row in rows:
+            d = self._row(row)
+            try:
+                vulns = json.loads(d.get("known_vulns") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                vulns = []
+            d["known_vulns"] = vulns
+
+            if has_vulns is True and not vulns:
+                continue
+            if has_vulns is False and vulns:
+                continue
+            results.append(d)
+
+        return results
+
+    # ------------------------------------------------------------------
+    # CycloneDX 1.4 export
+    # ------------------------------------------------------------------
+
+    def generate_cyclonedx(self, org_id: str, asset_id: str) -> Dict[str, Any]:
+        """Generate a CycloneDX 1.4 JSON SBOM for an asset."""
+        self._ensure_db(org_id)
+        asset = self.get_asset(org_id, asset_id)
+        if not asset:
+            raise ValueError(f"Asset not found: {asset_id}")
+
+        components_raw = self.list_components(org_id, asset_id=asset_id)
+
+        cdx_components: List[Dict[str, Any]] = []
+        for c in components_raw:
+            entry: Dict[str, Any] = {
+                "type": c.get("component_type", "library"),
+                "name": c.get("component_name", ""),
+                "version": c.get("component_version", ""),
+            }
+            if c.get("purl"):
+                entry["purl"] = c["purl"]
+            if c.get("cpe"):
+                entry["cpe"] = c["cpe"]
+            lic = c.get("license", "")
+            if lic:
+                entry["licenses"] = [{"license": {"id": lic}}]
+            if c.get("supplier"):
+                entry["supplier"] = {"name": c["supplier"]}
+            cdx_components.append(entry)
+
+        # Build vulnerability entries from known_vulns across all components
+        cdx_vulns: List[Dict[str, Any]] = []
+        seen_cves: set = set()
+        for c in components_raw:
+            vulns = c.get("known_vulns", [])
+            if isinstance(vulns, str):
+                try:
+                    vulns = json.loads(vulns)
+                except (json.JSONDecodeError, TypeError):
+                    vulns = []
+            rs = float(c.get("risk_score") or 0.0)
+            sev = (
+                "critical" if rs >= 9.0
+                else "high" if rs >= 7.0
+                else "medium" if rs >= 4.0
+                else "low"
+            )
+            ref = c.get("purl") or c.get("component_name", "")
+            for cve in vulns:
+                if cve and cve not in seen_cves:
+                    seen_cves.add(cve)
+                    cdx_vulns.append({
+                        "id": cve,
+                        "affects": [{"ref": ref}],
+                        "ratings": [{"severity": sev}],
+                    })
+
+        return {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "serialNumber": f"urn:uuid:{uuid.uuid4()}",
+            "version": 1,
+            "metadata": {
+                "timestamp": _now_iso(),
+                "component": {
+                    "name": asset.get("asset_name", ""),
+                    "version": asset.get("asset_version", ""),
+                    "type": asset.get("asset_type", "application"),
+                },
+            },
+            "components": cdx_components,
+            "vulnerabilities": cdx_vulns,
+        }
+
+    # ------------------------------------------------------------------
+    # SPDX 2.3 export
+    # ------------------------------------------------------------------
+
+    def generate_spdx(self, org_id: str, asset_id: str) -> Dict[str, Any]:
+        """Generate an SPDX 2.3 JSON SBOM for an asset."""
+        self._ensure_db(org_id)
+        asset = self.get_asset(org_id, asset_id)
+        if not asset:
+            raise ValueError(f"Asset not found: {asset_id}")
+
+        components_raw = self.list_components(org_id, asset_id=asset_id)
+        doc_namespace = f"https://aldeci.io/sbom/{uuid.uuid4()}"
+
+        packages: List[Dict[str, Any]] = []
+        for i, c in enumerate(components_raw):
+            lic = c.get("license", "")
+            pkg: Dict[str, Any] = {
+                "SPDXID": f"SPDXRef-{i}",
+                "name": c.get("component_name", ""),
+                "versionInfo": c.get("component_version", ""),
+                "downloadLocation": "NOASSERTION",
+                "filesAnalyzed": False,
+                "licenseConcluded": lic if lic else "NOASSERTION",
+                "licenseDeclared": lic if lic else "NOASSERTION",
+                "copyrightText": "NOASSERTION",
+            }
+            ext_refs = []
+            purl = c.get("purl", "")
+            if purl:
+                ext_refs.append({
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": purl,
+                })
+            cpe = c.get("cpe", "")
+            if cpe:
+                ext_refs.append({
+                    "referenceCategory": "SECURITY",
+                    "referenceType": "cpe23Type",
+                    "referenceLocator": cpe,
+                })
+            if ext_refs:
+                pkg["externalRefs"] = ext_refs
+            supplier = c.get("supplier", "")
+            if supplier:
+                pkg["supplier"] = f"Organization: {supplier}"
+            packages.append(pkg)
+
+        return {
+            "spdxVersion": "SPDX-2.3",
+            "dataLicense": "CC0-1.0",
+            "SPDXID": "SPDXRef-DOCUMENT",
+            "name": asset.get("asset_name", ""),
+            "documentNamespace": doc_namespace,
+            "documentDescribes": ["SPDXRef-DOCUMENT"],
+            "packages": packages,
+            "creationInfo": {
+                "created": _now_iso(),
+                "creators": ["Tool: ALDECI SBOM Engine 1.0"],
+            },
+        }
+
+    # ------------------------------------------------------------------
+    # Export persistence
+    # ------------------------------------------------------------------
+
+    def save_export(
         self,
         org_id: str,
         asset_id: str,
-        fmt: str = "cyclonedx",
-        requirements_path: Optional[str] = None,
+        format: str,
+        content: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Generate an SBOM for an asset.
+        """Persist an SBOM export to sbom_exports table."""
+        self._ensure_db(org_id)
+        fmt = format.lower()
+        spec_version = "1.4" if fmt == "cyclonedx" else "2.3"
+        now = _now_iso()
+        record: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "asset_id": asset_id,
+            "format": fmt,
+            "spec_version": spec_version,
+            "sbom_content": json.dumps(content),
+            "created_at": now,
+        }
+        with self._get_lock(org_id):
+            with self._conn(org_id) as conn:
+                conn.execute(
+                    """INSERT INTO sbom_exports
+                       (id, org_id, asset_id, format, spec_version, sbom_content, created_at)
+                       VALUES (:id, :org_id, :asset_id, :format, :spec_version,
+                               :sbom_content, :created_at)""",
+                    record,
+                )
+        record["sbom_content"] = content  # return parsed dict, not JSON string
+        return record
 
-        Discovers components from installed Python packages and optionally
-        from a requirements.txt. Stores the result in SQLite.
+    # ------------------------------------------------------------------
+    # Analytics
+    # ------------------------------------------------------------------
 
-        Args:
-            org_id:            Organisation identifier.
-            asset_id:          Asset / application identifier.
-            fmt:               Output format — "cyclonedx" (default) or "spdx".
-            requirements_path: Optional path to requirements.txt. If None,
-                               defaults to "requirements.txt" in cwd.
+    def get_license_summary(self, org_id: str) -> Dict[str, Any]:
+        """Return license risk breakdown for the org."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            rows = conn.execute(
+                """SELECT license_spdx, risk_level, count
+                   FROM license_risks WHERE org_id = ?
+                   ORDER BY count DESC""",
+                (org_id,),
+            ).fetchall()
 
-        Returns:
-            Full SBOM document (CycloneDX or SPDX JSON dict).
-        """
-        fmt = fmt.lower()
-        if fmt not in ("cyclonedx", "spdx"):
-            raise ValueError(f"Unsupported format '{fmt}'. Use 'cyclonedx' or 'spdx'.")
+        summary: Dict[str, Any] = {
+            "high": [], "medium": [], "low": [], "total_unique": 0,
+        }
+        for row in rows:
+            entry = {"license": row["license_spdx"], "count": row["count"]}
+            risk = row["risk_level"]
+            if risk in summary:
+                summary[risk].append(entry)
+            summary["total_unique"] += 1
 
-        # Discover components
-        req_path = requirements_path or "requirements.txt"
-        components = _parse_requirements(req_path)
-        if not components:
-            components = _discover_installed_packages()
+        summary["high_count"] = sum(e["count"] for e in summary["high"])
+        summary["medium_count"] = sum(e["count"] for e in summary["medium"])
+        summary["low_count"] = sum(e["count"] for e in summary["low"])
+        return summary
 
-        # Build the SBOM document
-        if fmt == "spdx":
-            sbom_doc = _build_spdx(asset_id, components)
-            name = sbom_doc.get("name", asset_id)
-        else:
-            sbom_doc = _build_cyclonedx(asset_id, components)
-            name = sbom_doc.get("metadata", {}).get("component", {}).get("name", asset_id)
+    def get_vuln_exposure(self, org_id: str) -> Dict[str, Any]:
+        """Return vulnerability exposure statistics for the org."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            rows = conn.execute(
+                "SELECT known_vulns, risk_score FROM sbom_components WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
 
-        sbom_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
-
-        # Persist SBOM record
-        self._db.execute(
-            """
-            INSERT INTO sboms (id, org_id, asset_id, format, name, version,
-                               component_count, sbom_json, created_at, source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                sbom_id,
-                org_id,
-                asset_id,
-                fmt,
-                name,
-                "1",
-                len(components),
-                json.dumps(sbom_doc),
-                now,
-                "generated",
-            ),
-        )
-
-        # Persist components
-        rows = [
-            (
-                str(uuid.uuid4()),
-                sbom_id,
-                org_id,
-                c.get("name", ""),
-                c.get("version", ""),
-                c.get("purl", ""),
-                (
-                    (c.get("licenses") or [{}])[0]
-                    .get("license", {})
-                    .get("id", "NOASSERTION")
-                    if c.get("licenses") else "NOASSERTION"
-                ),
-                c.get("type", "library"),
-                "{}",
-            )
-            for c in components
-        ]
-        self._db.executemany(
-            """
-            INSERT INTO sbom_components
-                (id, sbom_id, org_id, name, version, purl, license, component_type, metadata)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows,
-        )
-        self._db.commit()
-
-        sbom_doc["_sbom_id"] = sbom_id
-        _logger.info(
-            "sbom_generated",
-            org_id=org_id,
-            asset_id=asset_id,
-            fmt=fmt,
-            components=len(components),
-        )
-        return sbom_doc
-
-    def list_sboms(self, org_id: str) -> List[Dict[str, Any]]:
-        """Return all SBOMs for *org_id* (metadata only, no full JSON)."""
-        rows = self._db.execute(
-            """
-            SELECT id, org_id, asset_id, format, name, version,
-                   component_count, created_at, source
-            FROM sboms
-            WHERE org_id = ?
-            ORDER BY created_at DESC
-            """,
-            (org_id,),
-        ).fetchall()
-        return [dict(r) for r in rows]
-
-    def get_sbom(self, sbom_id: str, org_id: str) -> Optional[Dict[str, Any]]:
-        """Return the full SBOM JSON for *sbom_id* within *org_id*."""
-        row = self._db.execute(
-            "SELECT sbom_json, id, org_id, asset_id, format, created_at "
-            "FROM sboms WHERE id = ? AND org_id = ?",
-            (sbom_id, org_id),
-        ).fetchone()
-        if row is None:
-            return None
-        doc = json.loads(row["sbom_json"])
-        doc["_sbom_id"] = row["id"]
-        doc["_asset_id"] = row["asset_id"]
-        doc["_format"] = row["format"]
-        doc["_created_at"] = row["created_at"]
-        return doc
-
-    def import_sbom(self, org_id: str, sbom_data: Dict[str, Any]) -> str:
-        """
-        Import an external SBOM (CycloneDX or SPDX).
-
-        Detects format from *sbom_data*, extracts components, and stores
-        everything in SQLite.
-
-        Returns:
-            The new sbom_id (UUID string).
-        """
-        sbom_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
-
-        # Detect format and extract metadata + components
-        if sbom_data.get("bomFormat", "").lower() == "cyclonedx":
-            fmt = "cyclonedx"
-            meta = sbom_data.get("metadata", {})
-            name = meta.get("component", {}).get("name", "imported")
-            version = str(sbom_data.get("version", "1"))
-            raw_components = sbom_data.get("components", [])
-            components = [
-                {
-                    "name": c.get("name", ""),
-                    "version": c.get("version", ""),
-                    "purl": c.get("purl", ""),
-                    "type": c.get("type", "library"),
-                    "licenses": c.get("licenses", []),
-                }
-                for c in raw_components
-            ]
-        elif sbom_data.get("spdxVersion", "").startswith("SPDX-"):
-            fmt = "spdx"
-            name = sbom_data.get("name", "imported")
-            version = "1"
-            raw_packages = sbom_data.get("packages", [])
-            components = [
-                {
-                    "name": p.get("name", ""),
-                    "version": p.get("versionInfo", ""),
-                    "purl": next(
-                        (
-                            r.get("referenceLocator", "")
-                            for r in p.get("externalRefs", [])
-                            if r.get("referenceType") == "purl"
-                        ),
-                        "",
-                    ),
-                    "type": "library",
-                    "licenses": [
-                        {"license": {"id": p.get("licenseConcluded", "NOASSERTION")}}
-                    ],
-                }
-                for p in raw_packages
-            ]
-        else:
-            raise ValueError(
-                "Unrecognised SBOM format. Expected CycloneDX (bomFormat) "
-                "or SPDX (spdxVersion) JSON."
-            )
-
-        self._db.execute(
-            """
-            INSERT INTO sboms (id, org_id, asset_id, format, name, version,
-                               component_count, sbom_json, created_at, source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                sbom_id,
-                org_id,
-                "",
-                fmt,
-                name,
-                version,
-                len(components),
-                json.dumps(sbom_data),
-                now,
-                "imported",
-            ),
-        )
-
-        rows = [
-            (
-                str(uuid.uuid4()),
-                sbom_id,
-                org_id,
-                c.get("name", ""),
-                c.get("version", ""),
-                c.get("purl", ""),
-                (
-                    (c.get("licenses") or [{}])[0]
-                    .get("license", {})
-                    .get("id", "NOASSERTION")
-                    if c.get("licenses") else "NOASSERTION"
-                ),
-                c.get("type", "library"),
-                "{}",
-            )
-            for c in components
-        ]
-        if rows:
-            self._db.executemany(
-                """
-                INSERT INTO sbom_components
-                    (id, sbom_id, org_id, name, version, purl, license, component_type, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                rows,
-            )
-        self._db.commit()
-
-        _logger.info(
-            "sbom_imported",
-            org_id=org_id,
-            sbom_id=sbom_id,
-            fmt=fmt,
-            components=len(components),
-        )
-        return sbom_id
-
-    def get_vulnerable_components(self, org_id: str) -> List[Dict[str, Any]]:
-        """
-        Return components with known CVEs.
-
-        Cross-references SBOM component names/versions against the CVE
-        enrichment database (core.cve_enrichment) when available. Falls back
-        to a best-effort name-match against common vulnerable packages.
-        """
-        components = self._db.execute(
-            """
-            SELECT sc.id, sc.name, sc.version, sc.purl, sc.license,
-                   sc.component_type, s.asset_id, s.org_id
-            FROM sbom_components sc
-            JOIN sboms s ON sc.sbom_id = s.id
-            WHERE sc.org_id = ?
-            """,
-            (org_id,),
-        ).fetchall()
-
-        vulnerable: List[Dict[str, Any]] = []
-
-        # Try to use CVE enrichment engine if available
-        cve_engine = None
-        try:
-            from core.cve_enrichment import CVEEnrichmentEngine  # type: ignore
-            cve_engine = CVEEnrichmentEngine()
-        except Exception:
-            pass
-
-        # Well-known vulnerable packages (fallback heuristic)
-        _KNOWN_VULN_PACKAGES = {
-            "log4j": "CVE-2021-44228",
-            "log4j-core": "CVE-2021-44228",
-            "log4shell": "CVE-2021-44228",
-            "spring-core": "CVE-2022-22965",
-            "struts2-core": "CVE-2017-5638",
-            "openssl": "CVE-2022-0778",
-            "requests": None,  # flag for version-based check
-            "django": None,
-            "flask": None,
-            "pyyaml": None,
+        total_components = len(rows)
+        vulnerable_components = 0
+        all_vulns: Dict[str, Dict[str, Any]] = {}
+        by_severity: Dict[str, int] = {
+            "critical": 0, "high": 0, "medium": 0, "low": 0,
         }
 
-        for row in components:
-            comp = dict(row)
-            name_lower = comp["name"].lower()
-            cves_found: List[str] = []
+        for row in rows:
+            try:
+                vulns = json.loads(row["known_vulns"] or "[]")
+            except (json.JSONDecodeError, TypeError):
+                vulns = []
 
-            if cve_engine is not None:
-                try:
-                    result = cve_engine.search_cves(
-                        query=f"{comp['name']} {comp['version']}",
-                        limit=5,
-                    )
-                    cves_found = [
-                        c.get("cve_id", "") for c in (result.get("cves") or [])
-                    ]
-                except Exception:
-                    pass
+            if vulns:
+                vulnerable_components += 1
 
-            # Fallback heuristic
-            if not cves_found:
-                for pkg, cve in _KNOWN_VULN_PACKAGES.items():
-                    if pkg in name_lower and cve:
-                        cves_found.append(cve)
+            rs = float(row["risk_score"] or 0.0)
+            sev = (
+                "critical" if rs >= 9.0
+                else "high" if rs >= 7.0
+                else "medium" if rs >= 4.0
+                else "low"
+            )
 
-            if cves_found:
-                comp["cves"] = cves_found
-                comp["risk"] = "high" if len(cves_found) >= 2 else "medium"
-                vulnerable.append(comp)
+            for cve in vulns:
+                if cve not in all_vulns:
+                    all_vulns[cve] = {"cve_id": cve, "severity": sev, "affected_count": 0}
+                all_vulns[cve]["affected_count"] += 1
+                by_severity[sev] = by_severity.get(sev, 0) + 1
 
-        return vulnerable
-
-    def get_license_summary(self, org_id: str) -> Dict[str, int]:
-        """Return license distribution: {license_id: count, ...}."""
-        rows = self._db.execute(
-            """
-            SELECT license, COUNT(*) as cnt
-            FROM sbom_components
-            WHERE org_id = ?
-            GROUP BY license
-            ORDER BY cnt DESC
-            """,
-            (org_id,),
-        ).fetchall()
-        return {row["license"]: row["cnt"] for row in rows}
-
-    def get_dependency_graph(self, org_id: str, asset_id: str) -> Dict[str, Any]:
-        """
-        Return a DAG of dependencies with basic risk scores.
-
-        Looks up the most recent SBOM for *asset_id* and constructs nodes
-        and edges. Risk score is heuristic: GPL = higher, unknown version = medium.
-        """
-        row = self._db.execute(
-            """
-            SELECT id FROM sboms
-            WHERE org_id = ? AND asset_id = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            (org_id, asset_id),
-        ).fetchone()
-
-        if row is None:
-            return {"nodes": [], "edges": [], "asset_id": asset_id, "org_id": org_id}
-
-        sbom_id = row["id"]
-        components = self._db.execute(
-            """
-            SELECT id, name, version, purl, license, component_type
-            FROM sbom_components
-            WHERE sbom_id = ?
-            """,
-            (sbom_id,),
-        ).fetchall()
-
-        nodes = []
-        for comp in components:
-            c = dict(comp)
-            # Simple heuristic risk scoring
-            lic = (c.get("license") or "NOASSERTION").upper()
-            if "GPL" in lic and "LGPL" not in lic:
-                risk_score = 60
-                risk_level = "medium"
-            elif c.get("version", "") in ("unknown", "", "0.0.0"):
-                risk_score = 50
-                risk_level = "medium"
-            else:
-                risk_score = 20
-                risk_level = "low"
-            nodes.append({
-                "id": c["id"],
-                "name": c["name"],
-                "version": c["version"],
-                "purl": c["purl"],
-                "license": c["license"],
-                "type": c["component_type"],
-                "risk_score": risk_score,
-                "risk_level": risk_level,
-            })
-
-        # Edges: each component -> asset (flat SBOM — no transitive info)
-        edges = [
-            {"source": asset_id, "target": n["id"], "relationship": "depends_on"}
-            for n in nodes
-        ]
+        top_vulns = sorted(
+            all_vulns.values(),
+            key=lambda x: x["affected_count"],
+            reverse=True,
+        )[:10]
 
         return {
-            "asset_id": asset_id,
-            "org_id": org_id,
-            "sbom_id": sbom_id,
-            "node_count": len(nodes),
-            "edge_count": len(edges),
-            "nodes": nodes,
-            "edges": edges,
+            "total_components": total_components,
+            "vulnerable_components": vulnerable_components,
+            "by_severity": by_severity,
+            "top_vulns": top_vulns,
         }
 
+    def get_sbom_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return aggregated SBOM stats for the org."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            total_assets = conn.execute(
+                "SELECT COUNT(*) FROM sbom_assets WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
 
-# ---------------------------------------------------------------------------
-# Singleton accessor
-# ---------------------------------------------------------------------------
+            total_components = conn.execute(
+                "SELECT COUNT(*) FROM sbom_components WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
 
-_engine_instance: Optional[SBOMEngine] = None
-_engine_lock = threading.Lock()
+            asset_ids_with_vulns: set = set()
+            vuln_rows = conn.execute(
+                "SELECT asset_id, known_vulns FROM sbom_components WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
+            for vr in vuln_rows:
+                try:
+                    if json.loads(vr["known_vulns"] or "[]"):
+                        asset_ids_with_vulns.add(vr["asset_id"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
+            license_risk_high = conn.execute(
+                """SELECT COALESCE(SUM(count), 0)
+                   FROM license_risks WHERE org_id = ? AND risk_level = 'high'""",
+                (org_id,),
+            ).fetchone()[0]
 
-def get_sbom_engine(db_path: str = _DEFAULT_DB_PATH) -> SBOMEngine:
-    """Return the process-level SBOMEngine singleton."""
-    global _engine_instance
-    if _engine_instance is None:
-        with _engine_lock:
-            if _engine_instance is None:
-                _engine_instance = SBOMEngine(db_path=db_path)
-    return _engine_instance
+            formats_exported_rows = conn.execute(
+                "SELECT DISTINCT format FROM sbom_exports WHERE org_id = ?",
+                (org_id,),
+            ).fetchall()
+            formats_exported = [r["format"] for r in formats_exported_rows]
+
+        return {
+            "total_assets": total_assets,
+            "total_components": total_components,
+            "assets_with_vulns": len(asset_ids_with_vulns),
+            "license_risk_high": int(license_risk_high),
+            "formats_exported": formats_exported,
+        }

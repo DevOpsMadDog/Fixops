@@ -6159,6 +6159,13 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.sbom_router import router as sbom_router
+        app.include_router(sbom_router)
+        _logger.info("Mounted SBOM router at /api/v1/sbom")
+    except ImportError:
+        pass
+
     return app
 
 
