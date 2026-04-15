@@ -149,8 +149,8 @@ export default function IncidentResponseDashboard() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/incidents/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/incidents?org_id=${ORG_ID}&status=open&limit=20`),
-      apiFetch(`/api/v1/playbooks?org_id=${ORG_ID}&limit=10`),
+      apiFetch(`/api/v1/incidents?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/soar/playbooks?org_id=${ORG_ID}`),
     ]).then(([statsResult, incidentsResult, playbooksResult]) => {
       const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
       const incidents = incidentsResult.status === "fulfilled" ? incidentsResult.value : null;
@@ -183,8 +183,8 @@ export default function IncidentResponseDashboard() {
           slaDue: inc.sla_due ?? inc.due_date ?? "—",
           slaBreach: inc.sla_breached ?? false,
         }))
-      : Array.isArray(liveData?.incidents?.items)
-        ? liveData.incidents.items.slice(0, 12).map((inc: any) => ({
+      : Array.isArray(liveData?.incidents?.incidents)
+        ? liveData.incidents.incidents.slice(0, 12).map((inc: any) => ({
             id: inc.incident_id ?? inc.id ?? "INC-???",
             title: inc.title ?? "Unknown incident",
             type: inc.type ?? "phishing",

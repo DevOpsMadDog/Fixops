@@ -11,12 +11,28 @@
  * API stubs: GET /api/v1/incident-timeline, /api/v1/incident-timeline/{id}/events
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Siren, Clock, Activity, Server, RefreshCw, Shield,
   ChevronRight, AlertCircle, Eye,
 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,11 +127,91 @@ const METRIC_CIRCLES = [
 export default function IncidentTimelineDashboard() {
   const [selected, setSelected] = useState<string>("INC-2024-001");
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [liveEvents, setLiveEvents] = useState<any[]>([]);
+  const [liveSystems, setLiveSystems] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  const events = EVENTS[selected] ?? [];
+  const fetchData = () => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/incident-timeline/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/incident-timeline?org_id=${ORG_ID}`),
+    ]).then(([statsRes, timelinesRes]) => {
+      const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
+      const timelines = timelinesRes.status === "fulfilled" ? timelinesRes.value : null;
+      if (stats || timelines) {
+        setLiveData({ stats, timelines });
+        // auto-select the first live timeline
+        const first = Array.isArray(timelines) && timelines.length > 0 ? timelines[0] : null;
+        if (first?.id) setSelected(first.id);
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Fetch events + systems whenever selected timeline changes
+  useEffect(() => {
+    if (!selected || selected.startsWith("INC-2024-")) return; // skip mock IDs
+    Promise.allSettled([
+      apiFetch(`/api/v1/incident-timeline/${selected}/events?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/incident-timeline/${selected}/systems?org_id=${ORG_ID}`),
+    ]).then(([eventsRes, systemsRes]) => {
+      if (eventsRes.status === "fulfilled") setLiveEvents(Array.isArray(eventsRes.value) ? eventsRes.value : []);
+      if (systemsRes.status === "fulfilled") setLiveSystems(Array.isArray(systemsRes.value) ? systemsRes.value : []);
+    });
+  }, [selected]);
+
+  // Resolve which data to show: live API or mock fallback
+  const displayTimelines: typeof INCIDENTS = (() => {
+    const raw = liveData?.timelines;
+    if (Array.isArray(raw) && raw.length > 0) {
+      return raw.slice(0, 10).map((tl: any) => ({
+        id: tl.id ?? tl.timeline_id ?? "TL-???",
+        title: tl.title ?? "Untitled",
+        type: tl.incident_type ?? "breach",
+        severity: tl.severity ?? "medium",
+        status: tl.status ?? "open",
+        started: tl.started_at ?? tl.created_at ?? "—",
+        systems: tl.affected_system_count ?? 0,
+        events: tl.event_count ?? 0,
+      }));
+    }
+    return INCIDENTS;
+  })();
+
+  const displayEvents = liveEvents.length > 0
+    ? liveEvents.map((ev: any) => ({
+        type: ev.event_type ?? "action",
+        actor: ev.actor ?? "System",
+        ts: ev.event_time ?? ev.created_at ?? "—",
+        desc: ev.description ?? ev.title ?? "",
+        evidence: Array.isArray(ev.evidence_refs) ? ev.evidence_refs.length : 0,
+      }))
+    : (EVENTS[selected] ?? []);
+
+  const displaySystems = liveSystems.length > 0
+    ? liveSystems.map((s: any) => ({
+        host: s.hostname ?? s.host ?? "Unknown",
+        ip: s.ip_address ?? s.ip ?? "—",
+        type: s.system_type ?? s.type ?? "server",
+        affected: s.affected_at ?? "—",
+        restored: s.restored_at ?? null,
+      }))
+    : SYSTEMS;
+
+  const stats = liveData?.stats;
+  const activeCount    = stats?.active_count ?? stats?.open ?? 3;
+  const avgMttr        = stats?.avg_mttr_hours != null ? `${Number(stats.avg_mttr_hours).toFixed(1)}h` : "4.2 days";
+  const avgMttd        = stats?.avg_mttd_hours != null ? `${Number(stats.avg_mttd_hours).toFixed(1)}h` : "2.1 hrs";
+  const affectedSystems = stats?.total_affected_systems ?? 18;
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -131,18 +227,18 @@ export default function IncidentTimelineDashboard() {
         title="Incident Timeline"
         description="NIST IR lifecycle tracking with MTTD, MTTR, and evidence chain"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Incidents"  value={3}       icon={Siren}    trend="up"   className="border-red-500/20" />
-        <KpiCard title="Avg MTTR"          value="4.2 days" icon={Clock}    trend="down" />
-        <KpiCard title="Avg MTTD"          value="2.1 hrs" icon={Activity} trend="down" />
-        <KpiCard title="Affected Systems"  value={18}      icon={Server}   trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Active Incidents"  value={activeCount}    icon={Siren}    trend="up"   className="border-red-500/20" />
+        <KpiCard title="Avg MTTR"          value={avgMttr}        icon={Clock}    trend="down" />
+        <KpiCard title="Avg MTTD"          value={avgMttd}        icon={Activity} trend="down" />
+        <KpiCard title="Affected Systems"  value={affectedSystems} icon={Server}  trend="up"   className="border-amber-500/20" />
       </div>
 
       {/* Incident table */}
@@ -154,7 +250,7 @@ export default function IncidentTimelineDashboard() {
               Active Incident Timelines
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {INCIDENTS.length} incidents
+              {displayTimelines.length} incidents
             </Badge>
           </div>
           <CardDescription className="text-xs">Click a row to view event timeline</CardDescription>
@@ -176,7 +272,7 @@ export default function IncidentTimelineDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {INCIDENTS.map((row) => (
+                {displayTimelines.map((row) => (
                   <TableRow
                     key={row.id}
                     onClick={() => setSelected(row.id)}
@@ -224,11 +320,11 @@ export default function IncidentTimelineDashboard() {
             <CardDescription className="text-xs">NIST IR phase events, actors, and evidence</CardDescription>
           </CardHeader>
           <CardContent>
-            {events.length === 0 ? (
+            {displayEvents.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">No events available for this incident</p>
             ) : (
               <div className="relative space-y-0">
-                {events.map((ev, i) => (
+                {displayEvents.map((ev, i) => (
                   <div key={i} className="flex gap-3 group">
                     {/* Timeline line */}
                     <div className="flex flex-col items-center">
@@ -277,7 +373,7 @@ export default function IncidentTimelineDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {SYSTEMS.map((s) => (
+                  {displaySystems.map((s) => (
                     <TableRow key={s.host} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-mono py-2">{s.host}</TableCell>
                       <TableCell className="text-xs py-2 tabular-nums text-muted-foreground">{s.ip}</TableCell>
