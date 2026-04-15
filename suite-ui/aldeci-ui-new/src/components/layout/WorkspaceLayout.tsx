@@ -153,6 +153,7 @@ const navGroups: NavGroup[] = [
       { label: "Executive Briefing", to: "/executive-briefing", icon: Crown, badge: "NEW" },
       { label: "Security Roadmap", to: "/security-roadmap", icon: Map, badge: "NEW" },
       { label: "Security Health", to: "/security-health", icon: Activity, badge: "NEW" },
+      { label: "Cross-Domain Analytics", to: "/cross-domain-analytics", icon: Database, badge: "NEW" },
     ],
   },
   {
@@ -300,6 +301,7 @@ const navGroups: NavGroup[] = [
     icon: Bug,
     items: [
       { label: "Vulnerability Lifecycle", to: "/vuln-lifecycle", icon: Bug, badge: "NEW" },
+      { label: "Vuln Trends", to: "/vuln-trends", icon: TrendingUp, badge: "NEW" },
       { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
       { label: "Attack Paths", to: "/attack-paths", icon: Route },
       { label: "Vuln Heatmap", to: "/vuln-heatmap", icon: Map, badge: "NEW" },
@@ -379,6 +381,14 @@ const navGroups: NavGroup[] = [
       { label: "Digital Forensics", to: "/digital-forensics", icon: HardDrive, badge: "NEW" },
       { label: "GRC Assessment", to: "/grc-assessment", icon: ClipboardCheck, badge: "NEW" },
       { label: "Compliance Scanner", to: "/compliance-scanner", icon: ClipboardCheck, badge: "NEW" },
+      { label: "Config Benchmarks", to: "/config-benchmark", icon: Shield, badge: "NEW" },
+    ],
+  },
+  {
+    label: "DevSecOps",
+    icon: Code2,
+    items: [
+      { label: "DevSecOps Dashboard", to: "/devsecops", icon: GitBranch, badge: "NEW" },
     ],
   },
   {

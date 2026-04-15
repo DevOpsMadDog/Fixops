@@ -190,6 +190,12 @@ const ComplianceScannerDashboard = lazy(() => import("@/pages/ComplianceScannerD
 const AssetRiskDashboard = lazy(() => import("@/pages/AssetRiskDashboard"));
 const SecurityHealthDashboard = lazy(() => import("@/pages/SecurityHealthDashboard"));
 
+// New pages: Cross-Domain Analytics, DevSecOps, Vuln Trends, Config Benchmarks
+const CrossDomainAnalytics = lazy(() => import("@/pages/CrossDomainAnalytics"));
+const DevSecOpsDashboard = lazy(() => import("@/pages/DevSecOpsDashboard"));
+const VulnTrendDashboard = lazy(() => import("@/pages/VulnTrendDashboard"));
+const ConfigBenchmarkDashboard = lazy(() => import("@/pages/ConfigBenchmarkDashboard"));
+
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 const StandaloneComplianceDashboard = lazy(() => import("@/pages/ComplianceDashboard"));
 
@@ -400,6 +406,10 @@ export default function App() {
             <Route path="/compliance-scanner" element={<ComplianceScannerDashboard />} />
             <Route path="/asset-risk" element={<AssetRiskDashboard />} />
             <Route path="/security-health" element={<SecurityHealthDashboard />} />
+            <Route path="/cross-domain-analytics" element={<CrossDomainAnalytics />} />
+            <Route path="/devsecops" element={<DevSecOpsDashboard />} />
+            <Route path="/vuln-trends" element={<VulnTrendDashboard />} />
+            <Route path="/config-benchmark" element={<ConfigBenchmarkDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
