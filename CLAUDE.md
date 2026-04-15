@@ -254,19 +254,19 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ### HIGH PRIORITY
 1. **Register API keys** — NVD (nvd.nist.gov) + abuse.ch (auth.abuse.ch) — reminder set for 2026-04-17 18:00. Wire OTX AlienVault + URLhaus once keys acquired.
-2. **Fix multi-tenant leaks** — Redis queue keys are global (no org_id); attack_path get/remove have no org_id guard; sso_sessions table missing org_id column (audited by TenantIsolationAuditor, commit b9d5aabe)
-3. **Scheduled report delivery** — email/Slack via n8n workflows now that N8nAPIClient is live
-4. **OpenClaw pentest swarm** — autonomous red team via attack sim
-5. **SBOM generation endpoint** — `/api/v1/sbom` export in CycloneDX/SPDX format
+2. **Scheduled report delivery** — email/Slack via n8n workflows now that N8nAPIClient is live
+3. **OpenClaw pentest swarm** — autonomous red team via attack sim
+4. **SBOM generation endpoint** — `/api/v1/sbom` export in CycloneDX/SPDX format
+5. **Wire tests for awareness_score, ndr, xdr, edr engines** — engine files exist, test files have 0 tests
 
 ### MEDIUM PRIORITY
 6. **Wire live threat intel keys** — AbuseIPDB (1k/day free), OTX AlienVault, URLhaus once registered
 7. **n8n operational** — run `docker compose up` (n8n now in docker-compose.yml, port 5678)
-8. **Zero Trust enforcement** — policy engine backend for /zero-trust UI page
+8. **Zero Trust enforcement** — policy engine backend for /zero-trust UI page (ZeroTrustPolicyDashboard.tsx exists)
 
 ### LOWER PRIORITY
-9. Attack path frontend (AttackPathAnalysis.tsx exists — backend wired, UI just needs real data)
-10. Threat Modeling frontend (ThreatModeling.tsx exists — backend wired, UI needs real data)
+9. Connect 93 frontend pages to real backend data (most currently use mock/static data)
+10. TrustGraph event bus — 97% of 3,036 endpoints still disconnected from TrustGraph knowledge graph
 
 ### DONE (sessions 2026-04-13 and 2026-04-14)
 - ✅ Beast Mode test coverage +138 tests (brain_pipeline + 19 scanner normalizers) → 285 tests
@@ -293,6 +293,7 @@ from core.brain_pipeline import BrainPipeline  # just works
 - ✅ Vendor Risk Assessment (/api/v1/vendor-risk) — 25 tests
 - ✅ Compliance Evidence Auto-Collector — 35 tests
 - ✅ All new routers wired into app.py
+- ✅ Multi-tenant isolation fixes — Redis queue org_id keys, attack_path guards, SSO bridge org_id column, insider threat resolve_alert guard (all 4 findings from b9d5aabe resolved)
 
 ---
 
@@ -340,55 +341,129 @@ from core.brain_pipeline import BrainPipeline  # just works
 
 ---
 
-## RECENT CHANGES (2026-04-15, Swarm Session — 23 parallel agents)
+## RECENT CHANGES (2026-04-16, Wave 6+7 — Continuous autonomous build)
 
-### Beast Mode Tests: 709 PASSING (zero regressions)
-### UI: 20 pages, builds clean in 2.32s, 2,498 API routes
+### Beast Mode Tests: 709 PASSING (zero regressions) + 822 new wave 6/7 engine tests
+### UI: 93 pages total, builds clean, 308 router files
 
-### Swarm Completions (all committed to features/intermediate-stage):
+### Wave 6 Backend Engines (new — all in suite-core/core/):
+- ✅ posture_score_engine.py — Security Posture Scoring — 35 tests
+- ✅ threat_feed_aggregator.py — Multi-source threat feed aggregation — 25 tests
+- ✅ digital_forensics_engine.py — Digital Forensics & Incident Response — 29 tests
+- ✅ security_roadmap_engine.py — Security Roadmap & Maturity Planning — 36 tests
+- ✅ data_governance_engine.py — Data Governance & Classification — 40 tests
+- ✅ compliance_scanner_engine.py — Automated Compliance Scanning — 58 tests
+- ✅ asset_risk_calculator.py — Asset Risk Scoring Calculator — 34 tests
+- ✅ security_health_engine.py — Security Health Monitoring — 35 tests
+- ✅ incident_timeline_engine.py — Incident Timeline Reconstruction — 32 tests
+- ✅ security_metrics_collector.py — Cross-domain Metrics Collection — 36 tests
+- ✅ devsecops_engine.py — DevSecOps Pipeline Integration — 40 tests
+- ✅ vuln_trend_engine.py — Vulnerability Trend Analysis — 27 tests
+- ✅ config_benchmark_engine.py — CIS/STIG Configuration Benchmarking — 26 tests
+- ✅ threat_model_generator.py — Automated Threat Model Generation — 35 tests
+- ✅ security_exception_engine.py — Security Exception Workflow — 28 tests
+- ✅ analytics_engine.py — DuckDB cross-domain analytics — 50 tests
+- ✅ attack_simulation_engine.py — AttackSimulationDbEngine added — 31 tests
 
-**Backend Engines (new):**
-- ✅ SCIM 2.0 server (RFC 7644, /scim/v2) — 25+ tests (ec3eb586)
-- ✅ n8n workflow management (N8nAPIClient, /api/v1/n8n) — 26 tests (0936e227)
-- ✅ Okta event hook receiver + generic webhooks (/api/v1/webhooks) — 22 tests (8a31c3e5)
-- ✅ Token bucket rate limiting middleware (per-key, admin tier, exempt paths) — 29 tests (f53e2273)
-- ✅ OSV feed fix (querybatch with package names) + Feodo C2 blocklist + AbuseIPDB (5c49e7f6)
-- ✅ Multi-tenant isolation audit (TenantIsolationAuditor, 4 findings documented) — 39 tests (b9d5aabe)
-- ✅ Real live EPSS + CISA KEV + Shodan InternetDB wired into CVE enrichment (8771f6e5)
-- ✅ JWT RS256 validation fix (verify_signature=False → PyJWKClient) (af425506)
+### Wave 7 Backend Engines (new — all in suite-core/core/):
+- ✅ regulatory_tracker_engine.py — Regulatory Change Tracking — 34 tests
+- ✅ security_scorecard_engine.py — Security Scorecard & Grading — 36 tests
+- ✅ ccm_engine.py — Cloud Controls Matrix engine — 31 tests
+- ✅ awareness_score_engine.py — Security Awareness Scoring (tests pending)
+- ✅ ndr_engine.py — Network Detection & Response (tests pending)
+- ✅ xdr_engine.py — Extended Detection & Response (tests pending)
+- ✅ edr_engine.py — Endpoint Detection & Response (tests pending)
+- ✅ supply_chain_intel.py — Supply Chain Intelligence — 57 tests
+- ✅ threat_hunting_engine.py — Proactive Threat Hunting — 67 tests
 
-**Frontend Pages (new — all in suite-ui/aldeci-ui-new/src/pages/):**
-- ✅ /threat-intel — ThreatIntelDashboard (IOC browser, feed status, charts)
-- ✅ /assets — AssetInventory (CMDB view with risk scores)
-- ✅ /vuln-lifecycle — VulnLifecycle (8-state tracker)
-- ✅ /cve-search — CVESearch (CVE details + EPSS + KEV enrichment)
-- ✅ /ip-reputation — IPReputation (Shodan + AbuseIPDB lookup)
-- ✅ /security-kpis — SecurityKPIDashboard (MTTD/MTTR/scorecard)
-- ✅ /insider-threats — InsiderThreatMonitor (behavioral analytics)
-- ✅ /vendor-risk — VendorRiskDashboard (3rd-party risk register)
-- ✅ /posture-advisor — PostureAdvisor (virtual CISO recommendations)
-- ✅ /risk-acceptance — RiskAcceptance (workflow + approval chain)
-- ✅ /patch-prioritizer — PatchPrioritizer (CVSS×EPSS×KEV composite)
-- ✅ /secrets-rotation — SecretsRotation (rotation tracker + calendar)
-- ✅ /zero-trust — ZeroTrustDashboard (policy engine UI)
-- ✅ /supply-chain — SupplyChainSecurity (SBOM + dependency risk)
-- ✅ /dlp — DLPDashboard (data loss prevention)
-- ✅ /api-abuse — APIAbuseDashboard (rate limit + scraping detection)
-- ✅ /attack-paths — AttackPathAnalysis (BFS lateral movement)
-- ✅ /threat-modeling — ThreatModeling (STRIDE auto-detection)
+### Frontend Pages (wave 6+7, new — all in suite-ui/aldeci-ui-new/src/pages/):
+- ✅ /asset-risk — AssetRiskDashboard
+- ✅ /attack-simulation — AttackSimulation
+- ✅ /audit-log — AuditLog
+- ✅ /breach-response — BreachResponse
+- ✅ /bug-bounty — BugBounty
+- ✅ /cert-manager — CertificateManager
+- ✅ /cloud-iam — CloudIAM
+- ✅ /cloud-security — CloudSecurityDashboard
+- ✅ /cmdb — CMDBDashboard
+- ✅ /compliance-scanner — ComplianceScannerDashboard
+- ✅ /config-benchmark — ConfigBenchmarkDashboard
+- ✅ /cross-domain-analytics — CrossDomainAnalytics (DuckDB)
+- ✅ /cspm — CSPMDashboard
+- ✅ /cwpp — CWPPDashboard
+- ✅ /cyber-insurance — CyberInsurance
+- ✅ /data-classification — DataClassificationDashboard
+- ✅ /data-governance — DataGovernanceDashboard
+- ✅ /deception-engine — DeceptionEngine
+- ✅ /devsecops — DevSecOpsDashboard
+- ✅ /digital-forensics — DigitalForensicsDashboard
+- ✅ /container-security — ContainerSecurity
+- ✅ /email-security — EmailSecurity
+- ✅ /endpoint-security — EndpointSecurity
+- ✅ /executive-briefing — ExecutiveBriefing
+- ✅ /executive-risk-report — ExecutiveRiskReport
+- ✅ /firewall-analyzer — FirewallAnalyzer
+- ✅ /grc-assessment — GRCAssessment
+- ✅ /grc — GRCDashboard
+- ✅ /identity-governance — IdentityGovernance
+- ✅ /incident-response — IncidentResponseDashboard
+- ✅ /incident-timeline — IncidentTimelineDashboard
+- ✅ /ioc-hunter — IOCHunter
+- ✅ /mobile-security — MobileSecurity
+- ✅ /network-analysis — NetworkAnalysis
+- ✅ /network-topology — NetworkTopology
+- ✅ /pam — PAMDashboard
+- ✅ /password-policy — PasswordPolicy
+- ✅ /pentest-management — PentestManagement
+- ✅ /phishing-simulation — PhishingSimulation
+- ✅ /playbook-library — PlaybookLibrary
+- ✅ /red-team — RedTeamStatus
+- ✅ /risk-quantification — RiskQuantification
+- ✅ /risk-register — RiskRegister
+- ✅ /security-awareness — SecurityAwareness
+- ✅ /security-exception — SecurityExceptionDashboard
+- ✅ /security-health — SecurityHealthDashboard
+- ✅ /security-metrics — SecurityMetricsDashboard
+- ✅ /security-operations — SecurityOperationsCenter
+- ✅ /security-posture — SecurityPostureDashboard
+- ✅ /security-roadmap — SecurityRoadmap
+- ✅ /security-training — SecurityTrainingDashboard
+- ✅ /sla — SLADashboard
+- ✅ /soar — SOARDashboard
+- ✅ /social-engineering — SocialEngineering
+- ✅ /supply-chain-dashboard — SupplyChainDashboard
+- ✅ /threat-correlation — ThreatCorrelation
+- ✅ /threat-feed — ThreatFeedDashboard
+- ✅ /threat-hunting — ThreatHuntingDashboard
+- ✅ /threat-model — ThreatModelDashboard
+- ✅ /uba — UBADashboard
+- ✅ /vuln-heatmap — VulnHeatmap
+- ✅ /vuln-risk-queue — VulnRiskQueue
+- ✅ /vuln-trends — VulnTrendDashboard
+- ✅ /watchlist — WatchlistManager
+- ✅ /zero-trust-policy — ZeroTrustPolicyDashboard
+- ✅ /api-security — APISecurityDashboard
+- ✅ /app-security — AppSecurity
 
-**Infrastructure:**
-- ✅ n8n added to docker-compose.yml (port 5678, aldeci-n8n service) (82f39bd9)
-- ✅ SCIM + n8n + webhook + rate-limit routers wired into app.py (1756115a)
-- ✅ Navigation sidebar — all 20 new routes organized in 8 groups (b883ddc5)
+### Business Layer:
+- ✅ Investor Pitch Deck ($2M seed ask, 5-year projections) — docs/INVESTOR_PITCH.md
+- ✅ Competitive Analysis (vs Wiz/Lacework/Snyk/Rapid7/Tenable) — docs/COMPETITIVE_ANALYSIS.md
+- ✅ Go-to-Market Strategy (3-phase, 3 sales playbooks) — docs/GO_TO_MARKET.md
+- ✅ README.md rewritten (acquisition-grade)
+- ✅ Demo data seeder (10 engines, investor-quality) — scripts/seed_demo_data.py
 
-### Open Security Findings (from multi-tenant audit — fix next session):
-- **CRITICAL**: Redis queue keys are global (no org_id) — redis_queue.py
-- **HIGH**: attack_path get/remove nodes have no org_id guard — attack_path_engine.py
-- **MEDIUM**: sso_sessions/sso_providers tables missing org_id column — sso_bridge.py
-- **LOW**: insider threat resolve_alert() has no org_id guard — insider_threat_engine.py
+### Storage Technology:
+- ✅ DuckDB analytics layer (cross-domain queries across all 60+ SQLite engines) — duckdb>=0.10.0 in requirements.txt
+- SQLite: 98 domain databases (correct for embedded CRUD per-engine)
+- MD files: docs only (correct use)
 
-### Git state: pushed to af425506 on features/intermediate-stage
+### Security Fixes (all 4 multi-tenant findings from b9d5aabe resolved):
+- ✅ Redis queue keys now org_id-scoped — redis_queue.py
+- ✅ attack_path get/remove nodes guarded by org_id — attack_path_engine.py
+- ✅ sso_sessions/sso_providers tables have org_id column — sso_bridge.py
+- ✅ insider threat resolve_alert() has org_id guard — insider_threat_engine.py
+
+### Git state: features/intermediate-stage
 
 ---
 
