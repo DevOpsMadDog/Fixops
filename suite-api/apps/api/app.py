@@ -5202,6 +5202,16 @@ def create_app() -> FastAPI:
     except ImportError as _e:
         _logger.warning("Phishing Simulation router not available: %s", _e)
 
+    # -----------------------------------------------------------------------
+    # API Security Engine — OWASP API Top 10 scanning
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.api_security_router import router as api_security_router
+        app.include_router(api_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Loaded API Security router")
+    except ImportError as _e:
+        _logger.warning("API Security router not available: %s", _e)
+
     # DAST Scanner — Dynamic Application Security Testing (OWASP Top 10)
     try:
         from apps.api.dast_router import router as _dast_inner_router
@@ -5725,6 +5735,22 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Mobile Security router at /api/v1/mobile-security")
     except Exception as e:
         _logger.warning(f"Mobile Security router not loaded: {e}")
+
+    # UBA — User Behavior Analytics, anomaly detection, risk scoring
+    try:
+        from apps.api.uba_router import router as uba_router
+        app.include_router(uba_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted UBA router at /api/v1/uba")
+    except Exception as e:
+        _logger.warning(f"UBA router not loaded: {e}")
+
+    # CMDB — Configuration Management Database, CIs, relationships, changes
+    try:
+        from apps.api.cmdb_router import router as cmdb_router
+        app.include_router(cmdb_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CMDB router at /api/v1/cmdb")
+    except Exception as e:
+        _logger.warning(f"CMDB router not loaded: {e}")
 
     return app
 
