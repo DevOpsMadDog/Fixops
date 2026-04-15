@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/vulns/queue, /api/v1/vulns/distribution, /api/v1/vulns/risk-acceptance
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -24,6 +24,22 @@ import {
   TrendingUp,
   BarChart3,
 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -110,6 +126,22 @@ export default function VulnRiskQueue() {
   const [refreshing, setRefreshing] = useState(false);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [rejected, setRejected] = useState<Set<string>>(new Set());
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/vuln-prioritization/scored?org_id=${ORG_ID}&limit=50`),
+      apiFetch(`/api/v1/vuln-prioritization/stats?org_id=${ORG_ID}`),
+    ]).then(([scoredResult, statsResult]) => {
+      const scored = scoredResult.status === "fulfilled" ? scoredResult.value : null;
+      const stats  = statsResult.status  === "fulfilled" ? statsResult.value  : null;
+      if (scored || stats) {
+        setLiveData({ scored, stats });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -130,18 +162,18 @@ export default function VulnRiskQueue() {
         title="Vulnerability Risk Queue"
         description="Prioritized remediation backlog"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Critical Queue"  value={47}      icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="High Queue"      value={124}     icon={TrendingUp}    trend="up"   className="border-amber-500/20" />
-        <KpiCard title="Avg Risk Score"  value="7.8/10"  icon={Shield}        trend="down" className="border-purple-500/20" />
-        <KpiCard title="SLA at Risk"     value={23}      icon={Clock}         trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="Critical Queue"  value={liveData?.stats?.by_tier?.critical ?? liveData?.stats?.critical_count ?? 47}                                                                                              icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="High Queue"      value={liveData?.stats?.by_tier?.high ?? liveData?.stats?.high_count ?? 124}                                                                                                     icon={TrendingUp}    trend="up"   className="border-amber-500/20" />
+        <KpiCard title="Avg Risk Score"  value={liveData?.stats?.avg_priority_score != null ? `${Number(liveData.stats.avg_priority_score).toFixed(1)}/10` : liveData?.stats?.avg_score != null ? `${Number(liveData.stats.avg_score).toFixed(1)}/10` : "7.8/10"} icon={Shield}        trend="down" className="border-purple-500/20" />
+        <KpiCard title="SLA at Risk"     value={liveData?.stats?.sla_breached ?? liveData?.stats?.sla_at_risk ?? 23}                                                                                                      icon={Clock}         trend="up"   className="border-yellow-500/20" />
       </div>
 
       {/* Priority queue table */}
@@ -152,7 +184,7 @@ export default function VulnRiskQueue() {
               <AlertTriangle className="h-4 w-4 text-red-400" />
               Priority Queue
             </CardTitle>
-            <Badge className="text-[10px] border border-border text-muted-foreground">{QUEUE.length} items</Badge>
+            <Badge className="text-[10px] border border-border text-muted-foreground">{(liveData?.scored ?? QUEUE).length} items</Badge>
           </div>
           <CardDescription className="text-xs">Sorted by composite risk score — CVSS × EPSS × KEV weighting</CardDescription>
         </CardHeader>
@@ -173,28 +205,39 @@ export default function VulnRiskQueue() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {QUEUE.map((row) => (
-                  <TableRow key={row.cve} className="hover:bg-muted/30">
-                    <TableCell className="text-xs font-mono py-2 text-blue-400">{row.cve}</TableCell>
-                    <TableCell className="text-xs py-2 font-medium">{row.asset}</TableCell>
-                    <TableCell className="py-2"><CvssScore score={row.cvss} /></TableCell>
-                    <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{(row.epss * 100).toFixed(0)}%</TableCell>
+                {(liveData?.scored ?? QUEUE).map((row: any) => {
+                  const cve       = row.cve ?? row.cve_id;
+                  const asset     = row.asset ?? row.asset_id;
+                  const cvss      = row.cvss ?? row.cvss_score ?? 0;
+                  const epss      = row.epss ?? row.epss_score ?? 0;
+                  const kev       = row.kev ?? row.kev_listed ?? false;
+                  const composite = row.composite ?? row.priority_score ?? 0;
+                  const team      = row.team ?? row.assigned_team ?? "—";
+                  const status    = row.status ?? "open";
+                  const sla       = row.sla ?? row.sla_due ?? row.due_date ?? "—";
+                  return (
+                  <TableRow key={cve ?? row.id} className="hover:bg-muted/30">
+                    <TableCell className="text-xs font-mono py-2 text-blue-400">{cve}</TableCell>
+                    <TableCell className="text-xs py-2 font-medium">{asset}</TableCell>
+                    <TableCell className="py-2"><CvssScore score={cvss} /></TableCell>
+                    <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{(epss * 100).toFixed(0)}%</TableCell>
                     <TableCell className="py-2">
-                      {row.kev
+                      {kev
                         ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">KEV</Badge>
                         : <span className="text-[10px] text-muted-foreground">—</span>
                       }
                     </TableCell>
                     <TableCell className="py-2">
-                      <span className={cn("font-bold tabular-nums text-xs", row.composite >= 9 ? "text-red-400" : row.composite >= 8 ? "text-amber-400" : "text-yellow-400")}>
-                        {row.composite.toFixed(1)}
+                      <span className={cn("font-bold tabular-nums text-xs", composite >= 9 ? "text-red-400" : composite >= 8 ? "text-amber-400" : "text-yellow-400")}>
+                        {Number(composite).toFixed(1)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs py-2 text-muted-foreground">{row.team}</TableCell>
-                    <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
-                    <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.sla}</TableCell>
+                    <TableCell className="text-xs py-2 text-muted-foreground">{team}</TableCell>
+                    <TableCell className="py-2"><StatusBadge status={status} /></TableCell>
+                    <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{sla}</TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

@@ -12,12 +12,28 @@
  * API stubs: GET /api/v1/zero-trust/policies, /api/v1/zero-trust/requests, /api/v1/zero-trust/trust-scores
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Lock, Shield, Users, Activity, RefreshCw,
   AlertTriangle, CheckCircle, XCircle, Eye,
 } from "lucide-react";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -142,6 +158,26 @@ function DecisionBadge({ decision }: { decision: string }) {
 
 export default function ZeroTrustPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/zero-trust/policies?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/zero-trust/access-log?org_id=${ORG_ID}&limit=15`),
+      apiFetch(`/api/v1/zero-trust/trust-scores?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/zero-trust/stats?org_id=${ORG_ID}`),
+    ]).then(([policiesResult, requestsResult, scoresResult, statsResult]) => {
+      const policies = policiesResult.status === "fulfilled" ? policiesResult.value : null;
+      const requests = requestsResult.status === "fulfilled" ? requestsResult.value : null;
+      const scores   = scoresResult.status   === "fulfilled" ? scoresResult.value   : null;
+      const stats    = statsResult.status    === "fulfilled" ? statsResult.value    : null;
+      if (policies || requests || scores || stats) {
+        setLiveData({ policies, requests, scores, stats });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -160,18 +196,18 @@ export default function ZeroTrustPolicyDashboard() {
         title="Zero Trust Policies"
         description="Never trust, always verify — continuous access evaluation"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Active Policies"        value={24}      icon={Lock}         trend="up"   />
-        <KpiCard title="Access Requests Today"  value="847"     icon={Activity}     trend="up"   />
-        <KpiCard title="Allow Rate"             value="73.4%"   icon={CheckCircle}  trend="down" className="border-amber-500/20" />
-        <KpiCard title="Violations"             value={12}      icon={AlertTriangle} trend="up"  className="border-red-500/20" />
+        <KpiCard title="Active Policies"        value={liveData?.stats?.total_policies ?? liveData?.policies?.length ?? 24}                                                               icon={Lock}          trend="up"   />
+        <KpiCard title="Access Requests Today"  value={liveData?.stats?.total_requests ?? liveData?.stats?.requests_today ?? "847"}                                                      icon={Activity}      trend="up"   />
+        <KpiCard title="Allow Rate"             value={liveData?.stats?.allow_rate != null ? `${(liveData.stats.allow_rate * 100).toFixed(1)}%` : liveData?.stats?.allow_rate ?? "73.4%"} icon={CheckCircle}   trend="down" className="border-amber-500/20" />
+        <KpiCard title="Violations"             value={liveData?.stats?.violations ?? liveData?.stats?.total_violations ?? 12}                                                           icon={AlertTriangle} trend="up"   className="border-red-500/20" />
       </div>
 
       {/* Policy table */}
@@ -197,29 +233,29 @@ export default function ZeroTrustPolicyDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {POLICIES.map((p) => (
-                  <TableRow key={p.name} className="hover:bg-muted/30">
-                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{p.priority}</TableCell>
-                    <TableCell className="text-xs py-2.5 font-medium">{p.name}</TableCell>
+                {(liveData?.policies ?? POLICIES).map((p: any) => (
+                  <TableRow key={p.name ?? p.policy_name ?? p.id} className="hover:bg-muted/30">
+                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{p.priority ?? "—"}</TableCell>
+                    <TableCell className="text-xs py-2.5 font-medium">{p.name ?? p.policy_name}</TableCell>
                     <TableCell className="py-2.5">
-                      <Badge className={cn("text-[10px] border", POLICY_TYPE_COLORS[p.type])}>
-                        {p.type.replace("_", " ")}
+                      <Badge className={cn("text-[10px] border", POLICY_TYPE_COLORS[p.type ?? p.resource_type] ?? "border-border text-muted-foreground")}>
+                        {(p.type ?? p.resource_type ?? "policy").replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-2.5">
-                      <Badge className={cn("text-[10px] border", ACTION_COLORS[p.action])}>
-                        {p.action.replace("_", " ")}
+                      <Badge className={cn("text-[10px] border", ACTION_COLORS[p.action] ?? "border-border text-muted-foreground")}>
+                        {(p.action ?? "—").replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-2.5">
                       <div className="flex flex-wrap gap-1">
-                        {p.conditions.map((c) => (
+                        {(Array.isArray(p.conditions) ? p.conditions : Object.entries(p.conditions ?? {}).map(([k, v]) => `${k}=${v}`)).map((c: string) => (
                           <span key={c} className="text-[10px] bg-muted/40 rounded px-1.5 py-0.5 text-muted-foreground font-mono">{c}</span>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell className="py-2.5 text-right">
-                      {p.enabled
+                      {(p.enabled ?? p.is_active ?? true)
                         ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">ON</Badge>
                         : <Badge className="text-[10px] border border-border text-muted-foreground">OFF</Badge>
                       }
@@ -245,30 +281,30 @@ export default function ZeroTrustPolicyDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-80 overflow-y-auto divide-y divide-border/40">
-              {REQUESTS.map((r, i) => (
+              {(liveData?.requests ?? REQUESTS).map((r: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium truncate">{r.user}</span>
-                      <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">{r.device}</span>
+                      <span className="text-[11px] font-medium truncate">{r.user ?? r.principal_id}</span>
+                      <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">{r.device ?? r.device_id ?? ""}</span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground truncate font-mono">{r.resource}</div>
+                    <div className="text-[10px] text-muted-foreground truncate font-mono">{r.resource ?? r.resource_id}</div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {/* Risk score */}
                     <div className="relative h-1 w-12 rounded-full bg-muted/30 overflow-hidden">
                       <div
-                        className={cn("h-full rounded-full", r.risk > 70 ? "bg-red-500" : r.risk > 40 ? "bg-amber-500" : "bg-green-500")}
-                        style={{ width: `${r.risk}%` }}
+                        className={cn("h-full rounded-full", (r.risk ?? r.risk_score ?? 0) > 70 ? "bg-red-500" : (r.risk ?? r.risk_score ?? 0) > 40 ? "bg-amber-500" : "bg-green-500")}
+                        style={{ width: `${r.risk ?? r.risk_score ?? 0}%` }}
                       />
                     </div>
                     {/* MFA badge */}
-                    {r.mfa
+                    {(r.mfa ?? r.mfa_verified)
                       ? <CheckCircle className="h-3 w-3 text-green-500" title="MFA verified" />
                       : <XCircle    className="h-3 w-3 text-red-500"   title="No MFA" />
                     }
-                    <DecisionBadge decision={r.decision} />
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{r.ts}</span>
+                    <DecisionBadge decision={r.decision ?? r.decision_result ?? "allow"} />
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{r.ts ?? r.evaluated_at ?? ""}</span>
                   </div>
                 </div>
               ))}
@@ -298,14 +334,14 @@ export default function ZeroTrustPolicyDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {TRUST_SCORES.map((e) => (
-                    <TableRow key={e.entity} className="hover:bg-muted/30">
-                      <TableCell className="text-xs font-mono py-2">{e.entity}</TableCell>
+                  {(liveData?.scores ?? TRUST_SCORES).map((e: any) => (
+                    <TableRow key={e.entity ?? e.entity_id} className="hover:bg-muted/30">
+                      <TableCell className="text-xs font-mono py-2">{e.entity ?? e.entity_id}</TableCell>
                       <TableCell className="py-2">
-                        <Badge className={cn("text-[10px] border capitalize", ENTITY_TYPE_COLORS[e.type])}>{e.type}</Badge>
+                        <Badge className={cn("text-[10px] border capitalize", ENTITY_TYPE_COLORS[e.type ?? e.entity_type] ?? "border-border text-muted-foreground")}>{e.type ?? e.entity_type}</Badge>
                       </TableCell>
-                      <TableCell className="py-2"><TrustBar score={e.score} /></TableCell>
-                      <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{e.factors}</TableCell>
+                      <TableCell className="py-2"><TrustBar score={e.score ?? e.trust_score ?? 0} /></TableCell>
+                      <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{e.factors ?? (e.score_factors ? Object.keys(e.score_factors).length : "—")}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
