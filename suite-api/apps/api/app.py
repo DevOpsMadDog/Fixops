@@ -6180,6 +6180,20 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.network_traffic_router import router as network_traffic_router
+        app.include_router(network_traffic_router)
+        _logger.info("Mounted Network Traffic router at /api/v1/network-traffic")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.identity_governance_router import router as identity_governance_router
+        app.include_router(identity_governance_router)
+        _logger.info("Mounted Identity Governance router at /api/v1/identity-governance")
+    except ImportError:
+        pass
+
     return app
 
 
