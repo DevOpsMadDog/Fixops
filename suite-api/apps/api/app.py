@@ -5949,6 +5949,22 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Security Exception router not loaded: {e}")
 
+    # Continuous Control Monitoring — SOC2/ISO27001/NIST/PCI/HIPAA/CIS control tests & failures
+    try:
+        from apps.api.ccm_router import router as ccm_router
+        app.include_router(ccm_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted CCM router at /api/v1/ccm")
+    except Exception as e:
+        _logger.warning(f"CCM router not loaded: {e}")
+
+    # Security Awareness Score Tracker — training completions, phishing sims, risk tiers
+    try:
+        from apps.api.awareness_score_router import router as awareness_score_router
+        app.include_router(awareness_score_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Awareness Score router at /api/v1/awareness-score")
+    except Exception as e:
+        _logger.warning(f"Awareness Score router not loaded: {e}")
+
     return app
 
 
