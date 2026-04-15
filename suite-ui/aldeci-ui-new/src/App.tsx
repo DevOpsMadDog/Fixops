@@ -319,6 +319,14 @@ const MobileAppSecurityDashboard = lazy(() => import("@/pages/MobileAppSecurityD
 const SupplyChainAttackDashboard = lazy(() => import("@/pages/SupplyChainAttackDashboard"));
 const CloudWorkloadProtectionDashboard = lazy(() => import("@/pages/CloudWorkloadProtectionDashboard"));
 
+// Wave 22 domain dashboards
+const AutonomousRemediationDashboard = lazy(() => import("@/pages/AutonomousRemediationDashboard"));
+const VulnerabilityCorrelationDashboard = lazy(() => import("@/pages/VulnerabilityCorrelationDashboard"));
+const PostureBenchmarkingDashboard = lazy(() => import("@/pages/PostureBenchmarkingDashboard"));
+const QuantumCryptoDashboard = lazy(() => import("@/pages/QuantumCryptoDashboard"));
+const AIPoweredSOCDashboard = lazy(() => import("@/pages/AIPoweredSOCDashboard"));
+const DeceptionAnalyticsDashboard = lazy(() => import("@/pages/DeceptionAnalyticsDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -642,6 +650,14 @@ export default function App() {
             <Route path="/mobile-app-security" element={<MobileAppSecurityDashboard />} />
             <Route path="/supply-chain-attacks" element={<SupplyChainAttackDashboard />} />
             <Route path="/cwp" element={<CloudWorkloadProtectionDashboard />} />
+
+            {/* Wave 22 domain dashboards */}
+            <Route path="/autonomous-remediation" element={<AutonomousRemediationDashboard />} />
+            <Route path="/vuln-correlation" element={<VulnerabilityCorrelationDashboard />} />
+            <Route path="/posture-benchmarking" element={<PostureBenchmarkingDashboard />} />
+            <Route path="/quantum-crypto" element={<QuantumCryptoDashboard />} />
+            <Route path="/ai-soc" element={<AIPoweredSOCDashboard />} />
+            <Route path="/deception-analytics" element={<DeceptionAnalyticsDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
