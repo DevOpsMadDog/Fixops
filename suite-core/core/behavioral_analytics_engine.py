@@ -1,0 +1,418 @@
+"""Behavioral Analytics Engine — ALDECI.
+
+Monitors user behavior baselines and detects anomalies:
+  - Baseline establishment per user per behavior dimension
+  - Anomaly detection with severity scoring
+  - Alert lifecycle management (new → investigating → confirmed/false_positive/resolved)
+  - User risk profiling
+  - Org-level behavioral stats
+
+Compliance: UEBA frameworks, NIST SP 800-207, ISO 27001 A.12.4
+"""
+
+from __future__ import annotations
+
+import logging
+import sqlite3
+import threading
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+_logger = logging.getLogger(__name__)
+
+_DEFAULT_DB = str(
+    Path(__file__).resolve().parents[2] / ".fixops_data" / "behavioral_analytics.db"
+)
+
+_VALID_BEHAVIOR_TYPES = {
+    "login_anomaly", "data_access_spike", "privilege_escalation",
+    "lateral_movement", "exfiltration_attempt", "policy_violation",
+    "off_hours_activity", "geo_anomaly",
+}
+_VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+_VALID_BASELINE_TYPES = {
+    "login_hours", "access_volume", "data_transfer",
+    "command_frequency", "location",
+}
+_VALID_ALERT_STATUSES = {"new", "investigating", "confirmed", "false_positive", "resolved"}
+
+_DDL = """
+PRAGMA journal_mode=WAL;
+
+CREATE TABLE IF NOT EXISTS ba_baselines (
+    id             TEXT PRIMARY KEY,
+    org_id         TEXT NOT NULL,
+    user_id        TEXT NOT NULL,
+    baseline_type  TEXT NOT NULL DEFAULT 'login_hours',
+    normal_value   REAL NOT NULL DEFAULT 0.0,
+    std_deviation  REAL NOT NULL DEFAULT 0.0,
+    samples_count  INTEGER NOT NULL DEFAULT 0,
+    established_at DATETIME,
+    updated_at     DATETIME,
+    UNIQUE(org_id, user_id, baseline_type)
+);
+
+CREATE TABLE IF NOT EXISTS ba_anomalies (
+    id              TEXT PRIMARY KEY,
+    org_id          TEXT NOT NULL,
+    user_id         TEXT NOT NULL,
+    behavior_type   TEXT NOT NULL DEFAULT 'login_anomaly',
+    severity        TEXT NOT NULL DEFAULT 'medium',
+    observed_value  REAL NOT NULL DEFAULT 0.0,
+    baseline_value  REAL NOT NULL DEFAULT 0.0,
+    deviation_score REAL NOT NULL DEFAULT 0.0,
+    description     TEXT NOT NULL DEFAULT '',
+    status          TEXT NOT NULL DEFAULT 'new',
+    notes           TEXT NOT NULL DEFAULT '',
+    detected_at     DATETIME,
+    resolved_at     DATETIME
+);
+"""
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+class BehavioralAnalyticsEngine:
+    """SQLite WAL-backed UEBA engine.
+
+    Thread-safe via RLock.  Multi-tenant via org_id.
+    """
+
+    def __init__(self, db_path: str = _DEFAULT_DB) -> None:
+        self.db_path = db_path
+        self._lock = threading.RLock()
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _init_db(self) -> None:
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        with self._conn() as conn:
+            conn.executescript(_DDL)
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    @staticmethod
+    def _row(row: sqlite3.Row) -> Dict[str, Any]:
+        return dict(row)
+
+    # ------------------------------------------------------------------
+    # Baselines
+    # ------------------------------------------------------------------
+
+    def establish_baseline(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create or update a user behavioral baseline."""
+        user_id = (data.get("user_id") or "").strip()
+        if not user_id:
+            raise ValueError("user_id is required")
+
+        baseline_type = data.get("baseline_type", "login_hours")
+        if baseline_type not in _VALID_BASELINE_TYPES:
+            raise ValueError(
+                f"Invalid baseline_type {baseline_type!r}. "
+                f"Must be one of {sorted(_VALID_BASELINE_TYPES)}"
+            )
+
+        now = _now_iso()
+        normal_value = float(data.get("normal_value", 0.0))
+        std_deviation = float(data.get("std_deviation", 0.0))
+        samples_count = int(data.get("samples_count", 0))
+
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    "SELECT * FROM ba_baselines WHERE org_id = ? AND user_id = ? AND baseline_type = ?",
+                    (org_id, user_id, baseline_type),
+                ).fetchone()
+
+                if existing:
+                    conn.execute(
+                        """UPDATE ba_baselines
+                           SET normal_value = ?, std_deviation = ?, samples_count = ?, updated_at = ?
+                           WHERE org_id = ? AND user_id = ? AND baseline_type = ?""",
+                        (normal_value, std_deviation, samples_count, now,
+                         org_id, user_id, baseline_type),
+                    )
+                    row = conn.execute(
+                        "SELECT * FROM ba_baselines WHERE org_id = ? AND user_id = ? AND baseline_type = ?",
+                        (org_id, user_id, baseline_type),
+                    ).fetchone()
+                    return self._row(row)
+                else:
+                    baseline_id = str(uuid.uuid4())
+                    new_row = {
+                        "id": baseline_id,
+                        "org_id": org_id,
+                        "user_id": user_id,
+                        "baseline_type": baseline_type,
+                        "normal_value": normal_value,
+                        "std_deviation": std_deviation,
+                        "samples_count": samples_count,
+                        "established_at": now,
+                        "updated_at": now,
+                    }
+                    conn.execute(
+                        """INSERT INTO ba_baselines
+                           (id, org_id, user_id, baseline_type, normal_value,
+                            std_deviation, samples_count, established_at, updated_at)
+                           VALUES
+                           (:id, :org_id, :user_id, :baseline_type, :normal_value,
+                            :std_deviation, :samples_count, :established_at, :updated_at)""",
+                        new_row,
+                    )
+                    return new_row
+
+    def list_baselines(
+        self,
+        org_id: str,
+        user_id: Optional[str] = None,
+        baseline_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List baselines with optional filters."""
+        sql = "SELECT * FROM ba_baselines WHERE org_id = ?"
+        params: list = [org_id]
+
+        if user_id is not None:
+            sql += " AND user_id = ?"
+            params.append(user_id)
+        if baseline_type is not None:
+            sql += " AND baseline_type = ?"
+            params.append(baseline_type)
+
+        sql += " ORDER BY established_at DESC"
+
+        with self._conn() as conn:
+            return [self._row(r) for r in conn.execute(sql, params).fetchall()]
+
+    # ------------------------------------------------------------------
+    # Anomaly Detection
+    # ------------------------------------------------------------------
+
+    def detect_anomaly(self, org_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Record a detected behavioral anomaly."""
+        user_id = (data.get("user_id") or "").strip()
+        if not user_id:
+            raise ValueError("user_id is required")
+
+        behavior_type = data.get("behavior_type", "login_anomaly")
+        if behavior_type not in _VALID_BEHAVIOR_TYPES:
+            raise ValueError(
+                f"Invalid behavior_type {behavior_type!r}. "
+                f"Must be one of {sorted(_VALID_BEHAVIOR_TYPES)}"
+            )
+
+        severity = data.get("severity", "medium")
+        if severity not in _VALID_SEVERITIES:
+            raise ValueError(
+                f"Invalid severity {severity!r}. "
+                f"Must be one of {sorted(_VALID_SEVERITIES)}"
+            )
+
+        anomaly_id = str(uuid.uuid4())
+        now = _now_iso()
+
+        row = {
+            "id": anomaly_id,
+            "org_id": org_id,
+            "user_id": user_id,
+            "behavior_type": behavior_type,
+            "severity": severity,
+            "observed_value": float(data.get("observed_value", 0.0)),
+            "baseline_value": float(data.get("baseline_value", 0.0)),
+            "deviation_score": float(data.get("deviation_score", 0.0)),
+            "description": data.get("description", ""),
+            "status": "new",
+            "notes": "",
+            "detected_at": data.get("detected_at") or now,
+            "resolved_at": None,
+        }
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO ba_anomalies
+                       (id, org_id, user_id, behavior_type, severity,
+                        observed_value, baseline_value, deviation_score,
+                        description, status, notes, detected_at, resolved_at)
+                       VALUES
+                       (:id, :org_id, :user_id, :behavior_type, :severity,
+                        :observed_value, :baseline_value, :deviation_score,
+                        :description, :status, :notes, :detected_at, :resolved_at)""",
+                    row,
+                )
+        return row
+
+    def list_anomalies(
+        self,
+        org_id: str,
+        user_id: Optional[str] = None,
+        behavior_type: Optional[str] = None,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List anomalies with optional filters, ordered newest first."""
+        sql = "SELECT * FROM ba_anomalies WHERE org_id = ?"
+        params: list = [org_id]
+
+        if user_id is not None:
+            sql += " AND user_id = ?"
+            params.append(user_id)
+        if behavior_type is not None:
+            sql += " AND behavior_type = ?"
+            params.append(behavior_type)
+        if severity is not None:
+            sql += " AND severity = ?"
+            params.append(severity)
+        if status is not None:
+            sql += " AND status = ?"
+            params.append(status)
+
+        sql += " ORDER BY detected_at DESC"
+
+        with self._conn() as conn:
+            return [self._row(r) for r in conn.execute(sql, params).fetchall()]
+
+    def update_anomaly_status(
+        self,
+        org_id: str,
+        anomaly_id: str,
+        status: str,
+        notes: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """Update the status of an anomaly."""
+        if status not in _VALID_ALERT_STATUSES:
+            raise ValueError(
+                f"Invalid status {status!r}. "
+                f"Must be one of {sorted(_VALID_ALERT_STATUSES)}"
+            )
+
+        now = _now_iso()
+        resolved_at = now if status == "resolved" else None
+
+        with self._lock:
+            with self._conn() as conn:
+                existing = conn.execute(
+                    "SELECT id FROM ba_anomalies WHERE org_id = ? AND id = ?",
+                    (org_id, anomaly_id),
+                ).fetchone()
+                if not existing:
+                    return None
+
+                conn.execute(
+                    """UPDATE ba_anomalies
+                       SET status = ?, notes = ?, resolved_at = ?
+                       WHERE org_id = ? AND id = ?""",
+                    (status, notes, resolved_at, org_id, anomaly_id),
+                )
+                row = conn.execute(
+                    "SELECT * FROM ba_anomalies WHERE org_id = ? AND id = ?",
+                    (org_id, anomaly_id),
+                ).fetchone()
+                return self._row(row) if row else None
+
+    # ------------------------------------------------------------------
+    # User Risk Profile
+    # ------------------------------------------------------------------
+
+    def get_user_risk_profile(self, org_id: str, user_id: str) -> Dict[str, Any]:
+        """Return a risk profile for a specific user."""
+        with self._conn() as conn:
+            total_anomalies = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ?",
+                (org_id, user_id),
+            ).fetchone()[0]
+
+            critical_count = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ? AND severity = 'critical'",
+                (org_id, user_id),
+            ).fetchone()[0]
+
+            high_count = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ? AND severity = 'high'",
+                (org_id, user_id),
+            ).fetchone()[0]
+
+            open_anomalies = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND user_id = ? AND status NOT IN ('resolved','false_positive')",
+                (org_id, user_id),
+            ).fetchone()[0]
+
+            last_row = conn.execute(
+                "SELECT detected_at FROM ba_anomalies WHERE org_id = ? AND user_id = ? ORDER BY detected_at DESC LIMIT 1",
+                (org_id, user_id),
+            ).fetchone()
+            last_anomaly_at = last_row["detected_at"] if last_row else None
+
+        risk_score = min(total_anomalies * 10, 100)
+
+        return {
+            "user_id": user_id,
+            "total_anomalies": total_anomalies,
+            "critical_count": critical_count,
+            "high_count": high_count,
+            "open_anomalies": open_anomalies,
+            "risk_score": risk_score,
+            "last_anomaly_at": last_anomaly_at,
+        }
+
+    # ------------------------------------------------------------------
+    # Stats
+    # ------------------------------------------------------------------
+
+    def get_behavioral_stats(self, org_id: str) -> Dict[str, Any]:
+        """Return org-level behavioral analytics statistics."""
+        with self._conn() as conn:
+            total_users_monitored = conn.execute(
+                "SELECT COUNT(DISTINCT user_id) FROM ba_baselines WHERE org_id = ?",
+                (org_id,),
+            ).fetchone()[0]
+
+            total_anomalies = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+
+            open_anomalies = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND status NOT IN ('resolved','false_positive')",
+                (org_id,),
+            ).fetchone()[0]
+
+            critical_anomalies = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND severity = 'critical'",
+                (org_id,),
+            ).fetchone()[0]
+
+            confirmed_threats = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND status = 'confirmed'",
+                (org_id,),
+            ).fetchone()[0]
+
+            type_rows = conn.execute(
+                "SELECT behavior_type, COUNT(*) as cnt FROM ba_anomalies WHERE org_id = ? GROUP BY behavior_type",
+                (org_id,),
+            ).fetchall()
+            by_behavior_type = {r["behavior_type"]: r["cnt"] for r in type_rows}
+
+            fp_count = conn.execute(
+                "SELECT COUNT(*) FROM ba_anomalies WHERE org_id = ? AND status = 'false_positive'",
+                (org_id,),
+            ).fetchone()[0]
+            false_positive_rate = (fp_count / total_anomalies * 100) if total_anomalies > 0 else 0.0
+
+        return {
+            "total_users_monitored": total_users_monitored,
+            "total_anomalies": total_anomalies,
+            "open_anomalies": open_anomalies,
+            "critical_anomalies": critical_anomalies,
+            "confirmed_threats": confirmed_threats,
+            "by_behavior_type": by_behavior_type,
+            "false_positive_rate": false_positive_rate,
+        }
