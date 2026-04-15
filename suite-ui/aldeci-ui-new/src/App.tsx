@@ -399,6 +399,14 @@ const SecurityBenchmarksDashboard = lazy(() => import("@/pages/SecurityBenchmark
 const IncidentCostsDashboard = lazy(() => import("@/pages/IncidentCostsDashboard"));
 const SecurityCultureDashboard = lazy(() => import("@/pages/SecurityCultureDashboard"));
 
+// Wave 36 domain dashboards
+const SecurityHealthScorecardDashboard = lazy(() => import("@/pages/SecurityHealthScorecardDashboard"));
+const ComplianceCalendarDashboard = lazy(() => import("@/pages/ComplianceCalendarDashboard"));
+const CyberResilienceDashboard = lazy(() => import("@/pages/CyberResilienceDashboard"));
+const AssetCriticalityDashboard = lazy(() => import("@/pages/AssetCriticalityDashboard"));
+const SecurityInvestmentDashboard = lazy(() => import("@/pages/SecurityInvestmentDashboard"));
+const ThreatModelingPipelineDashboard = lazy(() => import("@/pages/ThreatModelingPipelineDashboard"));
+
 // Wave 34 domain dashboards
 const SecurityQuestionnaireDashboard = lazy(() => import("@/pages/SecurityQuestionnaireDashboard"));
 const RiskScenarioDashboard = lazy(() => import("@/pages/RiskScenarioDashboard"));
@@ -818,6 +826,14 @@ export default function App() {
             <Route path="/incident-comms" element={<IncidentCommsDashboard />} />
             <Route path="/asset-tags" element={<AssetTagsDashboard />} />
             <Route path="/security-registry" element={<SecurityRegistryDashboard />} />
+
+            {/* Wave 36 domain dashboards */}
+            <Route path="/health-scorecard" element={<SecurityHealthScorecardDashboard />} />
+            <Route path="/compliance-calendar" element={<ComplianceCalendarDashboard />} />
+            <Route path="/cyber-resilience" element={<CyberResilienceDashboard />} />
+            <Route path="/asset-criticality" element={<AssetCriticalityDashboard />} />
+            <Route path="/security-investment" element={<SecurityInvestmentDashboard />} />
+            <Route path="/threat-modeling-pipeline" element={<ThreatModelingPipelineDashboard />} />
 
             {/* Wave 35 domain dashboards */}
             <Route path="/exception-workflow" element={<ExceptionWorkflowDashboard />} />
