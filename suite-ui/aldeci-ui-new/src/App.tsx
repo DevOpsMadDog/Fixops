@@ -225,6 +225,12 @@ const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerD
 const SecurityScorecardDashboard = lazy(() => import("@/pages/SecurityScorecardDashboard"));
 const CCMDashboard = lazy(() => import("@/pages/CCMDashboard"));
 
+// Security Maturity, Privacy/GDPR, Network Traffic, Container Security
+const SecurityMaturityDashboard = lazy(() => import("@/pages/SecurityMaturityDashboard"));
+const PrivacyGDPRDashboard = lazy(() => import("@/pages/PrivacyGDPRDashboard"));
+const NetworkTrafficDashboard = lazy(() => import("@/pages/NetworkTrafficDashboard"));
+const ContainerSecurityDashboard = lazy(() => import("@/pages/ContainerSecurityDashboard"));
+
 // Threat Actor Intelligence + Security Champions
 const ThreatActorDashboard = lazy(() => import("@/pages/ThreatActorDashboard"));
 const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsDashboard"));
@@ -478,6 +484,12 @@ export default function App() {
             {/* Threat Actor Intelligence + Security Champions */}
             <Route path="/threat-actors" element={<ThreatActorDashboard />} />
             <Route path="/security-champions" element={<SecurityChampionsDashboard />} />
+
+            {/* Security Maturity, Privacy/GDPR, Network Traffic, Container Security */}
+            <Route path="/security-maturity" element={<SecurityMaturityDashboard />} />
+            <Route path="/privacy-gdpr" element={<PrivacyGDPRDashboard />} />
+            <Route path="/network-traffic" element={<NetworkTrafficDashboard />} />
+            <Route path="/container-security" element={<ContainerSecurityDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
