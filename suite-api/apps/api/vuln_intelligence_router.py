@@ -1,0 +1,210 @@
+"""Vulnerability Intelligence Router — ALDECI.
+
+Prefix: /api/v1/vuln-intel
+Auth: api_key_auth dependency
+
+Routes:
+  POST   /api/v1/vuln-intel/cves                          add_cve
+  GET    /api/v1/vuln-intel/cves                          list_cves
+  GET    /api/v1/vuln-intel/cves/{cve_id}                 get_cve
+  PATCH  /api/v1/vuln-intel/cves/{cve_id}/status          update_cve_status
+  POST   /api/v1/vuln-intel/advisories                    add_advisory
+  GET    /api/v1/vuln-intel/advisories                    list_advisories
+  POST   /api/v1/vuln-intel/advisories/{id}/apply         apply_advisory
+  POST   /api/v1/vuln-intel/subscriptions                 add_subscription
+  GET    /api/v1/vuln-intel/subscriptions                 list_subscriptions
+  GET    /api/v1/vuln-intel/stats                         get_intel_stats
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from apps.api.auth_deps import api_key_auth
+
+_logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/v1/vuln-intel",
+    tags=["Vulnerability Intelligence"],
+)
+
+_engine = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        from core.vuln_intelligence_engine import VulnIntelligenceEngine
+        _engine = VulnIntelligenceEngine()
+    return _engine
+
+
+# ---------------------------------------------------------------------------
+# Request models
+# ---------------------------------------------------------------------------
+
+class CVECreate(BaseModel):
+    cve_id: str
+    title: str = ""
+    description: str = ""
+    cvss_score: float = Field(default=0.0, ge=0.0, le=10.0)
+    cvss_vector: str = ""
+    epss_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    kev_listed: bool = False
+    kev_added_date: Optional[str] = None
+    severity: str = "medium"
+    affected_products: List[Any] = []
+    exploit_available: bool = False
+    exploit_type: Optional[str] = None
+    patch_available: bool = False
+    patch_url: str = ""
+    references: List[str] = []
+    threat_actors_using: List[str] = []
+    affected_org_assets: List[str] = []
+    status: str = "new"
+
+
+class CVEStatusUpdate(BaseModel):
+    status: str
+
+
+class AdvisoryCreate(BaseModel):
+    advisory_id: str = ""
+    vendor: str
+    product: str = ""
+    severity: str = "medium"
+    advisory_url: str = ""
+    cves_covered: List[str] = []
+    patch_version: str = ""
+    release_date: str = ""
+    status: str = "new"
+
+
+class SubscriptionCreate(BaseModel):
+    subscription_type: str = "vendor"
+    subscription_value: str
+    notify_severity_min: str = "high"
+
+
+# ---------------------------------------------------------------------------
+# CVE routes
+# ---------------------------------------------------------------------------
+
+@router.post("/cves", dependencies=[Depends(api_key_auth)], status_code=201)
+def add_cve(body: CVECreate, org_id: str = Query(...)):
+    """Add or update CVE intelligence (upserts on org_id + cve_id)."""
+    try:
+        return _get_engine().add_cve(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/cves", dependencies=[Depends(api_key_auth)])
+def list_cves(
+    org_id: str = Query(...),
+    severity: Optional[str] = Query(None),
+    kev_listed: Optional[bool] = Query(None),
+    exploit_available: Optional[bool] = Query(None),
+    status: Optional[str] = Query(None),
+    limit: int = Query(default=50, ge=1, le=500),
+):
+    """List CVEs with optional filters."""
+    return _get_engine().list_cves(
+        org_id,
+        severity=severity,
+        kev_listed=kev_listed,
+        exploit_available=exploit_available,
+        status=status,
+        limit=limit,
+    )
+
+
+@router.get("/cves/{cve_id}", dependencies=[Depends(api_key_auth)])
+def get_cve(cve_id: str, org_id: str = Query(...)):
+    """Get a single CVE with full details."""
+    cve = _get_engine().get_cve(org_id, cve_id)
+    if not cve:
+        raise HTTPException(status_code=404, detail="CVE not found")
+    return cve
+
+
+@router.patch("/cves/{cve_id}/status", dependencies=[Depends(api_key_auth)])
+def update_cve_status(
+    cve_id: str,
+    body: CVEStatusUpdate,
+    org_id: str = Query(...),
+):
+    """Update CVE lifecycle status."""
+    try:
+        updated = _get_engine().update_cve_status(org_id, cve_id, body.status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not updated:
+        raise HTTPException(status_code=404, detail="CVE not found")
+    return {"updated": True, "cve_id": cve_id, "status": body.status}
+
+
+# ---------------------------------------------------------------------------
+# Advisory routes
+# ---------------------------------------------------------------------------
+
+@router.post("/advisories", dependencies=[Depends(api_key_auth)], status_code=201)
+def add_advisory(body: AdvisoryCreate, org_id: str = Query(...)):
+    """Add a vendor advisory."""
+    try:
+        return _get_engine().add_advisory(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/advisories", dependencies=[Depends(api_key_auth)])
+def list_advisories(
+    org_id: str = Query(...),
+    vendor: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+):
+    """List vendor advisories with optional filters."""
+    return _get_engine().list_advisories(org_id, vendor=vendor, status=status)
+
+
+@router.post("/advisories/{advisory_id}/apply", dependencies=[Depends(api_key_auth)])
+def apply_advisory(advisory_id: str, org_id: str = Query(...)):
+    """Mark an advisory as applied."""
+    applied = _get_engine().apply_advisory(org_id, advisory_id)
+    if not applied:
+        raise HTTPException(status_code=404, detail="Advisory not found")
+    return {"applied": True, "advisory_id": advisory_id}
+
+
+# ---------------------------------------------------------------------------
+# Subscription routes
+# ---------------------------------------------------------------------------
+
+@router.post("/subscriptions", dependencies=[Depends(api_key_auth)], status_code=201)
+def add_subscription(body: SubscriptionCreate, org_id: str = Query(...)):
+    """Add an intel subscription."""
+    try:
+        return _get_engine().add_subscription(org_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/subscriptions", dependencies=[Depends(api_key_auth)])
+def list_subscriptions(org_id: str = Query(...)):
+    """List all intel subscriptions for org."""
+    return _get_engine().list_subscriptions(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+@router.get("/stats", dependencies=[Depends(api_key_auth)])
+def get_intel_stats(org_id: str = Query(...)):
+    """Return aggregated vulnerability intelligence statistics for the org."""
+    return _get_engine().get_intel_stats(org_id)
