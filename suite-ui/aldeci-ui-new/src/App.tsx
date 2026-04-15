@@ -252,6 +252,10 @@ const VulnIntelligenceDashboard = lazy(() => import("@/pages/VulnIntelligenceDas
 // AI Security Advisor
 const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
 
+// AI Security Advisor Dashboard + Scheduled Reports Dashboard
+const AISecurityAdvisorDashboard = lazy(() => import("@/pages/AISecurityAdvisorDashboard"));
+const ScheduledReportsDashboard = lazy(() => import("@/pages/ScheduledReportsDashboard"));
+
 // Cloud Compliance + Endpoint Compliance dashboards
 const CloudComplianceDashboard = lazy(() => import("@/pages/CloudComplianceDashboard"));
 const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianceDashboard"));
@@ -345,6 +349,10 @@ export default function App() {
 
             {/* AI Security Advisor */}
             <Route path="/ai-advisor" element={<AISecurityAdvisor />} />
+            <Route path="/ai-advisor-dashboard" element={<AISecurityAdvisorDashboard />} />
+
+            {/* Scheduled Reports */}
+            <Route path="/scheduled-reports" element={<ScheduledReportsDashboard />} />
 
             {/* AI Copilot & AI Engine */}
             <Route path="/ai" element={<CopilotDashboard />} />
