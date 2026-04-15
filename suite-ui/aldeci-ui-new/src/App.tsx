@@ -282,6 +282,12 @@ const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianc
 const FirewallPolicyDashboard = lazy(() => import("@/pages/FirewallPolicyDashboard"));
 const NetworkSegmentationDashboard = lazy(() => import("@/pages/NetworkSegmentationDashboard"));
 
+// MFA Management, Threat Scores, Security Budget, Compliance Gaps
+const MFAManagementDashboard = lazy(() => import("@/pages/MFAManagementDashboard"));
+const ThreatScoreDashboard = lazy(() => import("@/pages/ThreatScoreDashboard"));
+const SecurityBudgetDashboard = lazy(() => import("@/pages/SecurityBudgetDashboard"));
+const ComplianceGapDashboard = lazy(() => import("@/pages/ComplianceGapDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -568,6 +574,12 @@ export default function App() {
             {/* Firewall Policy, Network Segmentation */}
             <Route path="/firewall-policy" element={<FirewallPolicyDashboard />} />
             <Route path="/network-segmentation" element={<NetworkSegmentationDashboard />} />
+
+            {/* MFA Management, Threat Scores, Security Budget, Compliance Gaps */}
+            <Route path="/mfa-management" element={<MFAManagementDashboard />} />
+            <Route path="/threat-scores" element={<ThreatScoreDashboard />} />
+            <Route path="/security-budget" element={<SecurityBudgetDashboard />} />
+            <Route path="/compliance-gaps" element={<ComplianceGapDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
