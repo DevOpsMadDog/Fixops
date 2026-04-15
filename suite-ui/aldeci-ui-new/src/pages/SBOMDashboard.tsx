@@ -147,23 +147,27 @@ export default function SBOMDashboard() {
   const [dataLoading, setDataLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
 
+  const ORG_ID = "aldeci-demo";
+
   const loadData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/sbom?org_id=aldeci-demo"),
-      apiFetch("/api/v1/sbom/stats?org_id=aldeci-demo"),
-    ]).then(([sbomsResult, statsResult]) => {
-      if (sbomsResult.status === "fulfilled") {
-        const data = sbomsResult.value;
-        if (Array.isArray(data?.sboms) && data.sboms.length > 0) setSboms(data.sboms);
-        else if (Array.isArray(data) && data.length > 0) setSboms(data);
+      apiFetch(`/api/v1/sbom/assets?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/sbom/stats?org_id=${ORG_ID}`),
+    ]).then(([assetsResult, statsResult]) => {
+      if (assetsResult.status === "fulfilled") {
+        const data = assetsResult.value;
+        if (Array.isArray(data) && data.length > 0) setSboms(data);
+        else if (Array.isArray(data?.assets) && data.assets.length > 0) setSboms(data.assets);
       }
-      if (statsResult.status === "fulfilled" && statsResult.value?.total_deps !== undefined) {
-        // Map generator stats to our KPI shape
+      if (statsResult.status === "fulfilled") {
         const s = statsResult.value;
         setStats((prev) => ({
           ...prev,
-          total_components: s.total_deps ?? prev.total_components,
+          total_assets: s.total_assets ?? prev.total_assets,
+          total_components: s.total_components ?? s.total_deps ?? prev.total_components,
+          vulnerable_components: s.vulnerable_components ?? prev.vulnerable_components,
+          high_license_risk: s.high_license_risk ?? prev.high_license_risk,
         }));
       }
     }).finally(() => setDataLoading(false));
@@ -176,18 +180,19 @@ export default function SBOMDashboard() {
     const mockComps = MOCK_COMPONENTS[sbom.id] || [];
     setComponents(mockComps);
 
-    apiFetch(`/api/v1/sbom/${sbom.id}/components`).then((data) => {
-      if (Array.isArray(data?.components) && data.components.length > 0) {
-        setComponents(data.components);
-      }
+    apiFetch(`/api/v1/sbom/assets/${sbom.id}/components?org_id=${ORG_ID}`).then((data) => {
+      if (Array.isArray(data) && data.length > 0) setComponents(data);
+      else if (Array.isArray(data?.components) && data.components.length > 0) setComponents(data.components);
     }).catch(() => {});
   };
 
   const handleExport = async (sbomId: string, format: string) => {
     setExporting(`${sbomId}-${format}`);
     try {
-      const data = await apiFetch(`/api/v1/sbom/${sbomId}/export?format=${format}`);
-      const blob = new Blob([JSON.stringify(data.content ?? data, null, 2)], { type: "application/json" });
+      // Use correct per-format export endpoints: /assets/{id}/export/cyclonedx or /spdx
+      const endpoint = `/api/v1/sbom/assets/${sbomId}/export/${format}?org_id=${ORG_ID}`;
+      const data = await apiFetch(endpoint);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

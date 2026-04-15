@@ -146,17 +146,27 @@ export default function SecurityMaturityDashboard() {
   const [activeFramework, setActiveFramework] = useState("NIST CSF");
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
+  const [liveAssessments, setLiveAssessments] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
+    setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/security-maturity/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/security-maturity/domains?org_id=${ORG_ID}`),
-    ]).then(([statsR, domainsR]) => {
-      const stats   = statsR.status   === "fulfilled" ? statsR.value   : null;
-      const domains = domainsR.status === "fulfilled" ? domainsR.value : null;
-      if (stats || domains) setLiveData({ stats, domains });
-    });
-  }, []);
+      apiFetch(`/api/v1/security-maturity/assessments?org_id=${ORG_ID}`),
+    ]).then(([statsR, assessmentsR]) => {
+      const stats = statsR.status === "fulfilled" ? statsR.value : null;
+      if (stats) setLiveData({ stats });
+      if (assessmentsR.status === "fulfilled") {
+        const data = assessmentsR.value;
+        const list = Array.isArray(data?.assessments) ? data.assessments
+                   : Array.isArray(data) ? data : [];
+        if (list.length > 0) setLiveAssessments(list);
+      }
+    }).finally(() => setDataLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const domains = DOMAINS_BY_FRAMEWORK[activeFramework] ?? [];
   const avgScore = Math.round(domains.reduce((s, d) => s + d.score, 0) / domains.length);
@@ -170,6 +180,7 @@ export default function SecurityMaturityDashboard() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -186,8 +197,8 @@ export default function SecurityMaturityDashboard() {
         description="Framework-based maturity assessment, domain scoring, and improvement roadmap"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+              <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
             <Button size="sm" className="gap-1.5">
               <PlayCircle className="h-4 w-4" />
@@ -199,10 +210,10 @@ export default function SecurityMaturityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Assessments Completed" value={liveData?.stats?.assessments_completed ?? ASSESSMENTS.length} icon={CheckCircle} trend="up" />
-        <KpiCard title="Avg Maturity Score"    value={liveData?.stats?.avg_score ?? `${avgScore}/100`}              icon={BarChart2}   trend="up" className="border-blue-500/20" />
-        <KpiCard title="Domains at Target"     value={liveData?.stats?.at_target ?? atTarget}                       icon={Target}      trend="up" className="border-green-500/20" />
-        <KpiCard title="Below Target"          value={liveData?.stats?.below_target ?? belowTarget}                 icon={AlertTriangle} trend="down" className="border-red-500/20" />
+        <KpiCard title="Assessments Completed" value={liveData?.stats?.total_assessments ?? liveData?.stats?.assessments_completed ?? ASSESSMENTS.length} icon={CheckCircle} trend="up" />
+        <KpiCard title="Avg Maturity Score"    value={liveData?.stats?.avg_maturity_score != null ? `${Math.round(liveData.stats.avg_maturity_score)}/100` : `${avgScore}/100`} icon={BarChart2} trend="up" className="border-blue-500/20" />
+        <KpiCard title="Domains at Target"     value={liveData?.stats?.domains_at_target ?? liveData?.stats?.at_target ?? atTarget}     icon={Target}       trend="up"   className="border-green-500/20" />
+        <KpiCard title="Below Target"          value={liveData?.stats?.domains_below_target ?? liveData?.stats?.below_target ?? belowTarget} icon={AlertTriangle} trend="down" className="border-red-500/20" />
       </div>
 
       {/* Framework tabs */}
@@ -340,7 +351,7 @@ export default function SecurityMaturityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ASSESSMENTS.map((a) => (
+                {(liveAssessments.length > 0 ? liveAssessments : ASSESSMENTS).map((a) => (
                   <TableRow key={a.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium">{a.framework}</TableCell>

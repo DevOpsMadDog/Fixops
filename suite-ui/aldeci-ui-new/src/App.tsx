@@ -173,6 +173,8 @@ const DataClassificationDashboard = lazy(() => import("@/pages/DataClassificatio
 const SecurityTrainingDashboard = lazy(() => import("@/pages/SecurityTrainingDashboard"));
 const PAMDashboard = lazy(() => import("@/pages/PAMDashboard"));
 const CyberInsurance = lazy(() => import("@/pages/CyberInsurance"));
+const CyberInsuranceDashboard = lazy(() => import("@/pages/CyberInsuranceDashboard"));
+const ExecutiveReportingDashboard = lazy(() => import("@/pages/ExecutiveReportingDashboard"));
 const VulnerabilityScanner = lazy(() => import("@/pages/VulnerabilityScanner"));
 const RiskQuantification = lazy(() => import("@/pages/RiskQuantification"));
 const AttackSimulationPage = lazy(() => import("@/pages/AttackSimulation"));
@@ -245,6 +247,10 @@ const AttackSurfaceDashboard = lazy(() => import("@/pages/AttackSurfaceDashboard
 
 // AI Security Advisor
 const AISecurityAdvisor = lazy(() => import("@/pages/AISecurityAdvisor"));
+
+// Cloud Compliance + Endpoint Compliance dashboards
+const CloudComplianceDashboard = lazy(() => import("@/pages/CloudComplianceDashboard"));
+const EndpointComplianceDashboard = lazy(() => import("@/pages/EndpointComplianceDashboard"));
 
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
@@ -444,7 +450,9 @@ export default function App() {
             <Route path="/data-classification" element={<DataClassificationDashboard />} />
             <Route path="/security-training" element={<SecurityTrainingDashboard />} />
             <Route path="/pam" element={<PAMDashboard />} />
-            <Route path="/cyber-insurance" element={<CyberInsurance />} />
+            <Route path="/cyber-insurance" element={<CyberInsuranceDashboard />} />
+            <Route path="/cyber-insurance-legacy" element={<CyberInsurance />} />
+            <Route path="/executive-reporting" element={<ExecutiveReportingDashboard />} />
             <Route path="/vuln-scanner" element={<VulnerabilityScanner />} />
             <Route path="/risk-quantification" element={<RiskQuantification />} />
             <Route path="/attack-simulation" element={<AttackSimulationPage />} />
@@ -500,6 +508,10 @@ export default function App() {
             <Route path="/privacy-gdpr" element={<PrivacyGDPRDashboard />} />
             <Route path="/network-traffic" element={<NetworkTrafficDashboard />} />
             <Route path="/container-security" element={<ContainerSecurityDashboard />} />
+
+            {/* Cloud Compliance + Endpoint Compliance */}
+            <Route path="/cloud-compliance" element={<CloudComplianceDashboard />} />
+            <Route path="/endpoint-compliance" element={<EndpointComplianceDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
