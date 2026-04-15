@@ -202,6 +202,12 @@ const SecurityMetricsDashboard2 = lazy(() => import("@/pages/SecurityMetricsDash
 const ZeroTrustPolicyDashboard = lazy(() => import("@/pages/ZeroTrustPolicyDashboard"));
 const ThreatModelDashboard = lazy(() => import("@/pages/ThreatModelDashboard"));
 
+// NDR / XDR / Awareness / EDR pages
+const NDRDashboard = lazy(() => import("@/pages/NDRDashboard"));
+const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
+const AwarenessScoreDashboard = lazy(() => import("@/pages/AwarenessScoreDashboard"));
+const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
+
 // Governance + Executive pages
 const SecurityExceptionDashboard = lazy(() => import("@/pages/SecurityExceptionDashboard"));
 const RegulatoryTrackerDashboard = lazy(() => import("@/pages/RegulatoryTrackerDashboard"));
@@ -430,6 +436,12 @@ export default function App() {
             <Route path="/regulatory-tracker" element={<RegulatoryTrackerDashboard />} />
             <Route path="/security-scorecard" element={<SecurityScorecardDashboard />} />
             <Route path="/ccm" element={<CCMDashboard />} />
+
+            {/* NDR / XDR / Awareness / EDR */}
+            <Route path="/ndr" element={<NDRDashboard />} />
+            <Route path="/xdr" element={<XDRDashboard />} />
+            <Route path="/awareness-score" element={<AwarenessScoreDashboard />} />
+            <Route path="/edr" element={<EDRDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
