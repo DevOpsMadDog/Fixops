@@ -10,7 +10,7 @@
  * Falls back to mock data on failure.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -35,6 +35,16 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -221,19 +231,53 @@ function EscalationPathCard({ path }: { path: EscalationPath }) {
 
 export default function CloudIAM() {
   const [activeProvider, setActiveProvider] = useState<"All" | Provider>("All");
+  const [liveStats, setLiveStats] = useState<{ total: number; critical: number; high: number } | null>(null);
 
-  const { data: principals } = useQuery<Principal[]>({
-    queryKey: ["cloud-iam-principals"],
-    queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/cloud-iam/principals`);
-      if (!res.ok) throw new Error("api error");
-      return res.json();
-    },
-    initialData: MOCK_PRINCIPALS,
+  // Fetch CIEM risks and derive principals + stats
+  const { data: ciemRisks } = useQuery<any[]>({
+    queryKey: ["ciem-risks"],
+    queryFn: () => apiFetch(`/api/v1/ciem/risks?limit=200`),
     retry: false,
   });
 
-  const filtered = activeProvider === "All" ? (principals ?? MOCK_PRINCIPALS) : (principals ?? MOCK_PRINCIPALS).filter(p => p.provider === activeProvider);
+  // Derive principals from CIEM risks (group by principal)
+  const principalsFromRisks: Principal[] = (() => {
+    if (!ciemRisks || ciemRisks.length === 0) return MOCK_PRINCIPALS;
+    const byPrincipal = new Map<string, any[]>();
+    for (const r of ciemRisks) {
+      const key = r.principal ?? "unknown";
+      if (!byPrincipal.has(key)) byPrincipal.set(key, []);
+      byPrincipal.get(key)!.push(r);
+    }
+    return Array.from(byPrincipal.entries()).map(([name, risks], idx) => {
+      const maxSev = risks.some(r => r.severity === "critical") ? "critical"
+        : risks.some(r => r.severity === "high") ? "high"
+        : risks.some(r => r.severity === "medium") ? "medium" : "low";
+      return {
+        id: String(idx + 1),
+        principal_name: name,
+        principal_type: "User" as PrincipalType,
+        provider: "AWS" as Provider,
+        last_activity: "—",
+        permissions_count: risks.length * 10,
+        unused_permissions_pct: Math.min(95, risks.length * 15),
+        risk_score: maxSev === "critical" ? 90 + idx : maxSev === "high" ? 70 + idx : 40 + idx,
+        risk_level: maxSev as RiskLevel,
+      };
+    }).sort((a, b) => b.risk_score - a.risk_score).slice(0, 10);
+  })();
+
+  // Compute live stats from risks
+  useEffect(() => {
+    if (!ciemRisks) return;
+    const uniquePrincipals = new Set(ciemRisks.map(r => r.principal)).size;
+    const critical = ciemRisks.filter(r => r.severity === "critical").length;
+    const high = ciemRisks.filter(r => r.severity === "high").length;
+    setLiveStats({ total: uniquePrincipals || ciemRisks.length, critical, high });
+  }, [ciemRisks]);
+
+  const principals = principalsFromRisks.length > 0 ? principalsFromRisks : MOCK_PRINCIPALS;
+  const filtered = activeProvider === "All" ? principals : principals.filter(p => p.provider === activeProvider);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -245,10 +289,10 @@ export default function CloudIAM() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard title="IAM Principals" value="1,247" icon={<Users className="h-4 w-4" />} trend="neutral" />
-        <KpiCard title="Over-privileged" value="89" icon={<AlertTriangle className="h-4 w-4" />} trend="up" trendLabel="+7 this week" className="border-orange-500/20" />
-        <KpiCard title="Unused Roles" value="234" icon={<Lock className="h-4 w-4" />} trend="up" trendLabel="90+ days inactive" className="border-red-500/20" />
-        <KpiCard title="Admin Accounts" value="8" icon={<Shield className="h-4 w-4" />} trend="neutral" trendLabel="Requires MFA" />
+        <KpiCard title="IAM Principals"  value={liveStats?.total ?? "1,247"}    icon={<Users className="h-4 w-4" />}         trend="neutral" />
+        <KpiCard title="Over-privileged" value={liveStats?.critical ?? "89"}     icon={<AlertTriangle className="h-4 w-4" />} trend="up"      trendLabel="+7 this week"        className="border-orange-500/20" />
+        <KpiCard title="High Risk"       value={liveStats?.high ?? "234"}        icon={<Lock className="h-4 w-4" />}          trend="up"      trendLabel="High severity risks"  className="border-red-500/20" />
+        <KpiCard title="Admin Accounts"  value="8"                               icon={<Shield className="h-4 w-4" />}        trend="neutral" trendLabel="Requires MFA" />
       </div>
 
       {/* High-Risk Principals + Least Privilege Gauge */}

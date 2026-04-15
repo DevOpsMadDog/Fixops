@@ -12,7 +12,7 @@
  * Fallback: mock data when API unavailable
  */
 
-import { useState, JSX } from "react";
+import { useState, useEffect, JSX } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -29,6 +29,16 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -172,12 +182,17 @@ export default function CSPMDashboard() {
   const [remediating, setRemediating] = useState<Set<string>>(new Set());
 
   const { data: scoreData, isLoading: scoreLoading } = useQuery<CSPMScore>({
-    queryKey: ["cspm-score"],
+    queryKey: ["cspm-posture", ORG_ID],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/cspm/score`);
-        if (!res.ok) throw new Error("API unavailable");
-        return await res.json();
+        const data = await apiFetch(`/api/v1/cspm/posture?org_id=${ORG_ID}`);
+        // Map OrgPosture → CSPMScore shape
+        return {
+          posture_score: data.overall_score ?? data.posture_score ?? MOCK_SCORE.posture_score,
+          critical_misconfigs: data.critical_count ?? data.critical_misconfigs ?? MOCK_SCORE.critical_misconfigs,
+          resources_scanned: data.total_resources ?? data.resources_scanned ?? MOCK_SCORE.resources_scanned,
+          compliant_pct: data.compliant_pct ?? Math.round((1 - (data.critical_count ?? 0) / Math.max(data.total_resources ?? 1, 1)) * 100),
+        } as CSPMScore;
       } catch {
         return MOCK_SCORE;
       }
@@ -186,12 +201,21 @@ export default function CSPMDashboard() {
   });
 
   const { data: findingsData, isLoading: findingsLoading } = useQuery<Finding[]>({
-    queryKey: ["cspm-findings"],
+    queryKey: ["cspm-findings", ORG_ID],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/cspm/findings`);
-        if (!res.ok) throw new Error("API unavailable");
-        return await res.json();
+        const data = await apiFetch(`/api/v1/cspm/findings?org_id=${ORG_ID}`);
+        // API returns list directly or wrapped
+        const items: any[] = Array.isArray(data) ? data : (data.items ?? data.findings ?? []);
+        return items.map((f: any) => ({
+          id: f.id ?? f.finding_id ?? String(Math.random()),
+          severity: (f.severity ?? "MEDIUM").toUpperCase() as Finding["severity"],
+          resource: f.resource_id ?? f.resource ?? f.name ?? "unknown",
+          provider: (f.provider ?? f.cloud_provider ?? "AWS").toUpperCase() as Finding["provider"],
+          rule_name: f.rule_id ?? f.rule_name ?? f.title ?? "unknown",
+          category: f.category ?? f.resource_type ?? "General",
+          status: f.status === "open" || f.status === "OPEN" ? "OPEN" : "REMEDIATED",
+        }));
       } catch {
         return MOCK_FINDINGS;
       }

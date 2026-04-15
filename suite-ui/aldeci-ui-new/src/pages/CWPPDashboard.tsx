@@ -10,7 +10,7 @@
  *   5. Policy enforcement (3 policies)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Shield, AlertTriangle, Activity, Zap, RefreshCw,
@@ -23,6 +23,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
+const ORG_ID = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -127,10 +140,38 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function CWPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/cwpp/summary?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cwpp/workloads?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cwpp/threats?org_id=${ORG_ID}`),
+    ]).then(([summaryRes, workloadsRes, threatsRes]) => {
+      const summary  = summaryRes.status  === "fulfilled" ? summaryRes.value  : null;
+      const workloads = workloadsRes.status === "fulfilled" ? workloadsRes.value : null;
+      const threats   = threatsRes.status   === "fulfilled" ? threatsRes.value  : null;
+      if (summary || workloads || threats) {
+        setLiveData({ summary, workloads, threats });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/cwpp/summary?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cwpp/workloads?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/cwpp/threats?org_id=${ORG_ID}`),
+    ]).then(([summaryRes, workloadsRes, threatsRes]) => {
+      const summary   = summaryRes.status  === "fulfilled" ? summaryRes.value  : null;
+      const workloads = workloadsRes.status === "fulfilled" ? workloadsRes.value : null;
+      const threats   = threatsRes.status   === "fulfilled" ? threatsRes.value  : null;
+      if (summary || workloads || threats) setLiveData({ summary, workloads, threats });
+    }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
   return (
@@ -145,18 +186,18 @@ export default function CWPPDashboard() {
         title="Cloud Workload Protection"
         description="Container, VM, and serverless runtime security"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
       />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Workloads Protected" value={847}  icon={Shield}        trend="up"   />
-        <KpiCard title="Suspicious"          value={12}   icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="Open Findings"       value={234}  icon={Activity}      trend="down" className="border-amber-500/20" />
-        <KpiCard title="Events Blocked Today" value="1,847" icon={Zap}         trend="up"   className="border-green-500/20" />
+        <KpiCard title="Workloads Protected"  value={liveData?.summary?.total_workloads ?? liveData?.summary?.protected_count ?? 847}    icon={Shield}        trend="up"   />
+        <KpiCard title="Suspicious"           value={liveData?.summary?.threat_count ?? liveData?.summary?.suspicious_count ?? 12}        icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Open Findings"        value={liveData?.summary?.finding_count ?? liveData?.summary?.open_findings ?? 234}         icon={Activity}      trend="down" className="border-amber-500/20" />
+        <KpiCard title="Events Blocked Today" value={liveData?.summary?.blocked_events ?? liveData?.summary?.events_blocked ?? "1,847"}   icon={Zap}           trend="up"   className="border-green-500/20" />
       </div>
 
       {/* Workload Inventory */}
@@ -185,7 +226,16 @@ export default function CWPPDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {WORKLOADS.map((w) => (
+                {(Array.isArray(liveData?.workloads) ? liveData.workloads.map((w: any) => ({
+                  name: w.name ?? w.workload_id ?? "unknown",
+                  type: w.workload_type ?? w.type ?? "container",
+                  runtime: w.metadata?.runtime ?? w.runtime ?? "docker",
+                  image: w.metadata?.image ?? w.image ?? "—",
+                  cluster: w.metadata?.cluster ?? w.cluster ?? "—",
+                  risk: w.risk_score ?? w.risk ?? 0,
+                  status: w.status ?? "running",
+                  findings: w.finding_count ?? w.findings ?? 0,
+                })) : WORKLOADS).map((w) => (
                   <TableRow key={w.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{w.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={w.type} /></TableCell>
@@ -243,7 +293,13 @@ export default function CWPPDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EVENTS.map((e, i) => (
+                {(Array.isArray(liveData?.threats) ? liveData.threats.map((e: any) => ({
+                  workload: e.workload_id ?? e.workload ?? "unknown",
+                  type: e.threat_type ?? e.event_type ?? e.type ?? "syscall_anomaly",
+                  blocked: e.blocked ?? e.action === "block",
+                  desc: e.description ?? e.details ?? e.message ?? "",
+                  ts: e.detected_at ?? e.timestamp ?? e.ts ?? "—",
+                })) : EVENTS).map((e, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2">{e.workload}</TableCell>
                     <TableCell className="py-2"><EventTypeBadge type={e.type} /></TableCell>

@@ -31,7 +31,16 @@ import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG = "default";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -245,7 +254,7 @@ function DomainCheckPanel() {
     try {
       const resp = await fetch(`${API}/api/v1/certificates/check`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
         body: JSON.stringify({ domain: domain.trim(), port: 443, timeout: 5 }),
       });
       const data = await resp.json();
@@ -363,11 +372,7 @@ export default function CertificateManagerPage() {
 
   const { data: stats = MOCK_STATS } = useQuery<CertStats>({
     queryKey: ["cert-stats", ORG],
-    queryFn: async () => {
-      const r = await fetch(`${API}/api/v1/certificates/stats?org_id=${ORG}`);
-      if (!r.ok) throw new Error("stats failed");
-      return r.json();
-    },
+    queryFn: () => apiFetch(`/api/v1/certificates/stats?org_id=${ORG}`),
     staleTime: 30_000,
     retry: false,
   });
@@ -375,9 +380,8 @@ export default function CertificateManagerPage() {
   const { data: certs = MOCK_CERTS } = useQuery<CertRecord[]>({
     queryKey: ["certs-list", ORG],
     queryFn: async () => {
-      const r = await fetch(`${API}/api/v1/certificates/?org_id=${ORG}`);
-      if (!r.ok) throw new Error("list failed");
-      return r.json();
+      const data = await apiFetch(`/api/v1/certificates/?org_id=${ORG}`);
+      return Array.isArray(data) ? data : (data.items ?? data.certificates ?? MOCK_CERTS);
     },
     staleTime: 30_000,
     retry: false,
@@ -386,9 +390,8 @@ export default function CertificateManagerPage() {
   const { data: weakCerts = MOCK_WEAK } = useQuery<CertRecord[]>({
     queryKey: ["certs-weak", ORG],
     queryFn: async () => {
-      const r = await fetch(`${API}/api/v1/certificates/weak?org_id=${ORG}`);
-      if (!r.ok) throw new Error("weak failed");
-      return r.json();
+      const data = await apiFetch(`/api/v1/certificates/weak?org_id=${ORG}`);
+      return Array.isArray(data) ? data : (data.items ?? data.certificates ?? MOCK_WEAK);
     },
     staleTime: 60_000,
     retry: false,
@@ -396,11 +399,7 @@ export default function CertificateManagerPage() {
 
   const { data: alerts = MOCK_ALERTS } = useQuery<ExpiryAlerts>({
     queryKey: ["certs-alerts", ORG],
-    queryFn: async () => {
-      const r = await fetch(`${API}/api/v1/certificates/alerts/expiry?org_id=${ORG}`);
-      if (!r.ok) throw new Error("alerts failed");
-      return r.json();
-    },
+    queryFn: () => apiFetch(`/api/v1/certificates/alerts/expiry?org_id=${ORG}`),
     staleTime: 30_000,
     retry: false,
   });
