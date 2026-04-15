@@ -12,8 +12,7 @@
  * Fallback: mock data when API is unavailable
  */
 
-import { useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -298,29 +297,18 @@ function formatAssessmentTime(isoStr: string): string {
 // API fetch helpers
 // ═══════════════════════════════════════════════════════════
 
-function apiKey(): string {
-  return localStorage.getItem("aldeci_api_key") ?? "";
-}
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
 
-async function fetchVendors(): Promise<Vendor[]> {
-  const res = await fetch(`${API_BASE}/api/v1/vendor-risk/vendors`, {
-    headers: { Authorization: `Bearer ${apiKey()}` },
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
   });
-  if (!res.ok) throw new Error(`${res.status}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data : data.vendors ?? MOCK_VENDORS;
-}
-
-async function fetchRiskRegister(): Promise<Vendor[]> {
-  const res = await fetch(
-    `${API_BASE}/api/v1/vendor-risk/risk-register`,
-    {
-      headers: { Authorization: `Bearer ${apiKey()}` },
-    }
-  );
-  if (!res.ok) throw new Error(`${res.status}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data : data.risk_register ?? MOCK_VENDORS;
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -328,14 +316,30 @@ async function fetchRiskRegister(): Promise<Vendor[]> {
 // ═══════════════════════════════════════════════════════════
 
 export default function VendorRiskDashboard() {
-  // Fetch vendor data
-  const vendorsQuery = useQuery({
-    queryKey: ["vendor-risk-vendors"],
-    queryFn: () => fetchVendors(),
-    staleTime: 60000,
-  });
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  const vendors = vendorsQuery.data ?? MOCK_VENDORS;
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/vendor-risk/vendors?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/vendor-risk/risk-register?org_id=${ORG_ID}`),
+    ]).then(([vendorsResult, registerResult]) => {
+      const vendorsRaw  = vendorsResult.status  === "fulfilled" ? vendorsResult.value  : null;
+      const registerRaw = registerResult.status === "fulfilled" ? registerResult.value : null;
+      if (vendorsRaw || registerRaw) {
+        const vendors = vendorsRaw
+          ? (Array.isArray(vendorsRaw) ? vendorsRaw : vendorsRaw.vendors ?? vendorsRaw.items ?? null)
+          : null;
+        const register = registerRaw
+          ? (Array.isArray(registerRaw) ? registerRaw : registerRaw.risk_register ?? registerRaw.vendors ?? registerRaw.items ?? null)
+          : null;
+        setLiveData({ vendors: vendors ?? register, register });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  const vendors = liveData?.vendors ?? MOCK_VENDORS;
 
   // Calculate stats
   const totalVendors = vendors.length;

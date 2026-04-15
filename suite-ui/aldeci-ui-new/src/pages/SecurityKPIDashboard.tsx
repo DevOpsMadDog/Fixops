@@ -13,8 +13,7 @@
  * Fallback: mock data on API failure
  */
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Clock,
@@ -41,6 +40,19 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -319,20 +331,22 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
 
 export default function SecurityKPIDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const { data: scorecard, isLoading, error } = useQuery({
-    queryKey: ["kpi-scorecard"],
-    queryFn: async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/kpi/scorecard`);
-        if (!res.ok) throw new Error("API error");
-        return res.json();
-      } catch {
-        return MOCK_SCORECARD;
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/kpis/current?org_id=${ORG_ID}`),
+    ]).then(([execResult, currentResult]) => {
+      const executive = execResult.status  === "fulfilled" ? execResult.value  : null;
+      const current   = currentResult.status === "fulfilled" ? currentResult.value : null;
+      if (executive || current) {
+        setLiveData({ executive, current });
       }
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+    }).finally(() => setDataLoading(false));
+  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -340,9 +354,29 @@ export default function SecurityKPIDashboard() {
     setIsRefreshing(false);
   };
 
-  if (isLoading) return <PageSkeleton />;
+  if (dataLoading) return <PageSkeleton />;
 
-  const data = scorecard || MOCK_SCORECARD;
+  // Build scorecard from live executive summary or fall back to mock
+  const execSummary = liveData?.executive;
+  const data = execSummary
+    ? {
+        overall_grade: execSummary.overall_health ?? MOCK_SCORECARD.overall_grade,
+        overall_score: execSummary.portfolio_score ?? MOCK_SCORECARD.overall_score,
+        last_updated: execSummary.generated_at ?? MOCK_SCORECARD.last_updated,
+        kpis: Array.isArray(execSummary.kpis) && execSummary.kpis.length > 0
+          ? execSummary.kpis.map((k: any) => ({
+              id: k.name,
+              name: k.display_name ?? k.name,
+              value: k.value,
+              unit: k.unit ?? "",
+              trend: k.trend ?? "stable",
+              benchmark: k.health === "green" ? "good" : k.health === "yellow" ? "average" : "poor",
+              industryAvg: k.target ?? k.value,
+              target: k.target ?? k.value,
+            }))
+          : MOCK_SCORECARD.kpis,
+      }
+    : MOCK_SCORECARD;
 
   return (
     <div className="space-y-6 p-6">

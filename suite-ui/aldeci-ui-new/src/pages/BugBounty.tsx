@@ -13,7 +13,7 @@
  * API: GET /api/v1/bug-bounty/submissions (mock fallback)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Bug,
@@ -36,6 +36,22 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ── API helpers ─────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -143,6 +159,43 @@ function badgeColor(b: ReputationBadge) {
 
 export default function BugBounty() {
   const [_tab, setTab] = useState<"submissions" | "researchers">("submissions");
+  const [liveData, setLiveData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.allSettled([
+      apiFetch(`/api/v1/bounty/programs?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/bounty/submissions?org_id=${ORG_ID}`),
+    ]).then(([programsResult, submissionsResult]) => {
+      const programs    = programsResult.status    === "fulfilled" ? programsResult.value    : null;
+      const submissions = submissionsResult.status === "fulfilled" ? submissionsResult.value : null;
+      if (programs || submissions) {
+        setLiveData({ programs, submissions });
+      }
+    }).finally(() => setDataLoading(false));
+  }, []);
+
+  const displaySubmissions: Submission[] = (() => {
+    const raw = liveData?.submissions;
+    if (!raw) return MOCK_SUBMISSIONS;
+    const arr = Array.isArray(raw) ? raw : raw.items ?? raw.submissions ?? null;
+    if (!arr || arr.length === 0) return MOCK_SUBMISSIONS;
+    // Normalise API fields to UI shape
+    return arr.map((s: any) => ({
+      id: s.id ?? s.submission_id ?? "",
+      researcher_handle: s.reporter_name ?? s.reporter_email ?? s.researcher_handle ?? "unknown",
+      title: s.title ?? "",
+      severity: s.severity ?? "P4",
+      status: s.status ?? "New",
+      bounty_paid: s.reward_amount ?? s.bounty_paid ?? null,
+      submitted_at: s.submitted_at ?? s.created_at ?? "",
+    }));
+  })();
+
+  // KPI overrides from live programs
+  const firstProgram = liveData?.programs?.[0] ?? liveData?.programs;
+  const liveStats = firstProgram?.metrics ?? null;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -155,16 +208,16 @@ export default function BugBounty() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <KpiCard title="Total Submissions" value="847" icon={<Bug className="h-4 w-4" />} trend={{ value: 12, label: "vs last month", direction: "up" }} />
+          <KpiCard title="Total Submissions" value={liveStats?.total_submissions ?? "847"} icon={<Bug className="h-4 w-4" />} trend={{ value: 12, label: "vs last month", direction: "up" }} />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <KpiCard title="Valid Reports" value="234" icon={<CheckCircle className="h-4 w-4" />} trend={{ value: 8, label: "vs last month", direction: "up" }} />
+          <KpiCard title="Valid Reports" value={liveStats?.accepted_count ?? "234"} icon={<CheckCircle className="h-4 w-4" />} trend={{ value: 8, label: "vs last month", direction: "up" }} />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <KpiCard title="Paid Bounties" value="$124,500" icon={<DollarSign className="h-4 w-4" />} trend={{ value: 5, label: "vs last month", direction: "up" }} />
+          <KpiCard title="Paid Bounties" value={liveStats?.total_rewards_paid != null ? `$${Number(liveStats.total_rewards_paid).toLocaleString()}` : "$124,500"} icon={<DollarSign className="h-4 w-4" />} trend={{ value: 5, label: "vs last month", direction: "up" }} />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <KpiCard title="Avg Response Time" value="4.2h" icon={<Clock className="h-4 w-4" />} trend={{ value: 18, label: "faster vs last month", direction: "down" }} />
+          <KpiCard title="Avg Response Time" value={liveStats?.avg_triage_time_hours != null ? `${liveStats.avg_triage_time_hours}h` : "4.2h"} icon={<Clock className="h-4 w-4" />} trend={{ value: 18, label: "faster vs last month", direction: "down" }} />
         </motion.div>
       </div>
 
@@ -173,7 +226,7 @@ export default function BugBounty() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <ListChecks className="h-4 w-4 text-muted-foreground" />
-            Recent Submissions
+            Recent Submissions {dataLoading && <span className="text-xs text-muted-foreground">(loading...)</span>}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -190,7 +243,7 @@ export default function BugBounty() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_SUBMISSIONS.map((row) => (
+              {displaySubmissions.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-mono text-xs text-muted-foreground">{row.id}</TableCell>
                   <TableCell className="font-medium text-sm">{row.researcher_handle}</TableCell>
