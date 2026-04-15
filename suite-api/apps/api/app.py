@@ -5662,6 +5662,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Email Security router not loaded: {e}")
 
+    # GRC Engine — frameworks, controls, risks, assessments (/api/v1/grc)
+    try:
+        from apps.api.grc_router import router as grc_router
+        app.include_router(grc_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted GRC router at /api/v1/grc")
+    except Exception as e:
+        _logger.warning(f"GRC router not loaded: {e}")
+
     # Network Topology — asset graph, subnet mapping, lateral movement paths
     try:
         from apps.api.network_topology_router import router as network_topology_router
@@ -5685,6 +5693,30 @@ def create_app() -> FastAPI:
         _logger.info("Mounted SOAR router at /api/v1/soar")
     except Exception as e:
         _logger.warning(f"SOAR router not loaded: {e}")
+
+    # Threat Correlation Engine — event ingestion, BFS correlation rules, alert lifecycle
+    try:
+        from apps.api.threat_correlation_router import router as threat_correlation_router
+        app.include_router(threat_correlation_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Threat Correlation router at /api/v1/threat-correlation")
+    except Exception as e:
+        _logger.warning(f"Threat Correlation router not loaded: {e}")
+
+    # Password Policy Engine — policies, evaluation, violations, audits
+    try:
+        from apps.api.password_policy_router import router as password_policy_router
+        app.include_router(password_policy_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Password Policy router at /api/v1/password-policy")
+    except Exception as e:
+        _logger.warning(f"Password Policy router not loaded: {e}")
+
+    # Mobile Security Engine — device MDM, threats, policies
+    try:
+        from apps.api.mobile_security_router import router as mobile_security_router
+        app.include_router(mobile_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Mobile Security router at /api/v1/mobile-security")
+    except Exception as e:
+        _logger.warning(f"Mobile Security router not loaded: {e}")
 
     return app
 
