@@ -7368,6 +7368,49 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Wave 31 routers
+    try:
+        from apps.api.user_access_review_router import router as user_access_review_router
+        app.include_router(user_access_review_router)
+        _logger.info("Mounted User Access Review router at /api/v1/access-reviews")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_posture_history_router import router as security_posture_history_router
+        app.include_router(security_posture_history_router)
+        _logger.info("Mounted Security Posture History router at /api/v1/posture-history")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.incident_lessons_router import router as incident_lessons_router
+        app.include_router(incident_lessons_router)
+        _logger.info("Mounted Incident Lessons router at /api/v1/incident-lessons")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_account_monitoring_router import router as cloud_account_monitoring_router
+        app.include_router(cloud_account_monitoring_router)
+        _logger.info("Mounted Cloud Account Monitoring router at /api/v1/cloud-accounts")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_intel_enrichment_router import router as threat_intel_enrichment_router
+        app.include_router(threat_intel_enrichment_router)
+        _logger.info("Mounted Threat Intel Enrichment router at /api/v1/intel-enrichment")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.security_okr_router import router as security_okr_router
+        app.include_router(security_okr_router)
+        _logger.info("Mounted Security OKR router at /api/v1/security-okrs")
+    except ImportError:
+        pass
+
     return app
 
 
