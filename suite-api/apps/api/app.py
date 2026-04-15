@@ -5646,6 +5646,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Firewall Rule Analysis router not loaded: {e}")
 
+    # Email Security — DMARC/SPF/DKIM analysis, phishing detection, threat reporting
+    try:
+        from apps.api.email_security_router import router as email_security_router
+        app.include_router(email_security_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted Email Security router at /api/v1/email-security")
+    except Exception as e:
+        _logger.warning(f"Email Security router not loaded: {e}")
+
     return app
 
 
