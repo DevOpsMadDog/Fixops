@@ -6397,6 +6397,34 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    try:
+        from apps.api.iam_policy_router import router as iam_policy_router
+        app.include_router(iam_policy_router)
+        _logger.info("Mounted IAM Policy router at /api/v1/iam-policy")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_drift_router import router as cloud_drift_router
+        app.include_router(cloud_drift_router)
+        _logger.info("Mounted Cloud Drift router at /api/v1/cloud-drift")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.passive_dns_router import router as passive_dns_router
+        app.include_router(passive_dns_router)
+        _logger.info("Mounted Passive DNS router at /api/v1/passive-dns")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_native_security_router import router as cloud_native_security_router
+        app.include_router(cloud_native_security_router)
+        _logger.info("Mounted Cloud Native Security router at /api/v1/cloud-native-security")
+    except ImportError:
+        pass
+
     return app
 
 
