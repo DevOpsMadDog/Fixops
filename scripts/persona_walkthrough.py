@@ -150,7 +150,7 @@ def run_all_personas() -> List[PersonaResult]:
     for ep in [
         ("GET", "/api/v1/sla/metrics"),
         ("GET", "/api/v1/sla/breaches"),
-        ("GET", "/api/v1/remediation/stats"),
+        ("GET", "/api/v1/remediation/metrics/test"),
         ("GET", "/api/v1/analytics/mttr"),
         ("GET", "/api/v1/analytics/sla"),
     ]:
@@ -194,10 +194,10 @@ def run_all_personas() -> List[PersonaResult]:
     print(f"\n[{p.persona_id:02d}] {p.name} — {p.role}")
     for ep in [
         ("GET", "/api/v1/findings"),
-        ("GET", "/api/v1/remediation/queue"),
+        ("GET", "/api/v1/remediation/tasks"),
         ("GET", "/api/v1/risk/scores"),
         ("GET", "/api/v1/scanner-ingest/stats"),
-        ("GET", "/api/v1/autofix/stats"),
+        ("GET", "/api/v1/security-automation/rules?org_id=test"),
     ]:
         r = probe(*ep)
         p.endpoints.append(r)
@@ -256,7 +256,7 @@ def run_all_personas() -> List[PersonaResult]:
         ("GET", "/api/v1/risk/overview"),
         ("GET", "/api/v1/risk/scores"),
         ("GET", "/api/v1/analytics/risk-overview"),
-        ("GET", "/api/v1/predictions/risk-trajectory"),
+        ("GET", "/api/v1/predictions"),
         ("GET", "/api/v1/analytics/risk-velocity"),
     ]:
         r = probe(*ep)
@@ -285,9 +285,9 @@ def run_all_personas() -> List[PersonaResult]:
     for ep in [
         ("GET", "/api/v1/sast/findings"),
         ("GET", "/api/v1/inventory/sbom/components"),
-        ("GET", "/api/v1/license/alerts"),
-        ("GET", "/api/v1/autofix/summary"),
-        ("GET", "/api/v1/analytics/triage-funnel"),
+        ("GET", "/api/v1/sbom/licenses"),
+        ("GET", "/api/v1/remediation/statuses"),
+        ("GET", "/api/v1/analytics/summary"),
     ]:
         r = probe(*ep)
         p.endpoints.append(r)
@@ -298,10 +298,10 @@ def run_all_personas() -> List[PersonaResult]:
     p = PersonaResult(12, "Jennifer Wu", "Cloud Security Architect (security_analyst)")
     print(f"\n[{p.persona_id:02d}] {p.name} — {p.role}")
     for ep in [
-        ("GET", "/api/v1/cspm/findings"),
-        ("GET", "/api/v1/cspm/compliance-report"),
-        ("GET", "/api/v1/container/images"),
-        ("GET", "/api/v1/knowledge-graph/stats"),
+        ("GET", "/api/v1/cspm/score"),
+        ("GET", "/api/v1/cspm/rules"),
+        ("GET", "/api/v1/cloud-compliance/stats"),
+        ("GET", "/api/v1/kubernetes-security/clusters?org_id=test"),
         ("GET", "/api/v1/graph/stats"),
     ]:
         r = probe(*ep)
@@ -316,7 +316,7 @@ def run_all_personas() -> List[PersonaResult]:
         ("GET", "/api/v1/audit/logs"),
         ("GET", "/api/v1/audit/trail"),
         ("GET", "/api/v1/evidence/list"),
-        ("GET", "/api/v1/compliance-engine/assess-all"),
+        ("GET", "/api/v1/compliance/gaps"),
         ("GET", "/api/v1/audit/compliance/frameworks"),
     ]:
         r = probe(*ep)
@@ -407,7 +407,7 @@ def run_all_personas() -> List[PersonaResult]:
         ("GET", "/api/v1/soc/workload"),
         ("GET", "/api/v1/analytics/summary"),
         ("GET", "/api/v1/workflows"),
-        ("GET", "/api/v1/autofix/queue"),
+        ("GET", "/api/v1/security-automation/rules?org_id=test"),
     ]:
         r = probe(*ep)
         p.endpoints.append(r)
@@ -420,8 +420,8 @@ def run_all_personas() -> List[PersonaResult]:
     for ep in [
         ("GET", "/api/v1/training/lessons"),
         ("GET", "/api/v1/training/progress"),
-        ("GET", "/api/v1/autofix/suggestions/sample-finding"),
-        ("GET", "/api/v1/developer-profiles/leaderboard/risk"),
+        ("GET", "/api/v1/remediation/statuses"),
+        ("GET", "/api/v1/security-scoreboard/leaderboard?org_id=test"),
         ("GET", "/api/v1/ide/status"),
     ]:
         r = probe(*ep)
@@ -433,11 +433,11 @@ def run_all_personas() -> List[PersonaResult]:
     p = PersonaResult(21, "Richard Adams", "Security Architect (security_analyst)")
     print(f"\n[{p.persona_id:02d}] {p.name} — {p.role}")
     for ep in [
-        ("GET", "/threat-model/"),
-        ("GET", "/threat-model/stride/categories"),
-        ("GET", "/api/v1/attack-paths"),
-        ("GET", "/api/v1/graph/attack-paths"),
-        ("GET", "/api/v1/knowledge-graph/attack-paths"),
+        ("GET", "/api/v1/threat-model-gen/test/models"),
+        ("GET", "/api/v1/mitre/techniques"),
+        ("GET", "/api/v1/attack-paths/stats?org_id=test"),
+        ("GET", "/api/v1/graph/stats"),
+        ("GET", "/api/v1/arch-review/reviews?org_id=test"),
     ]:
         r = probe(*ep)
         p.endpoints.append(r)
@@ -448,10 +448,10 @@ def run_all_personas() -> List[PersonaResult]:
     p = PersonaResult(22, "Amanda Scott", "Supply Chain Security (security_analyst)")
     print(f"\n[{p.persona_id:02d}] {p.name} — {p.role}")
     for ep in [
-        ("GET", "/api/v1/supply-chain/risks"),
-        ("GET", "/api/v1/supply-chain/graph"),
+        ("GET", "/api/v1/supply-chain-monitoring/suppliers?org_id=test"),
+        ("GET", "/api/v1/supply-chain-attacks/packages?org_id=test"),
         ("GET", "/api/v1/sbom"),
-        ("GET", "/api/v1/dtrack/projects"),
+        ("GET", "/api/v1/sbom/licenses"),
         ("GET", "/api/v1/feeds/supply-chain"),
     ]:
         r = probe(*ep)
@@ -495,7 +495,7 @@ def run_all_personas() -> List[PersonaResult]:
     for ep in [
         ("GET", "/api/v1/audit/logs"),
         ("GET", "/api/v1/evidence/summary"),
-        ("GET", "/api/v1/compliance-engine/audit-bundle"),
+        ("GET", "/api/v1/compliance/status"),
         ("GET", "/api/v1/audit/compliance/controls"),
         ("GET", "/api/v1/compliance-engine/soc2/status"),
     ]:
@@ -523,11 +523,11 @@ def run_all_personas() -> List[PersonaResult]:
     p = PersonaResult(27, "Threat Modeler", "Threat Modeler (security_analyst)")
     print(f"\n[{p.persona_id:02d}] {p.name} — {p.role}")
     for ep in [
-        ("GET", "/threat-model/stride/categories"),
-        ("GET", "/threat-model/component-types"),
+        ("GET", "/api/v1/threat-model-gen/test/models"),
+        ("GET", "/api/v1/threat-modeling-pipeline/models?org_id=test"),
         ("GET", "/api/v1/mitre/techniques"),
-        ("GET", "/api/v1/attack-paths"),
-        ("GET", "/api/v1/predictions/attack-chain"),
+        ("GET", "/api/v1/attack-paths/stats?org_id=test"),
+        ("GET", "/api/v1/predictions"),
     ]:
         r = probe(*ep)
         p.endpoints.append(r)
@@ -554,7 +554,7 @@ def run_all_personas() -> List[PersonaResult]:
     print(f"\n[{p.persona_id:02d}] {p.name} — {p.role}")
     for ep in [
         ("GET", "/api/v1/graph/stats"),
-        ("GET", "/api/v1/knowledge-graph/dependency"),
+        ("GET", "/api/v1/dependency-mapping/summary"),
         ("GET", "/api/v1/inventory/sbom/components"),
         ("GET", "/api/v1/inventory/apis"),
         ("GET", "/api/v1/code-to-cloud/summary"),
@@ -570,7 +570,7 @@ def run_all_personas() -> List[PersonaResult]:
     for ep in [
         ("GET", "/api/v1/workflows"),
         ("GET", "/api/v1/workflows/rules"),
-        ("GET", "/api/v1/autofix/stats"),
+        ("GET", "/api/v1/security-automation/rules?org_id=test"),
         ("GET", "/api/v1/nerve-center/state"),
         ("GET", "/api/v1/nerve-center/pulse"),
     ]:
