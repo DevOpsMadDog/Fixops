@@ -498,7 +498,7 @@ def query_risk_level() -> str:
         or data.get("level")
         or data.get("status")
     )
-    if level:
+    if level and str(level).upper() in ("HIGH", "MEDIUM", "LOW", "CRITICAL", "INFO"):
         return str(level).upper()
     score = data.get("risk_score") or data.get("score") or 0
     try:
@@ -512,6 +512,23 @@ def query_risk_level() -> str:
     elif score > 0:
         return "LOW"
     return "UNKNOWN"
+
+
+def _parse_stats(stats: Optional[dict]) -> dict:
+    """Normalise the scanner-ingest/stats response into consistent fields."""
+    if not stats:
+        return {}
+    # Session counters (per-process since restart)
+    session = stats.get("in_session", {})
+    return {
+        "total_files_processed": session.get("files_processed", stats.get("total_files_processed", "?")),
+        "total_findings_parsed": session.get("findings_parsed", stats.get("total_findings_ingested", "?")),
+        "last_ingest_at": stats.get("last_ingest_at", "?"),
+        "by_scanner": {
+            src: {"findings": v.get("findings", 0), "files": v.get("files", 0)}
+            for src, v in stats.get("by_source", stats.get("by_scanner", {})).items()
+        },
+    }
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
@@ -617,7 +634,7 @@ def main() -> None:
 
         # ── Query ALDECI stats ────────────────────────────────────────────
         print(f"\n  [QUERY] Querying ALDECI stats...")
-        stats = _api_get("/api/v1/scanner-ingest/stats")
+        stats = _parse_stats(_api_get("/api/v1/scanner-ingest/stats"))
         risk_level = query_risk_level()
 
         # ── Build report lines ────────────────────────────────────────────
@@ -638,7 +655,7 @@ def main() -> None:
             lines.append("  pip-audit:  N/A (not Python)")
         if stats:
             total_ever = stats.get("total_findings_parsed", "?")
-            lines.append(f"  ALDECI total ingested (all scans): {total_ever}")
+            lines.append(f"  ALDECI total ingested (session): {total_ever}")
         lines.append(f"  ALDECI risk level: {risk_level}")
         report_lines.extend(lines)
 
@@ -652,7 +669,7 @@ def main() -> None:
     # Final global stats
     print(f"\n{'─'*60}")
     print("[ALDECI] Final platform stats:")
-    stats = _api_get("/api/v1/scanner-ingest/stats")
+    stats = _parse_stats(_api_get("/api/v1/scanner-ingest/stats"))
     if stats:
         print(f"  Total files processed : {stats.get('total_files_processed', '?')}")
         print(f"  Total findings parsed : {stats.get('total_findings_parsed', '?')}")
