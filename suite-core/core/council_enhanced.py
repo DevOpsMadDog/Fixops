@@ -56,6 +56,7 @@ VerdictLabel = Literal["TRUE_POSITIVE", "FALSE_POSITIVE", "NEEDS_REVIEW", "ESCAL
 _DEFAULT_WEIGHTS: Dict[str, float] = {
     "qwen_qwq": 1.0,
     "kimi_k2": 1.0,
+    "deepseek_r1": 1.0,  # DeepSeek R1 — strong reasoning and vulnerability research
     "gemma4": 0.8,
     "claude_opus": 1.5,  # escalation only
 }

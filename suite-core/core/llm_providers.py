@@ -552,6 +552,7 @@ class GeminiProvider(BaseLLMProvider):
 
 
 OPENROUTER_FREE_MODELS = [
+    "deepseek/deepseek-r1:free",
     "deepseek/deepseek-chat-v3-0324:free",
     "qwen/qwen-2.5-72b-instruct:free",
     "google/gemma-2-9b-it:free",
@@ -571,6 +572,7 @@ class OpenRouterProvider(BaseLLMProvider):
     ALDECI LLM Council without cloud API fees.
 
     Supported models include:
+    - DeepSeek R1 (free tier) — reasoning specialist
     - DeepSeek V3 (free tier)
     - Qwen 2.5 (free tier)
     - Gemma 2 (free tier)
@@ -1583,6 +1585,13 @@ class LLMProviderManager:
             "openai": OpenAIChatProvider("openai"),
             "anthropic": AnthropicMessagesProvider("anthropic"),
             "gemini": GeminiProvider("gemini"),
+            "deepseek": OpenRouterProvider(
+                "deepseek_r1",
+                model="deepseek/deepseek-r1:free",
+                api_key_envs=("OPENROUTER_API_KEY", "MULEROUTER_API_KEY"),
+                focus=["reasoning", "code_analysis", "vulnerability_research"],
+                style="analyst",
+            ),
             "mulerouter": MuleRouterProvider("mulerouter"),
             "openrouter": OpenRouterProvider("openrouter"),
             "sentinel": SentinelCyberProvider("sentinel"),

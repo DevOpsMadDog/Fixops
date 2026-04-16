@@ -472,7 +472,7 @@ class TestCouncilFactory:
         council = factory.create_security_council()
 
         assert isinstance(council, LLMCouncilEngine)
-        assert len(council.members) == 4
+        assert len(council.members) == 5
         assert council.confidence_threshold == 0.75
         assert any(m.expertise == "vulnerability_assessment" for m in council.members)
 
@@ -482,7 +482,7 @@ class TestCouncilFactory:
         council = factory.create_compliance_council()
 
         assert isinstance(council, LLMCouncilEngine)
-        assert len(council.members) == 4
+        assert len(council.members) == 5
         assert council.confidence_threshold == 0.8
         assert any(m.expertise == "compliance_mapping" for m in council.members)
 
@@ -496,6 +496,108 @@ class TestCouncilFactory:
 
         assert council.confidence_threshold == 0.9
         assert council.max_disagreement == 1
+
+    def test_deepseek_in_security_council(self):
+        """Test DeepSeek R1 is included in the security council."""
+        factory = CouncilFactory()
+        council = factory.create_security_council()
+
+        assert len(council.members) == 5
+        deepseek_members = [
+            m for m in council.members
+            if "DeepSeek" in (m.name or "") or m.expertise == "vulnerability_research"
+        ]
+        assert len(deepseek_members) == 1
+        assert deepseek_members[0].name == "Vulnerability Researcher (DeepSeek R1)"
+        assert deepseek_members[0].weight == 0.9
+        assert council.max_workers == 5
+
+    def test_deepseek_in_full_council(self):
+        """Test DeepSeek R1 is included in the full council with correct position and weight."""
+        factory = CouncilFactory()
+        council = factory.create_full_council()
+
+        provider_names = [m.provider.name for m in council.members]
+        assert "deepseek_r1" in provider_names
+
+        deepseek_member = next(
+            m for m in council.members if m.provider.name == "deepseek_r1"
+        )
+        assert deepseek_member.expertise == "vulnerability_research"
+        assert deepseek_member.weight == 0.92
+
+        # DeepSeek should be 3rd (index 2), after openai and anthropic
+        assert provider_names.index("deepseek_r1") == 2
+
+    def test_deepseek_in_compliance_council(self):
+        """Test DeepSeek R1 is included in the compliance council."""
+        factory = CouncilFactory()
+        council = factory.create_compliance_council()
+
+        assert len(council.members) == 5
+        deepseek_members = [
+            m for m in council.members
+            if "DeepSeek" in (m.name or "")
+        ]
+        assert len(deepseek_members) == 1
+        assert deepseek_members[0].name == "Regulatory Analyst (DeepSeek R1)"
+        assert deepseek_members[0].expertise == "regulatory_analysis"
+        assert deepseek_members[0].weight == 0.88
+
+    def test_deepseek_in_threat_council(self):
+        """Test DeepSeek R1 is included in the threat council."""
+        factory = CouncilFactory()
+        council = factory.create_threat_council()
+
+        assert len(council.members) == 5
+        deepseek_members = [
+            m for m in council.members
+            if "DeepSeek" in (m.name or "")
+        ]
+        assert len(deepseek_members) == 1
+        assert deepseek_members[0].name == "Attack Chain Analyst (DeepSeek R1)"
+        assert deepseek_members[0].expertise == "attack_chain_analysis"
+        assert deepseek_members[0].weight == 0.92
+
+
+# ============================================================================
+# DeepSeek Provider Config Tests
+# ============================================================================
+
+
+class TestDeepSeekProviderConfig:
+    """Test DeepSeek R1 provider registration and configuration."""
+
+    def test_deepseek_provider_config(self):
+        """Test deepseek provider is registered in LLMProviderManager with correct config."""
+        from core.llm_providers import LLMProviderManager, OpenRouterProvider
+
+        manager = LLMProviderManager()
+        provider = manager.get_provider("deepseek")
+
+        assert isinstance(provider, OpenRouterProvider)
+        assert provider.name == "deepseek_r1"
+        assert provider.model == "deepseek/deepseek-r1:free"
+        assert provider.style == "analyst"
+        assert "reasoning" in provider.focus
+        assert "code_analysis" in provider.focus
+        assert "vulnerability_research" in provider.focus
+
+    def test_deepseek_api_key_envs(self):
+        """Test deepseek provider reads from OPENROUTER_API_KEY and MULEROUTER_API_KEY."""
+        from core.llm_providers import LLMProviderManager
+
+        manager = LLMProviderManager()
+        provider = manager.get_provider("deepseek")
+
+        assert "OPENROUTER_API_KEY" in provider.api_key_envs
+        assert "MULEROUTER_API_KEY" in provider.api_key_envs
+
+    def test_deepseek_r1_in_free_models_list(self):
+        """Test deepseek/deepseek-r1:free is in the OPENROUTER_FREE_MODELS list."""
+        from core.llm_providers import OPENROUTER_FREE_MODELS
+
+        assert "deepseek/deepseek-r1:free" in OPENROUTER_FREE_MODELS
 
 
 # ============================================================================

@@ -922,6 +922,12 @@ class CouncilFactory:
                 weight=0.85,
                 name="Code Analyst (OpenRouter)",
             ),
+            CouncilMember(
+                provider=self.manager.get_provider("deepseek"),
+                expertise="vulnerability_research",
+                weight=0.9,
+                name="Vulnerability Researcher (DeepSeek R1)",
+            ),
         ]
 
         # Chairman: use strongest provider (GPT-5)
@@ -933,7 +939,7 @@ class CouncilFactory:
             escalation_provider=self.opus,
             confidence_threshold=confidence_threshold,
             max_disagreement=max_disagreement,
-            max_workers=4,
+            max_workers=5,
         )
 
     def create_compliance_council(
@@ -982,6 +988,12 @@ class CouncilFactory:
                 weight=0.85,
                 name="Incident Responder (OpenRouter)",
             ),
+            CouncilMember(
+                provider=self.manager.get_provider("deepseek"),
+                expertise="regulatory_analysis",
+                weight=0.88,
+                name="Regulatory Analyst (DeepSeek R1)",
+            ),
         ]
 
         # Chairman: use Anthropic for compliance (strongest on regulatory)
@@ -993,7 +1005,7 @@ class CouncilFactory:
             escalation_provider=self.opus,
             confidence_threshold=confidence_threshold,
             max_disagreement=max_disagreement,
-            max_workers=4,
+            max_workers=5,
         )
 
     def create_threat_council(
@@ -1042,6 +1054,12 @@ class CouncilFactory:
                 weight=0.85,
                 name="Adversary Modeler (OpenRouter)",
             ),
+            CouncilMember(
+                provider=self.manager.get_provider("deepseek"),
+                expertise="attack_chain_analysis",
+                weight=0.92,
+                name="Attack Chain Analyst (DeepSeek R1)",
+            ),
         ]
 
         # Chairman: use GPT-5 for threat analysis
@@ -1053,7 +1071,7 @@ class CouncilFactory:
             escalation_provider=self.opus,
             confidence_threshold=confidence_threshold,
             max_disagreement=max_disagreement,
-            max_workers=4,
+            max_workers=5,
         )
 
     def create_full_council(
@@ -1077,6 +1095,7 @@ class CouncilFactory:
         provider_specs = [
             ("openai", "vulnerability_assessment", 1.0),
             ("anthropic", "threat_modeling", 0.95),
+            ("deepseek", "vulnerability_research", 0.92),
             ("gemini", "compliance_mapping", 0.9),
             ("mulerouter", "code_analysis", 0.88),
             ("openrouter", "adversary_modeling", 0.85),
