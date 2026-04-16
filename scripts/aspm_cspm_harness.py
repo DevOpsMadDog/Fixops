@@ -107,24 +107,33 @@ def api_get(path: str, params: Dict[str, str] = None) -> Optional[Dict]:
         return None
 
 
-def api_post(path: str, body: Dict) -> Optional[Dict]:
-    """POST request returning parsed JSON or None on error."""
+def api_post(path: str, body: Dict, params: Dict[str, str] = None, retries: int = 3) -> Optional[Dict]:
+    """POST request returning parsed JSON or None on error. Retries on 429 with backoff."""
     url = f"{BASE_URL}{path}"
+    if params:
+        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        url = f"{url}?{qs}"
     data = json.dumps(body).encode()
-    try:
-        req = urllib.request.Request(url, data=data, headers=HEADERS, method="POST")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
+    for attempt in range(retries):
         try:
-            detail = e.read().decode()[:200]
-        except Exception:
-            detail = str(e)
-        print(f"    [HTTP {e.code}] POST {path}: {detail[:120]}")
-        return None
-    except Exception as e:
-        print(f"    [ERR] POST {path}: {e}")
-        return None
+            req = urllib.request.Request(url, data=data, headers=HEADERS, method="POST")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            try:
+                detail = e.read().decode()[:200]
+            except Exception:
+                detail = str(e)
+            if e.code == 429:
+                wait = 2 ** attempt  # 1s, 2s, 4s
+                time.sleep(wait)
+                continue
+            print(f"    [HTTP {e.code}] POST {path}: {detail[:120]}")
+            return None
+        except Exception as e:
+            print(f"    [ERR] POST {path}: {e}")
+            return None
+    return None
 
 
 def run_cmd(cmd: List[str], timeout: int = SCAN_TIMEOUT, capture: bool = True) -> Tuple[int, str, str]:
@@ -536,6 +545,7 @@ def phase3_ingest(repos: List[RepoConfig], scan_results: Dict[str, ScanResult]) 
                     }
                     api_post("/api/v1/brain/nodes", node_payload)
                     ingested += 1
+                    time.sleep(1.2)  # stay under rate limit
                 ir.sbom_ingested = True
                 print(f"    [OK] SBOM: {ingested} components ingested to brain graph")
             except Exception as e:
@@ -559,7 +569,7 @@ def phase3_ingest(repos: List[RepoConfig], scan_results: Dict[str, ScanResult]) 
             resp = api_post("/api/v1/brain/ingest/finding", payload)
             if resp:
                 sent += 1
-            time.sleep(API_DELAY * 0.5)
+            time.sleep(1.0)  # stay under rate limit
         ir.findings_sent = sent
         if sent:
             print(f"    [OK] {sent} findings ingested to brain")
@@ -609,7 +619,6 @@ def phase4_exercise(repos: List[RepoConfig], scan_results: Dict[str, ScanResult]
 
     for repo_name, f in all_findings[:10]:  # cap at 10 tickets
         ticket_payload = {
-            "org_id":         ORG_ID,
             "title":          f"[ASPM] {f.get('cve_id','Finding')} in {repo_name}: {f.get('title','')[:80]}",
             "cve_id":         f.get("cve_id", ""),
             "severity":       f.get("severity", "high"),
@@ -619,7 +628,8 @@ def phase4_exercise(repos: List[RepoConfig], scan_results: Dict[str, ScanResult]
             "source_engine":  "aspm-cspm-harness",
             "tags":           ["aspm", "automated", repo_name, f.get("severity","")],
         }
-        resp = api_post("/api/v1/vuln-workflow/tickets", ticket_payload)
+        resp = api_post("/api/v1/vuln-workflow/tickets", ticket_payload,
+                        params={"org_id": ORG_ID})
         if resp and resp.get("ticket_id"):
             tickets_created += 1
             if ingest_results.get(repo_name):
