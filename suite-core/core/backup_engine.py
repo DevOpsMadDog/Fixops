@@ -9,6 +9,8 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
+import os
 import sqlite3
 import struct
 import uuid
@@ -18,7 +20,45 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import base64
+
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Encryption helpers
+# ---------------------------------------------------------------------------
+_FERNET_HEADER = b"ALDECI_ENC_V2:"
+_LEGACY_XOR_HEADER = b"ALDECI_ENC_V1:"
+_PBKDF2_SALT = b"aldeci-backup-pbkdf2-salt-2026"  # static salt; key material comes from env
+_PBKDF2_ITERATIONS = 480_000
+
+
+def _derive_fernet_key(raw_key: bytes) -> Fernet:
+    """Derive a Fernet key from raw key material using PBKDF2-SHA256."""
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=_PBKDF2_SALT,
+        iterations=_PBKDF2_ITERATIONS,
+    )
+    key_bytes = kdf.derive(raw_key)
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+
+def _get_fernet() -> Fernet:
+    """Return a Fernet instance keyed from FIXOPS_BACKUP_KEY env var."""
+    raw = os.environ.get("FIXOPS_BACKUP_KEY", "").strip()
+    if not raw:
+        raise RuntimeError(
+            "FIXOPS_BACKUP_KEY environment variable is not set. "
+            "Set it to a strong secret before using backup encryption."
+        )
+    return _derive_fernet_key(raw.encode())
 
 
 class BackupStatus(str, Enum):
@@ -62,9 +102,6 @@ class RestoreRecord(BaseModel):
 
 class BackupEngine:
     """SQLite-backed backup and restore engine."""
-
-    # Simple XOR-based encryption key (AES would require cryptography package)
-    _DEFAULT_KEY = b"aldeci-backup-key-2026"
 
     def __init__(self, db_path: str = "data/backup.db", backup_dir: str = "data/backups"):
         self.db_path = Path(db_path)
@@ -197,7 +234,7 @@ class BackupEngine:
 
             data = buf.getvalue()
             if encrypt:
-                data = self._encrypt_data(data, self._DEFAULT_KEY)
+                data = self._encrypt_data(data)
 
             Path(file_path).write_bytes(data)
 
@@ -245,7 +282,7 @@ class BackupEngine:
         try:
             data = Path(backup.file_path).read_bytes()
             if backup.encrypted:
-                data = self._decrypt_data(data, self._DEFAULT_KEY)
+                data = self._decrypt_data(data)
 
             buf = io.BytesIO(data)
             restored: List[str] = []
@@ -322,19 +359,25 @@ class BackupEngine:
         finally:
             conn.close()
 
-    def get_backup(self, backup_id: str) -> Optional[BackupRecord]:
+    def get_backup(self, backup_id: str, org_id: Optional[str] = None) -> Optional[BackupRecord]:
         conn = self._get_connection()
         try:
-            row = conn.execute(
-                "SELECT * FROM backup_records WHERE id=?", (backup_id,)
-            ).fetchone()
+            if org_id is not None:
+                row = conn.execute(
+                    "SELECT * FROM backup_records WHERE id=? AND org_id=?",
+                    (backup_id, org_id),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT * FROM backup_records WHERE id=?", (backup_id,)
+                ).fetchone()
             return self._row_to_backup(row) if row else None
         finally:
             conn.close()
 
-    def delete_backup(self, backup_id: str) -> None:
+    def delete_backup(self, backup_id: str, org_id: Optional[str] = None) -> None:
         """Remove backup file and database record."""
-        backup = self.get_backup(backup_id)
+        backup = self.get_backup(backup_id, org_id=org_id)
         if backup is None:
             raise ValueError(f"Backup {backup_id} not found")
         fp = Path(backup.file_path)
@@ -342,7 +385,13 @@ class BackupEngine:
             fp.unlink()
         conn = self._get_connection()
         try:
-            conn.execute("DELETE FROM backup_records WHERE id=?", (backup_id,))
+            if org_id is not None:
+                conn.execute(
+                    "DELETE FROM backup_records WHERE id=? AND org_id=?",
+                    (backup_id, org_id),
+                )
+            else:
+                conn.execute("DELETE FROM backup_records WHERE id=?", (backup_id,))
             conn.commit()
         finally:
             conn.close()
@@ -467,20 +516,29 @@ class BackupEngine:
         finally:
             mem_conn.close()
 
-    def _encrypt_data(self, data: bytes, key: bytes) -> bytes:
-        """XOR-based encryption (mock AES for portability)."""
-        key_len = len(key)
-        header = b"ALDECI_ENC_V1:"
-        encrypted = bytes(b ^ key[i % key_len] for i, b in enumerate(data))
-        return header + encrypted
+    def _encrypt_data(self, data: bytes) -> bytes:
+        """Fernet (AES-128-CBC + HMAC-SHA256) encryption using FIXOPS_BACKUP_KEY."""
+        fernet = _get_fernet()
+        return _FERNET_HEADER + fernet.encrypt(data)
 
-    def _decrypt_data(self, data: bytes, key: bytes) -> bytes:
-        """XOR-based decryption."""
-        header = b"ALDECI_ENC_V1:"
-        if data.startswith(header):
-            data = data[len(header):]
-        key_len = len(key)
-        return bytes(b ^ key[i % key_len] for i, b in enumerate(data))
+    def _decrypt_data(self, data: bytes) -> bytes:
+        """Fernet decryption with legacy XOR fallback for V1 backups."""
+        if data.startswith(_FERNET_HEADER):
+            fernet = _get_fernet()
+            return fernet.decrypt(data[len(_FERNET_HEADER):])
+        if data.startswith(_LEGACY_XOR_HEADER):
+            # LEGACY: XOR-only fallback for backups created before V2 encryption.
+            # SECURITY: XOR is not secure — migrate existing backups to V2.
+            logger.warning(
+                "backup_engine: Decrypting legacy XOR-encrypted backup (V1). "
+                "Re-encrypt this backup using the current Fernet-based method."
+            )
+            legacy_key = b"aldeci-backup-key-2026"
+            payload = data[len(_LEGACY_XOR_HEADER):]
+            key_len = len(legacy_key)
+            return bytes(b ^ legacy_key[i % key_len] for i, b in enumerate(payload))
+        # No header — treat as unencrypted (should not happen, but be defensive)
+        return data
 
     def _calculate_checksum(self, file_path: str) -> str:
         """SHA-256 checksum of a file."""

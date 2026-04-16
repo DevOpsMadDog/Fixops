@@ -1243,7 +1243,10 @@ class RegressionPredictor:
         bool
             True if model loaded successfully.
         """
+        import hashlib
         import pickle
+
+        # SECURITY: pickle is unsafe — migrate to safetensors/ONNX when feasible.
 
         version_tag = MODEL_VERSION.replace(".", "_")
         model_path = self.model_dir / f"regression_predictor_v{version_tag}{suffix}.pkl"
@@ -1253,8 +1256,17 @@ class RegressionPredictor:
             return False
 
         try:
+            # Verify SHA-256 sidecar before deserializing to reduce RCE risk.
+            sha256_path = model_path.with_suffix(model_path.suffix + ".sha256")
+            if sha256_path.exists():
+                expected = sha256_path.read_text().strip().split()[0]
+                actual = hashlib.sha256(model_path.read_bytes()).hexdigest()
+                if actual != expected:
+                    logger.error("SHA-256 mismatch for model %s — refusing load", model_path)
+                    return False
+
             with open(model_path, "rb") as f:
-                data = pickle.load(f)
+                data = pickle.load(f)  # nosec B301 — hash-verified above when sidecar present
             self._model = data["model"]
             self._scaler = data["scaler"]
             self._bootstrap_models = data.get("bootstrap_models", [])

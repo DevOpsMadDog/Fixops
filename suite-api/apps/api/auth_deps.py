@@ -51,6 +51,7 @@ from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, Request
+from fastapi.responses import Response
 from fastapi.security import APIKeyHeader
 
 logger = logging.getLogger(__name__)
@@ -107,9 +108,11 @@ _HAS_JWT_AUTH: bool = bool(_JWT_SECRET)
 if not _HAS_TOKEN_AUTH and not _HAS_JWT_AUTH:
     if _DEV_MODE:
         logger.warning(
-            "auth_deps: No FIXOPS_API_TOKEN or FIXOPS_JWT_SECRET configured — "
-            "running in %s mode, auth checks will pass-through.",
-            os.getenv("FIXOPS_MODE", "dev"),
+            "⚠️  SECURITY WARNING: auth_deps is running in %s mode. "
+            "All API endpoints are UNAUTHENTICATED — any request receives admin access. "
+            "Do NOT expose this service to untrusted networks. "
+            "Set FIXOPS_API_TOKEN or FIXOPS_JWT_SECRET to enable real authentication.",
+            os.getenv("FIXOPS_MODE", "dev").upper(),
         )
     else:
         logger.error(
@@ -187,6 +190,9 @@ async def api_key_auth(
     if _DEV_MODE and not _HAS_TOKEN_AUTH and not _HAS_JWT_AUTH:
         request.state.user_role = "admin"
         request.state.user_scopes = ["admin:all"]
+        # Add a visible header so clients/proxies can detect demo mode is active.
+        # This is intentional for development but must never reach production.
+        request.state.demo_mode = True
         return
 
     # Collect the credential from the three possible locations

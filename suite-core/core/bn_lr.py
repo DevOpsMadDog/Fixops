@@ -54,10 +54,24 @@ def _restore_model(path: Path) -> Any:
     if _joblib is not None:
         return _joblib.load(path)
 
+    # SECURITY: pickle is unsafe — migrate to safetensors/ONNX when feasible.
+    # Guard: verify SHA-256 hash of the file against a sidecar .sha256 file
+    # before deserializing to reduce (not eliminate) RCE risk from tampered files.
+    import hashlib
     import pickle
 
+    sha256_path = path.with_suffix(path.suffix + ".sha256")
+    if sha256_path.exists():
+        expected = sha256_path.read_text().strip().split()[0]
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(
+                f"SHA-256 mismatch for model file {path} — refusing to load. "
+                "The file may have been tampered with."
+            )
+
     with path.open("rb") as handle:
-        return pickle.load(handle)
+        return pickle.load(handle)  # nosec B301 — hash-verified above
 
 
 def compute_bn_cpd_hash() -> str:

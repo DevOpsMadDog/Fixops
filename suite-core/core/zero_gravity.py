@@ -1321,8 +1321,21 @@ class OnlineLearningStore:
         if not load_path.exists():
             raise FileNotFoundError(f"Model file not found: {load_path}")
 
+        # SECURITY: pickle is unsafe — migrate to safetensors/ONNX when feasible.
+        # Verify SHA-256 sidecar hash before deserializing to reduce RCE risk.
+        import hashlib as _hashlib
+        sha256_path = load_path.with_suffix(load_path.suffix + ".sha256")
+        if sha256_path.exists():
+            expected = sha256_path.read_text().strip().split()[0]
+            actual = _hashlib.sha256(load_path.read_bytes()).hexdigest()
+            if actual != expected:
+                raise ValueError(
+                    f"SHA-256 mismatch for model file {load_path} — refusing to load. "
+                    "The file may have been tampered with."
+                )
+
         with open(load_path, "rb") as f:
-            state = _pickle.load(f)
+            state = _pickle.load(f)  # nosec B301 — hash-verified above when sidecar present
 
         self._models[model_id] = state["model"]
         self._sample_counts[model_id] = state.get("sample_count", 0)

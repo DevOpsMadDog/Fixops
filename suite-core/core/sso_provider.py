@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
 import logging
 import os
 import secrets
+import socket
 import time
 import urllib.parse
 import uuid
@@ -47,6 +49,59 @@ _OIDC_DISCOVERY_SUFFIX = "/.well-known/openid-configuration"
 
 # Module-level JWKS client cache — keyed by jwks_uri, shared across provider instances
 _jwks_clients: dict = {}
+
+# ---------------------------------------------------------------------------
+# SSRF protection
+# ---------------------------------------------------------------------------
+
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),   # link-local / cloud metadata
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fd00::/8"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+
+def _validate_url_not_private(url: str) -> None:
+    """Reject URLs that resolve to private/loopback/cloud-metadata addresses.
+
+    Raises:
+        AuthorizationError: If the URL hostname resolves to a private IP range.
+    """
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme.lower()
+    if scheme not in ("https", "http"):
+        raise AuthorizationError(f"SSRF guard: unsupported URL scheme '{scheme}'")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise AuthorizationError("SSRF guard: URL has no hostname")
+
+    # Explicit block for cloud metadata endpoints by hostname
+    if hostname.lower() in ("169.254.169.254", "metadata.google.internal"):
+        raise AuthorizationError(f"SSRF guard: blocked cloud metadata hostname '{hostname}'")
+
+    try:
+        # Resolve to all addresses to catch DNS rebinding
+        infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as exc:
+        raise AuthorizationError(f"SSRF guard: cannot resolve hostname '{hostname}': {exc}") from exc
+
+    for info in infos:
+        addr_str = info[4][0]
+        try:
+            addr = ipaddress.ip_address(addr_str)
+        except ValueError:
+            continue
+        for net in _PRIVATE_NETWORKS:
+            if addr in net:
+                raise AuthorizationError(
+                    f"SSRF guard: URL '{url}' resolves to private address {addr_str} — blocked"
+                )
 
 _PROVIDER_DISCOVERY_URLS: Dict[str, str] = {
     "okta": "{issuer}/.well-known/openid-configuration",
@@ -221,6 +276,7 @@ class OIDCProvider:
         if self._discovery is not None:
             return self._discovery
         url = self._discovery_url()
+        _validate_url_not_private(url)
         client = http_client or httpx.Client(timeout=10)
         try:
             resp = client.get(url)
@@ -467,6 +523,7 @@ class SAMLProvider:
             return self._idp_metadata
         if not self.config.idp_metadata_url:
             return {}
+        _validate_url_not_private(self.config.idp_metadata_url)
         client = http_client or httpx.Client(timeout=10)
         try:
             resp = client.get(self.config.idp_metadata_url)
