@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"sed -n '25:35p' /Users/devops.ai/fixops/Fixops/suite-api/apps/api/api_fuzzer_router.py 2>/dev/null; echo \\\"---\\\"; sed -n '25:35p' /Users/devops.ai/fixops/Fixops/suite-api/apps/api/api_secu...",
-  "error": "Exit code 1\n---\n---",
-  "timestamp": "2026-04-16T09:36:04.809Z",
+  "tool_input_preview": "{\"command\":\"# Check Trivy results for microservices-demo\\npython3 -c \\\"\\nimport json\\nwith open('/tmp/trivy_microservices.json') as f:\\n    d = json.load(f)\\ntotal = sum(len(r.get('Vulnerabilities',[]...",
+  "error": "Exit code 1\nMicroservices-demo Trivy: 45 vulns across 10 targets\n  CRITICAL: 1\n  HIGH: 25\n  LOW: 4\n  MEDIUM: 15\n---\n-rw-r--r--@ 1 devops.ai  wheel  0 16 Apr 20:34 /tmp/podinfo_sbom.json\nTraceback (most recent call last):\n  File \"<string>\", line 4, in <module>\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n           ^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.11/...",
+  "timestamp": "2026-04-16T10:34:22.170Z",
   "retry_count": 1
 }

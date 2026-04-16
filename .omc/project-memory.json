@@ -430,8 +430,8 @@
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 44,
-      "lastAccessed": 1776331959537,
+      "accessCount": 47,
+      "lastAccessed": 1776335254125,
       "type": "file"
     },
     {
@@ -609,6 +609,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/apikey_router.py",
+      "accessCount": 3,
+      "lastAccessed": 1776335220114,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/phishing_router.py",
       "accessCount": 2,
       "lastAccessed": 1776077770630,
@@ -624,12 +630,6 @@
       "path": "tests/test_attack_surface_manager.py",
       "accessCount": 2,
       "lastAccessed": 1776078177931,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/apikey_router.py",
-      "accessCount": 2,
-      "lastAccessed": 1776081448894,
       "type": "file"
     },
     {
