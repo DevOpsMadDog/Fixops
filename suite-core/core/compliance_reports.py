@@ -8,6 +8,7 @@ JSON, HTML, CSV, or Markdown.
 from __future__ import annotations
 
 import csv
+import html as _html
 import io
 import json
 import sqlite3
@@ -340,16 +341,20 @@ class ComplianceReportGenerator:
 
     def _to_html(self, report: ComplianceReport) -> str:
         rows = "".join(
-            f"<tr><td>{s['control_id']}</td><td>{s['title']}</td>"
-            f"<td>{s['category']}</td><td>{s['status']}</td>"
-            f"<td>{'; '.join(s.get('evidence', []))}</td></tr>"
+            f"<tr><td>{_html.escape(str(s['control_id']))}</td><td>{_html.escape(str(s['title']))}</td>"
+            f"<td>{_html.escape(str(s['category']))}</td><td>{_html.escape(str(s['status']))}</td>"
+            f"<td>{_html.escape('; '.join(s.get('evidence', [])))}</td></tr>"
             for s in report.sections
         )
+        safe_title = _html.escape(str(report.title))
+        safe_framework = _html.escape(str(report.framework))
         return (
-            f"<!DOCTYPE html><html><head><title>{report.title}</title></head>"
-            f"<body><h1>{report.title}</h1>"
-            f"<p>Framework: {report.framework} | Score: {report.score}% | "
-            f"Gaps: {report.gaps_count} | Generated: {report.generated_at.isoformat()}</p>"
+            f"<!DOCTYPE html><html><head>"
+            f"<meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; style-src 'unsafe-inline'\">"
+            f"<title>{safe_title}</title></head>"
+            f"<body><h1>{safe_title}</h1>"
+            f"<p>Framework: {safe_framework} | Score: {_html.escape(str(report.score))}% | "
+            f"Gaps: {_html.escape(str(report.gaps_count))} | Generated: {_html.escape(report.generated_at.isoformat())}</p>"
             f"<table border='1'><thead><tr><th>Control</th><th>Title</th>"
             f"<th>Category</th><th>Status</th><th>Evidence</th></tr></thead>"
             f"<tbody>{rows}</tbody></table></body></html>"

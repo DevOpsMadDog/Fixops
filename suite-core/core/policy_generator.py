@@ -16,6 +16,7 @@ Compliance: SOC2 CC9.2, ISO27001 A.5.1, NIST CSF ID.GV-1, CIS Control 1.
 
 from __future__ import annotations
 
+import html as _html
 import json
 import logging
 import sqlite3
@@ -1059,7 +1060,7 @@ class PolicyGenerator:
                     html_lines.append("</table>")
                     in_table = False
                 level = len(h_match.group(1))
-                text = h_match.group(2)
+                text = _html.escape(h_match.group(2))
                 html_lines.append(f"<h{level}>{text}</h{level}>")
                 i += 1
                 continue
@@ -1073,7 +1074,7 @@ class PolicyGenerator:
                     html_lines.append("<table>")
                     in_table = True
                     # First row is header
-                    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                    cells = [_html.escape(c.strip()) for c in line.strip().strip("|").split("|")]
                     html_lines.append("<thead><tr>" + "".join(f"<th>{c}</th>" for c in cells) + "</tr></thead><tbody>")
                     i += 1
                     # Skip separator row
@@ -1081,7 +1082,7 @@ class PolicyGenerator:
                         i += 1
                     continue
                 else:
-                    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                    cells = [_html.escape(c.strip()) for c in line.strip().strip("|").split("|")]
                     html_lines.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
                     i += 1
                     continue
@@ -1096,7 +1097,7 @@ class PolicyGenerator:
                 if not in_ul:
                     html_lines.append("<ul>")
                     in_ul = True
-                html_lines.append(f"<li>{li_match.group(1)}</li>")
+                html_lines.append(f"<li>{_html.escape(li_match.group(1))}</li>")
                 i += 1
                 continue
 
@@ -1112,7 +1113,7 @@ class PolicyGenerator:
 
             # Plain paragraph
             if not in_ul:
-                html_lines.append(f"<p>{line}</p>")
+                html_lines.append(f"<p>{_html.escape(line)}</p>")
             i += 1
 
         if in_ul:
@@ -1121,14 +1122,20 @@ class PolicyGenerator:
             html_lines.append("</tbody></table>")
 
         body = "\n".join(html_lines)
-        effective = policy.effective_date.isoformat() if policy.effective_date else "N/A"
-        review = policy.review_date.isoformat() if policy.review_date else "N/A"
+        effective = _html.escape(policy.effective_date.isoformat() if policy.effective_date else "N/A")
+        review = _html.escape(policy.review_date.isoformat() if policy.review_date else "N/A")
+        safe_title = _html.escape(str(policy.title))
+        safe_id = _html.escape(str(policy.id))
+        safe_version = _html.escape(str(policy.version))
+        safe_status = _html.escape(str(policy.status))
+        safe_approved_by = _html.escape(str(policy.approved_by or "Pending"))
 
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{policy.title}</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <title>{safe_title}</title>
   <style>
     body {{ font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #333; }}
     h1,h2,h3,h4,h5,h6 {{ color: #1a1a2e; }}
@@ -1141,13 +1148,13 @@ class PolicyGenerator:
   </style>
 </head>
 <body>
-  <h1>{policy.title}</h1>
+  <h1>{safe_title}</h1>
   <div class="meta">
     <dl>
-      <dt>ID:</dt><dd>{policy.id}</dd>
-      <dt>Version:</dt><dd>{policy.version}</dd>
-      <dt>Status:</dt><dd>{policy.status}</dd>
-      <dt>Approved By:</dt><dd>{policy.approved_by or 'Pending'}</dd>
+      <dt>ID:</dt><dd>{safe_id}</dd>
+      <dt>Version:</dt><dd>{safe_version}</dd>
+      <dt>Status:</dt><dd>{safe_status}</dd>
+      <dt>Approved By:</dt><dd>{safe_approved_by}</dd>
       <dt>Effective Date:</dt><dd>{effective}</dd>
       <dt>Review Date:</dt><dd>{review}</dd>
     </dl>

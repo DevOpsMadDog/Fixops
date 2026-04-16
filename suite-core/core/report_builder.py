@@ -14,6 +14,7 @@ Compliance: SOC2 CC2.2 (Communication), CC7.2 (System monitoring and reporting)
 
 from __future__ import annotations
 
+import html as _html
 import json
 import logging
 import sqlite3
@@ -582,26 +583,27 @@ class ReportBuilder:
     def _render_html(self, report: GeneratedReport) -> str:
         sections_html = ""
         for section in report.sections_data:
-            data_json = json.dumps(section.get("data", {}), indent=2)
+            data_json = _html.escape(json.dumps(section.get("data", {}), indent=2))
             sections_html += (
                 f"<section class='report-section'>"
-                f"<h2>{section.get('title', '')}</h2>"
-                f"<p class='meta'>Type: {section.get('section_type', '')} | "
-                f"Source: {section.get('data_source', '')}</p>"
+                f"<h2>{_html.escape(str(section.get('title', '')))}</h2>"
+                f"<p class='meta'>Type: {_html.escape(str(section.get('section_type', '')))} | "
+                f"Source: {_html.escape(str(section.get('data_source', '')))}</p>"
                 f"<pre>{data_json}</pre>"
                 f"</section>\n"
             )
 
         return (
             "<!DOCTYPE html><html><head>"
-            f"<title>{report.template_name}</title>"
+            "<meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; style-src 'unsafe-inline'\">"
+            f"<title>{_html.escape(str(report.template_name))}</title>"
             "<style>body{font-family:sans-serif;margin:2em;} "
             ".report-section{border:1px solid #ddd;padding:1em;margin-bottom:1.5em;border-radius:4px;} "
             "pre{background:#f5f5f5;padding:1em;overflow:auto;} "
             ".meta{color:#666;font-size:.85em;}</style>"
             "</head><body>"
-            f"<h1>{report.template_name}</h1>"
-            f"<p>Generated: {report.generated_at} | Org: {report.org_id}</p>"
+            f"<h1>{_html.escape(str(report.template_name))}</h1>"
+            f"<p>Generated: {_html.escape(str(report.generated_at))} | Org: {_html.escape(str(report.org_id))}</p>"
             f"{sections_html}"
             "</body></html>"
         )
