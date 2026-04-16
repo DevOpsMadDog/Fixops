@@ -24,6 +24,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -180,6 +186,14 @@ class PhysicalSecurityEngine:
             "physical_security.location_registered org=%s location_id=%s",
             org_id, location_id,
         )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "physical_security", "org_id": org_id, "source_engine": "physical_security"})
+            except Exception:
+                pass
+
         return self.get_location(org_id, location_id)
 
     def list_locations(

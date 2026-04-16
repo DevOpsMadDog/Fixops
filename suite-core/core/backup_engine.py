@@ -27,6 +27,12 @@ import base64
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -468,6 +474,14 @@ class BackupEngine:
                 finally:
                     conn.close()
                 removed += 1
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "backup", "org_id": org_id, "source_engine": "backup"})
+            except Exception:
+                pass
+
         return removed
 
     def get_backup_stats(self, org_id: str) -> Dict[str, Any]:

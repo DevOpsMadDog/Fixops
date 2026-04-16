@@ -15,6 +15,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger()
 
 _VALID_POLICY_TYPES = {"network", "identity", "device", "application"}
@@ -179,6 +185,14 @@ class ZeroTrustPolicyEngine:
                 conn.close()
 
         _logger.info("zt_policy.created", policy_id=policy_id, org_id=org_id, name=data.get("name"))
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "zero_trust_policy", "org_id": org_id, "source_engine": "zero_trust_policy"})
+            except Exception:
+                pass
+
         return self.get_policy(org_id, policy_id)  # type: ignore[return-value]
 
     def list_policies(

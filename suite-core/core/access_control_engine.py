@@ -25,6 +25,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -167,6 +173,14 @@ class AccessControlEngine:
             "access_control.policy_created org=%s policy_id=%s name=%s",
             org_id, policy_id, data.name,
         )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("IDENTITY_UPDATED", {"entity_type": "access_control", "org_id": org_id, "source_engine": "access_control"})
+            except Exception:
+                pass
+
         return self.get_access_policy(org_id, policy_id)
 
     def list_access_policies(

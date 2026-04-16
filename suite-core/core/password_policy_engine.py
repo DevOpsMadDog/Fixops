@@ -19,6 +19,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -369,6 +375,14 @@ class PasswordPolicyEngine:
         row["require_special"] = bool(row["require_special"])
         row["is_active"] = bool(row["is_active"])
         row["applies_to"] = json.loads(row["applies_to"])
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "password_policy", "org_id": org_id, "source_engine": "password_policy"})
+            except Exception:
+                pass
+
         return row
 
     def list_policies(self, org_id: str, is_active: Optional[bool] = None) -> List[Dict[str, Any]]:

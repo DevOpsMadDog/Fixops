@@ -27,6 +27,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / ".fixops_data" / "nac.db")
@@ -185,6 +191,14 @@ class NACEngine:
                 ),
             )
         _logger.info("nac.device_registered org=%s device_id=%s", org_id, device_id)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "nac", "org_id": org_id, "source_engine": "nac"})
+            except Exception:
+                pass
+
         return self.get_device(org_id, device_id)
 
     def list_devices(

@@ -17,6 +17,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -169,6 +175,14 @@ class APIGatewaySecurityEngine:
                 )
 
         _logger.info("registered_gateway id=%s type=%s org=%s", record["id"], gateway_type, org_id)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "api_gateway_security", "org_id": org_id, "source_engine": "api_gateway_security"})
+            except Exception:
+                pass
+
         return record
 
     def list_gateways(self, org_id: str) -> List[Dict[str, Any]]:

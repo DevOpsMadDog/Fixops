@@ -22,6 +22,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -261,6 +267,14 @@ class PrivacyGDPREngine:
                 )
 
         record["identity_verified"] = bool(record["identity_verified"])
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "privacy_gdpr", "org_id": org_id, "source_engine": "privacy_gdpr"})
+            except Exception:
+                pass
+
         return record
 
     def list_dsrs(

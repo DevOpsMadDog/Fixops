@@ -17,6 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -147,6 +153,14 @@ class PolicyEnforcementEngine:
                         "active", now,
                     ),
                 )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "policy_enforcement", "org_id": org_id, "source_engine": "policy_enforcement"})
+            except Exception:
+                pass
 
         return {
             "id": policy_id,

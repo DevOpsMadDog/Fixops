@@ -21,6 +21,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 logger = structlog.get_logger(__name__)
 
 _DEFAULT_DB = os.getenv("FIXOPS_CASB_DB", ".fixops_data/casb.db")
@@ -350,6 +356,14 @@ class CASBEngine:
             row = self._conn.execute(
                 "SELECT * FROM casb_data_activities WHERE activity_id=?", (activity_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "casb", "org_id": org_id, "source_engine": "casb"})
+            except Exception:
+                pass
+
             return self._row_to_activity(row)
 
     def list_data_activities(

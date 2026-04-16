@@ -22,6 +22,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -267,6 +273,14 @@ class ThreatIndicatorEngine:
                    ORDER BY created_at DESC""",
                 (org_id, f"%{query}%"),
             ).fetchall()
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("THREAT_DETECTED", {"entity_type": "threat_indicator", "org_id": org_id, "source_engine": "threat_indicator"})
+            except Exception:
+                pass
+
         return [self._row(r) for r in rows]
 
     def mark_false_positive(

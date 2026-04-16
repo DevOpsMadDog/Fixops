@@ -19,6 +19,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -166,6 +172,14 @@ class ThreatIntelSharingEngine:
         # Return with deserialized members
         result = dict(record)
         result["members"] = members
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("THREAT_DETECTED", {"entity_type": "threat_intel_sharing", "org_id": org_id, "source_engine": "threat_intel_sharing"})
+            except Exception:
+                pass
+
         return result
 
     def list_groups(self, org_id: str) -> List[Dict[str, Any]]:

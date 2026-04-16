@@ -7,6 +7,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger()
 
 ACCEPTANCE_STATES = ["pending_review", "approved", "rejected", "expired", "revoked"]
@@ -312,6 +318,14 @@ class RiskAcceptanceEngine:
                 _logger.info("risk_acceptances_expired", count=len(newly_expired), org_id=org_id)
         finally:
             conn.close()
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("RISK_ASSESSED", {"entity_type": "risk_acceptance", "org_id": org_id, "source_engine": "risk_acceptance"})
+            except Exception:
+                pass
+
         return newly_expired
 
     def get_metrics(self, org_id: str = "default") -> dict:

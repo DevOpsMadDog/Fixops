@@ -25,6 +25,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / ".fixops_data" / "audit_management.db")
@@ -171,6 +177,14 @@ class AuditManagementEngine:
                 ),
             )
         _logger.info("audit.created org=%s id=%s", org_id, audit_id)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "audit_management", "org_id": org_id, "source_engine": "audit_management"})
+            except Exception:
+                pass
+
         return self.get_audit(org_id, audit_id)
 
     def list_audits(

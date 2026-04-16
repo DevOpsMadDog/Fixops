@@ -17,6 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -176,6 +182,14 @@ class PhishingSimulationEngine:
                         now,
                     ),
                 )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("THREAT_DETECTED", {"entity_type": "phishing_simulation", "org_id": org_id, "source_engine": "phishing_simulation"})
+            except Exception:
+                pass
 
         return self._get_campaign(campaign_id, org_id)  # type: ignore[return-value]
 

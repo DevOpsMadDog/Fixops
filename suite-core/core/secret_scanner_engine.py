@@ -25,6 +25,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DATA_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -247,6 +253,14 @@ class SecretScannerEngine:
                                :created_at, :completed_at)""",
                     record,
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("FINDING_CREATED", {"entity_type": "secret_scanner", "org_id": org_id, "source_engine": "secret_scanner"})
+            except Exception:
+                pass
+
         return record
 
     def start_scan(self, org_id: str, job_id: str) -> Dict[str, Any]:

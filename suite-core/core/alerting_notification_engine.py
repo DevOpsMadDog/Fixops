@@ -18,6 +18,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -171,6 +177,14 @@ class AlertingNotificationEngine:
         result = dict(row)
         result["channels"] = channels
         result["enabled"] = bool(row["enabled"])
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ALERT_CREATED", {"entity_type": "alerting_notification", "org_id": org_id, "source_engine": "alerting_notification"})
+            except Exception:
+                pass
+
         return result
 
     def list_alert_policies(

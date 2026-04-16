@@ -24,6 +24,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -208,6 +214,14 @@ class BugBountyEngine:
         # Return with deserialized lists
         record["in_scope_assets"] = in_scope if isinstance(in_scope, list) else []
         record["out_of_scope_assets"] = out_scope if isinstance(out_scope, list) else []
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "bug_bounty", "org_id": org_id, "source_engine": "bug_bounty"})
+            except Exception:
+                pass
+
         return record
 
     def list_programs(

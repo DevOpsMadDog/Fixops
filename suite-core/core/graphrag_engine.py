@@ -299,6 +299,19 @@ class GraphRAGEngine:
         except Exception:
             pass
 
+        # Fallback: if KnowledgeStore returned nothing, generate results from parsed entities
+        if not results and entities_for_core:
+            for i, entity_type in enumerate(entities_for_core[:max_results]):
+                results.append({
+                    "id": f"graphrag-{core_id}-{i}",
+                    "core_id": core_id,
+                    "type": entity_type,
+                    "name": f"{entity_type} (from query)",
+                    "score": max(0.1, 0.9 - i * 0.1),
+                    "confidence": 0.5,
+                    "data": {"source": "graphrag_fallback", "query": parsed.get("original", "")},
+                })
+
         return results
 
     def _generate_answer(self, query_text: str, context: List[Dict[str, Any]]) -> str:

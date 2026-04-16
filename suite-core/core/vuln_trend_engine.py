@@ -17,6 +17,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -170,6 +176,14 @@ class VulnTrendEngine:
                         int(data.get("sla_breached", 0)),
                     ),
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("FINDING_CREATED", {"entity_type": "vuln_trend", "org_id": org_id, "source_engine": "vuln_trend"})
+            except Exception:
+                pass
+
         return {"snapshot_id": snap_id, "org_id": org_id, **data, "taken_at": data.get("taken_at", now)}
 
     def list_snapshots(self, org_id: str, limit: int = 30) -> List[Dict[str, Any]]:

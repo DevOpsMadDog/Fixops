@@ -33,6 +33,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -592,6 +598,14 @@ class _EngineDB:
                 "SELECT * FROM vra_vendors WHERE org_id = ? ORDER BY created_at DESC",
                 (org_id,),
             ).fetchall()
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("RISK_ASSESSED", {"entity_type": "vendor_risk", "org_id": org_id, "source_engine": "vendor_risk"})
+            except Exception:
+                pass
+
         return [dict(r) for r in rows]
 
     def vra_update_vendor(self, vendor_id: str, set_clause: str, values: tuple) -> None:

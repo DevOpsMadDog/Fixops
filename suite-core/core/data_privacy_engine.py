@@ -24,6 +24,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / ".fixops_data" / "data_privacy.db")
@@ -155,6 +161,14 @@ class DataPrivacyEngine:
                 ),
             )
         _logger.info("privacy.asset_registered org=%s asset_id=%s", org_id, asset_id)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "data_privacy", "org_id": org_id, "source_engine": "data_privacy"})
+            except Exception:
+                pass
+
         return self.get_data_asset(org_id, asset_id)
 
     def list_data_assets(

@@ -17,6 +17,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -343,6 +349,14 @@ class PostureScoreEngine:
                         now,
                     ),
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("RISK_ASSESSED", {"entity_type": "posture_score", "org_id": org_id, "source_engine": "posture_score"})
+            except Exception:
+                pass
+
         return {"benchmark_id": bench_id, "org_id": org_id, "created_at": now, **data}
 
     def list_benchmarks(self, org_id: str) -> List[Dict[str, Any]]:

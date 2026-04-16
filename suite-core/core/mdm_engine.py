@@ -23,6 +23,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -456,6 +462,14 @@ class MDMEngine:
         result["allowed_apps"] = allowed_apps
         result["require_encryption"] = bool(record["require_encryption"])
         result["require_passcode"] = bool(record["require_passcode"])
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "mdm", "org_id": org_id, "source_engine": "mdm"})
+            except Exception:
+                pass
+
         return result
 
     def list_policies(

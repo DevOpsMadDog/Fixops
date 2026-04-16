@@ -21,6 +21,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -148,6 +154,14 @@ class EmailFilteringEngine:
                            :pattern, :description, :status, :created_at)""",
                 row,
             )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "email_filtering", "org_id": org_id, "source_engine": "email_filtering"})
+            except Exception:
+                pass
+
         return self._row_to_rule(row)
 
     def list_filter_rules(

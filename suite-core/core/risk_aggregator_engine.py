@@ -18,6 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -182,6 +188,14 @@ class RiskAggregatorEngine:
             )
         result = dict(row)
         result["risk_factors"] = risk_factors
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("RISK_ASSESSED", {"entity_type": "risk_aggregator", "org_id": org_id, "source_engine": "risk_aggregator"})
+            except Exception:
+                pass
+
         return result
 
     def list_risk_scores(

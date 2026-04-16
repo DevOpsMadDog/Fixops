@@ -18,6 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -156,6 +162,14 @@ class SecurityBudgetEngine:
                                :notes, :created_at)""",
                     row,
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "security_budget", "org_id": org_id, "source_engine": "security_budget"})
+            except Exception:
+                pass
+
         return row
 
     def list_allocations(

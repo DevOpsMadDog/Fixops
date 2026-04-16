@@ -23,6 +23,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "iga.db")
@@ -240,6 +246,14 @@ class IGAEngine:
                 self._populate_review_items(conn, review_id, org_id, access_type)
 
         _logger.info("Created access review %s for org %s (type=%s)", review_id, org_id, access_type)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "iga", "org_id": org_id, "source_engine": "iga"})
+            except Exception:
+                pass
+
         return review_id
 
     def _populate_review_items(

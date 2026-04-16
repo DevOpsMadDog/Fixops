@@ -18,6 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -156,6 +162,14 @@ class CloudDriftDetectionEngine:
                         :expected_config,:source,:environment,:created_at,:updated_at)""",
                     row,
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ASSET_DISCOVERED", {"entity_type": "cloud_drift", "org_id": org_id, "source_engine": "cloud_drift"})
+            except Exception:
+                pass
+
         return {**row, "expected_config": data.get("expected_config", {})}
 
     def list_baselines(

@@ -24,6 +24,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _VALID_ACTOR_TYPES = {
@@ -235,6 +241,14 @@ class ThreatActorEngine:
                      "aliases": json.dumps(record["aliases"]),
                      "active": 1 if record["active"] else 0},
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("THREAT_DETECTED", {"entity_type": "threat_actor", "org_id": org_id, "source_engine": "threat_actor"})
+            except Exception:
+                pass
+
         return record
 
     def list_actors(

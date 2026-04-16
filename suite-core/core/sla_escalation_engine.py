@@ -24,6 +24,12 @@ from typing import Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -199,6 +205,14 @@ class SLAEscalationEngine:
             org_id=org_id,
             breaches_found=len(breaches),
         )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("FINDING_CREATED", {"entity_type": "sla_escalation", "org_id": org_id, "source_engine": "sla_escalation"})
+            except Exception:
+                pass
+
         return breaches
 
     def escalate(

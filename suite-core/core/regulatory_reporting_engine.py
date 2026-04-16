@@ -24,6 +24,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / ".fixops_data" / "regulatory_reporting.db")
@@ -168,6 +174,14 @@ class RegulatoryReportingEngine:
                 ),
             )
         _logger.info("regulatory.regulation_registered org=%s id=%s", org_id, reg_id)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "regulatory_reporting", "org_id": org_id, "source_engine": "regulatory_reporting"})
+            except Exception:
+                pass
+
         return self._get_regulation(org_id, reg_id)
 
     def list_regulations(

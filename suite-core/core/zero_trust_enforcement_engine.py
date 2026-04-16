@@ -25,6 +25,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -292,6 +298,14 @@ class ZeroTrustEnforcementEngine:
                 conn.close()
 
         _logger.info("zt.policy_created org=%s policy_id=%s action=%s", org_id, policy_id, action)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "zero_trust_enforcement", "org_id": org_id, "source_engine": "zero_trust_enforcement"})
+            except Exception:
+                pass
+
         return self.get_policy(org_id, policy_id)  # type: ignore[return-value]
 
     def list_policies(

@@ -21,6 +21,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = ".fixops_data/privilege_escalation_detector.db"
@@ -273,6 +279,14 @@ class PrivilegeEscalationDetectorEngine:
                         anomaly_score, risk_level, json.dumps(indicators), now,
                     ),
                 )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("FINDING_CREATED", {"entity_type": "privilege_escalation_detector", "org_id": org_id, "source_engine": "privilege_escalation_detector"})
+            except Exception:
+                pass
 
         return record
 

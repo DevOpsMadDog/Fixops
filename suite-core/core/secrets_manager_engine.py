@@ -18,6 +18,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger()
 
 _DEFAULT_DB = str(
@@ -155,6 +161,14 @@ class SecretsManagerEngine:
                 )
 
         _logger.info("secrets.vault_created", vault_id=vault_id, org_id=org_id, name=name)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {"entity_type": "secrets_manager", "org_id": org_id, "source_engine": "secrets_manager"})
+            except Exception:
+                pass
+
         return {
             "vault_id": vault_id,
             "org_id": org_id,

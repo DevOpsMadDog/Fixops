@@ -25,6 +25,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -153,6 +159,14 @@ class APIAbuseDetectionEngine:
                 ),
             )
         _logger.info("aad.endpoint_registered org=%s endpoint_id=%s path=%s", org_id, endpoint_id, path)
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("THREAT_DETECTED", {"entity_type": "api_abuse_detection", "org_id": org_id, "source_engine": "api_abuse_detection"})
+            except Exception:
+                pass
+
         return self.get_endpoint(org_id, endpoint_id)
 
     def list_endpoints(

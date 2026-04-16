@@ -24,6 +24,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -147,6 +153,14 @@ class FirewallPolicyEngine:
                        VALUES (:id, :org_id, :name, :fw_type, :management_ip, :description, :created_at, :updated_at)""",
                     row,
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("CONTROL_ASSESSED", {"entity_type": "firewall_policy", "org_id": org_id, "source_engine": "firewall_policy"})
+            except Exception:
+                pass
+
         return row
 
     def list_firewalls(self, org_id: str) -> list:

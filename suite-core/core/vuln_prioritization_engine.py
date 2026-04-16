@@ -17,6 +17,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -245,6 +251,14 @@ class VulnerabilityPrioritizationEngine:
                                :priority_score, :priority_tier, :risk_explanation, :created_at, :updated_at)""",
                     record,
                 )
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("FINDING_CREATED", {"entity_type": "vuln_prioritization", "org_id": org_id, "source_engine": "vuln_prioritization"})
+            except Exception:
+                pass
+
         return record
 
     def batch_score(self, org_id: str, vulnerabilities: List[Dict[str, Any]]) -> Dict[str, Any]:
