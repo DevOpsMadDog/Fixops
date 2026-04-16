@@ -309,7 +309,7 @@ class EventEmitter:
         for attempt in range(1, _MAX_RETRIES + 1):
             last_result["attempts"] = attempt
             try:
-                resp = requests.post(
+                resp = requests.post(  # nosemgrep: dynamic-urllib-use-detected
                     webhook["url"],
                     data=body,
                     headers=headers,

@@ -975,7 +975,7 @@ def _upload_findings(
         "findings": [f.to_dict() for f in filtered],
     }
     try:
-        resp = _requests.post(
+        resp = _requests.post(  # nosemgrep: dynamic-urllib-use-detected
             f"{server.rstrip('/')}/api/v1/scan/ingest",
             json=payload,
             headers={"X-API-Key": api_key},

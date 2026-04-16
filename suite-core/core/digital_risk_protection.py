@@ -378,11 +378,11 @@ class DRPEngine:
         """
         url = _CRT_SH_URL.format(domain=domain)
         try:
-            req = _urllib_request.Request(
+            req = _urllib_request.Request(  # nosemgrep: dynamic-urllib-use-detected
                 url,
                 headers={"User-Agent": "ALDECI-DRP/1.0"},
             )
-            with _urllib_request.urlopen(req, timeout=10) as resp:
+            with _urllib_request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 raw = resp.read()
                 certs = json.loads(raw)
                 if isinstance(certs, list):
@@ -462,11 +462,11 @@ class DRPEngine:
                 return list(_tor_cache)
 
             try:
-                req = _urllib_request.Request(
+                req = _urllib_request.Request(  # nosemgrep: dynamic-urllib-use-detected
                     _TOR_LIST_URL,
                     headers={"User-Agent": "ALDECI-DRP/1.0"},
                 )
-                with _urllib_request.urlopen(req, timeout=10) as resp:
+                with _urllib_request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
                     raw = resp.read().decode("utf-8", errors="replace")
                     nodes = [
                         line.strip()

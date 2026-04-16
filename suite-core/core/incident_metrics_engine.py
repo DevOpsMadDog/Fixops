@@ -249,7 +249,7 @@ class IncidentMetricsEngine:
                 if not row:
                     raise KeyError(f"Incident {incident_id!r} not found.")
                 conn.execute(
-                    f"UPDATE incident_records SET {col}=?, status=? WHERE incident_id=? AND org_id=?",
+                    f"UPDATE incident_records SET {col}=?, status=? WHERE incident_id=? AND org_id=?",  # nosec B608
                     (ts, new_status, incident_id, org_id),
                 )
                 updated = conn.execute(

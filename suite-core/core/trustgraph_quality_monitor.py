@@ -178,7 +178,7 @@ class TrustGraphQualityMonitor:
         Args:
             db_path: Path to TrustGraph SQLite DB. Defaults to /tmp/trustgraph.db.
         """
-        self.db_path = db_path or "/tmp/trustgraph.db"
+        self.db_path = db_path or "/tmp/trustgraph.db"  # nosec B108
         logger.info("TrustGraphQualityMonitor initialized with db=%s", self.db_path)
 
     def _get_conn(self) -> sqlite3.Connection:

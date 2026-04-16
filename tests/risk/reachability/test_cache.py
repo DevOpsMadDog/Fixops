@@ -427,5 +427,5 @@ class TestCacheErrorHandling:
             # Should not raise exception
             cache.set(result, "https://github.com/test/repo")
         finally:
-            # Restore permissions for cleanup
-            cache.cache_dir.chmod(0o755)
+            # Restore permissions for cleanup (owner read/write/execute only)
+            cache.cache_dir.chmod(0o700)  # nosec B103 — restrictive permissions for test cleanup

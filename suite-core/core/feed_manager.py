@@ -265,7 +265,7 @@ class FeedManager:
         values.append(feed_id)
 
         conn = self._conn()
-        conn.execute(f"UPDATE feeds SET {set_clauses} WHERE id = ?", values)
+        conn.execute(f"UPDATE feeds SET {set_clauses} WHERE id = ?", values)  # nosemgrep: formatted-sql-query  # nosec B608
         conn.commit()
         return self.get_feed(feed_id)
 

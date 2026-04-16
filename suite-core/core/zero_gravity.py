@@ -861,7 +861,7 @@ __all__ = [
 
 import collections
 import math
-import pickle as _pickle
+import pickle as _pickle  # nosec B403 -- pickle used for ML model serialization only
 import struct
 
 
@@ -1306,7 +1306,7 @@ class OnlineLearningStore:
             "model_id": model_id,
         }
         with open(save_path, "wb") as f:
-            _pickle.dump(state, f, protocol=4)
+            _pickle.dump(state, f, protocol=4)  # nosemgrep: avoid-pickle
         logger.info("OnlineLearningStore: saved model '%s' to %s", model_id, save_path)
         return str(save_path)
 
@@ -1335,7 +1335,7 @@ class OnlineLearningStore:
                 )
 
         with open(load_path, "rb") as f:
-            state = _pickle.load(f)  # nosec B301 — hash-verified above when sidecar present
+            state = _pickle.load(f)  # nosec B301 — hash-verified above when sidecar present  # nosemgrep: avoid-pickle
 
         self._models[model_id] = state["model"]
         self._sample_counts[model_id] = state.get("sample_count", 0)

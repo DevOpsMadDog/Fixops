@@ -329,7 +329,7 @@ class RiskQuantificationEngineV2:
                 if updates:
                     set_clause = ", ".join(f"{k} = ?" for k in updates)
                     conn.execute(
-                        f"UPDATE risk_scenarios SET {set_clause} WHERE id = ? AND org_id = ?",
+                        f"UPDATE risk_scenarios SET {set_clause} WHERE id = ? AND org_id = ?",  # nosec B608
                         list(updates.values()) + [scenario_id, org_id],
                     )
                     self._recompute_scenario(conn, scenario_id, org_id)

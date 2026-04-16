@@ -134,7 +134,7 @@ def _check_engine(
     try:
         conn = sqlite3.connect(str(db_path), timeout=5)
         try:
-            cur = conn.execute(f"SELECT COUNT(*) FROM {table}")  # noqa: S608
+            cur = conn.execute(f"SELECT COUNT(*) FROM {table}")  # noqa: S608  # nosec B608
             row = cur.fetchone()
             count = row[0] if row else 0
         finally:

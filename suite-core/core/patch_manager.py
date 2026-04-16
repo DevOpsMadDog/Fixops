@@ -181,7 +181,7 @@ class _PatchDB:
 
     def list_by_status(self, org_id: str, statuses: List[str]) -> List[Patch]:
         placeholders = ",".join("?" * len(statuses))
-        query = f"SELECT * FROM patches WHERE org_id = ? AND status IN ({placeholders})"
+        query = f"SELECT * FROM patches WHERE org_id = ? AND status IN ({placeholders})"  # nosec B608
         with self._lock:
             rows = self._conn.execute(query, [org_id] + statuses).fetchall()
         return [self._row_to_patch(r) for r in rows]

@@ -94,6 +94,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if _is_api:
             response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
+        # Demo-mode visibility header — signals to clients/proxies that auth is bypassed.
+        # auth_deps.py sets request.state.demo_mode=True when FIXOPS_MODE=demo/dev.
+        if getattr(request.state, "demo_mode", False):
+            response.headers["X-Demo-Mode"] = "true"
+
         return response
 
 

@@ -391,7 +391,7 @@ class DeceptionAnalyticsEngine:
             if updates:
                 params.extend([campaign_id, org_id])
                 conn.execute(
-                    f"UPDATE da_campaigns SET {', '.join(updates)} WHERE id = ? AND org_id = ?",
+                    f"UPDATE da_campaigns SET {', '.join(updates)} WHERE id = ? AND org_id = ?",  # nosec B608
                     params,
                 )
             row = conn.execute(

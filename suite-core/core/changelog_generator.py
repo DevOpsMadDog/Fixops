@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-import subprocess
+import subprocess  # nosec B404
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple

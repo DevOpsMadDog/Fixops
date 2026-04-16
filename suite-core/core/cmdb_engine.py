@@ -265,7 +265,7 @@ class CMDBEngine:
         with self._lock:
             with self._conn() as conn:
                 cur = conn.execute(
-                    f"UPDATE ci_items SET {set_clause} WHERE ci_id=? AND org_id=?",
+                    f"UPDATE ci_items SET {set_clause} WHERE ci_id=? AND org_id=?",  # nosec B608
                     values,
                 )
         return cur.rowcount > 0

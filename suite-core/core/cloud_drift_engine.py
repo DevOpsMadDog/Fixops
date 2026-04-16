@@ -169,7 +169,7 @@ class CloudDriftDetectionEngine:
         if environment:
             clauses.append("environment = ?")
             params.append(environment)
-        sql = f"SELECT * FROM drift_baselines WHERE {' AND '.join(clauses)} ORDER BY created_at DESC"
+        sql = f"SELECT * FROM drift_baselines WHERE {' AND '.join(clauses)} ORDER BY created_at DESC"  # nosec B608
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(sql, params).fetchall()
@@ -244,7 +244,7 @@ class CloudDriftDetectionEngine:
         if status:
             clauses.append("status = ?")
             params.append(status)
-        sql = f"SELECT * FROM drift_events WHERE {' AND '.join(clauses)} ORDER BY detected_at DESC"
+        sql = f"SELECT * FROM drift_events WHERE {' AND '.join(clauses)} ORDER BY detected_at DESC"  # nosec B608
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(sql, params).fetchall()

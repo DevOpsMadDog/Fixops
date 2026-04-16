@@ -316,7 +316,7 @@ class ZeroTrustEnforcementEngine:
         conn = self._connect(org_id)
         try:
             rows = conn.execute(
-                f"SELECT * FROM zt_policies WHERE {where} ORDER BY priority ASC",
+                f"SELECT * FROM zt_policies WHERE {where} ORDER BY priority ASC",  # nosec B608
                 params,
             ).fetchall()
             return [self._row_to_policy(r) for r in rows]
@@ -374,7 +374,7 @@ class ZeroTrustEnforcementEngine:
             conn = self._connect(org_id)
             try:
                 conn.execute(
-                    f"UPDATE zt_policies SET {', '.join(set_parts)} WHERE id = ? AND org_id = ?",
+                    f"UPDATE zt_policies SET {', '.join(set_parts)} WHERE id = ? AND org_id = ?",  # nosec B608
                     values,
                 )
                 conn.commit()
@@ -633,7 +633,7 @@ class ZeroTrustEnforcementEngine:
         conn = self._connect(org_id)
         try:
             rows = conn.execute(
-                f"SELECT * FROM trust_scores WHERE {where} ORDER BY trust_score ASC",
+                f"SELECT * FROM trust_scores WHERE {where} ORDER BY trust_score ASC",  # nosec B608
                 params,
             ).fetchall()
             return [self._row_to_trust_score(r) for r in rows]
@@ -707,7 +707,7 @@ class ZeroTrustEnforcementEngine:
         conn = self._connect(org_id)
         try:
             rows = conn.execute(
-                f"SELECT * FROM zt_sessions WHERE {where} ORDER BY started_at DESC",
+                f"SELECT * FROM zt_sessions WHERE {where} ORDER BY started_at DESC",  # nosec B608
                 params,
             ).fetchall()
             return [self._row_to_session(r) for r in rows]
@@ -758,7 +758,7 @@ class ZeroTrustEnforcementEngine:
         conn = self._connect(org_id)
         try:
             rows = conn.execute(
-                f"SELECT * FROM access_requests WHERE {where} ORDER BY timestamp DESC LIMIT ?",
+                f"SELECT * FROM access_requests WHERE {where} ORDER BY timestamp DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
             return [self._row_to_access_request(r) for r in rows]

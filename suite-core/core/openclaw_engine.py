@@ -504,7 +504,7 @@ class OpenClawEngine:
             clauses.append("campaign_type=?")
             params.append(campaign_type)
         query = (
-            f"SELECT * FROM swarm_campaigns WHERE {' AND '.join(clauses)} "
+            f"SELECT * FROM swarm_campaigns WHERE {' AND '.join(clauses)} "  # nosec B608
             "ORDER BY created_at DESC"
         )
         with self._conn() as conn:
@@ -695,7 +695,7 @@ class OpenClawEngine:
             clauses.append("status=?")
             params.append(status)
         query = (
-            f"SELECT * FROM campaign_tasks WHERE {' AND '.join(clauses)} ORDER BY rowid ASC"
+            f"SELECT * FROM campaign_tasks WHERE {' AND '.join(clauses)} ORDER BY rowid ASC"  # nosec B608
         )
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()
@@ -720,7 +720,7 @@ class OpenClawEngine:
             clauses.append("severity=?")
             params.append(severity)
         query = (
-            f"SELECT * FROM swarm_findings WHERE {' AND '.join(clauses)} "
+            f"SELECT * FROM swarm_findings WHERE {' AND '.join(clauses)} "  # nosec B608
             "ORDER BY cvss_score DESC, created_at DESC"
         )
         with self._conn() as conn:

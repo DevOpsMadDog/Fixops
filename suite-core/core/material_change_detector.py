@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
-import subprocess
+import subprocess  # nosec B404
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -619,7 +619,7 @@ class MaterialChangeResult:
 # ---------------------------------------------------------------------------
 
 _MC_DB_PATH = Path(
-    _os.environ.get("FIXOPS_DATA_DIR", "/tmp/fixops")
+    _os.environ.get("FIXOPS_DATA_DIR", "/tmp/fixops")  # nosec B108
 ) / "material_changes.db"
 
 
@@ -818,7 +818,7 @@ class PushEventAnalyzer:
         self, py_files: _List[str], repo_path: str
     ) -> _List[_Dict[str, _Any]]:
         """Run Bandit on Python files; return [] if unavailable."""
-        import subprocess
+        import subprocess  # nosec B404
 
         abs_files = [
             str(Path(repo_path) / f)

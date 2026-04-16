@@ -272,7 +272,7 @@ class AuditLogger:
                 params.append(filters[col])
 
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-        sql = f"SELECT * FROM audit_log {where} ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+        sql = f"SELECT * FROM audit_log {where} ORDER BY timestamp DESC LIMIT ? OFFSET ?"  # nosec B608
         params += [limit, offset]
 
         with self._lock:

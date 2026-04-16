@@ -23,7 +23,7 @@ class SecurityTester:
         }
 
         try:
-            response = requests.post(
+            response = requests.post(  # nosemgrep: dynamic-urllib-use-detected
                 f"{self.api_url}/api/v1/test",
                 json=test_data,
                 headers={"X-API-Key": self.api_key},

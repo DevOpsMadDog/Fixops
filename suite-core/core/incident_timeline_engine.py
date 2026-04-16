@@ -278,7 +278,7 @@ class IncidentTimelineEngine:
             with self._conn() as conn:
                 if ts_col in ("contained_at", "resolved_at"):
                     cur = conn.execute(
-                        f"UPDATE timelines SET status=?, {ts_col}=? WHERE org_id=? AND timeline_id=?",
+                        f"UPDATE timelines SET status=?, {ts_col}=? WHERE org_id=? AND timeline_id=?",  # nosec B608
                         (status, now, org_id, timeline_id),
                     )
                 else:

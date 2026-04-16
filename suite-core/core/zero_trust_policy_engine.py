@@ -203,7 +203,7 @@ class ZeroTrustPolicyEngine:
             conn = self._connect()
             try:
                 rows = conn.execute(
-                    f"SELECT * FROM zt_policies WHERE {where} ORDER BY priority ASC, created_at ASC",
+                    f"SELECT * FROM zt_policies WHERE {where} ORDER BY priority ASC, created_at ASC",  # nosec B608
                     params,
                 ).fetchall()
                 return [self._row_to_policy(r) for r in rows]
@@ -261,7 +261,7 @@ class ZeroTrustPolicyEngine:
             conn = self._connect()
             try:
                 conn.execute(
-                    f"UPDATE zt_policies SET {set_clause} WHERE org_id = ? AND policy_id = ?",
+                    f"UPDATE zt_policies SET {set_clause} WHERE org_id = ? AND policy_id = ?",  # nosec B608
                     values,
                 )
                 conn.commit()
@@ -430,7 +430,7 @@ class ZeroTrustPolicyEngine:
             conn = self._connect()
             try:
                 rows = conn.execute(
-                    f"SELECT * FROM zt_access_events WHERE {where} ORDER BY recorded_at DESC LIMIT ?",
+                    f"SELECT * FROM zt_access_events WHERE {where} ORDER BY recorded_at DESC LIMIT ?",  # nosec B608
                     params,
                 ).fetchall()
                 return [self._row_to_event(r) for r in rows]

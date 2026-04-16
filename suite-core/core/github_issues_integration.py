@@ -29,7 +29,7 @@ import os
 import re
 import shutil
 import sqlite3
-import subprocess
+import subprocess  # nosec B404
 import threading
 import time
 from dataclasses import dataclass, field

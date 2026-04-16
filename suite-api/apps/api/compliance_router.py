@@ -43,7 +43,7 @@ _engine = None
 
 _DB_PATH = os.environ.get(
     "COMPLIANCE_DB_PATH",
-    "/tmp/aldeci_compliance.db",
+    "/tmp/aldeci_compliance.db",  # nosec B108
 )
 
 

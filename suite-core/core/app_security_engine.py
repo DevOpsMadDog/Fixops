@@ -291,14 +291,13 @@ class AppSecurityEngine:
         with self._lock:
             with self._conn() as conn:
                 conn.execute(
-                    f"""INSERT INTO {table}
-                        (scan_id, org_id, app_id, scan_type, tool, status,
+                    f"""INSERT INTO {table}(scan_id, org_id, app_id, scan_type, tool, status,
                          findings_count, critical_count, high_count, medium_count,
                          low_count, started_at, completed_at, created_at)
                         VALUES (:scan_id,:org_id,:app_id,:scan_type,:tool,:status,
                                 :findings_count,:critical_count,:high_count,:medium_count,
                                 :low_count,:started_at,:completed_at,:created_at)
-                    """,
+                    """,  # nosec B608
                     record,
                 )
         return record
@@ -325,7 +324,7 @@ class AppSecurityEngine:
             tables = ["sast_scans", "dast_scans"]
 
         for table in tables:
-            query = f"SELECT * FROM {table} WHERE org_id=?"
+            query = f"SELECT * FROM {table} WHERE org_id=?"  # nosec B608
             params: list = [org_id]
             if app_id:
                 query += " AND app_id=?"

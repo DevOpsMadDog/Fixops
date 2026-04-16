@@ -431,8 +431,7 @@ class SQLInjectionPreventer:
                 request.query_params.get("sort", "created_at"),
                 allowed_columns={"created_at", "severity", "status"}
             )
-            cursor.execute(f"SELECT * FROM findings ORDER BY {sort_col}")  # nosec B608 — sort_col validated by allowlist above
-        """
+            cursor.execute(f"SELECT * FROM findings ORDER BY {sort_col}")"""
         if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", column):
             raise ValueError(
                 f"Column name contains invalid characters: {column!r}"

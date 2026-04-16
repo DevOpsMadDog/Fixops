@@ -343,7 +343,7 @@ class _SimulationDB:
             conn = self._connect()
             try:
                 rows = conn.execute(
-                    f"SELECT * FROM simulations WHERE id IN ({placeholders})",
+                    f"SELECT * FROM simulations WHERE id IN ({placeholders})",  # nosec B608
                     sim_ids,
                 ).fetchall()
             finally:

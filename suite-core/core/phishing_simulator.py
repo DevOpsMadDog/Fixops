@@ -331,7 +331,7 @@ class PhishingSimulator:
         db_path: Path to SQLite file (created if absent).
     """
 
-    def __init__(self, db_path: str = "/tmp/phishing_simulator.db") -> None:
+    def __init__(self, db_path: str = "/tmp/phishing_simulator.db") -> None:  # nosec B108
         self.db_path = db_path
         self._lock = threading.RLock()
         self._init_db()
@@ -435,7 +435,7 @@ class PhishingSimulator:
                 )
                 if counter_col:
                     conn.execute(
-                        f"UPDATE campaigns SET {counter_col} = {counter_col} + 1 WHERE id = ?",
+                        f"UPDATE campaigns SET {counter_col} = {counter_col} + 1 WHERE id = ?",  # nosec B608
                         (campaign_id,),
                     )
 
@@ -589,13 +589,13 @@ class PhishingSimulator:
 
                 placeholders = ",".join("?" * len(targeted_ids))
                 click_count = conn.execute(
-                    f"SELECT COUNT(*) FROM events WHERE campaign_id IN ({placeholders}) "
+                    f"SELECT COUNT(*) FROM events WHERE campaign_id IN ({placeholders}) "  # nosec B608
                     "AND email = ? AND event_type = 'click'",
                     (*targeted_ids, email),
                 ).fetchone()[0]
 
                 report_count = conn.execute(
-                    f"SELECT COUNT(*) FROM events WHERE campaign_id IN ({placeholders}) "
+                    f"SELECT COUNT(*) FROM events WHERE campaign_id IN ({placeholders}) "  # nosec B608
                     "AND email = ? AND event_type = 'report'",
                     (*targeted_ids, email),
                 ).fetchone()[0]

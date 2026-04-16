@@ -1053,7 +1053,7 @@ class IRPlaybookRunner:
 
         with self._lock:
             rows = self._conn.execute(
-                f"SELECT * FROM executions {where} ORDER BY started_at DESC LIMIT ?",
+                f"SELECT * FROM executions {where} ORDER BY started_at DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
         return [self._row_to_execution(r) for r in rows]

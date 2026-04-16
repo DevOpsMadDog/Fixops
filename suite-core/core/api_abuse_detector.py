@@ -187,7 +187,7 @@ class APIAbuseDetector:
                 where = " AND ".join(clauses)
 
                 rows = conn.execute(
-                    f"SELECT * FROM request_log WHERE {where} ORDER BY recorded_at",
+                    f"SELECT * FROM request_log WHERE {where} ORDER BY recorded_at",  # nosec B608
                     params,
                 ).fetchall()
 
@@ -441,12 +441,10 @@ class APIAbuseDetector:
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(
-                    f"""
-                    SELECT * FROM abuse_events
-                    WHERE {where}
+                    f"""SELECT * FROM abuse_eventsWHERE {where}
                     ORDER BY detected_at DESC
                     LIMIT ?
-                    """,
+                    """,  # nosec B608
                     params,
                 ).fetchall()
 

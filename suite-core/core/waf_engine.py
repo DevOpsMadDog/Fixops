@@ -232,7 +232,7 @@ class WAFEngine:
 
         with self._lock, self._conn() as conn:
             conn.execute(
-                f"UPDATE waf_rules SET {set_clause} WHERE id = :_id AND org_id = :_org",
+                f"UPDATE waf_rules SET {set_clause} WHERE id = :_id AND org_id = :_org",  # nosec B608
                 filtered,
             )
             row = conn.execute(

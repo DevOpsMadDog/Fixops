@@ -28,7 +28,7 @@ import socket
 import time
 import urllib.parse
 import uuid
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional
 

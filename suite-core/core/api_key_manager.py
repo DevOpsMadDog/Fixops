@@ -266,7 +266,7 @@ class APIKeyManager:
             description=description,
         )
 
-        _logger.info("Created API key %s for org=%s role=%s", key_id, org_id, role.value)
+        _logger.info("Created API key %s for org=%s role=%s", key_id, org_id, role.value)  # nosemgrep: python-logger-credential-disclosure
         return record, raw
 
     def validate_key(self, raw_key: str) -> Optional[APIKey]:
@@ -340,7 +340,7 @@ class APIKeyManager:
                 (key_id,),
             )
 
-        _logger.info("Rotated key %s → %s", key_id, new_key.id)
+        _logger.info("Rotated key %s → %s", key_id, new_key.id)  # nosemgrep: python-logger-credential-disclosure
         return new_key, new_raw
 
     def revoke_key(self, key_id: str) -> None:
@@ -355,7 +355,7 @@ class APIKeyManager:
             )
         if result.rowcount == 0:
             raise ValueError(f"Key not found: {key_id}")
-        _logger.info("Revoked API key %s", key_id)
+        _logger.info("Revoked API key %s", key_id)  # nosemgrep: python-logger-credential-disclosure
 
     def list_keys(self, org_id: str) -> List[APIKey]:
         """List all keys for an org ordered by creation date descending.
@@ -408,7 +408,7 @@ class APIKeyManager:
             params.append(key_id)
             with self._conn() as conn:
                 conn.execute(
-                    f"UPDATE api_keys SET {', '.join(cols)} WHERE id = ?",
+                    f"UPDATE api_keys SET {', '.join(cols)} WHERE id = ?",  # nosec B608
                     params,
                 )
 

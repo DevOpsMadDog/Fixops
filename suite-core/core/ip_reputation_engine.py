@@ -222,7 +222,7 @@ class IPReputationEngine:
         with self._lock:
             with self._get_conn() as conn:
                 rows = conn.execute(
-                    f"SELECT ip, score FROM ip_reputation WHERE org_id = ? AND ip IN ({placeholders})",
+                    f"SELECT ip, score FROM ip_reputation WHERE org_id = ? AND ip IN ({placeholders})",  # nosec B608
                     [org_id] + list(ips),
                 ).fetchall()
 

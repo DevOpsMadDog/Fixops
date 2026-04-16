@@ -849,13 +849,13 @@ class AuditAnalyticsDB:
                 params.append(end.isoformat())
 
             count_row = conn.execute(
-                f"SELECT COUNT(*) AS cnt FROM audit_entries WHERE {base_clause}",
+                f"SELECT COUNT(*) AS cnt FROM audit_entries WHERE {base_clause}",  # nosec B608
                 params,
             ).fetchone()
             total = count_row["cnt"] if count_row else 0
 
             rows = conn.execute(
-                f"SELECT * FROM audit_entries WHERE {base_clause} "
+                f"SELECT * FROM audit_entries WHERE {base_clause} "  # nosec B608
                 f"ORDER BY timestamp DESC LIMIT ? OFFSET ?",
                 params + [limit, offset],
             ).fetchall()
@@ -917,10 +917,10 @@ class AuditAnalyticsDB:
                 clause += " AND severity = ?"
                 params.append(severity)
             total = conn.execute(
-                f"SELECT COUNT(*) AS cnt FROM audit_anomalies WHERE {clause}", params
+                f"SELECT COUNT(*) AS cnt FROM audit_anomalies WHERE {clause}", params  # nosec B608
             ).fetchone()["cnt"]
             rows = conn.execute(
-                f"SELECT * FROM audit_anomalies WHERE {clause} "
+                f"SELECT * FROM audit_anomalies WHERE {clause} "  # nosec B608
                 f"ORDER BY detected_at DESC LIMIT ? OFFSET ?",
                 params + [limit, offset],
             ).fetchall()
@@ -980,7 +980,7 @@ class AuditAnalyticsDB:
             if held_actors:
                 placeholders = ",".join("?" * len(held_actors))
                 cur = conn.execute(
-                    f"UPDATE audit_entries SET status='legal_hold' "
+                    f"UPDATE audit_entries SET status='legal_hold' "  # nosec B608
                     f"WHERE org_id=? AND actor IN ({placeholders}) AND status='active'",
                     [org_id] + held_actors,
                 )

@@ -115,7 +115,7 @@ class MLDSAEngine:
         # Try production backends first
         try:
             import importlib.util
-            if importlib.util.find_spec("dilithium"):
+            if importlib.util.find_spec("dilithium"):  # nosemgrep: non-literal-import
                 return "dilithium-py"
         except (ImportError, ValueError):
             pass

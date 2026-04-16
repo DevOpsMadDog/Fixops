@@ -491,7 +491,7 @@ class ChangeManagementDB:
             where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
             params.extend([limit, offset])
             rows = conn.execute(
-                f"SELECT data FROM change_requests {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                f"SELECT data FROM change_requests {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",  # nosec B608
                 params,
             ).fetchall()
             return [ChangeRequest.model_validate_json(r["data"]) for r in rows]
@@ -519,7 +519,7 @@ class ChangeManagementDB:
                 params.append(since.isoformat())
             where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
             row = conn.execute(
-                f"SELECT COUNT(*) as c FROM change_requests {where}", params
+                f"SELECT COUNT(*) as c FROM change_requests {where}", params  # nosec B608
             ).fetchone()
             return row["c"] if row else 0
         finally:

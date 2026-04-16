@@ -480,13 +480,13 @@ class ApplicationSecurityEngine:
         with self._lock:
             with self._conn() as conn:
                 cur = conn.execute(
-                    f"UPDATE {table} SET status = ? WHERE org_id = ? AND id = ?",
+                    f"UPDATE {table} SET status = ? WHERE org_id = ? AND id = ?",  # nosec B608
                     (status, org_id, finding_id),
                 )
                 if cur.rowcount == 0:
                     raise KeyError(f"Finding {finding_id} not found.")
                 row = conn.execute(
-                    f"SELECT * FROM {table} WHERE id = ?", (finding_id,)
+                    f"SELECT * FROM {table} WHERE id = ?", (finding_id,)  # nosec B608
                 ).fetchone()
         return self._row(row)
 

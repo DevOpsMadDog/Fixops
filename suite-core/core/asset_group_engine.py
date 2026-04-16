@@ -359,7 +359,7 @@ class AssetGroupEngine:
                 return []
             placeholders = ",".join("?" * len(group_ids))
             rows = conn.execute(
-                f"SELECT * FROM asset_groups WHERE id IN ({placeholders}) AND org_id = ?",
+                f"SELECT * FROM asset_groups WHERE id IN ({placeholders}) AND org_id = ?",  # nosec B608
                 group_ids + [org_id],
             ).fetchall()
         return [self._row(r) for r in rows]

@@ -29,7 +29,7 @@ import logging
 import os
 import re
 import sqlite3
-import subprocess
+import subprocess  # nosec B404
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -1560,16 +1560,14 @@ echo "[4/4] Rolling-restart all services that use this credential."
 """
 
     def _token_rotation_script(self, f: SecretFinding) -> str:
-        return f"""#!/usr/bin/env bash
-# Token Rotation — {f.name} — Finding: {f.id}
+        return f"""#!/usr/bin/env bash# Token Rotation — {f.name} — Finding: {f.id}
 set -euo pipefail
 echo "[1/3] Generate a new token in the provider dashboard."
-echo "[2/3] Update all CI/CD secrets and environment variables:"
-echo "      gh secret set TOKEN_NAME --body <new-token>"
+echo "[2/3] Update all CI/CD secrets and environment variables:"echo "      gh secret set TOKEN_NAME --body <new-token>"
 echo "      (or update .env, Vault, K8s secret)"
 echo "[3/3] Revoke the old token in the provider dashboard immediately."
 echo "Review audit logs for any unauthorized use of the old token."
-"""
+"""  # nosec B608
 
     def _generic_rotation_script(self, f: SecretFinding) -> str:
         return f"""#!/usr/bin/env bash

@@ -290,7 +290,7 @@ class EndpointSecurityEngine:
             params.append(severity)
 
         where = " AND ".join(conditions)
-        query = f"SELECT * FROM edr_alerts WHERE {where} ORDER BY created_at DESC"
+        query = f"SELECT * FROM edr_alerts WHERE {where} ORDER BY created_at DESC"  # nosec B608
 
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()

@@ -530,7 +530,7 @@ class SecurityGapAnalysisEngine:
             if gap_ids:
                 placeholders = ",".join("?" * len(gap_ids))
                 plans = conn.execute(
-                    f"SELECT * FROM gap_remediation_plans WHERE gap_id IN ({placeholders}) AND org_id = ?",
+                    f"SELECT * FROM gap_remediation_plans WHERE gap_id IN ({placeholders}) AND org_id = ?",  # nosec B608
                     gap_ids + [org_id],
                 ).fetchall()
 

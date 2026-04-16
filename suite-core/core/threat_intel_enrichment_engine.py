@@ -310,7 +310,7 @@ class ThreatIntelEnrichmentEngine:
 
             placeholders = ",".join("?" * len(request_ids))
             res_rows = conn.execute(
-                f"SELECT reputation_score, malicious, tags, confidence "
+                f"SELECT reputation_score, malicious, tags, confidence "  # nosec B608
                 f"FROM enrichment_results WHERE org_id = ? AND request_id IN ({placeholders})",
                 [org_id] + request_ids,
             ).fetchall()

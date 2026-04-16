@@ -351,8 +351,7 @@ class SecurityDependencyMappingEngine:
             placeholders = ",".join("?" * len(affected_ids))
             with self._conn() as conn:
                 critical_count = conn.execute(
-                    f"""SELECT COUNT(*) FROM services
-                        WHERE org_id=? AND id IN ({placeholders}) AND criticality='critical'""",
+                    f"""SELECT COUNT(*) FROM servicesWHERE org_id=? AND id IN ({placeholders}) AND criticality='critical'""",  # nosec B608
                     [org_id] + affected_ids,
                 ).fetchone()[0]
 

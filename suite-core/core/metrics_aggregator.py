@@ -351,7 +351,7 @@ class MetricsAggregator:
         ]:
             try:
                 import importlib
-                importlib.import_module(module_path)
+                importlib.import_module(module_path)  # nosemgrep: non-literal-import
                 services[name] = "ok"
             except Exception:
                 services[name] = "unavailable"

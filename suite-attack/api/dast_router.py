@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/v1/dast", tags=["DAST"])
 # ---------------------------------------------------------------------------
 
 _BLOCKED_HOSTS = frozenset({
-    "localhost", "127.0.0.1", "::1", "0.0.0.0",
+    "localhost", "127.0.0.1", "::1", "0.0.0.0",  # nosec B104 — SSRF blocklist, not a bind call
     "metadata.google.internal", "169.254.169.254",
 })
 

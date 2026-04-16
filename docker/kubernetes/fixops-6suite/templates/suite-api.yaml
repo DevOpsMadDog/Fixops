@@ -27,6 +27,12 @@ spec:
           ports:
             - containerPort: {{ .Values.suiteApi.service.port }}
               protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
           env:
             {{- include "aldeci.globalEnv" . | nindent 12 }}
             - name: SUITE_CORE_URL

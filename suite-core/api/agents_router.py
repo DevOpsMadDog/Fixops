@@ -1136,7 +1136,7 @@ async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
             f'    """Check if target is vulnerable to {request.cve_id}."""\n'
             f"    # SAFE: This only checks version/headers, does NOT exploit\n"
             f"    try:\n"
-            f"        resp = requests.get(target, timeout=10, verify=True)\n"
+            f"        resp = requests.get(target, timeout=10, verify=True)\n"  # nosemgrep: dynamic-urllib-use-detected
             f"        headers = dict(resp.headers)\n"
             f"        return {{\n"
             f"            'cve_id': '{request.cve_id}',\n"

@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-import xml.etree.ElementTree as ET  # noqa: B405 — defusedxml.defuse_stdlib() called below
+import xml.etree.ElementTree as ET  # noqa: B405 — defusedxml.defuse_stdlib() called below  # nosec B405
 from typing import Any, Dict, List, Optional
 
 # Harden stdlib XML parsers against XXE/entity-expansion attacks.

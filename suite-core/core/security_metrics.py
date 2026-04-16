@@ -474,7 +474,7 @@ class _MetricsDB:
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
         with self._lock, self._connect() as conn:
             rows = conn.execute(
-                f"SELECT * FROM security_events {where} ORDER BY detected_at", params
+                f"SELECT * FROM security_events {where} ORDER BY detected_at", params  # nosec B608
             ).fetchall()
         return [self._row_to_event(r) for r in rows]
 

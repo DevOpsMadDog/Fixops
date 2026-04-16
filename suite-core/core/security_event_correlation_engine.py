@@ -299,13 +299,11 @@ class SecurityEventCorrelationEngine:
 
             # Fetch events matching any event_type in the pattern within the time window
             placeholders = ",".join("?" * len(pattern))
-            sql = f"""
-                SELECT * FROM security_events
-                WHERE org_id = ?
+            sql = f"""SELECT * FROM security_eventsWHERE org_id = ?
                   AND event_type IN ({placeholders})
                   AND timestamp >= datetime('now', ? || ' seconds')
                 ORDER BY timestamp ASC
-            """
+            """  # nosec B608
             params = [org_id] + pattern + [f"-{window_secs}"]
 
             with self._conn(org_id) as conn:

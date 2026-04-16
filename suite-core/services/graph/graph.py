@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-import subprocess
+import subprocess  # nosec B404
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime

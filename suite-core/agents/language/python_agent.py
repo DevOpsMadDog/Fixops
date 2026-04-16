@@ -51,7 +51,7 @@ class PythonAgent(CodeRepoAgent):
         """Collect SARIF using OSS tools as fallback."""
         try:
             import json
-            import subprocess
+            import subprocess  # nosec B404
 
             # Try Semgrep
             result = subprocess.run(

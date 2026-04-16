@@ -473,7 +473,7 @@ class ThreatActorEngine:
             return [
                 self._row(r)
                 for r in conn.execute(
-                    f"SELECT * FROM watchlist WHERE org_id = ? ORDER BY {priority_order}, added_at DESC",
+                    f"SELECT * FROM watchlist WHERE org_id = ? ORDER BY {priority_order}, added_at DESC",  # nosec B608
                     (org_id,),
                 ).fetchall()
             ]

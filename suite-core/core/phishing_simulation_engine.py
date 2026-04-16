@@ -295,13 +295,13 @@ class PhishingSimulationEngine:
                 # Set the action column and click_time for clicked action
                 if action == "clicked":
                     conn.execute(
-                        f"UPDATE targets SET {col}=1, click_time=?, updated_at=? "
+                        f"UPDATE targets SET {col}=1, click_time=?, updated_at=? "  # nosec B608
                         "WHERE target_id=? AND org_id=?",
                         (now, now, target_id, org_id),
                     )
                 else:
                     conn.execute(
-                        f"UPDATE targets SET {col}=1, updated_at=? "
+                        f"UPDATE targets SET {col}=1, updated_at=? "  # nosec B608
                         "WHERE target_id=? AND org_id=?",
                         (now, target_id, org_id),
                     )

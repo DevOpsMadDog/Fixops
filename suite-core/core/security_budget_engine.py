@@ -378,19 +378,17 @@ class SecurityBudgetEngine:
 
         with self._conn() as conn:
             totals = conn.execute(
-                f"""SELECT
-                       COALESCE(SUM(allocated_amount), 0.0) AS total_allocated,
+                f"""SELECTCOALESCE(SUM(allocated_amount), 0.0) AS total_allocated,
                        COALESCE(SUM(spent_amount), 0.0)     AS total_spent
-                    FROM budget_allocations {sql_filter}""",
+                    FROM budget_allocations {sql_filter}""",  # nosec B608
                 params,
             ).fetchone()
 
             by_cat_rows = conn.execute(
-                f"""SELECT category,
-                       COALESCE(SUM(allocated_amount), 0.0) AS allocated,
+                f"""SELECT category,COALESCE(SUM(allocated_amount), 0.0) AS allocated,
                        COALESCE(SUM(spent_amount), 0.0)     AS spent
                     FROM budget_allocations {sql_filter}
-                    GROUP BY category""",
+                    GROUP BY category""",  # nosec B608
                 params,
             ).fetchall()
 

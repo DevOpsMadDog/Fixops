@@ -43,10 +43,10 @@ def _persist_model(model: Any, path: Path) -> None:
         _joblib.dump(model, path)
         return
 
-    import pickle
+    import pickle  # nosec B403 -- pickle used for ML model serialization only
 
     with path.open("wb") as handle:
-        pickle.dump(model, handle)
+        pickle.dump(model, handle)  # nosemgrep: avoid-pickle
 
 
 def _restore_model(path: Path) -> Any:
@@ -58,7 +58,7 @@ def _restore_model(path: Path) -> Any:
     # Guard: verify SHA-256 hash of the file against a sidecar .sha256 file
     # before deserializing to reduce (not eliminate) RCE risk from tampered files.
     import hashlib
-    import pickle
+    import pickle  # nosec B403 -- pickle used for ML model serialization only
 
     sha256_path = path.with_suffix(path.suffix + ".sha256")
     if sha256_path.exists():
@@ -71,7 +71,7 @@ def _restore_model(path: Path) -> Any:
             )
 
     with path.open("rb") as handle:
-        return pickle.load(handle)  # nosec B301 — hash-verified above
+        return pickle.load(handle)  # nosec B301 — hash-verified above  # nosemgrep: avoid-pickle
 
 
 def compute_bn_cpd_hash() -> str:

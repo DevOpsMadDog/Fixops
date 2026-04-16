@@ -355,7 +355,7 @@ class ScheduledReportsEngine:
         if not set_clauses:
             return existing
 
-        sql = f"UPDATE report_schedules SET {', '.join(set_clauses)} WHERE org_id = ? AND id = ?"
+        sql = f"UPDATE report_schedules SET {', '.join(set_clauses)} WHERE org_id = ? AND id = ?"  # nosec B608
         params.extend([org_id, schedule_id])
 
         with self._lock:
@@ -543,13 +543,13 @@ class ScheduledReportsEngine:
         }
         try:
             body = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
+            req = urllib.request.Request(  # nosemgrep: dynamic-urllib-use-detected
                 webhook_url,
                 data=body,
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 if resp.status == 200:
                     return "sent", ""
                 return "failed", f"HTTP {resp.status}"

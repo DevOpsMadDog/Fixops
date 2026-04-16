@@ -247,7 +247,7 @@ class GitHubSecurityClient:
             if params:
                 query.update(params)
             try:
-                response = requests.get(
+                response = requests.get(  # nosemgrep: dynamic-urllib-use-detected
                     url, headers=headers, params=query, timeout=self.timeout
                 )
                 response.raise_for_status()
@@ -287,7 +287,7 @@ class GitHubSecurityClient:
             "X-GitHub-Api-Version": self.GITHUB_API_VERSION,
         }
         try:
-            response = requests.patch(url, headers=headers, json=payload, timeout=self.timeout)
+            response = requests.patch(url, headers=headers, json=payload, timeout=self.timeout)  # nosemgrep: dynamic-urllib-use-detected
             response.raise_for_status()
             return response.json()
         except Exception as exc:
@@ -332,7 +332,7 @@ class GitHubSecurityClient:
         GET /repos/{owner}/{repo}/secret-scanning/alerts
         """
         if not self.is_configured():
-            logger.info("GitHubSecurityClient not configured — returning mock secret scanning alerts")
+            logger.info("GitHubSecurityClient not configured — returning mock secret scanning alerts")  # nosemgrep: python-logger-credential-disclosure
             return list(_MOCK_SECRET_SCANNING_ALERTS)
         path = f"/repos/{self.owner}/{self.repo}/secret-scanning/alerts"
         return self._get(path, {"state": "open"})

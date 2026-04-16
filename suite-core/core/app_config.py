@@ -922,7 +922,7 @@ _EXAMPLE_YAML = textwrap.dedent("""\
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    mgr = AppConfigManager(db_path=Path("/tmp/test_app_configs.db"))
+    mgr = AppConfigManager(db_path=Path("/tmp/test_app_configs.db"))  # nosec B108
     config = mgr.load_from_string(_EXAMPLE_YAML)
     print("Parsed:", config.app_id, config.name)
     mgr.register_app(config)

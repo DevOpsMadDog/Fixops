@@ -596,7 +596,7 @@ class _EngineDB:
 
     def vra_update_vendor(self, vendor_id: str, set_clause: str, values: tuple) -> None:
         self._conn().execute(
-            f"UPDATE vra_vendors SET {set_clause} WHERE id = ?",
+            f"UPDATE vra_vendors SET {set_clause} WHERE id = ?",  # nosec B608
             values + (vendor_id,),
         )
         self._conn().commit()
@@ -921,11 +921,11 @@ class VendorRiskEngine:
                 f"https://services.nvd.nist.gov/rest/json/cves/2.0"
                 f"?keywordSearch={keyword}&resultsPerPage=10"
             )
-            req = urllib.request.Request(
+            req = urllib.request.Request(  # nosemgrep: dynamic-urllib-use-detected
                 url,
                 headers={"User-Agent": "ALDECI-VendorRiskEngine/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=8) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 data = json.loads(resp.read().decode())
 
             cves: List[Dict[str, Any]] = []

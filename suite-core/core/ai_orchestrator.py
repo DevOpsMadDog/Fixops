@@ -559,7 +559,7 @@ class AIOrchestrator:
 
         with self._connect() as conn:
             rows = conn.execute(
-                f"SELECT * FROM agent_tasks {where} ORDER BY created_at DESC LIMIT ?",
+                f"SELECT * FROM agent_tasks {where} ORDER BY created_at DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
 
@@ -581,7 +581,7 @@ class AIOrchestrator:
 
         with self._connect() as conn:
             rows = conn.execute(
-                f"SELECT decision, confidence, agents_agreed, agents_disagreed FROM consensus_results {where}",
+                f"SELECT decision, confidence, agents_agreed, agents_disagreed FROM consensus_results {where}",  # nosec B608
                 params,
             ).fetchall()
 

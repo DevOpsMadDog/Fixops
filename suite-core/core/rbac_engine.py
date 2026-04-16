@@ -341,7 +341,7 @@ class RBACEngine:
 
         with self._get_conn() as conn:
             rows = conn.execute(
-                f"SELECT * FROM audit_trail {where} ORDER BY ts DESC LIMIT ?",
+                f"SELECT * FROM audit_trail {where} ORDER BY ts DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
         return [dict(r) for r in rows]

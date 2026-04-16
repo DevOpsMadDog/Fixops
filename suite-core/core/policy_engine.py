@@ -780,7 +780,7 @@ def get_policy_engine(db_path: Optional[str] = None) -> PolicyEngine:
                 import os
 
                 path = db_path or os.getenv(
-                    "FIXOPS_POLICY_DB", "/tmp/fixops_policy_engine.db"
+                    "FIXOPS_POLICY_DB", "/tmp/fixops_policy_engine.db"  # nosec B108
                 )
                 _engine_instance = PolicyEngine(db_path=path)
     return _engine_instance

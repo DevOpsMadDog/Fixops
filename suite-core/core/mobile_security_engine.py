@@ -243,7 +243,7 @@ class MobileSecurityEngine:
         with self._lock:
             with self._conn() as conn:
                 cur = conn.execute(
-                    f"UPDATE mobile_devices SET {set_clause} WHERE device_id=? AND org_id=?",
+                    f"UPDATE mobile_devices SET {set_clause} WHERE device_id=? AND org_id=?",  # nosec B608
                     values,
                 )
         return cur.rowcount > 0

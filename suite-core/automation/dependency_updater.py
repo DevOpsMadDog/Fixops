@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-import subprocess
+import subprocess  # nosec B404
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum

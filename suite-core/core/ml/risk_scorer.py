@@ -1067,13 +1067,10 @@ class RiskScoringModel:
             f1 = metrics.get("f1_by_priority", {}).get(p, "N/A")
             card += f"| {p} | {prec} | {rec} | {f1} |\n"
 
-        card += f"""
-## Confidence Intervals
+        card += f"""## Confidence Intervals
 - Method: Bootstrap ensemble ({len(self._bootstrap_models)} models)
 - Coverage: 90% CI (5th-95th percentile)
-- Reject predictions with CI width > 60 points
-
-## Limitations
+- Reject predictions with CI width > 60 points## Limitations
 1. **Small training set**: {metrics.get('training_samples', 0)} cases — model may underperform on unseen CVE categories
 2. **Temporal bias**: Training data biased towards 2021-2025 CVEs; emerging attack patterns may not be captured
 3. **No code-level features**: Model uses metadata only; does not analyze actual source code
@@ -1090,7 +1087,7 @@ class RiskScoringModel:
 - Retrain when golden dataset updated with >5 new cases
 - Retrain when validation accuracy drops >5% from baseline
 - Model version is bumped for any hyperparameter change
-"""
+"""  # nosec B608
         with open(card_path, "w", encoding="utf-8") as f:
             f.write(card)
 

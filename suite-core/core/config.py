@@ -278,7 +278,7 @@ class ALDECIConfig(BaseModel):
         return cls(
             # API
             api_port=_env_int("ALDECI_PORT", 8000),
-            api_host=_env("FIXOPS_HOST", "0.0.0.0"),
+            api_host=_env("FIXOPS_HOST", "0.0.0.0"),  # nosec B104 — intentional for container networking, overridable via FIXOPS_HOST env var
             api_workers=_env_int("FIXOPS_WORKERS", 1),
             api_mode=_env("FIXOPS_MODE", "enterprise"),
             disable_rate_limit=_env_bool("FIXOPS_DISABLE_RATE_LIMIT", False),
@@ -303,7 +303,7 @@ class ALDECIConfig(BaseModel):
             data_dir=_env("FIXOPS_DATA_DIR", ".fixops_data"),
             db_path=_env("FIXOPS_DB_PATH", ""),
             sqlite_wal_mode=_env_bool("FIXOPS_SQLITE_WAL", True),
-            reports_dir=_env("FIXOPS_REPORTS_DIR", "/tmp/fixops_reports"),
+            reports_dir=_env("FIXOPS_REPORTS_DIR", "/tmp/fixops_reports"),  # nosec B108
             retention_days=_env_int("FIXOPS_RETENTION_DAYS", 365),
             # Queue
             queue_mode=_env("FIXOPS_QUEUE_MODE", "local"),

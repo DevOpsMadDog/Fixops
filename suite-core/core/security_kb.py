@@ -810,7 +810,7 @@ class SecurityKnowledgeBase:
 
             params.append(article_id)
             conn.execute(
-                f"UPDATE articles SET {', '.join(set_parts)} WHERE id = ?",  # noqa: S608
+                f"UPDATE articles SET {', '.join(set_parts)} WHERE id = ?",  # noqa: S608  # nosec B608
                 params,
             )
             conn.commit()

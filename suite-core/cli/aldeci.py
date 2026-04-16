@@ -41,7 +41,7 @@ def api_get(endpoint: str):
     """Make GET request to API."""
     url = f"{DEFAULT_API_URL}{endpoint}"
     try:
-        resp = requests.get(url, headers=get_api_headers(), timeout=30)
+        resp = requests.get(url, headers=get_api_headers(), timeout=30)  # nosemgrep: dynamic-urllib-use-detected
         resp.raise_for_status()
         return resp.json()
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
@@ -53,7 +53,7 @@ def api_post(endpoint: str, data: dict):
     """Make POST request to API."""
     url = f"{DEFAULT_API_URL}{endpoint}"
     try:
-        resp = requests.post(url, headers=get_api_headers(), json=data, timeout=60)
+        resp = requests.post(url, headers=get_api_headers(), json=data, timeout=60)  # nosemgrep: dynamic-urllib-use-detected
         resp.raise_for_status()
         return resp.json()
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
@@ -120,7 +120,7 @@ def scan(ctx, target: str, scan_type: str, format: str, output: Optional[str]):
     # Determine if this is a path or other target
     if os.path.exists(target):
         # Use fixops scan for file paths
-        from subprocess import run
+        from subprocess import run  # nosec B404
 
         result = run(
             ["fixops", "scan", target, "--format", format],

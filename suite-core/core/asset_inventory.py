@@ -546,7 +546,7 @@ class _InventoryDB:
         where = " AND ".join(conditions)
         with self._lock:
             rows = self._conn.execute(
-                f"SELECT * FROM asset_relationships WHERE {where}", params
+                f"SELECT * FROM asset_relationships WHERE {where}", params  # nosec B608
             ).fetchall()
         return [self._row_to_rel(r) for r in rows]
 

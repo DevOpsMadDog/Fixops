@@ -450,7 +450,7 @@ class ReportBuilder:
             conn = self._connect()
             try:
                 conn.execute(
-                    f"UPDATE report_templates SET {', '.join(set_parts)} WHERE id = ?",
+                    f"UPDATE report_templates SET {', '.join(set_parts)} WHERE id = ?",  # nosec B608
                     values,
                 )
                 conn.commit()

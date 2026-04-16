@@ -226,7 +226,7 @@ class IncidentOrchestrationEngine:
                 set_clauses = ", ".join(f"{k} = ?" for k in updates)
                 values = list(updates.values()) + [org_id, incident_id]
                 conn.execute(
-                    f"UPDATE incidents SET {set_clauses} WHERE org_id = ? AND id = ?",
+                    f"UPDATE incidents SET {set_clauses} WHERE org_id = ? AND id = ?",  # nosec B608
                     values,
                 )
                 updated = conn.execute(

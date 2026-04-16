@@ -252,7 +252,7 @@ class RiskQuantificationEngine:
         with self._lock:
             with self._conn() as conn:
                 cur = conn.execute(
-                    f"UPDATE risk_scenarios SET {set_clause} WHERE scenario_id=? AND org_id=?",
+                    f"UPDATE risk_scenarios SET {set_clause} WHERE scenario_id=? AND org_id=?",  # nosec B608
                     values,
                 )
         return cur.rowcount > 0

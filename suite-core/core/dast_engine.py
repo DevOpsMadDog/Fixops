@@ -149,11 +149,11 @@ class AuthSessionManager:
 
     def _auth_bearer(self) -> bool:
         if not self.config.bearer_token:
-            logger.error("Bearer token not provided")
+            logger.error("Bearer token not provided")  # nosemgrep: python-logger-credential-disclosure
             return False
         self._auth_headers["Authorization"] = f"Bearer {self.config.bearer_token}"
         self._authenticated = True
-        logger.info("DAST auth: Bearer token configured")
+        logger.info("DAST auth: Bearer token configured")  # nosemgrep: python-logger-credential-disclosure
         return True
 
     def _auth_basic(self) -> bool:
@@ -171,11 +171,11 @@ class AuthSessionManager:
 
     def _auth_api_key(self) -> bool:
         if not self.config.api_key_value:
-            logger.error("API key value not provided")
+            logger.error("API key value not provided")  # nosemgrep: python-logger-credential-disclosure
             return False
         self._auth_headers[self.config.api_key_header] = self.config.api_key_value
         self._authenticated = True
-        logger.info("DAST auth: API key configured in header '%s'", self.config.api_key_header)
+        logger.info("DAST auth: API key configured in header '%s'", self.config.api_key_header)  # nosemgrep: python-logger-credential-disclosure
         return True
 
     def _auth_cookie(self) -> bool:
@@ -264,7 +264,7 @@ class AuthSessionManager:
                 if access_token:
                     self._auth_headers["Authorization"] = f"Bearer {access_token}"
                     self._authenticated = True
-                    logger.info("DAST auth: OAuth2 token obtained")
+                    logger.info("DAST auth: OAuth2 token obtained")  # nosemgrep: python-logger-credential-disclosure
                     return True
             logger.warning("DAST OAuth2 auth failed: status=%d", resp.status_code)
             return False
@@ -615,7 +615,7 @@ class DASTEngine:
             ("192.168.0.0", "192.168.255.255"),    # RFC 1918
             ("127.0.0.0", "127.255.255.255"),      # Loopback
             ("169.254.0.0", "169.254.255.255"),    # Link-local / AWS metadata
-            ("0.0.0.0", "0.255.255.255"),          # Current network
+            ("0.0.0.0", "0.255.255.255"),          # Current network  # nosec B104 — SSRF blocklist range, not a bind call
             ("100.64.0.0", "100.127.255.255"),     # Shared address space (RFC 6598)
         ]
         cls._BLOCKED_RANGES = [(cls._ip_to_int(s), cls._ip_to_int(e)) for s, e in ranges]
@@ -649,7 +649,7 @@ class DASTEngine:
             raise ValueError("Missing hostname in target URL")
 
         # Block obvious localhost patterns
-        _blocked_hosts = {"localhost", "0.0.0.0", "::1", "[::1]", "ip6-localhost"}
+        _blocked_hosts = {"localhost", "0.0.0.0", "::1", "[::1]", "ip6-localhost"}  # nosec B104 — SSRF check, not a bind call
         if hostname.lower() in _blocked_hosts:
             raise ValueError(f"Blocked target: {hostname} (loopback/localhost)")
 

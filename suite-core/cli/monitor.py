@@ -20,7 +20,7 @@ class RuntimeMonitor:
     def analyze(self) -> str:
         """Analyze current runtime state."""
         try:
-            response = requests.get(
+            response = requests.get(  # nosemgrep: dynamic-urllib-use-detected
                 f"{self.api_url}/api/v1/runtime/analyze",
                 headers={"X-API-Key": self.api_key},
                 timeout=30,

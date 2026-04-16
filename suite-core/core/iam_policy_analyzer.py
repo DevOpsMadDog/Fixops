@@ -188,7 +188,7 @@ class IAMPolicyAnalyzerEngine:
         if principal_type:
             clauses.append("principal_type = ?")
             params.append(principal_type)
-        sql = f"SELECT * FROM iam_policies WHERE {' AND '.join(clauses)} ORDER BY created_at DESC"
+        sql = f"SELECT * FROM iam_policies WHERE {' AND '.join(clauses)} ORDER BY created_at DESC"  # nosec B608
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(sql, params).fetchall()

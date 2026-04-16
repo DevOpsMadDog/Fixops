@@ -138,7 +138,7 @@ class NamespaceAdapterProvider(FeatureFlagProvider):
             result = method(key, default, context)
             return result, result != default
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-            logger.debug("Canonical lookup failed for %s: %s", key, exc)
+            logger.debug("Canonical lookup failed for %s: %s", key, exc)  # nosemgrep: python-logger-credential-disclosure
             return default, False
 
     def bool(

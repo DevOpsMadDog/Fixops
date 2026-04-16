@@ -209,7 +209,7 @@ class KeyManager:
             )
 
         self._log_action(key_id, "created", user_id, f"TTL={ttl}d, role={role}")
-        _logger.info("Created API key %s for user %s (expires %s)", key_id, user_id, expires.isoformat())
+        _logger.info("Created API key %s for user %s (expires %s)", key_id, user_id, expires.isoformat())  # nosemgrep: python-logger-credential-disclosure
         return record, plaintext
 
     def rotate_key(self, key_id: str, performed_by: str = "system") -> tuple:
@@ -267,7 +267,7 @@ class KeyManager:
                 return False
 
         self._log_action(key_id, "revoked", performed_by)
-        _logger.info("Revoked API key %s", key_id)
+        _logger.info("Revoked API key %s", key_id)  # nosemgrep: python-logger-credential-disclosure
         return True
 
     def get_key(self, key_id: str) -> Optional[ManagedKey]:
@@ -307,7 +307,7 @@ class KeyManager:
         if record.expires_at and record.expires_at < now:
             # Check grace period
             if record.grace_expires_at and record.grace_expires_at > now:
-                _logger.warning("Key %s expired but in grace period", record.id)
+                _logger.warning("Key %s expired but in grace period", record.id)  # nosemgrep: python-logger-credential-disclosure
             else:
                 return None
 

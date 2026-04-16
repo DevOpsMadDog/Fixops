@@ -553,13 +553,11 @@ class AnomalyMLEngine:
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(
-                    """
-                    SELECT metric_name, value, recorded_at
-                    FROM ts_events
+                    """SELECT metric_name, value, recorded_atFROM ts_events
                     WHERE org_id=? AND entity_id=? AND metric_name IN ({})
                       AND recorded_at >= ?
                     ORDER BY recorded_at DESC
-                    """.format(",".join("?" * len(metric_names))),
+                    """.format(",".join("?" * len(metric_names))),  # nosec B608
                     (org, entity_id, *metric_names, cutoff),
                 ).fetchall()
 

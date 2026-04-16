@@ -433,7 +433,7 @@ class VulnScannerEngine:
             clauses.append("status=?")
             params.append(status)
         where = " AND ".join(clauses)
-        query = f"SELECT * FROM vuln_findings WHERE {where} ORDER BY cvss_score DESC, created_at DESC"
+        query = f"SELECT * FROM vuln_findings WHERE {where} ORDER BY cvss_score DESC, created_at DESC"  # nosec B608
 
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()

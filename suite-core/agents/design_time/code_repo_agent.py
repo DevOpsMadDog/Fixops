@@ -39,7 +39,7 @@ class CodeRepoAgent(BaseAgent):
 
             # Clone or update repository
             repo_name = self.repo_url.split("/")[-1].replace(".git", "")
-            self.repo_path = f"/tmp/fixops-agents/{repo_name}"
+            self.repo_path = f"/tmp/fixops-agents/{repo_name}"  # nosec B108
 
             try:
                 repo = git.Repo(self.repo_path)

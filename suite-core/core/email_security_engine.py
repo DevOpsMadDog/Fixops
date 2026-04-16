@@ -345,7 +345,7 @@ class EmailSecurityEngine:
         with self._lock:
             with self._conn() as conn:
                 cur = conn.execute(
-                    f"UPDATE domain_configs SET {set_clause} WHERE domain_id=? AND org_id=?",
+                    f"UPDATE domain_configs SET {set_clause} WHERE domain_id=? AND org_id=?",  # nosec B608
                     values,
                 )
         return cur.rowcount > 0

@@ -698,7 +698,7 @@ def get_precommit_config(
     Blocks commits containing secrets before they reach the remote.
     """
     mgr = _require_mgr()
-    write_path = repo_path or "/tmp/aldeci_precommit_preview"
+    write_path = repo_path or "/tmp/aldeci_precommit_preview"  # nosec B108
     yaml_content = mgr.generate_precommit_config(write_path)
     hook_script = mgr.generate_precommit_hook_script()
     return {

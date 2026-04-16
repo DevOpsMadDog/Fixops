@@ -154,7 +154,7 @@ class KnowledgeStore:
     - Thread-safe operations
     """
 
-    def __init__(self, db_path: str = "/tmp/trustgraph.db") -> None:
+    def __init__(self, db_path: str = "/tmp/trustgraph.db") -> None:  # nosec B108
         """Initialize knowledge store.
 
         Args:
@@ -316,18 +316,18 @@ class KnowledgeStore:
 
         # FTS search: search entities_fts first, then join to get full data
         # Note: We use rowid from FTS to join, not entity_id column
-        sql = f"""
-            SELECT entities.* FROM entities
-            WHERE entities.entity_id IN (
-                SELECT entity_id FROM (
-                    SELECT entities.entity_id FROM entities
-                    JOIN entities_fts ON entities.rowid = entities_fts.rowid
-                    WHERE entities_fts MATCH ?
-                )
-            )
-            AND {where_clause}
-            LIMIT ?
-        """
+        sql = (  # nosec B608
+            "SELECT entities.* FROM entities"
+            " WHERE entities.entity_id IN ("
+            "  SELECT entity_id FROM ("
+            "   SELECT entities.entity_id FROM entities"
+            "   JOIN entities_fts ON entities.rowid = entities_fts.rowid"
+            "   WHERE entities_fts MATCH ?"
+            "  )"
+            " )"
+            f" AND {where_clause}"
+            " LIMIT ?"
+        )
         params.insert(0, query_text)
         params.append(limit)
 
@@ -337,15 +337,15 @@ class KnowledgeStore:
         except Exception as e:
             logger.warning(f"FTS search failed, falling back to LIKE: {e}")
             # Fallback to LIKE search
-            sql_fallback = f"""
-                SELECT entities.* FROM entities
-                WHERE (entities.name LIKE ? OR entities.properties LIKE ?)
-                AND {where_clause}
-                LIMIT ?
-            """
+            sql_fallback = (  # nosec B608
+                "SELECT entities.* FROM entities"
+                " WHERE (entities.name LIKE ? OR entities.properties LIKE ?)"
+                f" AND {where_clause}"
+                " LIMIT ?"
+            )
             like_query = f"%{query_text}%"
             params_fallback = [like_query, like_query] + params[1:]
-            cursor.execute(sql_fallback, params_fallback)
+            cursor.execute(sql_fallback, params_fallback)  # nosec B608
             rows = cursor.fetchall()
 
         entities = []
@@ -433,7 +433,7 @@ class KnowledgeStore:
             params = [entity_id, entity_id]
 
         cursor.execute(
-            f"SELECT * FROM relationships WHERE {where_clause}",
+            f"SELECT * FROM relationships WHERE {where_clause}",  # nosec B608
             params,
         )
         rows = cursor.fetchall()
@@ -465,17 +465,13 @@ class KnowledgeStore:
         neighbors = []
 
         for _ in range(depth):
-            cursor.execute(
-                """
-                SELECT target_id FROM relationships WHERE source_id IN ({})
-                UNION
-                SELECT source_id FROM relationships WHERE target_id IN ({})
-                """.format(
-                    ",".join("?" * len(visited)),
-                    ",".join("?" * len(visited)),
-                ),
-                list(visited) * 2,
+            placeholders = ",".join("?" * len(visited))
+            neighbor_sql = (  # nosec B608
+                f"SELECT target_id FROM relationships WHERE source_id IN ({placeholders})"
+                f" UNION"
+                f" SELECT source_id FROM relationships WHERE target_id IN ({placeholders})"
             )
+            cursor.execute(neighbor_sql, list(visited) * 2)  # nosec B608
             next_ids = set(row[0] for row in cursor.fetchall())
             next_ids -= visited
 

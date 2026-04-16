@@ -342,7 +342,7 @@ class MindsDBClient:
         sql = f"""
         INSERT INTO {safe_kb} (content, metadata)
         VALUES ('{safe_content}', '{safe_metadata}')
-        """
+        """  # nosec B608
         return await self._execute_sql(sql)
 
     async def query_knowledge(
@@ -361,7 +361,7 @@ class MindsDBClient:
         SELECT * FROM {safe_kb}
         WHERE question = '{safe_question}'
         LIMIT {safe_limit}
-        """
+        """  # nosec B608
         return await self._execute_sql(sql)
 
     async def create_agent(

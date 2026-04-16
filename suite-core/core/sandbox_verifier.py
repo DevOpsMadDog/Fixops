@@ -26,7 +26,7 @@ import json
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 import time
 import uuid
@@ -334,14 +334,14 @@ class SandboxVerifier:
         )
 
         tmpdir = tempfile.mkdtemp(prefix="aldeci_poc_")
-        os.chmod(tmpdir, 0o700)  # Restrict to owner only
+        os.chmod(tmpdir, 0o700)  # Restrict to owner only  # nosemgrep: insecure-file-permissions
         try:
             # Write script to temp directory with restrictive permissions
             ext = self.EXTENSIONS.get(poc.language, ".sh")
             script_path = os.path.join(tmpdir, f"script{ext}")
             with open(script_path, "w") as f:
                 f.write(code_override)
-            os.chmod(script_path, 0o700)  # Owner-only execute (not world-readable)
+            os.chmod(script_path, 0o700)  # Owner-only execute (not world-readable)  # nosemgrep: insecure-file-permissions
 
             # Build docker command
             image = self.DOCKER_IMAGES.get(poc.language, "alpine:3.19")
@@ -355,7 +355,7 @@ class SandboxVerifier:
                 f"--cpus={self.cpu_limit}",
                 "--cap-drop=ALL",  # Drop all Linux capabilities
                 "--read-only",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",
+                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",  # nosec B108
                 "-v", f"{tmpdir}:/poc:ro",
                 "--security-opt", "no-new-privileges",
                 "--pids-limit", "30",  # Reduced from 50
@@ -522,7 +522,7 @@ class SandboxVerifier:
 
         # Pattern 3: Permission denied — redirect to /tmp
         if "permission denied" in stderr:
-            return current_code.replace("/var/", "/tmp/var/").replace("/etc/", "/tmp/etc/")
+            return current_code.replace("/var/", "/tmp/var/").replace("/etc/", "/tmp/etc/")  # nosec B108
 
         # Pattern 4: Command not found in bash — HARDENED: whitelist safe commands
         _SAFE_COMMANDS = frozenset({
@@ -940,14 +940,14 @@ echo "PROBE_END"
             script_path = os.path.join(tmpdir, "probe.sh")
             with open(script_path, "w") as f:
                 f.write(self.PROBE_SCRIPT)
-            os.chmod(script_path, 0o755)
+            os.chmod(script_path, 0o700)  # nosemgrep: insecure-file-permissions
 
             docker_cmd = [
                 "docker", "run", "--rm",
                 "--memory", self.memory_limit,
                 f"--cpus={self.cpu_limit}",
                 "--read-only",
-                "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+                "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",  # nosec B108
                 "-v", f"{tmpdir}:/probe:ro",
                 "--security-opt", "no-new-privileges",
                 "--pids-limit", "30",

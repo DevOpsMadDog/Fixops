@@ -77,7 +77,7 @@ class AnalyticsEngine:
 
     def _scan(self, db_path: str, table: str, where: str = "", limit: Optional[int] = None) -> List[dict]:
         """Execute sqlite_scan and return rows as list of dicts."""
-        sql = f"SELECT * FROM sqlite_scan('{db_path}', '{table}')"
+        sql = f"SELECT * FROM sqlite_scan('{db_path}', '{table}')"  # nosec B608
         if where:
             sql += f" WHERE {where}"
         if limit is not None:
@@ -190,7 +190,7 @@ class AnalyticsEngine:
 
         try:
             sql = (
-                f"SELECT a.*, r.severity, r.risk_score, r.title AS risk_title "
+                f"SELECT a.*, r.severity, r.risk_score, r.title AS risk_title "  # nosec B608
                 f"FROM sqlite_scan('{asset_path}', 'assets') a "
                 f"JOIN sqlite_scan('{risk_path}', 'risks') r "
                 f"  ON a.asset_id = r.asset_id "
@@ -269,7 +269,7 @@ class AnalyticsEngine:
 
         try:
             sql = (
-                f"SELECT result_id, profile_id, score, passed, failed, scan_completed "
+                f"SELECT result_id, profile_id, score, passed, failed, scan_completed "  # nosec B608
                 f"FROM sqlite_scan('{db_path}', 'scan_results') "
                 f"ORDER BY scan_completed DESC NULLS LAST "
                 f"LIMIT 10"

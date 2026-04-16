@@ -149,7 +149,7 @@ async def ingest_telemetry(payload: TelemetryPayload):
 
             headers = {"Content-Type": "application/json", "X-API-Key": api_key}
 
-            response = requests.post(
+            response = requests.post(  # nosemgrep: dynamic-urllib-use-detected
                 fixops_url, json=payload.dict(), headers=headers, timeout=10
             )
             response.raise_for_status()
@@ -433,4 +433,4 @@ def upload_to_gcs(
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8080)  # nosec B104 — intentional for container networking

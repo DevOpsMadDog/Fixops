@@ -775,7 +775,7 @@ class VersionTracker:
             ).fetchall()
 
             deprecated_clients = conn.execute(
-                "SELECT COUNT(DISTINCT client_id) FROM client_versions WHERE api_version IN ({})".format(
+                "SELECT COUNT(DISTINCT client_id) FROM client_versions WHERE api_version IN ({})".format(  # nosec B608
                     ",".join("?" * len(self.DEPRECATED_VERSIONS))
                 ),
                 list(self.DEPRECATED_VERSIONS),
@@ -803,7 +803,7 @@ class VersionTracker:
         version_list = ",".join(f"'{v}'" for v in self.DEPRECATED_VERSIONS)
         with self._conn() as conn:
             rows = conn.execute(
-                f"SELECT * FROM client_versions WHERE api_version IN ({version_list}) "
+                f"SELECT * FROM client_versions WHERE api_version IN ({version_list}) "  # nosec B608
                 "ORDER BY last_seen DESC"
             ).fetchall()
         return [

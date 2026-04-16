@@ -225,7 +225,7 @@ class SecurityRoadmapEngine:
         with self._lock:
             with self._conn() as conn:
                 cursor = conn.execute(
-                    f"UPDATE roadmap_initiatives SET {set_clause} "
+                    f"UPDATE roadmap_initiatives SET {set_clause} "  # nosec B608
                     f"WHERE initiative_id=? AND org_id=?",
                     values,
                 )

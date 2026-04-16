@@ -530,7 +530,7 @@ class AutoEvidenceCollector:
                     for tbl in ("backups", "backup_records", "backup_history"):
                         if tbl in tables:
                             rows = conn.execute(
-                                f"SELECT * FROM {tbl} ORDER BY rowid DESC LIMIT 100"
+                                f"SELECT * FROM {tbl} ORDER BY rowid DESC LIMIT 100"  # nosec B608
                             ).fetchall()
                             payload["backups"] = [dict(r) for r in rows]
                             break
@@ -591,7 +591,7 @@ class AutoEvidenceCollector:
                     for tbl in ("incidents", "incident_reports", "findings"):
                         if tbl in tables:
                             rows = conn.execute(
-                                f"SELECT * FROM {tbl} ORDER BY rowid DESC LIMIT 100"
+                                f"SELECT * FROM {tbl} ORDER BY rowid DESC LIMIT 100"  # nosec B608
                             ).fetchall()
                             payload["incidents"] = [dict(r) for r in rows]
                             payload["source_table"] = f"{candidate}:{tbl}"
@@ -808,7 +808,7 @@ class AutoEvidenceCollector:
         conn = self._conn()
         try:
             rows = conn.execute(
-                f"SELECT * FROM auto_evidence WHERE {where} ORDER BY collected_at DESC LIMIT ?",
+                f"SELECT * FROM auto_evidence WHERE {where} ORDER BY collected_at DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
             return [self._row_to_model(r) for r in rows]

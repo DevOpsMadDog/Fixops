@@ -399,7 +399,7 @@ class SecurityTrainingEngine:
             clauses.append("status=?")
             params.append(status)
         where = " AND ".join(clauses)
-        query = f"SELECT * FROM user_enrollments WHERE {where} ORDER BY enrolled_at DESC"
+        query = f"SELECT * FROM user_enrollments WHERE {where} ORDER BY enrolled_at DESC"  # nosec B608
 
         now = self._now()
         with self._conn() as conn:

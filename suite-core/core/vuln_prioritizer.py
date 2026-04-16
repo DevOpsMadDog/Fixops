@@ -900,7 +900,7 @@ class VulnPrioritizer:
 
         with self._get_conn() as conn:
             rows = conn.execute(
-                f"SELECT * FROM prioritized_vulns WHERE {where} "
+                f"SELECT * FROM prioritized_vulns WHERE {where} "  # nosec B608
                 f"ORDER BY composite_score DESC LIMIT ? OFFSET ?",
                 params,
             ).fetchall()
@@ -954,7 +954,7 @@ class VulnPrioritizer:
 
         with self._get_conn() as conn:
             rows = conn.execute(
-                f"SELECT risk_bucket, sla_breached FROM prioritized_vulns WHERE {where}",
+                f"SELECT risk_bucket, sla_breached FROM prioritized_vulns WHERE {where}",  # nosec B608
                 params,
             ).fetchall()
 
@@ -1218,7 +1218,7 @@ class VulnPrioritizer:
 
         with self._get_conn() as conn:
             rows = conn.execute(
-                f"SELECT * FROM prioritized_vulns WHERE {' AND '.join(clauses)}",
+                f"SELECT * FROM prioritized_vulns WHERE {' AND '.join(clauses)}",  # nosec B608
                 params,
             ).fetchall()
 

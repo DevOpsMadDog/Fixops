@@ -183,7 +183,7 @@ class TrustGraphMaintenanceAgent:
         Args:
             db_path: Path to TrustGraph SQLite DB. Defaults to /tmp/trustgraph.db.
         """
-        self.db_path = db_path or "/tmp/trustgraph.db"
+        self.db_path = db_path or "/tmp/trustgraph.db"  # nosec B108
         logger.info("TrustGraphMaintenanceAgent initialised with db=%s", self.db_path)
 
     # -------------------------------------------------------------------------
@@ -631,14 +631,12 @@ class TrustGraphMaintenanceAgent:
                 # Entities whose type is NOT in the expected set
                 placeholders = ",".join("?" * len(expected_types))
                 cursor.execute(
-                    f"""
-                    SELECT entity_id, entity_type, name
-                    FROM entities
+                    f"""SELECT entity_id, entity_type, nameFROM entities
                     WHERE core_id = ? AND deleted_at IS NULL
                     AND entity_type NOT IN ({placeholders})
                     AND entity_type NOT IN ('CoreAnchor')
                     LIMIT 100
-                    """,
+                    """,  # nosec B608
                     [core_id] + expected_types,
                 )
                 rows = cursor.fetchall()

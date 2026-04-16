@@ -416,14 +416,14 @@ class ReportScheduler:
         """
         url = f"{self._n8n_base_url}/{N8N_WEBHOOK_PATH}"
         payload_bytes = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
+        req = urllib.request.Request(  # nosemgrep: dynamic-urllib-use-detected
             url,
             data=payload_bytes,
             headers={"Content-Type": "application/json"},
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 _logger.debug(
                     "report_scheduler.n8n_dispatch",
                     status=resp.status,

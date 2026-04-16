@@ -21,7 +21,7 @@ import json
 import logging
 import re
 import sqlite3
-import subprocess
+import subprocess  # nosec B404
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path

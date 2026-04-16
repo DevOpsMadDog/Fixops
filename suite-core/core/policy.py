@@ -34,7 +34,7 @@ class _OPAClient:
             headers = {"Content-Type": "application/json"}
             if self.token:
                 headers["Authorization"] = f"Bearer {self.token}"
-            response = requests.post(
+            response = requests.post(  # nosemgrep: dynamic-urllib-use-detected
                 f"{self.url}/v1/data/{self.policy_package}/{policy}",
                 json={"input": payload},
                 headers=headers,

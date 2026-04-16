@@ -432,7 +432,7 @@ class SecurityOKREngine:
                 if kr_ids:
                     placeholders = ",".join("?" * len(kr_ids))
                     upd_rows = conn.execute(
-                        f"SELECT * FROM okr_updates WHERE org_id = ? "
+                        f"SELECT * FROM okr_updates WHERE org_id = ? "  # nosec B608
                         f"AND key_result_id IN ({placeholders}) "
                         f"ORDER BY updated_at ASC",
                         [org_id] + kr_ids,

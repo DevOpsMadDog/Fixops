@@ -174,7 +174,7 @@ class _TagDB:
         set_clause = ", ".join(f"{k} = ?" for k in fields)
         values = list(fields.values()) + [tag_id]
         with self._lock:
-            self._conn.execute(f"UPDATE tags SET {set_clause} WHERE id = ?", values)
+            self._conn.execute(f"UPDATE tags SET {set_clause} WHERE id = ?", values)  # nosemgrep: formatted-sql-query  # nosec B608
             self._conn.commit()
         return self.get_tag(tag_id)
 

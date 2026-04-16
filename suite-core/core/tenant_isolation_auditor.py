@@ -78,7 +78,7 @@ class TenantIsolationAuditor:
                 has_org = org_id_column in cols
                 try:
                     count = conn.execute(
-                        f"SELECT COUNT(*) FROM '{tname}'"  # noqa: S608
+                        f"SELECT COUNT(*) FROM '{tname}'"  # noqa: S608  # nosec B608
                     ).fetchone()[0]
                 except Exception:
                     count = -1

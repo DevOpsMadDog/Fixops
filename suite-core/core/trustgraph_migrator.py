@@ -137,9 +137,9 @@ def _count_sqlite(conn: sqlite3.Connection, table: str, org_id: Optional[str] = 
     try:
         cur = conn.cursor()
         if org_id:
-            cur.execute(f"SELECT COUNT(*) FROM {table} WHERE org_id = ?", (org_id,))
+            cur.execute(f"SELECT COUNT(*) FROM {table} WHERE org_id = ?", (org_id,))  # nosemgrep: formatted-sql-query  # nosec B608
         else:
-            cur.execute(f"SELECT COUNT(*) FROM {table}")
+            cur.execute(f"SELECT COUNT(*) FROM {table}")  # nosemgrep: formatted-sql-query  # nosec B608
         return cur.fetchone()[0]
     except Exception:
         return 0

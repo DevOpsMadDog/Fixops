@@ -481,7 +481,7 @@ class ThreatModelEngine:
                 existing_cats: set = set()
                 if model.threats:
                     rows = conn.execute(
-                        f"SELECT stride_category FROM threat_entries WHERE id IN ({','.join('?' * len(model.threats))})",
+                        f"SELECT stride_category FROM threat_entries WHERE id IN ({','.join('?' * len(model.threats))})",  # nosec B608
                         model.threats,
                     ).fetchall()
                     existing_cats = {r["stride_category"] for r in rows}

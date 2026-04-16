@@ -537,7 +537,7 @@ class DeveloperPortal:
         placeholders = ",".join("?" * len(owned))
         params: List[Any] = [*owned, org_id]
         query = (
-            f"SELECT * FROM dev_findings WHERE repo_name IN ({placeholders}) AND org_id = ?"
+            f"SELECT * FROM dev_findings WHERE repo_name IN ({placeholders}) AND org_id = ?"  # nosec B608
         )
         if status:
             query += " AND status = ?"
@@ -760,7 +760,7 @@ class DeveloperPortal:
             placeholders = ",".join("?" * len(owned))
             with self._get_conn() as conn:
                 row = conn.execute(
-                    f"SELECT COUNT(*) AS c FROM dev_findings "
+                    f"SELECT COUNT(*) AS c FROM dev_findings "  # nosec B608
                     f"WHERE repo_name IN ({placeholders}) AND org_id = ? AND status != 'resolved'",
                     [*owned, org_id],
                 ).fetchone()

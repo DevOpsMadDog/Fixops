@@ -449,7 +449,7 @@ class SlackTransport:
         try:
             import requests  # type: ignore[import-untyped]
 
-            resp = requests.post(
+            resp = requests.post(  # nosemgrep: dynamic-urllib-use-detected
                 f"{self.API_BASE}/{method}",
                 headers={
                     "Authorization": f"Bearer {self._token}",

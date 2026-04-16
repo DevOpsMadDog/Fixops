@@ -182,7 +182,7 @@ class CloudResourceInventoryEngine:
             params.append(resource_state)
 
         sql = (
-            f"SELECT * FROM cri_resources WHERE {' AND '.join(clauses)}"
+            f"SELECT * FROM cri_resources WHERE {' AND '.join(clauses)}"  # nosec B608
             " ORDER BY created_at DESC"
         )
         with self._lock:
@@ -328,7 +328,7 @@ class CloudResourceInventoryEngine:
             params.append(status)
 
         sql = (
-            f"SELECT * FROM cri_findings WHERE {' AND '.join(clauses)}"
+            f"SELECT * FROM cri_findings WHERE {' AND '.join(clauses)}"  # nosec B608
             " ORDER BY found_at DESC"
         )
         with self._lock:

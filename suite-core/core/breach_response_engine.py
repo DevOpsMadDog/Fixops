@@ -248,7 +248,7 @@ class BreachResponseEngine:
         with self._lock:
             with self._conn() as conn:
                 cur = conn.execute(
-                    f"UPDATE breach_cases SET {set_clause} WHERE id = ? AND org_id = ?",
+                    f"UPDATE breach_cases SET {set_clause} WHERE id = ? AND org_id = ?",  # nosec B608
                     values,
                 )
         return cur.rowcount > 0

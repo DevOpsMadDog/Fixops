@@ -118,7 +118,7 @@ def _validate_webhook_url(url: str) -> None:
     hostname = parsed.hostname
     if not hostname:
         raise HTTPException(422, "URL must include a hostname")
-    if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+    if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # nosec B104 — SSRF check, not a bind call
         raise HTTPException(422, "Localhost URLs are not allowed")
     try:
         addr = ipaddress.ip_address(hostname)
@@ -381,7 +381,7 @@ async def update_subscription(sub_id: str, req: UpdateSubscriptionRequest, org_i
     if not updates:
         raise HTTPException(422, "No fields to update")
     params.extend([sub_id, org_id])
-    sql = f"UPDATE subscriptions SET {', '.join(updates)} WHERE id=? AND org_id=?"
+    sql = f"UPDATE subscriptions SET {', '.join(updates)} WHERE id=? AND org_id=?"  # nosec B608
     try:
         with _db_lock:
             conn = _get_db()

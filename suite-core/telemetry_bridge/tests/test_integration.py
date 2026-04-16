@@ -2,7 +2,7 @@
 
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import time
 from pathlib import Path
 
@@ -46,7 +46,7 @@ def docker_compose_up():
 
 def test_health_check(docker_compose_up):
     """Test that the collector API health check works."""
-    response = requests.get("http://localhost:8080/health")
+    response = requests.get("http://localhost:8080/health", timeout=30)
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
@@ -141,7 +141,7 @@ def test_cli_integration_with_telemetry():
             "--mode",
             "enterprise",
             "--output",
-            "/tmp/pipeline-test.json",
+            "/tmp/pipeline-test.json",  # nosec B108
         ],
         cwd=Path(__file__).parent.parent.parent,
         capture_output=True,
@@ -167,7 +167,7 @@ def test_aws_lambda_handler_simulation():
 
     with pytest.MonkeyPatch.context() as m:
         m.setenv("TELEMETRY_MODE", "file")
-        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")
+        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")  # nosec B108
 
         result = lambda_handler(event, None)
 
@@ -194,7 +194,7 @@ def test_azure_function_handler_simulation():
 
     with pytest.MonkeyPatch.context() as m:
         m.setenv("TELEMETRY_MODE", "file")
-        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")
+        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")  # nosec B108
 
         main(mock_event)
 
@@ -211,7 +211,7 @@ def test_gcp_function_handler_simulation():
 
     with pytest.MonkeyPatch.context() as m:
         m.setenv("TELEMETRY_MODE", "file")
-        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")
+        m.setenv("TELEMETRY_OUTPUT_PATH", "/tmp/test-telemetry.json")  # nosec B108
 
         result = telemetry_handler(event, None)
 

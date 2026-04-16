@@ -32,7 +32,7 @@ import asyncio
 import inspect
 import json
 import logging
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405
 from typing import Any, Dict, List, Optional
 
 from core.scanner_parsers import (

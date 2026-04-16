@@ -301,7 +301,7 @@ class SBOMExportEngine:
             if comp_ids:
                 placeholders = ",".join("?" * len(comp_ids))
                 vulns = conn.execute(
-                    f"SELECT * FROM sbom_vulnerabilities WHERE component_id IN ({placeholders}) AND org_id = ?",
+                    f"SELECT * FROM sbom_vulnerabilities WHERE component_id IN ({placeholders}) AND org_id = ?",  # nosec B608
                     comp_ids + [org_id],
                 ).fetchall()
 

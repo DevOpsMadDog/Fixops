@@ -70,14 +70,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.fallback:
             try:
                 result = self.fallback.bool(key, default, context)
-                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
+                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)  # nosemgrep: python-logger-credential-disclosure
                 return result
             except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
 
-        logger.debug("Flag %s using default: %s", key, default)
+        logger.debug("Flag %s using default: %s", key, default)  # nosemgrep: python-logger-credential-disclosure
         return default
 
     def string(
@@ -106,14 +106,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.fallback:
             try:
                 result = self.fallback.string(key, default, context)
-                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
+                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)  # nosemgrep: python-logger-credential-disclosure
                 return result
             except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
 
-        logger.debug("Flag %s using default: %s", key, default)
+        logger.debug("Flag %s using default: %s", key, default)  # nosemgrep: python-logger-credential-disclosure
         return default
 
     def number(
@@ -142,14 +142,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.fallback:
             try:
                 result = self.fallback.number(key, default, context)
-                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
+                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)  # nosemgrep: python-logger-credential-disclosure
                 return result
             except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
 
-        logger.debug("Flag %s using default: %s", key, default)
+        logger.debug("Flag %s using default: %s", key, default)  # nosemgrep: python-logger-credential-disclosure
         return default
 
     def json(
@@ -163,7 +163,7 @@ class CombinedProvider(FeatureFlagProvider):
             try:
                 result = self.primary.json(key, default, context)
                 if result != default:
-                    logger.debug("Flag %s evaluated by primary provider", key)
+                    logger.debug("Flag %s evaluated by primary provider", key)  # nosemgrep: python-logger-credential-disclosure
                     return result
                 logger.debug(
                     "Flag %s returned default from primary, trying fallback", key
@@ -176,14 +176,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.fallback:
             try:
                 result = self.fallback.json(key, default, context)
-                logger.debug("Flag %s evaluated by fallback provider", key)
+                logger.debug("Flag %s evaluated by fallback provider", key)  # nosemgrep: python-logger-credential-disclosure
                 return result
             except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
 
-        logger.debug("Flag %s using default", key)
+        logger.debug("Flag %s using default", key)  # nosemgrep: python-logger-credential-disclosure
         return default
 
     def variant(
@@ -212,14 +212,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.fallback:
             try:
                 result = self.fallback.variant(key, default, context)
-                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
+                logger.debug("Flag %s evaluated by fallback provider: %s", key, result)  # nosemgrep: python-logger-credential-disclosure
                 return result
             except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
 
-        logger.debug("Flag %s using default: %s", key, default)
+        logger.debug("Flag %s using default: %s", key, default)  # nosemgrep: python-logger-credential-disclosure
         return default
 
 

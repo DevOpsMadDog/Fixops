@@ -352,7 +352,7 @@ class NetworkTopologyEngine:
         placeholders = ",".join("?" * len(neighbor_ids))
         with self._conn() as conn:
             rows = conn.execute(
-                f"SELECT * FROM topology_nodes WHERE org_id=? AND node_id IN ({placeholders})",
+                f"SELECT * FROM topology_nodes WHERE org_id=? AND node_id IN ({placeholders})",  # nosec B608
                 [org_id] + list(neighbor_ids),
             ).fetchall()
         return [self._node_to_dict(r) for r in rows]

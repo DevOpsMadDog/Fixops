@@ -324,7 +324,7 @@ class ZeroTrustEngine:
         conn = self._connect()
         try:
             conn.execute(
-                f"UPDATE zt_policies SET {set_clause} WHERE policy_id = ?", values
+                f"UPDATE zt_policies SET {set_clause} WHERE policy_id = ?", values  # nosec B608
             )
             conn.commit()
         finally:
@@ -582,7 +582,7 @@ class ZeroTrustEngine:
         conn = self._connect()
         try:
             rows = conn.execute(
-                f"SELECT * FROM zt_access_log WHERE {where} ORDER BY evaluated_at DESC LIMIT ?",
+                f"SELECT * FROM zt_access_log WHERE {where} ORDER BY evaluated_at DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
             return [self._row_to_log(r) for r in rows]

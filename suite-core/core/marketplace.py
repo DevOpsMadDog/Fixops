@@ -735,7 +735,7 @@ class Marketplace:
             term = f"%{search.lower()}%"
             params.extend([term, term])
 
-        query = f"SELECT * FROM catalog WHERE {' AND '.join(conditions)} ORDER BY install_count DESC"
+        query = f"SELECT * FROM catalog WHERE {' AND '.join(conditions)} ORDER BY install_count DESC"  # nosec B608
         conn = self._get_conn()
         try:
             rows = conn.execute(query, params).fetchall()

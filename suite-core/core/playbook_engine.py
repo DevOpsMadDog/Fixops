@@ -235,7 +235,7 @@ class PlaybookEngine:
 
     def __init__(
         self,
-        db_path: str = "/tmp/playbook_engine.db",
+        db_path: str = "/tmp/playbook_engine.db",  # nosec B108
         notification_engine: Optional[Any] = None,
         llm_council: Optional[Any] = None,
         audit_logger: Optional[Any] = None,

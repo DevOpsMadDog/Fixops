@@ -28,7 +28,7 @@ _DEFAULT_DB = str(
 )
 
 # Wildcard / any-match tokens used across vendors
-_ANY_TOKENS = {"any", "0.0.0.0/0", "::/0", "*", "0.0.0.0", "all"}
+_ANY_TOKENS = {"any", "0.0.0.0/0", "::/0", "*", "0.0.0.0", "all"}  # nosec B104 — firewall wildcard tokens, not a bind call
 
 _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 

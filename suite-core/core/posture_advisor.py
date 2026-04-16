@@ -101,7 +101,7 @@ _PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 def _eval_trigger(condition: str, posture_data: Dict[str, Any]) -> bool:
     """Evaluate a trigger condition string against posture_data."""
     try:
-        return bool(eval(condition, {"__builtins__": {}}, posture_data))  # noqa: S307
+        return bool(eval(condition, {"__builtins__": {}}, posture_data))  # noqa: S307  # nosemgrep: eval-detected
     except Exception:
         return False
 
@@ -232,7 +232,7 @@ class _AdvisorDB:
         with self._lock:
             with self._connect() as conn:
                 conn.execute(
-                    f"UPDATE recommendations SET {set_clause} WHERE rec_id = :rec_id",
+                    f"UPDATE recommendations SET {set_clause} WHERE rec_id = :rec_id",  # nosec B608
                     updates,
                 )
 

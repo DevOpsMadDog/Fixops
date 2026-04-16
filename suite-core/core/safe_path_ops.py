@@ -16,7 +16,7 @@ which CodeQL recognizes as non-user-controlled.
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -35,7 +35,7 @@ if not os.path.isdir(TRUSTED_ROOT):
         os.makedirs(TRUSTED_ROOT, exist_ok=True)
     except (PermissionError, OSError):
         if TRUSTED_ROOT == _DEFAULT_TRUSTED_ROOT:
-            TRUSTED_ROOT = "/tmp/fixops"
+            TRUSTED_ROOT = "/tmp/fixops"  # nosec B108
             os.makedirs(TRUSTED_ROOT, exist_ok=True)
 
 # Ensure standard subdirectories exist

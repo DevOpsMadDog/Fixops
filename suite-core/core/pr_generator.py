@@ -511,7 +511,7 @@ This PR upgrades `{fix.package_name}` from `{fix.current_version}` to \
         """Thin wrapper around requests for easy mocking in tests."""
         import requests  # type: ignore[import-untyped]
 
-        resp = requests.request(
+        resp = requests.request(  # nosemgrep: dynamic-urllib-use-detected
             method,
             url,
             json=payload,
@@ -670,7 +670,7 @@ This PR upgrades `{fix.package_name}` from `{fix.current_version}` to \
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         conn = self._conn()
         rows = conn.execute(
-            f"SELECT * FROM generated_prs {where} ORDER BY created_at DESC",
+            f"SELECT * FROM generated_prs {where} ORDER BY created_at DESC",  # nosec B608
             params,
         ).fetchall()
         conn.close()

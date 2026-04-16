@@ -6,7 +6,7 @@ import json
 import os
 import shlex
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone

@@ -294,7 +294,7 @@ class PatchPrioritizer:
             if plan_ids:
                 placeholders = ",".join("?" * len(plan_ids))
                 patched_rows = conn.execute(
-                    f"SELECT cve_id FROM patch_records WHERE plan_id IN ({placeholders})",
+                    f"SELECT cve_id FROM patch_records WHERE plan_id IN ({placeholders})",  # nosec B608
                     plan_ids,
                 ).fetchall()
                 kev_patched = sum(
@@ -306,7 +306,7 @@ class PatchPrioritizer:
             if plan_ids:
                 placeholders = ",".join("?" * len(plan_ids))
                 pr = conn.execute(
-                    f"SELECT cve_id FROM patch_records WHERE plan_id IN ({placeholders})",
+                    f"SELECT cve_id FROM patch_records WHERE plan_id IN ({placeholders})",  # nosec B608
                     plan_ids,
                 ).fetchall()
                 patched_cves = {r["cve_id"].upper() for r in pr}

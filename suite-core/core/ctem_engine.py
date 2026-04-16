@@ -246,7 +246,7 @@ class _CTEMDB:
         placeholders = ",".join("?" * len(exposure_ids))
         with self._lock:
             rows = self._conn.execute(
-                f"SELECT id, title, description, stage, status, assets, findings, "
+                f"SELECT id, title, description, stage, status, assets, findings, "  # nosec B608
                 f"risk_score, business_impact, remediation_plan, owner, org_id, created_at "
                 f"FROM ctem_exposures WHERE id IN ({placeholders}) "
                 f"ORDER BY risk_score DESC",

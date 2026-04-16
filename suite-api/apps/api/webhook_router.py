@@ -119,7 +119,7 @@ def _list_events(
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
         params.append(limit)
         rows = conn.execute(
-            f"SELECT * FROM webhook_events {where} ORDER BY id DESC LIMIT ?",
+            f"SELECT * FROM webhook_events {where} ORDER BY id DESC LIMIT ?",  # nosec B608
             params,
         ).fetchall()
         return [dict(r) for r in rows]

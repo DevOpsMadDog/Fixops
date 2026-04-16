@@ -315,11 +315,9 @@ class PostgresPersistentDict:
         with self._acquire() as conn:
             with conn.cursor() as cur:
                 cur.execute(  # nosec B608 — table validated by _SAFE_TABLE_RE in __init__
-                    f"""
-                    INSERT INTO {self._table} (key, value)
-                    VALUES (%s, %s)
+                    f"""INSERT INTO {self._table} (key, value)VALUES (%s, %s)
                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-                    """,
+                    """,  # nosec B608
                     (key, serialised),
                 )
             conn.commit()
@@ -328,7 +326,7 @@ class PostgresPersistentDict:
         with self._acquire() as conn:
             with conn.cursor() as cur:
                 cur.execute(  # nosec B608 — table validated by _SAFE_TABLE_RE in __init__
-                    f"DELETE FROM {self._table} WHERE key = %s", (key,)
+                    f"DELETE FROM {self._table} WHERE key = %s", (key,)  # nosec B608
                 )
             conn.commit()
 
@@ -415,11 +413,9 @@ class PostgresPersistentDict:
             with conn.cursor() as cur:
                 for key, value in serialised:
                     cur.execute(
-                        f"""
-                        INSERT INTO {self._table} (key, value)
-                        VALUES (%s, %s)
+                        f"""INSERT INTO {self._table} (key, value)VALUES (%s, %s)
                         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-                        """,
+                        """,  # nosec B608
                         (key, value),
                     )
             conn.commit()

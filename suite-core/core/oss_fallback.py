@@ -6,7 +6,7 @@ Manages fallback to OSS tools when proprietary analyzers fail or are disabled.
 from __future__ import annotations
 
 import logging
-import subprocess
+import subprocess  # nosec B404
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional

@@ -352,11 +352,11 @@ class AttackSurfaceEngine:
         techs: List[TechnologyFingerprint] = []
         try:
             import urllib.request
-            req = urllib.request.Request(
+            req = urllib.request.Request(  # nosemgrep: dynamic-urllib-use-detected
                 f"https://{domain}/",
                 headers={"User-Agent": "FixOps-AttackSurface/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 headers = str(resp.headers)
                 body_snippet = resp.read(4096).decode("utf-8", errors="ignore")
                 combined = headers + "\n" + body_snippet

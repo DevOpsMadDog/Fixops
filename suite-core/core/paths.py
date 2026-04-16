@@ -57,7 +57,7 @@ def ensure_secure_directory(path: Path, mode: int = 0o750) -> Path:
     resolved = path.resolve()
     resolved.mkdir(parents=True, exist_ok=True)
     try:
-        os.chmod(resolved, mode)
+        os.chmod(resolved, mode)  # nosemgrep: insecure-file-permissions
     except PermissionError:
         # Windows systems may not support chmod in the same way; continue after best effort.
         pass
@@ -89,7 +89,7 @@ def ensure_output_directory(path: Path, mode: int = 0o750) -> Path:
 
     if not directory_existed:
         try:
-            os.chmod(resolved, mode)
+            os.chmod(resolved, mode)  # nosemgrep: insecure-file-permissions
         except PermissionError:
             # Windows systems may not support chmod in the same way; continue after best effort.
             pass

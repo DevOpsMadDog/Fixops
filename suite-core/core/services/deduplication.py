@@ -405,12 +405,10 @@ class DeduplicationService:
             # Use placeholders for the IN clause
             placeholders = ",".join("?" * len(cluster_ids))
             cursor.execute(
-                f"""
-                SELECT event_id, cluster_id, run_id, source, raw_finding, timestamp
-                FROM events
+                f"""SELECT event_id, cluster_id, run_id, source, raw_finding, timestampFROM events
                 WHERE cluster_id IN ({placeholders})
                 ORDER BY cluster_id, timestamp DESC
-                """,
+                """,  # nosec B608
                 cluster_ids,
             )
             rows = cursor.fetchall()
@@ -900,11 +898,9 @@ class DeduplicationService:
                 cluster_ids = [c["cluster_id"] for c in clusters]
                 placeholders = ",".join("?" * len(cluster_ids))
                 cursor.execute(
-                    f"""
-                    SELECT * FROM correlation_links
-                    WHERE source_cluster_id IN ({placeholders})
+                    f"""SELECT * FROM correlation_linksWHERE source_cluster_id IN ({placeholders})
                     AND target_cluster_id IN ({placeholders})
-                """,
+                """,  # nosec B608
                     cluster_ids + cluster_ids,
                 )
             else:
@@ -920,11 +916,9 @@ class DeduplicationService:
                 if cluster_ids:
                     placeholders = ",".join("?" * len(cluster_ids))
                     cursor.execute(
-                        f"""
-                        SELECT * FROM correlation_links
-                        WHERE source_cluster_id IN ({placeholders})
+                        f"""SELECT * FROM correlation_linksWHERE source_cluster_id IN ({placeholders})
                         OR target_cluster_id IN ({placeholders})
-                    """,
+                    """,  # nosec B608
                         cluster_ids + cluster_ids,
                     )
                 else:

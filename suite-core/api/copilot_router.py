@@ -1748,7 +1748,7 @@ _CWE_KNOWLEDGE: Dict[str, Dict[str, Any]] = {
             "        raise ValueError('Private IP not allowed')\n"
             "    # Proceed with HTTP client\n"
             "    import requests\n"
-            "    return requests.get(url, timeout=5).content\n"
+            "    return requests.get(url, timeout=5).content\n"  # nosemgrep: dynamic-urllib-use-detected
             "```\n\n"
             "Prefer an allowlist of specific external domains over a blocklist. "
             "Enable IMDSv2 (token-based) on AWS EC2 instances to mitigate metadata theft."

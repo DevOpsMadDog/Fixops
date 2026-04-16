@@ -254,7 +254,7 @@ class NotificationEngine:
                 params.append(val)
 
         params.append(rule_id)
-        sql = f"UPDATE alert_rules SET {', '.join(set_clauses)} WHERE id=?"
+        sql = f"UPDATE alert_rules SET {', '.join(set_clauses)} WHERE id=?"  # nosec B608
 
         with self._lock:
             conn = _get_db(self._db_path)
@@ -616,7 +616,7 @@ class NotificationEngine:
             conn = _get_db(self._db_path)
             try:
                 cur = conn.execute(
-                    f"UPDATE notifications SET read=1 WHERE id IN ({placeholders})",
+                    f"UPDATE notifications SET read=1 WHERE id IN ({placeholders})",  # nosec B608
                     notification_ids,
                 )
                 conn.commit()

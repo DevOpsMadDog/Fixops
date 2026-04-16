@@ -64,7 +64,7 @@ def _resolve_callable(
                 "Entrypoint must contain a module attribute, e.g. 'package.module:function'"
             )
         module_path, attribute = entrypoint.rsplit(".", 1)
-    module = importlib.import_module(module_path)
+    module = importlib.import_module(module_path)  # nosemgrep: non-literal-import
     try:
         candidate = getattr(module, attribute)
     except AttributeError as exc:  # pragma: no cover - defensive guard

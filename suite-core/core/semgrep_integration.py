@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import time
 import uuid
 from datetime import datetime, timezone

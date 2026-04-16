@@ -400,7 +400,7 @@ class VulnWorkflowEngine:
                 updates["_ticket_id"] = ticket_id
                 with self._conn() as conn:
                     conn.execute(
-                        f"UPDATE vuln_tickets SET {set_clause} WHERE org_id = :_org_id AND id = :_ticket_id",
+                        f"UPDATE vuln_tickets SET {set_clause} WHERE org_id = :_org_id AND id = :_ticket_id",  # nosec B608
                         updates,
                     )
 

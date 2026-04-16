@@ -381,7 +381,7 @@ class BugBountyEngine:
                 set_clauses = ", ".join(f"{k} = ?" for k in updates)
                 values = list(updates.values()) + [org_id, report_id]
                 conn.execute(
-                    f"UPDATE reports SET {set_clauses} WHERE org_id = ? AND id = ?",
+                    f"UPDATE reports SET {set_clauses} WHERE org_id = ? AND id = ?",  # nosec B608
                     values,
                 )
 

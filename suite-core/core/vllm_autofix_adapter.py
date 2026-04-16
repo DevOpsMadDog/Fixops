@@ -448,7 +448,7 @@ _DETERMINISTIC_FIX_RULES: Dict[str, Dict[str, Any]] = {
             "from urllib.parse import urlparse\n"
             "parsed = urlparse(url)\n"
             "if parsed.hostname in ALLOWED_HOSTS:\n"
-            "    response = requests.get(url)"
+            "    response = requests.get(url)"  # nosemgrep: dynamic-urllib-use-detected
         ),
         "confidence": 0.70,
     },

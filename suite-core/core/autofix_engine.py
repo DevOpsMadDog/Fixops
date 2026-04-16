@@ -1732,7 +1732,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             "pickle.loads(", "yaml.load(", "marshal.loads(",
             "shelve.open(",
             # Network backdoors
-            "0.0.0.0", "bind(", "socket.listen(",
+            "0.0.0.0", "bind(", "socket.listen(",  # nosec B104 — string pattern list, not a bind call
             # File system attacks
             "shutil.rmtree(", "os.remove(", "os.unlink(",
             # Debug backdoors

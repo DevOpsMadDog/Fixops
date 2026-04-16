@@ -623,7 +623,7 @@ _TEMPLATES: List[FixTemplate] = [
                 "before": (
                     "import requests\n"
                     "# VULNERABLE: user controls the URL\n"
-                    "response = requests.get(user_url)\n"
+                    "response = requests.get(user_url)\n"  # nosemgrep: dynamic-urllib-use-detected
                     "return response.json()"
                 ),
                 "after": (
@@ -650,7 +650,7 @@ _TEMPLATES: List[FixTemplate] = [
                     "\n"
                     "# FIXED: validate URL before making request\n"
                     "safe_url = _validate_url(user_url)\n"
-                    "response = requests.get(safe_url, timeout=10)\n"
+                    "response = requests.get(safe_url, timeout=10)\n"  # nosemgrep: dynamic-urllib-use-detected
                     "return response.json()"
                 ),
             },

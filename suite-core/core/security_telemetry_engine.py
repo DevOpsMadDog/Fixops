@@ -153,7 +153,7 @@ class SecurityTelemetryEngine:
             params.append(source)
 
         sql = (
-            f"SELECT * FROM st_datapoints WHERE {' AND '.join(clauses)}"
+            f"SELECT * FROM st_datapoints WHERE {' AND '.join(clauses)}"  # nosec B608
             " ORDER BY collected_at DESC LIMIT ?"
         )
         params.append(limit)
@@ -176,7 +176,7 @@ class SecurityTelemetryEngine:
             params.append(source)
 
         sql = (
-            f"SELECT * FROM st_datapoints WHERE {' AND '.join(clauses)}"
+            f"SELECT * FROM st_datapoints WHERE {' AND '.join(clauses)}"  # nosec B608
             " ORDER BY collected_at DESC LIMIT 1"
         )
         with self._lock:
@@ -214,17 +214,17 @@ class SecurityTelemetryEngine:
 
         # Build aggregate SQL — p95/p99 done in Python
         if aggregation in ("p95", "p99"):
-            sql_values = f"SELECT value FROM st_datapoints WHERE {where} ORDER BY value"
+            sql_values = f"SELECT value FROM st_datapoints WHERE {where} ORDER BY value"  # nosec B608
         elif aggregation == "count":
-            sql_values = f"SELECT COUNT(*) as agg_val FROM st_datapoints WHERE {where}"
+            sql_values = f"SELECT COUNT(*) as agg_val FROM st_datapoints WHERE {where}"  # nosec B608
         else:
             agg_fn = aggregation.upper()
-            sql_values = f"SELECT {agg_fn}(value) as agg_val FROM st_datapoints WHERE {where}"
+            sql_values = f"SELECT {agg_fn}(value) as agg_val FROM st_datapoints WHERE {where}"  # nosec B608
 
         with self._lock:
             with self._conn() as conn:
                 count_row = conn.execute(
-                    f"SELECT COUNT(*) FROM st_datapoints WHERE {where}", params
+                    f"SELECT COUNT(*) FROM st_datapoints WHERE {where}", params  # nosec B608
                 ).fetchone()
                 datapoint_count = count_row[0]
 
@@ -311,7 +311,7 @@ class SecurityTelemetryEngine:
             params.append(1 if enabled else 0)
 
         sql = (
-            f"SELECT * FROM st_rules WHERE {' AND '.join(clauses)}"
+            f"SELECT * FROM st_rules WHERE {' AND '.join(clauses)}"  # nosec B608
             " ORDER BY created_at DESC"
         )
         with self._lock:

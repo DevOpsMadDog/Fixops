@@ -1063,7 +1063,7 @@ class CollaborationService:
                 "unfurl_media": False,
             }
 
-            response = requests.post(webhook_url, json=payload, timeout=10)
+            response = requests.post(webhook_url, json=payload, timeout=10)  # nosemgrep: dynamic-urllib-use-detected
             response.raise_for_status()
 
             return {"success": True, "recipient": recipient}

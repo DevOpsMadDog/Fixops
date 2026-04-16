@@ -48,7 +48,7 @@ class JavaScriptAgent(CodeRepoAgent):
         """Collect SARIF using OSS tools (ESLint, Semgrep)."""
         try:
             import json
-            import subprocess
+            import subprocess  # nosec B404
 
             # Try Semgrep
             result = subprocess.run(

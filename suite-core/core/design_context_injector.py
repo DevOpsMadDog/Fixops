@@ -35,7 +35,7 @@ class DesignContextInjector:
     ) -> None:
         self.methodology = methodology.lower()
         self.id_column = id_column
-        self._plugin_module = importlib.import_module(
+        self._plugin_module = importlib.import_module(  # nosemgrep: non-literal-import
             f"ssvc.plugins.{self.methodology}"
         )
         self._decision_cls = self._resolve_decision_class()

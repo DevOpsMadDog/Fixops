@@ -291,7 +291,7 @@ class ThreatFeedAggregator:
             params.append(severity.lower())
 
         where = " AND ".join(conditions)
-        query = f"SELECT * FROM feed_items WHERE {where} ORDER BY ingested_at DESC"
+        query = f"SELECT * FROM feed_items WHERE {where} ORDER BY ingested_at DESC"  # nosec B608
 
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()

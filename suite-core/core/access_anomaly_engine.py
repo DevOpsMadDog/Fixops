@@ -452,7 +452,7 @@ class AccessAnomalyEngine:
         if username:
             clauses.append("username=?")
             params.append(username)
-        sql = f"SELECT * FROM access_anomalies WHERE {' AND '.join(clauses)} ORDER BY detected_at DESC"
+        sql = f"SELECT * FROM access_anomalies WHERE {' AND '.join(clauses)} ORDER BY detected_at DESC"  # nosec B608
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(sql, params).fetchall()

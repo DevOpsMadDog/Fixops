@@ -436,8 +436,8 @@
     },
     {
       "path": "",
-      "accessCount": 40,
-      "lastAccessed": 1776329980377,
+      "accessCount": 41,
+      "lastAccessed": 1776332240282,
       "type": "directory"
     },
     {
@@ -478,8 +478,8 @@
     },
     {
       "path": "tests/test_trustgraph.py",
-      "accessCount": 13,
-      "lastAccessed": 1776090565345,
+      "accessCount": 14,
+      "lastAccessed": 1776332370109,
       "type": "file"
     },
     {
@@ -502,8 +502,8 @@
     },
     {
       "path": "suite-api/apps/api/api_fuzzer_router.py",
-      "accessCount": 7,
-      "lastAccessed": 1776089983843,
+      "accessCount": 9,
+      "lastAccessed": 1776332255155,
       "type": "file"
     },
     {

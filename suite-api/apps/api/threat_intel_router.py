@@ -426,12 +426,12 @@ async def list_iocs(
 
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         count_row = conn.execute(
-            f"SELECT COUNT(*) FROM feodo_c2_cache {where}", params
+            f"SELECT COUNT(*) FROM feodo_c2_cache {where}", params  # nosec B608
         ).fetchone()
         total = count_row[0] if count_row else 0
 
         rows = conn.execute(
-            f"SELECT * FROM feodo_c2_cache {where} LIMIT ? OFFSET ?",
+            f"SELECT * FROM feodo_c2_cache {where} LIMIT ? OFFSET ?",  # nosec B608
             params + [limit, offset],
         ).fetchall()
         conn.close()

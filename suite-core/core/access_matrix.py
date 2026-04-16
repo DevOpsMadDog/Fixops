@@ -463,7 +463,7 @@ class AccessMatrix:
         conn = self._connect()
         try:
             rows = conn.execute(
-                f"SELECT * FROM access_rules {where} "
+                f"SELECT * FROM access_rules {where} "  # nosec B608
                 f"ORDER BY role, resource_type LIMIT ? OFFSET ?",
                 params,
             ).fetchall()

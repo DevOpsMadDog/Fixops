@@ -540,7 +540,7 @@ class FlagRegistry:
     def register(self, flag: FlagMetadata) -> None:
         """Register a feature flag."""
         if flag.key in self._flags:
-            logger.warning("Flag %s already registered, replacing", flag.key)
+            logger.warning("Flag %s already registered, replacing", flag.key)  # nosemgrep: python-logger-credential-disclosure
         self._flags[flag.key] = flag
         logger.debug(
             "Registered flag: %s (type=%s, default=%s)",

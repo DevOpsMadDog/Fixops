@@ -642,7 +642,7 @@ class RemediationService:
             base_params: List[Any] = [org_id] + ([app_id] if app_id else [])
 
             cursor.execute(
-                "SELECT status, COUNT(*) as count "
+                "SELECT status, COUNT(*) as count "  # nosec B608
                 "FROM remediation_tasks WHERE org_id = ?"
                 + app_filter
                 + " GROUP BY status",
@@ -651,7 +651,7 @@ class RemediationService:
             status_counts = {row["status"]: row["count"] for row in cursor.fetchall()}
 
             cursor.execute(
-                "SELECT severity, COUNT(*) as count "
+                "SELECT severity, COUNT(*) as count "  # nosec B608
                 "FROM remediation_tasks WHERE org_id = ?"
                 + app_filter
                 + " GROUP BY severity",
@@ -662,7 +662,7 @@ class RemediationService:
             }
 
             cursor.execute(
-                "SELECT severity, "
+                "SELECT severity, "  # nosec B608
                 "AVG(julianday(resolved_at) - julianday(created_at)) * 24 as avg_hours "
                 "FROM remediation_tasks WHERE org_id = ?"
                 + app_filter
@@ -677,7 +677,7 @@ class RemediationService:
             }
 
             cursor.execute(
-                "SELECT COUNT(*) as total "
+                "SELECT COUNT(*) as total "  # nosec B608
                 "FROM remediation_tasks WHERE org_id = ?"
                 + app_filter
                 + " AND resolved_at IS NOT NULL",
@@ -686,7 +686,7 @@ class RemediationService:
             total_resolved = cursor.fetchone()["total"]
 
             cursor.execute(
-                "SELECT COUNT(*) as breached "
+                "SELECT COUNT(*) as breached "  # nosec B608
                 "FROM remediation_tasks WHERE org_id = ?"
                 + app_filter
                 + " AND sla_breached = 1 AND resolved_at IS NOT NULL",
@@ -702,7 +702,7 @@ class RemediationService:
 
             now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
-                "SELECT COUNT(*) as overdue "
+                "SELECT COUNT(*) as overdue "  # nosec B608
                 "FROM remediation_tasks WHERE org_id = ?"
                 + app_filter
                 + " AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')",

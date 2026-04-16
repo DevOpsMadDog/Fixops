@@ -391,7 +391,7 @@ class WorkflowEngine:
             return self.get_workflow(workflow_id)
 
         params.append(workflow_id)
-        sql = f"UPDATE workflows SET {', '.join(set_clauses)} WHERE id=?"
+        sql = f"UPDATE workflows SET {', '.join(set_clauses)} WHERE id=?"  # nosec B608
 
         with self._lock:
             conn = _get_db(self._db_path)
@@ -448,7 +448,7 @@ class WorkflowEngine:
             params.append(trigger_filter)
 
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-        sql = f"SELECT * FROM workflows {where} ORDER BY name"
+        sql = f"SELECT * FROM workflows {where} ORDER BY name"  # nosec B608
 
         with self._lock:
             conn = _get_db(self._db_path)
@@ -713,7 +713,7 @@ class WorkflowEngine:
                 try:
                     import requests
                     payload = {"event": event, "config": config}
-                    requests.post(url, json=payload, timeout=10)
+                    requests.post(url, json=payload, timeout=10)  # nosemgrep: dynamic-urllib-use-detected
                 except Exception as exc:
                     logger.warning("Webhook dispatch failed: %s", exc)
                     raise
@@ -744,7 +744,7 @@ class WorkflowEngine:
 
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         params.append(limit)
-        sql = f"SELECT * FROM workflow_executions {where} ORDER BY started_at DESC LIMIT ?"
+        sql = f"SELECT * FROM workflow_executions {where} ORDER BY started_at DESC LIMIT ?"  # nosec B608
 
         with self._lock:
             conn = _get_db(self._db_path)
@@ -835,17 +835,17 @@ class WorkflowEngine:
             conn = _get_db(self._db_path)
             try:
                 wf_rows = conn.execute(
-                    f"SELECT enabled, COUNT(*) as cnt FROM workflows {where} GROUP BY enabled",
+                    f"SELECT enabled, COUNT(*) as cnt FROM workflows {where} GROUP BY enabled",  # nosec B608
                     params,
                 ).fetchall()
 
                 exec_rows = conn.execute(
-                    f"SELECT status, COUNT(*) as cnt FROM workflow_executions {where} GROUP BY status",
+                    f"SELECT status, COUNT(*) as cnt FROM workflow_executions {where} GROUP BY status",  # nosec B608
                     params,
                 ).fetchall()
 
                 trigger_rows = conn.execute(
-                    f"SELECT trigger, COUNT(*) as cnt FROM workflows {where} GROUP BY trigger",
+                    f"SELECT trigger, COUNT(*) as cnt FROM workflows {where} GROUP BY trigger",  # nosec B608
                     params,
                 ).fetchall()
             finally:

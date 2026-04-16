@@ -827,7 +827,7 @@ class CIEMEngine:
             where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
             params.append(limit)
             rows = conn.execute(
-                f"SELECT * FROM ciem_risks {where} ORDER BY detected_at DESC LIMIT ?",
+                f"SELECT * FROM ciem_risks {where} ORDER BY detected_at DESC LIMIT ?",  # nosec B608
                 params,
             ).fetchall()
             return [dict(r) for r in rows]

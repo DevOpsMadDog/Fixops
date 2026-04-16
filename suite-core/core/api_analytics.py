@@ -256,7 +256,7 @@ class APIAnalytics:
                 trunc = "substr(timestamp, 1, 13)"  # YYYY-MM-DDTHH
 
             query = (
-                f"SELECT {trunc} AS bucket, COUNT(*) AS total "
+                f"SELECT {trunc} AS bucket, COUNT(*) AS total "  # nosec B608
                 "FROM api_calls WHERE timestamp >= ?"
             )
             params: List[Any] = [since]

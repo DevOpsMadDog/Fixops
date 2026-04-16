@@ -383,11 +383,11 @@ class AssetEnricher:
                 f"https://services.nvd.nist.gov/rest/json/cves/2.0"
                 f"?keywordSearch={keyword}&resultsPerPage=10"
             )
-            req = urllib.request.Request(
+            req = urllib.request.Request(  # nosemgrep: dynamic-urllib-use-detected
                 url,
                 headers={"User-Agent": "ALDECI-AssetEnricher/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 data = _json.loads(resp.read())
             cve_ids = [
                 item["cve"]["id"]

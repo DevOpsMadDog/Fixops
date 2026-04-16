@@ -5,7 +5,7 @@ Implements actual integrations with open source security tools
 import asyncio
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional

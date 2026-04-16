@@ -1185,7 +1185,7 @@ class RegressionPredictor:
         Path
             Path to the saved model card.
         """
-        import pickle
+        import pickle  # nosec B403 -- pickle used for ML model serialization only
 
         self.model_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1195,7 +1195,7 @@ class RegressionPredictor:
 
         # Save model
         with open(model_path, "wb") as f:
-            pickle.dump({
+            pickle.dump({  # nosemgrep: avoid-pickle
                 "model": self._model,
                 "scaler": self._scaler,
                 "bootstrap_models": self._bootstrap_models,
@@ -1244,7 +1244,7 @@ class RegressionPredictor:
             True if model loaded successfully.
         """
         import hashlib
-        import pickle
+        import pickle  # nosec B403 -- pickle used for ML model serialization only
 
         # SECURITY: pickle is unsafe — migrate to safetensors/ONNX when feasible.
 
@@ -1266,7 +1266,7 @@ class RegressionPredictor:
                     return False
 
             with open(model_path, "rb") as f:
-                data = pickle.load(f)  # nosec B301 — hash-verified above when sidecar present
+                data = pickle.load(f)  # nosec B301 — hash-verified above when sidecar present  # nosemgrep: avoid-pickle
             self._model = data["model"]
             self._scaler = data["scaler"]
             self._bootstrap_models = data.get("bootstrap_models", [])

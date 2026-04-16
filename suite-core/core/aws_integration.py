@@ -241,7 +241,7 @@ class S3EvidenceStore:
         response = self._client.put_object(**put_kwargs)
         etag = response.get("ETag", "").strip('"')
         version_id = response.get("VersionId")
-        logger.info("s3_evidence_store.uploaded", bucket=self.bucket, key=key, etag=etag)
+        logger.info("s3_evidence_store.uploaded", bucket=self.bucket, key=key, etag=etag)  # nosemgrep: python-logger-credential-disclosure
         return S3UploadResult(bucket=self.bucket, key=key, etag=etag, version_id=version_id)
 
     def upload_scan_report(
@@ -374,7 +374,7 @@ class S3EvidenceStore:
     def delete_object(self, key: str) -> None:
         """Delete an object by key (used in test cleanup)."""
         self._client.delete_object(Bucket=self.bucket, Key=key)
-        logger.info("s3_evidence_store.deleted", bucket=self.bucket, key=key)
+        logger.info("s3_evidence_store.deleted", bucket=self.bucket, key=key)  # nosemgrep: python-logger-credential-disclosure
 
     def delete_bucket(self) -> None:
         """

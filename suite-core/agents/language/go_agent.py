@@ -47,7 +47,7 @@ class GoAgent(CodeRepoAgent):
         """Collect SARIF using OSS tools (Semgrep, Gosec)."""
         try:
             import json
-            import subprocess
+            import subprocess  # nosec B404
 
             # Try Semgrep
             result = subprocess.run(

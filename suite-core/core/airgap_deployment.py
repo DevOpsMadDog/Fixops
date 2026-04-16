@@ -47,7 +47,7 @@ logger = structlog.get_logger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-_DATA_ROOT = Path(os.getenv("FIXOPS_AIRGAP_DATA", "/tmp/fixops_airgap"))
+_DATA_ROOT = Path(os.getenv("FIXOPS_AIRGAP_DATA", "/tmp/fixops_airgap"))  # nosec B108
 CVE_DB_PATH = _DATA_ROOT / "cve_db" / "nvd.sqlite3"
 SBOM_OUTPUT_DIR = _DATA_ROOT / "sbom"
 SNEAKERNET_DIR = _DATA_ROOT / "sneakernet"
@@ -1139,8 +1139,8 @@ class NetworkIsolationVerifier:
         ctx.verify_mode = ssl.CERT_NONE
         for url in ["https://api.openai.com", "https://pypi.org"]:
             try:
-                req = urllib.request.Request(url, method="HEAD")
-                with urllib.request.urlopen(req, timeout=1, context=ctx):
+                req = urllib.request.Request(url, method="HEAD")  # nosemgrep: dynamic-urllib-use-detected
+                with urllib.request.urlopen(req, timeout=1, context=ctx):  # nosemgrep: dynamic-urllib-use-detected
                     violations.append(f"HTTP egress allowed to {url}")
                     egress_blocked = False
             except (OSError, ValueError):
