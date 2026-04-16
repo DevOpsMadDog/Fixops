@@ -1,0 +1,14 @@
+# Ralph Progress — Fix 23 Failing Endpoints
+
+## Iteration 1 — Investigation Phase
+- Launched 2 investigation agents (500s + 404s)
+- PRD created with 6 stories
+- Target: 95%+ pass rate (143+/150)
+- Current: 84.7% (127/150)
+
+## Learnings
+- Server must use PYTHONPATH with all suite dirs
+- Rate limit: 100 RPM token bucket, 50ms delay between calls
+- SPA fallback must be registered LAST in create_app()
+- Recursion limit raised to 5000 for 453+ router lifespan chains
+- API token: read from env FIXOPS_API_TOKEN

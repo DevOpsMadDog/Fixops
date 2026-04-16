@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls suite-core/core/zero_trust_engine.py suite-core/core/iga_engine.py suite-core/core/report_scheduler.py suite-core/core/cspm_engine.py suite-core/core/data_classification.py suite-core/c...",
-  "error": "Exit code 1\nls: suite-core/core/vuln_risk_scoring.py: No such file or directory\nsuite-core/core/cert_manager.py\nsuite-core/core/cspm_engine.py\nsuite-core/core/data_classification.py\nsuite-core/core/iga_engine.py\nsuite-core/core/red_team_engine.py\nsuite-core/core/report_scheduler.py\nsuite-core/core/security_metrics.py\nsuite-core/core/zero_trust_engine.py\n[rerun: b2]",
-  "timestamp": "2026-04-15T14:41:33.499Z",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_phase3_llm_council.py -x --tb=short --timeout=10 -q -o \\\"addopts=\\\" 2>&1\"}",
+  "error": "Exit code 1\n\ntests/test_phase3_llm_council.py::TestCouncilStage1::test_stage1_member_failure_handling \n-------------------------------- live log call ---------------------------------\n2026-04-16 19:01:10 [ WARNING] core.llm_council: Member failing failed in stage 1: Mock provider failing configured to fail\nPASSED                                                                   [ 10%]\ntests/test_phase3_llm_council.py::TestCouncilConvene::test_council_convene_full_flow \n--------------------------...",
+  "timestamp": "2026-04-16T09:01:10.607Z",
   "retry_count": 1
 }

@@ -424,21 +424,21 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 422,
-      "lastAccessed": 1776264084646,
-      "type": "directory"
-    },
-    {
-      "path": "",
-      "accessCount": 38,
-      "lastAccessed": 1776263771251,
+      "accessCount": 479,
+      "lastAccessed": 1776326580000,
       "type": "directory"
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 35,
-      "lastAccessed": 1776262610478,
+      "accessCount": 40,
+      "lastAccessed": 1776319188391,
       "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 40,
+      "lastAccessed": 1776329980377,
+      "type": "directory"
     },
     {
       "path": "suite-core/core/asset_inventory.py",
@@ -484,8 +484,8 @@
     },
     {
       "path": "tests/test_phase2_connectors.py",
-      "accessCount": 9,
-      "lastAccessed": 1776089988035,
+      "accessCount": 10,
+      "lastAccessed": 1776318787210,
       "type": "file"
     },
     {
@@ -520,8 +520,8 @@
     },
     {
       "path": "suite-api/apps/api/supply_chain_router.py",
-      "accessCount": 6,
-      "lastAccessed": 1776090268233,
+      "accessCount": 7,
+      "lastAccessed": 1776325339146,
       "type": "file"
     },
     {
@@ -534,6 +534,12 @@
       "path": "tests/test_compliance_automation.py",
       "accessCount": 5,
       "lastAccessed": 1776263715025,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/compliance_engine_router.py",
+      "accessCount": 5,
+      "lastAccessed": 1776325358566,
       "type": "file"
     },
     {
@@ -588,12 +594,6 @@
       "path": "suite-core/core/soar_engine.py",
       "accessCount": 3,
       "lastAccessed": 1776083735737,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/compliance_engine_router.py",
-      "accessCount": 3,
-      "lastAccessed": 1776084355032,
       "type": "file"
     },
     {
