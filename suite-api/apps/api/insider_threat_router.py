@@ -277,3 +277,16 @@ def get_detection_stats(
     """
     detector = _get_detector()
     return detector.get_detection_stats(org_id=org_id)
+
+
+@router.get(
+    "/context/{entity_id}",
+    dependencies=_AUTH_DEP,
+)
+def get_trustgraph_context(
+    entity_id: str,
+    org_id: str = Query("default", description="Organisation ID"),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for an insider threat entity (related assets, findings, incidents)."""
+    detector = _get_detector()
+    return detector.get_trustgraph_context(org_id=org_id, entity_id=entity_id)

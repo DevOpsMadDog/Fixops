@@ -17,7 +17,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -154,3 +154,12 @@ def list_treatments(
 def get_risk_stats(org_id: str = Query(...)):
     """Return aggregated risk statistics for an org."""
     return _get_engine().get_risk_stats(org_id)
+
+
+@router.get("/risks/{risk_id}/context", dependencies=[Depends(api_key_auth)])
+def get_risk_context(
+    risk_id: str,
+    org_id: str = Query(...),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for a risk (related findings, assets, incidents)."""
+    return _get_engine().get_risk_context(org_id, risk_id)

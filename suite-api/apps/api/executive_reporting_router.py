@@ -272,3 +272,12 @@ def get_exec_summary(
     except Exception as exc:
         logger.exception("get_exec_summary failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/context/{entity_id}")
+def get_trustgraph_context(
+    entity_id: str,
+    org_id: str = Query("default"),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for an entity (related assets, findings, incidents)."""
+    return _get_engine().get_trustgraph_context(org_id, entity_id)

@@ -172,3 +172,12 @@ def get_timeline(incident_id: str, org_id: str = Query(...)):
 def get_incident_metrics(org_id: str = Query(...)):
     """Return aggregated incident metrics for the org."""
     return _get_engine().get_incident_metrics(org_id)
+
+
+@router.get("/incidents/{incident_id}/context", dependencies=[Depends(api_key_auth)])
+def get_incident_context(
+    incident_id: str,
+    org_id: str = Query(...),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for an incident (related alerts, assets, similar incidents)."""
+    return _get_engine().get_incident_context(org_id, incident_id)

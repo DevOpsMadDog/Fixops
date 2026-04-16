@@ -190,3 +190,12 @@ def get_triage_stats(
 ) -> Dict[str, Any]:
     """Return aggregate triage statistics."""
     return _get_engine().get_triage_stats(org_id)
+
+
+@router.get("/alerts/{alert_id}/context", dependencies=[Depends(api_key_auth)])
+def get_alert_context(
+    alert_id: str,
+    org_id: str = Query(..., description="Organization ID"),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for an alert (related assets, findings, incidents)."""
+    return _get_engine().get_alert_context(org_id, alert_id)

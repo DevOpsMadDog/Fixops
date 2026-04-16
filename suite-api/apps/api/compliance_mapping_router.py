@@ -242,3 +242,12 @@ def get_stats(
 ) -> Dict[str, Any]:
     """Return aggregate compliance mapping statistics."""
     return _get_engine().get_mapping_stats(org_id)
+
+
+@router.get("/controls/{control_id}/context", dependencies=[Depends(api_key_auth)])
+def get_control_context(
+    control_id: str,
+    org_id: str = Query(..., description="Organization ID"),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for a control (related findings, assets, evidence)."""
+    return _get_engine().get_control_context(org_id, control_id)

@@ -448,6 +448,62 @@ class ComplianceMappingEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    def get_control_context(self, org_id: str, control_id: str) -> Dict[str, Any]:
+        """Query TrustGraph for cross-domain context about a compliance control.
+
+        Returns related findings, evidence, and assets covered by this control.
+        Degrades gracefully when TrustGraph is unavailable.
+        """
+        context: Dict[str, Any] = {
+            "related_assets": [],
+            "related_findings": [],
+            "related_evidence": [],
+            "trustgraph_available": False,
+        }
+        try:
+            from trustgraph.knowledge_store import KnowledgeStore
+            store = KnowledgeStore()
+            context["trustgraph_available"] = True
+
+            control = self.get_control(org_id, control_id)
+            search_term = control.get("control_name", control_id) if control else control_id
+
+            for core_id in (1, 2, 3):
+                try:
+                    results = store.search(core_id=core_id, query_text=search_term, limit=10)
+                    for entity in results:
+                        if entity.org_id not in ("default", org_id):
+                            continue
+                        entry = {"id": entity.entity_id, "name": entity.name, "type": entity.entity_type}
+                        etype = entity.entity_type.lower()
+                        if etype in ("asset", "service", "host"):
+                            context["related_assets"].append(entry)
+                        elif etype in ("finding", "vulnerability", "cve"):
+                            context["related_findings"].append(entry)
+                        elif etype in ("evidence", "document", "artifact"):
+                            context["related_evidence"].append(entry)
+                except Exception:
+                    pass
+
+            neighbors = store.get_neighbors(entity_id=control_id, depth=1)
+            for n in neighbors:
+                if n.org_id not in ("default", org_id):
+                    continue
+                entry = {"id": n.entity_id, "name": n.name, "type": n.entity_type}
+                etype = n.entity_type.lower()
+                if etype in ("asset", "service", "host"):
+                    if entry not in context["related_assets"]:
+                        context["related_assets"].append(entry)
+                elif etype in ("finding", "vulnerability", "cve"):
+                    if entry not in context["related_findings"]:
+                        context["related_findings"].append(entry)
+                elif etype in ("evidence", "document", "artifact"):
+                    if entry not in context["related_evidence"]:
+                        context["related_evidence"].append(entry)
+        except Exception:
+            pass
+        return context
+
     def get_mapping_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate mapping statistics for an org.
 

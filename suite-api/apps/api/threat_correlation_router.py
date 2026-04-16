@@ -187,3 +187,13 @@ def get_stats(
 ) -> Dict[str, Any]:
     """Get correlation statistics for an org."""
     return _get_engine().get_correlation_stats(org_id)
+
+
+@router.get("/context/{entity_id}")
+def get_trustgraph_context(
+    entity_id: str,
+    org_id: str = Query(default="default"),
+    _: Any = Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for a threat entity (related assets, findings, incidents)."""
+    return _get_engine().get_trustgraph_context(org_id, entity_id)

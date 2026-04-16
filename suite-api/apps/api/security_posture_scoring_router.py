@@ -18,7 +18,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -176,3 +176,12 @@ def get_posture_history(
 def get_posture_stats(org_id: str = Query(default="default")):
     """Return overall posture score, per-domain scores, and control gap counts."""
     return _get_engine().get_posture_stats(org_id)
+
+
+@router.get("/context/{entity_id}", dependencies=[Depends(api_key_auth)])
+def get_trustgraph_context(
+    entity_id: str,
+    org_id: str = Query(default="default"),
+):
+    """Return TrustGraph cross-domain context for a posture entity (related assets, findings, incidents)."""
+    return _get_engine().get_trustgraph_context(org_id, entity_id)

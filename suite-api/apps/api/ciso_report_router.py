@@ -91,3 +91,13 @@ def export_markdown(
     gen = _get_generator()
     md = gen.export_markdown(org_id=org_id)
     return PlainTextResponse(content=md, media_type="text/markdown")
+
+
+@router.get("/context/{entity_id}", dependencies=[Depends(api_key_auth)])
+def get_trustgraph_context(
+    entity_id: str,
+    org_id: str = Query(default="default", description="Organisation identifier"),
+) -> Dict[str, Any]:
+    """Return TrustGraph cross-domain context for a CISO report entity (related assets, findings, incidents)."""
+    gen = _get_generator()
+    return gen.get_trustgraph_context(org_id=org_id, entity_id=entity_id)

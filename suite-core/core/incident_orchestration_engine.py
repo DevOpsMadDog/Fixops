@@ -317,6 +317,67 @@ class IncidentOrchestrationEngine:
         return [self._row(r) for r in rows]
 
     # ------------------------------------------------------------------
+    # TrustGraph context
+    # ------------------------------------------------------------------
+
+    def get_incident_context(self, org_id: str, incident_id: str) -> Dict[str, Any]:
+        """Query TrustGraph for cross-domain context about an incident.
+
+        Returns related alerts, affected assets, and similar past incidents.
+        Degrades gracefully when TrustGraph is unavailable.
+        """
+        context: Dict[str, Any] = {
+            "related_assets": [],
+            "related_alerts": [],
+            "similar_incidents": [],
+            "trustgraph_available": False,
+        }
+        try:
+            from trustgraph.knowledge_store import KnowledgeStore
+            store = KnowledgeStore()
+            context["trustgraph_available"] = True
+
+            incident = self.get_incident(org_id, incident_id)
+            search_term = incident.get("title", incident_id) if incident else incident_id
+
+            for core_id in (1, 2, 3):
+                try:
+                    results = store.search(core_id=core_id, query_text=search_term, limit=10)
+                    for entity in results:
+                        if entity.org_id not in ("default", org_id):
+                            continue
+                        entry = {"id": entity.entity_id, "name": entity.name, "type": entity.entity_type}
+                        etype = entity.entity_type.lower()
+                        if etype in ("asset", "service", "host"):
+                            context["related_assets"].append(entry)
+                        elif etype in ("alert", "finding"):
+                            context["related_alerts"].append(entry)
+                        elif etype in ("incident", "breach"):
+                            if entry["id"] != incident_id:
+                                context["similar_incidents"].append(entry)
+                except Exception:
+                    pass
+
+            neighbors = store.get_neighbors(entity_id=incident_id, depth=1)
+            for n in neighbors:
+                if n.org_id not in ("default", org_id):
+                    continue
+                entry = {"id": n.entity_id, "name": n.name, "type": n.entity_type}
+                etype = n.entity_type.lower()
+                if etype in ("asset", "service", "host"):
+                    if entry not in context["related_assets"]:
+                        context["related_assets"].append(entry)
+                elif etype in ("alert", "finding"):
+                    if entry not in context["related_alerts"]:
+                        context["related_alerts"].append(entry)
+                elif etype in ("incident", "breach"):
+                    if entry["id"] != incident_id and entry not in context["similar_incidents"]:
+                        context["similar_incidents"].append(entry)
+        except Exception:
+            pass
+        return context
+
+    # ------------------------------------------------------------------
     # Metrics
     # ------------------------------------------------------------------
 
