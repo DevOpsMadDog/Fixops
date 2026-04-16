@@ -5007,6 +5007,13 @@ def create_app() -> FastAPI:
         except ImportError as exc:
             _logger.warning("EventBus subscriber registration failed: %s", exc)
 
+        try:
+            from core.cross_category_subscribers import register_cross_category_subscribers
+            register_cross_category_subscribers()
+            _logger.info("Cross-category subscribers registered")
+        except Exception as e:
+            _logger.warning("Cross-category subscribers not loaded: %s", e)
+
         # Wire activity feed persistence (P3 Vision Gap)
         try:
             from apps.api.gap_router import record_activity_event
