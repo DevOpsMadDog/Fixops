@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import sys
+sys.setrecursionlimit(5000)  # 453+ routers chain FastAPI lifespans recursively
+
 import csv
 import hashlib
 import importlib.util
@@ -5345,42 +5348,7 @@ def create_app() -> FastAPI:
     except ImportError as _gap_err:
         _logger.warning("Failed to mount gap routers: %s", _gap_err)
 
-    # -----------------------------------------------------------------------
-    # Serve React frontend — prefer aldeci-ui-new, fall back to aldeci
-    # -----------------------------------------------------------------------
-    _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    _ui_dist_new = os.path.join(_repo_root, "suite-ui", "aldeci-ui-new", "dist")
-    _ui_dist_legacy = os.path.join(_repo_root, "suite-ui", "aldeci", "dist")
-    _ui_dist = _ui_dist_new if os.path.isdir(_ui_dist_new) else _ui_dist_legacy
-    if os.path.isdir(_ui_dist):
-        from starlette.staticfiles import StaticFiles
-        from starlette.responses import FileResponse
-
-        # Serve /assets/* (JS/CSS bundles)
-        _assets_dir = os.path.join(_ui_dist, "assets")
-        if os.path.isdir(_assets_dir):
-            app.mount("/assets", StaticFiles(directory=_assets_dir), name="ui-assets")
-
-        # SPA fallback: any non-API, non-asset path → index.html
-        from starlette.responses import JSONResponse as _SpaJsonResp
-
-        @app.get("/{full_path:path}", include_in_schema=False)
-        async def _spa_fallback(full_path: str):
-            # NEVER serve index.html for API paths — return 404 JSON
-            if full_path.startswith("api/"):
-                return _SpaJsonResp(
-                    {"detail": "Not Found", "path": f"/{full_path}"},
-                    status_code=404,
-                )
-            # If the exact file exists in dist, serve it (e.g., vite.svg, favicon)
-            candidate = os.path.join(_ui_dist, full_path)
-            if full_path and os.path.isfile(candidate):
-                return FileResponse(candidate)
-            return FileResponse(os.path.join(_ui_dist, "index.html"))
-
-        _logger.info("Mounted React SPA from %s", _ui_dist)
-    else:
-        _logger.warning("React UI dist not found at %s — SPA not served", _ui_dist)
+    # SPA fallback moved to end of create_app() — must be registered AFTER all routers
 
     # WAF Rule Generator — auto-generate WAF rules from vulnerability findings
     try:
@@ -5741,13 +5709,8 @@ def create_app() -> FastAPI:
     except Exception as e:
         _logger.warning(f"Secrets Manager router not loaded: {e}")
 
-    # SOAR — playbook automation, incident response, case management
-    try:
-        from apps.api.soar_router import router as soar_router
-        app.include_router(soar_router, dependencies=[Depends(_verify_api_key)])
-        _logger.info("Mounted SOAR router at /api/v1/soar")
-    except Exception as e:
-        _logger.warning(f"SOAR router not loaded: {e}")
+    # SOAR — playbook automation (duplicate removed — mounted earlier via module-level import)
+    # soar_router already mounted at line ~2710 via module-level import
 
     # Threat Correlation Engine — event ingestion, BFS correlation rules, alert lifecycle
     try:
@@ -6182,8 +6145,8 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.sbom_router import router as sbom_router
-        app.include_router(sbom_router)
+        from apps.api.sbom_router import router as _sbom_router2
+        app.include_router(_sbom_router2)
         _logger.info("Mounted SBOM router at /api/v1/sbom")
     except ImportError:
         pass
@@ -6335,8 +6298,8 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.secret_scanner_router import router as secret_scanner_router
-        app.include_router(secret_scanner_router)
+        from apps.api.secret_scanner_router import router as _secret_scanner_router2
+        app.include_router(_secret_scanner_router2)
     except ImportError:
         pass
     try:
@@ -6399,8 +6362,8 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.evidence_chain_router import router as evidence_chain_router
-        app.include_router(evidence_chain_router)
+        from apps.api.evidence_chain_router import router as _evidence_chain_router2
+        app.include_router(_evidence_chain_router2)
         _logger.info("Mounted Evidence Chain router at /api/v1/evidence-chain")
     except ImportError:
         pass
@@ -6476,8 +6439,8 @@ def create_app() -> FastAPI:
         pass
 
     try:
-        from apps.api.ip_reputation_router import router as ip_reputation_router
-        app.include_router(ip_reputation_router)
+        from apps.api.ip_reputation_router import router as _ip_reputation_router2
+        app.include_router(_ip_reputation_router2)
         _logger.info("Mounted IP Reputation router at /api/v1/ip-reputation")
     except ImportError:
         pass
@@ -7883,6 +7846,39 @@ def create_app() -> FastAPI:
         _logger.info("Mounted Security Operations Automation router at /api/v1/soc-automation")
     except ImportError:
         pass
+
+    # -----------------------------------------------------------------------
+    # Serve React frontend — MUST be last (catch-all route)
+    # -----------------------------------------------------------------------
+    _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    _ui_dist_new = os.path.join(_repo_root, "suite-ui", "aldeci-ui-new", "dist")
+    _ui_dist_legacy = os.path.join(_repo_root, "suite-ui", "aldeci", "dist")
+    _ui_dist = _ui_dist_new if os.path.isdir(_ui_dist_new) else _ui_dist_legacy
+    if os.path.isdir(_ui_dist):
+        from starlette.staticfiles import StaticFiles
+        from starlette.responses import FileResponse
+
+        _assets_dir = os.path.join(_ui_dist, "assets")
+        if os.path.isdir(_assets_dir):
+            app.mount("/assets", StaticFiles(directory=_assets_dir), name="ui-assets")
+
+        from starlette.responses import JSONResponse as _SpaJsonResp
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def _spa_fallback(full_path: str):
+            if full_path.startswith("api/"):
+                return _SpaJsonResp(
+                    {"detail": "Not Found", "path": f"/{full_path}"},
+                    status_code=404,
+                )
+            candidate = os.path.join(_ui_dist, full_path)
+            if full_path and os.path.isfile(candidate):
+                return FileResponse(candidate)
+            return FileResponse(os.path.join(_ui_dist, "index.html"))
+
+        _logger.info("Mounted React SPA from %s (last — after all %d routers)", _ui_dist, len(app.routes))
+    else:
+        _logger.warning("React UI dist not found at %s — SPA not served", _ui_dist)
 
     return app
 
