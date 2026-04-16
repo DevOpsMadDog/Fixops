@@ -32,6 +32,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _prioritizer: Optional[Any] = None
+_vuln_prio_engine: Optional[Any] = None
 
 
 def _get_prioritizer():
@@ -41,6 +42,15 @@ def _get_prioritizer():
         from core.vuln_prioritizer import VulnPrioritizer
         _prioritizer = VulnPrioritizer()
     return _prioritizer
+
+
+def _get_vuln_prio_engine():
+    """Return a VulnerabilityPrioritizationEngine singleton (has get_prioritization_stats)."""
+    global _vuln_prio_engine
+    if _vuln_prio_engine is None:
+        from core.vulnerability_prioritization_engine import VulnerabilityPrioritizationEngine
+        _vuln_prio_engine = VulnerabilityPrioritizationEngine()
+    return _vuln_prio_engine
 
 
 # ---------------------------------------------------------------------------
@@ -233,9 +243,9 @@ async def get_stats(
     org_id: str = Query("", description="Organisation ID filter"),
 ) -> Dict[str, Any]:
     """Return prioritization statistics: category distribution, avg score, top factors."""
-    prioritizer = _get_prioritizer()
+    engine = _get_vuln_prio_engine()
     try:
-        return prioritizer.get_prioritization_stats(org_id=org_id)
+        return engine.get_prioritization_stats(org_id=org_id)
     except Exception as exc:
         logger.exception("get_stats failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -26,6 +26,12 @@ class BatchRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/stats", summary="CVE enrichment statistics")
+def get_stats() -> dict:
+    """Return CVE enrichment statistics including cache hit rate and record count."""
+    return _svc.get_cache_stats()
+
+
 @router.get("/{cve_id}", summary="Get enriched CVE record")
 def get_cve(cve_id: str) -> dict:
     """Retrieve enriched CVE data combining NVD, EPSS, and KEV sources."""

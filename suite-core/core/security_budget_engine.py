@@ -392,7 +392,7 @@ class SecurityBudgetEngine:
 
         with self._conn() as conn:
             totals = conn.execute(
-                f"""SELECTCOALESCE(SUM(allocated_amount), 0.0) AS total_allocated,
+                f"""SELECT COALESCE(SUM(allocated_amount), 0.0) AS total_allocated,
                        COALESCE(SUM(spent_amount), 0.0)     AS total_spent
                     FROM budget_allocations {sql_filter}""",  # nosec B608
                 params,

@@ -70,16 +70,16 @@ class IngestIndicatorRequest(BaseModel):
 
 
 @router.post("/sources", summary="Add an intel source")
-def add_source(req: AddSourceRequest) -> Dict[str, Any]:
+def add_source(req: AddSourceRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().add_intel_source("default", req.model_dump())
+        return _get_engine().add_intel_source(org_id, req.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/sources", summary="List intel sources")
-def list_sources() -> List[Dict[str, Any]]:
-    return _get_engine().list_intel_sources("default")
+def list_sources(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+    return _get_engine().list_intel_sources(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -88,9 +88,9 @@ def list_sources() -> List[Dict[str, Any]]:
 
 
 @router.post("/indicators", summary="Ingest a threat indicator")
-def ingest_indicator(req: IngestIndicatorRequest) -> Dict[str, Any]:
+def ingest_indicator(req: IngestIndicatorRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().ingest_indicator("default", req.model_dump())
+        return _get_engine().ingest_indicator(org_id, req.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -99,23 +99,25 @@ def ingest_indicator(req: IngestIndicatorRequest) -> Dict[str, Any]:
 def search_indicators(
     q: str = Query(..., min_length=1),
     indicator_type: Optional[str] = Query(None),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
-    return _get_engine().search_indicators("default", query=q, indicator_type=indicator_type)
+    return _get_engine().search_indicators(org_id, query=q, indicator_type=indicator_type)
 
 
 @router.get("/indicators/high-confidence", summary="Get high-confidence indicators")
 def get_high_confidence(
     min_confidence: int = Query(80, ge=0, le=100),
     limit: int = Query(50, ge=1, le=500),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_high_confidence_indicators(
-        "default", min_confidence=min_confidence, limit=limit
+        org_id, min_confidence=min_confidence, limit=limit
     )
 
 
 @router.post("/indicators/expire", summary="Expire old indicators past expiry date")
-def expire_indicators() -> Dict[str, Any]:
-    return _get_engine().expire_old_indicators("default")
+def expire_indicators(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().expire_old_indicators(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -124,8 +126,8 @@ def expire_indicators() -> Dict[str, Any]:
 
 
 @router.get("/fuse/{indicator_value}", summary="Fuse indicator from all sources")
-def fuse_indicator(indicator_value: str) -> Dict[str, Any]:
-    return _get_engine().fuse_indicator("default", indicator_value)
+def fuse_indicator(indicator_value: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().fuse_indicator(org_id, indicator_value)
 
 
 # ---------------------------------------------------------------------------
@@ -134,5 +136,5 @@ def fuse_indicator(indicator_value: str) -> Dict[str, Any]:
 
 
 @router.get("/stats", summary="Get fusion statistics")
-def get_stats() -> Dict[str, Any]:
-    return _get_engine().get_fusion_stats("default")
+def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().get_fusion_stats(org_id)

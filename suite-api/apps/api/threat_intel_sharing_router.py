@@ -76,16 +76,16 @@ class CreatePolicyRequest(BaseModel):
 
 
 @router.post("/groups", summary="Create a sharing group")
-def create_group(req: CreateGroupRequest) -> Dict[str, Any]:
+def create_group(req: CreateGroupRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().create_group("default", req.model_dump())
+        return _get_engine().create_group(org_id, req.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/groups", summary="List sharing groups")
-def list_groups() -> List[Dict[str, Any]]:
-    return _get_engine().list_groups("default")
+def list_groups(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+    return _get_engine().list_groups(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -94,9 +94,9 @@ def list_groups() -> List[Dict[str, Any]]:
 
 
 @router.post("/groups/{group_id}/indicators", summary="Share an indicator")
-def share_indicator(group_id: str, req: ShareIndicatorRequest) -> Dict[str, Any]:
+def share_indicator(group_id: str, req: ShareIndicatorRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().share_indicator("default", group_id, req.model_dump(exclude_none=True))
+        return _get_engine().share_indicator(org_id, group_id, req.model_dump(exclude_none=True))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -106,9 +106,10 @@ def list_indicators(
     group_id: Optional[str] = Query(None),
     indicator_type: Optional[str] = Query(None),
     tlp: Optional[str] = Query(None),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_indicators(
-        "default", group_id=group_id, indicator_type=indicator_type, tlp=tlp
+        org_id, group_id=group_id, indicator_type=indicator_type, tlp=tlp
     )
 
 
@@ -118,17 +119,17 @@ def list_indicators(
 
 
 @router.get("/groups/{group_id}/export/stix", summary="Export indicators as STIX 2.1 bundle")
-def export_stix_bundle(group_id: str) -> Dict[str, Any]:
+def export_stix_bundle(group_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().export_stix_bundle("default", group_id)
+        return _get_engine().export_stix_bundle(org_id, group_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/import/stix", summary="Import a STIX 2.1 bundle")
-def import_stix_bundle(req: ImportBundleRequest) -> Dict[str, Any]:
+def import_stix_bundle(req: ImportBundleRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().import_stix_bundle("default", req.bundle, req.source_name)
+        return _get_engine().import_stix_bundle(org_id, req.bundle, req.source_name)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -139,9 +140,9 @@ def import_stix_bundle(req: ImportBundleRequest) -> Dict[str, Any]:
 
 
 @router.post("/policies", summary="Create a sharing policy")
-def create_policy(req: CreatePolicyRequest) -> Dict[str, Any]:
+def create_policy(req: CreatePolicyRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().create_policy("default", req.model_dump())
+        return _get_engine().create_policy(org_id, req.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -152,5 +153,5 @@ def create_policy(req: CreatePolicyRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", summary="Get threat sharing statistics")
-def get_sharing_stats() -> Dict[str, Any]:
-    return _get_engine().get_sharing_stats("default")
+def get_sharing_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().get_sharing_stats(org_id)

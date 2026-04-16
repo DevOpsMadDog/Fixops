@@ -82,10 +82,10 @@ class RecordDeliveryRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/subscriptions", summary="Create a feed subscription")
-def create_subscription(req: CreateSubscriptionRequest) -> Dict[str, Any]:
+def create_subscription(req: CreateSubscriptionRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().create_subscription(
-            org_id="default",
+            org_id=org_id,
             feed_name=req.feed_name,
             feed_type=req.feed_type,
             feed_url=req.feed_url,
@@ -100,31 +100,32 @@ def create_subscription(req: CreateSubscriptionRequest) -> Dict[str, Any]:
 def list_subscriptions(
     status: Optional[str] = Query(None),
     feed_type: Optional[str] = Query(None),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
-    return _get_engine().list_subscriptions("default", status=status, feed_type=feed_type)
+    return _get_engine().list_subscriptions(org_id, status=status, feed_type=feed_type)
 
 
 @router.get("/subscriptions/{subscription_id}", summary="Get subscription with ingestion logs")
-def get_subscription(subscription_id: str) -> Dict[str, Any]:
-    result = _get_engine().get_subscription(subscription_id, "default")
+def get_subscription(subscription_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+    result = _get_engine().get_subscription(subscription_id, org_id)
     if not result:
         raise HTTPException(status_code=404, detail="Subscription not found")
     return result
 
 
 @router.patch("/subscriptions/{subscription_id}/status", summary="Update subscription status")
-def update_status(subscription_id: str, req: UpdateStatusRequest) -> Dict[str, Any]:
+def update_status(subscription_id: str, req: UpdateStatusRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().update_subscription_status(subscription_id, "default", req.status)
+        return _get_engine().update_subscription_status(subscription_id, org_id, req.status)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/subscriptions/{subscription_id}/ingestion", summary="Record an ingestion run")
-def record_ingestion(subscription_id: str, req: RecordIngestionRequest) -> Dict[str, Any]:
+def record_ingestion(subscription_id: str, req: RecordIngestionRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     return _get_engine().record_ingestion(
         subscription_id=subscription_id,
-        org_id="default",
+        org_id=org_id,
         iocs_fetched=req.iocs_fetched,
         iocs_new=req.iocs_new,
         iocs_updated=req.iocs_updated,
@@ -138,11 +139,11 @@ def record_ingestion(subscription_id: str, req: RecordIngestionRequest) -> Dict[
 # ---------------------------------------------------------------------------
 
 @router.post("/subscriptions/{subscription_id}/deliveries", summary="Create delivery channel")
-def create_delivery(subscription_id: str, req: CreateDeliveryRequest) -> Dict[str, Any]:
+def create_delivery(subscription_id: str, req: CreateDeliveryRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().create_delivery(
             subscription_id=subscription_id,
-            org_id="default",
+            org_id=org_id,
             delivery_type=req.delivery_type,
             endpoint=req.endpoint,
             filter_severity=req.filter_severity,
@@ -157,10 +158,10 @@ def create_delivery(subscription_id: str, req: CreateDeliveryRequest) -> Dict[st
     summary="Record a delivery",
 )
 def record_delivery(
-    subscription_id: str, delivery_id: str, req: RecordDeliveryRequest
+    subscription_id: str, delivery_id: str, req: RecordDeliveryRequest, org_id: str = Query(default="default")
 ) -> Dict[str, Any]:
     try:
-        return _get_engine().record_delivery(delivery_id, "default", req.count)
+        return _get_engine().record_delivery(delivery_id, org_id, req.count)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -170,10 +171,10 @@ def record_delivery(
 # ---------------------------------------------------------------------------
 
 @router.get("/due", summary="Get subscriptions due for fetch")
-def get_due() -> List[Dict[str, Any]]:
-    return _get_engine().get_due_subscriptions("default")
+def get_due(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+    return _get_engine().get_due_subscriptions(org_id)
 
 
 @router.get("/stats", summary="Ingestion statistics")
-def get_stats() -> Dict[str, Any]:
-    return _get_engine().get_ingestion_stats("default")
+def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().get_ingestion_stats(org_id)

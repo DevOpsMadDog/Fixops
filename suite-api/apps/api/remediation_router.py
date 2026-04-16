@@ -616,7 +616,8 @@ async def remediation_stats(request: Request):
     svc = get_remediation_service()
     tasks = []
     try:
-        raw = svc.get_tasks(limit=1000) if hasattr(svc, "get_tasks") else []
+        org_id = get_org_id(request)
+        raw = svc.get_tasks(org_id=org_id, limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
@@ -652,7 +653,8 @@ async def remediation_queue(request: Request):
     svc = get_remediation_service()
     tasks = []
     try:
-        raw = svc.get_tasks(limit=200) if hasattr(svc, "get_tasks") else []
+        org_id = get_org_id(request)
+        raw = svc.get_tasks(org_id=org_id, limit=200) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
     except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass

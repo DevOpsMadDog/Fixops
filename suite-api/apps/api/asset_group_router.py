@@ -82,10 +82,10 @@ class BulkAddMembersRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/groups", summary="Create an asset group")
-def create_group(req: CreateGroupRequest) -> Dict[str, Any]:
+def create_group(req: CreateGroupRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().create_group(
-            org_id="default",
+            org_id=org_id,
             group_name=req.group_name,
             group_type=req.group_type,
             description=req.description,
@@ -100,13 +100,14 @@ def create_group(req: CreateGroupRequest) -> Dict[str, Any]:
 def list_groups(
     group_type: Optional[str] = Query(None),
     criticality: Optional[str] = Query(None),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
-    return _get_engine().list_groups("default", group_type=group_type, criticality=criticality)
+    return _get_engine().list_groups(org_id, group_type=group_type, criticality=criticality)
 
 
 @router.get("/groups/{group_id}", summary="Get group with members and policies")
-def get_group(group_id: str) -> Dict[str, Any]:
-    result = _get_engine().get_group(group_id, "default")
+def get_group(group_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+    result = _get_engine().get_group(group_id, org_id)
     if not result:
         raise HTTPException(status_code=404, detail="Group not found")
     return result
@@ -117,11 +118,11 @@ def get_group(group_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @router.post("/groups/{group_id}/members", summary="Add a member to a group")
-def add_member(group_id: str, req: AddMemberRequest) -> Dict[str, Any]:
+def add_member(group_id: str, req: AddMemberRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().add_member(
             group_id=group_id,
-            org_id="default",
+            org_id=org_id,
             asset_id=req.asset_id,
             asset_type=req.asset_type,
             added_by=req.added_by,
@@ -131,16 +132,16 @@ def add_member(group_id: str, req: AddMemberRequest) -> Dict[str, Any]:
 
 
 @router.delete("/groups/{group_id}/members/{asset_id}", summary="Remove a member from a group")
-def remove_member(group_id: str, asset_id: str) -> Dict[str, Any]:
-    return _get_engine().remove_member(group_id, "default", asset_id)
+def remove_member(group_id: str, asset_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().remove_member(group_id, org_id, asset_id)
 
 
 @router.post("/groups/{group_id}/bulk-members", summary="Bulk add members to a group")
-def bulk_add_members(group_id: str, req: BulkAddMembersRequest) -> Dict[str, Any]:
+def bulk_add_members(group_id: str, req: BulkAddMembersRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().bulk_add_members(
             group_id=group_id,
-            org_id="default",
+            org_id=org_id,
             asset_ids=req.asset_ids,
             asset_type=req.asset_type,
             added_by=req.added_by,
@@ -154,11 +155,11 @@ def bulk_add_members(group_id: str, req: BulkAddMembersRequest) -> Dict[str, Any
 # ---------------------------------------------------------------------------
 
 @router.post("/groups/{group_id}/policies", summary="Add a policy to a group")
-def add_policy(group_id: str, req: AddPolicyRequest) -> Dict[str, Any]:
+def add_policy(group_id: str, req: AddPolicyRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().add_policy(
             group_id=group_id,
-            org_id="default",
+            org_id=org_id,
             policy_name=req.policy_name,
             policy_type=req.policy_type,
             config=req.config,
@@ -171,9 +172,9 @@ def add_policy(group_id: str, req: AddPolicyRequest) -> Dict[str, Any]:
     "/groups/{group_id}/policies/{policy_id}/toggle",
     summary="Toggle policy enabled/disabled",
 )
-def toggle_policy(group_id: str, policy_id: str) -> Dict[str, Any]:
+def toggle_policy(group_id: str, policy_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().toggle_policy(policy_id, group_id, "default")
+        return _get_engine().toggle_policy(policy_id, group_id, org_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -183,8 +184,8 @@ def toggle_policy(group_id: str, policy_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @router.get("/assets/{asset_id}/groups", summary="Get all groups containing an asset")
-def get_asset_groups(asset_id: str) -> List[Dict[str, Any]]:
-    return _get_engine().get_asset_groups("default", asset_id)
+def get_asset_groups(asset_id: str, org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+    return _get_engine().get_asset_groups(org_id, asset_id)
 
 
 # ---------------------------------------------------------------------------
@@ -192,5 +193,5 @@ def get_asset_groups(asset_id: str) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", summary="Group statistics")
-def get_stats() -> Dict[str, Any]:
-    return _get_engine().get_group_stats("default")
+def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().get_group_stats(org_id)

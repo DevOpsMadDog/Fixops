@@ -81,9 +81,9 @@ class CreateIncidentRequest(BaseModel):
 
 
 @router.post("/events", summary="Ingest a security event")
-def ingest_event(req: IngestEventRequest) -> Dict[str, Any]:
+def ingest_event(req: IngestEventRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().ingest_event("default", req.model_dump(exclude_none=True))
+        return _get_engine().ingest_event(org_id, req.model_dump(exclude_none=True))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -94,9 +94,10 @@ def list_events(
     event_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_events(
-        "default",
+        org_id,
         source_system=source_system,
         event_type=event_type,
         severity=severity,
@@ -110,16 +111,16 @@ def list_events(
 
 
 @router.post("/rules", summary="Create a correlation rule")
-def create_rule(req: CreateRuleRequest) -> Dict[str, Any]:
+def create_rule(req: CreateRuleRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().create_correlation_rule("default", req.model_dump())
+        return _get_engine().create_correlation_rule(org_id, req.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/rules", summary="List correlation rules")
-def list_rules() -> List[Dict[str, Any]]:
-    return _get_engine().list_correlation_rules("default")
+def list_rules(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+    return _get_engine().list_correlation_rules(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +129,8 @@ def list_rules() -> List[Dict[str, Any]]:
 
 
 @router.post("/run", summary="Run correlation engine against recent events")
-def run_correlation() -> List[Dict[str, Any]]:
-    return _get_engine().run_correlation("default")
+def run_correlation(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+    return _get_engine().run_correlation(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -138,9 +139,9 @@ def run_correlation() -> List[Dict[str, Any]]:
 
 
 @router.post("/incidents", summary="Create a correlated incident")
-def create_incident(req: CreateIncidentRequest) -> Dict[str, Any]:
+def create_incident(req: CreateIncidentRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
-        return _get_engine().create_correlated_incident("default", req.model_dump())
+        return _get_engine().create_correlated_incident(org_id, req.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -149,8 +150,9 @@ def create_incident(req: CreateIncidentRequest) -> Dict[str, Any]:
 def list_incidents(
     status: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
+    org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
-    return _get_engine().list_correlated_incidents("default", status=status, limit=limit)
+    return _get_engine().list_correlated_incidents(org_id, status=status, limit=limit)
 
 
 # ---------------------------------------------------------------------------
@@ -159,5 +161,5 @@ def list_incidents(
 
 
 @router.get("/stats", summary="Get correlation statistics")
-def get_stats() -> Dict[str, Any]:
-    return _get_engine().get_correlation_stats("default")
+def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    return _get_engine().get_correlation_stats(org_id)
