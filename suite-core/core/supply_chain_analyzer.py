@@ -155,7 +155,7 @@ class SupplyChainAnalyzer:
         # 4. Simulate abandonment detection (real impl would call registry API)
         # Use deterministic seed based on package name for reproducible demo data
         import hashlib
-        name_hash = int(hashlib.md5(name.encode()).hexdigest(), 16)
+        name_hash = int(hashlib.md5(name.encode(), usedforsecurity=False).hexdigest(), 16)
         # Simulate: ~10% of packages are "abandoned" (>2 years no release)
         days_since_release = (name_hash % 1000) + 1
         is_abandoned = days_since_release > 730

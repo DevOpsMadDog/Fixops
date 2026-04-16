@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_phase3_llm_council.py -x --tb=short --timeout=10 -q -o \\\"addopts=\\\" 2>&1\"}",
-  "error": "Exit code 1\n\ntests/test_phase3_llm_council.py::TestCouncilStage1::test_stage1_member_failure_handling \n-------------------------------- live log call ---------------------------------\n2026-04-16 19:01:10 [ WARNING] core.llm_council: Member failing failed in stage 1: Mock provider failing configured to fail\nPASSED                                                                   [ 10%]\ntests/test_phase3_llm_council.py::TestCouncilConvene::test_council_convene_full_flow \n--------------------------...",
-  "timestamp": "2026-04-16T09:01:10.607Z",
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new && npm audit 2>&1\",\"description\":\"Run npm audit to see current vulnerability state\"}",
+  "error": "Exit code 1\n# npm audit report\n\naxios  1.0.0 - 1.14.0\nSeverity: critical\nAxios has Unrestricted Cloud Metadata Exfiltration via Header Injection Chain - https://github.com/advisories/GHSA-fvcv-3m26-pcqx\nAxios has a NO_PROXY Hostname Normalization Bypass Leads to SSRF - https://github.com/advisories/GHSA-3p68-rc4w-qgx5\nfix available via `npm audit fix`\nnode_modules/axios\n\nfollow-redirects  <=1.15.11\nSeverity: moderate\nfollow-redirects leaks Custom Authentication Headers to Cross-Domain Redirect T...",
+  "timestamp": "2026-04-16T09:28:29.431Z",
   "retry_count": 1
 }

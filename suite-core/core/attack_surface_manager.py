@@ -757,7 +757,7 @@ def _epss_score_stub(cve_id: str) -> float:
     Real implementation would call https://api.first.org/data/v1/epss?cve=CVE-XXXX.
     Returns a deterministic pseudo-score based on CVE hash for testing.
     """
-    h = int(hashlib.md5(cve_id.encode()).hexdigest()[:4], 16)
+    h = int(hashlib.md5(cve_id.encode(), usedforsecurity=False).hexdigest()[:4], 16)
     return round((h % 1000) / 1000, 3)
 
 

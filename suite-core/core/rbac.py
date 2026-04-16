@@ -639,7 +639,7 @@ def create_rbac_engine() -> RBACEngine:
 
     # Pre-populate with all 30 personas
     for persona_name, role_name in PersonaRoleMapping.PERSONA_MAP.items():
-        user_id = hashlib.md5(persona_name.encode()).hexdigest()[:16]
+        user_id = hashlib.md5(persona_name.encode(), usedforsecurity=False).hexdigest()[:16]
         engine.assign_role(user_id, role_name, org_id="default")
 
     return engine

@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fixops.dev/schemas/facts.cve.json",
+  "title": "FixOps CVE Facts Schema",
+  "description": "Vulnerability data enriched with industry scores",
+  "type": "object",
+  "required": ["metadata", "vulnerabilities"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["generated_at", "source", "source_version", "source_hash"],
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "type": "string",
+          "description": "Feed name (KEV, EPSS, NVD, etc.)"
+        },
+        "source_version": {
+          "type": "string",
+          "description": "Feed version or date"
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "vulnerabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cve"],
+        "properties": {
+          "cve": {
+            "type": "string",
+            "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$",
+            "description": "CVE ID (uppercase)"
+          },
+          "cvss": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 10.0
+              },
+              "vector": {
+                "type": "string",
+                "pattern": "^CVSS:"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]
+              }
+            }
+          },
+          "epss": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              },
+              "percentile": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              },
+              "date": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          },
+          "kev": {
+            "type": "object",
+            "properties": {
+              "present": {
+                "type": "boolean"
+              },
+              "date_added": {
+                "type": "string",
+                "format": "date"
+              },
+              "due_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "known_ransomware": {
+                "type": "string",
+                "enum": ["Known", "Unknown"]
+              }
+            }
+          },
+          "affects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "purl": {
+                  "type": "string",
+                  "pattern": "^pkg:"
+                },
+                "version_range": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "patched": {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "boolean"
+              },
+              "fix_version": {
+                "type": "string"
+              },
+              "fix_date": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

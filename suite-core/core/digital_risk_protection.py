@@ -223,7 +223,7 @@ class DRPEngine:
         risks: List[ExternalRisk] = []
 
         # SHA-1 k-anonymity prefix (first 5 chars) — HIBP pattern
-        sha1 = hashlib.sha1(email.encode()).hexdigest().upper()
+        sha1 = hashlib.sha1(email.encode(), usedforsecurity=False).hexdigest().upper()
         prefix = sha1[:5]
         suffix = sha1[5:]
 
@@ -415,7 +415,7 @@ class DRPEngine:
         Mock returns deterministic results based on org_name hash.
         """
         risks: List[ExternalRisk] = []
-        name_hash = hashlib.md5(org_name.encode()).hexdigest()
+        name_hash = hashlib.md5(org_name.encode(), usedforsecurity=False).hexdigest()
 
         # Deterministic mock — trigger when hash starts with 0-7
         if name_hash[0] in "01234567":

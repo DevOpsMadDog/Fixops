@@ -929,7 +929,7 @@ def _cf_expression(cond: WAFCondition) -> str:
 def _export_modsecurity(rule: WAFRule) -> str:
     """Serialize a WAFRule to ModSecurity SecRule format."""
     lines = [f"# Rule: {rule.name}", f"# {rule.description}"]
-    rule_num = int(hashlib.md5(rule.rule_id.encode()).hexdigest(), 16) % 900000 + 100000
+    rule_num = int(hashlib.md5(rule.rule_id.encode(), usedforsecurity=False).hexdigest(), 16) % 900000 + 100000
 
     action_map = {
         RuleType.BLOCK: "deny,status:403",
@@ -1051,7 +1051,7 @@ def _apache_variable(field: str) -> str:
 def _export_owasp_crs(rule: WAFRule) -> Dict[str, Any]:
     """Export as OWASP CRS-compatible format."""
     return {
-        "id": int(hashlib.md5(rule.rule_id.encode()).hexdigest(), 16) % 900000 + 900000,
+        "id": int(hashlib.md5(rule.rule_id.encode(), usedforsecurity=False).hexdigest(), 16) % 900000 + 900000,
         "phase": 2,
         "ver": "OWASP_CRS/4.0",
         "rev": str(rule.version),

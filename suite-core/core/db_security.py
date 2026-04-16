@@ -646,7 +646,7 @@ class UserPrivilegeAuditor:
         # Detect shared accounts: same role set used by multiple users
         role_fingerprints: Dict[str, int] = {}
         for user in users:
-            key = hashlib.md5(str(sorted(user.get("roles", []))).encode()).hexdigest()
+            key = hashlib.md5(str(sorted(user.get("roles", []))).encode(), usedforsecurity=False).hexdigest()
             role_fingerprints[key] = role_fingerprints.get(key, 0) + 1
 
         for user in users:
@@ -667,7 +667,7 @@ class UserPrivilegeAuditor:
             has_default_password = username.lower() in _DEFAULT_CREDENTIALS
 
             # Shared account detection: multiple users share identical role fingerprint
-            role_key = hashlib.md5(str(sorted(roles)).encode()).hexdigest()
+            role_key = hashlib.md5(str(sorted(roles)).encode(), usedforsecurity=False).hexdigest()
             is_shared = role_fingerprints.get(role_key, 0) > 1
 
             overprivileged, privilege_details = self._check_overprivileged(
