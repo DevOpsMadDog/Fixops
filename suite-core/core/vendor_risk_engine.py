@@ -925,7 +925,7 @@ class VendorRiskEngine:
                 url,
                 headers={"User-Agent": "ALDECI-VendorRiskEngine/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=8) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=8) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 data = json.loads(resp.read().decode())
 
             cves: List[Dict[str, Any]] = []

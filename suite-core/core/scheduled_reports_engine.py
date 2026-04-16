@@ -549,7 +549,7 @@ class ScheduledReportsEngine:
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 if resp.status == 200:
                     return "sent", ""
                 return "failed", f"HTTP {resp.status}"

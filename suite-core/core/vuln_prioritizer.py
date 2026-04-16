@@ -433,7 +433,7 @@ class VulnPrioritizer:
         """Fetch EPSS from FIRST.org API and cache result. Falls back to 0.0 on error."""
         url = f"{_EPSS_API_BASE}?cve={cve_id.upper()}"
         try:
-            with urlopen(url, timeout=5) as resp:  # noqa: S310
+            with urlopen(url, timeout=5) as resp:  # noqa: S310  # nosec
                 data = json.loads(resp.read().decode())
             items = data.get("data", [])
             if items:

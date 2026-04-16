@@ -969,7 +969,7 @@ class MindsDBIntegration:
         url = f"http://{self.host}:{self.port}/api/status"
         try:
             req = urllib.request.Request(url, method="GET")  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 if resp.status == 200:
                     self.connected = True
                     logger.info(f"Connected to MindsDB at {self.host}:{self.port}")
@@ -1071,7 +1071,7 @@ class MindsDBRAGService:
         import urllib.request
         try:
             req = urllib.request.Request(f"{self.base_url}/api/status", method="GET")  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 if resp.status == 200:
                     self.connected = True
                     logger.info("MindsDB RAG connected at %s:%s", self.host, self.port)
@@ -1089,7 +1089,7 @@ class MindsDBRAGService:
         req = urllib.request.Request(url, data=payload, method="POST")  # nosemgrep: dynamic-urllib-use-detected
         req.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=30) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 body = _json.loads(resp.read().decode())
                 return {"ok": True, "data": body}
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception

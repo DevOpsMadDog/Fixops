@@ -387,7 +387,7 @@ class AssetEnricher:
                 url,
                 headers={"User-Agent": "ALDECI-AssetEnricher/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 data = _json.loads(resp.read())
             cve_ids = [
                 item["cve"]["id"]

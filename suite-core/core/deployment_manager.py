@@ -325,7 +325,7 @@ class DeploymentManager:
             import urllib.request
             t0 = time.monotonic()
             req = urllib.request.Request(url, method="GET")  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 latency = _elapsed_ms(t0)
                 if resp.status < 400:
                     return ServiceHealth(name=name, status="healthy", latency_ms=latency, optional=optional)

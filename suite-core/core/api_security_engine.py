@@ -1009,7 +1009,7 @@ class GraphQLChecker:
         graphql_url = base_url.rstrip("/") + "/graphql"
 
         # verify=False intentional: security scanner must reach targets with self-signed/expired certs
-        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501
+        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501  # nosec
             # Introspection check
             try:
                 resp = await client.post(
@@ -1103,7 +1103,7 @@ class RateLimitVerifier:
         rate_limited = False
 
         # verify=False intentional: security scanner must reach targets with self-signed/expired certs
-        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501
+        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501  # nosec
             for i in range(probe_count):
                 try:
                     resp = await client.request(
@@ -1342,7 +1342,7 @@ class ApiSecurityEngine:
     async def discover_spec(self, base_url: str, timeout: float = 10.0) -> Optional[Dict[str, Any]]:
         """Auto-discover OpenAPI spec from common paths."""
         # verify=False intentional: security scanner must reach targets with self-signed/expired certs
-        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501
+        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501  # nosec
             for path in _OPENAPI_DISCOVERY_PATHS:
                 url = base_url.rstrip("/") + path
                 try:

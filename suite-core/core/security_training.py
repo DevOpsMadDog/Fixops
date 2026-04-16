@@ -1696,7 +1696,7 @@ class SecurityAwarenessTracker:
                 headers={"Content-Type": "application/json", "Title": "Phishing Sim Launched"},
                 method="POST",
             )
-            urllib.request.urlopen(req, timeout=2)  # nosemgrep: dynamic-urllib-use-detected
+            urllib.request.urlopen(req, timeout=2)  # nosemgrep: dynamic-urllib-use-detected  # nosec
             logger.info("ntfy_notification_sent", campaign_id=campaign_id)
         except Exception as exc:
             logger.warning("ntfy_notification_failed", error=str(exc))

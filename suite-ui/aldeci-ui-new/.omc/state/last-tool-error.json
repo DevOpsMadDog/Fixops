@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"python3 << 'PYEOF'\\nimport json\\n\\nwith open('/tmp/bandit_final.json') as f:\\n    d = json.load(f)\\n\\nfiles_modified = set()\\nfor r in d['results']:\\n    fname = r['filename']\\n    lineno ...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<stdin>\", line 12, in <module>\nFileNotFoundError: [Errno 2] No such file or directory: 'suite-core/agents/mindsdb_agents.py'",
+  "timestamp": "2026-04-16T09:44:56.362Z",
+  "retry_count": 1
+}

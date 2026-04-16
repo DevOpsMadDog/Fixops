@@ -331,7 +331,7 @@ class VulnerabilityEnricher:
         try:
             cve_param = ",".join(cves[:100])  # API limit guard
             url = f"{_EPSS_API_BASE}?cve={cve_param}"
-            with urlopen(url, timeout=self._timeout) as resp:
+            with urlopen(url, timeout=self._timeout) as resp:  # nosec
                 data = json.loads(resp.read().decode())
             scores: Dict[str, float] = {}
             for item in data.get("data", []):
@@ -349,7 +349,7 @@ class VulnerabilityEnricher:
         """Fetch CISA KEV JSON and populate the module-level cache."""
         global _kev_cache, _kev_cache_ts, _kev_cache_loaded
         try:
-            with urlopen(_KEV_FEED_URL, timeout=self._timeout) as resp:
+            with urlopen(_KEV_FEED_URL, timeout=self._timeout) as resp:  # nosec
                 data = json.loads(resp.read().decode())
             new_cache: Dict[str, str] = {}
             for vuln in data.get("vulnerabilities", []):

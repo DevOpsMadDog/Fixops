@@ -717,7 +717,7 @@ class AzureProvider(CloudProvider):
                 "scope": "https://management.azure.com/.default",
             }).encode()
             req = urllib.request.Request(url, data=data, method="POST")  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 result = json.loads(resp.read())
                 return result.get("access_token")
         except Exception as exc:  # noqa: BLE001
@@ -751,7 +751,7 @@ class AzureProvider(CloudProvider):
                 f"/resources?api-version={self._api_version_resources}"
             )
             req = urllib.request.Request(url, headers=headers)  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 data = json.loads(resp.read())
             resources = []
             for item in data.get("value", []):
@@ -780,7 +780,7 @@ class AzureProvider(CloudProvider):
             headers = self._auth_headers()
             url = f"{self._base_url}{resource_id}?api-version={self._api_version_resources}"
             req = urllib.request.Request(url, headers=headers)  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 item = json.loads(resp.read())
             rt = self._map_azure_resource_type(item.get("type", ""))
             return CloudResource(
@@ -806,7 +806,7 @@ class AzureProvider(CloudProvider):
                 f"/providers/Microsoft.Security/alerts?api-version={self._api_version_security}"
             )
             req = urllib.request.Request(url, headers=headers)  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 data = json.loads(resp.read())
             findings = []
             for alert in data.get("value", []):
@@ -842,7 +842,7 @@ class AzureProvider(CloudProvider):
                 f"/providers/Microsoft.Security/secureScores?api-version={self._api_version_security}"
             )
             req = urllib.request.Request(url, headers=headers)  # nosemgrep: dynamic-urllib-use-detected
-            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 data = json.loads(resp.read())
             scores = data.get("value", [])
             score = 0.0

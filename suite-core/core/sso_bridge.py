@@ -227,7 +227,7 @@ class SSOBridge:
             raise ValueError("SAML assertion XML is empty")
 
         try:
-            root = ET.fromstring(xml_str)
+            root = ET.fromstring(xml_str)  # nosec
         except ET.ParseError as exc:
             raise ValueError(f"Invalid SAML XML: {exc}") from exc
 

@@ -316,8 +316,8 @@ class KnowledgeStore:
 
         # FTS search: search entities_fts first, then join to get full data
         # Note: We use rowid from FTS to join, not entity_id column
-        sql = (  # nosec B608
-            "SELECT entities.* FROM entities"
+        sql = (  # nosec B608 — table/column names hardcoded; query_text bound via ?
+            "SELECT entities.* FROM entities"  # nosec B608
             " WHERE entities.entity_id IN ("
             "  SELECT entity_id FROM ("
             "   SELECT entities.entity_id FROM entities"
@@ -337,8 +337,8 @@ class KnowledgeStore:
         except Exception as e:
             logger.warning(f"FTS search failed, falling back to LIKE: {e}")
             # Fallback to LIKE search
-            sql_fallback = (  # nosec B608
-                "SELECT entities.* FROM entities"
+            sql_fallback = (  # nosec B608 — table/column names hardcoded; values bound via ?
+                "SELECT entities.* FROM entities"  # nosec B608
                 " WHERE (entities.name LIKE ? OR entities.properties LIKE ?)"
                 f" AND {where_clause}"
                 " LIMIT ?"
@@ -466,8 +466,8 @@ class KnowledgeStore:
 
         for _ in range(depth):
             placeholders = ",".join("?" * len(visited))
-            neighbor_sql = (  # nosec B608
-                f"SELECT target_id FROM relationships WHERE source_id IN ({placeholders})"
+            neighbor_sql = (  # nosec B608 — table/column names hardcoded; placeholders are ? * len(visited)
+                f"SELECT target_id FROM relationships WHERE source_id IN ({placeholders})"  # nosec B608
                 f" UNION"
                 f" SELECT source_id FROM relationships WHERE target_id IN ({placeholders})"
             )

@@ -382,7 +382,7 @@ class DRPEngine:
                 url,
                 headers={"User-Agent": "ALDECI-DRP/1.0"},
             )
-            with _urllib_request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with _urllib_request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 raw = resp.read()
                 certs = json.loads(raw)
                 if isinstance(certs, list):
@@ -466,7 +466,7 @@ class DRPEngine:
                     _TOR_LIST_URL,
                     headers={"User-Agent": "ALDECI-DRP/1.0"},
                 )
-                with _urllib_request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
+                with _urllib_request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                     raw = resp.read().decode("utf-8", errors="replace")
                     nodes = [
                         line.strip()

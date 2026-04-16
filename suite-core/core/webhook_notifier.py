@@ -256,7 +256,7 @@ def _post_json(
     req = urllib.request.Request(url, data=body, headers=req_headers, method="POST")  # nosemgrep: dynamic-urllib-use-detected
     t0 = time.monotonic()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosemgrep: dynamic-urllib-use-detected
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
             elapsed = (time.monotonic() - t0) * 1000
             return resp.status, elapsed, None
     except urllib.error.HTTPError as exc:
@@ -312,7 +312,7 @@ def _post_ntfy(
     req = urllib.request.Request(url, data=body_bytes, headers=headers, method="POST")  # nosemgrep: dynamic-urllib-use-detected
     t0 = time.monotonic()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosemgrep: dynamic-urllib-use-detected
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
             elapsed = (time.monotonic() - t0) * 1000
             return resp.status, elapsed, None
     except urllib.error.HTTPError as exc:

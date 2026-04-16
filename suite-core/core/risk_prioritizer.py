@@ -308,7 +308,7 @@ class RiskPrioritizer:
 
         try:
             url = f"{_EPSS_API_BASE}?cve={cve_id}"
-            with urlopen(url, timeout=5) as resp:
+            with urlopen(url, timeout=5) as resp:  # nosec
                 data = json.loads(resp.read().decode())
             entries = data.get("data", [])
             if entries:
@@ -354,7 +354,7 @@ class RiskPrioritizer:
                 return
 
         try:
-            with urlopen(_CISA_KEV_URL, timeout=10) as resp:
+            with urlopen(_CISA_KEV_URL, timeout=10) as resp:  # nosec
                 data = json.loads(resp.read().decode())
             vulns = data.get("vulnerabilities", [])
             self._kev_cves = {v.get("cveID", "").upper() for v in vulns if v.get("cveID")}

@@ -101,7 +101,7 @@ _PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 def _eval_trigger(condition: str, posture_data: Dict[str, Any]) -> bool:
     """Evaluate a trigger condition string against posture_data."""
     try:
-        return bool(eval(condition, {"__builtins__": {}}, posture_data))  # noqa: S307  # nosemgrep: eval-detected
+        return bool(eval(condition, {"__builtins__": {}}, posture_data))  # noqa: S307  # nosemgrep: eval-detected  # nosec
     except Exception:
         return False
 

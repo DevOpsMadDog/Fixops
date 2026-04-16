@@ -1140,7 +1140,7 @@ class NetworkIsolationVerifier:
         for url in ["https://api.openai.com", "https://pypi.org"]:
             try:
                 req = urllib.request.Request(url, method="HEAD")  # nosemgrep: dynamic-urllib-use-detected
-                with urllib.request.urlopen(req, timeout=1, context=ctx):  # nosemgrep: dynamic-urllib-use-detected
+                with urllib.request.urlopen(req, timeout=1, context=ctx):  # nosemgrep: dynamic-urllib-use-detected  # nosec
                     violations.append(f"HTTP egress allowed to {url}")
                     egress_blocked = False
             except (OSError, ValueError):

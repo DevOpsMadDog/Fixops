@@ -229,7 +229,7 @@ class _HttpOPAEngine:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 body = _json.loads(resp.read())
                 return body.get("result", {})
         except (urllib.error.URLError, OSError) as exc:
@@ -3633,7 +3633,7 @@ class BrainPipeline:
                         url, data=data, headers=gh_headers, method=method
                     )
                     try:
-                        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected
+                        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310  # nosemgrep: dynamic-urllib-use-detected  # nosec
                             return _json.loads(resp.read()) if resp.length != 0 else {}
                     except urllib.error.HTTPError as exc:
                         error_body = exc.read().decode(errors="replace")

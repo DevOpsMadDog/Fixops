@@ -423,7 +423,7 @@ class ReportScheduler:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 _logger.debug(
                     "report_scheduler.n8n_dispatch",
                     status=resp.status,

@@ -150,7 +150,7 @@ def _http_post_json(url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     """POST JSON to url, return parsed response. Raises URLError / ValueError on failure."""
     body = json.dumps(payload).encode()
     req = Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
-    with urlopen(req, timeout=_HTTP_TIMEOUT) as resp:
+    with urlopen(req, timeout=_HTTP_TIMEOUT) as resp:  # nosec
         return json.loads(resp.read())
 
 

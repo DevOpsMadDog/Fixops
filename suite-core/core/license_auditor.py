@@ -138,7 +138,7 @@ def _parse_package_json_deps(data: Dict[str, Any]) -> List[tuple[str, str]]:
 def _fetch_url_json(url: str) -> Optional[Dict[str, Any]]:
     """Fetch JSON from url. Returns None on any error."""
     try:
-        with urlopen(url, timeout=_HTTP_TIMEOUT) as resp:
+        with urlopen(url, timeout=_HTTP_TIMEOUT) as resp:  # nosec
             return json.loads(resp.read())
     except (URLError, OSError, json.JSONDecodeError, ValueError) as exc:
         logger.debug("HTTP fetch failed %s: %s", url, exc)

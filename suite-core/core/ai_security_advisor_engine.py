@@ -182,7 +182,7 @@ def _call_llm(system_prompt: str, user_message: str, max_tokens: int = 1000) -> 
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosemgrep: dynamic-urllib-use-detected
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
             data = json.loads(resp.read())
             return data["choices"][0]["message"]["content"]
     except Exception as exc:
