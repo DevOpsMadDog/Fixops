@@ -6,6 +6,7 @@ Each persona tests 3-5 relevant endpoints, checks HTTP 200 + non-empty data.
 0.7s delay between requests to stay under 100 RPM rate limit.
 """
 
+import os
 import time
 import json
 import sys
