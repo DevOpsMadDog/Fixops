@@ -6144,12 +6144,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.sbom_router import router as _sbom_router2
-        app.include_router(_sbom_router2)
-        _logger.info("Mounted SBOM router at /api/v1/sbom")
-    except ImportError:
-        pass
+    # sbom_router already mounted earlier via module-level import (dead duplicate removed)
 
     try:
         from apps.api.cloud_security_engine_router import router as cloud_security_engine_router
@@ -6297,11 +6292,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.secret_scanner_router import router as _secret_scanner_router2
-        app.include_router(_secret_scanner_router2)
-    except ImportError:
-        pass
+    # secret_scanner_router already mounted earlier via module-level import (dead duplicate removed)
     try:
         from apps.api.dlp_router import router as dlp_router
         app.include_router(dlp_router)
@@ -6361,12 +6352,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.evidence_chain_router import router as _evidence_chain_router2
-        app.include_router(_evidence_chain_router2)
-        _logger.info("Mounted Evidence Chain router at /api/v1/evidence-chain")
-    except ImportError:
-        pass
+    # evidence_chain_router already mounted earlier via module-level import (dead duplicate removed)
 
     try:
         from apps.api.iam_policy_router import router as iam_policy_router
@@ -6438,12 +6424,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
-    try:
-        from apps.api.ip_reputation_router import router as _ip_reputation_router2
-        app.include_router(_ip_reputation_router2)
-        _logger.info("Mounted IP Reputation router at /api/v1/ip-reputation")
-    except ImportError:
-        pass
+    # ip_reputation_router already mounted earlier via module-level import (dead duplicate removed)
 
     try:
         from apps.api.security_automation_router import router as security_automation_router
