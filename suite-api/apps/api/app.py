@@ -120,6 +120,17 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Connectors router not available: %s", e)
 
+# ServiceNow Bidirectional Sync router (SSRF-VULN-03)
+servicenow_sync_router: Optional[APIRouter] = None
+servicenow_sync_webhook_router: Optional[APIRouter] = None
+try:
+    from apps.api.servicenow_sync_router import router as servicenow_sync_router
+    from apps.api.servicenow_sync_router import webhook_router as servicenow_sync_webhook_router
+
+    logging.getLogger(__name__).info("Loaded ServiceNow Sync router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("ServiceNow Sync router not available: %s", e)
+
 from apps.api.gate_router import router as gate_router
 from apps.api.inventory_router import router as inventory_router
 
@@ -2883,6 +2894,17 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Universal Connectors router")
+
+    # ServiceNow Bidirectional Sync router (SSRF-VULN-03)
+    if servicenow_sync_router:
+        app.include_router(
+            servicenow_sync_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted ServiceNow Sync router")
+    if servicenow_sync_webhook_router:
+        app.include_router(servicenow_sync_webhook_router)
+        _logger.info("Mounted ServiceNow Sync Webhook router (no auth)")
 
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
