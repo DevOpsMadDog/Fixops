@@ -12,6 +12,11 @@ import json
 import logging
 import random
 import sqlite3
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -147,6 +152,17 @@ class KubernetesSecurityEngine:
                 )
                 conn.commit()
         _logger.info("Registered K8s cluster %s for org %s", cluster_id, org_id)
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("ASSET_DISCOVERED", {
+                    "org_id": org_id,
+                    "entity": "k8s_cluster",
+                    "asset_id": cluster_id,
+                    "cluster_name": row["cluster_name"],
+                    "provider": provider,
+                })
+            except Exception:
+                pass
         return dict(row)
 
     def list_clusters(self, org_id: str) -> List[Dict[str, Any]]:

@@ -24,6 +24,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DATA_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -288,6 +293,14 @@ class ThreatCorrelationEngine:
                                :expires_at, :correlated_incident_id, :created_at)""",
                     signal,
                 )
+
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("THREAT_DETECTED", {"entity_type": "threat_signal", "entity_id": str(signal["id"]), "org_id": org_id, "source_engine": "threat_correlation_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
 
         # Attempt correlation
         try:

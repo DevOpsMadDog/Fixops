@@ -3,6 +3,11 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -127,6 +132,17 @@ class CloudPostureEngine:
                                :resource_count, :posture_score, :last_scanned, :status, :created_at)""",
                     record,
                 )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("ASSET_DISCOVERED", {
+                    "org_id": org_id,
+                    "entity": "cloud_account",
+                    "asset_id": record["id"],
+                    "account_id": account_id,
+                    "provider": provider,
+                })
+            except Exception:
+                pass
         return record
 
     def list_accounts(

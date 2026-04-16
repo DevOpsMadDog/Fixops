@@ -22,6 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -157,6 +162,13 @@ class IncidentOrchestrationEngine:
                                :assignee, :notes, :created_at, :updated_at, :resolved_at)""",
                     record,
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("INCIDENT_CREATED", {"entity_type": "incident", "entity_id": str(record["id"]), "org_id": org_id, "source_engine": "incident_orchestration_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
         return record
 
     def list_incidents(

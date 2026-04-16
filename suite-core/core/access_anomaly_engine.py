@@ -26,6 +26,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -174,7 +179,14 @@ class AccessAnomalyEngine:
                     (rec_id, org_id, username, source_ip, country, city,
                      access_time, resource, action, success, now),
                 )
-            return self._get_event(rec_id, org_id)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("ANOMALY_DETECTED", {"entity_type": "access_event", "entity_id": str(rec_id), "org_id": org_id, "source_engine": "access_anomaly_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
+        return self._get_event(rec_id, org_id)
 
     def _get_event(self, event_id: str, org_id: str) -> Optional[Dict[str, Any]]:
         with self._conn() as conn:

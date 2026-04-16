@@ -23,6 +23,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -208,6 +213,13 @@ class IdentityRiskEngine:
                         :risk_score, :risk_level, :mfa_enabled, :last_activity, :status, :created_at)""",
                     record,
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("IDENTITY_UPDATED", {"entity_type": "identity", "entity_id": str(record["id"]), "org_id": org_id, "source_engine": "identity_risk_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
         record["mfa_enabled"] = mfa_enabled
         return record
 

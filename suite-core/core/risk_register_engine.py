@@ -18,6 +18,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -187,6 +192,19 @@ class RiskRegisterEngine:
                                :owner, :status, :treatment_plan, :created_at, :updated_at)""",
                     record,
                 )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("RISK_ASSESSED", {
+                    "org_id": org_id,
+                    "entity": "risk_register",
+                    "risk_id": record["id"],
+                    "name": name,
+                    "risk_category": risk_category,
+                    "risk_score": risk_score,
+                    "risk_level": risk_level,
+                })
+            except Exception:
+                pass
         return record
 
     def list_risks(

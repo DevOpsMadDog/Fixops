@@ -18,6 +18,11 @@ from __future__ import annotations
 
 import json
 import logging
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 import sqlite3
 import threading
 import uuid
@@ -253,6 +258,18 @@ class SupplyChainAttackDetectionEngine:
             "scad.detection_recorded org=%s id=%s type=%s severity=%s",
             org_id, detection_id, detection_type, severity,
         )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("THREAT_DETECTED", {
+                    "org_id": org_id,
+                    "entity": "supply_chain_detection",
+                    "detection_id": detection_id,
+                    "detection_type": detection_type,
+                    "severity": severity,
+                    "confidence_score": confidence,
+                })
+            except Exception:
+                pass
         return self._get_detection(org_id, detection_id)
 
     def list_detections(

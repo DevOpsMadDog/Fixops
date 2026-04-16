@@ -18,6 +18,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -156,6 +161,13 @@ class AlertTriageEngine:
                     ),
                 )
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("ALERT_CREATED", {"entity_type": "alert", "entity_id": str(alert_id), "org_id": org_id, "source_engine": "alert_triage_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
         return self.get_alert(org_id, alert_id)  # type: ignore[return-value]
 
     def list_alerts(

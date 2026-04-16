@@ -20,11 +20,27 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "behavioral_analytics.db"
 )
+
+# ---------------------------------------------------------------------------
+# ML anomaly detector (optional — degrades gracefully if unavailable)
+# ---------------------------------------------------------------------------
+
+try:
+    from core.ml.anomaly_detector import AnomalyDetector as _AnomalyDetector
+    _anomaly_ml: Optional[_AnomalyDetector] = _AnomalyDetector()
+    _anomaly_ml.fit_from_synthetic_baseline()
+except (ImportError, Exception):
+    _anomaly_ml = None
 
 _VALID_BEHAVIOR_TYPES = {
     "login_anomaly", "data_access_spike", "privilege_escalation",
@@ -249,6 +265,13 @@ class BehavioralAnalyticsEngine:
                         :description, :status, :notes, :detected_at, :resolved_at)""",
                     row,
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("ANOMALY_DETECTED", {"entity_type": "behavioral_anomaly", "entity_id": str(anomaly_id), "org_id": org_id, "source_engine": "behavioral_analytics_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
         return row
 
     def list_anomalies(
@@ -352,7 +375,21 @@ class BehavioralAnalyticsEngine:
             ).fetchone()
             last_anomaly_at = last_row["detected_at"] if last_row else None
 
-        risk_score = min(total_anomalies * 10, 100)
+        if _anomaly_ml is not None:
+            try:
+                # Map behavioral anomaly counts into scan-finding format for ML
+                findings = (
+                    [{"severity": "critical"} for _ in range(critical_count)]
+                    + [{"severity": "high"} for _ in range(high_count)]
+                    + [{"severity": "medium"} for _ in range(max(0, open_anomalies - critical_count - high_count))]
+                )
+                ml_result = _anomaly_ml.detect(findings)
+                # anomaly_score is -1 (most anomalous) to 1 (most normal); map to 0-100 risk
+                risk_score = round(max(0.0, min(100.0, (1.0 - ml_result.anomaly_score) * 50.0)), 2)
+            except Exception:
+                risk_score = min(total_anomalies * 10, 100)
+        else:
+            risk_score = min(total_anomalies * 10, 100)
 
         return {
             "user_id": user_id,

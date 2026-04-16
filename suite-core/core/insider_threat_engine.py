@@ -18,6 +18,11 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -298,7 +303,7 @@ class InsiderThreatEngine:
         else:
             recommendation = "Suspend user access pending investigation. Engage incident response team."
 
-        return {
+        result = {
             "user_id": user_id,
             "org_id": org_id,
             "risk_level": risk_level,
@@ -309,6 +314,19 @@ class InsiderThreatEngine:
             "analyzed_at": datetime.now(timezone.utc).isoformat(),
             "recommendation": recommendation,
         }
+        if indicators and _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("THREAT_DETECTED", {
+                    "org_id": org_id,
+                    "entity": "insider_threat",
+                    "user_id": user_id,
+                    "risk_level": risk_level,
+                    "risk_score": risk_score,
+                    "indicator_count": len(indicators),
+                })
+            except Exception:
+                pass
+        return result
 
     def get_high_risk_users(
         self,

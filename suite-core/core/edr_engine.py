@@ -22,6 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -362,6 +367,14 @@ class EDREngine:
                         )
                     except Exception:
                         pass  # endpoint may not exist in db yet
+
+                if _get_tg_bus:
+                    try:
+                        bus = _get_tg_bus()
+                        if bus:
+                            bus.emit("THREAT_DETECTED", {"entity_type": "edr_detection", "entity_id": str(detection["detection_id"]), "org_id": org_id, "source_engine": "edr_engine"})
+                    except Exception:
+                        pass  # Event emission should never break the main operation
 
                 event["_detection_created"] = detection["detection_id"]
 

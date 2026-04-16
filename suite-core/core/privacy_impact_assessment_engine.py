@@ -18,6 +18,11 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)
@@ -211,6 +216,17 @@ class PrivacyImpactAssessmentEngine:
                                :dpo_approved, :created_at, :approved_at)""",
                     record,
                 )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("CONTROL_ASSESSED", {
+                    "org_id": org_id,
+                    "entity": "privacy_impact_assessment",
+                    "assessment_id": record["id"],
+                    "project_name": project_name,
+                    "assessment_type": assessment_type,
+                })
+            except Exception:
+                pass
         return record
 
     def list_assessments(

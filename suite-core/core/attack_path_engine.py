@@ -18,6 +18,16 @@ import structlog
 
 _logger = structlog.get_logger()
 
+# ---------------------------------------------------------------------------
+# ML GNN attack path scorer (optional — degrades gracefully if unavailable)
+# ---------------------------------------------------------------------------
+
+try:
+    from core.ml.attack_path_gnn import AttackPathGNN as _AttackPathGNN
+    _gnn: Optional[_AttackPathGNN] = _AttackPathGNN()
+except (ImportError, Exception):
+    _gnn = None
+
 VALID_NODE_TYPES = {
     "workstation",
     "server",
@@ -372,6 +382,36 @@ class AttackPathEngine:
                 if edge.get("requires_vuln"):
                     new_vulns.append(edge["requires_vuln"])
                 queue.append((next_node, path + [next_node], new_vulns))
+
+        # GNN-enhanced path scoring
+        if _gnn is not None and paths:
+            try:
+                gnn_nodes = [
+                    {
+                        "id": nid,
+                        "type": nodes_map.get(nid, {}).get("node_type", ""),
+                        "properties": {
+                            "severity_score": nodes_map.get(nid, {}).get("risk_score", 50.0),
+                            "criticality": 1.0 if nodes_map.get(nid, {}).get("is_crown_jewel") else 0.5,
+                        },
+                    }
+                    for nid in nodes_map
+                ]
+                gnn_edges = [
+                    {"source_id": e["from_node"], "target_id": e["to_node"], "weight": 1.0}
+                    for edge_list in adj.values()
+                    for e in edge_list
+                ]
+                _gnn.fit(gnn_nodes, gnn_edges)
+                for p in paths:
+                    path_score = _gnn.score_path(p["path"])
+                    if path_score.risk_score > 0:
+                        p["risk_score"] = round(
+                            (p["risk_score"] + path_score.risk_score) / 2.0, 2
+                        )
+                        p["gnn_risk_score"] = round(path_score.risk_score, 2)
+            except Exception:
+                pass
 
         # Sort by hops then risk
         paths.sort(key=lambda p: (p["hops"], -p["risk_score"]))

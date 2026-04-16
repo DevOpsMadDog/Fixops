@@ -18,6 +18,11 @@ import logging
 import sqlite3
 import threading
 import uuid
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -226,6 +231,20 @@ class ZeroDayIntelligenceEngine:
                     record,
                 )
         record["affected_products"] = affected_products
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("CVE_DISCOVERED", {
+                    "org_id": org_id,
+                    "entity": "zero_day_vulnerability",
+                    "vuln_id": record["id"],
+                    "cve_id": cve_id,
+                    "severity": severity,
+                    "cvss_score": record["cvss_score"],
+                    "patch_status": patch_status,
+                    "exploitation_status": exploitation_status,
+                })
+            except Exception:
+                pass
         return record
 
     def list_vulnerabilities(

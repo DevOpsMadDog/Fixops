@@ -18,6 +18,11 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
 import sqlite3
 import threading
 import uuid
@@ -220,6 +225,18 @@ class DarkWebMonitoringEngine:
                                :discovered_at, :updated_at)""",
                     record,
                 )
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("THREAT_DETECTED", {
+                    "org_id": org_id,
+                    "entity": "dark_web_mention",
+                    "mention_id": record["id"],
+                    "mention_type": mention_type,
+                    "severity": severity,
+                    "keyword_matched": keyword_matched,
+                })
+            except Exception:
+                pass
         return record
 
     def list_mentions(

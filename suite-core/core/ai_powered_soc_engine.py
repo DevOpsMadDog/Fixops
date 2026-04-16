@@ -16,6 +16,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -189,6 +194,18 @@ class AIPoweredSOCEngine:
             )
         result = dict(row)
         result["auto_triaged"] = False
+        if _get_tg_bus is not None:
+            try:
+                _get_tg_bus().emit("FINDING_CREATED", {
+                    "org_id": org_id,
+                    "entity": "aisoc_detection",
+                    "detection_id": rec_id,
+                    "detection_name": row["detection_name"],
+                    "severity": severity,
+                    "model_type": model_type,
+                })
+            except Exception:
+                pass
         return result
 
     def list_detections(

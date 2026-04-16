@@ -76,6 +76,30 @@ EVENT_CONTROL_ASSESSED = "control.assessed"
 EVENT_VENDOR_UPDATED = "vendor.updated"
 EVENT_ACTOR_IDENTIFIED = "actor.identified"
 
+# Extended event type constants for wave engine coverage
+EVENT_SCAN_COMPLETED = "scan.completed"
+EVENT_CVE_DISCOVERED = "cve.discovered"
+EVENT_THREAT_DETECTED = "threat.detected"
+EVENT_RISK_ASSESSED = "risk.assessed"
+EVENT_EVIDENCE_COLLECTED = "evidence.collected"
+EVENT_JOB_COMPLETED = "job.completed"
+EVENT_IDENTITY_UPDATED = "identity.updated"
+EVENT_SESSION_CREATED = "session.created"
+EVENT_RULE_UPDATED = "rule.updated"
+EVENT_PLAYBOOK_EXECUTED = "playbook.executed"
+EVENT_EVENT_CREATED = "event.created"
+EVENT_ALERT_CREATED = "alert.created"
+EVENT_ASSET_UPDATED = "asset.updated"
+EVENT_SCENARIO_CREATED = "scenario.created"
+EVENT_TRAINING_COMPLETED = "training.completed"
+EVENT_REVIEW_COMPLETED = "review.completed"
+EVENT_SCHEDULE_UPDATED = "schedule.updated"
+EVENT_OPERATION_COMPLETED = "operation.completed"
+EVENT_ENGAGEMENT_CREATED = "engagement.created"
+EVENT_STEP_COMPLETED = "step.completed"
+EVENT_TEAM_UPDATED = "team.updated"
+EVENT_POLICY_UPDATED = "policy.updated"
+
 ALL_EVENT_TYPES: Set[str] = {
     EVENT_FINDING_CREATED,
     EVENT_FINDING_UPDATED,
@@ -84,16 +108,94 @@ ALL_EVENT_TYPES: Set[str] = {
     EVENT_CONTROL_ASSESSED,
     EVENT_VENDOR_UPDATED,
     EVENT_ACTOR_IDENTIFIED,
+    # Extended event types
+    EVENT_SCAN_COMPLETED,
+    EVENT_CVE_DISCOVERED,
+    EVENT_THREAT_DETECTED,
+    EVENT_RISK_ASSESSED,
+    EVENT_EVIDENCE_COLLECTED,
+    EVENT_JOB_COMPLETED,
+    EVENT_IDENTITY_UPDATED,
+    EVENT_SESSION_CREATED,
+    EVENT_RULE_UPDATED,
+    EVENT_PLAYBOOK_EXECUTED,
+    EVENT_EVENT_CREATED,
+    EVENT_ALERT_CREATED,
+    EVENT_ASSET_UPDATED,
+    EVENT_SCENARIO_CREATED,
+    EVENT_TRAINING_COMPLETED,
+    EVENT_REVIEW_COMPLETED,
+    EVENT_SCHEDULE_UPDATED,
+    EVENT_OPERATION_COMPLETED,
+    EVENT_ENGAGEMENT_CREATED,
+    EVENT_STEP_COMPLETED,
+    EVENT_TEAM_UPDATED,
+    EVENT_POLICY_UPDATED,
 }
 
 # Response body keys → (event_type, entity_type_label)
 _RESPONSE_KEY_MAP: Dict[str, tuple[str, str]] = {
+    # Original 6 entity keys
     "finding_id": (EVENT_FINDING_CREATED, "finding"),
     "asset_id": (EVENT_ASSET_DISCOVERED, "asset"),
     "incident_id": (EVENT_INCIDENT_CREATED, "incident"),
     "control_id": (EVENT_CONTROL_ASSESSED, "control"),
     "vendor_id": (EVENT_VENDOR_UPDATED, "vendor"),
     "actor_id": (EVENT_ACTOR_IDENTIFIED, "actor"),
+
+    # Vulnerability Management
+    "ticket_id": (EVENT_FINDING_CREATED, "vuln_ticket"),
+    "scan_id": (EVENT_SCAN_COMPLETED, "scan"),
+    "cve_id": (EVENT_CVE_DISCOVERED, "cve"),
+    "detection_id": (EVENT_THREAT_DETECTED, "detection"),
+
+    # Risk & Compliance
+    "risk_id": (EVENT_RISK_ASSESSED, "risk"),
+    "assessment_id": (EVENT_CONTROL_ASSESSED, "assessment"),
+    "gap_id": (EVENT_CONTROL_ASSESSED, "gap"),
+    "policy_id": (EVENT_POLICY_UPDATED, "policy"),
+    "framework_id": (EVENT_CONTROL_ASSESSED, "framework"),
+    "evidence_id": (EVENT_EVIDENCE_COLLECTED, "evidence"),
+    "job_id": (EVENT_JOB_COMPLETED, "job"),
+
+    # Identity & Access
+    "identity_id": (EVENT_IDENTITY_UPDATED, "identity"),
+    "session_id": (EVENT_SESSION_CREATED, "session"),
+    "device_id": (EVENT_ASSET_DISCOVERED, "device"),
+    "cert_id": (EVENT_ASSET_DISCOVERED, "certificate"),
+
+    # Threat Intel
+    "campaign_id": (EVENT_THREAT_DETECTED, "campaign"),
+    "technique_id": (EVENT_THREAT_DETECTED, "technique"),
+    "tactic_id": (EVENT_THREAT_DETECTED, "tactic"),
+    "chain_id": (EVENT_THREAT_DETECTED, "attack_chain"),
+    "simulation_id": (EVENT_THREAT_DETECTED, "simulation"),
+
+    # SOC Operations
+    "rule_id": (EVENT_RULE_UPDATED, "rule"),
+    "execution_id": (EVENT_PLAYBOOK_EXECUTED, "execution"),
+    "event_id": (EVENT_EVENT_CREATED, "event"),
+    "alert_id": (EVENT_ALERT_CREATED, "alert"),
+
+    # Assets & Infrastructure
+    "resource_id": (EVENT_ASSET_DISCOVERED, "resource"),
+    "app_id": (EVENT_ASSET_DISCOVERED, "application"),
+    "domain_id": (EVENT_ASSET_DISCOVERED, "domain"),
+    "account_id": (EVENT_ASSET_DISCOVERED, "account"),
+    "tag_id": (EVENT_ASSET_UPDATED, "tag"),
+
+    # Other domains
+    "scenario_id": (EVENT_SCENARIO_CREATED, "scenario"),
+    "twin_id": (EVENT_ASSET_DISCOVERED, "digital_twin"),
+    "challenge_id": (EVENT_TRAINING_COMPLETED, "challenge"),
+    "review_id": (EVENT_REVIEW_COMPLETED, "review"),
+    "run_id": (EVENT_JOB_COMPLETED, "run"),
+    "schedule_id": (EVENT_SCHEDULE_UPDATED, "schedule"),
+    "operation_id": (EVENT_OPERATION_COMPLETED, "operation"),
+    "engagement_id": (EVENT_ENGAGEMENT_CREATED, "engagement"),
+    "step_id": (EVENT_STEP_COMPLETED, "step"),
+    "team_id": (EVENT_TEAM_UPDATED, "team"),
+    "client_id": (EVENT_ASSET_DISCOVERED, "client"),
 }
 
 # HTTP methods whose responses may create/modify entities

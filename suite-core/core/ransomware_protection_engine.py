@@ -25,6 +25,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -174,7 +179,14 @@ class RansomwareProtectionEngine:
                     (rec_id, org_id, detection_name, detection_type, systems_json,
                      extensions_json, confidence, severity, now, now),
                 )
-            return self.get_detection(rec_id, org_id)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus:
+                    bus.emit("THREAT_DETECTED", {"entity_type": "ransomware_detection", "entity_id": str(rec_id), "org_id": org_id, "source_engine": "ransomware_protection_engine"})
+            except Exception:
+                pass  # Event emission should never break the main operation
+        return self.get_detection(rec_id, org_id)
 
     def get_detection(self, detection_id: str, org_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:
