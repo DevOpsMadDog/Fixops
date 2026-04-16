@@ -3,9 +3,10 @@ SSO/SAML authentication API endpoints.
 """
 from typing import Any, Dict, List, Optional
 
+from apps.api.auth_deps import api_key_auth
 from core.auth_db import AuthDB
 from core.auth_models import AuthProvider, SSOConfig, SSOStatus
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
@@ -172,9 +173,25 @@ def _get_key_manager():
         raise HTTPException(status_code=503, detail=f"Key manager unavailable: {exc}")
 
 
-@router.post("/keys", response_model=KeyCreateResponse, status_code=201)
-async def create_api_key(req: KeyCreateRequest):
-    """Create a new managed API key with TTL and scope restrictions."""
+def _require_admin(request: Request) -> None:
+    """AUTHZ-VULN-03: Enforce that only admin/super_admin callers can manage API keys."""
+    caller_role: str = getattr(request.state, "user_role", "viewer")
+    caller_scopes: list = getattr(request.state, "user_scopes", [])
+    if caller_role not in ("admin", "super_admin") and "admin:all" not in caller_scopes:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: API key management requires admin role",
+        )
+
+
+@router.post("/keys", response_model=KeyCreateResponse, status_code=201,
+             dependencies=[Depends(api_key_auth)])
+async def create_api_key(req: KeyCreateRequest, request: Request):
+    """Create a new managed API key with TTL and scope restrictions.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     record, plaintext = km.create_key(
         user_id=req.user_id,
@@ -188,9 +205,14 @@ async def create_api_key(req: KeyCreateRequest):
     return KeyCreateResponse(**resp)
 
 
-@router.post("/keys/{key_id}/rotate", response_model=KeyCreateResponse)
-async def rotate_api_key(key_id: str, req: KeyRotateRequest):
-    """Rotate an API key — creates replacement, puts old key in grace period."""
+@router.post("/keys/{key_id}/rotate", response_model=KeyCreateResponse,
+             dependencies=[Depends(api_key_auth)])
+async def rotate_api_key(key_id: str, req: KeyRotateRequest, request: Request):
+    """Rotate an API key — creates replacement, puts old key in grace period.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     try:
         new_record, new_plaintext = km.rotate_key(key_id, performed_by=req.performed_by)
@@ -201,9 +223,13 @@ async def rotate_api_key(key_id: str, req: KeyRotateRequest):
     return KeyCreateResponse(**resp)
 
 
-@router.delete("/keys/{key_id}")
-async def revoke_api_key(key_id: str):
-    """Immediately revoke an API key."""
+@router.delete("/keys/{key_id}", dependencies=[Depends(api_key_auth)])
+async def revoke_api_key(key_id: str, request: Request):
+    """Immediately revoke an API key.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     success = km.revoke_key(key_id)
     if not success:
@@ -211,33 +237,49 @@ async def revoke_api_key(key_id: str):
     return {"status": "revoked", "key_id": key_id}
 
 
-@router.get("/keys", response_model=list)
-async def list_api_keys(user_id: Optional[str] = None, include_revoked: bool = False):
-    """List managed API keys."""
+@router.get("/keys", response_model=list, dependencies=[Depends(api_key_auth)])
+async def list_api_keys(request: Request, user_id: Optional[str] = None, include_revoked: bool = False):
+    """List managed API keys.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     keys = km.list_keys(user_id=user_id, include_revoked=include_revoked)
     return [k.to_dict() for k in keys]
 
 
-@router.get("/keys/expiring")
-async def get_expiring_keys(within_days: int = Query(default=7, ge=1, le=365)):
-    """Get API keys expiring within the specified timeframe."""
+@router.get("/keys/expiring", dependencies=[Depends(api_key_auth)])
+async def get_expiring_keys(request: Request, within_days: int = Query(default=7, ge=1, le=365)):
+    """Get API keys expiring within the specified timeframe.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     keys = km.get_expiring_keys(within_days=within_days)
     return {"expiring_within_days": within_days, "count": len(keys), "keys": [k.to_dict() for k in keys]}
 
 
-@router.post("/keys/cleanup")
-async def cleanup_expired_keys():
-    """Deactivate all expired keys past their grace period."""
+@router.post("/keys/cleanup", dependencies=[Depends(api_key_auth)])
+async def cleanup_expired_keys(request: Request):
+    """Deactivate all expired keys past their grace period.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     count = km.cleanup_expired()
     return {"deactivated_count": count}
 
 
-@router.get("/keys/{key_id}/audit")
-async def get_key_audit_log(key_id: str, limit: int = Query(default=100, ge=1, le=1000)):
-    """Get audit trail for a specific API key."""
+@router.get("/keys/{key_id}/audit", dependencies=[Depends(api_key_auth)])
+async def get_key_audit_log(key_id: str, request: Request, limit: int = Query(default=100, ge=1, le=1000)):
+    """Get audit trail for a specific API key.
+
+    AUTHZ-VULN-03: Requires admin/super_admin role.
+    """
+    _require_admin(request)
     km = _get_key_manager()
     log = km.get_audit_log(key_id=key_id, limit=limit)
     return {"key_id": key_id, "entries": log}

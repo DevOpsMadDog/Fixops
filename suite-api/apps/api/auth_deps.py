@@ -156,8 +156,15 @@ def _decode_jwt(token: str) -> dict:
             token,
             _JWT_SECRET,
             algorithms=[_JWT_ALGORITHM],
-            options={"require": ["exp", "iat"]},
+            options={"require": ["exp", "iat", "sub"]},
         )
+        # AUTH-VULN-04/05: Validate required claims are non-empty after decode
+        if not claims.get("sub"):
+            raise HTTPException(status_code=401, detail="Invalid token: missing sub claim")
+        if not claims.get("iss") and os.getenv("FIXOPS_JWT_ISSUER"):
+            expected_iss = os.getenv("FIXOPS_JWT_ISSUER", "")
+            if expected_iss and claims.get("iss") != expected_iss:
+                raise HTTPException(status_code=401, detail="Invalid token: issuer mismatch")
         return claims
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(status_code=401, detail="Token expired") from exc

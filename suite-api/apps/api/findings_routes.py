@@ -34,7 +34,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -229,6 +230,7 @@ async def list_findings(
     sort_by: str = Query("severity", pattern="^(severity|created_at|risk_score|last_seen)$"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List findings with rich filtering and pagination.
 
@@ -248,7 +250,8 @@ async def list_findings(
     Returns:
         Paginated findings list with total count
     """
-    findings = list(_findings_store.values())
+    # AUTHZ-VULN-05: Filter by org_id to prevent cross-tenant access
+    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
 
     # Apply filters
     if severity:
@@ -307,7 +310,7 @@ async def list_findings(
 
 
 @router.get("/{finding_id}", response_model=FindingDetailResponse)
-async def get_finding(finding_id: str) -> FindingDetailResponse:
+async def get_finding(finding_id: str, org_id: str = Depends(get_org_id)) -> FindingDetailResponse:
     """Get complete finding detail with history.
 
     Args:
@@ -317,12 +320,16 @@ async def get_finding(finding_id: str) -> FindingDetailResponse:
         FindingDetailResponse with all details and history
 
     Raises:
-        HTTPException: 404 if finding not found
+        HTTPException: 404 if finding not found or not accessible
     """
     if finding_id not in _findings_store:
         raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
 
     finding = _findings_store[finding_id]
+
+    # AUTHZ-VULN-06: Enforce org_id isolation — return 404 (not 403) to avoid enumeration
+    if finding.get("org_id") != org_id:
+        raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
 
     return FindingDetailResponse(
         id=finding_id,

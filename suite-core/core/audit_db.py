@@ -78,6 +78,16 @@ class AuditDB:
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+            """
+            )
+            # AUTHZ-VULN-09: Add org_id column if it doesn't exist (safe migration)
+            try:
+                conn.execute("ALTER TABLE audit_logs ADD COLUMN org_id TEXT")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_org_id ON audit_logs(org_id)")
+                conn.commit()
+            except Exception:
+                pass  # Column already exists — ignore
+            conn.executescript("""
                 CREATE INDEX IF NOT EXISTS idx_compliance_controls_framework ON compliance_controls(framework_id);
             """
             )
@@ -116,32 +126,34 @@ class AuditDB:
         self,
         event_type: Optional[str] = None,
         user_id: Optional[str] = None,
+        org_id: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> List[AuditLog]:
-        """List audit logs with optional filtering."""
+        """List audit logs with optional filtering.
+
+        AUTHZ-VULN-09: org_id filtering prevents cross-tenant audit log access.
+        """
         conn = self._get_connection()
         try:
-            if event_type and user_id:
-                rows = conn.execute(
-                    "SELECT * FROM audit_logs WHERE event_type = ? AND user_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                    (event_type, user_id, limit, offset),
-                ).fetchall()
-            elif event_type:
-                rows = conn.execute(
-                    "SELECT * FROM audit_logs WHERE event_type = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                    (event_type, limit, offset),
-                ).fetchall()
-            elif user_id:
-                rows = conn.execute(
-                    "SELECT * FROM audit_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                    (user_id, limit, offset),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                    (limit, offset),
-                ).fetchall()
+            conditions = []
+            params: list = []
+            if org_id:
+                conditions.append("(org_id = ? OR org_id IS NULL)")
+                params.append(org_id)
+            if event_type:
+                conditions.append("event_type = ?")
+                params.append(event_type)
+            if user_id:
+                conditions.append("user_id = ?")
+                params.append(user_id)
+
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            params.extend([limit, offset])
+            rows = conn.execute(
+                f"SELECT * FROM audit_logs {where} ORDER BY timestamp DESC LIMIT ? OFFSET ?",  # nosec B608
+                params,
+            ).fetchall()
             return [self._row_to_audit_log(row) for row in rows]
         finally:
             conn.close()

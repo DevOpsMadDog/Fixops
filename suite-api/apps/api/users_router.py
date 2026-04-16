@@ -13,9 +13,10 @@ import os
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import jwt
+from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
 from core.persistent_store import get_persistent_store
 from core.user_db import UserDB
@@ -59,7 +60,29 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("FIXOPS_JWT_REFRESH_DAYS", "7
 # Rate limiting for login attempts — persisted so restarts don't reset lockouts
 _login_attempts = get_persistent_store("login_attempts")
 MAX_LOGIN_ATTEMPTS = 5
-LOGIN_LOCKOUT_SECONDS = 300  # 5 minutes
+LOGIN_LOCKOUT_SECONDS = 900  # 15 minutes (AUTH-VULN-08/11)
+
+# AUTH-VULN-06: In-memory short-lived token blocklist for logout revocation
+# Maps jti -> expiry timestamp. Pruned on each check to avoid unbounded growth.
+_revoked_jtis: Dict[str, float] = {}
+
+# Roles that only admins may assign (AUTHZ-VULN-04)
+_PRIVILEGED_ROLES: frozenset = frozenset({"admin", "super_admin"})
+
+
+def _is_token_revoked(jti: str) -> bool:
+    """Return True if the JWT jti is in the revocation blocklist."""
+    now = time.time()
+    # Prune expired entries
+    expired = [k for k, exp in _revoked_jtis.items() if now > exp]
+    for k in expired:
+        _revoked_jtis.pop(k, None)
+    return jti in _revoked_jtis
+
+
+def _revoke_token(jti: str, exp: float) -> None:
+    """Add a jti to the blocklist until its natural expiry."""
+    _revoked_jtis[jti] = exp
 
 # Role → JWT scopes mapping (must align with _require_scope in app.py)
 _ROLE_SCOPES: Dict[str, List[str]] = {
@@ -243,6 +266,39 @@ async def login(credentials: LoginRequest, request: Request):
     }
 
 
+@public_router.post("/logout")
+async def logout(request: Request):
+    """Logout — revoke the current JWT by adding its jti to the server-side blocklist.
+
+    AUTH-VULN-06: Server-side session revocation on logout.
+    """
+    auth_header: str = request.headers.get("Authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="No Bearer token provided")
+    token = auth_header[7:].strip()
+    jwt_secret = os.environ.get("FIXOPS_JWT_SECRET", "")
+    if not jwt_secret:
+        # Dev mode: nothing to revoke
+        return {"status": "logged_out"}
+    try:
+        claims = jwt.decode(
+            token,
+            jwt_secret,
+            algorithms=[JWT_ALGORITHM],
+            options={"require": ["exp", "iat"]},
+        )
+        jti = claims.get("jti")
+        exp = claims.get("exp", time.time())
+        if jti:
+            _revoke_token(jti, float(exp))
+        logger.info("User %s logged out, token jti=%s revoked", claims.get("user_id", "unknown"), jti)
+    except jwt.ExpiredSignatureError:
+        pass  # Already expired — no need to blocklist
+    except jwt.InvalidTokenError:
+        pass  # Invalid token — ignore
+    return {"status": "logged_out"}
+
+
 @router.get("", response_model=PaginatedUserResponse)
 async def list_users(
     org_id: str = Depends(get_org_id),
@@ -260,8 +316,25 @@ async def list_users(
 
 
 @router.post("", response_model=UserResponse, status_code=201)
-async def create_user(user_data: UserCreate):
-    """Create a new user."""
+async def create_user(user_data: UserCreate, request: Request):
+    """Create a new user.
+
+    AUTHZ-VULN-04: Only admin/super_admin callers may assign privileged roles.
+    Non-admin callers are restricted to non-privileged roles (viewer, developer,
+    security_analyst). Assigning admin/super_admin requires admin:all scope.
+    """
+    # Determine caller's role from request state (set by api_key_auth dependency)
+    caller_role: str = getattr(request.state, "user_role", "viewer")
+    caller_scopes: list = getattr(request.state, "user_scopes", [])
+    is_admin_caller = caller_role in ("admin", "super_admin") or "admin:all" in caller_scopes
+
+    requested_role_value = user_data.role.value if hasattr(user_data.role, "value") else str(user_data.role)
+    if requested_role_value in _PRIVILEGED_ROLES and not is_admin_caller:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Insufficient permissions: assigning role '{requested_role_value}' requires admin privileges",
+        )
+
     if db.get_user_by_email(user_data.email):
         raise HTTPException(status_code=409, detail="Email already exists")
 
@@ -289,18 +362,31 @@ async def get_user(id: str):
 
 
 @router.put("/{id}", response_model=UserResponse)
-async def update_user(id: str, user_data: UserUpdate):
-    """Update a user."""
+async def update_user(id: str, user_data: UserUpdate, request: Request):
+    """Update a user.
+
+    AUTHZ-VULN-04: Only admin callers may promote users to privileged roles.
+    """
     user = db.get_user(id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if user_data.role is not None:
+        caller_role: str = getattr(request.state, "user_role", "viewer")
+        caller_scopes: list = getattr(request.state, "user_scopes", [])
+        is_admin_caller = caller_role in ("admin", "super_admin") or "admin:all" in caller_scopes
+        requested_role_value = user_data.role.value if hasattr(user_data.role, "value") else str(user_data.role)
+        if requested_role_value in _PRIVILEGED_ROLES and not is_admin_caller:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Insufficient permissions: promoting to role '{requested_role_value}' requires admin privileges",
+            )
+        user.role = user_data.role
 
     if user_data.first_name is not None:
         user.first_name = user_data.first_name
     if user_data.last_name is not None:
         user.last_name = user_data.last_name
-    if user_data.role is not None:
-        user.role = user_data.role
     if user_data.status is not None:
         user.status = user_data.status
     if user_data.department is not None:

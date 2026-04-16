@@ -110,9 +110,12 @@ async def list_audit_logs(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    """Query audit logs with optional filtering."""
+    """Query audit logs with optional filtering.
+
+    AUTHZ-VULN-09: org_id is applied to filter results to the caller's tenant only.
+    """
     logs = db.list_audit_logs(
-        event_type=event_type, user_id=user_id, limit=limit, offset=offset
+        event_type=event_type, user_id=user_id, org_id=org_id, limit=limit, offset=offset
     )
     return {
         "items": [AuditLogResponse(**log.to_dict()) for log in logs],
