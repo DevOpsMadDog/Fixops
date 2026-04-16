@@ -370,7 +370,7 @@ class AuditLogger:
                     AND timestamp >= ?
                     ORDER BY timestamp DESC
                     LIMIT ?
-                """.format(",".join(["?"] * len(security_actions)))
+                """.format(",".join(["?"] * len(security_actions)))  # nosec B608
 
                 params = [org_id] + security_actions + [since.isoformat(), limit]
                 cursor.execute(query, params)
@@ -432,7 +432,7 @@ class AuditLogger:
                     AND action IN ({})
                     ORDER BY timestamp DESC
                     LIMIT ?
-                """.format(",".join(["?"] * len(relevant_actions)))
+                """.format(",".join(["?"] * len(relevant_actions)))  # nosec B608
 
                 params = [org_id] + relevant_actions + [limit]
                 cursor.execute(query, params)
