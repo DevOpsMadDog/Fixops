@@ -494,19 +494,63 @@ class PersonaDashboard:
         Returns:
             Dashboard dict with widgets, charts, KPIs
         """
-        # Risk posture and trend
-        risk_score = 45.0  # Would be calculated from risk_posture.py
-        risk_trend = "down"  # Improving
+        # Real engine queries
+        risk_score = 0.0
+        risk_trend = "stable"
+        critical_count = 0
+        high_count = 0
+        medium_count = 0
+        top_risks: List[Dict[str, Any]] = []
+        compliance_by_framework: Dict[str, float] = {}
+
+        try:
+            from core.risk_register_engine import RiskRegisterEngine
+            risk_eng = RiskRegisterEngine()
+            risk_stats = risk_eng.get_risk_stats(org_id)
+            risk_score = float(risk_stats.get("avg_risk_score") or 0.0)
+            critical_count = risk_stats.get("critical_risks", 0)
+            high_count = risk_stats.get("high_risks", 0)
+            if risk_stats.get("top_risk"):
+                top_risks.append({
+                    "finding_id": "top_risk",
+                    "title": risk_stats["top_risk"].get("name", ""),
+                    "risk_score": risk_stats["top_risk"].get("score", 0),
+                })
+        except Exception:
+            pass
+
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+            findings_eng = SecurityFindingsEngine()
+            summary = findings_eng.get_findings_summary(org_id)
+            sev = summary.get("severity_breakdown", {})
+            if not critical_count:
+                critical_count = sev.get("critical", 0)
+            if not high_count:
+                high_count = sev.get("high", 0)
+            medium_count = sev.get("medium", 0)
+        except Exception:
+            pass
+
+        try:
+            from core.compliance_gap_engine import ComplianceGapEngine
+            gap_eng = ComplianceGapEngine()
+            gap_stats = gap_eng.get_gap_stats(org_id)
+            compliance_by_framework = gap_stats.get("by_framework", {})
+        except Exception:
+            pass
 
         # Key metrics
         mttd = self.engine.query_metric("mttd", TimeWindow.WEEK)
         mttr = self.engine.query_metric("mttr", TimeWindow.WEEK)
         fp_rate = self.engine.query_metric("false_positive_rate", TimeWindow.WEEK)
 
-        # Findings by severity
-        critical_count = 3
-        high_count = 12
-        medium_count = 45
+        # Build compliance_status from real framework data (fallback to 0 if not present)
+        compliance_status = {
+            "soc2": compliance_by_framework.get("soc2", compliance_by_framework.get("SOC2", 0)),
+            "hipaa": compliance_by_framework.get("hipaa", compliance_by_framework.get("HIPAA", 0)),
+            "pci": compliance_by_framework.get("pci_dss", compliance_by_framework.get("PCI-DSS", 0)),
+        }
 
         return {
             "persona": "ciso",
@@ -524,11 +568,7 @@ class PersonaDashboard:
                     "medium_findings": medium_count,
                     "total_findings": critical_count + high_count + medium_count,
                 },
-                "compliance_status": {
-                    "soc2": 92,
-                    "hipaa": 88,
-                    "pci": 95,
-                },
+                "compliance_status": compliance_status,
             },
             "charts": {
                 "risk_trend_30d": self.engine.get_trend("risk_score", periods=30, window=TimeWindow.DAY),
@@ -537,16 +577,13 @@ class PersonaDashboard:
                     "high": high_count,
                     "medium": medium_count,
                 },
-                "top_risks": [
-                    {"finding_id": "f1", "title": "Unpatched critical CVE", "risk_score": 95},
-                    {"finding_id": "f2", "title": "Weak encryption", "risk_score": 82},
-                ],
+                "top_risks": top_risks,
             },
             "kpis": {
                 "mttd_minutes": mttd.value if mttd else 0,
                 "mttr_hours": mttr.value if mttr else 0,
                 "false_positive_rate_percent": fp_rate.value if fp_rate else 0,
-                "sla_compliance_percent": 94.5,
+                "sla_compliance_percent": 0,
             },
         }
 
@@ -557,10 +594,41 @@ class PersonaDashboard:
         Returns:
             Dashboard dict with pipeline metrics
         """
-        # Pipeline throughput
-        scans_last_day = 245
-        builds_blocked = 3
-        remediation_velocity = 87.5  # % resolved within SLA
+        total_runs = 0
+        passed_runs = 0
+        blocked_runs = 0
+        critical_findings = 0
+        high_findings = 0
+        open_findings = 0
+        pass_rate = 0.0
+        # connector_uptime defaults to 100 (fully up) when no failure data is recorded
+        connector_uptime = 100.0
+
+        try:
+            from core.devsecops_engine import DevSecOpsEngine
+            ds_eng = DevSecOpsEngine()
+            ds_stats = ds_eng.get_devsecops_stats(org_id)
+            total_runs = ds_stats.get("total_runs", 0)
+            passed_runs = ds_stats.get("passed_runs", 0)
+            blocked_runs = ds_stats.get("blocked_runs", 0)
+            critical_findings = ds_stats.get("critical_findings", 0)
+            high_findings = ds_stats.get("high_findings", 0)
+            pass_rate = ds_stats.get("pass_rate", 0.0) * 100
+        except Exception:
+            pass
+
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+            findings_eng = SecurityFindingsEngine()
+            summary = findings_eng.get_findings_summary(org_id)
+            status_counts = summary.get("status_counts", {})
+            open_findings = status_counts.get("open", summary.get("severity_breakdown", {}).get("critical", 0))
+            if not critical_findings:
+                critical_findings = summary.get("severity_breakdown", {}).get("critical", 0)
+            if not high_findings:
+                high_findings = summary.get("severity_breakdown", {}).get("high", 0)
+        except Exception:
+            pass
 
         return {
             "persona": "devsecops",
@@ -568,37 +636,37 @@ class PersonaDashboard:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "widgets": {
                 "pipeline_health": {
-                    "scans_today": scans_last_day,
-                    "avg_scan_time_minutes": 8,
-                    "connector_uptime_percent": 98.5,
+                    "scans_today": total_runs,
+                    "avg_scan_time_minutes": 0,
+                    "connector_uptime_percent": connector_uptime,
                 },
                 "blocked_builds": {
-                    "count": builds_blocked,
-                    "critical": 1,
-                    "high": 2,
+                    "count": blocked_runs,
+                    "critical": critical_findings,
+                    "high": high_findings,
                 },
                 "remediation_dashboard": {
-                    "open_findings": 87,
-                    "pending_review": 23,
-                    "resolved_this_week": 156,
+                    "open_findings": open_findings,
+                    "pending_review": 0,
+                    "resolved_this_week": passed_runs,
                 },
             },
             "charts": {
                 "throughput_7d": self.engine.get_trend("scan_throughput", periods=7, window=TimeWindow.DAY),
                 "build_status": {
-                    "passed": 342,
-                    "blocked": builds_blocked,
-                    "failed": 5,
+                    "passed": passed_runs,
+                    "blocked": blocked_runs,
+                    "failed": max(0, total_runs - passed_runs - blocked_runs),
                 },
                 "remediation_velocity": {
                     "trend": "up",
-                    "percent_sla_compliant": remediation_velocity,
+                    "percent_sla_compliant": pass_rate,
                 },
             },
             "kpis": {
-                "mean_scan_time_minutes": 8,
-                "connector_uptime_percent": 98.5,
-                "remediation_velocity_percent": remediation_velocity,
+                "mean_scan_time_minutes": 0,
+                "connector_uptime_percent": connector_uptime,
+                "remediation_velocity_percent": pass_rate,
             },
         }
 
@@ -609,11 +677,36 @@ class PersonaDashboard:
         Returns:
             Dashboard dict with compliance metrics
         """
-        frameworks = {
-            "soc2": {"compliance": 92, "gaps": 2, "findings": 8},
-            "hipaa": {"compliance": 88, "gaps": 4, "findings": 15},
-            "pci_dss": {"compliance": 95, "gaps": 1, "findings": 4},
-        }
+        frameworks: Dict[str, Any] = {}
+        total_gaps = 0
+        open_gaps = 0
+        critical_gaps = 0
+        avg_compliance = 0.0
+
+        try:
+            from core.compliance_gap_engine import ComplianceGapEngine
+            gap_eng = ComplianceGapEngine()
+            gap_stats = gap_eng.get_gap_stats(org_id)
+            total_gaps = gap_stats.get("total_gaps", 0)
+            open_gaps = gap_stats.get("open_gaps", 0)
+            critical_gaps = gap_stats.get("critical_gaps", 0)
+            by_framework = gap_stats.get("by_framework", {})
+            for fw, pct in by_framework.items():
+                frameworks[fw] = {"compliance": round(pct, 1), "gaps": 0, "findings": 0}
+            if by_framework:
+                avg_compliance = round(sum(by_framework.values()) / len(by_framework), 1)
+        except Exception:
+            pass
+
+        # Ensure canonical framework keys are always present
+        for fw_key in ("soc2", "hipaa", "pci_dss"):
+            if fw_key not in frameworks:
+                frameworks[fw_key] = {"compliance": 0, "gaps": 0, "findings": 0}
+
+        compliance_trend = [
+            {"framework": fw, "compliance_percent": d["compliance"], "trend": "stable"}
+            for fw, d in frameworks.items()
+        ]
 
         return {
             "persona": "compliance",
@@ -622,39 +715,33 @@ class PersonaDashboard:
             "widgets": {
                 "framework_compliance": frameworks,
                 "control_mapping": {
-                    "total_controls": 347,
-                    "compliant": 312,
-                    "non_compliant": 35,
+                    "total_controls": total_gaps,
+                    "compliant": total_gaps - open_gaps,
+                    "non_compliant": open_gaps,
                 },
                 "audit_readiness": {
-                    "evidence_collected": 2890,
-                    "pending_evidence": 87,
-                    "last_audit": "2026-03-15",
+                    "evidence_collected": 0,
+                    "pending_evidence": 0,
+                    "last_audit": "",
                 },
             },
             "charts": {
-                "compliance_trend": [
-                    {
-                        "framework": "soc2",
-                        "compliance_percent": 92,
-                        "trend": "up",
-                    },
-                ],
+                "compliance_trend": compliance_trend,
                 "control_gaps": {
-                    "critical": 1,
-                    "high": 8,
-                    "medium": 26,
+                    "critical": critical_gaps,
+                    "high": open_gaps - critical_gaps if open_gaps > critical_gaps else 0,
+                    "medium": 0,
                 },
                 "evidence_status": {
-                    "collected": 2890,
-                    "pending": 87,
-                    "overdue": 3,
+                    "collected": 0,
+                    "pending": 0,
+                    "overdue": 0,
                 },
             },
             "kpis": {
-                "avg_compliance_percent": 91.7,
-                "total_gaps": sum(f["gaps"] for f in frameworks.values()),
-                "audit_ready_percent": 97.1,
+                "avg_compliance_percent": avg_compliance,
+                "total_gaps": total_gaps,
+                "audit_ready_percent": 0,
             },
         }
 
@@ -665,51 +752,78 @@ class PersonaDashboard:
         Returns:
             Dashboard dict with triage and analysis metrics
         """
+        new_alerts = 0
+        escalated = 0
+        fp_rate = 0.0
+        avg_triage_time = 0.0
+        sev_critical = 0
+        sev_high = 0
+        sev_medium = 0
+        sev_low = 0
+
+        try:
+            from core.alert_triage_engine import AlertTriageEngine
+            triage_eng = AlertTriageEngine()
+            triage_stats = triage_eng.get_triage_stats(org_id)
+            new_alerts = triage_stats.get("new_alerts", 0)
+            escalated = triage_stats.get("escalated", 0)
+            fp_rate = triage_stats.get("false_positive_rate", 0.0)
+            avg_triage_time = triage_stats.get("avg_triage_time_minutes", 0.0)
+        except Exception:
+            pass
+
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+            findings_eng = SecurityFindingsEngine()
+            summary = findings_eng.get_findings_summary(org_id)
+            sev = summary.get("severity_breakdown", {})
+            sev_critical = sev.get("critical", 0)
+            sev_high = sev.get("high", 0)
+            sev_medium = sev.get("medium", 0)
+            sev_low = sev.get("low", 0)
+        except Exception:
+            pass
+
+        total_open = sev_critical + sev_high + sev_medium + sev_low
+
         return {
             "persona": "analyst",
             "org_id": org_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "widgets": {
                 "triage_queue": {
-                    "new_findings": 45,
-                    "assigned_to_me": 12,
-                    "avg_age_hours": 2.5,
+                    "new_findings": new_alerts,
+                    "assigned_to_me": escalated,
+                    "avg_age_hours": round(avg_triage_time / 60, 2) if avg_triage_time else 0,
                 },
                 "backlog": {
-                    "total_open": 234,
-                    "critical": 3,
-                    "high": 18,
-                    "medium": 89,
-                    "low": 124,
+                    "total_open": total_open,
+                    "critical": sev_critical,
+                    "high": sev_high,
+                    "medium": sev_medium,
+                    "low": sev_low,
                 },
                 "false_positive_tracking": {
-                    "marked_fp_this_week": 23,
-                    "fp_percent": 4.7,
-                    "top_fp_rule": "rule_2048 (92 fps)",
+                    "marked_fp_this_week": 0,
+                    "fp_percent": round(fp_rate, 2),
+                    "top_fp_rule": "",
                 },
             },
             "charts": {
-                "triage_queue_age": [
-                    {"age_hours": "0-1", "count": 23},
-                    {"age_hours": "1-4", "count": 15},
-                    {"age_hours": "4-24", "count": 7},
-                ],
+                "triage_queue_age": [],
                 "findings_assigned": {
-                    "analyst_a": 45,
-                    "analyst_b": 38,
-                    "analyst_c": 29,
-                    "unassigned": 122,
+                    "unassigned": total_open,
                 },
                 "decision_accuracy": {
-                    "correct_severity": 96.2,
-                    "correct_status": 98.1,
-                    "council_consensus": 87.4,
+                    "correct_severity": 0,
+                    "correct_status": 0,
+                    "council_consensus": 0,
                 },
             },
             "kpis": {
-                "avg_triage_time_minutes": 15,
-                "false_positive_rate_percent": 4.7,
-                "decision_accuracy_percent": 96.2,
+                "avg_triage_time_minutes": round(avg_triage_time, 2),
+                "false_positive_rate_percent": round(fp_rate, 2),
+                "decision_accuracy_percent": 0,
             },
         }
 

@@ -280,18 +280,24 @@ class GraphRAGEngine:
         entities_for_core = core_entity_map.get(core_id, [])
         results = []
 
-        # Create mock results based on query entities and core
-        query_entities = parsed.get("entities", [])
-        for i in range(min(5, max_results)):
-            results.append({
-                "id": f"core_{core_id}_result_{i}",
-                "core_id": core_id,
-                "type": entities_for_core[i % len(entities_for_core)] if entities_for_core else "Unknown",
-                "name": f"Item {i} from Core {core_id}",
-                "score": 0.9 - (i * 0.1),
-                "confidence": 0.85,
-                "data": {"details": f"Knowledge from core {core_id}"},
-            })
+        # Query real KnowledgeStore for this core
+        try:
+            from trustgraph.knowledge_store import KnowledgeStore
+            store = KnowledgeStore()
+            query_text = parsed.get("original", "")
+            entities = store.search(core_id=core_id, query_text=query_text, limit=max_results)
+            for i, entity in enumerate(entities):
+                results.append({
+                    "id": entity.entity_id,
+                    "core_id": core_id,
+                    "type": entity.entity_type,
+                    "name": entity.name,
+                    "score": max(0.1, 0.9 - i * 0.05),
+                    "confidence": entity.properties.get("confidence", 0.8) if entity.properties else 0.8,
+                    "data": entity.properties or {},
+                })
+        except Exception:
+            pass
 
         return results
 
@@ -305,16 +311,28 @@ class GraphRAGEngine:
         Returns:
             Synthesized answer string
         """
-        # In production, would call LLM with context
-        # For now, return a template answer
+        if not context:
+            return f"No relevant knowledge found for query: '{query_text}'"
+
         core_ids = set(item["core_id"] for item in context)
+        # Build answer from actual retrieved context names and types
+        item_summaries = []
+        for item in context[:5]:
+            name = item.get("name", "")
+            entity_type = item.get("type", "")
+            if name and entity_type:
+                item_summaries.append(f"{entity_type}: {name}")
+            elif name:
+                item_summaries.append(name)
+
         answer_parts = [
-            f"Based on data from {len(core_ids)} knowledge core(s):",
-            f"Your query '{query_text}' matches {len(context)} relevant items.",
-            f"The most relevant cores are: {sorted(core_ids)}.",
-            "Cross-core correlation shows: Strong relationship between threat patterns and environment vulnerabilities.",
-            "Recommendation: Prioritize remediation of critical items identified across cores.",
+            f"Based on {len(context)} result(s) from {len(core_ids)} knowledge core(s):",
         ]
+        if item_summaries:
+            answer_parts.append("Relevant items: " + "; ".join(item_summaries) + ".")
+        answer_parts.append(
+            f"Query '{query_text}' matched data across core(s) {sorted(core_ids)}."
+        )
         return " ".join(answer_parts)
 
     def _rank_evidence(self, evidence_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
