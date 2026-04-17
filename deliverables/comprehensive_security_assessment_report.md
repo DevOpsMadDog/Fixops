@@ -1,6 +1,7 @@
 # Security Assessment Report
 
 ## Executive Summary
+- Model: claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5-20251001
 
 **Target:** http://host.docker.internal:8000  
 **Assessment Date:** 2026-04-16  
