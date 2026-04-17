@@ -185,6 +185,21 @@ async def update_policy(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.delete("/policies/{policy_id}", response_model=Dict[str, Any])
+async def delete_policy(
+    policy_id: str,
+    org_id: str = Query("default"),
+    _auth=Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Delete a Zero Trust policy."""
+    deleted = _get_engine().delete_policy(org_id=org_id, policy_id=policy_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=404, detail=f"Policy {policy_id!r} not found"
+        )
+    return {"deleted": True, "policy_id": policy_id}
+
+
 # ---------------------------------------------------------------------------
 # Access evaluation
 # ---------------------------------------------------------------------------
@@ -331,7 +346,7 @@ async def list_access_requests(
 
 
 # ---------------------------------------------------------------------------
-# Stats
+# Stats & compliance
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
@@ -341,3 +356,16 @@ async def get_stats(
 ) -> Dict[str, Any]:
     """Return Zero Trust stats: request rates, active sessions, trust scores."""
     return _get_engine().get_stats(org_id=org_id)
+
+
+@router.get("/compliance", response_model=Dict[str, Any])
+async def get_compliance_posture(
+    org_id: str = Query("default"),
+    _auth=Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Return Zero Trust maturity score, pillar breakdown, and recommendations.
+
+    Scores each ZT pillar (identity, device, network, application, data) based on
+    active policy coverage and entity trust health. Aligned with NIST SP 800-207.
+    """
+    return _get_engine().get_compliance_posture(org_id=org_id)

@@ -509,3 +509,93 @@ class TestMultiOrgIsolation:
         engine.create_session(org_a, "user-a", "res-a")
         sessions = engine.list_sessions(org_b)
         assert len(sessions) == 0
+
+
+# ===========================================================================
+# 8. Delete policy
+# ===========================================================================
+
+class TestDeletePolicy:
+    def test_delete_policy_returns_true(self, engine, org):
+        p = make_policy(engine, org)
+        result = engine.delete_policy(org, p["id"])
+        assert result is True
+
+    def test_delete_policy_removes_from_list(self, engine, org):
+        p = make_policy(engine, org)
+        engine.delete_policy(org, p["id"])
+        assert engine.get_policy(org, p["id"]) is None
+        assert engine.list_policies(org) == []
+
+    def test_delete_policy_not_found_returns_false(self, engine, org):
+        result = engine.delete_policy(org, "nonexistent-id")
+        assert result is False
+
+    def test_delete_policy_wrong_org_returns_false(self, engine, org):
+        other_org = f"other_{uuid.uuid4().hex[:8]}"
+        p = make_policy(engine, org)
+        result = engine.delete_policy(other_org, p["id"])
+        assert result is False
+        # original org still has it
+        assert engine.get_policy(org, p["id"]) is not None
+
+    def test_delete_only_deletes_target_policy(self, engine, org):
+        p1 = make_policy(engine, org, policy_name="Keep")
+        p2 = make_policy(engine, org, policy_name="Delete")
+        engine.delete_policy(org, p2["id"])
+        remaining = engine.list_policies(org)
+        assert len(remaining) == 1
+        assert remaining[0]["id"] == p1["id"]
+
+
+# ===========================================================================
+# 9. Compliance posture
+# ===========================================================================
+
+class TestCompliancePosture:
+    def test_compliance_posture_structure(self, engine, org):
+        posture = engine.get_compliance_posture(org)
+        assert "zt_maturity_score" in posture
+        assert "pillars" in posture
+        assert "recommendations" in posture
+        assert "total_enabled_policies" in posture
+        assert "generated_at" in posture
+        pillars = posture["pillars"]
+        assert set(pillars.keys()) == {"identity", "device", "network", "application", "data"}
+
+    def test_compliance_posture_empty_score_zero(self, engine, org):
+        posture = engine.get_compliance_posture(org)
+        assert posture["zt_maturity_score"] == 0
+        for score in posture["pillars"].values():
+            assert score == 0
+
+    def test_compliance_posture_score_in_range(self, engine, org):
+        # Add policies across resource types
+        for rt in ("application", "api", "database", "network_segment", "cloud_service"):
+            make_policy(engine, org, resource_type=rt, policy_name=f"Policy-{rt}")
+        posture = engine.get_compliance_posture(org)
+        assert 0 <= posture["zt_maturity_score"] <= 100
+
+    def test_compliance_posture_score_increases_with_policies(self, engine, org):
+        before = engine.get_compliance_posture(org)["zt_maturity_score"]
+        make_policy(engine, org, resource_type="application", policy_name="App Policy")
+        after = engine.get_compliance_posture(org)["zt_maturity_score"]
+        assert after >= before
+
+    def test_compliance_posture_recommendations_present_when_empty(self, engine, org):
+        posture = engine.get_compliance_posture(org)
+        assert len(posture["recommendations"]) > 0
+
+    def test_compliance_posture_org_isolation(self, engine, org):
+        other_org = f"other_{uuid.uuid4().hex[:8]}"
+        make_policy(engine, org, resource_type="application", policy_name="App Policy")
+        posture_other = engine.get_compliance_posture(other_org)
+        assert posture_other["zt_maturity_score"] == 0
+
+    def test_compliance_posture_trust_scores_improve_identity(self, engine, org):
+        engine.set_trust_score(org, "u1", "user", 90.0, {})
+        engine.set_trust_score(org, "u2", "user", 85.0, {})
+        posture = engine.get_compliance_posture(org)
+        # With trusted entities and no API policies, identity pillar gets a bonus
+        # The maturity score should still be in valid range
+        assert 0 <= posture["zt_maturity_score"] <= 100

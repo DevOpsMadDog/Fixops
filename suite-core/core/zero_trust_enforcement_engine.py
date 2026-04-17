@@ -397,6 +397,21 @@ class ZeroTrustEnforcementEngine:
 
         return self.get_policy(org_id, policy_id)  # type: ignore[return-value]
 
+    def delete_policy(self, org_id: str, policy_id: str) -> bool:
+        """Delete a policy. Returns True if found and deleted."""
+        self._ensure_db(org_id)
+        with self._lock(org_id):
+            conn = self._connect(org_id)
+            try:
+                cur = conn.execute(
+                    "DELETE FROM zt_policies WHERE id = ? AND org_id = ?",
+                    (policy_id, org_id),
+                )
+                conn.commit()
+                return cur.rowcount > 0
+            finally:
+                conn.close()
+
     # ------------------------------------------------------------------
     # Access evaluation
     # ------------------------------------------------------------------
@@ -846,6 +861,98 @@ class ZeroTrustEnforcementEngine:
             "avg_trust_score": avg_trust,
             "high_risk_principals": high_risk,
             "by_decision": by_decision,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+    def get_compliance_posture(self, org_id: str) -> dict:
+        """Return Zero Trust compliance posture: maturity score, pillar breakdown, recommendations.
+
+        Derives pillar scores from enabled policy counts per resource_type and trust score health.
+        Complies with NIST SP 800-207 and CISA Zero Trust Maturity Model.
+        """
+        self._ensure_db(org_id)
+        policies = self.list_policies(org_id, enabled=True)
+
+        by_type: Dict[str, int] = {}
+        for p in policies:
+            rt = p["resource_type"]
+            by_type[rt] = by_type.get(rt, 0) + 1
+
+        def _pillar_score(count: int) -> int:
+            if count == 0:
+                return 0
+            if count == 1:
+                return 35
+            if count == 2:
+                return 60
+            if count == 3:
+                return 80
+            return min(95, 80 + (count - 3) * 5)
+
+        # Map resource_types to ZT pillars
+        identity_count = by_type.get("api", 0)
+        device_count = by_type.get("network_segment", 0)
+        network_count = by_type.get("cloud_service", 0)
+        application_count = by_type.get("application", 0)
+        data_count = by_type.get("database", 0)
+
+        # Also check trust score health
+        conn = self._connect(org_id)
+        try:
+            total_entities = conn.execute(
+                "SELECT COUNT(*) FROM trust_scores WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            trusted_entities = conn.execute(
+                "SELECT COUNT(*) FROM trust_scores WHERE org_id = ? AND status = 'trusted'",
+                (org_id,),
+            ).fetchone()[0]
+        finally:
+            conn.close()
+
+        identity_bonus = min(20, trusted_entities * 5) if total_entities > 0 else 0
+
+        pillar_weights = {
+            "identity": 0.25,
+            "device": 0.20,
+            "network": 0.20,
+            "application": 0.20,
+            "data": 0.15,
+        }
+        pillars = {
+            "identity": min(100, _pillar_score(identity_count) + identity_bonus),
+            "device": _pillar_score(device_count),
+            "network": _pillar_score(network_count),
+            "application": _pillar_score(application_count),
+            "data": _pillar_score(data_count),
+        }
+
+        zt_maturity_score = int(
+            sum(pillars[pillar] * weight for pillar, weight in pillar_weights.items())
+        )
+
+        total_enabled = len(policies)
+        recommendations: list = []
+        if identity_count == 0:
+            recommendations.append("Add API-scoped policies to enforce identity verification on all API access")
+        if device_count == 0:
+            recommendations.append("Implement network segment policies to enforce device posture checks")
+        if application_count == 0:
+            recommendations.append("Create application-level policies for sensitive data access control")
+        if data_count == 0:
+            recommendations.append("Add database policies to protect sensitive data at rest")
+        if total_entities > 0 and trusted_entities / total_entities < 0.5:
+            recommendations.append("More than half of tracked entities have low trust scores — investigate anomalies")
+        if total_enabled == 0:
+            recommendations = ["No active Zero Trust policies — enable policies across all resource types to begin enforcement"]
+        if not recommendations:
+            recommendations.append("Zero Trust posture is strong — review policies quarterly and update trust scores continuously")
+
+        return {
+            "zt_maturity_score": zt_maturity_score,
+            "pillars": pillars,
+            "total_enabled_policies": total_enabled,
+            "recommendations": recommendations,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 

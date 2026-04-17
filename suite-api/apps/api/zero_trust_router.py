@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from core.zero_trust_engine import ZeroTrustEngine, get_zero_trust_engine
 
 _logger = structlog.get_logger()
-router = APIRouter(prefix="/api/v1/zero-trust", tags=["zero-trust"])
+router = APIRouter(prefix="/api/v1/zero-trust-legacy", tags=["zero-trust-legacy"])
 
 
 def _engine() -> ZeroTrustEngine:
