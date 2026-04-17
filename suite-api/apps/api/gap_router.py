@@ -3615,7 +3615,7 @@ async def supply_chain_graph(app_id: str = Query("default", description="Applica
                 for r in rows:
                     components.append(dict(r))
                 break
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
         pass
 
     # 2. Enrich with health data
@@ -3721,7 +3721,7 @@ async def supply_chain_risks():
                     "risk_level": "critical" if dep.health_score < 30 else "high",
                     "recommendations": dep.recommendations,
                 })
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+    except (OSError, ValueError, KeyError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError) as exc:
         logger.debug("Supply chain risk scan unavailable: %s", exc)
 
     return {

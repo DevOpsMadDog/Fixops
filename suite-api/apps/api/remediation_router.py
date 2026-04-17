@@ -616,10 +616,10 @@ async def remediation_stats(request: Request):
     svc = get_remediation_service()
     tasks = []
     try:
-        org_id = get_org_id(request)
+        org_id = request.query_params.get("org_id", "default")
         raw = svc.get_tasks(org_id=org_id, limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
         pass
 
     by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
@@ -653,10 +653,10 @@ async def remediation_queue(request: Request):
     svc = get_remediation_service()
     tasks = []
     try:
-        org_id = get_org_id(request)
+        org_id = request.query_params.get("org_id", "default")
         raw = svc.get_tasks(org_id=org_id, limit=200) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
         pass
 
     # Filter to open/in_progress tasks
@@ -684,9 +684,9 @@ async def remediation_summary(request: Request):
     svc = get_remediation_service()
     tasks = []
     try:
-        raw = svc.get_tasks(limit=1000) if hasattr(svc, "get_tasks") else []
+        raw = svc.get_tasks(org_id="default", limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError, sqlite3.OperationalError, sqlite3.ProgrammingError):
         pass
 
     total = len(tasks)
