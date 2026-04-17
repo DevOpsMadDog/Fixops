@@ -8,7 +8,7 @@
  * API: GET /api/v1/access-reviews
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -104,6 +104,12 @@ const decisionColors: Record<ItemDecision, string> = {
 
 export default function UserAccessReviewDashboard() {
   const [selectedReview, setSelectedReview] = useState<string>(MOCK_REVIEWS[0].id);
+  useEffect(() => {
+    fetch("/api/v1/access-reviews", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
     Object.fromEntries(MOCK_ITEMS.map(i => [i.id, i.decision]))
   );

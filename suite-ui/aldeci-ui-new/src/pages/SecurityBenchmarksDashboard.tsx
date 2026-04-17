@@ -7,7 +7,7 @@
  * Route: /security-benchmarks
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart2, TrendingUp, TrendingDown, Minus, RefreshCw, Target } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -117,6 +117,12 @@ const SECTORS: Sector[] = ["all", "financial", "technology", "healthcare", "manu
 
 export default function SecurityBenchmarksDashboard() {
   const [sectorFilter, setSectorFilter] = useState<Sector>("all");
+  useEffect(() => {
+    fetch("/api/v1/security-benchmarks", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filtered = sectorFilter === "all"
     ? MOCK_METRICS

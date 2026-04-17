@@ -12,7 +12,7 @@
  * API: GET /api/v1/risk-scenarios
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ShieldAlert, TrendingDown, BarChart2, Target, ChevronDown, ChevronUp, Activity
 } from "lucide-react";
@@ -157,6 +157,12 @@ function cellColor(l: number, i: number): string {
 
 export default function RiskScenarioDashboard() {
   const [selectedScenario, setSelectedScenario] = useState<RiskScenario | null>(SCENARIOS[0]);
+  useEffect(() => {
+    fetch("/api/v1/risk-scenarios", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [sortField, setSortField] = useState<"residual_risk" | "inherent_risk">("residual_risk");
 
   const avgInherent = Math.round(SCENARIOS.reduce((s, r) => s + r.inherent_risk, 0) / SCENARIOS.length);

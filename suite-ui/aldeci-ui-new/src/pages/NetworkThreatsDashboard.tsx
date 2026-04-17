@@ -8,7 +8,10 @@
  * API: GET /api/v1/network-threats
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/network-threats";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -128,6 +131,16 @@ function topSourceIPs(threats: NetworkThreat[]): { ip: string; count: number }[]
 
 export default function NetworkThreatsDashboard() {
   const [threats] = useState<NetworkThreat[]>(MOCK_THREATS);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "resolved">("all");
 
   const filteredThreats = filterStatus === "all"

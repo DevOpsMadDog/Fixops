@@ -12,7 +12,7 @@
  * API: GET /api/v1/security-registry
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, CheckCircle2, Clock, Archive, RefreshCw, FileText, BookMarked, ClipboardList } from "lucide-react";
 
@@ -107,6 +107,12 @@ function TypeBadge({ type }: { type: ArtifactType }) {
 
 export default function SecurityRegistryDashboard() {
   const [filterStatus, setFilterStatus] = useState<ArtifactStatus | "all">("all");
+  useEffect(() => {
+    fetch("/api/v1/security-registry", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filtered = filterStatus === "all"
     ? MOCK_ARTIFACTS

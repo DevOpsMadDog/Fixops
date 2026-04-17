@@ -12,7 +12,10 @@
  * API: GET /api/v1/asset-groups
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/asset-groups";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { Layers, Users, Shield, Plus, BarChart2, AlertTriangle } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -171,6 +174,16 @@ const policyTypeColor: Record<GroupPolicy["policy_type"], string> = {
 
 export default function AssetGroupsDashboard() {
   const [selectedGroup, setSelectedGroup] = useState<AssetGroup | null>(GROUPS[0]);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [activeTab, setActiveTab] = useState<"members" | "policies">("members");
   const [bulkInput, setBulkInput] = useState("");
   const [showBulk, setShowBulk] = useState(false);

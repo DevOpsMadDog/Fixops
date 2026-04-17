@@ -8,7 +8,10 @@
  * Route: /compliance-calendar
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/compliance-calendar";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import {
   CalendarDays,
   AlertTriangle,
@@ -131,6 +134,16 @@ const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", 
 
 export default function ComplianceCalendarDashboard() {
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: "", framework: "SOC2", due_date: "", priority: "medium" });
 

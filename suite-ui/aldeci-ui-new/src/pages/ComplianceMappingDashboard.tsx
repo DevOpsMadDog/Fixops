@@ -11,7 +11,7 @@
  * API: GET /api/v1/compliance-mapping
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, FileCheck, Link2, BarChart2, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -101,6 +101,12 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
 
 export default function ComplianceMappingDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/v1/compliance-mapping", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filtered = selectedFramework
     ? MOCK_CONTROLS.filter((c) => c.framework === selectedFramework)

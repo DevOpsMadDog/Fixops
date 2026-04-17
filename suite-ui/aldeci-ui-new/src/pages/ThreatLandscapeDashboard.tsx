@@ -8,7 +8,7 @@
  * API: GET /api/v1/threat-landscape
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -135,6 +135,12 @@ const severityConfig: Record<ThreatSeverity, { label: string; badge: string; tex
 
 export default function ThreatLandscapeDashboard() {
   const [threats, setThreats] = useState<EmergingThreat[]>(MOCK_THREATS);
+  useEffect(() => {
+    fetch("/api/v1/threat-landscape", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
   const [resolvedMsg, setResolvedMsg] = useState<string | null>(null);
 

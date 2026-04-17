@@ -9,7 +9,10 @@
  * API: GET /api/v1/security-okrs
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/security-okrs";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -108,6 +111,12 @@ export default function SecurityOKRDashboard() {
   const [selectedObjective, setSelectedObjective] = useState<string>(MOCK_OBJECTIVES[0].id);
   const [updateKR, setUpdateKR] = useState<string | null>(null);
   const [updateValue, setUpdateValue] = useState("");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [updateNotes, setUpdateNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
 

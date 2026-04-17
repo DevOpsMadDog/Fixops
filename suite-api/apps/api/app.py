@@ -37,6 +37,8 @@ except ImportError:
     pass  # python-dotenv not installed — rely on shell env
 
 import jwt
+
+# ── PLATFORM CORE — Auth, Users, Teams, Admin, SLA, Workflows ─────────────────
 from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
 from apps.api.change_management_router import router as change_management_router
@@ -131,6 +133,7 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("ServiceNow Sync router not available: %s", e)
 
+# ── CICD / GATE / INVENTORY ───────────────────────────────────────────────────
 from apps.api.gate_router import router as gate_router
 from apps.api.inventory_router import router as inventory_router
 
@@ -145,6 +148,7 @@ from apps.api.policies_router import router as policies_router
 from apps.api.policy_engine_router import router as policy_engine_router
 from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
+# ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
 from apps.api.admin_router import router as admin_router
 from apps.api.system_router import router as system_router
 from apps.api.teams_router import router as teams_router
@@ -433,6 +437,10 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Unified Dashboard router not available: %s", e)
 
+# ── APPS/API DOMAIN ROUTERS ───────────────────────────────────────────────────
+# Analytics, Asset, Backup, CSPM, Dashboard, Developer Portal, Evidence,
+# Executive, Feed, Incident, IP, Metrics, Notification, Pentest, Risk,
+# SBOM, Scanner, Security Scorecard, Vendor, Versioning, Webhook, Workflow
 # ---------------------------------------------------------------------------
 # Additional apps/api routers (wired in this session)
 # ---------------------------------------------------------------------------
@@ -2317,6 +2325,11 @@ def create_app() -> FastAPI:
     upload_manager = ChunkUploadManager(uploads_dir)
     app.state.upload_manager = upload_manager
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # ROUTER REGISTRATION — grouped by domain
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # ── Health ────────────────────────────────────────────────────────────────
     app.include_router(health_v1_router)  # Health endpoints with /api/v1 prefix
 
     # Legacy /health endpoint — required by Dockerfile HEALTHCHECK and
@@ -2538,6 +2551,7 @@ def create_app() -> FastAPI:
             response["errors"] = errors
         return response
 
+    # ── ASPM — Application Security Posture Management ────────────────────────
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
     # Enterprise reachability analysis API
     if reachability_router:
@@ -2545,6 +2559,7 @@ def create_app() -> FastAPI:
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:sbom"))])
 
+    # ── Identity / Auth / Admin ────────────────────────────────────────────────
     # Login endpoint — public (no auth required)
     app.include_router(users_public_router)
     # User management — admin only
@@ -2577,6 +2592,7 @@ def create_app() -> FastAPI:
         ],
     )
 
+    # ── Analytics / Anomaly Detection / AI ────────────────────────────────────
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
 
     if anomaly_router:
@@ -2608,6 +2624,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted AI Orchestrator router")
 
+    # ── Real-Time Streaming / WebSocket / EventBus ─────────────────────────────
     # Phase 10: New E2E pipeline routers
     # WebSocket router for real-time event streaming (EventBus, pipeline events)
     if websocket_router:
@@ -2656,6 +2673,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Purple Team router")
 
+    # ── TrustGraph Knowledge Graph ─────────────────────────────────────────────
     # TrustGraph knowledge graph — 5 Knowledge Cores, entity management, MCP tools
     if trustgraph_router:
         app.include_router(
@@ -2680,6 +2698,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted TrustGraph Maintenance router")
 
+    # ── Findings / Vuln Lifecycle / Risk Register ──────────────────────────────
     # Findings lifecycle management — status, assignment, SLA, bulk ops, export
     if findings_router:
         app.include_router(
@@ -2720,6 +2739,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Enhanced Council router")
 
+    # ── SOAR / IR Playbooks / Security Metrics ─────────────────────────────────
     # SOAR Engine — automated playbook execution and security response
     if soar_router:
         app.include_router(
@@ -2768,6 +2788,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Cloud Discovery router")
 
+    # ── Compliance / Reports / Threat Intel ────────────────────────────────────
     # Compliance Reports — multi-framework reporting
     if compliance_reports_router:
         app.include_router(
@@ -2816,6 +2837,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Correlation Engine router")
 
+    # ── Scanners — Trivy / Semgrep / Snyk / AWS / Azure ───────────────────────
     # Trivy Scanner — real Docker image / filesystem / repo vulnerability scanning
     if trivy_router:
         app.include_router(
@@ -2887,6 +2909,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Material Change Detection router")
 
+    # ── Connectors / Integrations / Webhooks ───────────────────────────────────
     # Universal Connectors — Jira + GitHub + Slack fan-out (Pillar V1)
     if connectors_router:
         app.include_router(
@@ -2906,6 +2929,7 @@ def create_app() -> FastAPI:
         app.include_router(servicenow_sync_webhook_router)
         _logger.info("Mounted ServiceNow Sync Webhook router (no auth)")
 
+    # ── Evidence / Audit / Workflows / SSO ────────────────────────────────────
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
     app.include_router(change_management_router, dependencies=[Depends(_verify_api_key)])
@@ -3148,6 +3172,7 @@ def create_app() -> FastAPI:
             app.include_router(_r, **kwargs)
             _logger.info("Mounted %s router from suite-core", _name)
 
+    # ── Suite-Attack — Offensive Security / SAST / DAST / CSPM / Fuzzer ───────
     # -------------------------------------------------------------------
     # Suite-Attack routers (additional offensive security engines)
     # -------------------------------------------------------------------
@@ -3171,6 +3196,7 @@ def create_app() -> FastAPI:
             )
             _logger.info("Mounted %s router from suite-attack", _name)
 
+    # ── Suite-Evidence-Risk — Compliance / Risk / Evidence / Graph ─────────────
     # -------------------------------------------------------------------
     # Suite-Evidence-Risk routers (compliance, risk, evidence, graph)
     # -------------------------------------------------------------------
@@ -3195,6 +3221,7 @@ def create_app() -> FastAPI:
             )
             _logger.info("Mounted %s router from suite-evidence-risk", _name)
 
+    # ── Suite-Integrations — External Tools / Webhooks / IaC / IDE / SIEM ─────
     # -------------------------------------------------------------------
     # Suite-Integrations routers (external tools, webhooks, IaC, IDE)
     # -------------------------------------------------------------------
@@ -3247,6 +3274,7 @@ def create_app() -> FastAPI:
     except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as _lr_err:
         _logger.warning("Detailed Logs router not available: %s", _lr_err)
 
+    # ── Apps/API Domain Routers — Analytics / Asset / CSPM / Exec / Feed / Risk
     # -------------------------------------------------------------------
     # Additional apps/api routers (wired in this session)
     # -------------------------------------------------------------------

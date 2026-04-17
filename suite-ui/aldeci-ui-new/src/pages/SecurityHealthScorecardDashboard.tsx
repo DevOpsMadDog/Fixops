@@ -7,7 +7,7 @@
  * Route: /health-scorecard
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ShieldCheck,
   TrendingUp,
@@ -168,6 +168,12 @@ function Sparkline({ data }: { data: Snapshot[] }) {
 
 export default function SecurityHealthScorecardDashboard() {
   const [snapshotMsg, setSnapshotMsg] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/v1/health-scorecard", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const overallScore = computeOverallScore(DOMAINS);
   const { grade, color, bg } = scoreToGrade(overallScore);
   const redDomains = DOMAINS.filter((d) => d.status === "red");

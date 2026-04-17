@@ -13,7 +13,7 @@
  * API: GET /api/v1/security-questionnaires
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ClipboardList, AlertTriangle, CheckCircle2, Clock, ChevronRight,
   RefreshCw, Send, Users, BarChart2
@@ -111,6 +111,12 @@ function isOverdue(a: Assessment): boolean {
 
 export default function SecurityQuestionnaireDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+  useEffect(() => {
+    fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");
 

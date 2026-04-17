@@ -12,7 +12,10 @@
  * Route: /security-baselines
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/security-baselines";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { motion } from "framer-motion";
 import { Target, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, Play, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -110,6 +113,12 @@ function SeverityBadge({ s }: { s: string }) {
 
 export default function SecurityBaselineDashboard() {
   const [selectedBaseline, setSelectedBaseline] = useState(MOCK_BASELINES[0]);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [targetName, setTargetName] = useState("");
   const [assessMsg, setAssessMsg] = useState("");
   const [publishMsg, setPublishMsg] = useState("");

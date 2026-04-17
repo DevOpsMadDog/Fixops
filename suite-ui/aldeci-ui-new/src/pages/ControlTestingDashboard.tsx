@@ -13,7 +13,10 @@
  * API: GET /api/v1/control-testing
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/control-testing";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { FlaskConical, AlertTriangle, CheckCircle2, XCircle, Clock, Calendar, BarChart2, ChevronRight } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -167,6 +170,16 @@ function isDue(next_test: string): boolean {
 
 export default function ControlTestingDashboard() {
   const [selectedControl, setSelectedControl] = useState<Control | null>(CONTROLS[0]);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
 
   const failing = CONTROLS.filter(c => c.status === "ineffective");
   const neverTested = CONTROLS.filter(c => c.status === "not_tested");

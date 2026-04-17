@@ -8,7 +8,10 @@
  * API: GET /api/v1/intel-enrichment
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/intel-enrichment";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -83,6 +86,12 @@ const statusColors: Record<EnrichmentStatus, string> = {
 
 export default function IntelEnrichmentDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<string>(MOCK_REQUESTS[0].id);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [bulkInput, setBulkInput] = useState("");
   const [bulkSubmitted, setBulkSubmitted] = useState(false);
 

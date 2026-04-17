@@ -7,7 +7,7 @@
  * Route: /vuln-scoring
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldAlert, BarChart2, SlidersHorizontal, RefreshCw, AlertTriangle } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -121,6 +121,12 @@ const distribution = [
 
 export default function VulnScoringDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("v001");
+  useEffect(() => {
+    fetch("/api/v1/vuln-scoring", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
   const selected = MOCK_VULNS.find(v => v.id === selectedId) ?? null;

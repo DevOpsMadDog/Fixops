@@ -7,7 +7,10 @@
  * Route: /threat-modeling-pipeline
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/threat-modeling-pipeline";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { ShieldOff, Plus, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -151,6 +154,12 @@ function MatrixCell({ likelihood, impact }: { likelihood: number; impact: number
 
 export default function ThreatModelingPipelineDashboard() {
   const [showAddPanel, setShowAddPanel] = useState(false);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
   const [mitigatedIds, setMitigatedIds] = useState<Set<string>>(new Set());

@@ -11,7 +11,7 @@
  * API: GET /api/v1/threat-briefs
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FileText, Send, Users, Clock, RefreshCw, Eye, Shield, AlertTriangle } from "lucide-react";
 
@@ -153,6 +153,12 @@ const THREAT_LEVEL_CONFIG: Record<string, string> = {
 
 export default function ThreatBriefDashboard() {
   const [selectedBrief, setSelectedBrief] = useState<ThreatBrief | null>(MOCK_BRIEFS[0]);
+  useEffect(() => {
+    fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(
     new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id))

@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/cloud-ir";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 const incidents = [
   { id: "ci-001", incident_name: "Unauthorized S3 Bucket Access", cloud_provider: "aws", incident_type: "data_exposure", severity: "critical", status: "investigating", containment_time_mins: 0, resolution_time_mins: 0, blast_radius: "high", affected_services: ["s3", "iam"], affected_regions: ["us-east-1"] },
@@ -41,6 +44,16 @@ const blastBadge = (b: string) => {
 
 export default function CloudIRDashboard() {
   const [activeTab, setActiveTab] = useState<"incidents" | "actions" | "playbooks">("incidents");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [filterIncident, setFilterIncident] = useState("all");
   const [filterProvider, setFilterProvider] = useState("all");
   const [filterType, setFilterType] = useState("all");

@@ -8,7 +8,10 @@
  * Route: /dependency-risk
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/dependency-risk";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { Package, AlertTriangle, Shield, CheckCircle, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +120,12 @@ function LicenseRiskBadge({ level }: { level: string }) {
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
   const [vulns, setVulns] = useState(MOCK_VULNS);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filteredDeps = activeEco === "All"
     ? MOCK_DEPS

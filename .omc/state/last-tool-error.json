@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"curl -s --max-time 8 http://localhost:5678/ 2>&1 | head -5; curl -s --max-time 8 -o /dev/null -w \\\"%{http_code}\\\" http://localhost:5678/api/v1/workflows 2>&1\",\"description\":\"Test n8n root ...",
-  "error": "Exit code 28\n000",
-  "timestamp": "2026-04-17T22:40:19.897Z",
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"/Users/devops.ai/fixops/Fixops/scripts/seed_demo_data.py\"}",
+  "error": "File content (45413 tokens) exceeds maximum allowed tokens (25000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
+  "timestamp": "2026-04-17T22:46:14.218Z",
   "retry_count": 1
 }

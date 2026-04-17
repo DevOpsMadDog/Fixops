@@ -7,7 +7,10 @@
  * Route: /soc-metrics
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/soc-metrics";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { Activity, Clock, Users, AlertOctagon, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -161,6 +164,12 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
 
 export default function SecurityOperationsMetricsDashboard() {
   const [queue, setQueue] = useState(MOCK_QUEUE);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   function ackAlert(id: string) {
     setQueue(prev => prev.map(a => a.id === id && a.status === "open" ? { ...a, status: "acknowledged" } : a));

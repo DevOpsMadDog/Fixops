@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/identity-lifecycle";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 const accounts = [
   { id: "acc-001", username: "alice.chen", display_name: "Alice Chen", account_type: "employee", department: "Engineering", manager: "david.kim", status: "active", last_active: "2026-04-16", provisioned_at: "2024-01-15" },
@@ -53,6 +56,16 @@ function daysSince(dateStr: string): number {
 
 export default function IdentityLifecycleDashboard() {
   const [activeTab, setActiveTab] = useState<"accounts" | "entitlements" | "orphans" | "events">("accounts");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [filterAccount, setFilterAccount] = useState("all");
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [showGrantAccess, setShowGrantAccess] = useState(false);

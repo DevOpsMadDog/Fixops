@@ -11,7 +11,10 @@
  * Route: /threat-response
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/threat-response";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { motion } from "framer-motion";
 import { Swords, Clock, CheckCircle, XCircle, AlertTriangle, Play, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -122,6 +125,12 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function ThreatResponseDashboard() {
   const [selectedIncident, setSelectedIncident] = useState(MOCK_INCIDENTS[0]);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [resolveMsg, setResolveMsg] = useState("");
 

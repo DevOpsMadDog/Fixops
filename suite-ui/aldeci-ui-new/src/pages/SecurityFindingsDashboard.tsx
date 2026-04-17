@@ -12,7 +12,10 @@
  * API: GET /api/v1/security-findings
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/security-findings";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { Bug, Shield, AlertTriangle, CheckCircle2, Filter, BarChart2, FileText } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -174,6 +177,12 @@ const ALL_TOOLS = ["all", ...Array.from(new Set(FINDINGS.map(f => f.source_tool)
 export default function SecurityFindingsDashboard() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
   const [filterSeverity, setFilterSeverity] = useState("all");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");
 

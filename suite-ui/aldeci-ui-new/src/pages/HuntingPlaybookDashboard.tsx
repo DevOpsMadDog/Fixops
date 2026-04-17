@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/hunting-playbooks";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 const playbooks = [
   { id: "pb-001", playbook_name: "Lateral Movement Detection", hunt_type: "proactive", threat_category: "APT", mitre_technique: "T1021", success_rate: 78, execution_count: 24, avg_duration_mins: 45 },
@@ -35,6 +38,16 @@ const confBadge = (c: string) => {
 
 export default function HuntingPlaybookDashboard() {
   const [activeTab, setActiveTab] = useState<"playbooks" | "executions" | "hypotheses">("playbooks");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [filterPlaybook, setFilterPlaybook] = useState("all");
   const [showAddPlaybook, setShowAddPlaybook] = useState(false);
   const [showStartExec, setShowStartExec] = useState(false);

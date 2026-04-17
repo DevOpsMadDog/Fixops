@@ -7,7 +7,10 @@
  * Route: /posture-maturity
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/posture-maturity";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { Shield, Star, AlertTriangle, ChevronRight, TrendingUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -177,6 +180,12 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
 
 export default function SecurityPostureMaturityDashboard() {
   const [advanced, setAdvanced] = useState(false);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

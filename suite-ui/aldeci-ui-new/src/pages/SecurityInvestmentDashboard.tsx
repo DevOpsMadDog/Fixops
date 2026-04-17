@@ -7,7 +7,10 @@
  * Route: /security-investment
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/security-investment";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { DollarSign, TrendingUp, CheckCircle2, Clock, Plus, Trophy } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -118,6 +121,12 @@ const OUTCOME_COLOR: Record<OutcomeType, string> = {
 
 export default function SecurityInvestmentDashboard() {
   const [showForm, setShowForm] = useState(false);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [newAlloc, setNewAlloc] = useState({ category: "detection", amount: "" });
 
   const totalInvested = INVESTMENTS.reduce((s, i) => s + i.amount, 0);

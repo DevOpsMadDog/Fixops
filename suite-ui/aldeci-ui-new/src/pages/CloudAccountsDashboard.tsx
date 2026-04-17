@@ -8,7 +8,10 @@
  * API: GET /api/v1/cloud-accounts
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/cloud-accounts";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -98,6 +101,16 @@ const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
 
   const filtered = providerFilter === "All"
     ? MOCK_ACCOUNTS

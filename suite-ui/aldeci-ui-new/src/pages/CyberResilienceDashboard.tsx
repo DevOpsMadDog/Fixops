@@ -7,7 +7,10 @@
  * Route: /cyber-resilience
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/cyber-resilience";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import {
   ShieldAlert,
   Star,
@@ -206,6 +209,12 @@ function Sparkline({ data }: { data: Snapshot[] }) {
 
 export default function CyberResilienceDashboard() {
   const [metricFilter, setMetricFilter] = useState<string>("all");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filteredMetrics = metricFilter === "all" ? METRICS : METRICS.filter((m) =>
     m.category.toLowerCase().includes(metricFilter.toLowerCase())

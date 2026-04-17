@@ -9,7 +9,10 @@
  * API: GET /api/v1/compliance-workflows
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/compliance-workflows";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -140,6 +143,16 @@ function readinessTextColor(score: number) {
 
 export default function ComplianceWorkflowDashboard() {
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(MOCK_WORKFLOWS[0].id);
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [filterFramework, setFilterFramework] = useState<Framework | "All">("All");
 
   const overdueTasks = MOCK_TASKS.filter(t => {

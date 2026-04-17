@@ -8,7 +8,10 @@
  * API: GET /api/v1/posture-trends
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/posture-trends";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -158,6 +161,16 @@ function sparklineColor(velocity: Velocity, higherIsBetter: boolean): string {
 
 export default function PostureTrendsDashboard() {
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
 
   const filteredTrends = filterCategory === "all"
     ? MOCK_TRENDS

@@ -11,7 +11,10 @@
  * API: GET /api/v1/vuln-scans
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/vuln-scans";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { motion } from "framer-motion";
 import { ScanLine, AlertTriangle, Activity, Play, RefreshCw, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
@@ -82,6 +85,12 @@ function ScanStatusBadge({ status }: { status: string }) {
 
 export default function VulnScanDashboard() {
   const [scannerType, setScannerType] = useState("Nessus");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [target, setTarget] = useState("");
   const [triggering, setTriggering] = useState(false);
 

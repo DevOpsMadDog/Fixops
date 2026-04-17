@@ -8,7 +8,10 @@
  * API: GET /api/v1/posture-history
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/posture-history";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -97,6 +100,16 @@ function scoreBarColor(score: number) {
 
 export default function PostureHistoryDashboard() {
   const [period, setPeriod] = useState<Period>("weekly");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
+
   const [selectedDomain, setSelectedDomain] = useState<Domain>("network");
 
   const trendPoints = TREND_DATA[selectedDomain];

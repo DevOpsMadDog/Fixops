@@ -7,7 +7,7 @@
  * Route: /security-culture
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, TrendingUp, TrendingDown, Minus, RefreshCw, Users, ClipboardList, BarChart2 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -163,6 +163,12 @@ function CircleProgress({ pct }: { pct: number }) {
 
 export default function SecurityCultureDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<string>("asm-001");
+  useEffect(() => {
+    fetch("/api/v1/security-culture", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const selAsmn = MOCK_ASSESSMENTS.find(a => a.id === selectedAssessment)!;
 

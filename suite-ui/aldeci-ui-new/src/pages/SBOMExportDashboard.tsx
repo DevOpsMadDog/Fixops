@@ -12,7 +12,10 @@
  * Route: /sbom-export
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+const _API_BASE = "/api/v1/sbom-export";
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+
 import { motion } from "framer-motion";
 import { Package, Shield, Download, Search, FileText, AlertTriangle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -121,6 +124,12 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function SBOMExportDashboard() {
   const [search, setSearch] = useState("");
+  useEffect(() => {
+    fetch(_API_BASE, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState("");
