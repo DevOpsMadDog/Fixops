@@ -24,6 +24,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -2222,6 +2227,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
     def _make_unified_diff(file_path: str, old_code: str, new_code: str) -> str:
         """Generate a unified diff string."""
         import difflib
+
 
         old_lines = old_code.splitlines(keepends=True)
         new_lines = new_code.splitlines(keepends=True)

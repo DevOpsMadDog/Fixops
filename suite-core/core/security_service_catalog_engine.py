@@ -16,6 +16,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -191,6 +197,13 @@ class SecurityServiceCatalogEngine:
                     "SELECT * FROM catalog_services WHERE id=? AND org_id=?",
                     (service_id, org_id),
                 ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_service_catalog_engine", "org_id": org_id, "source_engine": "security_service_catalog_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row) if row else None
 
     # ------------------------------------------------------------------
@@ -239,6 +252,13 @@ class SecurityServiceCatalogEngine:
                     "SELECT * FROM service_requests WHERE id=? AND org_id=?",
                     (request_id, org_id),
                 ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_service_catalog_engine", "org_id": org_id, "source_engine": "security_service_catalog_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row) if row else None
 
     def acknowledge_request(self, request_id: str, org_id: str) -> Optional[Dict[str, Any]]:
@@ -334,6 +354,13 @@ class SecurityServiceCatalogEngine:
                     "SELECT * FROM service_outages WHERE id=? AND org_id=?",
                     (outage_id, org_id),
                 ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_service_catalog_engine", "org_id": org_id, "source_engine": "security_service_catalog_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row) if row else None
 
     def resolve_outage(self, outage_id: str, org_id: str) -> Optional[Dict[str, Any]]:

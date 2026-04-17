@@ -18,6 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -182,6 +188,13 @@ class NetworkThreatEngine:
                     ),
                 )
 
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("FINDING_CREATED", {"entity_type": "network_threat_engine", "org_id": org_id, "source_engine": "network_threat_engine"})
+                except Exception:
+                    pass
             return dict(
                 conn.execute(
                     "SELECT * FROM network_threats WHERE id=?", (threat_id,)
@@ -313,6 +326,13 @@ class NetworkThreatEngine:
                 (rule_id, org_id, rule_name, rule_type, pattern, action,
                  1, 0, "", now),
             )
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("FINDING_CREATED", {"entity_type": "network_threat_engine", "org_id": org_id, "source_engine": "network_threat_engine"})
+                except Exception:
+                    pass
             return dict(
                 conn.execute(
                     "SELECT * FROM threat_rules WHERE id=?", (rule_id,)

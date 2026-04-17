@@ -20,6 +20,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -500,6 +506,13 @@ class CloudIncidentResponseEngine:
                 (org_id,),
             ).fetchone()
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("INCIDENT_CREATED", {"entity_type": "cloud_incident_response_engine", "org_id": org_id, "source_engine": "cloud_incident_response_engine"})
+            except Exception:
+                pass
         return {
             "total_incidents": int(totals["total"] or 0),
             "by_status": {r["status"]: r["cnt"] for r in status_rows},

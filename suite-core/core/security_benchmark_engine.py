@@ -19,6 +19,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -234,6 +240,13 @@ class SecurityBenchmarkEngine:
             row = conn.execute(
                 "SELECT * FROM benchmark_definitions WHERE id=?", (bm_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_benchmark_engine", "org_id": org_id, "source_engine": "security_benchmark_engine"})
+            except Exception:
+                pass
         return dict(row)
 
     def list_benchmarks(
@@ -288,6 +301,13 @@ class SecurityBenchmarkEngine:
             row = conn.execute(
                 "SELECT * FROM org_metrics WHERE id=?", (metric_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_benchmark_engine", "org_id": org_id, "source_engine": "security_benchmark_engine"})
+            except Exception:
+                pass
         return dict(row)
 
     def get_metric_trend(

@@ -33,6 +33,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 
@@ -227,6 +232,13 @@ class AnalyticsEngine:
             finally:
                 conn.close()
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "analytics_engine", "org_id": "unknown", "source_engine": "analytics_engine"})
+            except Exception:
+                pass
         return metric_id
 
     def query_metric(
@@ -774,6 +786,7 @@ class PersonaDashboard:
 
         try:
             from core.security_findings_engine import SecurityFindingsEngine
+
             findings_eng = SecurityFindingsEngine()
             summary = findings_eng.get_findings_summary(org_id)
             sev = summary.get("severity_breakdown", {})

@@ -13,6 +13,11 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = structlog.get_logger()
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "threat_hunting.db")
@@ -237,6 +242,20 @@ class ThreatHuntingEngine:
             hit_count=len(hits),
             duration_ms=duration_ms,
         )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("THREAT_DETECTED", {"entity_type": "threat_hunting_engine", "org_id": "unknown", "source_engine": "threat_hunting_engine"})
+            except Exception:
+                pass
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("THREAT_DETECTED", {"entity_type": "threat_hunting_engine", "org_id": "unknown", "source_engine": "threat_hunting_engine"})
+            except Exception:
+                pass
         return {
             "hunt_id": hunt_id,
             "state": state,
@@ -251,6 +270,7 @@ class ThreatHuntingEngine:
             raise KeyError(f"Hunt not found: {hunt_id}")
 
         from datetime import timedelta
+
 
         now = datetime.now(timezone.utc)
         next_run = (now + timedelta(hours=interval_hours)).isoformat()

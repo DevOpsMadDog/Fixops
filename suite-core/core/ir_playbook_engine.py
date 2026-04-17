@@ -38,6 +38,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import structlog
 from pydantic import BaseModel, Field, field_validator
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger(__name__)
 
 # Default DB path alongside running process

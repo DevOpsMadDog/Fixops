@@ -10,6 +10,12 @@ from typing import Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger()
 
 STRIDE_CATEGORIES = {
@@ -159,6 +165,13 @@ class ThreatModelingEngine:
                 (model_id, name, description, scope, org_id, "draft", now, now),
             )
         _logger.info("threat_model.created", model_id=model_id, name=name)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "threat_modeling_engine", "org_id": "unknown", "source_engine": "threat_modeling_engine"})
+            except Exception:
+                pass
         return {
             "model_id": model_id,
             "name": name,
@@ -196,6 +209,13 @@ class ThreatModelingEngine:
                 "INSERT INTO components VALUES (?,?,?,?,?,?,?)",
                 (component_id, model_id, name, component_type, trust_level, data_classification, now),
             )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "threat_modeling_engine", "org_id": "unknown", "source_engine": "threat_modeling_engine"})
+            except Exception:
+                pass
         return {
             "component_id": component_id,
             "model_id": model_id,
@@ -233,6 +253,13 @@ class ThreatModelingEngine:
                     now,
                 ),
             )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "threat_modeling_engine", "org_id": "unknown", "source_engine": "threat_modeling_engine"})
+            except Exception:
+                pass
         return {
             "flow_id": flow_id,
             "model_id": model_id,
@@ -487,6 +514,13 @@ class ThreatModelingEngine:
                 "INSERT INTO mitigations VALUES (?,?,?,?,?,?,?)",
                 (mitigation_id, model_id, threat_id, mitigation, status, owner, now),
             )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "threat_modeling_engine", "org_id": "unknown", "source_engine": "threat_modeling_engine"})
+            except Exception:
+                pass
         return {
             "mitigation_id": mitigation_id,
             "model_id": model_id,

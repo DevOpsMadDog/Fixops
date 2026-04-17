@@ -29,6 +29,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -361,6 +367,13 @@ class DeceptionEngine:
                     (ep_id, path, org_id, now),
                 )
         _logger.info("Deployed honeypot endpoint path=%s org=%s", path, org_id)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("THREAT_DETECTED", {"entity_type": "deception_engine", "org_id": org_id, "source_engine": "deception_engine"})
+            except Exception:
+                pass
         return {"id": ep_id, "path": path, "org_id": org_id, "created_at": now}
 
     # ------------------------------------------------------------------

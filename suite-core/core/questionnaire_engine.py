@@ -616,6 +616,12 @@ _TEMPLATES: Dict[str, List[Dict[str, Any]]] = {
 def _normalize(text: str) -> str:
     """Lowercase, strip punctuation for fuzzy matching."""
     import re
+
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
     return re.sub(r"[^\w\s]", "", text.lower()).strip()
 
 
@@ -1044,6 +1050,13 @@ class QuestionnaireEngine:
                 (entry_id, question_key, category.value, answer, json.dumps(evidence_refs or []), confidence, org_id, now),
             )
         self._conn.commit()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "questionnaire_engine", "org_id": "unknown", "source_engine": "questionnaire_engine"})
+            except Exception:
+                pass
         return {
             "id": entry_id,
             "question_key": question_key,

@@ -48,6 +48,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import json
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -283,6 +288,7 @@ class GraphRAGEngine:
         # Query real KnowledgeStore for this core
         try:
             from trustgraph.knowledge_store import KnowledgeStore
+
             store = KnowledgeStore()
             query_text = parsed.get("original", "")
             entities = store.search(core_id=core_id, query_text=query_text, limit=max_results)

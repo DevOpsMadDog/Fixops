@@ -19,6 +19,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -214,6 +220,13 @@ class ThreatActorTrackingEngine:
             row = conn.execute(
                 "SELECT * FROM actor_activities WHERE id=?", (activity_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("THREAT_DETECTED", {"entity_type": "threat_actor_tracking_engine", "org_id": org_id, "source_engine": "threat_actor_tracking_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row)
 
     def add_intelligence(
@@ -243,6 +256,13 @@ class ThreatActorTrackingEngine:
             row = conn.execute(
                 "SELECT * FROM actor_intelligence WHERE id=?", (intel_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("THREAT_DETECTED", {"entity_type": "threat_actor_tracking_engine", "org_id": org_id, "source_engine": "threat_actor_tracking_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row)
 
     def get_actor(self, actor_id: str, org_id: str) -> Dict[str, Any]:

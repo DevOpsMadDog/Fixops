@@ -20,6 +20,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -161,6 +167,13 @@ class ForensicsReadinessEngine:
                      collection_method, status, now),
                 )
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("EVIDENCE_COLLECTED", {"entity_type": "forensics_readiness_engine", "org_id": org_id, "source_engine": "forensics_readiness_engine"})
+            except Exception:
+                pass
         return {
             "id": source_id,
             "org_id": org_id,
@@ -284,6 +297,13 @@ class ForensicsReadinessEngine:
                      target_sources_json, collection_steps_json, now),
                 )
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("EVIDENCE_COLLECTED", {"entity_type": "forensics_readiness_engine", "org_id": org_id, "source_engine": "forensics_readiness_engine"})
+            except Exception:
+                pass
         return {
             "id": plan_id,
             "org_id": org_id,

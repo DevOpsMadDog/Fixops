@@ -29,6 +29,11 @@ from typing import Any, Dict, List, Optional, Callable, Coroutine
 
 from core.errors import ALDECIError
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 
@@ -611,6 +616,7 @@ class PlaybookEngine:
         try:
             delay_seconds = step.config.get("delay_seconds", 0)
             import time
+
 
             time.sleep(delay_seconds)
             result.status = "success"

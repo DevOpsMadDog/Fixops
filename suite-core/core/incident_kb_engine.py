@@ -19,6 +19,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -149,6 +155,13 @@ class IncidentKBEngine:
                     severity, content, tags_str, author, 0, 0, now, now,
                 ),
             )
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("INCIDENT_CREATED", {"entity_type": "incident_kb_engine", "org_id": org_id, "source_engine": "incident_kb_engine"})
+                except Exception:
+                    pass
             return dict(
                 conn.execute(
                     "SELECT * FROM kb_articles WHERE id=?", (article_id,)
@@ -301,6 +314,13 @@ class IncidentKBEngine:
                     steps_json, int(estimated_minutes), 0.0, 0, "", now,
                 ),
             )
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("INCIDENT_CREATED", {"entity_type": "incident_kb_engine", "org_id": org_id, "source_engine": "incident_kb_engine"})
+                except Exception:
+                    pass
             return dict(
                 conn.execute(
                     "SELECT * FROM kb_runbooks WHERE id=?", (runbook_id,)
@@ -336,6 +356,13 @@ class IncidentKBEngine:
                 """,
                 (new_count, new_rate, now, runbook_id, org_id),
             )
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("INCIDENT_CREATED", {"entity_type": "incident_kb_engine", "org_id": org_id, "source_engine": "incident_kb_engine"})
+                except Exception:
+                    pass
             return dict(
                 conn.execute(
                     "SELECT * FROM kb_runbooks WHERE id=?", (runbook_id,)

@@ -24,6 +24,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -251,6 +257,13 @@ class SecurityCultureEngine:
                 elif change_pct < -0.05:
                     trend = "declining"
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_culture_engine", "org_id": org_id, "source_engine": "security_culture_engine"})
+            except Exception:
+                pass
         return {
             "metric_name": metric_name,
             "department": department,
@@ -477,6 +490,13 @@ class SecurityCultureEngine:
             best_department = dept_rows[0]["department"]
             worst_department = dept_rows[-1]["department"]
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_culture_engine", "org_id": org_id, "source_engine": "security_culture_engine"})
+            except Exception:
+                pass
         return {
             "departments": departments,
             "best_department": best_department,

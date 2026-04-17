@@ -19,6 +19,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -148,6 +154,13 @@ class SecurityExceptionWorkflowEngine:
             row = conn.execute(
                 "SELECT * FROM exception_requests WHERE id=?", (rid,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("CONTROL_ASSESSED", {"entity_type": "security_exception_workflow_engine", "org_id": org_id, "source_engine": "security_exception_workflow_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row)
 
     def review_request(

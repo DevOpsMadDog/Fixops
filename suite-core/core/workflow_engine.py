@@ -36,6 +36,11 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -712,6 +717,7 @@ class WorkflowEngine:
             if url:
                 try:
                     import requests
+
                     payload = {"event": event, "config": config}
                     requests.post(url, json=payload, timeout=10)  # nosemgrep: dynamic-urllib-use-detected
                 except Exception as exc:

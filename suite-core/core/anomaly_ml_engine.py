@@ -34,6 +34,12 @@ logger = structlog.get_logger(__name__)
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / "data" / "anomaly_ml_engine.db"
 )
@@ -416,6 +422,13 @@ class AnomalyMLEngine:
                     value=value,
                     row_id=row_id,
                 )
+                if _get_tg_bus:
+                    try:
+                        bus = _get_tg_bus()
+                        if bus and getattr(bus, "enabled", False):
+                            bus.emit("FINDING_CREATED", {"entity_type": "anomaly_ml_engine", "org_id": "unknown", "source_engine": "anomaly_ml_engine"})
+                    except Exception:
+                        pass
                 return row_id
 
     # ------------------------------------------------------------------

@@ -26,6 +26,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
@@ -246,6 +252,20 @@ class AssetGroupEngine:
                            WHERE id = ? AND org_id = ?""",
                         (now, group_id, org_id),
                     )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("ASSET_DISCOVERED", {"entity_type": "asset_group_engine", "org_id": org_id, "source_engine": "asset_group_engine"})
+            except Exception:
+                pass
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("ASSET_DISCOVERED", {"entity_type": "asset_group_engine", "org_id": org_id, "source_engine": "asset_group_engine"})
+            except Exception:
+                pass
         return {"group_id": group_id, "asset_id": asset_id, "removed": removed}
 
     def add_policy(

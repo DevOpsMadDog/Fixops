@@ -26,6 +26,11 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -623,6 +628,7 @@ class VerificationEngine:
 
         try:
             from urllib.parse import urljoin
+
 
             # Send benign request
             benign_url = urljoin(self.target_url, benign_request.get("path", "/"))

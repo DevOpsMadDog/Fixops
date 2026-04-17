@@ -22,6 +22,12 @@ from typing import Any, Dict, List, Optional, Set
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -792,6 +798,13 @@ class CIEMEngine:
         ]
         avg_score = sum(scores) / len(scores) if scores else 100.0
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("IDENTITY_UPDATED", {"entity_type": "ciem_engine", "org_id": "unknown", "source_engine": "ciem_engine"})
+            except Exception:
+                pass
         return {
             "account_id": account_id,
             "analysed_at": datetime.now(timezone.utc).isoformat(),

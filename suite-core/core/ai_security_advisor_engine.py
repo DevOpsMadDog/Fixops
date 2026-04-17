@@ -27,6 +27,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -511,6 +516,13 @@ class AISecurityAdvisorEngine:
         self._complete_session(session["id"], len(saved))
         session["status"] = "completed"
         session["recommendation_count"] = len(saved)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "ai_security_advisor_engine", "org_id": org_id, "source_engine": "ai_security_advisor_engine"})
+            except Exception:
+                pass
         return {"session": session, "recommendations": saved}
 
     # ------------------------------------------------------------------
@@ -639,6 +651,13 @@ class AISecurityAdvisorEngine:
 
         self._complete_session(session["id"], 0)
         session["status"] = "completed"
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "ai_security_advisor_engine", "org_id": org_id, "source_engine": "ai_security_advisor_engine"})
+            except Exception:
+                pass
         return {"session": session, "plan": plan}
 
     # ------------------------------------------------------------------
@@ -899,6 +918,7 @@ class AISecurityAdvisorEngine:
     def get_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated advisor statistics for an org."""
         from datetime import timedelta
+
 
         week_ago = (
             datetime.now(timezone.utc) - timedelta(days=7)

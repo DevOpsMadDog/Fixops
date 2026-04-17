@@ -23,6 +23,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -184,6 +190,13 @@ class SecurityDependencyRiskEngine:
                 "SELECT * FROM dependencies WHERE org_id=? AND package_name=? AND version=?",
                 (org_id, package_name, version),
             ).fetchone()
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("RISK_ASSESSED", {"entity_type": "security_dependency_risk_engine", "org_id": org_id, "source_engine": "security_dependency_risk_engine"})
+                except Exception:
+                    pass
             return dict(row)
 
     def add_vuln(
@@ -214,6 +227,13 @@ class SecurityDependencyRiskEngine:
             row = conn.execute(
                 "SELECT * FROM dependency_vulns WHERE id=?", (vuln_id,)
             ).fetchone()
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("RISK_ASSESSED", {"entity_type": "security_dependency_risk_engine", "org_id": org_id, "source_engine": "security_dependency_risk_engine"})
+                except Exception:
+                    pass
             return dict(row)
 
     def patch_vuln(self, vuln_id: str, org_id: str) -> Dict[str, Any]:

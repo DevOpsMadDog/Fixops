@@ -11,6 +11,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger()
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "cwpp.db")
@@ -127,6 +133,13 @@ class CWPPEngine:
             )
 
         _logger.info("cwpp.workload.registered", workload_id=workload_id, workload_type=workload_type)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "cwpp_engine", "org_id": "unknown", "source_engine": "cwpp_engine"})
+            except Exception:
+                pass
         return {
             "workload_id": workload_id,
             "workload_type": workload_type,

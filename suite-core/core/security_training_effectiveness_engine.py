@@ -24,6 +24,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_DIR = str(
@@ -251,6 +257,13 @@ class SecurityTrainingEffectivenessEngine:
                     "UPDATE training_programs SET enrollment_count = enrollment_count + 1 WHERE id=? AND org_id=?",
                     (program_id, org_id),
                 )
+            if _get_tg_bus:
+                try:
+                    bus = _get_tg_bus()
+                    if bus and getattr(bus, "enabled", False):
+                        bus.emit("TRAINING_COMPLETED", {"entity_type": "security_training_effectiveness_engine", "org_id": org_id, "source_engine": "security_training_effectiveness_engine"})
+                except Exception:
+                    pass
             return {"id": completion_id, "program_id": program_id, "employee_id": employee_id, "status": "enrolled"}
 
     def record_completion(
@@ -349,6 +362,20 @@ class SecurityTrainingEffectivenessEngine:
                         assessment_date, retention_score, days_since_training, now,
                     ),
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("TRAINING_COMPLETED", {"entity_type": "security_training_effectiveness_engine", "org_id": org_id, "source_engine": "security_training_effectiveness_engine"})
+            except Exception:
+                pass
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("TRAINING_COMPLETED", {"entity_type": "security_training_effectiveness_engine", "org_id": org_id, "source_engine": "security_training_effectiveness_engine"})
+            except Exception:
+                pass
         return {
             "id": row_id,
             "program_id": program_id,

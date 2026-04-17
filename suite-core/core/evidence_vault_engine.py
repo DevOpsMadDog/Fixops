@@ -18,6 +18,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -288,6 +294,13 @@ class EvidenceVaultEngine:
                     "SELECT * FROM vault_collections WHERE id=? AND org_id=?",
                     (collection_id, org_id),
                 ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("EVIDENCE_COLLECTED", {"entity_type": "evidence_vault_engine", "org_id": org_id, "source_engine": "evidence_vault_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row) if row else None
 
     def add_to_collection(

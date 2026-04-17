@@ -26,6 +26,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------

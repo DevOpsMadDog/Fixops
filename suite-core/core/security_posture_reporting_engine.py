@@ -20,6 +20,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -202,6 +208,13 @@ class SecurityPostureReportingEngine:
                     (report_id, org_id, report_name, report_type, audience,
                      period_start, period_end, generated_by, now),
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_posture_reporting_engine", "org_id": org_id, "source_engine": "security_posture_reporting_engine"})
+            except Exception:
+                pass
         return {
             "id": report_id,
             "org_id": org_id,
@@ -253,6 +266,13 @@ class SecurityPostureReportingEngine:
                      content, score, status, sort_order, now),
                 )
                 self._recompute_report_score(conn, report_id, org_id)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_posture_reporting_engine", "org_id": org_id, "source_engine": "security_posture_reporting_engine"})
+            except Exception:
+                pass
         return {
             "id": section_id,
             "report_id": report_id,
@@ -299,6 +319,13 @@ class SecurityPostureReportingEngine:
                     (metric_id, report_id, org_id, metric_name, metric_value,
                      metric_unit, previous_value, trend, benchmark_value, now),
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "security_posture_reporting_engine", "org_id": org_id, "source_engine": "security_posture_reporting_engine"})
+            except Exception:
+                pass
         return {
             "id": metric_id,
             "report_id": report_id,

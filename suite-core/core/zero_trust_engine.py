@@ -11,6 +11,12 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = structlog.get_logger()
 
 TRUST_LEVELS = ["untrusted", "low", "medium", "high", "trusted"]
@@ -249,6 +255,13 @@ class ZeroTrustEngine:
             conn.close()
 
         _logger.info("zero_trust.policy_created", policy_id=policy_id, name=name, action=action)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "zero_trust_engine", "org_id": "unknown", "source_engine": "zero_trust_engine"})
+            except Exception:
+                pass
         return {
             "policy_id": policy_id,
             "name": name,

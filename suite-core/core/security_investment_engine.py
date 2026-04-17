@@ -23,6 +23,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -269,6 +275,13 @@ class SecurityInvestmentEngine:
                 ).fetchone()
                 if not row:
                     raise ValueError(f"Investment {investment_id!r} not found")
+                if _get_tg_bus:
+                    try:
+                        bus = _get_tg_bus()
+                        if bus and getattr(bus, "enabled", False):
+                            bus.emit("FINDING_CREATED", {"entity_type": "security_investment_engine", "org_id": org_id, "source_engine": "security_investment_engine"})
+                    except Exception:
+                        pass
                 return self._row_to_dict(row)
 
     def complete_investment(self, investment_id: str, org_id: str) -> Dict[str, Any]:
@@ -414,6 +427,13 @@ class SecurityInvestmentEngine:
                     (org_id,),
                 ).fetchall()
 
+                if _get_tg_bus:
+                    try:
+                        bus = _get_tg_bus()
+                        if bus and getattr(bus, "enabled", False):
+                            bus.emit("FINDING_CREATED", {"entity_type": "security_investment_engine", "org_id": org_id, "source_engine": "security_investment_engine"})
+                    except Exception:
+                        pass
                 return {
                     "org_id": org_id,
                     "total_investments": totals["cnt"] or 0,

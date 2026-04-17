@@ -28,6 +28,12 @@ from typing import Any, Dict, List, Optional
 import structlog
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 logger = structlog.get_logger(__name__)
 
 _DEFAULT_DB = os.getenv("FIXOPS_CTEM_DB", ".fixops_data/ctem.db")

@@ -38,6 +38,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -303,6 +308,7 @@ class FAILEngine:
     def score(self, inp: FAILInput) -> FAILResult:
         """Compute the FAIL score for a single finding."""
         import time as _time
+
 
         start = _time.perf_counter()
 

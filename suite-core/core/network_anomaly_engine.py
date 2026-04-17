@@ -21,6 +21,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -170,6 +176,13 @@ class NetworkAnomalyEngine:
                     (sample_id, org_id, segment, protocol, direction,
                      bytes_per_min, packets_per_min, now, now),
                 )
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "network_anomaly_engine", "org_id": org_id, "source_engine": "network_anomaly_engine"})
+            except Exception:
+                pass
         return {
             "id": sample_id,
             "org_id": org_id,

@@ -25,7 +25,13 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+try:
     import yaml as _yaml
+
     _YAML_AVAILABLE = True
 except ImportError:
     _YAML_AVAILABLE = False
@@ -1832,6 +1838,13 @@ class SASTEngine:
         with self._lock:
             sid = self._latest_scan_id
             if sid is None or sid not in self._scan_store:
+                if _get_tg_bus:
+                    try:
+                        bus = _get_tg_bus()
+                        if bus and getattr(bus, "enabled", False):
+                            bus.emit("FINDING_CREATED", {"entity_type": "sast_engine", "org_id": "unknown", "source_engine": "sast_engine"})
+                    except Exception:
+                        pass
                 return {"status": "no_scan", "message": "No scans have been run yet"}
             result = self._scan_store[sid]
         return {

@@ -29,6 +29,11 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from core.tls_config import tls_verify
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -635,6 +640,7 @@ class DASTEngine:
         """
         import socket
         from urllib.parse import urlparse
+
 
         # URL length limit (RFC 2616 recommendation + safety margin)
         if len(url) > 2048:

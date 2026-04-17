@@ -29,6 +29,11 @@ import httpx
 import structlog
 from core.tls_config import tls_verify
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = structlog.get_logger(__name__)
 
 # Lazy-loaded engines (avoid circular imports / hard failures at import time)
@@ -1253,6 +1258,7 @@ class IntelligentSecurityEngine:
     async def _create_evidence_bundle(self, result: ExecutionResult) -> str:
         """Create a signed evidence bundle."""
         import uuid
+
 
         return f"evidence-{uuid.uuid4().hex[:8]}"
 

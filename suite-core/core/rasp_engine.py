@@ -37,6 +37,12 @@ from typing import Any, Callable, Deque, Dict, List, Optional, Set, Tuple
 
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "rasp_engine.db")

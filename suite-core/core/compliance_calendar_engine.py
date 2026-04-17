@@ -18,6 +18,12 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
@@ -435,6 +441,13 @@ class ComplianceCalendarEngine:
             ).fetchall()
             by_type = {r["event_type"]: r["cnt"] for r in type_rows}
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("CONTROL_ASSESSED", {"entity_type": "compliance_calendar_engine", "org_id": org_id, "source_engine": "compliance_calendar_engine"})
+            except Exception:
+                pass
         return {
             "upcoming_count": upcoming_count,
             "overdue_count": overdue_count,

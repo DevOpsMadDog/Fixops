@@ -29,6 +29,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import structlog
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -990,6 +995,7 @@ def _check_config_snapshot() -> Tuple[bool, str, Dict[str, Any]]:
     """Check configuration snapshots from ALDECI config management."""
     try:
         from core.app_config import AppConfig  # type: ignore
+
         cfg = AppConfig()
         has_config = cfg is not None
         return has_config, "config_snapshot_check", {"snapshot_available": has_config}

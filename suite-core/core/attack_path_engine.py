@@ -16,6 +16,11 @@ from typing import Optional
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 _logger = structlog.get_logger()
 
 # ---------------------------------------------------------------------------
@@ -24,6 +29,7 @@ _logger = structlog.get_logger()
 
 try:
     from core.ml.attack_path_gnn import AttackPathGNN as _AttackPathGNN
+
     _gnn: Optional[_AttackPathGNN] = _AttackPathGNN()
 except (ImportError, Exception):
     _gnn = None
@@ -303,6 +309,13 @@ class AttackPathEngine:
     def _load_nodes_map(self, org_id: str) -> dict[str, dict]:
         """Return node_id -> node dict for org."""
         rows = self.list_nodes(org_id=org_id)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "attack_path_engine", "org_id": "unknown", "source_engine": "attack_path_engine"})
+            except Exception:
+                pass
         return {r["node_id"]: r for r in rows}
 
     # ------------------------------------------------------------------

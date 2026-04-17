@@ -27,6 +27,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 logger = structlog.get_logger(__name__)
 
 
@@ -493,6 +498,7 @@ class AnsibleParser:
         resources: List[IaCResource] = []
         try:
             import yaml  # type: ignore
+
             data = yaml.safe_load(content)
         except ImportError:
             return resources
@@ -1677,6 +1683,13 @@ class IaCScannerEngine:
             by_provider[f.provider] = by_provider.get(f.provider, 0) + 1
             by_rule[f.rule_id] = by_rule.get(f.rule_id, 0) + 1
 
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "iac_scanner_engine", "org_id": "unknown", "source_engine": "iac_scanner_engine"})
+            except Exception:
+                pass
         return {
             "total_findings": len(findings),
             "by_severity": by_severity,

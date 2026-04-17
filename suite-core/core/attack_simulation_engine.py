@@ -1156,6 +1156,12 @@ import sqlite3 as _sqlite3
 import threading as _threading
 from pathlib import Path as _Path
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 
 _DEFAULT_SIM_DB = str(
     _Path(__file__).resolve().parents[2] / ".fixops_data" / "attack_simulation.db"
@@ -1329,6 +1335,13 @@ class AttackSimulationDbEngine:
                 "SELECT * FROM simulation_runs WHERE sim_id=? AND org_id=?",
                 (sim_id, org_id),
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "attack_simulation_engine", "org_id": org_id, "source_engine": "attack_simulation_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row) if row else None
 
     def list_simulations(self, org_id: str, status: Optional[str] = None) -> list:
@@ -1407,6 +1420,13 @@ class AttackSimulationDbEngine:
             row = conn.execute(
                 "SELECT * FROM attack_paths WHERE path_id=?", (path_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "attack_simulation_engine", "org_id": org_id, "source_engine": "attack_simulation_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row)  # type: ignore[return-value]
 
     def list_attack_paths(self, org_id: str, sim_id: str) -> list:
@@ -1460,6 +1480,13 @@ class AttackSimulationDbEngine:
             row = conn.execute(
                 "SELECT * FROM simulation_findings WHERE finding_id=?", (finding_id,)
             ).fetchone()
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "attack_simulation_engine", "org_id": org_id, "source_engine": "attack_simulation_engine"})
+            except Exception:
+                pass
         return self._row_to_dict(row)  # type: ignore[return-value]
 
     def list_findings(self, org_id: str, sim_id: Optional[str] = None) -> list:

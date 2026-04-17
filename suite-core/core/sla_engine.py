@@ -26,6 +26,12 @@ from typing import Any, Dict, List, Optional
 import structlog
 from pydantic import BaseModel, Field
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -462,6 +468,13 @@ class SLAEngine:
             counts[s.status] += 1
 
         total = len(rows)
+        if _get_tg_bus:
+            try:
+                bus = _get_tg_bus()
+                if bus and getattr(bus, "enabled", False):
+                    bus.emit("FINDING_CREATED", {"entity_type": "sla_engine", "org_id": "unknown", "source_engine": "sla_engine"})
+            except Exception:
+                pass
         return {
             "org_id": org_id,
             "total_tracked": total,

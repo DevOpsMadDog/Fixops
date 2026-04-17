@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sqlite3
 import threading
 import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -37,6 +38,10 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DB = str(
     Path(__file__).resolve().parents[2] / ".fixops_data" / "scheduled_reports.db"
 )
+
+# n8n webhook paths for report delivery
+_N8N_EMAIL_WEBHOOK_PATH = "webhook/aldeci-report-email"
+_N8N_SLACK_WEBHOOK_PATH = "webhook/aldeci-report-slack"
 
 _VALID_REPORT_TYPES = {
     "executive_summary",
@@ -500,19 +505,41 @@ class ScheduledReportsEngine:
             }
         )
 
-        # Attempt email delivery logging (stub — would integrate with n8n/SMTP)
-        for recipient in recipients:
-            self._log_delivery(org_id, run_id, "email", recipient)
+        # Attempt email delivery via n8n webhook
+        if recipients:
+            n8n_email_status, n8n_email_error = self._deliver_via_n8n(
+                channel="email",
+                schedule=schedule,
+                org_id=org_id,
+                generated_at=now,
+                recipients=recipients,
+                content_preview=content_preview,
+            )
+            for recipient in recipients:
+                self._log_delivery(
+                    org_id, run_id, "email", recipient,
+                    status=n8n_email_status, error_message=n8n_email_error,
+                )
 
-        # Attempt Slack webhook delivery
+        # Attempt Slack delivery via n8n webhook (preferred) or direct webhook fallback
         slack_url = schedule.get("slack_webhook_url", "")
         if slack_url:
-            slack_status, slack_error = self._deliver_slack(
-                slack_url, schedule, org_id, now
+            n8n_slack_status, n8n_slack_error = self._deliver_via_n8n(
+                channel="slack",
+                schedule=schedule,
+                org_id=org_id,
+                generated_at=now,
+                recipients=[slack_url],
+                content_preview=content_preview,
             )
+            if n8n_slack_status == "failed":
+                # Fall back to direct Slack webhook POST
+                n8n_slack_status, n8n_slack_error = self._deliver_slack(
+                    slack_url, schedule, org_id, now
+                )
             self._log_delivery(
                 org_id, run_id, "slack", slack_url,
-                status=slack_status, error_message=slack_error
+                status=n8n_slack_status, error_message=n8n_slack_error,
             )
 
         completed_at = _now_iso()

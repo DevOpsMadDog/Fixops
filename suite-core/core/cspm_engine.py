@@ -22,6 +22,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
@@ -1294,6 +1299,7 @@ try:
     from typing import Any as _Any, Dict as _Dict, List as _List, Optional as _Optional, Tuple as _Tuple
     from enum import Enum as _Enum
     from pydantic import BaseModel as _BaseModel, Field as _Field
+
 
     class _LegacyEnum(str, _Enum):
         pass

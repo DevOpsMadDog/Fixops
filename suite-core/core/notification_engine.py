@@ -28,6 +28,12 @@ from typing import Any, Dict, List, Optional, Callable, Coroutine
 from core.errors import ExternalServiceError  # noqa: F401 - re-exported for callers
 from core.event_streaming import StreamEvent, EventBus, EventSeverity
 
+try:
+    from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
+except ImportError:
+    _get_tg_bus = None
+
+
 _logger = logging.getLogger(__name__)
 
 
