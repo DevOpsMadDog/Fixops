@@ -1,0 +1,21 @@
+{
+  "community_id": 89,
+  "rank": 90,
+  "domain": "tenant_isolation",
+  "title": "Tenant Isolation \u2014 Cross-Tenant Leakage Audit & Admin API",
+  "current_state": "REAL_LOGIC",
+  "description": "tenant_isolation.py provides org-scoped SQLite paths, thread-local tenant context, TenantAwareConnection, access validation, and admin helpers. test_tenant_isolation.py validates context set/get/clear and directory scoping. Gap: there is no automated cross-tenant leakage test that verifies queries from org-A cannot return org-B data. The delete_tenant_data admin function exists but is not RBAC-gated.",
+  "missing": [
+    "Cross-tenant leakage test suite: automated test that creates data for two orgs, queries via org-A context, and asserts org-B records never appear",
+    "RBAC gate on admin operations: require admin_role check before delete_tenant_data(), list_tenants(), and get_tenant_stats() in tenant_router.py",
+    "Tenant audit log: record all tenant context switches in a tamper-evident audit log with timestamp, thread_id, and calling function for forensics"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_tenant_isolation.py",
+    "suite-core/core/tenant_isolation.py",
+    "suite-api/apps/api/tenant_router.py"
+  ],
+  "community_size": 140,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 32,
+  "rank": 33,
+  "domain": "mobile_vuln_marketplace",
+  "title": "Mobile App Security + Marketplace Scanner \u2014 OWASP Mobile Remediation",
+  "current_state": "PARTIAL",
+  "description": "test_mobile_app_security_engine.py (67 tests, 5 platforms) and test_vuln_scan_engine.py cluster with test_marketplace.py and test_audit_management_engine.py. The mobile scanner covers OWASP Mobile Top 10 finding ingestion and scan lifecycle, but static analysis of .apk/.ipa binaries is not implemented \u2014 findings are ingested from external tools rather than computed internally.",
+  "missing": [
+    "APK static analysis: use androguard (pip) to extract permissions, hardcoded secrets, and insecure API calls from uploaded APK binaries",
+    "IPA binary analysis: use jtool2/class-dump via subprocess to extract entitlements, ATS exceptions, and URL schemes from IPA archives",
+    "Marketplace dependency check: cross-reference app third-party SDK versions against vuln_intelligence_engine CVE database automatically"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_mobile_app_security_engine.py",
+    "tests/test_marketplace.py",
+    "tests/test_vuln_scan_engine.py"
+  ],
+  "community_size": 1082,
+  "generated_at": "2026-04-17"
+}

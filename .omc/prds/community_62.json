@@ -1,0 +1,21 @@
+{
+  "community_id": 62,
+  "rank": 63,
+  "domain": "feed_manager_alert_enrichment",
+  "title": "Feed Manager + Alert Enrichment + TI Automation \u2014 Enrichment Pipeline",
+  "current_state": "PARTIAL",
+  "description": "test_feed_manager.py, test_alert_enrichment_engine.py, and test_threat_intelligence_automation_engine.py cluster with test_security_awareness_metrics_engine.py. Alert enrichment computes severity_multiplier risk scores with SHA-256 API key hashing. Gap: enrichment is triggered manually \u2014 alerts are not automatically enriched when ingested, and the feed manager does not route IOC hits back to enrich open alerts.",
+  "missing": [
+    "Auto-enrichment on alert ingestion: hook alert_enrichment_engine into the SIEM ingestion pipeline so every new alert is enriched within 5 seconds",
+    "IOC hit \u2192 alert enrichment: when threat_intelligence_automation finds an IOC match, auto-enrich all open alerts containing that indicator",
+    "Enrichment confidence scoring: aggregate enrichment source confidence scores to compute a final alert confidence level (0-1) for analyst prioritization"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_feed_manager.py",
+    "tests/test_alert_enrichment_engine.py",
+    "tests/test_threat_intelligence_automation_engine.py"
+  ],
+  "community_size": 537,
+  "generated_at": "2026-04-17"
+}

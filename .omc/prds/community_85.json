@@ -1,0 +1,21 @@
+{
+  "community_id": 85,
+  "rank": 86,
+  "domain": "forensics_data_discovery",
+  "title": "Forensics Readiness + Data Discovery \u2014 Evidence Chain Integration",
+  "current_state": "PARTIAL",
+  "description": "test_forensics_readiness_engine.py validates evidence source registration, collection plans, and readiness scoring. test_data_discovery_engine.py clusters here. Gap: forensics readiness scoring is based on plan metadata but does not verify that actual evidence can be collected from each source. Data discovery risk escalation works but discovered sensitive records are not automatically flagged to the GDPR compliance officer.",
+  "missing": [
+    "Evidence collection smoke test: for each registered evidence source, schedule a monthly dry-run that attempts to collect a sample and records success/failure",
+    "Data discovery \u2192 GDPR notification: when data_discovery_engine finds sensitive records in an unexpected datastore, auto-create a GDPR Article 30 processing activity entry and notify the DPO",
+    "Forensics readiness \u2192 IR playbook link: include forensics_readiness_score in the IR playbook preparation phase checklist so low-readiness orgs are warned before an incident occurs"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_forensics_readiness_engine.py",
+    "tests/test_data_discovery_engine.py",
+    "suite-api/apps/api/data_discovery_router.py"
+  ],
+  "community_size": 184,
+  "generated_at": "2026-04-17"
+}

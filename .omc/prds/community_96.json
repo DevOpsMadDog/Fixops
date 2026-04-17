@@ -1,0 +1,21 @@
+{
+  "community_id": 96,
+  "rank": 97,
+  "domain": "software_composition_analysis",
+  "title": "SCA Engine \u2014 Snyk API Real Client & Transitive Dependency Graph",
+  "current_state": "PARTIAL",
+  "description": "software_composition_analysis_engine.py tracks OSS dependencies with CVE detection and license risk. TestSnykClientHTTP validates Snyk API v1 project/issue listing with 401/403/404 error handling. Gap: the Snyk client is tested but not connected to the SCA engine \u2014 Snyk findings are fetched separately from the internal SCA DB. Transitive dependency graph is stored as JSON but not queryable for blast radius analysis.",
+  "missing": [
+    "Snyk \u2192 SCA sync: implement SnykImporter that fetches Snyk project issues and upserts them into software_composition_analysis_engine.db as scan findings",
+    "Transitive dependency graph query: /api/v1/sca/dependencies/{package}/graph that returns the full transitive dependency tree with CVE counts per node",
+    "SBOM ingestion: accept CycloneDX/SPDX SBOM upload and auto-populate the SCA dependency table from the SBOM component list"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_software_composition_analysis_engine.py",
+    "suite-core/core/software_composition_analysis_engine.py",
+    "suite-api/apps/api/software_composition_analysis_router.py"
+  ],
+  "community_size": 101,
+  "generated_at": "2026-04-17"
+}

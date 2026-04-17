@@ -1,0 +1,21 @@
+{
+  "community_id": 28,
+  "rank": 29,
+  "domain": "sla_workflow_passive_dns",
+  "title": "SLA Management + Workflow Engine \u2014 Passive DNS Escalation Integration",
+  "current_state": "PARTIAL",
+  "description": "sla_management.py provides business-hours SLA policies with compliance framework overrides and team leaderboard. test_workflow_engine.py confirms the workflow CRUD is solid. test_passive_dns_engine.py reveals passive DNS tracking exists. However SLA breaches do not trigger workflow escalation steps automatically, and passive DNS domain-threat detections have no SLA assignment.",
+  "missing": [
+    "SLA breach \u2192 workflow escalation: when a ticket breaches SLA, auto-create an escalation workflow step that notifies team_lead then director then CISO",
+    "Passive DNS \u2192 SLA ticket: when passive_dns_engine detects a new malicious resolution, auto-create an SLA-tracked finding with severity-appropriate deadline",
+    "Business-hours calculator accuracy: implement public holiday calendar per org timezone so SLA deadlines correctly skip holidays and weekends"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_sla_management.py",
+    "suite-core/core/sla_management.py",
+    "tests/test_workflow_engine.py"
+  ],
+  "community_size": 1185,
+  "generated_at": "2026-04-17"
+}

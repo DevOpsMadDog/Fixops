@@ -1,0 +1,21 @@
+{
+  "community_id": 45,
+  "rank": 46,
+  "domain": "pam_compliance_access",
+  "title": "PAM + Compliance Automation + Access Matrix \u2014 Privileged Session Live Monitoring",
+  "current_state": "PARTIAL",
+  "description": "test_pam.py, test_compliance_automation.py, and test_access_matrix.py cluster with test_access_control_engine.py. PAM manages privileged access grants, but session recording is a separate engine (privileged_session_recording) that is not integrated with PAM grants. Compliance automation jobs run on demand but are not scheduled. Access matrix RBAC policies are stored but not enforced at the API gateway level.",
+  "missing": [
+    "PAM \u2192 session recording integration: when a privileged access grant is activated, auto-start a session recording in privileged_session_recording_engine",
+    "Compliance automation scheduler: cron job that runs each compliance job on its configured frequency (daily/weekly/monthly) via BackgroundScheduler",
+    "API gateway RBAC enforcement: middleware that checks access_control_engine check_access() on every request and returns 403 if policy denies the action"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_pam.py",
+    "tests/test_compliance_automation.py",
+    "tests/test_access_matrix.py"
+  ],
+  "community_size": 836,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 61,
+  "rank": 62,
+  "domain": "ai_orchestrator_notifications",
+  "title": "AI Orchestrator + Notification Engine \u2014 Multi-Agent Task Routing",
+  "current_state": "PARTIAL",
+  "description": "notification_engine.py has 5 channels (WebSocket, Email, Slack, Webhook, PagerDuty) with rate limiting and SQLite audit trail. test_ai_orchestrator.py validates 6 agent roles and task FSM. Gap: the AI orchestrator routes tasks to agent roles but does not use the notification engine to inform human operators when agent tasks require approval or fail. PagerDuty and email channels have stub delivery functions.",
+  "missing": [
+    "PagerDuty real delivery: implement pagerduty_send() using Events API v2 with dedup_key based on alert_id to prevent duplicate pages",
+    "Email real delivery: implement email_send() using smtplib or SendGrid API with HTML templating for security alert notifications",
+    "AI orchestrator \u2192 human-in-loop: when an agent task requires APPROVAL, pause execution and fire a Slack notification with approve/reject buttons via Slack interactive components"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_phase6_streaming.py",
+    "tests/test_ai_orchestrator.py",
+    "suite-core/core/notification_engine.py"
+  ],
+  "community_size": 565,
+  "generated_at": "2026-04-17"
+}

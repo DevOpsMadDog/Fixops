@@ -1,0 +1,19 @@
+{
+  "community_id": 95,
+  "rank": 96,
+  "domain": "helm_chart",
+  "title": "Helm Chart \u2014 Production-Ready K8s Deployment with Security Hardening",
+  "current_state": "CRUD_ONLY",
+  "description": "test_helm_chart.py validates chart structure, template YAML, and file existence. The chart is the only member of this community, indicating it is isolated from the main application code. Gap: the Helm chart exists structurally but lacks production security hardening \u2014 no NetworkPolicy, PodSecurityPolicy/PSA, non-root user enforcement, or resource limits are defined.",
+  "missing": [
+    "Pod Security Admission: add securityContext with runAsNonRoot=true, readOnlyRootFilesystem=true, and drop ALL capabilities to all containers",
+    "NetworkPolicy: restrict ingress to only the API gateway and egress to configured external services (S3, SIEM, notification endpoints)",
+    "Resource limits: define CPU/memory requests and limits for all containers with HPA configured for API pods based on CPU utilization"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_helm_chart.py"
+  ],
+  "community_size": 103,
+  "generated_at": "2026-04-17"
+}

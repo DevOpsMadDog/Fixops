@@ -1,0 +1,21 @@
+{
+  "community_id": 31,
+  "rank": 32,
+  "domain": "pentest_management",
+  "title": "Pentest Manager \u2014 Report Generation & Retest Verification Loop",
+  "current_state": "PARTIAL",
+  "description": "pentest_manager.py covers the full engagement lifecycle (scope, findings, CVSS, PoC, remediation workflow) across OWASP/PTES/OSSTMM/NIST methodologies. test_cloud_security_findings_engine.py and test_anti_phishing_engine.py cluster here. Gap: the report_generation method returns a dict skeleton rather than a rendered document, and the retest workflow has no automated trigger \u2014 a fixed finding requires manual retest scheduling.",
+  "missing": [
+    "PDF/HTML report renderer: implement a Jinja2 template that fills in the report dict skeleton and returns a rendered PDF via weasyprint or HTML string",
+    "Auto-retest trigger: when a finding's fix_status transitions to 'fixed', auto-schedule a retest scan via the dast_scanner or real_scanner with the original PoC payload replayed against the patched endpoint",
+    "YoY recurring-finding detection: query historical engagements and flag findings that share the same CWE+endpoint pattern across 2+ engagements"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_pentest_manager.py",
+    "suite-core/core/pentest_manager.py",
+    "tests/test_cloud_security_findings_engine.py"
+  ],
+  "community_size": 1088,
+  "generated_at": "2026-04-17"
+}

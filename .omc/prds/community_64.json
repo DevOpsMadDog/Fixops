@@ -1,0 +1,21 @@
+{
+  "community_id": 64,
+  "rank": 65,
+  "domain": "code_to_cloud_dependency_mapping",
+  "title": "Code-to-Cloud Traceability + Dependency Mapping \u2014 Developer Risk Attribution",
+  "current_state": "REAL_LOGIC",
+  "description": "code_to_cloud.py traces the full provenance chain from code commit to runtime finding with blast radius analysis and developer risk profiles. test_security_dependency_mapping_engine.py clusters here confirming BFS blast radius works. Gap: developer risk profiles are computed but never surfaced to the developer via IDE plugin or PR comment \u2014 the feedback loop to the developer is missing.",
+  "missing": [
+    "PR comment integration: when a code change introduces a new finding, post a GitHub PR comment via universal_connector with the traceability chain and blast radius summary",
+    "IDE plugin feedback: expose /api/v1/ide/code-risk endpoint that takes a file path + line range and returns associated code-to-cloud risk entries",
+    "Developer risk digest: weekly email to each developer with their security-relevant change count, defect rate, and top-3 open findings they introduced (anonymized framing, not blame)"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_code_cloud_trace.py",
+    "suite-core/core/code_to_cloud.py",
+    "tests/test_security_dependency_mapping_engine.py"
+  ],
+  "community_size": 506,
+  "generated_at": "2026-04-17"
+}

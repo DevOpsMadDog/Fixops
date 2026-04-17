@@ -1,0 +1,23 @@
+{
+  "domain": "security domain this community belongs to",
+  "title": "community #152: A platform for monitoring and managing cyber resilience in a distributed environment",
+  "current_state": "CRUD_ONLY|PARTIAL|REAL_LOGIC",
+  "description": "This community is focused on providing a comprehensive toolset for monitoring, analyzing, and managing the security posture of a distributed system. It includes features such as an ArcGIS dashboard for visualizing cyber resilience metrics, a suite of React components for user interfaces, and various engines for advanced analytics.",
+  "missing": [
+    "gap 1",
+    "gap 2",
+    "gap 3"
+  ],
+  "connections_needed": [
+    "domain A",
+    "domain B"
+  ],
+  "acceptance_criteria": [
+    "criterion 1",
+    "criterion 2",
+    "criterion 3"
+  ],
+  "priority": "HIGH|MEDIUM|LOW",
+  "community_id": 152,
+  "node_count": 5
+}

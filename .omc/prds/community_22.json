@@ -1,0 +1,21 @@
+{
+  "community_id": 22,
+  "rank": 23,
+  "domain": "sast_supply_chain_e2e",
+  "title": "SAST + Supply Chain E2E Scanner \u2014 Real Repo Testing & Result Persistence",
+  "current_state": "PARTIAL",
+  "description": "test_e2e_famous_repos.py defines 10 real GitHub repos as test subjects. test_sast_engine.py and test_supply_chain.py confirm the scanning engines exist. However the E2E test suite clones repos at test time (slow, fragile), SAST findings are not persisted to the vuln_lifecycle state machine, and supply-chain attack detections have no automatic SBOM correlation step.",
+  "missing": [
+    "Cache cloned repos in .fixops_data/repo-cache/ with git fetch --depth=1 updates so E2E tests run in <30s without re-cloning",
+    "Auto-persist SAST findings into vuln_lifecycle.db on scan completion so DISCOVERED\u2192TRIAGED transitions happen immediately for CI-triggered scans",
+    "Wire supply-chain findings to SBOM export: when a malicious/vulnerable package is detected, auto-generate a CycloneDX diff and attach to the finding"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_sast_engine.py",
+    "tests/test_supply_chain.py",
+    "tests/test_e2e_famous_repos.py"
+  ],
+  "community_size": 1282,
+  "generated_at": "2026-04-17"
+}

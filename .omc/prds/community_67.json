@@ -1,0 +1,21 @@
+{
+  "community_id": 67,
+  "rank": 68,
+  "domain": "iac_scanner",
+  "title": "IaC Scanner \u2014 Checkov/tfsec Live Integration & Finding Persistence",
+  "current_state": "REAL_LOGIC",
+  "description": "iac_scanner.py uses checkov and tfsec via subprocess with async handling, error recovery, and result normalization. iac_router.py exposes CRUD endpoints for IaC findings. Uses safe_path_ops for path containment. Gap: scan results from checkov are parsed but not cross-referenced with the cloud drift engine \u2014 an IaC finding for a misconfigured S3 bucket should also trigger a cloud_drift_engine drift event.",
+  "missing": [
+    "IaC finding \u2192 cloud drift correlation: when checkov detects a misconfiguration, check cloud_drift_engine for the corresponding resource and link the findings",
+    "Scheduled IaC scans: background job that monitors configured IaC repo paths for git changes and triggers a scan within 5 minutes of any commit",
+    "Terraform plan scanning: add support for scanning terraform plan JSON output (-out plan.json) to catch misconfigurations before apply"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_safe_path_ops.py",
+    "tests/test_iac_scanner.py",
+    "suite-core/core/iac_scanner.py"
+  ],
+  "community_size": 470,
+  "generated_at": "2026-04-17"
+}

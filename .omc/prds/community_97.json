@@ -1,0 +1,21 @@
+{
+  "community_id": 97,
+  "rank": 98,
+  "domain": "access_governance",
+  "title": "Access Governance \u2014 SoD Violation Auto-Remediation & Certification Campaigns",
+  "current_state": "REAL_LOGIC",
+  "description": "access_governance_engine.py implements IGA with entitlements, SoD ALL-match detection, role management, and certification campaigns. access_governance_router.py exposes the full API. Gap: SoD violations are detected but not auto-remediated \u2014 a human must manually revoke the conflicting entitlement. Certification campaigns are created but not delivered to reviewers.",
+  "missing": [
+    "SoD auto-remediation: when a critical SoD violation is detected, auto-revoke the lower-privilege entitlement and notify the access owner",
+    "Certification campaign delivery: email each reviewer their certification queue link when a campaign is created, with a deadline reminder at T-7 days",
+    "Entitlement expiry enforcement: background job that revokes entitlements past their expires_at timestamp and notifies the access owner"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_access_governance_engine.py",
+    "suite-core/core/access_governance_engine.py",
+    "suite-api/apps/api/access_governance_router.py"
+  ],
+  "community_size": 100,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 42,
+  "rank": 43,
+  "domain": "privacy_gdpr_cloud_cost",
+  "title": "Privacy/GDPR + Cloud Cost Optimization \u2014 DSR Automation & Cost Anomaly Alerts",
+  "current_state": "REAL_LOGIC",
+  "description": "test_privacy_gdpr_engine.py and test_cloud_cost_optimization_engine.py cluster with test_security_posture_maturity_engine.py. The GDPR engine manages DSR lifecycle (access/erasure/portability) with 30-day SLA detection. Cloud cost optimization tracks ROI with annual_cost=monthly*12 formula. Gap: DSR fulfillment is manual \u2014 no automation actually erases PII from the domain SQLite DBs, and cost anomaly alerts do not fire to Slack.",
+  "missing": [
+    "DSR erasure automation: implement GDPR erasure executor that receives a DSR request and issues DELETE WHERE user_id=? across all domain SQLite DBs with a transaction log",
+    "Cost anomaly \u2192 Slack alert: when cloud_cost_optimization detects a >50% MoM spike, fire a Slack notification via notification_engine with cost delta",
+    "Data subject portability export: implement DSR portability handler that collects all user records across domain DBs and returns a GDPR-compliant JSON bundle"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_privacy_gdpr_engine.py",
+    "tests/test_cloud_cost_optimization_engine.py",
+    "tests/test_security_posture_maturity_engine.py"
+  ],
+  "community_size": 942,
+  "generated_at": "2026-04-17"
+}

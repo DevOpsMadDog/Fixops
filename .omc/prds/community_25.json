@@ -1,0 +1,21 @@
+{
+  "community_id": 25,
+  "rank": 26,
+  "domain": "risk_register_change_mgmt",
+  "title": "Risk Register + Change Management \u2014 CAB Approval Workflow & Risk Linkage",
+  "current_state": "PARTIAL",
+  "description": "change_management.py has a full ITIL-aligned 9-state FSM with CAB workflow, SLA auto-expiry, and rollback planning. test_risk_register.py and test_change_management.py confirm both engines exist with good coverage. However, risk register entries are not linked to change requests \u2014 approving a change does not reduce the associated risk score, and dark web monitoring alerts do not auto-create change requests for credential-related risks.",
+  "missing": [
+    "Bidirectional link: change_request.risk_register_id FK + on approval/rollback auto-update linked risk treatment status in risk_register.db",
+    "Dark web \u2192 change request automation: when DarkWebMonitoring detects a credential exposure, auto-create a NORMAL change request for credential rotation",
+    "Change freeze calendar API: /api/v1/change-management/freeze-periods that blocks change creation during compliance audit windows and maintenance freezes"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_risk_register.py",
+    "tests/test_change_management.py",
+    "suite-core/core/change_management.py"
+  ],
+  "community_size": 1233,
+  "generated_at": "2026-04-17"
+}

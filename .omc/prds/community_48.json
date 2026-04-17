@@ -1,0 +1,21 @@
+{
+  "community_id": 48,
+  "rank": 49,
+  "domain": "threat_intel_graphql_reports",
+  "title": "Threat Intel Correlator + Scheduled Reports \u2014 GraphQL Schema Wiring",
+  "current_state": "PARTIAL",
+  "description": "test_threat_intel_correlator.py, test_graphql_schema.py, and test_scheduled_reports_engine.py cluster together. The report scheduler manages CRUD for report schedules but does not execute reports \u2014 the delivery mechanism (email/Slack via n8n) is not wired. The GraphQL schema is defined but not mounted on the FastAPI app.",
+  "missing": [
+    "Report delivery executor: background job that checks due report schedules every 15 minutes and fires n8n webhook with rendered report payload",
+    "GraphQL endpoint mounting: mount the graphql schema at /api/graphql using strawberry-graphql with the existing resolver functions",
+    "Threat intel correlator \u2192 report enrichment: automatically include top-5 correlated threat actors in scheduled weekly intel reports"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_threat_intel_correlator.py",
+    "tests/test_graphql_schema.py",
+    "tests/test_scheduled_reports_engine.py"
+  ],
+  "community_size": 797,
+  "generated_at": "2026-04-17"
+}

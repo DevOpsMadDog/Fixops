@@ -1,0 +1,21 @@
+{
+  "community_id": 44,
+  "rank": 45,
+  "domain": "vuln_intel_fusion_scorecard",
+  "title": "Vuln Intel Fusion + Security Scorecard \u2014 EPSS/KEV-Driven Grade Computation",
+  "current_state": "REAL_LOGIC",
+  "description": "test_vuln_intel_fusion_engine.py, test_security_scorecard_engine.py, and test_security_posture_benchmarking_engine.py cluster together. The scorecard computes A-F grades. The vuln intel fusion merges CVSS/EPSS/KEV from multiple sources. Gap: scorecard grade is computed from static control weights but does not factor in live EPSS scores from vuln_intel_fusion, so a KEV-listed critical vuln does not immediately drop the org grade.",
+  "missing": [
+    "Live KEV/EPSS \u2192 scorecard impact: when vuln_intel_fusion detects a KEV finding, automatically deduct points from the relevant scorecard domain",
+    "Grade change webhook: when an org's scorecard grade drops by a letter, fire a notification to CISO email and Slack channel with the delta and top drivers",
+    "Peer benchmark comparison: /api/v1/scorecard/benchmark that shows where this org's grade ranks against anonymized peers in the same industry vertical"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_vuln_intel_fusion_engine.py",
+    "tests/test_security_scorecard.py",
+    "tests/test_security_posture_benchmarking_engine.py"
+  ],
+  "community_size": 849,
+  "generated_at": "2026-04-17"
+}

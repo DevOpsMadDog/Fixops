@@ -1,0 +1,21 @@
+{
+  "community_id": 70,
+  "rank": 71,
+  "domain": "license_scanner_evidence",
+  "title": "License Scanner + Evidence Packager \u2014 SBOM License Compliance Export",
+  "current_state": "REAL_LOGIC",
+  "description": "license_scanner.py has 100+ package database with SPDX mapping, policy engine (ALLOW/WARN/BLOCK), and per-dependency risk scoring. test_evidence_packager_unit.py and test_signing_verify.py cluster here. Gap: license scan results are stored in SQLite but not exported to the SBOM engine as CycloneDX license metadata, and the signing/verification is not applied to license scan evidence bundles.",
+  "missing": [
+    "SBOM license export: integrate license_scanner results into sbom_export_engine CycloneDX component license field population automatically",
+    "Evidence bundle signing: apply ECDSA signing (from signing_verify module) to all exported evidence packages so auditors can verify tamper-proof provenance",
+    "BLOCK license CI gate: fail CI when license_scanner detects a BLOCK-policy license in any new dependency added to requirements.txt or package.json"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_evidence_packager_unit.py",
+    "tests/test_license_scanner.py",
+    "suite-core/core/license_scanner.py"
+  ],
+  "community_size": 404,
+  "generated_at": "2026-04-17"
+}

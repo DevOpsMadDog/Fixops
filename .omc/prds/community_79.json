@@ -1,0 +1,21 @@
+{
+  "community_id": 79,
+  "rank": 80,
+  "domain": "container_scanner",
+  "title": "Container Image Scanner \u2014 Trivy/Grype Live Integration & Layer Secret Detection",
+  "current_state": "PARTIAL",
+  "description": "container_scanner.py scans Docker/OCI images and Dockerfiles for vulnerable base images, Dockerfile misconfigurations, layer secrets, and Helm chart security. test_file_size_limits.py clusters here confirming file size and filename sanitization. Gap: Trivy/Grype integration is conditional on binary availability \u2014 if not present, the scanner returns empty results rather than falling back to its built-in checks.",
+  "missing": [
+    "Built-in fallback scanner: when Trivy/Grype is absent, execute the built-in Dockerfile pattern checker and layer secret regex scanner unconditionally",
+    "Trivy SBOM output: run trivy with --format cyclonedx and feed the output into sbom_export_engine for unified SBOM management",
+    "Helm chart secrets detection: scan Helm values.yaml and templates for hardcoded secrets using the same regex patterns as real_scanner"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_container_scanner.py",
+    "suite-core/core/container_scanner.py",
+    "tests/test_container_scanner_unit.py"
+  ],
+  "community_size": 239,
+  "generated_at": "2026-04-17"
+}

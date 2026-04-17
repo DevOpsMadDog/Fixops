@@ -1,0 +1,21 @@
+{
+  "community_id": 59,
+  "rank": 61,
+  "domain": "evidence_collection",
+  "title": "Evidence Collector \u2014 Framework Control Mapping & Auto-Bundle Generation",
+  "current_state": "PARTIAL",
+  "description": "evidence_collector.py and auto_evidence.py support 7 frameworks with 8 evidence types and auditor-ready bundle packaging. test_auto_evidence.py validates the evidence source enum (8 sources). Gap: auto-collection from live engines is partially wired \u2014 scan_result and report evidence types are collected but config and log evidence types are not auto-collected from the running system.",
+  "missing": [
+    "Config evidence auto-collection: scheduled job that exports current engine configuration snapshots as config evidence items mapped to SOC2/ISO27001 controls",
+    "Log evidence collection: ship daily log archives from structlog output to the evidence collector as log evidence with SHA-256 integrity hashes",
+    "Auditor bundle API: /api/v1/evidence/bundle/export that zips all collected evidence for a framework+date-range into a password-protected auditor package"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_evidence_collector.py",
+    "suite-core/core/evidence_collector.py",
+    "tests/test_auto_evidence.py"
+  ],
+  "community_size": 566,
+  "generated_at": "2026-04-17"
+}

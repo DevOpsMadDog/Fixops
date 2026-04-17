@@ -1,0 +1,21 @@
+{
+  "community_id": 50,
+  "rank": 51,
+  "domain": "fedramp_identity_governance",
+  "title": "FedRAMP Controls + Identity Analytics + IGA \u2014 Certification Campaign Automation",
+  "current_state": "PARTIAL",
+  "description": "test_fedramp_controls.py, test_identity_risk_engine.py, and test_identity_analytics_engine.py cluster with test_iga_engine.py. The IGA engine creates access reviews but certification campaigns are not scheduled \u2014 reviewers must be manually notified. FedRAMP controls are listed but not mapped to ALDECI's actual access control policies.",
+  "missing": [
+    "Certification campaign scheduler: cron job that creates periodic access review campaigns per configured frequency (quarterly/annual) and emails reviewers with direct links to their certification queue",
+    "FedRAMP control \u2192 access policy mapping: map each AC family FedRAMP control to the corresponding access_control_engine policy and show compliance status per control",
+    "Identity risk \u2192 IGA trigger: when identity_risk_engine computes risk_level=high, auto-create an access review for that identity's entitlements"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_fedramp_controls.py",
+    "tests/test_identity_risk_engine.py",
+    "tests/test_identity_analytics_engine.py"
+  ],
+  "community_size": 748,
+  "generated_at": "2026-04-17"
+}

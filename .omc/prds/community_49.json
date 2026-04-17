@@ -1,0 +1,21 @@
+{
+  "community_id": 49,
+  "rank": 50,
+  "domain": "phishing_simulation_openclaw",
+  "title": "Phishing Simulator + OpenClaw Engine \u2014 Campaign Execution & Results Pipeline",
+  "current_state": "PARTIAL",
+  "description": "test_phishing_simulator.py and test_openclaw_engine.py cluster with siem_engine.py (CEF/LEEF/JSON format output). The phishing simulator manages campaigns and recipients but does not actually send phishing emails \u2014 the SMTP delivery step is a stub. OpenClaw pentest swarm is defined but autonomous execution is not wired.",
+  "missing": [
+    "SMTP delivery integration: implement phishing email sender using smtplib with configurable SMTP relay, tracking pixel embedding, and link click tracking",
+    "Click/open event receiver: FastAPI endpoint /api/v1/phishing/track/{token} that records opens and clicks in the campaign results DB",
+    "OpenClaw autonomous execution: wire openclaw_engine to spawn SwarmClaw agent tasks for each pentest scenario so attacks execute autonomously overnight"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_phishing_simulator.py",
+    "tests/test_openclaw_engine.py",
+    "suite-integrations/integrations/siem_engine.py"
+  ],
+  "community_size": 748,
+  "generated_at": "2026-04-17"
+}

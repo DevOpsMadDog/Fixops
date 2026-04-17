@@ -1,0 +1,19 @@
+{
+  "community_id": 98,
+  "rank": 99,
+  "domain": "ai_agents",
+  "title": "MindsDB AI Agents \u2014 Real Model Execution & Multi-Agent Coordination",
+  "current_state": "CRUD_ONLY",
+  "description": "mindsdb_agents.py defines 5 agent classes (SecurityAnalyst, Pentest, Compliance, Remediation, Orchestrator) with AgentCapability and ModelType enums. process() and execute_action() are abstract methods. The agents are designed to use MindsDB ML but no actual ML model calls are wired \u2014 all implementations return stub responses.",
+  "missing": [
+    "MindsDB connection: implement MindsDBClient that connects to the MindsDB instance (MINDSDB_HOST/PORT env vars) and executes ML queries via MySQL protocol",
+    "SecurityAnalystAgent real execution: implement process() to query the MindsDB vulnerability_classifier model with finding JSON and return risk score",
+    "Orchestrator multi-agent coordination: implement OrchestratorAgent.coordinate() that spawns sub-agent tasks in parallel using asyncio.gather and merges results"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "suite-core/agents/mindsdb_agents.py"
+  ],
+  "community_size": 93,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 27,
+  "rank": 28,
+  "domain": "security_training_gamification",
+  "title": "Security Training Tracker \u2014 Gamification Engine Live Integration",
+  "current_state": "PARTIAL",
+  "description": "security_training.py has a full catalog with role-based requirements, per-user completion tracking, compliance mapping, and effectiveness metrics. The security_champions_engine.py (level BRONZE/SILVER/GOLD computation) lives in the same cluster but the two engines are not wired: completing training modules does not increment champion points, and the bug_bounty engine findings do not feed back into training requirement triggers.",
+  "missing": [
+    "Wire training completion events to security_champions_engine: each completed module awards champion XP points based on category weight and quiz score",
+    "Bug bounty \u2192 training gap trigger: when a bug bounty finding matches a training category, auto-assign the corresponding module to the affected team",
+    "Certification expiry notification: 30/7/1-day ahead Slack/email alerts via notification_engine when certification expiry_date approaches"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "suite-core/core/security_training.py",
+    "tests/test_bug_bounty.py",
+    "tests/test_security_training.py"
+  ],
+  "community_size": 1202,
+  "generated_at": "2026-04-17"
+}

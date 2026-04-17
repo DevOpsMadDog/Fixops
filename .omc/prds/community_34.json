@@ -1,0 +1,21 @@
+{
+  "community_id": 34,
+  "rank": 34,
+  "domain": "insider_threat_siem",
+  "title": "Insider Threat + SIEM Integration \u2014 Behavioral Correlation Pipeline",
+  "current_state": "PARTIAL",
+  "description": "test_insider_threat.py, test_breach_detection_engine.py, and test_siem_integration_engine.py cluster together. The SIEM engine normalizes events from 4 source types but the event stream is not fed into the insider threat behavioral analytics engine. SIEM correlation alerts sit in their own DB without triggering insider threat risk score updates.",
+  "missing": [
+    "SIEM \u2192 insider threat pipeline: on each SIEM alert ingestion, call insider_threat_engine.analyze_user_risk() for the associated user_id and update their behavioral risk score",
+    "Breach detection \u2192 SIEM alert: when breach_detection_engine flags an anomaly, auto-publish a SIEM event so it appears in all downstream correlation and SOC dashboards",
+    "Cross-engine correlation window: implement a 15-minute sliding window that groups SIEM events by user_id and fires an insider threat alert when N events of sensitive types occur within the window"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_insider_threat.py",
+    "tests/test_breach_detection_engine.py",
+    "tests/test_soc_triage_engine.py"
+  ],
+  "community_size": 1076,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 100,
+  "rank": 100,
+  "domain": "error_handling_auditor",
+  "title": "Error Handling Auditor \u2014 Continuous AST Scan & Auto-Fix Pipeline",
+  "current_state": "REAL_LOGIC",
+  "description": "error_handling_auditor.py is an AST-based static analyzer that finds bare except:/except Exception: pass patterns across the codebase, classifying findings as critical/high/medium. 652 findings were identified in the initial run; top 6 critical fixed. Gap: the auditor runs on-demand only \u2014 new bare-except patterns can be introduced in new code without being caught in CI, and auto-fix is not implemented.",
+  "missing": [
+    "CI pre-commit hook: run error_handling_auditor on changed Python files in every PR and fail if any new critical/high bare-except patterns are introduced",
+    "Auto-fix generator: for bare except: blocks, generate an AST-based fix that wraps them in except Exception as e: with structlog.exception(e) logging",
+    "Auditor findings \u2192 vuln_lifecycle: persist auditor findings as DISCOVERED findings in vuln_lifecycle.db so they are tracked through the remediation pipeline"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_error_handling_auditor.py",
+    "suite-core/core/error_handling_auditor.py",
+    "suite-api/apps/api/error_audit_router.py"
+  ],
+  "community_size": 67,
+  "generated_at": "2026-04-17"
+}

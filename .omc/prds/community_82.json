@@ -1,0 +1,21 @@
+{
+  "community_id": 82,
+  "rank": 83,
+  "domain": "kubernetes_security",
+  "title": "Kubernetes Security \u2014 Live Cluster Scanning & RBAC Analysis",
+  "current_state": "REAL_LOGIC",
+  "description": "k8s_security.py implements NSA/CISA Kubernetes Hardening Guide checks, RBAC analysis, network policy audits, image security, secrets management, admission control, and cluster scoring. test_k8s_security.py and k8s_security_router.py confirm the full stack. Gap: scan_cluster() accepts a config dict but does not connect to a live Kubernetes API \u2014 it analyzes static config rather than querying a real cluster.",
+  "missing": [
+    "Live Kubernetes API integration: use kubernetes python client to query pods/deployments/rbac/network-policies from a real cluster via kubeconfig",
+    "Admission webhook: implement a ValidatingAdmissionWebhook that ALDECI exposes, blocking pod creation if it fails NSA/CISA checks",
+    "CIS benchmark auto-remediation: for selected low-risk findings (add resource limits, add readiness probe), auto-generate a kubectl patch command"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_k8s_security.py",
+    "suite-core/core/k8s_security.py",
+    "suite-api/apps/api/k8s_security_router.py"
+  ],
+  "community_size": 211,
+  "generated_at": "2026-04-17"
+}

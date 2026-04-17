@@ -1,0 +1,21 @@
+{
+  "community_id": 80,
+  "rank": 81,
+  "domain": "ide_integration",
+  "title": "IDE Integration API \u2014 SARIF Export & VS Code Extension Wiring",
+  "current_state": "REAL_LOGIC",
+  "description": "ide_router.py provides real-time code analysis via AST parsing and pattern matching with SARIF format support, security vulnerability detection, and code quality metrics. test_ide_router_unit.py validates the FastAPI endpoints. Gap: the IDE router is a standalone FastAPI app that is not mountable as a VS Code Language Server Protocol (LSP) extension, limiting its reach to HTTP-polling integrations only.",
+  "missing": [
+    "LSP server wrapper: implement a Language Server Protocol server using pygls that wraps the IDE router analysis and serves diagnostics via LSP protocol",
+    "VS Code extension manifest: create .vsix extension scaffold that connects to the LSP server and shows ALDECI findings as VS Code inline diagnostics",
+    "SARIF upload endpoint: /api/v1/ide/sarif/upload that accepts a SARIF 2.1 file from any scanner and normalizes findings into vuln_lifecycle.db"
+  ],
+  "priority": "low",
+  "top_files": [
+    "tests/test_ide_router_unit.py",
+    "suite-integrations/api/ide_router.py",
+    "suite-api/apps/api/incident_timeline_router.py"
+  ],
+  "community_size": 221,
+  "generated_at": "2026-04-17"
+}

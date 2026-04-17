@@ -1,0 +1,21 @@
+{
+  "community_id": 51,
+  "rank": 52,
+  "domain": "dast_scanner",
+  "title": "DAST Scanner \u2014 Authentication Handling & OAuth2 Flow Support",
+  "current_state": "REAL_LOGIC",
+  "description": "dast_scanner.py performs real HTTP crawling with form/parameter discovery, OWASP Top 10 dynamic tests, and security header analysis using urllib without external dependencies. Competitive parity with ZAP/Burp Community. Gap: authentication handling supports cookie/JWT/API key but OAuth2 authorization_code flow is not implemented, blocking authenticated scans of OIDC-protected endpoints.",
+  "missing": [
+    "OAuth2 authorization_code flow: implement OAuth2 authenticator that performs the full code exchange and refreshes access tokens during scans",
+    "Scan profile persistence: save scan configurations (auth, scope, exclusions) to dast_profiles.db so recurring scans reuse the same settings",
+    "SARIF output format: add export_sarif() method so DAST findings can be imported into GitHub Advanced Security and other SARIF consumers"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_dast_scanner.py",
+    "tests/test_dast_engine_unit.py",
+    "suite-core/core/dast_scanner.py"
+  ],
+  "community_size": 740,
+  "generated_at": "2026-04-17"
+}

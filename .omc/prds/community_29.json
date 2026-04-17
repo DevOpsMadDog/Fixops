@@ -1,0 +1,21 @@
+{
+  "community_id": 29,
+  "rank": 30,
+  "domain": "analytics_duckdb",
+  "title": "DuckDB Cross-Domain Analytics Engine \u2014 Real-Time Query & Export Layer",
+  "current_state": "REAL_LOGIC",
+  "description": "analytics_router.py and analytics_engine.py implement real statistical computation: moving averages, z-score anomaly detection, comparative metrics, severity heatmaps, and CSV streaming export using DuckDB. The phase7 analytics tests confirm solid coverage. The engine discovers SQLite DBs dynamically from the data directory. Gap: no scheduled materialized view refresh, and cross-org queries are not guarded by org_id partitioning in DuckDB.",
+  "missing": [
+    "Org-id partitioning: add WHERE org_id = ? to every DuckDB federated query so cross-domain analytics cannot leak data across tenants",
+    "Materialized view scheduler: run DuckDB aggregation queries every 15 minutes and cache results in analytics_cache.db to serve dashboards in <100ms",
+    "Streaming export pagination: implement cursor-based pagination for CSV/JSON exports so large result sets stream in chunks without OOM risk"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_phase7_analytics.py",
+    "suite-api/apps/api/analytics_router.py",
+    "tests/test_analytics_engine.py"
+  ],
+  "community_size": 1147,
+  "generated_at": "2026-04-17"
+}

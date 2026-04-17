@@ -1,0 +1,21 @@
+{
+  "community_id": 36,
+  "rank": 37,
+  "domain": "webhook_sso_material_change",
+  "title": "Webhook Security + SSO + Material Change Detector \u2014 Full Event Pipeline",
+  "current_state": "PARTIAL",
+  "description": "test_webhook_security.py, test_sso_provider.py, and test_material_change_detector.py cluster together. The material change detector identifies security-relevant git changes (auth, crypto, infra) and computes blast radius, but it does not trigger SSO re-authentication or webhook notifications to security team channels when a material change is detected.",
+  "missing": [
+    "Material change \u2192 webhook notification: when a material change is detected in a security-critical file, auto-fire a webhook to the configured Slack/Teams channel with the blast radius summary",
+    "SSO session invalidation on critical change: when a material change touches auth/session code, trigger SSO bridge to invalidate all active sessions and force re-authentication",
+    "n8n workflow integration: publish material change events to the n8n webhook endpoint so security team can build custom approval workflows in n8n"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_webhook_security.py",
+    "tests/test_sso_provider.py",
+    "tests/test_material_change_detector.py"
+  ],
+  "community_size": 1003,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 69,
+  "rank": 70,
+  "domain": "compliance_planner_patch",
+  "title": "Compliance Planner + Patch Automation \u2014 Remediation Step Execution",
+  "current_state": "PARTIAL",
+  "description": "compliance_planner.py generates remediation plans with effort estimates for 7 frameworks. test_patch_automation_engine.py clusters here. Gap: compliance plans are CRUD only \u2014 remediation steps have status tracking but no actual implementation executor. Patch automation tests confirm a patch_automation_engine exists but it only schedules patch jobs without executing them via OS package manager or CI pipeline trigger.",
+  "missing": [
+    "Compliance step executor: for technical control steps (e.g. 'enable MFA'), auto-generate an implementation ticket in jira/github via universal_connector",
+    "Patch automation executor: implement apt/yum/pip package updater subprocess call wrapped in a sandbox for automated patch application in test environments",
+    "Compliance planner \u2192 OKR sync: when a compliance plan milestone is completed, auto-update the corresponding security_okr_engine key result progress"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_patch_automation_engine.py",
+    "tests/test_compliance_planner.py",
+    "suite-core/core/compliance_planner.py"
+  ],
+  "community_size": 418,
+  "generated_at": "2026-04-17"
+}

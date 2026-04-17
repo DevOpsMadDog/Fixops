@@ -1,0 +1,21 @@
+{
+  "community_id": 57,
+  "rank": 58,
+  "domain": "mitre_executive_dashboard",
+  "title": "MITRE ATT&CK Navigator + Executive Dashboard \u2014 Board Report Automation",
+  "current_state": "REAL_LOGIC",
+  "description": "executive_dashboard.py has FAIR Monte Carlo ALE simulation, risk trend snapshots, peer benchmarking, regulatory risk heatmap, M&A due diligence, and board report generation. test_mitre_navigator.py validates 14 tactics and 100+ techniques. Gap: the board report is a JSON dict that must be manually formatted; no PDF/HTML rendering pipeline exists, and the MITRE coverage data is static rather than computed from actual hunt/detection results.",
+  "missing": [
+    "Board report PDF rendering: Jinja2 HTML template + weasyprint PDF generation for the board report JSON, accessible via /api/v1/exec-reporting/board-report/export",
+    "Live MITRE coverage from detections: query threat_hunting_engine and siem_integration_engine results to compute actual ATT&CK technique coverage percentage",
+    "Regulatory risk heatmap live scoring: pull compliance_mapping_engine implementation_rates to update the GDPR/HIPAA/PCI-DSS heatmap in real time"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_mitre_navigator.py",
+    "suite-core/core/executive_dashboard.py",
+    "tests/test_executive_dashboard.py"
+  ],
+  "community_size": 629,
+  "generated_at": "2026-04-17"
+}

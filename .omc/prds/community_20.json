@@ -1,0 +1,21 @@
+{
+  "community_id": 20,
+  "rank": 21,
+  "domain": "security_metrics",
+  "title": "Security Metrics & DORA KPI Engine \u2014 Live Pipeline + Dashboard Wiring",
+  "current_state": "PARTIAL",
+  "description": "security_metrics.py has real DORA/MTTD/MTTR logic with industry benchmark data (Verizon DBIR 2024, Ponemon/IBM) and OKR tracking, but metric ingestion relies on caller-supplied data rather than auto-pulling from the 300+ SQLite engines. The sbom and beast_mode_integration tests confirm coverage of the supply-chain risk domain. No scheduler drives periodic metric snapshots, and the frontend Security Metrics dashboard (/security-metrics) still uses mock data.",
+  "missing": [
+    "Auto-ingest pipeline: cron job that queries the 60+ domain DBs hourly and writes computed MTTD/MTTR/CFR/OKR snapshots into security_metrics.db",
+    "Live frontend wiring: replace mock data in SecurityMetricsDashboard with /api/v1/kpi and /api/v1/security-metrics real endpoints",
+    "Peer-benchmarking API: expose /api/v1/metrics/benchmark that compares org metrics against Verizon DBIR/Ponemon percentiles and returns percentile rank"
+  ],
+  "priority": "high",
+  "top_files": [
+    "suite-core/core/security_metrics.py",
+    "tests/test_sbom.py",
+    "tests/test_beast_mode_integration.py"
+  ],
+  "community_size": 1363,
+  "generated_at": "2026-04-17"
+}

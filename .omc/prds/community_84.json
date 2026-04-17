@@ -1,0 +1,21 @@
+{
+  "community_id": 84,
+  "rank": 85,
+  "domain": "backup_disaster_recovery",
+  "title": "Backup Validator \u2014 DR Test Automation & Geographic Redundancy Verification",
+  "current_state": "REAL_LOGIC",
+  "description": "backup_validator.py tracks backup jobs, RPO/RTO, DR plans, DR test results, geographic redundancy, and business continuity scoring (0-100). test_backup_validator.py validates the full stack. Gap: DR test scheduling is tracked but not automated \u2014 tests must be manually initiated. Geographic redundancy tracking records locations but does not verify that a backup actually exists at the secondary location.",
+  "missing": [
+    "DR test automation: scheduled quarterly DR test that spins up a restore in a temp environment, verifies data integrity, and records the result automatically",
+    "Geographic redundancy verification: ping the secondary backup location and verify the backup file exists and matches the SHA-256 checksum",
+    "RTO/RPO breach alerting: when actual RTO exceeds target RTO during a DR test, fire a P1 PagerDuty alert and create a remediation finding"
+  ],
+  "priority": "low",
+  "top_files": [
+    "tests/test_backup_validator.py",
+    "suite-core/core/backup_validator.py",
+    "suite-api/apps/api/backup_validator_router.py"
+  ],
+  "community_size": 198,
+  "generated_at": "2026-04-17"
+}

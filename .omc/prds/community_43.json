@@ -1,0 +1,21 @@
+{
+  "community_id": 43,
+  "rank": 44,
+  "domain": "cspm_cloud_inventory",
+  "title": "CSPM + Cloud Resource Inventory \u2014 Multi-Cloud Posture Live Sync",
+  "current_state": "PARTIAL",
+  "description": "cloud_connectors.py has abstract CloudProvider interface for AWS/Azure/GCP with unified resource/finding/posture APIs, rate limiting, and health monitoring. test_cspm_engine.py and test_cloud_resource_inventory_engine.py cluster here. Gap: the CSPM engine ingests findings from external scanners but does not actively query live cloud APIs \u2014 AWS Security Hub, Azure Defender, and GCP SCC integration are stubbed.",
+  "missing": [
+    "AWS Security Hub live ingestion: implement boto3 SecurityHub.get_findings() pagination with ASFF\u2192internal finding normalization on a 15-minute schedule",
+    "Azure Defender live ingestion: use azure-mgmt-security SDK to pull Security Center alerts and recommendations per subscription",
+    "GCP SCC live ingestion: use google-cloud-securitycenter to pull active findings per organization and normalize to CloudResource schema"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_cspm_engine.py",
+    "suite-core/core/cloud_connectors.py",
+    "tests/test_cspm.py"
+  ],
+  "community_size": 938,
+  "generated_at": "2026-04-17"
+}

@@ -1,0 +1,21 @@
+{
+  "community_id": 73,
+  "rank": 74,
+  "domain": "feature_flags_container_registry",
+  "title": "Feature Flags + Container Registry Security \u2014 Dynamic Flag Evaluation",
+  "current_state": "PARTIAL",
+  "description": "flags/registry.py provides a typed feature flag registry with metadata, owner tracking, and expiry detection. test_container_registry_security_engine.py clusters here. Gap: feature flags are registered at startup but evaluation is not integrated with any runtime toggle \u2014 features in the codebase are not conditionally gated by flag checks, and container registry security scan policies are not flag-gated for gradual rollout.",
+  "missing": [
+    "Runtime flag evaluation: implement get_flag(key, org_id) that returns the effective value considering org-level overrides stored in flags_overrides.db",
+    "Container registry policy flag gating: gate the block_unsigned_images policy behind a feature flag so it can be rolled out per-org without code changes",
+    "Flag expiry alerting: daily job that finds flags past their expiry date and sends Slack alert to flag.owner with a link to remove the flag"
+  ],
+  "priority": "low",
+  "top_files": [
+    "tests/test_flags.py",
+    "tests/test_container_registry_security_engine.py",
+    "suite-core/core/flags/registry.py"
+  ],
+  "community_size": 337,
+  "generated_at": "2026-04-17"
+}

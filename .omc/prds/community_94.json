@@ -1,0 +1,21 @@
+{
+  "community_id": 94,
+  "rank": 95,
+  "domain": "vuln_lifecycle",
+  "title": "Vulnerability Lifecycle Tracker \u2014 State Machine Metrics & SLA Breach Alerts",
+  "current_state": "REAL_LOGIC",
+  "description": "vuln_lifecycle.py implements a 9-state FSM (DISCOVERED\u2192TRIAGED\u2192ASSIGNED\u2192IN_PROGRESS\u2192FIXED\u2192VERIFIED\u2192CLOSED/REOPENED/WONT_FIX) with flow metrics and bottleneck detection. vuln_lifecycle_router.py exposes the full API. Gap: stage transition events are not published to the EventBus, so other engines (SLA, notification, posture scoring) are not notified of lifecycle changes.",
+  "missing": [
+    "EventBus publication on state transition: publish a VulnLifecycleEvent to EventBus on every state change so SLA, notification, and posture engines react",
+    "SLA breach alert on ASSIGNED\u2192IN_PROGRESS delay: if a finding stays in ASSIGNED for longer than the SLA deadline, fire a notification to the assignee",
+    "Bottleneck dashboard widget: /api/v1/vuln-lifecycle/bottlenecks endpoint returning stage distribution and avg_days_in_stage for pipeline visualization"
+  ],
+  "priority": "high",
+  "top_files": [
+    "tests/test_vuln_lifecycle.py",
+    "suite-api/apps/api/vuln_lifecycle_router.py",
+    "suite-core/core/vuln_lifecycle.py"
+  ],
+  "community_size": 114,
+  "generated_at": "2026-04-17"
+}

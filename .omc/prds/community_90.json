@@ -1,0 +1,21 @@
+{
+  "community_id": 90,
+  "rank": 91,
+  "domain": "changelog_release",
+  "title": "Changelog Generator \u2014 Release Notes Automation & Version Tagging",
+  "current_state": "REAL_LOGIC",
+  "description": "changelog_generator.py parses git conventional commits and beast-mode format commits, produces MARKDOWN/JSON/HTML output with semantic versioning. test_changelog_generator.py validates all commit type parsings. Gap: changelog generation is on-demand only \u2014 there is no CI step that auto-generates and commits the CHANGELOG.md on each release tag push.",
+  "missing": [
+    "CI release automation: GitHub Actions workflow on tag push (v*) that runs changelog_generator, commits CHANGELOG.md, and creates a GitHub Release",
+    "Version auto-increment: implement semver bump logic (patch/minor/major) based on the highest change type in the commit range since the last tag",
+    "Release diff API: /api/v1/changelog/diff?from=v1.0&to=v1.1 that returns the changelog between two version tags for release notes embedding"
+  ],
+  "priority": "low",
+  "top_files": [
+    "tests/test_changelog_generator.py",
+    "suite-core/core/changelog_generator.py",
+    "suite-api/apps/api/changelog_router.py"
+  ],
+  "community_size": 135,
+  "generated_at": "2026-04-17"
+}

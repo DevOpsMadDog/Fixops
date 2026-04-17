@@ -1,0 +1,21 @@
+{
+  "community_id": 56,
+  "rank": 57,
+  "domain": "risk_quantification",
+  "title": "Risk Quantification \u2014 FAIR Monte Carlo + Risk Treatment ROI Pipeline",
+  "current_state": "REAL_LOGIC",
+  "description": "test_risk_quantifier.py, test_risk_treatment_engine.py, and test_risk_quantification_engine_v2.py cluster with test_risk_aggregator_engine.py. The FAIR v2 engine computes SLE/ARO/ALE with control ROI. risk_aggregator_engine gives org-level composite A-F grades. Gap: the FAIR model uses fixed distribution parameters rather than calibrated values from historical incident data, and the treatment ROI is not compared against actual control costs from security_budget_engine.",
+  "missing": [
+    "Historical calibration: query ir_playbook_engine incident costs and use them to calibrate FAIR ARO/SLE distributions instead of fixed defaults",
+    "Treatment ROI vs budget: cross-reference risk_treatment ROI projections against actual security_budget_engine allocations to show real vs projected ROI",
+    "Monte Carlo visualization data: /api/v1/risk-quant/simulation/{id}/histogram returning ALE distribution buckets for frontend loss-exceedance curve rendering"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_risk_quantifier.py",
+    "tests/test_risk_treatment_engine.py",
+    "tests/test_risk_quantification_engine_v2.py"
+  ],
+  "community_size": 641,
+  "generated_at": "2026-04-17"
+}

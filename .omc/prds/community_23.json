@@ -1,0 +1,21 @@
+{
+  "community_id": 23,
+  "rank": 24,
+  "domain": "network_api_security_testing",
+  "title": "Network ACL + API Gateway Security \u2014 Integration Test Coverage Gaps",
+  "current_state": "CRUD_ONLY",
+  "description": "test_network_access_control_engine.py, test_api_gateway_security_engine.py, and test_api_abuse_detection_engine.py provide 57-65 tests each but they are unit tests against the SQLite CRUD layer. The test_security_health_engine.py community anchor exposes that health checks are registered but never actually executed against live services. No integration tests verify that NAC posture scores drive real firewall policy changes.",
+  "missing": [
+    "Integration test harness: spin up a local FastAPI app and verify NAC posture check results change the allow/quarantine decision on simulated devices",
+    "Security health check executor: implement a scheduler that runs registered checks against live endpoints and writes pass/fail results to the health DB",
+    "API abuse detection live mode: wire the abuse detection engine to RASP middleware so flagged endpoints get automatic rate-limit rule injection"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_network_access_control_engine.py",
+    "tests/test_api_gateway_security_engine.py",
+    "tests/test_api_abuse_detection_engine.py"
+  ],
+  "community_size": 1272,
+  "generated_at": "2026-04-17"
+}

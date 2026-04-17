@@ -1,0 +1,21 @@
+{
+  "community_id": 40,
+  "rank": 41,
+  "domain": "iast_anomaly_ml",
+  "title": "IAST Advanced + ML Anomaly Detection \u2014 Taint Tracking Production Hardening",
+  "current_state": "REAL_LOGIC",
+  "description": "iast_advanced.py uses AST-based control/data flow analysis, taint tracking, symbolic execution, and numpy-based statistical anomaly detection. test_anomaly_ml.py and test_cloud_security_analytics_engine.py cluster here. Gap: taint tracking is done on Python AST only (not bytecode), missing cross-function taint propagation, and numpy anomaly detection is not connected to the real-time event stream.",
+  "missing": [
+    "Cross-function taint propagation: implement inter-procedural analysis that follows tainted values through function call boundaries using a call graph",
+    "Real-time event stream integration: consume EventBus events in the anomaly detector so ML models score live request patterns instead of only batch AST scans",
+    "Bytecode-level analysis: use dis module to analyze compiled .pyc files and detect taint flows that are obfuscated at the source level"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_iast_advanced_unit.py",
+    "tests/test_anomaly_ml.py",
+    "suite-evidence-risk/risk/runtime/iast_advanced.py"
+  ],
+  "community_size": 952,
+  "generated_at": "2026-04-17"
+}

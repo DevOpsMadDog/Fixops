@@ -1,0 +1,21 @@
+{
+  "community_id": 74,
+  "rank": 75,
+  "domain": "dashboard_builder_cloud_cost",
+  "title": "Dashboard Builder + Cloud Cost Security \u2014 Custom Widget & Cost Threshold Alerts",
+  "current_state": "PARTIAL",
+  "description": "test_dashboard_builder.py and test_cloud_cost_security_engine.py cluster together. The dashboard builder has widget CRUD but currently only supports static data sources \u2014 widgets cannot query live engine endpoints. Cloud cost security detects >50% MoM spikes but alerts are stored rather than delivered to the configured notification channel.",
+  "missing": [
+    "Live widget data source: each dashboard widget should have a data_source_url field; the builder fetches and caches the URL on dashboard load",
+    "Cost spike \u2192 Slack/PagerDuty alert: when cloud_cost_security records a >50% MoM spike, fire PagerDuty alert for cost anomalies above $10K threshold",
+    "Snapshot-based cost trending: store daily cost snapshots and expose /api/v1/cloud-cost/trend?days=30 for the executive dashboard cost chart"
+  ],
+  "priority": "low",
+  "top_files": [
+    "tests/test_dashboard_builder.py",
+    "tests/test_cloud_cost_security_engine.py",
+    "suite-api/apps/api/dashboard_builder_router.py"
+  ],
+  "community_size": 332,
+  "generated_at": "2026-04-17"
+}

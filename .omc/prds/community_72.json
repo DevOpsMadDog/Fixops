@@ -1,0 +1,21 @@
+{
+  "community_id": 72,
+  "rank": 73,
+  "domain": "aws_integration_storage",
+  "title": "AWS Integration + Storage Backends \u2014 LocalStack-to-Live Migration Path",
+  "current_state": "REAL_LOGIC",
+  "description": "aws_integration.py provides S3EvidenceStore, SecurityHubPusher, IAMAuditor, and CloudWatchMetrics targeting LocalStack by default. storage_backends.py implements WORM-compliant storage with governance/compliance retention modes. Gap: switching from LocalStack to live AWS requires manual endpoint_url=None change \u2014 there is no environment-driven migration path, and the IAMAuditor does not auto-remediate overprivileged policies.",
+  "missing": [
+    "Environment-driven AWS mode: read AWS_ENDPOINT_URL env var; if empty/None, use real AWS endpoints with full SigV4 signing and no LocalStack fallback",
+    "IAM overprivilege auto-remediation: when IAMAuditor finds overprivileged policies, generate least-privilege replacement policy JSON and optionally apply via boto3",
+    "S3 Object Lock enforcement: when creating WORM evidence buckets, enforce S3 Object Lock COMPLIANCE mode with retention_days from policy"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_aws_real.py",
+    "suite-core/core/storage_backends.py",
+    "suite-core/core/aws_integration.py"
+  ],
+  "community_size": 341,
+  "generated_at": "2026-04-17"
+}

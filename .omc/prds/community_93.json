@@ -1,0 +1,21 @@
+{
+  "community_id": 93,
+  "rank": 94,
+  "domain": "postfix_verification",
+  "title": "Postfix Verifier \u2014 Exploit Retest & Fix Confidence Scoring",
+  "current_state": "REAL_LOGIC",
+  "description": "postfix_verifier.py closes the Find\u2192Fix\u2192VERIFY loop with static+AST vulnerability elimination checks, regression detection, safe dependency verification, MPTE exploit retest, and test coverage estimation. This is ALDECI's primary differentiator. Gap: MPTE exploit retest is implemented but calls a stub HTTP client rather than the real MPTE scanner, and the fix confidence score (0-100) is not surfaced in the UI.",
+  "missing": [
+    "Real MPTE exploit retest: wire the MPTE retest step to the real MPTE scan engine (suite-attack/mpte/) with the original exploit payload replayed",
+    "Fix confidence score UI: surface the 0-100 fix confidence score in the vuln_lifecycle detail page alongside the finding status",
+    "Regression detection CI gate: integrate postfix_verifier into the CI pipeline so a PR that introduces a new CWE fails the check automatically"
+  ],
+  "priority": "high",
+  "top_files": [
+    "suite-core/core/postfix_verifier.py",
+    "tests/test_postfix_verifier.py",
+    "suite-core/api/postfix_verify_router.py"
+  ],
+  "community_size": 119,
+  "generated_at": "2026-04-17"
+}

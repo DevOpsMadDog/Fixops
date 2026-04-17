@@ -1,0 +1,21 @@
+{
+  "community_id": 87,
+  "rank": 88,
+  "domain": "webhook_integration",
+  "title": "Webhooks Router \u2014 Outbox Pattern & Jira/ServiceNow Signature Verification",
+  "current_state": "REAL_LOGIC",
+  "description": "webhooks_router.py implements JiraWebhookPayload, ServiceNowWebhookPayload, status mapping, OutboxRequest pattern, and HMAC signature verification. test_webhooks_router_unit.py and test_webhooks_router_outbox.py confirm both inbound and outbound paths. Gap: the outbox pattern stores events but the delivery worker that drains the outbox is not started \u2014 outbox records accumulate without being delivered.",
+  "missing": [
+    "Outbox delivery worker: background thread that polls outbox.db every 5 seconds, delivers pending events via httpx, and marks them delivered or failed",
+    "Dead letter queue: after 3 failed delivery attempts, move outbox record to dead_letter.db and alert on-call via notification_engine",
+    "Webhook retry with exponential backoff: implement 1s/5s/30s retry intervals with jitter for transient delivery failures"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_webhooks_router_unit.py",
+    "suite-integrations/api/webhooks_router.py",
+    "tests/test_webhooks_router_outbox.py"
+  ],
+  "community_size": 159,
+  "generated_at": "2026-04-17"
+}

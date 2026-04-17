@@ -1,0 +1,21 @@
+{
+  "community_id": 92,
+  "rank": 92,
+  "domain": "webhook_verification",
+  "title": "Webhook Verifier \u2014 Auto-Detection Expansion & Per-Provider Secret Rotation",
+  "current_state": "REAL_LOGIC",
+  "description": "webhook_verifier.py supports 8 providers (GitHub, GitLab, Jira, ServiceNow, Slack, PagerDuty, Stripe, Custom) with HMAC verification, auto-detection, SQLite audit log, and per-org stats. test_webhook_verifier.py validates the verify/detect/stats flow. Gap: provider secrets are stored as plaintext in the DB rather than using secrets_management_engine, and auto-detection heuristics are not updated when new provider signature formats emerge.",
+  "missing": [
+    "Secret storage migration: move webhook provider secrets to secrets_management_engine with rotation support and TTL enforcement",
+    "Provider format auto-update: implement a provider_signature_formats.json that can be updated without code changes to add new provider detection patterns",
+    "Webhook replay attack prevention: add a 5-minute timestamp window check on all provider signatures to reject replayed webhook deliveries"
+  ],
+  "priority": "medium",
+  "top_files": [
+    "tests/test_webhook_verifier.py",
+    "suite-core/core/webhook_verifier.py",
+    "suite-api/apps/api/webhook_verifier_router.py"
+  ],
+  "community_size": 122,
+  "generated_at": "2026-04-17"
+}
