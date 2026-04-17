@@ -107,14 +107,23 @@ function krProgress(kr: KeyResult) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityOKRDashboard() {
+  const [objectives, setObjectives] = useState(MOCK_OBJECTIVES);
+
+  useEffect(() => {
+    fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setObjectives(d); })
+      .catch(() => {});
+  }, []);
+
   const [period, setPeriod] = useState<Period>("Q2 2026");
   const [selectedObjective, setSelectedObjective] = useState<string>(MOCK_OBJECTIVES[0].id);
   const [updateKR, setUpdateKR] = useState<string | null>(null);
   const [updateValue, setUpdateValue] = useState("");
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(d => { if (Array.isArray(d)) setObjectives(d); })
       .catch(() => {});
   }, []);
   const [updateNotes, setUpdateNotes] = useState("");

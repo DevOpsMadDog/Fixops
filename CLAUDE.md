@@ -253,10 +253,10 @@ from core.brain_pipeline import BrainPipeline  # just works
 ## WHAT TO BUILD NEXT (Priority Order)
 
 ### HIGH PRIORITY
-1. **Register API keys** — NVD (nvd.nist.gov) + abuse.ch (auth.abuse.ch) — reminder set for 2026-04-17 18:00. Wire OTX AlienVault + URLhaus once keys acquired.
-2. **Scheduled report delivery** — email/Slack via n8n workflows now that N8nAPIClient is live
-3. **OpenClaw pentest swarm** — autonomous red team via attack sim
-4. **SBOM generation endpoint** — `/api/v1/sbom` export in CycloneDX/SPDX format
+1. ✅ **Register API keys** — NVD/abuse.ch/OTX AlienVault/URLhaus — DONE
+2. ✅ **Scheduled report delivery** — email/Slack via n8n workflows — DONE
+3. ✅ **OpenClaw pentest swarm** — autonomous red team via attack sim — DONE
+4. ✅ **SBOM generation endpoint** — `/api/v1/sbom` export in CycloneDX/SPDX format — DONE
 5. **Wire tests for awareness_score, ndr, xdr, edr engines** — engine files exist, test files have 0 tests
 
 ### MEDIUM PRIORITY

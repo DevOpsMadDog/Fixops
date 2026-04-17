@@ -133,6 +133,15 @@ const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", 
 // ── Component ──────────────────────────────────────────────────
 
 export default function ComplianceCalendarDashboard() {
+  const [calEvents, setCalEvents] = useState(EVENTS);
+
+  useEffect(() => {
+    fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setCalEvents(d); })
+      .catch(() => {});
+  }, []);
+
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })

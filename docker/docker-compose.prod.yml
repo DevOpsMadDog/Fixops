@@ -1,0 +1,193 @@
+# ============================================
+# ALDECI Production Stack — Lean Deployment
+# ============================================
+# Minimal production setup: API + UI + Redis.
+# No heavy enterprise deps (Wazuh, LocalStack, NetBox).
+# Use docker-compose.enterprise.yml for the full stack.
+#
+# Usage:
+#   cp docker/enterprise.env.example docker/.env
+#   # Fill in FIXOPS_API_TOKEN and FIXOPS_JWT_SECRET at minimum
+#   docker compose -f docker/docker-compose.prod.yml up -d
+#   docker compose -f docker/docker-compose.prod.yml up -d --build  # rebuild images
+#   docker compose -f docker/docker-compose.prod.yml down            # stop
+#   docker compose -f docker/docker-compose.prod.yml down -v        # stop + wipe volumes
+#
+# Access:
+#   UI  →  http://localhost:3000
+#   API →  http://localhost:8000
+#   Docs → http://localhost:8000/docs
+#
+# Secrets (required in .env or environment):
+#   FIXOPS_API_TOKEN   — API bearer token (generate: python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+#   FIXOPS_JWT_SECRET  — JWT signing secret (generate same way)
+# ============================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+x-aldeci-env: &aldeci-env
+  FIXOPS_MODE: "${FIXOPS_MODE:-production}"
+  FIXOPS_API_TOKEN: "${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN is required}"
+  FIXOPS_JWT_SECRET: "${FIXOPS_JWT_SECRET:?FIXOPS_JWT_SECRET is required}"
+  FIXOPS_DATA_DIR: "/app/data"
+  FIXOPS_LOG_LEVEL: "${FIXOPS_LOG_LEVEL:-warning}"
+  FIXOPS_DISABLE_TELEMETRY: "1"
+  FIXOPS_SQLITE_DIR: "/app/data"
+  REDIS_URL: "redis://redis:6379/0"
+  FIXOPS_REDIS_URL: "redis://redis:6379/0"
+  PYTHONUNBUFFERED: "1"
+  # LLM providers (optional)
+  OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+  ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+  OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+
+services:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # redis — Cache + rate limiting + job queue (Redis 7)
+  # ────────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: aldeci-prod-redis
+    <<: *default-restart
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+    volumes:
+      - prod-redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    networks:
+      - aldeci-prod
+    labels:
+      - "aldeci.service=infrastructure"
+      - "aldeci.role=cache"
+      - "aldeci.tier=data"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # aldeci — FastAPI backend (ALDECI CTEM+ Platform)
+  # Service name is "aldeci" to match nginx-ui.conf proxy_pass target.
+  # Health: http://localhost:8000/health
+  # Docs:   http://localhost:8000/docs
+  # ────────────────────────────────────────────────────────────────────────────
+  aldeci:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    image: aldeci-api:prod
+    container_name: aldeci-prod-api
+    <<: *default-restart
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *aldeci-env
+      FIXOPS_WORKERS: "${FIXOPS_WORKERS:-1}"
+      ALDECI_SEED_DEMO: "${ALDECI_SEED_DEMO:-0}"
+      PYTHONPATH: "/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app"
+    volumes:
+      # SQLite domain DBs, evidence files, scan results — persisted across restarts
+      - prod-aldeci-data:/app/data
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    networks:
+      - aldeci-prod
+    labels:
+      - "aldeci.service=api"
+      - "aldeci.role=backend"
+      - "aldeci.tier=application"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # aldeci-ui — React 19 frontend (Nginx serving Vite build)
+  # Proxies /api/* and /ws/* to the aldeci service above.
+  # Access: http://localhost:3000
+  # ────────────────────────────────────────────────────────────────────────────
+  aldeci-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+      args:
+        VITE_API_URL: "${VITE_API_URL:-http://localhost:8000}"
+    image: aldeci-ui:prod
+    container_name: aldeci-prod-ui
+    <<: *default-restart
+    depends_on:
+      aldeci:
+        condition: service_healthy
+    ports:
+      - "${UI_PORT:-3000}:80"
+    volumes:
+      # Mount nginx config — proxies /api/* to aldeci:8000, SPA fallback
+      - ./nginx-ui.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/nginx-health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+    networks:
+      - aldeci-prod
+    labels:
+      - "aldeci.service=ui"
+      - "aldeci.role=frontend"
+      - "aldeci.tier=presentation"
+
+# ─── Named Volumes ────────────────────────────────────────────────────────────
+volumes:
+  # Redis AOF persistence
+  prod-redis-data:
+    driver: local
+  # ALDECI per-domain SQLite DBs, evidence, scan results
+  prod-aldeci-data:
+    driver: local
+
+# ─── Network ──────────────────────────────────────────────────────────────────
+networks:
+  aldeci-prod:
+    name: aldeci-prod
+    driver: bridge

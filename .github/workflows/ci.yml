@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["main", "master", "work", "demo/*"]
+    branches: ["main", "master", "work", "demo/*", "features/intermediate-stage"]
   pull_request:
-    branches: ["**"]
+    branches: ["main", "**"]
 
 permissions:
   contents: read
@@ -558,3 +558,114 @@ jobs:
             echo "❌ Build output directory missing"
             exit 1
           fi
+
+  # ── Job 9: Beast Mode Tests (716-test core suite) ───────────
+  test-beast-mode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [lint]
+    env:
+      FIXOPS_DISABLE_TELEMETRY: "1"
+      FIXOPS_API_TOKEN: "ci-test-token"
+      FIXOPS_JWT_SECRET: "ci-jwt-secret-for-testing-only-not-production"
+      FIXOPS_MODE: "enterprise"
+      FIXOPS_SKIP_PATH_SECURITY: "1"
+      FIXOPS_DISABLE_RATE_LIMIT: "1"
+      FIXOPS_EVIDENCE_KEY: "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE="
+      PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt 2>/dev/null || true
+      - name: Run Beast Mode test suite
+        run: |
+          python -m pytest \
+            tests/test_phase2_connectors.py \
+            tests/test_phase3_llm_council.py \
+            tests/test_phase4_integration.py \
+            tests/test_phase5_enterprise.py \
+            tests/test_phase6_streaming.py \
+            tests/test_phase7_analytics.py \
+            tests/test_phase8_mcp.py \
+            tests/test_phase9_playbooks.py \
+            tests/test_phase10_e2e.py \
+            tests/test_connector_framework.py \
+            tests/test_trustgraph.py \
+            tests/test_pipeline_api.py \
+            tests/test_persona_workflows.py \
+            -x --timeout=10 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
+
+  # ── Job 10: Engine Smoke Tests (parallel with beast-mode) ────
+  test-engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [lint]
+    env:
+      FIXOPS_DISABLE_TELEMETRY: "1"
+      FIXOPS_API_TOKEN: "ci-test-token"
+      FIXOPS_JWT_SECRET: "ci-jwt-secret-for-testing-only-not-production"
+      FIXOPS_MODE: "enterprise"
+      FIXOPS_SKIP_PATH_SECURITY: "1"
+      FIXOPS_DISABLE_RATE_LIMIT: "1"
+      FIXOPS_EVIDENCE_KEY: "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE="
+      PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt 2>/dev/null || true
+      - name: Run engine smoke tests
+        run: |
+          python -m pytest tests/test_*_engine.py \
+            --timeout=10 -q --tb=short \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
+
+  # ── Job 11: Active UI Build (aldeci-ui-new) ──────────────────
+  frontend-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: suite-ui/aldeci-ui-new/package-lock.json
+      - name: Install dependencies
+        working-directory: suite-ui/aldeci-ui-new
+        run: npm ci
+      - name: Build production bundle
+        working-directory: suite-ui/aldeci-ui-new
+        env:
+          VITE_API_URL: ""
+        run: npm run build
+      - name: Verify build output
+        run: |
+          if [ -f suite-ui/aldeci-ui-new/dist/index.html ]; then
+            echo "Build succeeded"
+            echo "Files: $(find suite-ui/aldeci-ui-new/dist -type f | wc -l)"
+            echo "Size: $(du -sh suite-ui/aldeci-ui-new/dist | cut -f1)"
+          else
+            echo "Build output missing"
+            exit 1
+          fi
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aldeci-ui-dist
+          path: suite-ui/aldeci-ui-new/dist/
+          retention-days: 7

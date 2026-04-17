@@ -169,6 +169,15 @@ function isDue(next_test: string): boolean {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ControlTestingDashboard() {
+  const [controls, setControls] = useState(CONTROLS);
+
+  useEffect(() => {
+    fetch(`${_API_BASE}/controls`, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setControls(d); })
+      .catch(() => {});
+  }, []);
+
   const [selectedControl, setSelectedControl] = useState<Control | null>(CONTROLS[0]);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
