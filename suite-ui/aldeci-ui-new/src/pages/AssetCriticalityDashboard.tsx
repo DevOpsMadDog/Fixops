@@ -8,7 +8,7 @@
  * Route: /asset-criticality
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Server, AlertTriangle, GitBranch, Trophy } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────

@@ -12,7 +12,7 @@
  * API stubs: GET /api/v1/api-security/findings, /api/v1/api-security/owasp, /api/v1/api-security/traffic
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, Activity, Lock, RefreshCw, Globe, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

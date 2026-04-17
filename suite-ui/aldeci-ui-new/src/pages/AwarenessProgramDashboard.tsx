@@ -12,7 +12,7 @@
  * Route: /awareness-program
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GraduationCap, Users, AlertTriangle, CheckCircle, XCircle, Calendar, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";

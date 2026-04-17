@@ -11,7 +11,7 @@
  * API stubs: GET /api/v1/api-security/inventory, /api/v1/api-security/vulns, /api/v1/api-security/anomalies
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Globe, ShieldAlert, Activity, Zap, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
