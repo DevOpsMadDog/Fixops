@@ -259,6 +259,9 @@ class KnowledgeBrain:
                 if node_id is None:
                     continue  # skip corrupt rows
                 props = json.loads(props_json) if props_json else {}
+                # Remove keys that are passed explicitly to avoid duplicate keyword argument errors
+                for _reserved in ("node_type", "org_id", "created_at", "updated_at"):
+                    props.pop(_reserved, None)
                 self._graph.add_node(
                     node_id,
                     node_type=node_type,
@@ -313,6 +316,9 @@ class KnowledgeBrain:
             )
             self._conn.commit()
         if self._graph is not None:
+            _node_props = dict(node.properties)
+            for _reserved in ("node_type", "org_id", "created_at", "updated_at"):
+                _node_props.pop(_reserved, None)
             self._graph.add_node(
                 node.node_id,
                 node_type=node.node_type.value
@@ -321,7 +327,7 @@ class KnowledgeBrain:
                 org_id=node.org_id,
                 created_at=node.created_at,
                 updated_at=node.updated_at,
-                **node.properties,
+                **_node_props,
             )
         return node
 
