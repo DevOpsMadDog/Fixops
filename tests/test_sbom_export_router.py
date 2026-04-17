@@ -21,75 +21,52 @@ from __future__ import annotations
 import os
 import sys
 
-import pytest
+# Set env vars BEFORE any imports so auth_deps reads them at module import time
+os.environ["FIXOPS_API_TOKEN"] = "test-sbom-export-router-xyz"
+os.environ.setdefault("FIXOPS_JWT_SECRET", "test-jwt-secret-32-chars-padding!!")
+os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
 
 sys.path.insert(0, "suite-core")
 sys.path.insert(0, "suite-api")
 
-# ---------------------------------------------------------------------------
-# Minimal FastAPI app that mounts only the SBOM export router.
-# This avoids triggering SyntaxErrors in unrelated modules loaded by app.py.
-# ---------------------------------------------------------------------------
-
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-API_TOKEN = "test-sbom-export-router-token"
+API_TOKEN = os.environ["FIXOPS_API_TOKEN"]
 BASE = "/api/v1/sbom-export"
+AUTH = {"X-API-Key": API_TOKEN}
+NO_AUTH: dict = {}
 
 
-def _make_app(engine):
-    """Build a minimal FastAPI app with the sbom_export_router and a stub auth."""
+# ---------------------------------------------------------------------------
+# Build a minimal app — only mount the SBOM export router.
+# This avoids loading the full app.py which triggers unrelated SyntaxErrors.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def client(tmp_path_factory):
+    from core.sbom_export_engine import SBOMExportEngine
     import apps.api.sbom_export_router as _mod
 
-    # Patch the router's singleton engine to our isolated instance
-    _mod._engine = engine
+    # Isolated DB for this test run
+    tmp = tmp_path_factory.mktemp("sbom_export_router")
+    _mod._engine = SBOMExportEngine(db_path=str(tmp / "sbom_export.db"))
 
-    # Patch api_key_auth to accept our test token
-    import apps.api.auth_deps as _auth
-
-    def _stub_auth(request: Request):
-        key = request.headers.get("X-API-Key", "")
-        if key != API_TOKEN:
-            return JSONResponse({"detail": "Forbidden"}, status_code=403)
-
-    _auth._original_api_key_auth = getattr(_auth, "_original_api_key_auth", _auth.api_key_auth)
-    _auth.api_key_auth = _stub_auth
-
-    # Re-import router with patched auth (already applied since module is cached)
     from apps.api.sbom_export_router import router
 
     app = FastAPI()
     app.include_router(router)
-    return app
-
-
-@pytest.fixture(scope="module")
-def client_and_engine(tmp_path_factory):
-    from core.sbom_export_engine import SBOMExportEngine
-
-    tmp = tmp_path_factory.mktemp("sbom_export_router")
-    engine = SBOMExportEngine(db_path=str(tmp / "sbom_export.db"))
-    app = _make_app(engine)
-    return TestClient(app, raise_server_exceptions=True), engine
-
-
-@pytest.fixture(scope="module")
-def client(client_and_engine):
-    return client_and_engine[0]
-
-
-AUTH = {"X-API-Key": API_TOKEN}
-NO_AUTH = {}
+    return TestClient(app, raise_server_exceptions=True)
 
 
 # ---------------------------------------------------------------------------
-# Helper: register a component
+# Helper
 # ---------------------------------------------------------------------------
 
-def _register_component(client, org_id="org-rt", project="rt-proj",
-                         name="requests", version="2.28.0"):
+def _register(client, org_id="org-rt", project="rt-proj",
+               name="requests", version="2.28.0"):
     resp = client.post(
         f"{BASE}/components",
         json={
@@ -151,7 +128,7 @@ def test_register_component_201(client):
     resp = client.post(
         f"{BASE}/components",
         json={
-            "org_id": "org-post-test",
+            "org_id": "org-post",
             "project_name": "proj-post",
             "component_name": "flask",
             "component_version": "3.0.0",
@@ -189,7 +166,7 @@ def test_register_component_invalid_type_422(client):
 # ---------------------------------------------------------------------------
 
 def test_get_cyclonedx_structure(client):
-    _register_component(client, org_id="org-cdx", project="cdx-proj")
+    _register(client, org_id="org-cdx", project="cdx-proj")
     resp = client.get(
         f"{BASE}/cyclonedx",
         params={"org_id": "org-cdx", "project_name": "cdx-proj"},
@@ -204,7 +181,7 @@ def test_get_cyclonedx_structure(client):
 
 
 def test_get_cyclonedx_has_registered_component(client):
-    _register_component(client, org_id="org-cdx2", project="cdx2-proj", name="numpy", version="1.26.0")
+    _register(client, org_id="org-cdx2", project="cdx2-proj", name="numpy", version="1.26.0")
     resp = client.get(
         f"{BASE}/cyclonedx",
         params={"org_id": "org-cdx2", "project_name": "cdx2-proj"},
@@ -216,7 +193,7 @@ def test_get_cyclonedx_has_registered_component(client):
 
 
 def test_get_cyclonedx_records_export_id(client):
-    _register_component(client, org_id="org-cdx3", project="cdx3-proj")
+    _register(client, org_id="org-cdx3", project="cdx3-proj")
     resp = client.get(
         f"{BASE}/cyclonedx",
         params={"org_id": "org-cdx3", "project_name": "cdx3-proj"},
@@ -240,7 +217,7 @@ def test_get_cyclonedx_requires_auth(client):
 # ---------------------------------------------------------------------------
 
 def test_get_spdx_structure(client):
-    _register_component(client, org_id="org-spdx", project="spdx-proj")
+    _register(client, org_id="org-spdx", project="spdx-proj")
     resp = client.get(
         f"{BASE}/spdx",
         params={"org_id": "org-spdx", "project_name": "spdx-proj"},
@@ -255,7 +232,7 @@ def test_get_spdx_structure(client):
 
 
 def test_get_spdx_has_packages(client):
-    _register_component(client, org_id="org-spdx2", project="spdx2-proj", name="boto3", version="1.28.0")
+    _register(client, org_id="org-spdx2", project="spdx2-proj", name="boto3", version="1.28.0")
     resp = client.get(
         f"{BASE}/spdx",
         params={"org_id": "org-spdx2", "project_name": "spdx2-proj"},
@@ -267,7 +244,7 @@ def test_get_spdx_has_packages(client):
 
 
 def test_get_spdx_records_export_id(client):
-    _register_component(client, org_id="org-spdx3", project="spdx3-proj")
+    _register(client, org_id="org-spdx3", project="spdx3-proj")
     resp = client.get(
         f"{BASE}/spdx",
         params={"org_id": "org-spdx3", "project_name": "spdx3-proj"},
@@ -291,7 +268,7 @@ def test_get_spdx_requires_auth(client):
 # ---------------------------------------------------------------------------
 
 def test_post_generate_cyclonedx(client):
-    _register_component(client, org_id="org-pgcdx", project="pgcdx-proj")
+    _register(client, org_id="org-pgcdx", project="pgcdx-proj")
     resp = client.post(
         f"{BASE}/generate/cyclonedx",
         json={"org_id": "org-pgcdx", "project_name": "pgcdx-proj", "version_tag": "2.0"},
@@ -304,7 +281,7 @@ def test_post_generate_cyclonedx(client):
 
 
 def test_post_generate_spdx(client):
-    _register_component(client, org_id="org-pgspdx", project="pgspdx-proj")
+    _register(client, org_id="org-pgspdx", project="pgspdx-proj")
     resp = client.post(
         f"{BASE}/generate/spdx",
         json={"org_id": "org-pgspdx", "project_name": "pgspdx-proj"},
@@ -316,11 +293,11 @@ def test_post_generate_spdx(client):
 
 
 # ---------------------------------------------------------------------------
-# GET /projects and project summary/history
+# GET /projects, summary, history
 # ---------------------------------------------------------------------------
 
 def test_list_projects(client):
-    _register_component(client, org_id="org-proj-list", project="listed-proj")
+    _register(client, org_id="org-proj-list", project="listed-proj")
     resp = client.get(
         f"{BASE}/projects",
         params={"org_id": "org-proj-list"},
@@ -332,7 +309,7 @@ def test_list_projects(client):
 
 
 def test_project_summary(client):
-    _register_component(client, org_id="org-summary", project="summary-proj")
+    _register(client, org_id="org-summary", project="summary-proj")
     resp = client.get(
         f"{BASE}/projects/summary-proj/summary",
         params={"org_id": "org-summary"},
@@ -346,8 +323,7 @@ def test_project_summary(client):
 
 def test_export_history_after_generate(client):
     org_id, project = "org-hist", "hist-proj"
-    _register_component(client, org_id=org_id, project=project)
-    # Generate to create history entries
+    _register(client, org_id=org_id, project=project)
     client.get(
         f"{BASE}/cyclonedx",
         params={"org_id": org_id, "project_name": project},
@@ -369,7 +345,7 @@ def test_export_history_after_generate(client):
 # ---------------------------------------------------------------------------
 
 def test_search_by_name(client):
-    _register_component(client, org_id="org-search", project="search-proj", name="pendulum")
+    _register(client, org_id="org-search", project="search-proj", name="pendulum")
     resp = client.get(
         f"{BASE}/search",
         params={"org_id": "org-search", "q": "pendulum"},
@@ -386,10 +362,9 @@ def test_search_by_name(client):
 
 def test_vuln_appears_in_cyclonedx(client):
     org_id, project = "org-vuln", "vuln-proj"
-    comp = _register_component(client, org_id=org_id, project=project, name="openssl", version="3.0.0")
+    comp = _register(client, org_id=org_id, project=project, name="openssl", version="3.0.0")
     comp_id = comp["id"]
 
-    # Add vuln
     resp = client.post(
         f"{BASE}/components/{comp_id}/vulns",
         json={
@@ -403,7 +378,6 @@ def test_vuln_appears_in_cyclonedx(client):
     )
     assert resp.status_code == 201
 
-    # Check it shows up in CycloneDX export
     resp = client.get(
         f"{BASE}/cyclonedx",
         params={"org_id": org_id, "project_name": project},
@@ -419,8 +393,8 @@ def test_vuln_appears_in_cyclonedx(client):
 # ---------------------------------------------------------------------------
 
 def test_org_isolation_cyclonedx(client):
-    """org-A components must not appear in org-B's CycloneDX export."""
-    _register_component(client, org_id="org-iso-A", project="shared-proj", name="secret-lib")
+    """org-A components must not appear in org-B CycloneDX export."""
+    _register(client, org_id="org-iso-A", project="shared-proj", name="secret-lib")
     resp = client.get(
         f"{BASE}/cyclonedx",
         params={"org_id": "org-iso-B", "project_name": "shared-proj"},
