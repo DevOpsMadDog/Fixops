@@ -128,7 +128,7 @@ export default function ThreatResponseDashboard() {
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(d => { if (Array.isArray(d)) setSelectedIncident(d); })
       .catch(() => {});
   }, []);
   const [resolved, setResolved] = useState<Set<string>>(new Set());

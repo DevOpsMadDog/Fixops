@@ -127,7 +127,7 @@ export default function SBOMExportDashboard() {
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
       .catch(() => {});
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);

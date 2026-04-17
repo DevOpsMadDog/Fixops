@@ -123,7 +123,7 @@ export default function SecurityDependencyRiskDashboard() {
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(d => { if (Array.isArray(d)) setVulns(d); })
       .catch(() => {});
   }, []);
 

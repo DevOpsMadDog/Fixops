@@ -967,6 +967,48 @@ ComplianceGapDashboard (all wired in App.tsx)
 
 ---
 
+### DONE (session 2026-04-17/18, Wave 42-43 — Autonomous parallel build)
+
+**API Bug Fixes:**
+- ✅ remediation/stats, remediation/queue — fixed get_org_id() returning FieldInfo instead of string
+- ✅ supply-chain/risks, supply-chain/graph — added sqlite3.OperationalError to except clauses
+- ✅ 30-persona walkthrough: 150/150 (100%)
+
+**Subscriber Chain Fixes:**
+- ✅ ALERT_CREATED chain — bus.subscribe() → bus.on() (method didn't exist)
+- ✅ RISK_ASSESSED — implemented (auto-alert at score ≥70, critical ≥90)
+- ✅ IDENTITY_UPDATED — implemented (access policy re-eval via AccessControlEngine)
+- ✅ Dedup guard on all 9 subscribers (deque maxlen=1000)
+
+**TrustGraph Wiring:**
+- ✅ 332/332 engines now wired to TrustGraph event bus (was 240/331)
+- ✅ 296 emit sites across 268 engines
+- ✅ TrustGraph gap CLOSED — 100% connected
+
+**PRDs & Board:**
+- ✅ 332 detailed PRDs generated from AST code analysis
+- ✅ Each with: mermaid diagrams, code proof (line numbers), persona stories, API tables
+- ✅ 2,458 Multica issues (1 master epic → 10 sub-epics → 457 stories → 1,990 tasks)
+
+**New Features:**
+- ✅ SBOM export: GET /api/v1/sbom-export/cyclonedx + /spdx (23 tests)
+- ✅ n8n scheduled reports: 3 default schedules (daily/weekly/monthly), n8n webhook delivery
+- ✅ Zero Trust enforcement: NIST SP 800-207 compliance posture, policy CRUD, route collision fix
+- ✅ NVD/OTX/URLhaus/AbuseIPDB feed wiring with graceful key degradation
+- ✅ GET /api/v1/feeds/config shows active/inactive feeds
+- ✅ .env.example with all API keys documented
+- ✅ OpenClaw pentest self-scanning framework
+
+**Infrastructure:**
+- ✅ 38 new routers wired into app.py
+- ✅ app.py domain section headers for readability
+- ✅ 111 new smoke tests (5 previously uncovered engines)
+- ✅ Zero Trust router prefix collision fixed
+
+**Test totals after Wave 43:** 36,272 test functions, 332/332 engines covered, zero regressions
+
+---
+
 ### DONE (session 2026-04-16, Wave 39 — Autonomous parallel build + CTO review)
 
 **Wave 39 New Backend Engines (all in suite-core/core/):**
@@ -1052,11 +1094,11 @@ ComplianceGapDashboard (all wired in App.tsx)
 | Bidirectional connectors | 7 | suite-core/core/connectors.py |
 | Scanner normalizers | 32 | suite-core/core/scanner_parsers.py |
 | Threat intel feeds | 28+ | suite-feeds/ |
-| Backend engines | 236+ | suite-core/core/*_engine.py |
-| API router files | 466+ | suite-api/apps/api/*_router.py |
-| Engine test files | 240+ | tests/test_*_engine.py |
-| Frontend pages | 188+ | suite-ui/aldeci-ui-new/src/pages/ |
-| Beast Mode tests | 4,400+ | tests/test_phase*.py + engine tests |
+| Backend engines | 332 | suite-core/core/*_engine.py |
+| API router files | 559 | suite-api/apps/api/*_router.py |
+| Engine test files | 332 | tests/test_*_engine.py |
+| Frontend pages | 288+ | suite-ui/aldeci-ui-new/src/pages/ |
+| Beast Mode tests | 36,272+ | tests/ |
 
 ---
 

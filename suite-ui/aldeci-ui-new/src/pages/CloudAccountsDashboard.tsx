@@ -101,33 +101,36 @@ const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
+  const [accounts, setAccounts] = useState(MOCK_ACCOUNTS);
+  const [events, setEvents] = useState(MOCK_EVENTS);
+
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/accounts`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        // live data loaded — components read from API response
-        void d;
-      })
+      .then(d => { if (Array.isArray(d)) setAccounts(d); })
+      .catch(() => {});
+    fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setEvents(d); })
       .catch(() => {});
   }, []);
 
-
   const filtered = providerFilter === "All"
-    ? MOCK_ACCOUNTS
-    : MOCK_ACCOUNTS.filter(a => a.provider === providerFilter);
+    ? accounts
+    : accounts.filter(a => a.provider === providerFilter);
 
-  const totalUnresolved = MOCK_EVENTS.filter(e => !e.resolved).length;
-  const criticalAccounts = MOCK_ACCOUNTS.filter(a => a.status === "critical").length;
-  const avgRisk = Math.round(MOCK_ACCOUNTS.reduce((s, a) => s + a.risk_score, 0) / MOCK_ACCOUNTS.length);
+  const totalUnresolved = events.filter(e => !e.resolved).length;
+  const criticalAccounts = accounts.filter(a => a.status === "critical").length;
+  const avgRisk = accounts.length > 0 ? Math.round(accounts.reduce((s, a) => s + a.risk_score, 0) / accounts.length) : 0;
 
   // Provider risk summary
   const providerSummary = ALL_PROVIDERS.map(p => {
-    const accounts = MOCK_ACCOUNTS.filter(a => a.provider === p);
-    if (accounts.length === 0) return null;
-    const avgScore = Math.round(accounts.reduce((s, a) => s + a.risk_score, 0) / accounts.length);
-    const maxStatus = accounts.some(a => a.status === "critical") ? "critical"
-      : accounts.some(a => a.status === "warning") ? "warning" : "healthy";
-    return { provider: p, accounts: accounts.length, avgScore, maxStatus: maxStatus as AccountStatus };
+    const provAccounts = accounts.filter(a => a.provider === p);
+    if (provAccounts.length === 0) return null;
+    const avgScore = Math.round(provAccounts.reduce((s, a) => s + a.risk_score, 0) / provAccounts.length);
+    const maxStatus = provAccounts.some(a => a.status === "critical") ? "critical"
+      : provAccounts.some(a => a.status === "warning") ? "warning" : "healthy";
+    return { provider: p, accounts: provAccounts.length, avgScore, maxStatus: maxStatus as AccountStatus };
   }).filter(Boolean) as { provider: Provider; accounts: number; avgScore: number; maxStatus: AccountStatus }[];
 
   return (
@@ -146,7 +149,7 @@ export default function CloudAccountsDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Accounts", value: MOCK_ACCOUNTS.length, color: "text-blue-400" },
+          { label: "Total Accounts", value: accounts.length, color: "text-blue-400" },
           { label: "Critical Risk",  value: criticalAccounts,     color: "text-red-400" },
           { label: "Avg Risk Score", value: avgRisk,              color: avgRisk >= 60 ? "text-red-400" : avgRisk >= 40 ? "text-amber-400" : "text-green-400" },
           { label: "Unresolved Events", value: totalUnresolved,   color: "text-orange-400" },
@@ -220,8 +223,8 @@ export default function CloudAccountsDashboard() {
             Events Feed <span className="text-orange-400 text-sm font-normal ml-2">{totalUnresolved} unresolved</span>
           </h2>
           <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-            {MOCK_EVENTS.map(evt => {
-              const account = MOCK_ACCOUNTS.find(a => a.id === evt.account_id);
+            {events.map(evt => {
+              const account = accounts.find(a => a.id === evt.account_id);
               return (
                 <div key={evt.id} className={`p-3 rounded-lg border border-transparent ${severityColors[evt.severity]} ${evt.resolved ? "opacity-50" : ""}`}>
                   <div className="flex items-start justify-between gap-2">

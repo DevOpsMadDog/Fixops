@@ -36,6 +36,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import apps.api.openclaw_router as _oc_mod
+from apps.api.auth_deps import api_key_auth
 from core.openclaw_engine import OpenClawEngine
 
 
@@ -56,30 +57,26 @@ def _make_mock_owasp_report() -> Dict[str, Any]:
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
-@pytest.fixture(autouse=True)
-def _patch_auth():
-    """Globally disable router auth for all tests in this module."""
-    original = _oc_mod._AUTH_DEP
-    _oc_mod._AUTH_DEP = []
-    # Rebuild the router's dependencies list to empty
-    _oc_mod.router.dependencies.clear()
-    yield
-    _oc_mod._AUTH_DEP = original
-
-
 @pytest.fixture
 def setup(tmp_path):
-    """Provides (client, engine) for each test with isolated DB and scan store."""
+    """Provides (client, engine) for each test with isolated DB and scan store.
+
+    Auth is bypassed via app.dependency_overrides — the standard pattern used
+    throughout the ALDECI test suite.
+    """
     db = str(tmp_path / "oc.db")
     engine = OpenClawEngine(org_id="aldeci_self", db_path=db)
 
-    # Isolate module state
+    # Isolate module-level state
     _oc_mod._engines.clear()
     _oc_mod._engines["aldeci_self"] = engine
     _oc_mod._scan_store.clear()
 
     app = FastAPI()
     app.include_router(_oc_mod.router)
+    # Bypass API key auth — standard pattern across this test suite
+    app.dependency_overrides[api_key_auth] = lambda: None
+
     client = TestClient(app, raise_server_exceptions=False)
     yield client, engine
 
