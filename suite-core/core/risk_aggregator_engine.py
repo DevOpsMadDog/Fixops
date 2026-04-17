@@ -428,6 +428,164 @@ class RiskAggregatorEngine:
     # Stats
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Brain Graph Sync
+    # ------------------------------------------------------------------
+
+    def sync_from_brain_graph(
+        self,
+        org_id: str,
+        brain_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Pull finding nodes from the brain graph and compute risk scores.
+
+        Queries brain_nodes WHERE node_type = 'finding' AND (org_id = ? OR org_id IS NULL),
+        derives a risk score from CVSS / severity / exposure stored in node properties,
+        and records each as an entity risk score in the risk_scores table.
+
+        Returns a summary dict with counts of processed and skipped nodes.
+        """
+        import os
+
+        if brain_db_path is None:
+            brain_db_path = os.environ.get(
+                "FIXOPS_BRAIN_DB_PATH",
+                str(Path(__file__).resolve().parents[2] / "data" / "fixops_brain.db"),
+            )
+
+        # CVSS → base risk (0–100)
+        def _cvss_to_risk(cvss: float) -> float:
+            # CVSS 0–10 → risk 0–100 with non-linear amplification for high scores
+            if cvss >= 9.0:
+                return 95.0
+            if cvss >= 7.0:
+                return 70.0 + (cvss - 7.0) / 2.0 * 25.0
+            if cvss >= 4.0:
+                return 30.0 + (cvss - 4.0) / 3.0 * 40.0
+            return cvss / 4.0 * 30.0
+
+        # Severity string → multiplier applied on top of CVSS-derived base
+        _SEV_MULT = {
+            "critical": 1.0,  # already at top of scale
+            "high": 0.95,
+            "medium": 0.75,
+            "low": 0.50,
+            "info": 0.25,
+        }
+
+        processed = 0
+        skipped = 0
+        errors = 0
+
+        try:
+            brain_conn = sqlite3.connect(brain_db_path, timeout=10)
+            brain_conn.row_factory = sqlite3.Row
+            try:
+                rows = brain_conn.execute(
+                    """
+                    SELECT node_id, org_id, properties
+                    FROM brain_nodes
+                    WHERE node_type = 'finding'
+                      AND (org_id = ? OR org_id IS NULL)
+                    ORDER BY updated_at DESC
+                    """,
+                    (org_id,),
+                ).fetchall()
+            finally:
+                brain_conn.close()
+        except sqlite3.OperationalError as exc:
+            _logger.warning("sync_from_brain_graph: cannot open brain db %s: %s", brain_db_path, exc)
+            return {"org_id": org_id, "processed": 0, "skipped": 0, "errors": 1, "brain_db": brain_db_path}
+
+        now = self._now()
+        for row in rows:
+            try:
+                props: Dict[str, Any] = json.loads(row["properties"]) if row["properties"] else {}
+                node_id: str = row["node_id"]
+
+                # Use finding_id from properties; fall back to node_id suffix
+                entity_id = props.get("finding_id") or node_id.replace("finding:", "")
+                if not entity_id:
+                    skipped += 1
+                    continue
+
+                # Derive CVSS score (look for multiple common field names)
+                cvss_raw = (
+                    props.get("cvss_score")
+                    or props.get("cvss")
+                    or props.get("base_score")
+                    or 0.0
+                )
+                try:
+                    cvss = float(cvss_raw)
+                except (TypeError, ValueError):
+                    cvss = 0.0
+                cvss = max(0.0, min(10.0, cvss))
+
+                # Severity string
+                severity = str(props.get("severity", "medium")).lower()
+                sev_mult = _SEV_MULT.get(severity, 0.75)
+
+                # Exposure flag (e.g. internet-facing asset)
+                exposure = props.get("exposure", "").lower()
+                exposure_mult = 1.2 if exposure in ("internet", "public", "external") else 1.0
+
+                # Base risk from CVSS; if no CVSS, fall back to severity mapping
+                if cvss > 0.0:
+                    base_risk = _cvss_to_risk(cvss)
+                else:
+                    base_risk = {
+                        "critical": 85.0,
+                        "high": 65.0,
+                        "medium": 40.0,
+                        "low": 20.0,
+                        "info": 5.0,
+                    }.get(severity, 40.0)
+
+                risk_score = min(base_risk * sev_mult * exposure_mult, 100.0)
+                risk_score = round(risk_score, 2)
+
+                # Build risk factors list for traceability
+                risk_factors = []
+                if cvss > 0:
+                    risk_factors.append(f"cvss:{cvss}")
+                if severity:
+                    risk_factors.append(f"severity:{severity}")
+                if exposure:
+                    risk_factors.append(f"exposure:{exposure}")
+                cve_id = props.get("cve_id") or props.get("cve")
+                if cve_id:
+                    risk_factors.append(f"cve:{cve_id}")
+
+                self.record_risk_score(
+                    org_id=org_id,
+                    data={
+                        "entity_id": entity_id,
+                        "entity_name": props.get("title") or props.get("name") or entity_id,
+                        "entity_type": "application",
+                        "source_engine": "brain_graph_sync",
+                        "risk_score": risk_score,
+                        "risk_factors": risk_factors,
+                        "severity": severity if severity in _VALID_SEVERITIES else None,
+                    },
+                )
+                processed += 1
+            except Exception as exc:  # noqa: BLE001 — per-row error must not abort the batch
+                _logger.warning("sync_from_brain_graph: error processing row %s: %s", row["node_id"] if row else "?", exc)
+                errors += 1
+
+        _logger.info(
+            "sync_from_brain_graph: org=%s processed=%d skipped=%d errors=%d",
+            org_id, processed, skipped, errors,
+        )
+        return {
+            "org_id": org_id,
+            "processed": processed,
+            "skipped": skipped,
+            "errors": errors,
+            "brain_db": brain_db_path,
+        }
+
     def get_aggregator_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregated risk statistics."""
         with self._lock, self._conn() as conn:

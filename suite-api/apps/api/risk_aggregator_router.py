@@ -167,3 +167,29 @@ def list_risk_thresholds(org_id: str = Query(default="default")):
 def get_aggregator_stats(org_id: str = Query(default="default")):
     """Return aggregated risk statistics: entity count, high-risk count, org score."""
     return _get_engine().get_aggregator_stats(org_id)
+
+
+@router.post("/sync", dependencies=[Depends(api_key_auth)])
+def sync_from_brain(
+    org_id: str = Query(default="default"),
+    brain_db_path: Optional[str] = Query(
+        default=None,
+        description="Override path to fixops_brain.db (defaults to FIXOPS_BRAIN_DB_PATH env or data/fixops_brain.db)",
+    ),
+):
+    """Trigger a manual sync of risk scores from the Knowledge Brain graph.
+
+    Reads all finding nodes for the org from the brain graph, computes
+    risk scores from CVSS / severity / exposure properties, and stores
+    them in the risk_scores table so that /stats and /org-score reflect
+    real ASPM data.
+    """
+    try:
+        result = _get_engine().sync_from_brain_graph(
+            org_id=org_id,
+            brain_db_path=brain_db_path,
+        )
+        return result
+    except Exception as exc:
+        _logger.exception("Error syncing risk scores from brain graph")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

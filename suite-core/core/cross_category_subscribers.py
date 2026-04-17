@@ -121,7 +121,7 @@ def on_threat_detected(event_data: Dict[str, Any]) -> None:
 # ── FINDING_CREATED subscribers ──────────────────────────────────────
 
 def on_finding_created(event_data: Dict[str, Any]) -> None:
-    """When a finding is created, auto-create a vuln workflow ticket."""
+    """When a finding is created, auto-create a vuln workflow ticket and sync risk scores."""
     if _already_seen(event_data.get("event_id") or event_data.get("entity_id")):
         return
     org_id = event_data.get("org_id", "default")
@@ -149,6 +149,13 @@ def on_finding_created(event_data: Dict[str, Any]) -> None:
             },
         )
     _safe_call(_create_ticket)
+
+    # Sync the new finding's risk score into RiskAggregatorEngine immediately
+    def _sync_risk():
+        from core.risk_aggregator_engine import RiskAggregatorEngine
+        eng = RiskAggregatorEngine()
+        eng.sync_from_brain_graph(org_id=org_id)
+    _safe_call(_sync_risk)
 
 
 # ── ANOMALY_DETECTED subscribers ─────────────────────────────────────
