@@ -1,0 +1,44 @@
+{
+  "sprint": "Wave 42-44",
+  "start_date": "2026-04-17",
+  "end_date": "2026-04-18",
+  "generated_at": "2026-04-18T09:27:23.403344",
+  "total_scope": 2458,
+  "completed": 417,
+  "in_progress": 31,
+  "todo": 2010,
+  "completion_pct": 17.0,
+  "by_priority": {
+    "urgent": { "done": 3, "in_progress": 7, "todo": 1 },
+    "high":   { "done": 21, "in_progress": 18, "todo": 6 },
+    "medium": { "done": 329, "in_progress": 6, "todo": 1999 },
+    "low":    { "done": 64, "in_progress": 0, "todo": 4 }
+  },
+  "by_subepic": {
+    "ASPM":         { "total": 16,  "done": 13, "in_progress": 3, "todo": 0 },
+    "CTEM":         { "total": 5,   "done": 2,  "in_progress": 3, "todo": 0 },
+    "CSPM":         { "total": 6,   "done": 4,  "in_progress": 1, "todo": 1 },
+    "SIEM":         { "total": 5,   "done": 4,  "in_progress": 0, "todo": 1 },
+    "EDR/XDR":      { "total": 6,   "done": 5,  "in_progress": 0, "todo": 1 },
+    "IAM":          { "total": 27,  "done": 22, "in_progress": 2, "todo": 3 },
+    "GRC":          { "total": 30,  "done": 25, "in_progress": 1, "todo": 4 },
+    "VULN":         { "total": 26,  "done": 25, "in_progress": 1, "todo": 0 },
+    "THREAT_INTEL": { "total": 14,  "done": 11, "in_progress": 3, "todo": 0 },
+    "SOC":          { "total": 28,  "done": 24, "in_progress": 3, "todo": 1 },
+    "CLOUD":        { "total": 26,  "done": 20, "in_progress": 3, "todo": 3 },
+    "FRONTEND":     { "total": 8,   "done": 6,  "in_progress": 2, "todo": 0 },
+    "TESTING":      { "total": 670, "done": 5,  "in_progress": 2, "todo": 663 },
+    "ENGINE":       { "total": 32,  "done": 20, "in_progress": 1, "todo": 11 }
+  },
+  "velocity": {
+    "wave40": 47,
+    "wave41": 45,
+    "wave42": 0
+  },
+  "velocity_per_day": 135,
+  "eta_days": 15.1,
+  "daily_burndown": [
+    { "date": "2026-04-17", "remaining": 2041, "completed": 417 },
+    { "date": "2026-04-18", "remaining": 1906, "completed": 552 }
+  ]
+}
