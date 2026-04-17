@@ -1,0 +1,21 @@
+{
+  "domain": "security-operations",
+  "title": "Security Operations Dashboard",
+  "current_state": "REAL_LOGIC",
+  "description": "This component displays key metrics and alerts related to security operations, providing insights into current vulnerabilities, incidents, and compliance statuses.",
+  "missing": [
+    "Real-time vulnerability updates",
+    "Alerts for new incidents"
+  ],
+  "connections_needed": [
+    "vulnerability-management",
+    "incident-response"
+  ],
+  "acceptance_criteria": [
+    "All critical metrics updated in real time",
+    "Incident alerts triggered on new events"
+  ],
+  "priority": "HIGH",
+  "community_id": 134,
+  "node_count": 8
+}
