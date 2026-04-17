@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-17T23:51:54.667Z",
+  "updatedAt": "2026-04-17T23:58:00.465Z",
   "missions": [
     {
       "id": "session:cd94a3bb-f4d2-444d-81a3-399864718b47:none",
@@ -3285,15 +3285,15 @@
       "name": "none",
       "objective": "Session mission",
       "createdAt": "2026-04-16T05:52:26.956Z",
-      "updatedAt": "2026-04-17T23:51:54.667Z",
+      "updatedAt": "2026-04-17T23:58:00.465Z",
       "status": "running",
-      "workerCount": 108,
+      "workerCount": 110,
       "taskCounts": {
-        "total": 108,
+        "total": 110,
         "pending": 0,
         "blocked": 0,
-        "inProgress": 12,
-        "completed": 96,
+        "inProgress": 13,
+        "completed": 97,
         "failed": 0
       },
       "agents": [
@@ -4376,41 +4376,29 @@
           "latestUpdate": "completed",
           "completedSummary": null,
           "updatedAt": "2026-04-17T23:51:52.496Z"
+        },
+        {
+          "name": "executor:a84582a",
+          "role": "executor",
+          "ownership": "a84582a9e74221cdb",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-04-17T23:58:00.465Z"
+        },
+        {
+          "name": "executor:a71d766",
+          "role": "executor",
+          "ownership": "a71d766fcf51cade9",
+          "status": "running",
+          "currentStep": null,
+          "latestUpdate": null,
+          "completedSummary": null,
+          "updatedAt": "2026-04-17T23:56:51.961Z"
         }
       ],
       "timeline": [
-        {
-          "id": "session-stop:ade4e7d772d26c1f0:2026-04-17T23:48:23.742Z",
-          "at": "2026-04-17T23:48:23.742Z",
-          "kind": "completion",
-          "agent": "executor:ade4e7d",
-          "detail": "completed",
-          "sourceKey": "session-stop:ade4e7d772d26c1f0"
-        },
-        {
-          "id": "session-start:a693b676b5c3a3e99:2026-04-17T23:49:40.793Z",
-          "at": "2026-04-17T23:49:40.793Z",
-          "kind": "update",
-          "agent": "executor:a693b67",
-          "detail": "started executor:a693b67",
-          "sourceKey": "session-start:a693b676b5c3a3e99"
-        },
-        {
-          "id": "session-start:a5a2d1c585fd33a2e:2026-04-17T23:49:45.385Z",
-          "at": "2026-04-17T23:49:45.385Z",
-          "kind": "update",
-          "agent": "executor:a5a2d1c",
-          "detail": "started executor:a5a2d1c",
-          "sourceKey": "session-start:a5a2d1c585fd33a2e"
-        },
-        {
-          "id": "session-stop:a5a2d1c585fd33a2e:2026-04-17T23:51:52.496Z",
-          "at": "2026-04-17T23:51:52.496Z",
-          "kind": "completion",
-          "agent": "executor:a5a2d1c",
-          "detail": "completed",
-          "sourceKey": "session-stop:a5a2d1c585fd33a2e"
-        },
         {
           "id": "session-stop:a693b676b5c3a3e99:2026-04-17T23:51:54.667Z",
           "at": "2026-04-17T23:51:54.667Z",
@@ -4418,6 +4406,30 @@
           "agent": "executor:a693b67",
           "detail": "completed",
           "sourceKey": "session-stop:a693b676b5c3a3e99"
+        },
+        {
+          "id": "session-start:a84582a9e74221cdb:2026-04-17T23:56:42.856Z",
+          "at": "2026-04-17T23:56:42.856Z",
+          "kind": "update",
+          "agent": "executor:a84582a",
+          "detail": "started executor:a84582a",
+          "sourceKey": "session-start:a84582a9e74221cdb"
+        },
+        {
+          "id": "session-start:a71d766fcf51cade9:2026-04-17T23:56:51.961Z",
+          "at": "2026-04-17T23:56:51.961Z",
+          "kind": "update",
+          "agent": "executor:a71d766",
+          "detail": "started executor:a71d766",
+          "sourceKey": "session-start:a71d766fcf51cade9"
+        },
+        {
+          "id": "session-stop:a84582a9e74221cdb:2026-04-17T23:58:00.465Z",
+          "at": "2026-04-17T23:58:00.465Z",
+          "kind": "completion",
+          "agent": "executor:a84582a",
+          "detail": "completed",
+          "sourceKey": "session-stop:a84582a9e74221cdb"
         }
       ]
     }

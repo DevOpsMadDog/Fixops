@@ -344,9 +344,29 @@ async def find_paths(
 
 @router.get("/stats")
 async def graph_stats() -> Dict[str, Any]:
-    """Get comprehensive graph statistics."""
-    brain = get_brain()
-    return brain.stats()
+    """Get comprehensive graph statistics.
+
+    Returns an empty-but-valid response if the brain is not yet initialized
+    (e.g. first request right after server startup) instead of raising 500.
+    """
+    _empty = {
+        "total_nodes": 0,
+        "total_edges": 0,
+        "density": 0.0,
+        "node_types": {},
+        "edge_types": {},
+        "organizations": {},
+    }
+    try:
+        brain = get_brain()
+        return brain.stats()
+    except Exception as exc:  # noqa: BLE001 — startup race: return empty stats, never 500
+        logger.warning(
+            "brain stats unavailable (startup race?): %s: %s",
+            type(exc).__name__,
+            exc,
+        )
+        return _empty
 
 
 @router.get("/most-connected")

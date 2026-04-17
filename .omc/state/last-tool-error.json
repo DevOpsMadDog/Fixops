@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -c \\\"\\nimport sys\\nsys.path.insert(0, 'suite-core')\\nsys.path.insert(0, 'suite-api')\\nfrom core.supply_chain_security import SupplyChainEngine\\ne = Suppl...",
-  "error": "Exit code 2\nArgument expected for the -c option\nusage: /opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python [option] ... [-c cmd | -m mod | file | -] [arg] ...\nTry `python -h' for more information.\nsh: line 1: import: command not found\nsh: -c: line 2: syntax error near unexpected token `0,'\nsh: -c: line 2: `sys.path.insert(0, 'suite-core')'",
-  "timestamp": "2026-04-17T23:51:19.100Z",
+  "tool_input_preview": "{\"command\":\"head -80 /Users/devops.ai/fixops/Fixops/suite-api/apps/app.py\",\"description\":\"Read app.py header to understand import/mount pattern\"}",
+  "error": "Exit code 1\nhead: /Users/devops.ai/fixops/Fixops/suite-api/apps/app.py: No such file or directory",
+  "timestamp": "2026-04-17T23:57:07.144Z",
   "retry_count": 1
 }
