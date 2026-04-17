@@ -549,8 +549,14 @@
     },
     {
       "path": "suite-core/core/supply_chain_security.py",
-      "accessCount": 18,
-      "lastAccessed": 1776430229788,
+      "accessCount": 20,
+      "lastAccessed": 1776469846603,
+      "type": "file"
+    },
+    {
+      "path": "suite-api/apps/api/supply_chain_router.py",
+      "accessCount": 15,
+      "lastAccessed": 1776469873835,
       "type": "file"
     },
     {
@@ -569,12 +575,6 @@
       "path": "suite-api/apps/api/threat_intel_router.py",
       "accessCount": 10,
       "lastAccessed": 1776331738370,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/supply_chain_router.py",
-      "accessCount": 10,
-      "lastAccessed": 1776429926294,
       "type": "file"
     },
     {
