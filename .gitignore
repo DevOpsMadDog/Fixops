@@ -169,3 +169,5 @@ allure-results/
 playwright-report/
 verify_out.txt
 suite-api/data/
+graphify-out/cache/
+graphify-out/graph.json
