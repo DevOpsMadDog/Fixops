@@ -352,15 +352,14 @@ class RBACEngine:
 # ---------------------------------------------------------------------------
 
 
-def _now_iso() -> str:
-    from datetime import datetime, timezone
-
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
     _get_tg_bus = None
 
 
+def _now_iso() -> str:
+    from datetime import datetime, timezone
     return datetime.now(timezone.utc).isoformat()
 
 

@@ -613,15 +613,15 @@ _TEMPLATES: Dict[str, List[Dict[str, Any]]] = {
 # ---------------------------------------------------------------------------
 
 
-def _normalize(text: str) -> str:
-    """Lowercase, strip punctuation for fuzzy matching."""
-    import re
-
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
     _get_tg_bus = None
 
+
+def _normalize(text: str) -> str:
+    """Lowercase, strip punctuation for fuzzy matching."""
+    import re
     return re.sub(r"[^\w\s]", "", text.lower()).strip()
 
 

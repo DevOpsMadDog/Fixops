@@ -319,14 +319,14 @@ _REQUIRED_SECURITY_HEADERS = {
 # JWT helpers (no PyJWT needed for crafting malicious tokens)
 # ---------------------------------------------------------------------------
 
-def _b64url_encode(data: bytes) -> str:
-    import base64
-
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
     _get_tg_bus = None
 
+
+def _b64url_encode(data: bytes) -> str:
+    import base64
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 

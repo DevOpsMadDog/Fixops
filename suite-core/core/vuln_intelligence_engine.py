@@ -223,6 +223,8 @@ class VulnIntelligenceEngine:
                 return json.dumps(v)
             if isinstance(v, str):
                 return v
+            return json.dumps([])
+
         if _get_tg_bus:
             try:
                 _bus = _get_tg_bus()
@@ -230,8 +232,6 @@ class VulnIntelligenceEngine:
                     _bus.emit("FINDING_CREATED", {"entity_type": "vuln_intelligence", "org_id": org_id, "source_engine": "vuln_intelligence"})
             except Exception:
                 pass
-
-            return json.dumps([])
 
         record = {
             "id": str(uuid.uuid4()),
