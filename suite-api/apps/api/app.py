@@ -7877,6 +7877,275 @@ def create_app() -> FastAPI:
         pass
 
     # -----------------------------------------------------------------------
+    # Wave 42+ — wiring previously unwired router files
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.change_tracker_router import router as change_tracker_router
+        app.include_router(change_tracker_router)
+        _logger.info("Mounted Change Tracker router at /api/v1/change-tracker")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_connectors_router import router as cloud_connectors_router
+        app.include_router(cloud_connectors_router)
+        _logger.info("Mounted Cloud Connectors router at /api/v1/cloud-connectors")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.cloud_graph_router import router as cloud_graph_router
+        app.include_router(cloud_graph_router)
+        _logger.info("Mounted Cloud Graph router at /api/v1/cloud-graph")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.code_ownership_router import router as code_ownership_router
+        app.include_router(code_ownership_router)
+        _logger.info("Mounted Code Ownership router at /api/v1/ownership")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.container_registry_security_router import router as container_registry_security_router
+        app.include_router(container_registry_security_router)
+        _logger.info("Mounted Container Registry Security router at /api/v1/container-registry-security")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.ctem_engine_router import router as ctem_engine_router
+        app.include_router(ctem_engine_router)
+        _logger.info("Mounted CTEM Engine router at /api/v1/ctem")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.dep_scanner_router import router as dep_scanner_router
+        app.include_router(dep_scanner_router)
+        _logger.info("Mounted Dependency Scanner router at /api/v1/dep-scanner")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.executive_dashboard_router import router as executive_dashboard_router
+        app.include_router(executive_dashboard_router)
+        _logger.info("Mounted Executive Dashboard router at /api/v1/executive")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.fedramp_router import router as fedramp_router
+        app.include_router(fedramp_router)
+        _logger.info("Mounted FedRAMP router at /api/v1/fedramp")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.gcp_scc_router import router as gcp_scc_router
+        app.include_router(gcp_scc_router)
+        _logger.info("Mounted GCP SCC router at /api/v1/scan/gcp-scc")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.github_security_router import router as github_security_router
+        app.include_router(github_security_router)
+        _logger.info("Mounted GitHub Security router at /api/v1/security/github")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.graphql_router import router as graphql_router
+        app.include_router(graphql_router)
+        _logger.info("Mounted GraphQL router at /api/v1/graphql")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.iac_scanner_router import router as iac_scanner_router
+        app.include_router(iac_scanner_router)
+        _logger.info("Mounted IaC Scanner router at /api/v1/iac")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.jira_sync_router import router as jira_sync_router
+        app.include_router(jira_sync_router)
+        _logger.info("Mounted Jira Sync router at /api/v1/jira-sync")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.k8s_security_router import router as k8s_security_router
+        app.include_router(k8s_security_router)
+        _logger.info("Mounted Kubernetes Security router at /api/v1/k8s")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.license_compliance_router import router as license_compliance_router
+        app.include_router(license_compliance_router)
+        _logger.info("Mounted License Compliance router at /api/v1/licenses")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.license_scanner_router import router as license_scanner_router
+        app.include_router(license_scanner_router)
+        _logger.info("Mounted License Scanner router at /api/v1/license-scanner")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.mitre_coverage_router import router as mitre_coverage_router
+        app.include_router(mitre_coverage_router)
+        _logger.info("Mounted MITRE Coverage router at /api/v1/mitre")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.n8n_router import router as n8n_router
+        app.include_router(n8n_router)
+        _logger.info("Mounted n8n router at /api/v1/n8n")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.observability_router import router as observability_router
+        app.include_router(observability_router)
+        _logger.info("Mounted Observability router at /api/v1/observability")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.pagerduty_router import router as pagerduty_router
+        app.include_router(pagerduty_router)
+        _logger.info("Mounted PagerDuty router at /api/v1/pagerduty")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.patch_prioritizer_router import router as patch_prioritizer_router
+        app.include_router(patch_prioritizer_router)
+        _logger.info("Mounted Patch Prioritizer router at /api/v1/patch-priority")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.playbook_marketplace_router import router as playbook_marketplace_router
+        app.include_router(playbook_marketplace_router)
+        _logger.info("Mounted Playbook Marketplace router at /playbook-marketplace")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.rbac_router import router as rbac_router
+        app.include_router(rbac_router)
+        _logger.info("Mounted RBAC router at /api/v1/rbac")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.red_team_router import router as red_team_router
+        app.include_router(red_team_router)
+        _logger.info("Mounted Red Team router at /api/v1/red-team")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.regulatory_tracker_router import router as regulatory_tracker_router
+        app.include_router(regulatory_tracker_router)
+        _logger.info("Mounted Regulatory Tracker router at /api/v1/regulatory")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.remediation_board_router import router as remediation_board_router
+        app.include_router(remediation_board_router)
+        _logger.info("Mounted Remediation Board router at /api/v1/remediation-board")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.report_builder_router import router as report_builder_router
+        app.include_router(report_builder_router)
+        _logger.info("Mounted Report Builder router at /api/v1/report-builder")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.secrets_rotation_router import router as secrets_rotation_router
+        app.include_router(secrets_rotation_router)
+        _logger.info("Mounted Secrets Rotation router at /api/v1/secrets-rotation")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.session_router import router as session_router
+        app.include_router(session_router)
+        _logger.info("Mounted Session router at /api/v1/sessions")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.sla_management_router import router as sla_management_router
+        app.include_router(sla_management_router)
+        _logger.info("Mounted SLA Management router at /api/v1/sla-management")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.software_composition_analysis_router import router as software_composition_analysis_router
+        app.include_router(software_composition_analysis_router)
+        _logger.info("Mounted Software Composition Analysis router at /api/v1/sca")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.threat_model_router import router as threat_model_router
+        app.include_router(threat_model_router)
+        _logger.info("Mounted Threat Model router at /api/v1/threat-models")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.trust_center_router import router as trust_center_router
+        app.include_router(trust_center_router)
+        _logger.info("Mounted Trust Center router at /api/v1/trust")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.trustgraph_backbone_router import router as trustgraph_backbone_router
+        app.include_router(trustgraph_backbone_router)
+        _logger.info("Mounted TrustGraph Backbone router at /api/v1/graph")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.trustgraph_migrator_router import router as trustgraph_migrator_router
+        app.include_router(trustgraph_migrator_router)
+        _logger.info("Mounted TrustGraph Migrator router at /api/v1/trustgraph/migrate")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vuln_enricher_router import router as vuln_enricher_router
+        app.include_router(vuln_enricher_router)
+        _logger.info("Mounted Vulnerability Enricher router at /api/v1/vuln")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.vuln_prioritizer_router import router as vuln_prioritizer_router
+        app.include_router(vuln_prioritizer_router)
+        _logger.info("Mounted Vulnerability Prioritizer router at /api/v1/vulns")
+    except ImportError:
+        pass
+
+    # -----------------------------------------------------------------------
     # Serve React frontend — MUST be last (catch-all route)
     # -----------------------------------------------------------------------
     _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))

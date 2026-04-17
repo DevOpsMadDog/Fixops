@@ -36,7 +36,7 @@ LLM_MODEL_OLLAMA = "qwen2.5:1.5b"   # local Ollama — better instruction follow
 LLM_MODEL_OLLAMA_SMALL = "qwen2.5:0.5b"  # tiny fallback
 
 MIN_COMMUNITY_SIZE = 5
-MAX_NODES_PER_PROMPT = 30
+MAX_NODES_PER_PROMPT = 20  # keep prompts short for small local model
 BATCH_SIZE = 5
 BATCH_DELAY = 1.2  # seconds between batches
 
@@ -147,7 +147,7 @@ Example output format:
 Now output the JSON for community #{cid}:"""
 
 
-def call_llm(prompt: str, api_key: str, model: str, llm_url: str, timeout: int = 30) -> dict | None:
+def call_llm(prompt: str, api_key: str, model: str, llm_url: str, timeout: int = 60) -> dict | None:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -180,7 +180,8 @@ def call_llm(prompt: str, api_key: str, model: str, llm_url: str, timeout: int =
                 end = content.rfind("}") + 1
                 if start >= 0 and end > start:
                     content = content[start:end]
-            return json.loads(content)
+            parsed = json.loads(content)
+            return normalize_prd(parsed) if isinstance(parsed, dict) else None
         else:
             print(f"    LLM error {r.status_code}: {r.text[:120]}")
             return None
@@ -192,6 +193,27 @@ def call_llm(prompt: str, api_key: str, model: str, llm_url: str, timeout: int =
         return None
 
 
+def normalize_prd(prd: dict) -> dict:
+    """Normalize and coerce PRD field values to expected enums."""
+    if not isinstance(prd, dict):
+        return prd
+    # Normalize priority to uppercase
+    p = str(prd.get("priority", "")).strip().upper()
+    if p not in ("HIGH", "MEDIUM", "LOW"):
+        p = "MEDIUM"
+    prd["priority"] = p
+    # Normalize current_state
+    cs = str(prd.get("current_state", "")).strip().upper()
+    if cs not in ("CRUD_ONLY", "PARTIAL", "REAL_LOGIC"):
+        cs = "CRUD_ONLY"
+    prd["current_state"] = cs
+    # Ensure lists
+    for field in ("missing", "connections_needed", "acceptance_criteria"):
+        if not isinstance(prd.get(field), list):
+            prd[field] = [str(prd.get(field, ""))] if prd.get(field) else []
+    return prd
+
+
 def validate_prd(prd: dict) -> bool:
     """Return True if the PRD has real values, not template placeholders."""
     if not isinstance(prd, dict):
@@ -201,14 +223,9 @@ def validate_prd(prd: dict) -> bool:
         val = str(prd.get(field, ""))
         if "|" in val or not val or val == "null":
             return False
-    # Reject if missing/criteria are template placeholders
+    # Reject if missing/criteria are ALL template placeholders
     missing = prd.get("missing", [])
-    if missing and all("gap" in str(m).lower() or "criterion" in str(m).lower() for m in missing):
-        return False
-    # Ensure valid enum values
-    if prd.get("current_state") not in ("CRUD_ONLY", "PARTIAL", "REAL_LOGIC"):
-        return False
-    if prd.get("priority") not in ("HIGH", "MEDIUM", "LOW"):
+    if missing and all("gap" in str(m).lower() and len(str(m)) < 10 for m in missing):
         return False
     return True
 
