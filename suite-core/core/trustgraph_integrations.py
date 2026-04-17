@@ -1305,11 +1305,13 @@ class GraphRAGQueries:
 
         try:
             store = backbone._store
+            # Search without org_id filter: compliance controls are shared across
+            # orgs and may have been seeded with a different org_id. Filter by
+            # framework keyword only if provided; otherwise fetch all controls.
             controls = store.search(
                 core_id=CORE_COMPLIANCE,
                 query_text=framework or "",
-                filters={"org_id": self.org_id},
-                limit=limit,
+                limit=limit * 3,
             )
             control_entities = [e for e in controls if e.entity_type == "Control"]
 
@@ -1432,12 +1434,14 @@ class GraphRAGQueries:
 
         try:
             store = backbone._store
-            # Threat actors live in Core 2
+            # ThreatActor entities live in Core 2 alongside many Finding/Scanner
+            # entities. Use a large fetch limit so we don't miss actors when
+            # findings (225+) occupy the first rows returned by LIKE fallback.
             actors = store.search(
                 core_id=CORE_SECURITY,
                 query_text="",
                 filters={"org_id": self.org_id},
-                limit=limit * 3,
+                limit=500,
             )
             actor_entities = [e for e in actors if e.entity_type == "ThreatActor"][:limit]
 
