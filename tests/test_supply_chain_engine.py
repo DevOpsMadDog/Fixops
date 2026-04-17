@@ -275,12 +275,15 @@ def test_list_risks_empty(engine):
     assert engine.list_risks(ORG) == []
 
 
-def test_list_risks_filter_severity(engine):
-    engine.add_risk(ORG, {"risk_type": "eol", "severity": "critical"})
-    engine.add_risk(ORG, {"risk_type": "no_audit", "severity": "low"})
-    crits = engine.list_risks(ORG, severity="critical")
-    assert all(r["severity"] == "critical" for r in crits)
-    assert len(crits) == 1
+def test_list_risks_filter_by_status_open_and_mitigated(engine):
+    """list_risks filters by status (not severity — engine has no severity filter)."""
+    engine.add_risk(ORG, {"risk_type": "eol", "severity": "critical", "status": "open"})
+    engine.add_risk(ORG, {"risk_type": "no_audit", "severity": "low", "status": "mitigated"})
+    open_risks = engine.list_risks(ORG, status="open")
+    mitigated_risks = engine.list_risks(ORG, status="mitigated")
+    assert len(open_risks) == 1
+    assert open_risks[0]["severity"] == "critical"
+    assert len(mitigated_risks) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -371,3 +374,68 @@ def test_list_components_no_filter(engine):
     engine.add_component(ORG, sup["supplier_id"], {"name": "lib-b", "is_eol": True})
     all_comps = engine.list_components(ORG)
     assert len(all_comps) == 2
+
+
+# ---------------------------------------------------------------------------
+# 12. Supplier contacts
+# ---------------------------------------------------------------------------
+
+
+def test_supplier_contacts_empty_list(engine):
+    sup = engine.add_supplier(ORG, {"name": "No contacts", "contacts": []})
+    assert isinstance(sup["contacts"], list)
+    assert sup["contacts"] == []
+
+
+def test_supplier_contacts_multiple(engine):
+    contacts = [
+        {"name": "Alice", "email": "alice@corp.com"},
+        {"name": "Bob", "email": "bob@corp.com"},
+    ]
+    sup = engine.add_supplier(ORG, {"name": "Multi-contact", "contacts": contacts})
+    assert len(sup["contacts"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# 13. Risk description and metadata
+# ---------------------------------------------------------------------------
+
+
+def test_add_risk_with_description(engine):
+    risk = engine.add_risk(ORG, {
+        "risk_type": "geo_risk",
+        "severity": "high",
+        "description": "Vendor located in sanctioned country",
+        "status": "open",
+    })
+    assert risk["risk_id"] is not None
+    assert risk["severity"] == "high"
+
+
+def test_add_risk_returns_org_id(engine):
+    risk = engine.add_risk(ORG, {"risk_type": "eol"})
+    assert risk["org_id"] == ORG
+
+
+# ---------------------------------------------------------------------------
+# 14. SBOM import with purl field
+# ---------------------------------------------------------------------------
+
+
+def test_import_sbom_stores_purl(engine):
+    result = engine.import_sbom(ORG, {"components": [
+        {"name": "lodash", "version": "4.17.21",
+         "purl": "pkg:npm/lodash@4.17.21", "is_eol": False, "cve_count": 0},
+    ]})
+    assert result["imported"] == 1
+
+
+def test_import_sbom_mixed_eol_and_active(engine):
+    result = engine.import_sbom(ORG, {"components": [
+        {"name": "active-lib", "is_eol": False, "cve_count": 0},
+        {"name": "dead-lib", "is_eol": True, "cve_count": 2},
+        {"name": "also-dead", "is_eol": True, "cve_count": 1},
+    ]})
+    assert result["imported"] == 3
+    assert result["eol_detected"] == 2
+    assert result["cve_count"] == 3

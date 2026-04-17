@@ -280,14 +280,16 @@ def test_stats_org_isolation(engine):
 
 
 def test_add_scanner_all_valid_types(engine):
-    valid_types = ["nessus", "qualys", "rapid7", "trivy", "grype", "snyk", "checkmarx"]
+    # Valid: nessus, qualys, openvas, trivy, grype, nuclei, nikto
+    valid_types = ["nessus", "qualys", "openvas", "trivy", "grype", "nuclei", "nikto"]
     for stype in valid_types:
         s = engine.add_scanner(ORG_A, {"name": f"Scanner-{stype}", "scanner_type": stype})
         assert s["scanner_type"] == stype
 
 
 def test_add_scanner_all_valid_license_types(engine):
-    valid_licenses = ["oss", "commercial", "enterprise", "trial"]
+    # Valid: commercial, community, oss
+    valid_licenses = ["oss", "commercial", "community"]
     for ltype in valid_licenses:
         s = engine.add_scanner(ORG_A, {"name": f"Lic-{ltype}", "license_type": ltype})
         assert s["license_type"] == ltype
@@ -316,7 +318,8 @@ def test_scanner_org_id_stored(engine):
 
 
 def test_create_schedule_all_valid_frequencies(engine):
-    for freq in ("once", "daily", "weekly", "monthly"):
+    # Valid: daily, weekly, monthly, on_demand
+    for freq in ("daily", "weekly", "monthly", "on_demand"):
         sched = engine.create_schedule(ORG_A, {
             "scanner_id": "x",
             "name": f"Sched-{freq}",
@@ -390,8 +393,9 @@ def test_list_scan_results_no_filter(engine):
 
 
 def test_create_finding_all_severities(engine):
+    # Valid: critical, high, medium, low, info
     r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
-    for sev in ("critical", "high", "medium", "low", "informational"):
+    for sev in ("critical", "high", "medium", "low", "info"):
         f = engine.create_finding(ORG_A, r["result_id"], {
             "vuln_name": f"Vuln-{sev}",
             "severity": sev,
@@ -426,8 +430,9 @@ def test_create_finding_stores_cve_id(engine):
 
 
 def test_update_finding_status_all_valid_states(engine):
+    # Valid: open, in_progress, patched, accepted, false_positive
     r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
-    for status in ("open", "in_progress", "patched", "accepted_risk", "false_positive"):
+    for status in ("open", "in_progress", "patched", "accepted", "false_positive"):
         f = engine.create_finding(ORG_A, r["result_id"], {"vuln_name": f"F-{status}"})
         ok = engine.update_finding_status(ORG_A, f["finding_id"], status)
         assert ok is True

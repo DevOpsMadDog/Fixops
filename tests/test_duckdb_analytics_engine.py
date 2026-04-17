@@ -262,3 +262,39 @@ def test_different_orgs_dont_cross_contaminate(engine):
     r1 = engine.cross_domain_risk_summary("org-a")
     r2 = engine.cross_domain_risk_summary("org-b")
     assert r1.get("org_id") != r2.get("org_id")
+
+
+# ── list_available_domains size_mb field ──────────────────────────────────────
+
+def test_list_available_domains_has_size_mb(tmp_path):
+    (tmp_path / "mydb.db").touch()
+    eng = AnalyticsEngine(data_dir=tmp_path)
+    result = eng.list_available_domains()
+    assert "size_mb" in result[0]
+    assert isinstance(result[0]["size_mb"], float)
+
+
+def test_list_available_domains_has_path(tmp_path):
+    (tmp_path / "events.db").touch()
+    eng = AnalyticsEngine(data_dir=tmp_path)
+    result = eng.list_available_domains()
+    assert "path" in result[0]
+
+
+# ── run_custom_query limit cap ─────────────────────────────────────────────────
+
+def test_run_custom_query_limit_capped_at_1000(engine_with_db):
+    """Limit above 1000 should be capped to 1000, not raise."""
+    result = engine_with_db.run_custom_query("assets", "assets", limit=9999)
+    assert isinstance(result, list)
+
+
+def test_run_custom_query_empty_table(tmp_path):
+    db_file = tmp_path / "empty.db"
+    conn = sqlite3.connect(str(db_file))
+    conn.execute("CREATE TABLE records (id TEXT)")
+    conn.commit()
+    conn.close()
+    eng = AnalyticsEngine(data_dir=tmp_path)
+    result = eng.run_custom_query("empty", "records")
+    assert result == []
