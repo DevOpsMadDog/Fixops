@@ -1345,6 +1345,22 @@ def feeds_status() -> Dict[str, Any]:
     return get_feed_health()
 
 
+@router.get("/config")
+def get_feeds_config() -> Dict[str, Any]:
+    """Show which threat intel feeds are configured and their API key status.
+
+    Returns per-feed status (active/inactive/authenticated/unauthenticated),
+    which env vars to set, and registration URLs for obtaining free API keys.
+
+    Required API keys:
+    - NVD_API_KEY — register at https://nvd.nist.gov/developers/request-an-api-key
+    - OTX_API_KEY — register at https://otx.alienvault.com/api
+    - ABUSEIPDB_API_KEY — register at https://www.abuseipdb.com/register
+    """
+    service = get_feeds_service()
+    return service.get_feed_config()
+
+
 @router.get("/scheduler/status")
 def get_scheduler_status() -> Dict[str, Any]:
     """Get feed scheduler status.
