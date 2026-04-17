@@ -1441,6 +1441,153 @@ class SupplyChainEngine:
         return ProvenanceRecord.model_validate_json(row["data"])
 
     # ------------------------------------------------------------------
+    # BRAIN GRAPH SYNC
+    # ------------------------------------------------------------------
+
+    def sync_from_brain(
+        self,
+        org_id: str = "default",
+        brain_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Pull all ``component`` nodes from the KnowledgeBrain and upsert them
+        into the supply-chain components table.
+
+        Existing risk scores and metadata are preserved — we only update fields
+        that come from the brain (name, version, ecosystem, purl, description).
+        New components get a default risk score computed on the fly.
+
+        Returns a summary dict with ``synced``, ``skipped``, and ``errors`` counts.
+        """
+        try:
+            from core.knowledge_brain import get_brain  # local import to avoid circular dep
+        except ImportError:
+            _logger.warning("sync_from_brain: knowledge_brain not available")
+            return {"synced": 0, "skipped": 0, "errors": 1, "detail": "knowledge_brain unavailable"}
+
+        brain = get_brain(brain_db_path) if brain_db_path else get_brain()
+
+        # Query all component-type nodes scoped to this org
+        result = brain.query_nodes(node_type="component", org_id=org_id, limit=5000)
+        # Also fetch nodes with no org_id (ingested without org context)
+        result_no_org = brain.query_nodes(node_type="component", org_id=None, limit=5000)
+        # Merge, dedup by node_id
+        all_nodes: Dict[str, Any] = {}
+        for node in result.nodes + result_no_org.nodes:
+            all_nodes[node["node_id"]] = node
+
+        synced = 0
+        skipped = 0
+        errors = 0
+
+        # Create a synthetic SBOM record for brain-sourced components if not exists
+        brain_sbom_id = f"brain-sync-{org_id}"
+        with self._lock:
+            with self._connect() as conn:
+                existing_sbom = conn.execute(
+                    "SELECT id FROM sboms WHERE id=?", (brain_sbom_id,)
+                ).fetchone()
+                if not existing_sbom:
+                    now_iso = datetime.now(timezone.utc).isoformat()
+                    conn.execute(
+                        "INSERT OR IGNORE INTO sboms VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        (
+                            brain_sbom_id, org_id, "cyclonedx", "1.4",
+                            "Brain Graph Sync", "auto",
+                            0,  # component_count updated below
+                            "", None, now_iso, now_iso,
+                        ),
+                    )
+
+        for node in all_nodes.values():
+            try:
+                props = node.get("properties", {})
+                node_id = node["node_id"]
+                name = props.get("name") or props.get("package_name") or node_id
+                version = props.get("version") or props.get("package_version") or "unknown"
+                ecosystem = props.get("ecosystem") or props.get("language") or "unknown"
+                purl = props.get("purl")
+                description = props.get("description") or props.get("summary")
+                license_id = props.get("license") or props.get("license_id") or "UNKNOWN"
+                license_risk = _classify_license_risk(license_id)
+
+                # Use node_id as stable component id (deterministic, no duplicates)
+                comp_id = hashlib.sha256(
+                    f"{org_id}:{node_id}".encode()
+                ).hexdigest()[:36]
+
+                with self._lock:
+                    with self._connect() as conn:
+                        existing = conn.execute(
+                            "SELECT id FROM components WHERE id=?", (comp_id,)
+                        ).fetchone()
+
+                        if existing:
+                            # Preserve existing risk scores — only update brain-sourced fields
+                            conn.execute(
+                                """UPDATE components SET name=?, version=?, ecosystem=?,
+                                   purl=?, description=?, license_id=?, license_risk=?
+                                   WHERE id=?""",
+                                (
+                                    name, version, ecosystem, purl, description,
+                                    license_id, license_risk.value, comp_id,
+                                ),
+                            )
+                            skipped += 1
+                        else:
+                            now_iso = datetime.now(timezone.utc).isoformat()
+                            conn.execute(
+                                "INSERT OR IGNORE INTO components VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                                (
+                                    comp_id, brain_sbom_id, org_id,
+                                    name, version, ecosystem, purl,
+                                    license_id, license_risk.value,
+                                    description, 0, 0, "{}", now_iso,
+                                ),
+                            )
+                            # Compute and store initial risk score
+                            comp = SBOMComponent(
+                                id=comp_id,
+                                name=name,
+                                version=version,
+                                ecosystem=ecosystem,
+                                purl=purl,
+                                license_id=license_id,
+                                license_risk=license_risk,
+                                description=description,
+                                sbom_id=brain_sbom_id,
+                            )
+                            score = self._scorer.score(comp)
+                            conn.execute(
+                                "INSERT OR REPLACE INTO risk_scores VALUES (?,?,?)",
+                                (score.component_id, score.model_dump_json(),
+                                 score.computed_at.isoformat()),
+                            )
+                            synced += 1
+
+            except Exception as exc:
+                _logger.warning("sync_from_brain: failed node %s — %s", node.get("node_id"), exc)
+                errors += 1
+
+        # Update component_count on the synthetic SBOM
+        with self._lock:
+            with self._connect() as conn:
+                total = conn.execute(
+                    "SELECT COUNT(*) FROM components WHERE sbom_id=?", (brain_sbom_id,)
+                ).fetchone()[0]
+                conn.execute(
+                    "UPDATE sboms SET component_count=? WHERE id=?",
+                    (total, brain_sbom_id),
+                )
+
+        _logger.info(
+            "sync_from_brain: org=%s synced=%d skipped=%d errors=%d",
+            org_id, synced, skipped, errors,
+        )
+        return {"synced": synced, "skipped": skipped, "errors": errors,
+                "total_brain_nodes": len(all_nodes)}
+
+    # ------------------------------------------------------------------
     # ATTACK SIGNALS
     # ------------------------------------------------------------------
 

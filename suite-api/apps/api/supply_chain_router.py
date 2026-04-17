@@ -23,6 +23,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+# Event bus subscriber — auto-sync component nodes as they arrive in the brain
+try:
+    from core.event_bus import EventType, get_event_bus as _get_event_bus
+    _EVENT_BUS_AVAILABLE = True
+except ImportError:
+    _EVENT_BUS_AVAILABLE = False
+
 try:
     from apps.api.auth_deps import api_key_auth as _api_key_auth
     from fastapi import Depends
@@ -499,6 +506,34 @@ def osv_scan(body: OSVScanRequest) -> List[Dict[str, Any]]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.post(
+    "/sync",
+    summary="Sync SBOM components from the brain graph into the supply-chain DB",
+    status_code=200,
+)
+def sync_from_brain(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> dict:
+    """
+    Query the KnowledgeBrain for all ``component``-type nodes and upsert them
+    into the supply-chain components table.
+
+    - Existing components: brain fields (name, version, ecosystem, purl) are
+      refreshed; existing risk scores and metadata are preserved.
+    - New components: inserted with a computed risk score.
+
+    After sync, ``GET /api/v1/supply-chain/components`` will reflect the
+    125+ SBOM components ingested via ``/api/v1/brain/nodes``.
+    """
+    engine = _get_engine()
+    try:
+        result = engine.sync_from_brain(org_id=org_id)
+        return result
+    except Exception as exc:
+        _logger.exception("sync_from_brain failed for org=%s", org_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.get(
     "/license-audit",
     summary="Audit dependency licenses from a manifest file",
@@ -547,3 +582,48 @@ def license_audit(
     except Exception as exc:
         _logger.exception("license_audit failed path=%s", manifest_path)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ============================================================================
+# BRAIN GRAPH SUBSCRIBER — auto-sync component nodes on ingest
+# ============================================================================
+
+
+def _register_brain_subscriber() -> None:
+    """
+    Subscribe to GRAPH_UPDATED events. When a ``component`` node is upserted
+    into the brain, automatically sync it into the supply-chain DB.
+
+    This is a best-effort background sync — failures are logged, not raised.
+    Registration is skipped if the event bus is unavailable.
+    """
+    if not _EVENT_BUS_AVAILABLE:
+        return
+
+    try:
+        bus = _get_event_bus()
+
+        async def _on_graph_updated(event: Any) -> None:
+            data = event.data if hasattr(event, "data") else {}
+            if data.get("node_type") != "component":
+                return
+            if data.get("action") not in ("upsert_node", "create_node"):
+                return
+            org_id = getattr(event, "org_id", None) or data.get("org_id") or "default"
+            try:
+                engine = _get_engine()
+                result = engine.sync_from_brain(org_id=org_id)
+                _logger.debug(
+                    "brain->supply-chain auto-sync: org=%s synced=%d skipped=%d",
+                    org_id, result.get("synced", 0), result.get("skipped", 0),
+                )
+            except Exception as exc:
+                _logger.warning("brain->supply-chain auto-sync failed: %s", exc)
+
+        bus.subscribe(EventType.GRAPH_UPDATED, _on_graph_updated)
+        _logger.info("supply_chain_router: registered brain GRAPH_UPDATED subscriber")
+    except Exception as exc:
+        _logger.warning("supply_chain_router: could not register brain subscriber: %s", exc)
+
+
+_register_brain_subscriber()
