@@ -11,10 +11,13 @@
  * Route: /alert-enrichment
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const API_BASE = "/api/v1/alert-enrichment";
+const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -111,11 +114,23 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 export default function AlertEnrichmentDashboard() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
   const [sources, setSources] = useState(MOCK_SOURCES);
+  const [queue, setQueue] = useState(MOCK_QUEUE);
 
-  const sortedQueue = [...MOCK_QUEUE].sort((a, b) => b.risk_score - a.risk_score);
-  const enriched  = MOCK_QUEUE.filter(a => a.status === "enriched").length;
-  const failed    = MOCK_QUEUE.filter(a => a.status === "failed").length;
-  const highRisk  = MOCK_QUEUE.filter(a => a.risk_score >= 7.0);
+  useEffect(() => {
+    fetch(`${API_BASE}/alerts`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setQueue(d); })
+      .catch(() => {});
+    fetch(`${API_BASE}/sources`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setSources(d); })
+      .catch(() => {});
+  }, []);
+
+  const sortedQueue = [...queue].sort((a, b) => b.risk_score - a.risk_score);
+  const enriched  = queue.filter(a => a.status === "enriched").length;
+  const failed    = queue.filter(a => a.status === "failed").length;
+  const highRisk  = queue.filter(a => a.risk_score >= 7.0);
 
   function toggleSource(id: string) {
     setSources(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
@@ -142,7 +157,7 @@ export default function AlertEnrichmentDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Zap}           label="Total Alerts"   value={MOCK_QUEUE.length} color="bg-yellow-500/20 text-yellow-400" />
+        <KpiCard icon={Zap}           label="Total Alerts"   value={queue.length} color="bg-yellow-500/20 text-yellow-400" />
         <KpiCard icon={CheckCircle}   label="Enriched"       value={enriched}           color="bg-emerald-500/20 text-emerald-400" />
         <KpiCard icon={XCircle}       label="Failed"         value={failed}             color="bg-red-500/20 text-red-400" />
         <KpiCard icon={AlertTriangle} label="High Risk (≥7)" value={highRisk.length}    color="bg-orange-500/20 text-orange-400" />

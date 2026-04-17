@@ -7,8 +7,11 @@
  * Route: /actor-tracking
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, Activity, Eye, AlertTriangle, CheckCircle, RefreshCw, Shield, Globe } from "lucide-react";
+
+const API_BASE = "/api/v1/actor-tracking";
+const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -144,15 +147,28 @@ const MAX_TTP = TOP_TTPS[0].count;
 
 export default function ActorTrackingDashboard() {
   const [selectedId, setSelectedId] = useState<string>("act-001");
+  const [actors, setActors] = useState(MOCK_ACTORS);
+  const [activity, setActivity] = useState(MOCK_ACTIVITY);
 
-  const selected = MOCK_ACTORS.find(a => a.id === selectedId)!;
+  useEffect(() => {
+    fetch(`${API_BASE}/actors`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setActors(d); })
+      .catch(() => {});
+    fetch(`${API_BASE}/activity`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setActivity(d); })
+      .catch(() => {});
+  }, []);
+
+  const selected = actors.find(a => a.id === selectedId) ?? actors[0];
   const actorIntel = MOCK_INTEL[selectedId] ?? [];
 
   const stats = {
-    total:     MOCK_ACTORS.length,
-    critical:  MOCK_ACTORS.filter(a => a.threat_level === "critical").length,
-    targeting: MOCK_ACTORS.filter(a => a.targeting_our_sector).length,
-    campaigns: MOCK_ACTORS.reduce((s, a) => s + a.active_campaigns, 0),
+    total:     actors.length,
+    critical:  actors.filter(a => a.threat_level === "critical").length,
+    targeting: actors.filter(a => a.targeting_our_sector).length,
+    campaigns: actors.reduce((s, a) => s + a.active_campaigns, 0),
   };
 
   return (

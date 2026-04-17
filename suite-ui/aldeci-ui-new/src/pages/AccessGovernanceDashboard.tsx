@@ -8,7 +8,10 @@
  * API: GET /api/v1/access-governance
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE = "/api/v1/access-governance";
+const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -131,6 +134,17 @@ export default function AccessGovernanceDashboard() {
   const [violations, setViolations] = useState<SoDViolation[]>(MOCK_VIOLATIONS);
   const [revokeMsg, setRevokeMsg] = useState<string | null>(null);
   const [ackMsg, setAckMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/entitlements`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setEntitlements(d); })
+      .catch(() => {});
+    fetch(`${API_BASE}/violations`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setViolations(d); })
+      .catch(() => {});
+  }, []);
 
   function handleRevoke(id: string) {
     setEntitlements(prev => prev.map(e => e.id === id ? { ...e, active: false, revoked: true } : e));

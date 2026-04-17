@@ -181,3 +181,67 @@ def search_component(
 ) -> list:
     """Search components by name or purl."""
     return _get_engine().search_component(org_id=org_id, query=q)
+
+
+@router.get("/formats", dependencies=[Depends(api_key_auth)])
+def list_formats() -> Dict[str, Any]:
+    """Return supported SBOM formats and their specifications."""
+    return {
+        "formats": [
+            {
+                "id": "cyclonedx",
+                "name": "CycloneDX",
+                "version": "1.4",
+                "description": "CycloneDX 1.4 SBOM standard — EO 14028 compliant",
+                "mime_type": "application/vnd.cyclonedx+json",
+                "spec_url": "https://cyclonedx.org/specification/overview/",
+            },
+            {
+                "id": "spdx",
+                "name": "SPDX",
+                "version": "2.3",
+                "description": "SPDX 2.3 SBOM standard — NTIA Minimum Elements compliant",
+                "mime_type": "application/spdx+json",
+                "spec_url": "https://spdx.github.io/spdx-spec/v2.3/",
+            },
+        ],
+        "default": "cyclonedx",
+    }
+
+
+@router.get("/cyclonedx", dependencies=[Depends(api_key_auth)])
+def export_cyclonedx_get(
+    org_id: str = Query(..., description="Organisation ID"),
+    project_name: str = Query(..., description="Project name"),
+    version_tag: str = Query(default="1.0", description="SBOM version tag"),
+    exported_by: str = Query(default="", description="Exporting user/system"),
+) -> Dict[str, Any]:
+    """Generate a CycloneDX 1.4 SBOM for a project (GET variant)."""
+    try:
+        return _get_engine().generate_cyclonedx(
+            org_id=org_id,
+            project_name=project_name,
+            version_tag=version_tag,
+            exported_by=exported_by,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get("/spdx", dependencies=[Depends(api_key_auth)])
+def export_spdx_get(
+    org_id: str = Query(..., description="Organisation ID"),
+    project_name: str = Query(..., description="Project name"),
+    version_tag: str = Query(default="1.0", description="SBOM version tag"),
+    exported_by: str = Query(default="", description="Exporting user/system"),
+) -> Dict[str, Any]:
+    """Generate an SPDX 2.3 SBOM for a project (GET variant)."""
+    try:
+        return _get_engine().generate_spdx(
+            org_id=org_id,
+            project_name=project_name,
+            version_tag=version_tag,
+            exported_by=exported_by,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))

@@ -42,6 +42,7 @@ import csv
 import gzip
 import json
 import logging
+import os
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -1386,7 +1387,14 @@ class FeedsService:
                 f"pubEndDate={end_date.strftime('%Y-%m-%dT%H:%M:%S.000')}"
             )
 
-            response = requests.get(url, timeout=self.timeout)
+            # NVD API key gives 50 req/30s vs 5 req/30s unauthenticated
+            nvd_headers: dict = {}
+            nvd_api_key = os.environ.get("NVD_API_KEY", "")
+            if nvd_api_key:
+                nvd_headers["apiKey"] = nvd_api_key
+                logger.info("NVD: using authenticated request (higher rate limit)")
+
+            response = requests.get(url, headers=nvd_headers, timeout=self.timeout)
             response.raise_for_status()
 
             data = response.json()
@@ -3832,6 +3840,8 @@ class FeedsService:
                 ("PoC-in-GitHub", service.refresh_poc_in_github),
                 ("InTheWild", service.refresh_inthewild),
                 ("Nuclei Templates", service.refresh_nuclei_templates),
+                ("AlienVault OTX", service.refresh_otx),
+                ("URLhaus", service.refresh_urlhaus),
             ]
             for name, refresh_fn in feeds:
                 try:
@@ -3855,6 +3865,293 @@ class FeedsService:
                 "Running scheduled feed refresh (interval: %dh)", interval_hours
             )
             _refresh_all()
+
+
+    def refresh_otx(self) -> "FeedRefreshResult":
+        """Fetch threat pulses from AlienVault OTX.
+
+        Requires OTX_API_KEY environment variable.
+        Returns FeedRefreshResult with pulse count or skips gracefully when key absent.
+        """
+        api_key = os.environ.get("OTX_API_KEY", "")
+        if not api_key:
+            logger.info("OTX: OTX_API_KEY not set — skipping AlienVault OTX feed")
+            return FeedRefreshResult(
+                feed_name="otx",
+                success=True,
+                records_updated=0,
+                error="OTX_API_KEY not configured",
+            )
+
+        url = "https://otx.alienvault.com/api/v1/pulses/subscribed"
+        headers = {"X-OTX-API-KEY": api_key}
+        all_pulses: list = []
+        page = 1
+
+        try:
+            while True:
+                resp = requests.get(
+                    url,
+                    headers=headers,
+                    params={"page": page, "limit": 50},
+                    timeout=self.timeout,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                results = data.get("results", [])
+                if not results:
+                    break
+                all_pulses.extend(results)
+                if not data.get("next"):
+                    break
+                page += 1
+                if page > 20:  # cap at 1000 pulses
+                    break
+
+            # Persist pulse IOCs into threat_actor_mappings table
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            now = datetime.now(timezone.utc).isoformat()
+            inserted = 0
+            for pulse in all_pulses:
+                pulse_name = pulse.get("name", "")
+                for ioc in pulse.get("indicators", []):
+                    cve_refs = [
+                        t for t in pulse.get("tags", []) if t.upper().startswith("CVE-")
+                    ]
+                    cve_id = cve_refs[0] if cve_refs else f"OTX-{pulse.get('id', 'unknown')}"
+                    try:
+                        cursor.execute(
+                            """INSERT OR IGNORE INTO threat_actor_mappings
+                               (cve_id, threat_actor, campaign, confidence, source, created_at)
+                               VALUES (?, ?, ?, ?, ?, ?)""",
+                            (
+                                cve_id,
+                                pulse.get("author_name", "OTX"),
+                                pulse_name,
+                                "medium",
+                                "alienvault_otx",
+                                now,
+                            ),
+                        )
+                        inserted += cursor.rowcount
+                    except Exception:  # noqa: BLE001 — per-row isolation
+                        pass
+            conn.commit()
+            conn.close()
+
+            logger.info("OTX: fetched %d pulses, %d IOC mappings stored", len(all_pulses), inserted)
+            return FeedRefreshResult(
+                feed_name="otx",
+                success=True,
+                records_updated=inserted,
+            )
+
+        except RequestException as exc:
+            error_msg = f"OTX feed fetch failed: {exc}"
+            logger.warning(error_msg)
+            return FeedRefreshResult(
+                feed_name="otx", success=False, records_updated=0, error=error_msg
+            )
+
+    def refresh_urlhaus(self) -> "FeedRefreshResult":
+        """Fetch malicious URL indicators from abuse.ch URLhaus.
+
+        No API key required — free public JSON feed.
+        Stores URL indicators into supply_chain_vulns table as threat markers.
+        """
+        url = "https://urlhaus.abuse.ch/downloads/json/"
+        try:
+            resp = requests.get(url, timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+        except RequestException as exc:
+            error_msg = f"URLhaus feed fetch failed: {exc}"
+            logger.warning(error_msg)
+            return FeedRefreshResult(
+                feed_name="urlhaus", success=False, records_updated=0, error=error_msg
+            )
+        except (ValueError, KeyError) as exc:
+            error_msg = f"URLhaus feed parse failed: {exc}"
+            logger.warning(error_msg)
+            return FeedRefreshResult(
+                feed_name="urlhaus", success=False, records_updated=0, error=error_msg
+            )
+
+        urls = data.get("urls", [])
+        if not urls:
+            logger.info("URLhaus: no URL entries in feed response")
+            return FeedRefreshResult(feed_name="urlhaus", success=True, records_updated=0)
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        now = datetime.now(timezone.utc).isoformat()
+
+        # Store in exploit_intelligence table as malicious URL indicators
+        cursor.execute(
+            """CREATE TABLE IF NOT EXISTS urlhaus_indicators (
+               url_id TEXT PRIMARY KEY,
+               url TEXT NOT NULL,
+               url_status TEXT,
+               threat TEXT,
+               tags TEXT,
+               host TEXT,
+               date_added TEXT,
+               updated_at TEXT NOT NULL
+            )"""
+        )
+
+        inserted = 0
+        for entry in urls[:5000]:  # cap at 5k entries
+            url_id = str(entry.get("id", ""))
+            if not url_id:
+                continue
+            try:
+                cursor.execute(
+                    """INSERT OR REPLACE INTO urlhaus_indicators
+                       (url_id, url, url_status, threat, tags, host, date_added, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        url_id,
+                        entry.get("url", "")[:2048],
+                        entry.get("url_status", ""),
+                        entry.get("threat", ""),
+                        ",".join(entry.get("tags", []) or []),
+                        entry.get("host", ""),
+                        entry.get("date_added", ""),
+                        now,
+                    ),
+                )
+                inserted += cursor.rowcount
+            except Exception:  # noqa: BLE001 — per-row isolation
+                pass
+
+        cursor.execute(
+            """INSERT OR REPLACE INTO feed_metadata
+               (feed_name, last_refresh, records_count, status)
+               VALUES (?, ?, ?, ?)""",
+            ("urlhaus", now, inserted, "success"),
+        )
+        conn.commit()
+        conn.close()
+
+        logger.info("URLhaus: %d malicious URL indicators stored", inserted)
+        return FeedRefreshResult(
+            feed_name="urlhaus",
+            success=True,
+            records_updated=inserted,
+        )
+
+    def get_feed_config(self) -> dict:
+        """Return which feeds are configured/active based on env vars.
+
+        Used by the /api/v1/feeds/config endpoint.
+        """
+        nvd_key = os.environ.get("NVD_API_KEY", "")
+        otx_key = os.environ.get("OTX_API_KEY", "")
+        abuseipdb_key = os.environ.get("ABUSEIPDB_API_KEY", "")
+        github_token = os.environ.get("FIXOPS_GITHUB_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
+
+        def _masked(key: str) -> str:
+            return f"{key[:4]}...{key[-4:]}" if len(key) >= 8 else ("set" if key else "")
+
+        return {
+            "feeds": {
+                "nvd": {
+                    "name": "NVD (National Vulnerability Database)",
+                    "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+                    "status": "authenticated" if nvd_key else "unauthenticated",
+                    "api_key_configured": bool(nvd_key),
+                    "api_key_env": "NVD_API_KEY",
+                    "api_key_hint": _masked(nvd_key),
+                    "rate_limit": "50 req/30s" if nvd_key else "5 req/30s",
+                    "register_url": "https://nvd.nist.gov/developers/request-an-api-key",
+                    "notes": "Free API key gives 10x higher rate limit. Recommended.",
+                },
+                "epss": {
+                    "name": "EPSS (Exploit Prediction Scoring System)",
+                    "url": "https://epss.cyentia.com/epss_scores-current.csv.gz",
+                    "status": "active",
+                    "api_key_configured": False,
+                    "notes": "No API key required. Free public data from FIRST.org.",
+                },
+                "cisa_kev": {
+                    "name": "CISA Known Exploited Vulnerabilities",
+                    "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+                    "status": "active",
+                    "api_key_configured": False,
+                    "notes": "No API key required. Official CISA catalog.",
+                },
+                "alienvault_otx": {
+                    "name": "AlienVault OTX",
+                    "url": "https://otx.alienvault.com/api/v1/pulses/subscribed",
+                    "status": "active" if otx_key else "inactive",
+                    "api_key_configured": bool(otx_key),
+                    "api_key_env": "OTX_API_KEY",
+                    "api_key_hint": _masked(otx_key),
+                    "register_url": "https://otx.alienvault.com/api",
+                    "notes": "Free account required at otx.alienvault.com.",
+                },
+                "urlhaus": {
+                    "name": "abuse.ch URLhaus",
+                    "url": "https://urlhaus.abuse.ch/downloads/json/",
+                    "status": "active",
+                    "api_key_configured": False,
+                    "notes": "No API key required. Free malicious URL feed.",
+                },
+                "abuseipdb": {
+                    "name": "AbuseIPDB",
+                    "url": "https://api.abuseipdb.com/api/v2/check",
+                    "status": "active" if abuseipdb_key else "inactive",
+                    "api_key_configured": bool(abuseipdb_key),
+                    "api_key_env": "ABUSEIPDB_API_KEY",
+                    "api_key_hint": _masked(abuseipdb_key),
+                    "rate_limit": "1000 checks/day (free tier)",
+                    "register_url": "https://www.abuseipdb.com/register",
+                    "notes": "Free tier: 1K checks/day. Used for IP reputation lookup.",
+                },
+                "feodo_tracker": {
+                    "name": "Feodo Tracker (abuse.ch C2 blocklist)",
+                    "url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
+                    "status": "active",
+                    "api_key_configured": False,
+                    "notes": "No API key required. Free C2 IP blocklist from abuse.ch.",
+                },
+                "github_advisory": {
+                    "name": "GitHub Security Advisories",
+                    "url": "https://api.github.com/advisories",
+                    "status": "authenticated" if github_token else "unauthenticated",
+                    "api_key_configured": bool(github_token),
+                    "api_key_env": "FIXOPS_GITHUB_TOKEN",
+                    "api_key_hint": _masked(github_token),
+                    "rate_limit": "5000 req/hr authenticated vs 60 req/hr unauthenticated",
+                    "notes": "Personal access token or GitHub App token.",
+                },
+                "osv": {
+                    "name": "OSV (Open Source Vulnerabilities)",
+                    "url": "https://api.osv.dev/v1/querybatch",
+                    "status": "active",
+                    "api_key_configured": False,
+                    "notes": "No API key required. Google OSV.dev free API.",
+                },
+            },
+            "summary": {
+                "total_feeds": 9,
+                "active_feeds": sum(
+                    1 for f in ["nvd", "epss", "cisa_kev", "urlhaus", "feodo_tracker", "osv"]
+                    + (["alienvault_otx"] if otx_key else [])
+                    + (["abuseipdb"] if abuseipdb_key else [])
+                    + (["github_advisory"] if github_token else [])
+                    if True
+                ),
+                "keys_configured": {
+                    "NVD_API_KEY": bool(nvd_key),
+                    "OTX_API_KEY": bool(otx_key),
+                    "ABUSEIPDB_API_KEY": bool(abuseipdb_key),
+                    "FIXOPS_GITHUB_TOKEN": bool(github_token),
+                },
+            },
+        }
 
 
 __all__ = [

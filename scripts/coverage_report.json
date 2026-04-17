@@ -1,0 +1,3597 @@
+{
+  "generated_at": "2026-04-16T12:37:07.623185+00:00",
+  "runtime_secs": 914.9,
+  "summary": {
+    "total": 503,
+    "responding": 453,
+    "with_data": 81,
+    "empty_200": 372,
+    "method_issue": 6,
+    "auth_fail": 0,
+    "server_errors": 3,
+    "not_found": 41,
+    "rate_limited": 0,
+    "timed_out": 0,
+    "coverage_pct": 90.06
+  },
+  "by_category": {
+    "api_security": {
+      "ok": 202,
+      "total": 229,
+      "pct": 88.2
+    },
+    "asset": {
+      "ok": 14,
+      "total": 14,
+      "pct": 100.0
+    },
+    "cloud": {
+      "ok": 19,
+      "total": 23,
+      "pct": 82.6
+    },
+    "compliance": {
+      "ok": 29,
+      "total": 30,
+      "pct": 96.7
+    },
+    "identity": {
+      "ok": 21,
+      "total": 24,
+      "pct": 87.5
+    },
+    "network": {
+      "ok": 18,
+      "total": 18,
+      "pct": 100.0
+    },
+    "risk": {
+      "ok": 35,
+      "total": 37,
+      "pct": 94.6
+    },
+    "soc": {
+      "ok": 29,
+      "total": 30,
+      "pct": 96.7
+    },
+    "threat": {
+      "ok": 35,
+      "total": 38,
+      "pct": 92.1
+    },
+    "training": {
+      "ok": 17,
+      "total": 19,
+      "pct": 89.5
+    },
+    "vuln": {
+      "ok": 34,
+      "total": 41,
+      "pct": 82.9
+    }
+  },
+  "results": {
+    "/api/v1/access-anomaly": {
+      "status": 200,
+      "url": "/api/v1/access-anomaly/anomalies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 45.2,
+      "category": "network"
+    },
+    "/api/v1/access-control": {
+      "status": 200,
+      "url": "/api/v1/access-control/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.8,
+      "category": "compliance"
+    },
+    "/api/v1/access-governance": {
+      "status": 200,
+      "url": "/api/v1/access-governance/expiring?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.6,
+      "category": "identity"
+    },
+    "/api/v1/access-matrix": {
+      "status": 200,
+      "url": "/api/v1/access-matrix/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 40.0,
+      "category": "identity"
+    },
+    "/api/v1/access-requests": {
+      "status": 200,
+      "url": "/api/v1/access-requests/requests?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.1,
+      "category": "identity"
+    },
+    "/api/v1/access-reviews": {
+      "status": 200,
+      "url": "/api/v1/access-reviews/reviews?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.3,
+      "category": "identity"
+    },
+    "/api/v1/actor-tracking": {
+      "status": 200,
+      "url": "/api/v1/actor-tracking/actors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.1,
+      "category": "threat"
+    },
+    "/api/v1/admin": {
+      "status": 200,
+      "url": "/api/v1/admin/users?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 8.6,
+      "category": "api_security"
+    },
+    "/api/v1/ai-advisor": {
+      "status": 200,
+      "url": "/api/v1/ai-advisor/sessions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.4,
+      "category": "api_security"
+    },
+    "/api/v1/ai-agent": {
+      "status": 500,
+      "url": "/api/v1/ai-agent/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.8,
+      "category": "api_security"
+    },
+    "/api/v1/ai-governance": {
+      "status": 200,
+      "url": "/api/v1/ai-governance/models?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.4,
+      "category": "api_security"
+    },
+    "/api/v1/ai-orchestrator": {
+      "status": 200,
+      "url": "/api/v1/ai-orchestrator/tasks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.4,
+      "category": "api_security"
+    },
+    "/api/v1/ai-soc": {
+      "status": 200,
+      "url": "/api/v1/ai-soc/detections?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.6,
+      "category": "soc"
+    },
+    "/api/v1/airgap": {
+      "status": 200,
+      "url": "/api/v1/airgap/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 16.3,
+      "category": "api_security"
+    },
+    "/api/v1/alert-enrichment": {
+      "status": 200,
+      "url": "/api/v1/alert-enrichment/queue?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.5,
+      "category": "soc"
+    },
+    "/api/v1/alert-triage": {
+      "status": 200,
+      "url": "/api/v1/alert-triage/alerts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.1,
+      "category": "soc"
+    },
+    "/api/v1/alerting": {
+      "status": 200,
+      "url": "/api/v1/alerting/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.3,
+      "category": "soc"
+    },
+    "/api/v1/algorithms": {
+      "status": 200,
+      "url": "/api/v1/algorithms/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.3,
+      "category": "api_security"
+    },
+    "/api/v1/analytics": {
+      "status": 200,
+      "url": "/api/v1/analytics/dashboard/overview?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 12.5,
+      "category": "api_security"
+    },
+    "/api/v1/analytics-engine": {
+      "status": 200,
+      "url": "/api/v1/analytics-engine/summary?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 16.5,
+      "category": "api_security"
+    },
+    "/api/v1/analytics/users": {
+      "status": 200,
+      "url": "/api/v1/analytics/users/sessions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.4,
+      "category": "identity"
+    },
+    "/api/v1/anomalies": {
+      "status": 200,
+      "url": "/api/v1/anomalies/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.5,
+      "category": "api_security"
+    },
+    "/api/v1/anomaly-ml": {
+      "status": 200,
+      "url": "/api/v1/anomaly-ml/groups?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 14.4,
+      "category": "network"
+    },
+    "/api/v1/anti-phishing": {
+      "status": 200,
+      "url": "/api/v1/anti-phishing/urls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.1,
+      "category": "threat"
+    },
+    "/api/v1/api-abuse": {
+      "status": 200,
+      "url": "/api/v1/api-abuse/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.5,
+      "category": "api_security"
+    },
+    "/api/v1/api-analytics": {
+      "status": 200,
+      "url": "/api/v1/api-analytics/top-endpoints?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.0,
+      "category": "api_security"
+    },
+    "/api/v1/api-discovery": {
+      "status": 200,
+      "url": "/api/v1/api-discovery/endpoints?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "api_security"
+    },
+    "/api/v1/api-fuzzer": {
+      "status": 200,
+      "url": "/api/v1/api-fuzzer/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.3,
+      "category": "api_security"
+    },
+    "/api/v1/api-gateway-security": {
+      "status": 200,
+      "url": "/api/v1/api-gateway-security/gateways?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.1,
+      "category": "api_security"
+    },
+    "/api/v1/api-inventory": {
+      "status": 200,
+      "url": "/api/v1/api-inventory/apis?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.7,
+      "category": "asset"
+    },
+    "/api/v1/api-security": {
+      "status": 200,
+      "url": "/api/v1/api-security/findings?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.7,
+      "category": "api_security"
+    },
+    "/api/v1/api-security-engine": {
+      "status": 200,
+      "url": "/api/v1/api-security-engine/apis?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.2,
+      "category": "api_security"
+    },
+    "/api/v1/api-threat-protection": {
+      "status": 200,
+      "url": "/api/v1/api-threat-protection/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.0,
+      "category": "threat"
+    },
+    "/api/v1/app-risk": {
+      "status": 200,
+      "url": "/api/v1/app-risk/applications?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.7,
+      "category": "risk"
+    },
+    "/api/v1/app-security": {
+      "status": 200,
+      "url": "/api/v1/app-security/apps?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.0,
+      "category": "api_security"
+    },
+    "/api/v1/apps": {
+      "status": 200,
+      "url": "/api/v1/apps/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.0,
+      "category": "api_security"
+    },
+    "/api/v1/appsec": {
+      "status": 200,
+      "url": "/api/v1/appsec/apps?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.5,
+      "category": "api_security"
+    },
+    "/api/v1/arch-review": {
+      "status": 200,
+      "url": "/api/v1/arch-review/reviews?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 37.2,
+      "category": "api_security"
+    },
+    "/api/v1/asm": {
+      "status": 200,
+      "url": "/api/v1/asm/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.8,
+      "category": "api_security"
+    },
+    "/api/v1/asset-criticality": {
+      "status": 200,
+      "url": "/api/v1/asset-criticality/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.6,
+      "category": "asset"
+    },
+    "/api/v1/asset-groups": {
+      "status": 200,
+      "url": "/api/v1/asset-groups/groups?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.8,
+      "category": "asset"
+    },
+    "/api/v1/asset-lifecycle": {
+      "status": 200,
+      "url": "/api/v1/asset-lifecycle/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.6,
+      "category": "asset"
+    },
+    "/api/v1/asset-risk": {
+      "status": 200,
+      "url": "/api/v1/asset-risk/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.6,
+      "category": "asset"
+    },
+    "/api/v1/asset-tags": {
+      "status": 200,
+      "url": "/api/v1/asset-tags/tags?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 35.5,
+      "category": "asset"
+    },
+    "/api/v1/assets": {
+      "status": 200,
+      "url": "/api/v1/assets/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.3,
+      "category": "asset"
+    },
+    "/api/v1/attack-chains": {
+      "status": 200,
+      "url": "/api/v1/attack-chains/chains?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.3,
+      "category": "api_security"
+    },
+    "/api/v1/attack-paths": {
+      "status": 200,
+      "url": "/api/v1/attack-paths/nodes?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.3,
+      "category": "api_security"
+    },
+    "/api/v1/attack-sim": {
+      "status": 200,
+      "url": "/api/v1/attack-sim/simulations?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.3,
+      "category": "api_security"
+    },
+    "/api/v1/attack-surface": {
+      "status": 200,
+      "url": "/api/v1/attack-surface/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.5,
+      "category": "api_security"
+    },
+    "/api/v1/attack-surface-mgmt": {
+      "status": 200,
+      "url": "/api/v1/attack-surface-mgmt/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.3,
+      "category": "api_security"
+    },
+    "/api/v1/attack-surface/monitor": {
+      "status": 200,
+      "url": "/api/v1/attack-surface/monitor/snapshots?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.7,
+      "category": "api_security"
+    },
+    "/api/v1/audit": {
+      "status": 200,
+      "url": "/api/v1/audit?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 19.1,
+      "category": "compliance"
+    },
+    "/api/v1/audit-analytics": {
+      "status": 200,
+      "url": "/api/v1/audit-analytics/search?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.6,
+      "category": "compliance"
+    },
+    "/api/v1/audit-management": {
+      "status": 200,
+      "url": "/api/v1/audit-management/audits?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.6,
+      "category": "compliance"
+    },
+    "/api/v1/auth": {
+      "status": 200,
+      "url": "/api/v1/auth/sso?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.6,
+      "category": "identity"
+    },
+    "/api/v1/auth/keys": {
+      "status": 200,
+      "url": "/api/v1/auth/keys?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.0,
+      "category": "identity"
+    },
+    "/api/v1/auth/sso": {
+      "status": 200,
+      "url": "/api/v1/auth/sso?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.9,
+      "category": "identity"
+    },
+    "/api/v1/auto-evidence": {
+      "status": 200,
+      "url": "/api/v1/auto-evidence/frameworks?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 33.7,
+      "category": "compliance"
+    },
+    "/api/v1/auto-pentest": {
+      "status": 200,
+      "url": "/api/v1/auto-pentest/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.2,
+      "category": "api_security"
+    },
+    "/api/v1/autofix": {
+      "status": 404,
+      "url": "/api/v1/autofix?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.7,
+      "category": "api_security"
+    },
+    "/api/v1/autofix/verify": {
+      "status": 200,
+      "url": "/api/v1/autofix/verify/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 13.7,
+      "category": "api_security"
+    },
+    "/api/v1/autonomous-remediation": {
+      "status": 200,
+      "url": "/api/v1/autonomous-remediation/workflows?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "api_security"
+    },
+    "/api/v1/awareness-campaigns": {
+      "status": 200,
+      "url": "/api/v1/awareness-campaigns/campaigns?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.7,
+      "category": "training"
+    },
+    "/api/v1/awareness-gamification": {
+      "status": 200,
+      "url": "/api/v1/awareness-gamification/challenges?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.6,
+      "category": "training"
+    },
+    "/api/v1/awareness-metrics": {
+      "status": 200,
+      "url": "/api/v1/awareness-metrics/metrics?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.4,
+      "category": "training"
+    },
+    "/api/v1/awareness-program": {
+      "status": 200,
+      "url": "/api/v1/awareness-program/department-compliance?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.6,
+      "category": "training"
+    },
+    "/api/v1/awareness-score": {
+      "status": 404,
+      "url": "/api/v1/awareness-score?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 35.4,
+      "category": "risk"
+    },
+    "/api/v1/backup-dr": {
+      "status": 200,
+      "url": "/api/v1/backup-dr/jobs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.3,
+      "category": "api_security"
+    },
+    "/api/v1/backups": {
+      "status": 200,
+      "url": "/api/v1/backups/schedules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 17.9,
+      "category": "api_security"
+    },
+    "/api/v1/bandwidth-analysis": {
+      "status": 200,
+      "url": "/api/v1/bandwidth-analysis/links?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.5,
+      "category": "network"
+    },
+    "/api/v1/behavioral-analytics": {
+      "status": 200,
+      "url": "/api/v1/behavioral-analytics/baselines?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.2,
+      "category": "api_security"
+    },
+    "/api/v1/bounty": {
+      "status": 200,
+      "url": "/api/v1/bounty/programs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.0,
+      "category": "api_security"
+    },
+    "/api/v1/brain": {
+      "status": 200,
+      "url": "/api/v1/brain/pipeline/runs?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 21.3,
+      "category": "api_security"
+    },
+    "/api/v1/breach-detection": {
+      "status": 200,
+      "url": "/api/v1/breach-detection/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 95.4,
+      "category": "soc"
+    },
+    "/api/v1/breach-response": {
+      "status": 200,
+      "url": "/api/v1/breach-response/cases?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.2,
+      "category": "soc"
+    },
+    "/api/v1/breach-sim": {
+      "status": 200,
+      "url": "/api/v1/breach-sim/scenarios?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 25.1,
+      "category": "soc"
+    },
+    "/api/v1/browser-security": {
+      "status": 200,
+      "url": "/api/v1/browser-security/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.0,
+      "category": "api_security"
+    },
+    "/api/v1/bulk": {
+      "status": 200,
+      "url": "/api/v1/bulk/jobs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.6,
+      "category": "api_security"
+    },
+    "/api/v1/cache": {
+      "status": 200,
+      "url": "/api/v1/cache/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 17.4,
+      "category": "api_security"
+    },
+    "/api/v1/capacity-planning": {
+      "status": 200,
+      "url": "/api/v1/capacity-planning/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.5,
+      "category": "api_security"
+    },
+    "/api/v1/casb": {
+      "status": 200,
+      "url": "/api/v1/casb/apps?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.4,
+      "category": "cloud"
+    },
+    "/api/v1/cases": {
+      "status": 200,
+      "url": "/api/v1/cases/stats/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 17.8,
+      "category": "api_security"
+    },
+    "/api/v1/ccm": {
+      "status": 404,
+      "url": "/api/v1/ccm?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.9,
+      "category": "api_security"
+    },
+    "/api/v1/certificates": {
+      "status": 200,
+      "url": "/api/v1/certificates/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.3,
+      "category": "api_security"
+    },
+    "/api/v1/change-management": {
+      "status": 200,
+      "url": "/api/v1/change-management/changes?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.1,
+      "category": "api_security"
+    },
+    "/api/v1/change-tracker": {
+      "status": 404,
+      "url": "/api/v1/change-tracker?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.2,
+      "category": "api_security"
+    },
+    "/api/v1/changelog": {
+      "status": 200,
+      "url": "/api/v1/changelog/unreleased?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 267.4,
+      "category": "api_security"
+    },
+    "/api/v1/changes": {
+      "status": 200,
+      "url": "/api/v1/changes/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.2,
+      "category": "api_security"
+    },
+    "/api/v1/cicd": {
+      "status": 200,
+      "url": "/api/v1/cicd/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.4,
+      "category": "api_security"
+    },
+    "/api/v1/ciem": {
+      "status": 200,
+      "url": "/api/v1/ciem/risks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.1,
+      "category": "api_security"
+    },
+    "/api/v1/ciso-report": {
+      "status": 200,
+      "url": "/api/v1/ciso-report/weekly-brief?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 43.9,
+      "category": "training"
+    },
+    "/api/v1/classification": {
+      "status": 200,
+      "url": "/api/v1/classification/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.1,
+      "category": "api_security"
+    },
+    "/api/v1/cloud": {
+      "status": 200,
+      "url": "/api/v1/cloud/inventory?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 14.2,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-access-security": {
+      "status": 200,
+      "url": "/api/v1/cloud-access-security/apps?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.2,
+      "category": "identity"
+    },
+    "/api/v1/cloud-accounts": {
+      "status": 200,
+      "url": "/api/v1/cloud-accounts/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.9,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-analytics": {
+      "status": 200,
+      "url": "/api/v1/cloud-analytics/events?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.4,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-compliance": {
+      "status": 200,
+      "url": "/api/v1/cloud-compliance/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.1,
+      "category": "compliance"
+    },
+    "/api/v1/cloud-connectors": {
+      "status": 404,
+      "url": "/api/v1/cloud-connectors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-cost": {
+      "status": 200,
+      "url": "/api/v1/cloud-cost/snapshots?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.0,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-drift": {
+      "status": 200,
+      "url": "/api/v1/cloud-drift/baselines?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.1,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-findings": {
+      "status": 200,
+      "url": "/api/v1/cloud-findings/findings?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.1,
+      "category": "vuln"
+    },
+    "/api/v1/cloud-governance": {
+      "status": 200,
+      "url": "/api/v1/cloud-governance/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.6,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-graph": {
+      "status": 404,
+      "url": "/api/v1/cloud-graph?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.4,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-identity": {
+      "status": 200,
+      "url": "/api/v1/cloud-identity/identities?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.7,
+      "category": "identity"
+    },
+    "/api/v1/cloud-inventory": {
+      "status": 200,
+      "url": "/api/v1/cloud-inventory/resources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.1,
+      "category": "asset"
+    },
+    "/api/v1/cloud-ir": {
+      "status": 200,
+      "url": "/api/v1/cloud-ir/incidents?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 35.3,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-native": {
+      "status": 200,
+      "url": "/api/v1/cloud-native/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.5,
+      "category": "cloud"
+    },
+    "/api/v1/cloud-posture": {
+      "status": 200,
+      "url": "/api/v1/cloud-posture/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.3,
+      "category": "risk"
+    },
+    "/api/v1/cloud-security-engine": {
+      "status": 200,
+      "url": "/api/v1/cloud-security-engine/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.8,
+      "category": "cloud"
+    },
+    "/api/v1/cmdb": {
+      "status": 200,
+      "url": "/api/v1/cmdb/cis?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.4,
+      "category": "asset"
+    },
+    "/api/v1/cnapp": {
+      "status": 200,
+      "url": "/api/v1/cnapp/workloads?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.1,
+      "category": "api_security"
+    },
+    "/api/v1/code-to-cloud": {
+      "status": 200,
+      "url": "/api/v1/code-to-cloud/summary?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 15.5,
+      "category": "cloud"
+    },
+    "/api/v1/collaboration": {
+      "status": 200,
+      "url": "/api/v1/collaboration/comments?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 11.8,
+      "category": "api_security"
+    },
+    "/api/v1/compliance": {
+      "status": 200,
+      "url": "/api/v1/compliance/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 25.6,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-calendar": {
+      "status": 200,
+      "url": "/api/v1/compliance-calendar/upcoming?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.5,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-evidence": {
+      "status": 200,
+      "url": "/api/v1/compliance-evidence/requests?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.6,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-gaps": {
+      "status": 200,
+      "url": "/api/v1/compliance-gaps/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.6,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-mapping": {
+      "status": 200,
+      "url": "/api/v1/compliance-mapping/controls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-planner": {
+      "status": 200,
+      "url": "/api/v1/compliance-planner/plans?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.2,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-reports": {
+      "status": 200,
+      "url": "/api/v1/compliance-reports/frameworks?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 11.7,
+      "category": "compliance"
+    },
+    "/api/v1/compliance-scanner": {
+      "status": 200,
+      "url": "/api/v1/compliance-scanner/profiles?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.3,
+      "category": "vuln"
+    },
+    "/api/v1/compliance-workflows": {
+      "status": 200,
+      "url": "/api/v1/compliance-workflows/workflows?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.2,
+      "category": "compliance"
+    },
+    "/api/v1/config-benchmark": {
+      "status": 200,
+      "url": "/api/v1/config-benchmark/profiles?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.2,
+      "category": "risk"
+    },
+    "/api/v1/connectors": {
+      "status": 200,
+      "url": "/api/v1/connectors/types?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 13.5,
+      "category": "api_security"
+    },
+    "/api/v1/container": {
+      "status": 200,
+      "url": "/api/v1/container/images?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.4,
+      "category": "cloud"
+    },
+    "/api/v1/container-posture": {
+      "status": 200,
+      "url": "/api/v1/container-posture/clusters?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.1,
+      "category": "risk"
+    },
+    "/api/v1/container-registry-security": {
+      "status": 404,
+      "url": "/api/v1/container-registry-security?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.3,
+      "category": "cloud"
+    },
+    "/api/v1/container-runtime": {
+      "status": 200,
+      "url": "/api/v1/container-runtime/containers?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.6,
+      "category": "cloud"
+    },
+    "/api/v1/containers": {
+      "status": 200,
+      "url": "/api/v1/containers/checks?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.9,
+      "category": "cloud"
+    },
+    "/api/v1/control-testing": {
+      "status": 200,
+      "url": "/api/v1/control-testing/controls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.0,
+      "category": "compliance"
+    },
+    "/api/v1/copilot": {
+      "status": 200,
+      "url": "/api/v1/copilot/sessions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.8,
+      "category": "api_security"
+    },
+    "/api/v1/copilot/agents": {
+      "status": 200,
+      "url": "/api/v1/copilot/agents/analyst/trending?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 59.6,
+      "category": "api_security"
+    },
+    "/api/v1/correlations": {
+      "status": 200,
+      "url": "/api/v1/correlations/exposure-cases?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.9,
+      "category": "api_security"
+    },
+    "/api/v1/cost-optimization": {
+      "status": 200,
+      "url": "/api/v1/cost-optimization/tools?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.6,
+      "category": "api_security"
+    },
+    "/api/v1/council": {
+      "status": 200,
+      "url": "/api/v1/council/calibration?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 8.7,
+      "category": "api_security"
+    },
+    "/api/v1/crypto-keys": {
+      "status": 200,
+      "url": "/api/v1/crypto-keys/expiring?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 35.1,
+      "category": "api_security"
+    },
+    "/api/v1/cspm": {
+      "status": 200,
+      "url": "/api/v1/cspm/posture?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 12.7,
+      "category": "api_security"
+    },
+    "/api/v1/cspm-engine": {
+      "status": 200,
+      "url": "/api/v1/cspm-engine/resources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.1,
+      "category": "api_security"
+    },
+    "/api/v1/ctem": {
+      "status": 200,
+      "url": "/api/v1/ctem/cycles?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.6,
+      "category": "api_security"
+    },
+    "/api/v1/cve": {
+      "status": 200,
+      "url": "/api/v1/cve/search?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 21.6,
+      "category": "vuln"
+    },
+    "/api/v1/cwp": {
+      "status": 200,
+      "url": "/api/v1/cwp/workloads?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.2,
+      "category": "cloud"
+    },
+    "/api/v1/cwpp": {
+      "status": 200,
+      "url": "/api/v1/cwpp/workloads?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.5,
+      "category": "cloud"
+    },
+    "/api/v1/cyber-insurance": {
+      "status": 200,
+      "url": "/api/v1/cyber-insurance/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 17.1,
+      "category": "api_security"
+    },
+    "/api/v1/cyber-resilience": {
+      "status": 200,
+      "url": "/api/v1/cyber-resilience/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.0,
+      "category": "risk"
+    },
+    "/api/v1/cyber-threat-intel": {
+      "status": 200,
+      "url": "/api/v1/cyber-threat-intel/reports?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.4,
+      "category": "threat"
+    },
+    "/api/v1/cyber-threat-models": {
+      "status": 200,
+      "url": "/api/v1/cyber-threat-models/unmitigated?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "threat"
+    },
+    "/api/v1/dark-web": {
+      "status": 200,
+      "url": "/api/v1/dark-web/mentions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.6,
+      "category": "threat"
+    },
+    "/api/v1/dashboards": {
+      "status": 200,
+      "url": "/api/v1/dashboards/templates?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 20.5,
+      "category": "api_security"
+    },
+    "/api/v1/dast": {
+      "status": 200,
+      "url": "/api/v1/dast/findings?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 25.8,
+      "category": "api_security"
+    },
+    "/api/v1/data": {
+      "status": 200,
+      "url": "/api/v1/data/classifications?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 21.6,
+      "category": "api_security"
+    },
+    "/api/v1/data-discovery": {
+      "status": 200,
+      "url": "/api/v1/data-discovery/datastores?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "api_security"
+    },
+    "/api/v1/data-exfiltration": {
+      "status": 200,
+      "url": "/api/v1/data-exfiltration/incidents?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.7,
+      "category": "api_security"
+    },
+    "/api/v1/data-governance": {
+      "status": 200,
+      "url": "/api/v1/data-governance/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.2,
+      "category": "api_security"
+    },
+    "/api/v1/data-lake-security": {
+      "status": 200,
+      "url": "/api/v1/data-lake-security/stores?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.4,
+      "category": "api_security"
+    },
+    "/api/v1/data-pipeline": {
+      "status": 200,
+      "url": "/api/v1/data-pipeline/pipelines?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.4,
+      "category": "api_security"
+    },
+    "/api/v1/data-privacy": {
+      "status": 200,
+      "url": "/api/v1/data-privacy/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.5,
+      "category": "compliance"
+    },
+    "/api/v1/data-retention": {
+      "status": 200,
+      "url": "/api/v1/data-retention/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.6,
+      "category": "compliance"
+    },
+    "/api/v1/db-security": {
+      "status": 200,
+      "url": "/api/v1/db-security/inventory?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.9,
+      "category": "api_security"
+    },
+    "/api/v1/ddos-protection": {
+      "status": 200,
+      "url": "/api/v1/ddos-protection/resources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.9,
+      "category": "api_security"
+    },
+    "/api/v1/deception": {
+      "status": 200,
+      "url": "/api/v1/deception/canaries?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.4,
+      "category": "api_security"
+    },
+    "/api/v1/deception-analytics": {
+      "status": 200,
+      "url": "/api/v1/deception-analytics/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.6,
+      "category": "api_security"
+    },
+    "/api/v1/deduplication": {
+      "status": 200,
+      "url": "/api/v1/deduplication/clusters?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.1,
+      "category": "api_security"
+    },
+    "/api/v1/dep-scanner": {
+      "status": 404,
+      "url": "/api/v1/dep-scanner?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.2,
+      "category": "vuln"
+    },
+    "/api/v1/dependency-mapping": {
+      "status": 200,
+      "url": "/api/v1/dependency-mapping/services?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.0,
+      "category": "api_security"
+    },
+    "/api/v1/dependency-risk": {
+      "status": 200,
+      "url": "/api/v1/dependency-risk/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.9,
+      "category": "risk"
+    },
+    "/api/v1/deployment": {
+      "status": 500,
+      "url": "/api/v1/deployment/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.3,
+      "category": "api_security"
+    },
+    "/api/v1/developer": {
+      "status": 422,
+      "url": "/api/v1/developer/findings?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 9.0,
+      "category": "api_security"
+    },
+    "/api/v1/devsecops": {
+      "status": 200,
+      "url": "/api/v1/devsecops/pipelines?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.7,
+      "category": "api_security"
+    },
+    "/api/v1/digital-forensics": {
+      "status": 200,
+      "url": "/api/v1/digital-forensics/cases?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.1,
+      "category": "soc"
+    },
+    "/api/v1/digital-identity": {
+      "status": 200,
+      "url": "/api/v1/digital-identity/profiles?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.1,
+      "category": "identity"
+    },
+    "/api/v1/digital-twin": {
+      "status": 200,
+      "url": "/api/v1/digital-twin/twins?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.2,
+      "category": "api_security"
+    },
+    "/api/v1/dlp": {
+      "status": 200,
+      "url": "/api/v1/dlp/results?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.0,
+      "category": "api_security"
+    },
+    "/api/v1/docs": {
+      "status": 200,
+      "url": "/api/v1/docs/openapi.json?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 4846.2,
+      "category": "api_security"
+    },
+    "/api/v1/drift": {
+      "status": 200,
+      "url": "/api/v1/drift/active?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 9.7,
+      "category": "cloud"
+    },
+    "/api/v1/drp": {
+      "status": 200,
+      "url": "/api/v1/drp/risks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.6,
+      "category": "api_security"
+    },
+    "/api/v1/edr": {
+      "status": 200,
+      "url": "/api/v1/edr/endpoints?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.6,
+      "category": "api_security"
+    },
+    "/api/v1/email-filtering": {
+      "status": 200,
+      "url": "/api/v1/email-filtering/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.7,
+      "category": "api_security"
+    },
+    "/api/v1/email-security": {
+      "status": 200,
+      "url": "/api/v1/email-security/domains?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.6,
+      "category": "api_security"
+    },
+    "/api/v1/endpoint-compliance": {
+      "status": 200,
+      "url": "/api/v1/endpoint-compliance/endpoints?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.7,
+      "category": "asset"
+    },
+    "/api/v1/endpoint-hunting": {
+      "status": 200,
+      "url": "/api/v1/endpoint-hunting/hunts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.7,
+      "category": "asset"
+    },
+    "/api/v1/endpoint-security": {
+      "status": 200,
+      "url": "/api/v1/endpoint-security/endpoints?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.3,
+      "category": "asset"
+    },
+    "/api/v1/error-audit": {
+      "status": 200,
+      "url": "/api/v1/error-audit/scan?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 4441.5,
+      "category": "compliance"
+    },
+    "/api/v1/event-bus": {
+      "status": 200,
+      "url": "/api/v1/event-bus/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 11.7,
+      "category": "api_security"
+    },
+    "/api/v1/event-correlation": {
+      "status": 200,
+      "url": "/api/v1/event-correlation/events?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.8,
+      "category": "api_security"
+    },
+    "/api/v1/event-timeline": {
+      "status": 200,
+      "url": "/api/v1/event-timeline/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 42.4,
+      "category": "soc"
+    },
+    "/api/v1/events": {
+      "status": 200,
+      "url": "/api/v1/events/webhooks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.7,
+      "category": "api_security"
+    },
+    "/api/v1/evidence-chain": {
+      "status": 200,
+      "url": "/api/v1/evidence-chain/cases?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.9,
+      "category": "compliance"
+    },
+    "/api/v1/evidence-collector": {
+      "status": 200,
+      "url": "/api/v1/evidence-collector?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.7,
+      "category": "compliance"
+    },
+    "/api/v1/evidence-vault": {
+      "status": 200,
+      "url": "/api/v1/evidence-vault/search?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.9,
+      "category": "compliance"
+    },
+    "/api/v1/exception-workflow": {
+      "status": 200,
+      "url": "/api/v1/exception-workflow/requests?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.0,
+      "category": "network"
+    },
+    "/api/v1/exceptions": {
+      "status": 200,
+      "url": "/api/v1/exceptions/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.1,
+      "category": "api_security"
+    },
+    "/api/v1/exec-reporting": {
+      "status": 200,
+      "url": "/api/v1/exec-reporting/reports?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.9,
+      "category": "training"
+    },
+    "/api/v1/executive": {
+      "status": 404,
+      "url": "/api/v1/executive?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.8,
+      "category": "training"
+    },
+    "/api/v1/fail": {
+      "status": 200,
+      "url": "/api/v1/fail/drills?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.4,
+      "category": "api_security"
+    },
+    "/api/v1/fedramp": {
+      "status": 404,
+      "url": "/api/v1/fedramp?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.4,
+      "category": "api_security"
+    },
+    "/api/v1/feed-subscriptions": {
+      "status": 200,
+      "url": "/api/v1/feed-subscriptions/subscriptions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.0,
+      "category": "threat"
+    },
+    "/api/v1/feeds": {
+      "status": 200,
+      "url": "/api/v1/feeds/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 62.2,
+      "category": "threat"
+    },
+    "/api/v1/firewall": {
+      "status": 200,
+      "url": "/api/v1/firewall/firewalls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.5,
+      "category": "network"
+    },
+    "/api/v1/firewall-mgmt": {
+      "status": 200,
+      "url": "/api/v1/firewall-mgmt/firewalls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.5,
+      "category": "network"
+    },
+    "/api/v1/firewall-policy": {
+      "status": 200,
+      "url": "/api/v1/firewall-policy/firewalls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.6,
+      "category": "network"
+    },
+    "/api/v1/firmware-security": {
+      "status": 200,
+      "url": "/api/v1/firmware-security/devices?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.0,
+      "category": "api_security"
+    },
+    "/api/v1/forensics-readiness": {
+      "status": 200,
+      "url": "/api/v1/forensics-readiness/sources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.1,
+      "category": "soc"
+    },
+    "/api/v1/gap-analysis": {
+      "status": 200,
+      "url": "/api/v1/gap-analysis/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.2,
+      "category": "api_security"
+    },
+    "/api/v1/gate": {
+      "status": 200,
+      "url": "/api/v1/gate/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 13.5,
+      "category": "api_security"
+    },
+    "/api/v1/gateway": {
+      "status": 200,
+      "url": "/api/v1/gateway/rate-limits?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 10.6,
+      "category": "api_security"
+    },
+    "/api/v1/gdpr": {
+      "status": 200,
+      "url": "/api/v1/gdpr/activities?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.7,
+      "category": "compliance"
+    },
+    "/api/v1/github/issues": {
+      "status": 200,
+      "url": "/api/v1/github/issues/metrics?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.8,
+      "category": "api_security"
+    },
+    "/api/v1/graph": {
+      "status": 200,
+      "url": "/api/v1/graph/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 28.8,
+      "category": "api_security"
+    },
+    "/api/v1/graphql": {
+      "status": 404,
+      "url": "/api/v1/graphql?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.9,
+      "category": "api_security"
+    },
+    "/api/v1/graphrag": {
+      "status": 200,
+      "url": "/api/v1/graphrag/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 29.7,
+      "category": "api_security"
+    },
+    "/api/v1/grc": {
+      "status": 200,
+      "url": "/api/v1/grc/frameworks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.7,
+      "category": "api_security"
+    },
+    "/api/v1/health-scorecard": {
+      "status": 200,
+      "url": "/api/v1/health-scorecard/current?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.1,
+      "category": "risk"
+    },
+    "/api/v1/hunt": {
+      "status": 200,
+      "url": "/api/v1/hunt/hypotheses?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.9,
+      "category": "api_security"
+    },
+    "/api/v1/hunting": {
+      "status": 200,
+      "url": "/api/v1/hunting/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.6,
+      "category": "threat"
+    },
+    "/api/v1/hunting-automation": {
+      "status": 200,
+      "url": "/api/v1/hunting-automation/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.5,
+      "category": "threat"
+    },
+    "/api/v1/hunting-playbooks": {
+      "status": 200,
+      "url": "/api/v1/hunting-playbooks/playbooks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.4,
+      "category": "threat"
+    },
+    "/api/v1/iac": {
+      "status": 200,
+      "url": "/api/v1/iac?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.2,
+      "category": "api_security"
+    },
+    "/api/v1/iam-policy": {
+      "status": 200,
+      "url": "/api/v1/iam-policy/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.0,
+      "category": "identity"
+    },
+    "/api/v1/ide": {
+      "status": 200,
+      "url": "/api/v1/ide/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.7,
+      "category": "api_security"
+    },
+    "/api/v1/identity": {
+      "status": 422,
+      "url": "/api/v1/identity/similar?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 14.0,
+      "category": "identity"
+    },
+    "/api/v1/identity-analytics": {
+      "status": 200,
+      "url": "/api/v1/identity-analytics/identities?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.4,
+      "category": "identity"
+    },
+    "/api/v1/identity-governance": {
+      "status": 200,
+      "url": "/api/v1/identity-governance/reviews?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.0,
+      "category": "identity"
+    },
+    "/api/v1/identity-lifecycle": {
+      "status": 200,
+      "url": "/api/v1/identity-lifecycle/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.7,
+      "category": "identity"
+    },
+    "/api/v1/identity-risk": {
+      "status": 200,
+      "url": "/api/v1/identity-risk/identities?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.4,
+      "category": "risk"
+    },
+    "/api/v1/iga": {
+      "status": 200,
+      "url": "/api/v1/iga/reviews?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.7,
+      "category": "api_security"
+    },
+    "/api/v1/incident-comms": {
+      "status": 200,
+      "url": "/api/v1/incident-comms/comms?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.1,
+      "category": "soc"
+    },
+    "/api/v1/incident-costs": {
+      "status": 200,
+      "url": "/api/v1/incident-costs/analytics?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.3,
+      "category": "soc"
+    },
+    "/api/v1/incident-kb": {
+      "status": 422,
+      "url": "/api/v1/incident-kb/search?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.5,
+      "category": "soc"
+    },
+    "/api/v1/incident-lessons": {
+      "status": 200,
+      "url": "/api/v1/incident-lessons/lessons?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.5,
+      "category": "soc"
+    },
+    "/api/v1/incident-metrics": {
+      "status": 200,
+      "url": "/api/v1/incident-metrics/incidents?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.8,
+      "category": "soc"
+    },
+    "/api/v1/incident-orchestration": {
+      "status": 200,
+      "url": "/api/v1/incident-orchestration/incidents?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.6,
+      "category": "soc"
+    },
+    "/api/v1/incident-timeline": {
+      "status": 200,
+      "url": "/api/v1/incident-timeline/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 20.2,
+      "category": "soc"
+    },
+    "/api/v1/incident-triage": {
+      "status": 200,
+      "url": "/api/v1/incident-triage/incidents?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.0,
+      "category": "soc"
+    },
+    "/api/v1/incidents": {
+      "status": 200,
+      "url": "/api/v1/incidents/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.5,
+      "category": "soc"
+    },
+    "/api/v1/insider-threat": {
+      "status": 200,
+      "url": "/api/v1/insider-threat/high-risk?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.0,
+      "category": "threat"
+    },
+    "/api/v1/integrations": {
+      "status": 200,
+      "url": "/api/v1/integrations/apps?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.3,
+      "category": "api_security"
+    },
+    "/api/v1/intel-enrichment": {
+      "status": 200,
+      "url": "/api/v1/intel-enrichment/sources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.3,
+      "category": "threat"
+    },
+    "/api/v1/inventory": {
+      "status": 200,
+      "url": "/api/v1/inventory/assets?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 11.2,
+      "category": "asset"
+    },
+    "/api/v1/ioc-enrichment": {
+      "status": 200,
+      "url": "/api/v1/ioc-enrichment/iocs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.2,
+      "category": "threat"
+    },
+    "/api/v1/iot-security": {
+      "status": 200,
+      "url": "/api/v1/iot-security/devices?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 20.4,
+      "category": "api_security"
+    },
+    "/api/v1/ip-reputation": {
+      "status": 200,
+      "url": "/api/v1/ip-reputation/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.1,
+      "category": "api_security"
+    },
+    "/api/v1/ir": {
+      "status": 200,
+      "url": "/api/v1/ir/playbooks?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 14.2,
+      "category": "api_security"
+    },
+    "/api/v1/itdr": {
+      "status": 200,
+      "url": "/api/v1/itdr/threats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.1,
+      "category": "identity"
+    },
+    "/api/v1/jira-sync": {
+      "status": 404,
+      "url": "/api/v1/jira-sync?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.0,
+      "category": "api_security"
+    },
+    "/api/v1/k8s": {
+      "status": 404,
+      "url": "/api/v1/k8s?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.9,
+      "category": "cloud"
+    },
+    "/api/v1/kb": {
+      "status": 200,
+      "url": "/api/v1/kb/articles?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 19.0,
+      "category": "soc"
+    },
+    "/api/v1/knowledge-graph": {
+      "status": 500,
+      "url": "/api/v1/knowledge-graph/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 37.5,
+      "category": "api_security"
+    },
+    "/api/v1/kpi": {
+      "status": 200,
+      "url": "/api/v1/kpi/current?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.1,
+      "category": "training"
+    },
+    "/api/v1/kpi-tracking": {
+      "status": 200,
+      "url": "/api/v1/kpi-tracking/kpis?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "training"
+    },
+    "/api/v1/kpis": {
+      "status": 200,
+      "url": "/api/v1/kpis/current?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.3,
+      "category": "training"
+    },
+    "/api/v1/kubernetes-security": {
+      "status": 200,
+      "url": "/api/v1/kubernetes-security/clusters?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.3,
+      "category": "cloud"
+    },
+    "/api/v1/license-scanner": {
+      "status": 404,
+      "url": "/api/v1/license-scanner?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.5,
+      "category": "vuln"
+    },
+    "/api/v1/license-security": {
+      "status": 200,
+      "url": "/api/v1/license-security/records?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.9,
+      "category": "api_security"
+    },
+    "/api/v1/licenses": {
+      "status": 404,
+      "url": "/api/v1/licenses?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.3,
+      "category": "api_security"
+    },
+    "/api/v1/llm": {
+      "status": 200,
+      "url": "/api/v1/llm/status?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.8,
+      "category": "api_security"
+    },
+    "/api/v1/llm-monitor": {
+      "status": 200,
+      "url": "/api/v1/llm-monitor/patterns?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 9.2,
+      "category": "api_security"
+    },
+    "/api/v1/log-management": {
+      "status": 200,
+      "url": "/api/v1/log-management/sources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.5,
+      "category": "api_security"
+    },
+    "/api/v1/malware": {
+      "status": 200,
+      "url": "/api/v1/malware/signatures?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.4,
+      "category": "api_security"
+    },
+    "/api/v1/malware-analysis": {
+      "status": 200,
+      "url": "/api/v1/malware-analysis/samples?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.2,
+      "category": "api_security"
+    },
+    "/api/v1/mcp": {
+      "status": 200,
+      "url": "/api/v1/mcp/tools?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 13.5,
+      "category": "api_security"
+    },
+    "/api/v1/mcp-gateway": {
+      "status": 404,
+      "url": "/api/v1/mcp-gateway?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.2,
+      "category": "api_security"
+    },
+    "/api/v1/mcp-protocol": {
+      "status": 200,
+      "url": "/api/v1/mcp-protocol/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 16.0,
+      "category": "api_security"
+    },
+    "/api/v1/mdm": {
+      "status": 200,
+      "url": "/api/v1/mdm/devices?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.0,
+      "category": "api_security"
+    },
+    "/api/v1/metrics": {
+      "status": 200,
+      "url": "/api/v1/metrics/dora?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 15.5,
+      "category": "api_security"
+    },
+    "/api/v1/metrics-aggregator": {
+      "status": 200,
+      "url": "/api/v1/metrics-aggregator/sources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.1,
+      "category": "api_security"
+    },
+    "/api/v1/metrics-dashboard": {
+      "status": 200,
+      "url": "/api/v1/metrics-dashboard/dashboards?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.0,
+      "category": "api_security"
+    },
+    "/api/v1/mfa": {
+      "status": 200,
+      "url": "/api/v1/mfa/enrollments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.2,
+      "category": "identity"
+    },
+    "/api/v1/micro-pentest": {
+      "status": 200,
+      "url": "/api/v1/micro-pentest/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 32.3,
+      "category": "api_security"
+    },
+    "/api/v1/microsegmentation": {
+      "status": 200,
+      "url": "/api/v1/microsegmentation/segments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.5,
+      "category": "network"
+    },
+    "/api/v1/mitre": {
+      "status": 200,
+      "url": "/api/v1/mitre/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 14.0,
+      "category": "api_security"
+    },
+    "/api/v1/mitre-attack": {
+      "status": 200,
+      "url": "/api/v1/mitre-attack/coverage?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.9,
+      "category": "api_security"
+    },
+    "/api/v1/ml": {
+      "status": 200,
+      "url": "/api/v1/ml/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.0,
+      "category": "api_security"
+    },
+    "/api/v1/mobile-app-security": {
+      "status": 200,
+      "url": "/api/v1/mobile-app-security/apps?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.2,
+      "category": "api_security"
+    },
+    "/api/v1/mobile-security": {
+      "status": 200,
+      "url": "/api/v1/mobile-security/devices?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.5,
+      "category": "api_security"
+    },
+    "/api/v1/mpte": {
+      "status": 200,
+      "url": "/api/v1/mpte/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.0,
+      "category": "api_security"
+    },
+    "/api/v1/mpte-orchestrator": {
+      "status": 200,
+      "url": "/api/v1/mpte-orchestrator/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 14.0,
+      "category": "api_security"
+    },
+    "/api/v1/n8n": {
+      "status": 404,
+      "url": "/api/v1/n8n?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.4,
+      "category": "api_security"
+    },
+    "/api/v1/nac": {
+      "status": 200,
+      "url": "/api/v1/nac/endpoints?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.1,
+      "category": "api_security"
+    },
+    "/api/v1/ndr": {
+      "status": 200,
+      "url": "/api/v1/ndr/flows?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.9,
+      "category": "network"
+    },
+    "/api/v1/network": {
+      "status": 200,
+      "url": "/api/v1/network/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.0,
+      "category": "network"
+    },
+    "/api/v1/network-anomaly": {
+      "status": 200,
+      "url": "/api/v1/network-anomaly/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "network"
+    },
+    "/api/v1/network-forensics": {
+      "status": 200,
+      "url": "/api/v1/network-forensics/captures?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.0,
+      "category": "soc"
+    },
+    "/api/v1/network-monitoring": {
+      "status": 200,
+      "url": "/api/v1/network-monitoring/interfaces?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.2,
+      "category": "network"
+    },
+    "/api/v1/network-segmentation": {
+      "status": 200,
+      "url": "/api/v1/network-segmentation/segments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.0,
+      "category": "network"
+    },
+    "/api/v1/network-threats": {
+      "status": 200,
+      "url": "/api/v1/network-threats/threats/active?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.9,
+      "category": "threat"
+    },
+    "/api/v1/network-topology": {
+      "status": 200,
+      "url": "/api/v1/network-topology/nodes?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.0,
+      "category": "network"
+    },
+    "/api/v1/network-traffic": {
+      "status": 200,
+      "url": "/api/v1/network-traffic/flows?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.9,
+      "category": "network"
+    },
+    "/api/v1/notifications": {
+      "status": 200,
+      "url": "/api/v1/notifications/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.0,
+      "category": "api_security"
+    },
+    "/api/v1/observability": {
+      "status": 404,
+      "url": "/api/v1/observability?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.7,
+      "category": "api_security"
+    },
+    "/api/v1/onboarding": {
+      "status": 404,
+      "url": "/api/v1/onboarding?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "api_security"
+    },
+    "/api/v1/openclaw": {
+      "status": 200,
+      "url": "/api/v1/openclaw/campaigns?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.4,
+      "category": "api_security"
+    },
+    "/api/v1/ot-sec": {
+      "status": 200,
+      "url": "/api/v1/ot-sec/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.6,
+      "category": "api_security"
+    },
+    "/api/v1/ot-security": {
+      "status": 200,
+      "url": "/api/v1/ot-security/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.7,
+      "category": "api_security"
+    },
+    "/api/v1/ownership": {
+      "status": 404,
+      "url": "/api/v1/ownership?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.2,
+      "category": "api_security"
+    },
+    "/api/v1/pag": {
+      "status": 200,
+      "url": "/api/v1/pag/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.7,
+      "category": "identity"
+    },
+    "/api/v1/pagerduty": {
+      "status": 404,
+      "url": "/api/v1/pagerduty?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.6,
+      "category": "identity"
+    },
+    "/api/v1/pam": {
+      "status": 200,
+      "url": "/api/v1/pam/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.0,
+      "category": "identity"
+    },
+    "/api/v1/passive-dns": {
+      "status": 200,
+      "url": "/api/v1/passive-dns/resolutions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.6,
+      "category": "network"
+    },
+    "/api/v1/password-policy": {
+      "status": 200,
+      "url": "/api/v1/password-policy/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.8,
+      "category": "api_security"
+    },
+    "/api/v1/patch-automation": {
+      "status": 200,
+      "url": "/api/v1/patch-automation/patches?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.1,
+      "category": "vuln"
+    },
+    "/api/v1/patch-management": {
+      "status": 200,
+      "url": "/api/v1/patch-management/patches?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.4,
+      "category": "vuln"
+    },
+    "/api/v1/patch-priority": {
+      "status": 404,
+      "url": "/api/v1/patch-priority?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 95.7,
+      "category": "vuln"
+    },
+    "/api/v1/patches": {
+      "status": 200,
+      "url": "/api/v1/patches/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 32.3,
+      "category": "vuln"
+    },
+    "/api/v1/pentest": {
+      "status": 200,
+      "url": "/api/v1/pentest/targets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.9,
+      "category": "api_security"
+    },
+    "/api/v1/pentest-mgmt": {
+      "status": 200,
+      "url": "/api/v1/pentest-mgmt/engagements?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.6,
+      "category": "api_security"
+    },
+    "/api/v1/phishing": {
+      "status": 200,
+      "url": "/api/v1/phishing/campaigns?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.2,
+      "category": "threat"
+    },
+    "/api/v1/physical-security": {
+      "status": 200,
+      "url": "/api/v1/physical-security/locations?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 38.5,
+      "category": "api_security"
+    },
+    "/api/v1/pki": {
+      "status": 200,
+      "url": "/api/v1/pki/certificates/expiring?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.5,
+      "category": "api_security"
+    },
+    "/api/v1/playbooks": {
+      "status": 200,
+      "url": "/api/v1/playbooks?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 9.1,
+      "category": "soc"
+    },
+    "/api/v1/policies": {
+      "status": 200,
+      "url": "/api/v1/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 8.5,
+      "category": "api_security"
+    },
+    "/api/v1/policy-enforcement": {
+      "status": 200,
+      "url": "/api/v1/policy-enforcement/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 41.1,
+      "category": "api_security"
+    },
+    "/api/v1/policy-engine": {
+      "status": 200,
+      "url": "/api/v1/policy-engine/policies?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 19.2,
+      "category": "api_security"
+    },
+    "/api/v1/policy-generator": {
+      "status": 200,
+      "url": "/api/v1/policy-generator/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 5.6,
+      "category": "api_security"
+    },
+    "/api/v1/posture": {
+      "status": 200,
+      "url": "/api/v1/posture/current?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 15.4,
+      "category": "risk"
+    },
+    "/api/v1/posture-advisor": {
+      "status": 200,
+      "url": "/api/v1/posture-advisor/recommendations?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.7,
+      "category": "risk"
+    },
+    "/api/v1/posture-benchmark": {
+      "status": 422,
+      "url": "/api/v1/posture-benchmark/industry-averages?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 17.7,
+      "category": "risk"
+    },
+    "/api/v1/posture-benchmarking": {
+      "status": 200,
+      "url": "/api/v1/posture-benchmarking/benchmarks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.1,
+      "category": "risk"
+    },
+    "/api/v1/posture-history": {
+      "status": 200,
+      "url": "/api/v1/posture-history/snapshots?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.0,
+      "category": "risk"
+    },
+    "/api/v1/posture-maturity": {
+      "status": 200,
+      "url": "/api/v1/posture-maturity/overview?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 38.4,
+      "category": "risk"
+    },
+    "/api/v1/posture-reports": {
+      "status": 200,
+      "url": "/api/v1/posture-reports/reports?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.5,
+      "category": "risk"
+    },
+    "/api/v1/posture-score": {
+      "status": 200,
+      "url": "/api/v1/posture-score/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 25.6,
+      "category": "risk"
+    },
+    "/api/v1/posture-scoring": {
+      "status": 200,
+      "url": "/api/v1/posture-scoring/controls?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.3,
+      "category": "risk"
+    },
+    "/api/v1/posture-trends": {
+      "status": 200,
+      "url": "/api/v1/posture-trends/trends?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.1,
+      "category": "risk"
+    },
+    "/api/v1/pr-gate": {
+      "status": 200,
+      "url": "/api/v1/pr-gate/policy?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.0,
+      "category": "api_security"
+    },
+    "/api/v1/predictions": {
+      "status": 200,
+      "url": "/api/v1/predictions/markov/states?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.8,
+      "category": "api_security"
+    },
+    "/api/v1/prioritize": {
+      "status": 200,
+      "url": "/api/v1/prioritize/top?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 7.0,
+      "category": "api_security"
+    },
+    "/api/v1/privacy": {
+      "status": 200,
+      "url": "/api/v1/privacy/dsrs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.4,
+      "category": "api_security"
+    },
+    "/api/v1/privacy-impact": {
+      "status": 200,
+      "url": "/api/v1/privacy-impact/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.4,
+      "category": "api_security"
+    },
+    "/api/v1/privilege-escalation": {
+      "status": 200,
+      "url": "/api/v1/privilege-escalation/events?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.0,
+      "category": "vuln"
+    },
+    "/api/v1/privileged-identity": {
+      "status": 200,
+      "url": "/api/v1/privileged-identity/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.0,
+      "category": "identity"
+    },
+    "/api/v1/program-maturity": {
+      "status": 200,
+      "url": "/api/v1/program-maturity/domains?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.9,
+      "category": "risk"
+    },
+    "/api/v1/purple-team": {
+      "status": 200,
+      "url": "/api/v1/purple-team/exercises?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.6,
+      "category": "api_security"
+    },
+    "/api/v1/quantum-crypto": {
+      "status": 200,
+      "url": "/api/v1/quantum-crypto/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.3,
+      "category": "api_security"
+    },
+    "/api/v1/questionnaires": {
+      "status": 200,
+      "url": "/api/v1/questionnaires/templates?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.4,
+      "category": "compliance"
+    },
+    "/api/v1/queue": {
+      "status": 200,
+      "url": "/api/v1/queue/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.8,
+      "category": "api_security"
+    },
+    "/api/v1/ransomware-protection": {
+      "status": 200,
+      "url": "/api/v1/ransomware-protection/detections?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.9,
+      "category": "threat"
+    },
+    "/api/v1/rasp": {
+      "status": 200,
+      "url": "/api/v1/rasp/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.4,
+      "category": "api_security"
+    },
+    "/api/v1/rate-limits": {
+      "status": 200,
+      "url": "/api/v1/rate-limits/top-consumers?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.4,
+      "category": "api_security"
+    },
+    "/api/v1/rbac": {
+      "status": 404,
+      "url": "/api/v1/rbac?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 44.8,
+      "category": "identity"
+    },
+    "/api/v1/red-team": {
+      "status": 200,
+      "url": "/api/v1/red-team/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.9,
+      "category": "api_security"
+    },
+    "/api/v1/regulatory": {
+      "status": 404,
+      "url": "/api/v1/regulatory?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.7,
+      "category": "compliance"
+    },
+    "/api/v1/regulatory-reporting": {
+      "status": 200,
+      "url": "/api/v1/regulatory-reporting/regulations?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.5,
+      "category": "compliance"
+    },
+    "/api/v1/regulatory-tracker": {
+      "status": 200,
+      "url": "/api/v1/regulatory-tracker/regulations?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.2,
+      "category": "compliance"
+    },
+    "/api/v1/remediation": {
+      "status": 200,
+      "url": "/api/v1/remediation/tasks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.2,
+      "category": "api_security"
+    },
+    "/api/v1/remediation-board": {
+      "status": 404,
+      "url": "/api/v1/remediation-board?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.3,
+      "category": "api_security"
+    },
+    "/api/v1/remediation/prs": {
+      "status": 200,
+      "url": "/api/v1/remediation/prs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.2,
+      "category": "api_security"
+    },
+    "/api/v1/report-builder": {
+      "status": 404,
+      "url": "/api/v1/report-builder?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 41.1,
+      "category": "training"
+    },
+    "/api/v1/reports": {
+      "status": 200,
+      "url": "/api/v1/reports/templates?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 10.8,
+      "category": "training"
+    },
+    "/api/v1/reports/executive": {
+      "status": 200,
+      "url": "/api/v1/reports/executive/schedules/list?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.0,
+      "category": "training"
+    },
+    "/api/v1/retention": {
+      "status": 200,
+      "url": "/api/v1/retention/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.1,
+      "category": "api_security"
+    },
+    "/api/v1/risk": {
+      "status": 200,
+      "url": "/api/v1/risk/overview?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 20.4,
+      "category": "risk"
+    },
+    "/api/v1/risk-acceptance": {
+      "status": 200,
+      "url": "/api/v1/risk-acceptance/pending?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.6,
+      "category": "risk"
+    },
+    "/api/v1/risk-aggregator": {
+      "status": 200,
+      "url": "/api/v1/risk-aggregator/scores?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.8,
+      "category": "risk"
+    },
+    "/api/v1/risk-quant": {
+      "status": 200,
+      "url": "/api/v1/risk-quant/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 42.2,
+      "category": "risk"
+    },
+    "/api/v1/risk-quantification": {
+      "status": 200,
+      "url": "/api/v1/risk-quantification/scenarios?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 35.5,
+      "category": "risk"
+    },
+    "/api/v1/risk-quantifier": {
+      "status": 200,
+      "url": "/api/v1/risk-quantifier/scenarios?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.8,
+      "category": "risk"
+    },
+    "/api/v1/risk-register-engine": {
+      "status": 200,
+      "url": "/api/v1/risk-register-engine/risks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 37.4,
+      "category": "risk"
+    },
+    "/api/v1/risk-scenarios": {
+      "status": 200,
+      "url": "/api/v1/risk-scenarios/scenarios?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.0,
+      "category": "risk"
+    },
+    "/api/v1/risk-treatment": {
+      "status": 200,
+      "url": "/api/v1/risk-treatment/treatments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.0,
+      "category": "risk"
+    },
+    "/api/v1/risks": {
+      "status": 200,
+      "url": "/api/v1/risks/controls/list?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 12.5,
+      "category": "risk"
+    },
+    "/api/v1/runtime": {
+      "status": 200,
+      "url": "/api/v1/runtime/policies?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 31.5,
+      "category": "api_security"
+    },
+    "/api/v1/sast": {
+      "status": 200,
+      "url": "/api/v1/sast/languages?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 25.8,
+      "category": "api_security"
+    },
+    "/api/v1/sbom": {
+      "status": 200,
+      "url": "/api/v1/sbom/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.2,
+      "category": "vuln"
+    },
+    "/api/v1/sbom-export": {
+      "status": 200,
+      "url": "/api/v1/sbom-export/projects?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.1,
+      "category": "vuln"
+    },
+    "/api/v1/sca": {
+      "status": 404,
+      "url": "/api/v1/sca?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.4,
+      "category": "vuln"
+    },
+    "/api/v1/scan/aws-security-hub": {
+      "status": 200,
+      "url": "/api/v1/scan/aws-security-hub/status?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.1,
+      "category": "vuln"
+    },
+    "/api/v1/scan/azure-defender": {
+      "status": 200,
+      "url": "/api/v1/scan/azure-defender/status?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 8.3,
+      "category": "vuln"
+    },
+    "/api/v1/scan/gcp-scc": {
+      "status": 404,
+      "url": "/api/v1/scan/gcp-scc?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.4,
+      "category": "vuln"
+    },
+    "/api/v1/scan/semgrep": {
+      "status": 200,
+      "url": "/api/v1/scan/semgrep/status?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 9.7,
+      "category": "vuln"
+    },
+    "/api/v1/scan/snyk": {
+      "status": 200,
+      "url": "/api/v1/scan/snyk/status?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.8,
+      "category": "vuln"
+    },
+    "/api/v1/scan/trivy": {
+      "status": 200,
+      "url": "/api/v1/scan/trivy/status?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.0,
+      "category": "vuln"
+    },
+    "/api/v1/scanner-ingest": {
+      "status": 200,
+      "url": "/api/v1/scanner-ingest/supported?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 15.0,
+      "category": "vuln"
+    },
+    "/api/v1/scheduled-reports": {
+      "status": 200,
+      "url": "/api/v1/scheduled-reports/schedules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.5,
+      "category": "training"
+    },
+    "/api/v1/scorecard": {
+      "status": 200,
+      "url": "/api/v1/scorecard/categories?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 11.4,
+      "category": "risk"
+    },
+    "/api/v1/secret-scanner": {
+      "status": 200,
+      "url": "/api/v1/secret-scanner/jobs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.8,
+      "category": "vuln"
+    },
+    "/api/v1/secrets": {
+      "status": 200,
+      "url": "/api/v1/secrets/status?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 12.9,
+      "category": "api_security"
+    },
+    "/api/v1/secrets-management": {
+      "status": 200,
+      "url": "/api/v1/secrets-management/secrets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.5,
+      "category": "api_security"
+    },
+    "/api/v1/secrets-manager": {
+      "status": 200,
+      "url": "/api/v1/secrets-manager/vaults?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.2,
+      "category": "api_security"
+    },
+    "/api/v1/secrets-rotation": {
+      "status": 404,
+      "url": "/api/v1/secrets-rotation?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 37.9,
+      "category": "api_security"
+    },
+    "/api/v1/security-automation": {
+      "status": 200,
+      "url": "/api/v1/security-automation/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.5,
+      "category": "api_security"
+    },
+    "/api/v1/security-baselines": {
+      "status": 200,
+      "url": "/api/v1/security-baselines/baselines?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.0,
+      "category": "api_security"
+    },
+    "/api/v1/security-benchmarks": {
+      "status": 200,
+      "url": "/api/v1/security-benchmarks/benchmarks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.9,
+      "category": "risk"
+    },
+    "/api/v1/security-budget": {
+      "status": 200,
+      "url": "/api/v1/security-budget/allocations?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.9,
+      "category": "training"
+    },
+    "/api/v1/security-champions": {
+      "status": 200,
+      "url": "/api/v1/security-champions/champions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.2,
+      "category": "api_security"
+    },
+    "/api/v1/security-chaos": {
+      "status": 200,
+      "url": "/api/v1/security-chaos/experiments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.6,
+      "category": "soc"
+    },
+    "/api/v1/security-culture": {
+      "status": 200,
+      "url": "/api/v1/security-culture/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.2,
+      "category": "training"
+    },
+    "/api/v1/security-exceptions": {
+      "status": 200,
+      "url": "/api/v1/security-exceptions/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.4,
+      "category": "api_security"
+    },
+    "/api/v1/security-findings": {
+      "status": 200,
+      "url": "/api/v1/security-findings/findings?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 32.2,
+      "category": "vuln"
+    },
+    "/api/v1/security-health": {
+      "status": 200,
+      "url": "/api/v1/security-health/checks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.6,
+      "category": "api_security"
+    },
+    "/api/v1/security-investment": {
+      "status": 200,
+      "url": "/api/v1/security-investment/portfolio?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.8,
+      "category": "risk"
+    },
+    "/api/v1/security-maturity": {
+      "status": 200,
+      "url": "/api/v1/security-maturity/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.4,
+      "category": "risk"
+    },
+    "/api/v1/security-metrics-collector": {
+      "status": 200,
+      "url": "/api/v1/security-metrics-collector/metrics?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.0,
+      "category": "api_security"
+    },
+    "/api/v1/security-okrs": {
+      "status": 200,
+      "url": "/api/v1/security-okrs/objectives?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.3,
+      "category": "compliance"
+    },
+    "/api/v1/security-playbooks": {
+      "status": 200,
+      "url": "/api/v1/security-playbooks/playbooks/builtins?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 9.1,
+      "category": "soc"
+    },
+    "/api/v1/security-questionnaires": {
+      "status": 200,
+      "url": "/api/v1/security-questionnaires/assessments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "compliance"
+    },
+    "/api/v1/security-registry": {
+      "status": 200,
+      "url": "/api/v1/security-registry/artifacts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.5,
+      "category": "api_security"
+    },
+    "/api/v1/security-roadmap": {
+      "status": 200,
+      "url": "/api/v1/security-roadmap/initiatives?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.8,
+      "category": "api_security"
+    },
+    "/api/v1/security-roi": {
+      "status": 200,
+      "url": "/api/v1/security-roi/investments?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.3,
+      "category": "api_security"
+    },
+    "/api/v1/security-scoreboard": {
+      "status": 200,
+      "url": "/api/v1/security-scoreboard/teams?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.2,
+      "category": "risk"
+    },
+    "/api/v1/security-scorecard": {
+      "status": 200,
+      "url": "/api/v1/security-scorecard/scorecards?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.5,
+      "category": "risk"
+    },
+    "/api/v1/security-telemetry": {
+      "status": 422,
+      "url": "/api/v1/security-telemetry/datapoints/latest?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.6,
+      "category": "api_security"
+    },
+    "/api/v1/security-training": {
+      "status": 200,
+      "url": "/api/v1/security-training/courses?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.6,
+      "category": "training"
+    },
+    "/api/v1/security/github": {
+      "status": 404,
+      "url": "/api/v1/security/github?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.3,
+      "category": "api_security"
+    },
+    "/api/v1/self-learning": {
+      "status": 200,
+      "url": "/api/v1/self-learning/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 29.0,
+      "category": "api_security"
+    },
+    "/api/v1/self-scan": {
+      "status": 404,
+      "url": "/api/v1/self-scan?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.6,
+      "category": "vuln"
+    },
+    "/api/v1/service-account-auditor": {
+      "status": 200,
+      "url": "/api/v1/service-account-auditor/accounts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.5,
+      "category": "compliance"
+    },
+    "/api/v1/service-catalog": {
+      "status": 200,
+      "url": "/api/v1/service-catalog/summary?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 33.1,
+      "category": "api_security"
+    },
+    "/api/v1/servicenow-sync": {
+      "status": 404,
+      "url": "/api/v1/servicenow-sync?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.4,
+      "category": "api_security"
+    },
+    "/api/v1/session-recording": {
+      "status": 200,
+      "url": "/api/v1/session-recording/sessions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 65.4,
+      "category": "api_security"
+    },
+    "/api/v1/sessions": {
+      "status": 404,
+      "url": "/api/v1/sessions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.7,
+      "category": "api_security"
+    },
+    "/api/v1/siem": {
+      "status": 200,
+      "url": "/api/v1/siem/sources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.0,
+      "category": "api_security"
+    },
+    "/api/v1/sla": {
+      "status": 200,
+      "url": "/api/v1/sla/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.5,
+      "category": "api_security"
+    },
+    "/api/v1/sla-engine": {
+      "status": 200,
+      "url": "/api/v1/sla-engine/at-risk?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 17.3,
+      "category": "api_security"
+    },
+    "/api/v1/sla-escalation": {
+      "status": 200,
+      "url": "/api/v1/sla-escalation/check?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.4,
+      "category": "vuln"
+    },
+    "/api/v1/sla-management": {
+      "status": 404,
+      "url": "/api/v1/sla-management?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 35.0,
+      "category": "api_security"
+    },
+    "/api/v1/slack": {
+      "status": 404,
+      "url": "/api/v1/slack?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.2,
+      "category": "api_security"
+    },
+    "/api/v1/soar": {
+      "status": 200,
+      "url": "/api/v1/soar/playbooks?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 11.9,
+      "category": "api_security"
+    },
+    "/api/v1/soc-automation": {
+      "status": 200,
+      "url": "/api/v1/soc-automation/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 18.3,
+      "category": "soc"
+    },
+    "/api/v1/soc-metrics": {
+      "status": 200,
+      "url": "/api/v1/soc-metrics/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 29.9,
+      "category": "soc"
+    },
+    "/api/v1/soc-triage": {
+      "status": 200,
+      "url": "/api/v1/soc-triage/alerts?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.4,
+      "category": "soc"
+    },
+    "/api/v1/soc-workflow": {
+      "status": 200,
+      "url": "/api/v1/soc-workflow/workflows?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.2,
+      "category": "soc"
+    },
+    "/api/v1/sspm": {
+      "status": 200,
+      "url": "/api/v1/sspm/apps?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.6,
+      "category": "cloud"
+    },
+    "/api/v1/stream": {
+      "status": 200,
+      "url": "/api/v1/stream/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 34.0,
+      "category": "api_security"
+    },
+    "/api/v1/supply-chain": {
+      "status": 200,
+      "url": "/api/v1/supply-chain/components?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.6,
+      "category": "api_security"
+    },
+    "/api/v1/supply-chain-attacks": {
+      "status": 200,
+      "url": "/api/v1/supply-chain-attacks/packages?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.2,
+      "category": "api_security"
+    },
+    "/api/v1/supply-chain-intel": {
+      "status": 200,
+      "url": "/api/v1/supply-chain-intel/packages?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 23.6,
+      "category": "threat"
+    },
+    "/api/v1/supply-chain-monitoring": {
+      "status": 200,
+      "url": "/api/v1/supply-chain-monitoring/suppliers?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.1,
+      "category": "api_security"
+    },
+    "/api/v1/system": {
+      "status": 200,
+      "url": "/api/v1/system/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 17.4,
+      "category": "api_security"
+    },
+    "/api/v1/tabletop": {
+      "status": 200,
+      "url": "/api/v1/tabletop/exercises?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.0,
+      "category": "soc"
+    },
+    "/api/v1/tags": {
+      "status": 422,
+      "url": "/api/v1/tags/search?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.0,
+      "category": "api_security"
+    },
+    "/api/v1/teams": {
+      "status": 200,
+      "url": "/api/v1/teams?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.5,
+      "category": "api_security"
+    },
+    "/api/v1/tenants": {
+      "status": 200,
+      "url": "/api/v1/tenants/current?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.7,
+      "category": "api_security"
+    },
+    "/api/v1/third-party-vendor": {
+      "status": 200,
+      "url": "/api/v1/third-party-vendor/vendors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.3,
+      "category": "api_security"
+    },
+    "/api/v1/threat-actors": {
+      "status": 200,
+      "url": "/api/v1/threat-actors/actors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.8,
+      "category": "threat"
+    },
+    "/api/v1/threat-attribution": {
+      "status": 200,
+      "url": "/api/v1/threat-attribution/actors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.5,
+      "category": "threat"
+    },
+    "/api/v1/threat-briefs": {
+      "status": 200,
+      "url": "/api/v1/threat-briefs/briefs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.7,
+      "category": "threat"
+    },
+    "/api/v1/threat-correlation": {
+      "status": 200,
+      "url": "/api/v1/threat-correlation/signals?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 14.9,
+      "category": "threat"
+    },
+    "/api/v1/threat-deception": {
+      "status": 200,
+      "url": "/api/v1/threat-deception/decoys?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 36.0,
+      "category": "threat"
+    },
+    "/api/v1/threat-exposure": {
+      "status": 200,
+      "url": "/api/v1/threat-exposure/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.1,
+      "category": "threat"
+    },
+    "/api/v1/threat-feeds": {
+      "status": 200,
+      "url": "/api/v1/threat-feeds/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "threat"
+    },
+    "/api/v1/threat-geolocation": {
+      "status": 200,
+      "url": "/api/v1/threat-geolocation/events?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.4,
+      "category": "threat"
+    },
+    "/api/v1/threat-indicators": {
+      "status": 200,
+      "url": "/api/v1/threat-indicators/indicators?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 37.8,
+      "category": "threat"
+    },
+    "/api/v1/threat-intel": {
+      "status": 200,
+      "url": "/api/v1/threat-intel/actors?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 15.9,
+      "category": "threat"
+    },
+    "/api/v1/threat-intel-fusion": {
+      "status": 200,
+      "url": "/api/v1/threat-intel-fusion/sources?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 9.8,
+      "category": "threat"
+    },
+    "/api/v1/threat-landscape": {
+      "status": 200,
+      "url": "/api/v1/threat-landscape/actors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.3,
+      "category": "vuln"
+    },
+    "/api/v1/threat-model-gen": {
+      "status": 404,
+      "url": "/api/v1/threat-model-gen?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.9,
+      "category": "threat"
+    },
+    "/api/v1/threat-modeling": {
+      "status": 404,
+      "url": "/api/v1/threat-modeling?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.0,
+      "category": "threat"
+    },
+    "/api/v1/threat-modeling-pipeline": {
+      "status": 200,
+      "url": "/api/v1/threat-modeling-pipeline/models?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.3,
+      "category": "threat"
+    },
+    "/api/v1/threat-models": {
+      "status": 404,
+      "url": "/api/v1/threat-models?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.7,
+      "category": "threat"
+    },
+    "/api/v1/threat-response": {
+      "status": 200,
+      "url": "/api/v1/threat-response/playbooks/performance?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.1,
+      "category": "threat"
+    },
+    "/api/v1/threat-scores": {
+      "status": 200,
+      "url": "/api/v1/threat-scores/scores?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.2,
+      "category": "risk"
+    },
+    "/api/v1/threat-sharing": {
+      "status": 200,
+      "url": "/api/v1/threat-sharing/groups?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.7,
+      "category": "threat"
+    },
+    "/api/v1/threat-simulation": {
+      "status": 200,
+      "url": "/api/v1/threat-simulation/scenarios?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.8,
+      "category": "threat"
+    },
+    "/api/v1/threat-vectors": {
+      "status": 200,
+      "url": "/api/v1/threat-vectors/vectors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.0,
+      "category": "threat"
+    },
+    "/api/v1/ti-automation": {
+      "status": 200,
+      "url": "/api/v1/ti-automation/feeds?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 42.9,
+      "category": "api_security"
+    },
+    "/api/v1/ti-confidence": {
+      "status": 200,
+      "url": "/api/v1/ti-confidence/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.5,
+      "category": "api_security"
+    },
+    "/api/v1/tip": {
+      "status": 200,
+      "url": "/api/v1/tip/sources?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "api_security"
+    },
+    "/api/v1/tool-inventory": {
+      "status": 200,
+      "url": "/api/v1/tool-inventory/tools?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.4,
+      "category": "asset"
+    },
+    "/api/v1/tprm-exchange": {
+      "status": 200,
+      "url": "/api/v1/tprm-exchange/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.5,
+      "category": "api_security"
+    },
+    "/api/v1/training": {
+      "status": 200,
+      "url": "/api/v1/training/modules?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 20.6,
+      "category": "training"
+    },
+    "/api/v1/training-effectiveness": {
+      "status": 200,
+      "url": "/api/v1/training-effectiveness/programs?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.9,
+      "category": "training"
+    },
+    "/api/v1/triage": {
+      "status": 200,
+      "url": "/api/v1/triage/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 13.3,
+      "category": "soc"
+    },
+    "/api/v1/trust": {
+      "status": 404,
+      "url": "/api/v1/trust?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.2,
+      "category": "api_security"
+    },
+    "/api/v1/trustgraph/maintenance": {
+      "status": 200,
+      "url": "/api/v1/trustgraph/maintenance/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 27.2,
+      "category": "api_security"
+    },
+    "/api/v1/trustgraph/migrate": {
+      "status": 404,
+      "url": "/api/v1/trustgraph/migrate?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.7,
+      "category": "api_security"
+    },
+    "/api/v1/trustgraph/quality": {
+      "status": 200,
+      "url": "/api/v1/trustgraph/quality/coverage?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 18.8,
+      "category": "api_security"
+    },
+    "/api/v1/uba": {
+      "status": 200,
+      "url": "/api/v1/uba/users?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 24.3,
+      "category": "api_security"
+    },
+    "/api/v1/unified-dashboard": {
+      "status": 200,
+      "url": "/api/v1/unified-dashboard/ciso?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 32.2,
+      "category": "api_security"
+    },
+    "/api/v1/users": {
+      "status": 200,
+      "url": "/api/v1/users?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 31.8,
+      "category": "identity"
+    },
+    "/api/v1/validate": {
+      "status": 200,
+      "url": "/api/v1/validate/supported-formats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 14.2,
+      "category": "api_security"
+    },
+    "/api/v1/vendor-compliance": {
+      "status": 200,
+      "url": "/api/v1/vendor-compliance/vendors?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.0,
+      "category": "compliance"
+    },
+    "/api/v1/vendors": {
+      "status": 200,
+      "url": "/api/v1/vendors/high-risk?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.4,
+      "category": "api_security"
+    },
+    "/api/v1/verify": {
+      "status": 200,
+      "url": "/api/v1/verify/history?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 10.0,
+      "category": "api_security"
+    },
+    "/api/v1/vllm": {
+      "status": 200,
+      "url": "/api/v1/vllm/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.1,
+      "category": "api_security"
+    },
+    "/api/v1/vuln": {
+      "status": 404,
+      "url": "/api/v1/vuln?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.8,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-age": {
+      "status": 200,
+      "url": "/api/v1/vuln-age/distribution?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 48.1,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-correlation": {
+      "status": 200,
+      "url": "/api/v1/vuln-correlation/assets?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.7,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-exceptions": {
+      "status": 200,
+      "url": "/api/v1/vuln-exceptions/exceptions?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 30.0,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-intel": {
+      "status": 200,
+      "url": "/api/v1/vuln-intel/cves?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 19.7,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-intel-fusion": {
+      "status": 200,
+      "url": "/api/v1/vuln-intel-fusion/summary?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.2,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-lifecycle": {
+      "status": 200,
+      "url": "/api/v1/vuln-lifecycle/distribution?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.7,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-prioritization": {
+      "status": 200,
+      "url": "/api/v1/vuln-prioritization/vulnerabilities?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.5,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-remediation": {
+      "status": 200,
+      "url": "/api/v1/vuln-remediation/tasks/overdue?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.3,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-risk": {
+      "status": 200,
+      "url": "/api/v1/vuln-risk/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.7,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-scanner": {
+      "status": 200,
+      "url": "/api/v1/vuln-scanner/scanners?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 21.9,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-scans": {
+      "status": 200,
+      "url": "/api/v1/vuln-scans/scans?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 33.3,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-scoring": {
+      "status": 200,
+      "url": "/api/v1/vuln-scoring/scores?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.2,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-trends": {
+      "status": 200,
+      "url": "/api/v1/vuln-trends/snapshots?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.8,
+      "category": "vuln"
+    },
+    "/api/v1/vuln-workflow": {
+      "status": 200,
+      "url": "/api/v1/vuln-workflow/workflows?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 32.0,
+      "category": "vuln"
+    },
+    "/api/v1/vulns": {
+      "status": 200,
+      "url": "/api/v1/vulns/stats?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 19.3,
+      "category": "vuln"
+    },
+    "/api/v1/waf": {
+      "status": 200,
+      "url": "/api/v1/waf/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 22.9,
+      "category": "api_security"
+    },
+    "/api/v1/waf-engine": {
+      "status": 200,
+      "url": "/api/v1/waf-engine/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 27.7,
+      "category": "api_security"
+    },
+    "/api/v1/webhook-subscriptions": {
+      "status": 200,
+      "url": "/api/v1/webhook-subscriptions/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 16.9,
+      "category": "api_security"
+    },
+    "/api/v1/webhooks": {
+      "status": 200,
+      "url": "/api/v1/webhooks/health?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 13.2,
+      "category": "api_security"
+    },
+    "/api/v1/webhooks/dlq": {
+      "status": 200,
+      "url": "/api/v1/webhooks/dlq/pending?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 15.5,
+      "category": "api_security"
+    },
+    "/api/v1/webhooks/verify": {
+      "status": 200,
+      "url": "/api/v1/webhooks/verify/stats?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.7,
+      "category": "api_security"
+    },
+    "/api/v1/wireless-security": {
+      "status": 200,
+      "url": "/api/v1/wireless-security/access-points?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.0,
+      "category": "network"
+    },
+    "/api/v1/workflows": {
+      "status": 200,
+      "url": "/api/v1/workflows/rules?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 16.2,
+      "category": "network"
+    },
+    "/api/v1/xdr": {
+      "status": 200,
+      "url": "/api/v1/xdr/signals?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 28.4,
+      "category": "api_security"
+    },
+    "/api/v1/zero-day": {
+      "status": 200,
+      "url": "/api/v1/zero-day/vulns?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 34.8,
+      "category": "threat"
+    },
+    "/api/v1/zero-gravity": {
+      "status": 200,
+      "url": "/api/v1/zero-gravity/health?org_id=coverage-test",
+      "has_data": true,
+      "elapsed_ms": 50.8,
+      "category": "api_security"
+    },
+    "/api/v1/zero-trust": {
+      "status": 200,
+      "url": "/api/v1/zero-trust/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 26.4,
+      "category": "api_security"
+    },
+    "/api/v1/zero-trust-policy": {
+      "status": 200,
+      "url": "/api/v1/zero-trust-policy/policies?org_id=coverage-test",
+      "has_data": false,
+      "elapsed_ms": 25.9,
+      "category": "api_security"
+    }
+  }
+}

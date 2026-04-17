@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE = "/api/v1/arch-review";
+const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 const reviews = [
   { id: "rev-001", review_name: "Payment Service Architecture Review", system_name: "payment-svc", review_type: "threat_model", reviewer: "Alice Chen", finding_count: 8, critical_count: 2, overall_score: 62, risk_level: "high", status: "completed" },
@@ -54,6 +57,19 @@ export default function ArchReviewDashboard() {
   const [showAddFinding, setShowAddFinding] = useState(false);
   const [newReview, setNewReview] = useState({ review_name: "", system_name: "", review_type: "threat_model", reviewer: "" });
   const [newFinding, setNewFinding] = useState({ review_id: "rev-001", component: "", finding_type: "injection", title: "", severity: "high", recommendation: "" });
+  const [liveReviews, setLiveReviews] = useState(reviews);
+  const [liveFindings, setLiveFindings] = useState(findings);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/reviews`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
+      .catch(() => {});
+    fetch(`${API_BASE}/findings`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
+      .catch(() => {});
+  }, []);
 
   const totalReviews = reviews.length;
   const criticalFindings = findings.filter(f => f.severity === "critical").length;

@@ -565,13 +565,67 @@ class ScheduledReportsEngine:
         run_record["delivery_channels"] = delivery_channels
         return run_record
 
+    def _deliver_via_n8n(
+        self,
+        channel: str,
+        schedule: Dict[str, Any],
+        org_id: str,
+        generated_at: str,
+        recipients: List[str],
+        content_preview: str,
+    ) -> Tuple[str, str]:
+        """POST report delivery payload to n8n webhook for email or Slack routing.
+
+        Returns (status, error_message). Status is 'sent', 'queued', or 'failed'.
+        Falls back gracefully when n8n is unavailable.
+        """
+        n8n_base = os.environ.get("N8N_BASE_URL", "http://localhost:5678").rstrip("/")
+        webhook_path = (
+            _N8N_EMAIL_WEBHOOK_PATH if channel == "email" else _N8N_SLACK_WEBHOOK_PATH
+        )
+        url = f"{n8n_base}/{webhook_path}"
+
+        payload = {
+            "channel": channel,
+            "org_id": org_id,
+            "schedule_id": schedule["id"],
+            "schedule_name": schedule["name"],
+            "report_type": schedule["report_type"],
+            "frequency": schedule["frequency"],
+            "generated_at": generated_at,
+            "recipients": recipients,
+            "content_preview": content_preview,
+        }
+        try:
+            body = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(  # nosemgrep: dynamic-urllib-use-detected
+                url,
+                data=body,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:  # nosemgrep: dynamic-urllib-use-detected  # nosec
+                if resp.status in (200, 201):
+                    _logger.info(
+                        "n8n delivery succeeded channel=%s schedule=%s",
+                        channel, schedule["id"],
+                    )
+                    return "sent", ""
+                return "failed", f"HTTP {resp.status}"
+        except Exception as exc:
+            _logger.warning(
+                "n8n delivery unavailable channel=%s schedule=%s error=%s",
+                channel, schedule.get("id", "?"), exc,
+            )
+            return "failed", str(exc)
+
     def _deliver_slack(
         self,
         webhook_url: str,
         schedule: Dict[str, Any],
         org_id: str,
         generated_at: str,
-    ) -> tuple[str, str]:
+    ) -> Tuple[str, str]:
         """Attempt Slack webhook delivery. Returns (status, error_message)."""
         payload = {
             "text": (
@@ -724,6 +778,94 @@ class ScheduledReportsEngine:
         for r in rows:
             r["sections"] = json.loads(r.get("sections") or "[]")
         return rows
+
+    # ------------------------------------------------------------------
+    # Default schedule seeding
+    # ------------------------------------------------------------------
+
+    def seed_default_schedules(
+        self, org_id: str, overwrite: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Create the 3 canonical ALDECI report schedules for an org if they don't exist.
+
+        Schedules:
+          1. Daily Security Posture Summary  — daily at 06:00 UTC
+          2. Weekly Executive Briefing       — Monday at 08:00 UTC (day_of_week=0)
+          3. Monthly Compliance Report       — 1st of month at 07:00 UTC
+
+        Args:
+            org_id: Organisation to seed schedules for.
+            overwrite: If True, delete existing default schedules before re-creating.
+
+        Returns:
+            List of created schedule dicts (skips if already exists and overwrite=False).
+        """
+        defaults = [
+            {
+                "name": "Daily Security Posture Summary",
+                "report_type": "executive_summary",
+                "frequency": "daily",
+                "hour_utc": 6,
+                "day_of_week": None,
+                "day_of_month": None,
+                "recipients": [],
+                "slack_webhook_url": "",
+                "format": "json",
+            },
+            {
+                "name": "Weekly Executive Briefing",
+                "report_type": "executive_summary",
+                "frequency": "weekly",
+                "hour_utc": 8,
+                "day_of_week": 0,  # Monday
+                "day_of_month": None,
+                "recipients": [],
+                "slack_webhook_url": "",
+                "format": "json",
+            },
+            {
+                "name": "Monthly Compliance Report",
+                "report_type": "compliance_status",
+                "frequency": "monthly",
+                "hour_utc": 7,
+                "day_of_week": None,
+                "day_of_month": 1,
+                "recipients": [],
+                "slack_webhook_url": "",
+                "format": "json",
+            },
+        ]
+
+        default_names = {d["name"] for d in defaults}
+
+        if overwrite:
+            existing = self.list_schedules(org_id)
+            for sched in existing:
+                if sched.get("name") in default_names:
+                    self.delete_schedule(org_id, sched["id"])
+
+        # Check which defaults already exist
+        existing_names = {
+            s["name"] for s in self.list_schedules(org_id)
+            if s.get("name") in default_names
+        }
+
+        created: List[Dict[str, Any]] = []
+        for spec in defaults:
+            if spec["name"] in existing_names:
+                _logger.debug(
+                    "seed_default_schedules: skipping existing schedule name=%s org=%s",
+                    spec["name"], org_id,
+                )
+                continue
+            record = self.create_schedule(org_id, spec)
+            created.append(record)
+            _logger.info(
+                "seed_default_schedules: created schedule name=%s org=%s id=%s",
+                spec["name"], org_id, record["id"],
+            )
+
+        return created
 
     # ------------------------------------------------------------------
     # Stats
