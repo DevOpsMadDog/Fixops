@@ -242,3 +242,25 @@ def create_template(
 def get_stats(org_id: str = Query(default="default")):
     """Return aggregated scheduled-reports statistics for the org."""
     return _get_engine().get_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Default schedule seeding
+# ---------------------------------------------------------------------------
+
+@router.post("/seed-defaults", dependencies=[Depends(api_key_auth)], status_code=201)
+def seed_defaults(
+    org_id: str = Query(default="default"),
+    overwrite: bool = Query(default=False),
+):
+    """Create the 3 canonical ALDECI report schedules for an org if they don't exist.
+
+    Schedules created:
+    - Daily Security Posture Summary (daily at 06:00 UTC)
+    - Weekly Executive Briefing (Monday at 08:00 UTC)
+    - Monthly Compliance Report (1st of month at 07:00 UTC)
+
+    Set overwrite=true to delete and re-create any existing default schedules.
+    Returns the list of newly created schedules (empty if all already exist).
+    """
+    return _get_engine().seed_default_schedules(org_id, overwrite=overwrite)
