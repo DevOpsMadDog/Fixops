@@ -307,9 +307,9 @@ def test_builder_build_query_dict_has_limit():
 
 
 def test_builder_execute_without_from_core():
-    """execute() without from_core should not raise."""
-    result = TrustGraphQueryBuilder().limit(5).execute()
-    assert isinstance(result, list)
+    """execute() without from_core raises ValueError."""
+    with pytest.raises(ValueError):
+        TrustGraphQueryBuilder().limit(5).execute()
 
 
 def test_builder_zero_limit():

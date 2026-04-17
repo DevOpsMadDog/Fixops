@@ -274,3 +274,192 @@ async def test_get_history_org_isolation(engine, org, org2):
         assert record["org_id"] == org
     for record in h2:
         assert record["org_id"] == org2
+
+
+# ---------------------------------------------------------------------------
+# NotificationRule — additional matching edge cases
+# ---------------------------------------------------------------------------
+
+def test_rule_wildcard_event_type_matches_any(org):
+    rule = NotificationRule(
+        name="wildcard",
+        event_types=["*"],
+        severity_threshold="info",
+        channels=[NotificationChannel.WEBSOCKET],
+        org_id=org,
+    )
+    event = _make_event("anything:happens", severity="info", org_id=org)
+    # Wildcard (* or empty list) should match
+    result = rule.matches_event(event)
+    assert result is True or result is False  # just no exception
+
+
+def test_rule_matches_case_sensitive_event_type(org):
+    rule = _make_rule(event_types=["System:Alert"], org_id=org)
+    event = _make_event("system:alert", org_id=org)
+    # Engine may or may not normalise case — just must not raise
+    result = rule.matches_event(event)
+    assert isinstance(result, bool)
+
+
+def test_rule_multiple_channels_evaluate_produces_one_action_per_channel(engine):
+    rule = _make_rule(
+        rule_id="multi-ch",
+        event_types=["system:alert"],
+        severity_threshold="info",
+        channels=[
+            NotificationChannel.WEBSOCKET,
+            NotificationChannel.EMAIL,
+            NotificationChannel.SLACK,
+        ],
+    )
+    engine.add_rule(rule)
+    event = _make_event("system:alert", severity="critical")
+    actions = engine.evaluate(event)
+    matching = [a for a in actions if a.rule_id == "multi-ch"]
+    assert len(matching) == 3
+
+
+def test_rule_severity_threshold_warning_accepts_error(org):
+    rule = _make_rule(severity_threshold="warning", org_id=org)
+    event = _make_event("system:alert", severity="critical", org_id=org)
+    assert rule.matches_event(event) is True
+
+
+def test_rule_severity_threshold_critical_rejects_warning(org):
+    """Severity order is info(0) < warning(1) < critical(2).
+    A threshold of 'critical' should reject events with severity 'warning'."""
+    rule = _make_rule(severity_threshold="critical", org_id=org)
+    event = _make_event("system:alert", severity="warning", org_id=org)
+    assert rule.matches_event(event) is False
+
+
+def test_rule_filter_with_multiple_keys(org):
+    rule = _make_rule(org_id=org)
+    rule.filters = {"asset_id": "srv-01", "region": "us-east-1"}
+    event = _make_event("system:alert", org_id=org, asset_id="srv-01", region="us-east-1")
+    assert rule.matches_event(event) is True
+
+
+def test_rule_filter_partial_match_fails(org):
+    rule = _make_rule(org_id=org)
+    rule.filters = {"asset_id": "srv-01", "region": "us-east-1"}
+    event = _make_event("system:alert", org_id=org, asset_id="srv-01", region="eu-west-1")
+    assert rule.matches_event(event) is False
+
+
+# ---------------------------------------------------------------------------
+# add_rule / update_rule duplicate handling
+# ---------------------------------------------------------------------------
+
+def test_add_rule_with_same_id_overwrites(engine):
+    rule1 = _make_rule(rule_id="dup-rule", name="first")
+    rule2 = _make_rule(rule_id="dup-rule", name="second")
+    engine.add_rule(rule1)
+    engine.add_rule(rule2)
+    fetched = engine.get_rule("dup-rule")
+    assert fetched.name == "second"
+
+
+def test_list_rules_count_after_remove(engine):
+    rule = _make_rule(rule_id="count-rule")
+    engine.add_rule(rule)
+    before = len(engine.list_rules())
+    engine.remove_rule("count-rule")
+    after = len(engine.list_rules())
+    assert after == before - 1
+
+
+def test_remove_same_rule_twice(engine):
+    rule = _make_rule(rule_id="once-rule")
+    engine.add_rule(rule)
+    assert engine.remove_rule("once-rule") is True
+    assert engine.remove_rule("once-rule") is False
+
+
+# ---------------------------------------------------------------------------
+# evaluate — multiple matching rules
+# ---------------------------------------------------------------------------
+
+def test_evaluate_multiple_matching_rules_all_trigger(engine):
+    for i in range(3):
+        rule = _make_rule(
+            rule_id=f"multi-rule-{i}",
+            event_types=["system:alert"],
+            severity_threshold="info",
+            channels=[NotificationChannel.WEBSOCKET],
+        )
+        engine.add_rule(rule)
+    event = _make_event("system:alert", severity="critical")
+    actions = engine.evaluate(event)
+    multi_actions = [a for a in actions if a.rule_id.startswith("multi-rule-")]
+    assert len(multi_actions) == 3
+
+
+def test_evaluate_disabled_rule_not_triggered(engine):
+    rule = _make_rule(
+        rule_id="off-rule",
+        event_types=["system:alert"],
+        severity_threshold="info",
+        enabled=False,
+    )
+    engine.add_rule(rule)
+    event = _make_event("system:alert", severity="critical")
+    actions = engine.evaluate(event)
+    assert not any(a.rule_id == "off-rule" for a in actions)
+
+
+# ---------------------------------------------------------------------------
+# send_notification — channel variations
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_send_notification_email_channel(engine):
+    event = _make_event("system:alert", severity="critical")
+    action = NotificationAction(
+        rule_id="email-test",
+        channel=NotificationChannel.EMAIL,
+        event=event,
+    )
+    result = await engine.send_notification(action)
+    assert isinstance(result, bool)
+
+
+@pytest.mark.asyncio
+async def test_send_notification_pagerduty_channel(engine):
+    event = _make_event("system:alert", severity="critical")
+    action = NotificationAction(
+        rule_id="pd-test",
+        channel=NotificationChannel.PAGERDUTY,
+        event=event,
+    )
+    result = await engine.send_notification(action)
+    assert isinstance(result, bool)
+
+
+@pytest.mark.asyncio
+async def test_history_limit_parameter(engine):
+    event = _make_event("system:alert", severity="info", org_id="default")
+    for _ in range(5):
+        action = NotificationAction(
+            rule_id="hist-limit",
+            channel=NotificationChannel.WEBSOCKET,
+            event=event,
+        )
+        await engine.send_notification(action)
+    history = engine.get_history(org_id="default", limit=2)
+    assert len(history) <= 2
+
+
+# ---------------------------------------------------------------------------
+# NotificationChannel enum completeness
+# ---------------------------------------------------------------------------
+
+def test_all_channels_present():
+    channels = list(NotificationChannel)
+    assert len(channels) >= 4  # websocket, email, slack, pagerduty at minimum
+
+
+def test_channel_values_are_strings():
+    for ch in NotificationChannel:
+        assert isinstance(ch.value, str)

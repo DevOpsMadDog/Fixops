@@ -272,3 +272,193 @@ def test_stats_org_isolation(engine):
     stats_b = engine.get_scanner_stats(ORG_B)
     assert stats_a["total_scanners"] == 1
     assert stats_b["total_scanners"] == 1
+
+
+# ---------------------------------------------------------------------------
+# 7. Scanner CRUD — additional edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_add_scanner_all_valid_types(engine):
+    valid_types = ["nessus", "qualys", "rapid7", "trivy", "grype", "snyk", "checkmarx"]
+    for stype in valid_types:
+        s = engine.add_scanner(ORG_A, {"name": f"Scanner-{stype}", "scanner_type": stype})
+        assert s["scanner_type"] == stype
+
+
+def test_add_scanner_all_valid_license_types(engine):
+    valid_licenses = ["oss", "commercial", "enterprise", "trial"]
+    for ltype in valid_licenses:
+        s = engine.add_scanner(ORG_A, {"name": f"Lic-{ltype}", "license_type": ltype})
+        assert s["license_type"] == ltype
+
+
+def test_add_scanner_status_defaults(engine):
+    s = engine.add_scanner(ORG_A, {"name": "DefaultStatus"})
+    assert s["status"] in ("active", "inactive", "maintenance")
+
+
+def test_list_scanners_filter_type(engine):
+    engine.add_scanner(ORG_A, {"name": "Nessus-1", "scanner_type": "nessus"})
+    engine.add_scanner(ORG_A, {"name": "Trivy-1", "scanner_type": "trivy"})
+    nessus = [s for s in engine.list_scanners(ORG_A) if s["scanner_type"] == "nessus"]
+    assert len(nessus) == 1
+
+
+def test_scanner_org_id_stored(engine):
+    s = engine.add_scanner(ORG_A, {"name": "OrgCheck"})
+    assert s["org_id"] == ORG_A
+
+
+# ---------------------------------------------------------------------------
+# 8. Schedule — additional edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_create_schedule_all_valid_frequencies(engine):
+    for freq in ("once", "daily", "weekly", "monthly"):
+        sched = engine.create_schedule(ORG_A, {
+            "scanner_id": "x",
+            "name": f"Sched-{freq}",
+            "frequency": freq,
+        })
+        assert sched["frequency"] == freq
+
+
+def test_create_schedule_with_targets_list(engine):
+    sched = engine.create_schedule(ORG_A, {
+        "scanner_id": "x",
+        "name": "Multi-target",
+        "target_type": "cidr",
+        "targets": ["10.0.0.0/8", "192.168.0.0/16"],
+    })
+    assert isinstance(sched["targets"], list)
+    assert len(sched["targets"]) == 2
+
+
+def test_create_schedule_disabled_by_default(engine):
+    sched = engine.create_schedule(ORG_A, {"scanner_id": "x", "name": "Default-enabled"})
+    assert isinstance(sched["enabled"], bool)
+
+
+def test_list_schedules_count_increases(engine):
+    engine.create_schedule(ORG_A, {"scanner_id": "x", "name": "S1"})
+    engine.create_schedule(ORG_A, {"scanner_id": "x", "name": "S2"})
+    engine.create_schedule(ORG_A, {"scanner_id": "x", "name": "S3"})
+    assert len(engine.list_schedules(ORG_A)) == 3
+
+
+# ---------------------------------------------------------------------------
+# 9. Scan results — additional edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_create_scan_result_defaults(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    assert r["result_id"] is not None
+    assert r["org_id"] == ORG_A
+
+
+def test_create_scan_result_all_severity_counts(engine):
+    r = engine.create_scan_result(ORG_A, {
+        "scanner_id": "s1",
+        "critical_count": 5,
+        "high_count": 10,
+        "medium_count": 20,
+        "low_count": 50,
+    })
+    assert r["critical_count"] == 5
+    assert r["high_count"] == 10
+
+
+def test_list_scan_results_org_isolation(engine):
+    engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    results_b = engine.list_scan_results(ORG_B)
+    assert results_b == []
+
+
+def test_list_scan_results_no_filter(engine):
+    engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    engine.create_scan_result(ORG_A, {"scanner_id": "s2"})
+    results = engine.list_scan_results(ORG_A)
+    assert len(results) == 2
+
+
+# ---------------------------------------------------------------------------
+# 10. Findings — additional edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_create_finding_all_severities(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    for sev in ("critical", "high", "medium", "low", "informational"):
+        f = engine.create_finding(ORG_A, r["result_id"], {
+            "vuln_name": f"Vuln-{sev}",
+            "severity": sev,
+        })
+        assert f["severity"] == sev
+
+
+def test_list_findings_no_filter_returns_all(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    for i in range(4):
+        engine.create_finding(ORG_A, r["result_id"], {"vuln_name": f"Finding-{i}"})
+    all_findings = engine.list_findings(ORG_A)
+    assert len(all_findings) == 4
+
+
+def test_list_findings_org_isolation(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    engine.create_finding(ORG_A, r["result_id"], {"vuln_name": "OrgA Finding"})
+    findings_b = engine.list_findings(ORG_B)
+    assert findings_b == []
+
+
+def test_create_finding_stores_cve_id(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    f = engine.create_finding(ORG_A, r["result_id"], {
+        "vuln_name": "Log4Shell",
+        "cve_id": "CVE-2021-44228",
+        "cvss_score": 10.0,
+    })
+    assert f["cve_id"] == "CVE-2021-44228"
+    assert f["cvss_score"] == 10.0
+
+
+def test_update_finding_status_all_valid_states(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    for status in ("open", "in_progress", "patched", "accepted_risk", "false_positive"):
+        f = engine.create_finding(ORG_A, r["result_id"], {"vuln_name": f"F-{status}"})
+        ok = engine.update_finding_status(ORG_A, f["finding_id"], status)
+        assert ok is True
+
+
+# ---------------------------------------------------------------------------
+# 11. Stats — additional coverage
+# ---------------------------------------------------------------------------
+
+
+def test_get_scanner_stats_critical_count(engine):
+    engine.add_scanner(ORG_A, {"name": "S", "status": "active"})
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    engine.create_finding(ORG_A, r["result_id"], {"vuln_name": "C1", "severity": "critical"})
+    engine.create_finding(ORG_A, r["result_id"], {"vuln_name": "C2", "severity": "critical"})
+    stats = engine.get_scanner_stats(ORG_A)
+    assert stats["by_severity"].get("critical") == 2
+
+
+def test_get_scanner_stats_multiple_scanners(engine):
+    for i in range(5):
+        engine.add_scanner(ORG_A, {"name": f"Scanner-{i}", "status": "active"})
+    stats = engine.get_scanner_stats(ORG_A)
+    assert stats["total_scanners"] == 5
+    assert stats["active"] == 5
+
+
+def test_stats_findings_open_count(engine):
+    r = engine.create_scan_result(ORG_A, {"scanner_id": "s1"})
+    f1 = engine.create_finding(ORG_A, r["result_id"], {"vuln_name": "Open1"})
+    f2 = engine.create_finding(ORG_A, r["result_id"], {"vuln_name": "Open2"})
+    engine.update_finding_status(ORG_A, f2["finding_id"], "patched")
+    stats = engine.get_scanner_stats(ORG_A)
+    assert stats["findings_open"] == 1

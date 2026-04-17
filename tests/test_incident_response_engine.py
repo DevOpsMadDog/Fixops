@@ -219,3 +219,181 @@ def test_get_incident_stats_counts(engine):
     stats = engine.get_incident_stats(ORG)
     assert stats["by_severity"].get("p1") == 2
     assert stats["by_severity"].get("p3") == 1
+
+
+# ---------------------------------------------------------------------------
+# Incident CRUD — additional edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_create_incident_default_severity(engine):
+    inc = engine.create_incident(ORG, {"title": "No severity given"})
+    assert inc["severity"] in ("p1", "p2", "p3", "p4")
+
+
+def test_create_incident_all_severities(engine):
+    for sev in ("p1", "p2", "p3", "p4"):
+        inc = engine.create_incident(ORG, {"title": f"Inc {sev}", "severity": sev})
+        assert inc["severity"] == sev
+
+
+def test_list_incidents_org_isolation(engine):
+    engine.create_incident(ORG, {"title": "Org A Inc", "severity": "p2"})
+    other_org_incs = engine.list_incidents("other-org")
+    assert other_org_incs == []
+
+
+def test_update_incident_nonexistent_returns_false(engine):
+    result = engine.update_incident(ORG, "no-such-id", {"title": "Ghost"})
+    assert result is False
+
+
+def test_update_incident_multiple_fields(engine):
+    inc = engine.create_incident(ORG, {"title": "Multi update", "severity": "p3"})
+    engine.update_incident(ORG, inc["id"], {"title": "Updated title", "status": "containment"})
+    updated = engine.get_incident(ORG, inc["id"])
+    assert updated["title"] == "Updated title"
+    assert updated["status"] == "containment"
+
+
+def test_create_incident_preserves_incident_type(engine):
+    inc = engine.create_incident(ORG, {"title": "DDoS", "incident_type": "ddos", "severity": "p1"})
+    assert inc["incident_type"] == "ddos"
+
+
+def test_list_incidents_all_statuses(engine):
+    for status in ("new", "triage", "containment", "eradication", "recovery"):
+        engine.create_incident(ORG, {"title": f"Status {status}", "severity": "p2", "status": status})
+    result = engine.list_incidents(ORG)
+    assert len(result) >= 5
+
+
+# ---------------------------------------------------------------------------
+# Tasks — additional edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_add_task_default_status_pending(engine):
+    inc = engine.create_incident(ORG, {"title": "Task test", "severity": "p2"})
+    task = engine.add_task(ORG, inc["id"], {"title": "Do something"})
+    assert task["status"] == "pending"
+
+
+def test_complete_task_nonexistent_returns_false(engine):
+    result = engine.complete_task(ORG, "no-such-task")
+    assert result is False
+
+
+def test_tasks_are_incident_scoped(engine):
+    inc1 = engine.create_incident(ORG, {"title": "Inc 1", "severity": "p1"})
+    inc2 = engine.create_incident(ORG, {"title": "Inc 2", "severity": "p2"})
+    engine.add_task(ORG, inc1["id"], {"title": "Task for Inc 1"})
+    tasks_inc2 = engine.list_tasks(ORG, inc2["id"])
+    assert tasks_inc2 == []
+
+
+def test_complete_task_sets_completed_at(engine):
+    inc = engine.create_incident(ORG, {"title": "Complete check", "severity": "p1"})
+    task = engine.add_task(ORG, inc["id"], {"title": "Verify logs"})
+    engine.complete_task(ORG, task["id"])
+    tasks = engine.list_tasks(ORG, inc["id"])
+    assert tasks[0]["completed_at"] is not None
+
+
+def test_add_multiple_tasks_and_complete_all(engine):
+    inc = engine.create_incident(ORG, {"title": "All tasks", "severity": "p2"})
+    task_ids = []
+    for i in range(3):
+        t = engine.add_task(ORG, inc["id"], {"title": f"Task {i}"})
+        task_ids.append(t["id"])
+    for tid in task_ids:
+        engine.complete_task(ORG, tid)
+    tasks = engine.list_tasks(ORG, inc["id"])
+    assert all(t["status"] == "completed" for t in tasks)
+
+
+# ---------------------------------------------------------------------------
+# Timeline — additional coverage
+# ---------------------------------------------------------------------------
+
+
+def test_get_timeline_empty(engine):
+    inc = engine.create_incident(ORG, {"title": "No timeline", "severity": "p3"})
+    timeline = engine.get_timeline(ORG, inc["id"])
+    assert timeline == []
+
+
+def test_timeline_org_isolation(engine):
+    inc = engine.create_incident(ORG, {"title": "Secure inc", "severity": "p1"})
+    engine.add_timeline_event(ORG, inc["id"], "detection", "Secret event")
+    timeline = engine.get_timeline("other-org", inc["id"])
+    assert timeline == []
+
+
+def test_timeline_multiple_events_all_stored(engine):
+    inc = engine.create_incident(ORG, {"title": "Multi-event", "severity": "p2"})
+    for event_type in ("detection", "containment", "eradication"):
+        engine.add_timeline_event(ORG, inc["id"], event_type, f"{event_type} description")
+    timeline = engine.get_timeline(ORG, inc["id"])
+    assert len(timeline) == 3
+
+
+def test_timeline_event_without_actor(engine):
+    inc = engine.create_incident(ORG, {"title": "Auto timeline", "severity": "p3"})
+    event = engine.add_timeline_event(ORG, inc["id"], "detection", "System detected anomaly")
+    # Actor is optional
+    assert event["id"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Artifacts — additional coverage
+# ---------------------------------------------------------------------------
+
+
+def test_add_artifact_without_description(engine):
+    inc = engine.create_incident(ORG, {"title": "Artifact no desc", "severity": "p2"})
+    art = engine.add_artifact(ORG, inc["id"], "log", "syslog.txt")
+    assert art["id"] is not None
+
+
+def test_list_artifacts_org_isolation(engine):
+    inc = engine.create_incident(ORG, {"title": "Artifact iso", "severity": "p1"})
+    engine.add_artifact(ORG, inc["id"], "pcap", "traffic.pcap")
+    arts = engine.list_artifacts("other-org", inc["id"])
+    assert arts == []
+
+
+def test_multiple_artifact_types(engine):
+    inc = engine.create_incident(ORG, {"title": "Many artifacts", "severity": "p2"})
+    for atype in ("pcap", "log", "memory_dump", "screenshot"):
+        engine.add_artifact(ORG, inc["id"], atype, f"file.{atype}")
+    arts = engine.list_artifacts(ORG, inc["id"])
+    assert len(arts) == 4
+
+
+# ---------------------------------------------------------------------------
+# Stats — additional coverage
+# ---------------------------------------------------------------------------
+
+
+def test_get_incident_stats_by_status(engine):
+    engine.create_incident(ORG, {"title": "New1", "severity": "p2", "status": "new"})
+    engine.create_incident(ORG, {"title": "New2", "severity": "p3", "status": "new"})
+    engine.create_incident(ORG, {"title": "Triage1", "severity": "p1", "status": "triage"})
+    stats = engine.get_incident_stats(ORG)
+    assert stats["by_status"].get("new") == 2
+    assert stats["by_status"].get("triage") == 1
+
+
+def test_get_incident_stats_org_isolation(engine):
+    engine.create_incident(ORG, {"title": "Org test", "severity": "p1"})
+    stats_other = engine.get_incident_stats("completely-other-org")
+    assert stats_other["by_severity"] == {}
+
+
+def test_get_incident_stats_all_severities_represented(engine):
+    for sev in ("p1", "p2", "p3", "p4"):
+        engine.create_incident(ORG, {"title": f"Sev {sev}", "severity": sev})
+    stats = engine.get_incident_stats(ORG)
+    for sev in ("p1", "p2", "p3", "p4"):
+        assert stats["by_severity"].get(sev) == 1
