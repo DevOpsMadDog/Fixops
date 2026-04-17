@@ -7,8 +7,17 @@
  * Route: /incident-costs
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DollarSign, TrendingUp, TrendingDown, RefreshCw, AlertCircle, BarChart2 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -150,6 +159,10 @@ const MAX_CAT = CATEGORY_BREAKDOWN[0]?.total ?? 1;
 
 export default function IncidentCostsDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("ic-001");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/incident-costs/costs?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const selected = MOCK_INCIDENTS.find(i => i.id === selectedId) ?? null;
 

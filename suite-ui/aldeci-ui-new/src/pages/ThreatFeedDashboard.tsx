@@ -13,7 +13,7 @@
  * API stubs: GET /api/v1/feeds/status, /api/v1/feeds/iocs
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Rss, Shield, AlertTriangle, Activity, Search,
@@ -133,6 +133,10 @@ export default function ThreatFeedDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [iocQuery, setIocQuery] = useState("");
   const [iocType, setIocType] = useState("All");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [showResults, setShowResults] = useState(false);
 
   const handleSearch = () => {

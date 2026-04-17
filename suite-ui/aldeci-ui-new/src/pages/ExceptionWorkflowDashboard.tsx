@@ -7,8 +7,17 @@
  * Route: /exception-workflow
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, CheckCircle2, XCircle, Clock, RefreshCw, ShieldAlert, Bell } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -123,6 +132,10 @@ function typeLabel(t: ExceptionType): string {
 export default function ExceptionWorkflowDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("exc-001");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/exception-workflow/exceptions?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const selected = MOCK_EXCEPTIONS.find(e => e.id === selectedId) ?? null;
 

@@ -8,9 +8,18 @@
  * Route: /ti-confidence
  */
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Eye, Search, Zap, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -145,6 +154,13 @@ export default function ThreatIntelConfidenceDashboard() {
   const [iocs, setIocs] = useState(MOCK_IOCS);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
+      if (Array.isArray(d?.iocs)) setIocs(d.iocs);
+      else if (Array.isArray(d)) setIocs(d);
+    }).catch(() => {});
+  }, []);
 
   const filtered = search
     ? iocs.filter(i => i.ioc_value.toLowerCase().includes(search.toLowerCase()) || i.ioc_type.includes(search.toLowerCase()))

@@ -8,9 +8,18 @@
  * Route: /cloud-findings
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Cloud, AlertTriangle, CheckCircle, XCircle, RefreshCw, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +106,13 @@ export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
   const [findings, setFindings] = useState(MOCK_FINDINGS);
   const [ingesting, setIngesting] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/cloud-findings/findings?org_id=${ORG_ID}`).then((d) => {
+      if (Array.isArray(d?.findings)) setFindings(d.findings);
+      else if (Array.isArray(d)) setFindings(d);
+    }).catch(() => {});
+  }, []);
 
   const displayed = activeProvider === "All" ? findings : findings.filter(f => f.provider === activeProvider);
   const total = findings.length;

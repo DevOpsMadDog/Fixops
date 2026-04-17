@@ -11,8 +11,17 @@
  * API: GET /api/v1/system-health/ and /api/v1/system-health/score
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import {
   Activity,
   RefreshCw,
@@ -208,9 +217,15 @@ function ScoreGauge({ score }: { score: number }) {
 // ── Main component ─────────────────────────────────────────────
 
 export default function SystemHealthDashboard() {
-  const [health] = useState<HealthData>(MOCK_HEALTH);
+  const [health, setHealth] = useState<HealthData>(MOCK_HEALTH);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "healthy" | "degraded" | "unavailable">("all");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/system-health/?org_id=${ORG_ID}`).then((d) => {
+      if (d?.score !== undefined) setHealth(d);
+    }).catch(() => {});
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);

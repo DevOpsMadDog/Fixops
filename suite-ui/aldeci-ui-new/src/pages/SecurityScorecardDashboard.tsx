@@ -11,7 +11,7 @@
  * API: GET /api/v1/security-scorecard/ (mock until router deployed)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Award,
@@ -161,9 +161,15 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
 // ── Main component ─────────────────────────────────────────────
 
 export default function SecurityScorecardDashboard() {
-  const [scorecard] = useState<ScorecardData>(MOCK_SCORECARD);
+  const [scorecard, setScorecard] = useState<ScorecardData>(MOCK_SCORECARD);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
+      if (d?.overall_score !== undefined) setScorecard(d);
+    }).catch(() => {});
+  }, []);
   const [generated, setGenerated] = useState(false);
 
   const handleRefresh = () => {

@@ -11,11 +11,12 @@
  * API: /api/v1/capacity-planning
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Users, TrendingUp, AlertTriangle, RefreshCw, Plus, Activity,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,10 @@ export default function CapacityPlanningDashboard() {
   const [showResourceForm, setShowResourceForm] = useState(false);
   const [showDemandForm, setShowDemandForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/capacity-planning/resources?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [resourceForm, setResourceForm] = useState({ resource_name: "", role: "", team: "SOC", fte: "1.0", status: "active" });
   const [demandForm, setDemandForm] = useState({ demand_name: "", domain: "cloud", priority: "high", required_fte: "1.0", timeline: "" });
 

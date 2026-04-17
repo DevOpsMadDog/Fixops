@@ -12,8 +12,17 @@
  * API: GET /api/v1/feed-subscriptions
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Rss, AlertTriangle, CheckCircle2, XCircle, Clock, BarChart2, RefreshCw, Settings } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -158,6 +167,10 @@ function fmtNum(n: number): string {
 export default function FeedSubscriptionsDashboard() {
   const [selectedFeed, setSelectedFeed] = useState<FeedSubscription | null>(FEEDS[0]);
   const [activeTab, setActiveTab] = useState<"logs" | "delivery">("logs");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/feed-subscriptions/subscriptions?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const errorFeeds = FEEDS.filter(f => f.status === "error");
   const totalIOCs = FEEDS.reduce((s, f) => s + f.ioc_count, 0);

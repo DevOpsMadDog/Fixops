@@ -11,9 +11,18 @@
  * API stubs: GET /api/v1/cyber-insurance/policies, /api/v1/cyber-insurance/claims
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, FileText, AlertTriangle, DollarSign, RefreshCw, PlusCircle, BarChart3 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -140,6 +149,10 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
 
 export default function CyberInsurance() {
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);

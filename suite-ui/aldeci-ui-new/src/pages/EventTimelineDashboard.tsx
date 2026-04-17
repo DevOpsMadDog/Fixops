@@ -12,11 +12,12 @@
  * API: /api/v1/event-timeline
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Clock, ArrowRight, Activity, Plus, RefreshCw, User, Link2,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -144,6 +145,10 @@ export default function EventTimelineDashboard() {
   const [selectedIncident, setSelectedIncident] = useState<string>(MOCK_INCIDENTS[0].id);
   const [actorFilter, setActorFilter] = useState<string>("");
   const [showEventForm, setShowEventForm] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/event-timeline/incidents?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [incidentForm, setIncidentForm] = useState({ incident_id: "", title: "" });

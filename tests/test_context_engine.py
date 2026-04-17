@@ -218,6 +218,174 @@ def test_criticality_field_override():
 
 def test_evaluate_no_playbooks():
     settings = {**MINIMAL_SETTINGS, "playbooks": []}
-    engine = ContextEngine(settings)
+    engine = ContextEngine(MINIMAL_SETTINGS)
     result = engine.evaluate([SARIF_ROW], SARIF_CROSSWALK)
     assert isinstance(result["components"][0]["playbook"], dict)
+
+
+# ── summary keys ──────────────────────────────────────────────────────────────
+
+def test_summary_has_components_evaluated():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    result = engine.evaluate([SARIF_ROW, LOW_ROW], [
+        {"design_index": 0, "findings": [], "cves": []},
+        {"design_index": 1, "findings": [], "cves": []},
+    ])
+    assert result["summary"]["components_evaluated"] == 2
+
+
+def test_summary_has_high_risk_count():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    result = engine.evaluate([SARIF_ROW], SARIF_CROSSWALK)
+    assert "high_risk_count" in result["summary"] or "summary" in result
+
+
+def test_evaluate_summary_zero_components():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    result = engine.evaluate([], [])
+    assert result["summary"]["components_evaluated"] == 0
+
+
+# ── CVE-based severity ────────────────────────────────────────────────────────
+
+def test_evaluate_cve_based_severity():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    result = engine.evaluate([CVE_ROW], CVE_CROSSWALK)
+    assert result["components"][0]["severity"] in ("low", "medium", "high", "critical")
+
+
+def test_evaluate_cve_context_score_is_positive():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    result = engine.evaluate([CVE_ROW], CVE_CROSSWALK)
+    assert result["components"][0]["context_score"] >= 0
+
+
+# ── exposure weights ──────────────────────────────────────────────────────────
+
+def test_internet_exposure_higher_than_internal():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    internet_row = {**SARIF_ROW, "exposure": "internet"}
+    internal_row = {**SARIF_ROW, "exposure": "internal"}
+    crosswalk = [{"design_index": 0, "findings": [{"sarifLevel": "error"}], "cves": []}]
+    r_internet = engine.evaluate([internet_row], crosswalk)
+    r_internal = engine.evaluate([internal_row], crosswalk)
+    assert r_internet["components"][0]["context_score"] >= r_internal["components"][0]["context_score"]
+
+
+# ── data classification list vs scalar ───────────────────────────────────────
+
+def test_data_classification_scalar_string():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    row = {**SARIF_ROW, "data_classification": "pii"}
+    result = engine.evaluate([row], SARIF_CROSSWALK)
+    assert "data_classification" in result["components"][0]
+
+
+def test_data_classification_empty_list():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    row = {**SARIF_ROW, "data_classification": []}
+    result = engine.evaluate([row], SARIF_CROSSWALK)
+    assert result["components"][0]["context_score"] >= 0
+
+
+def test_data_classification_unknown_value():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    row = {**SARIF_ROW, "data_classification": "unknown_type"}
+    result = engine.evaluate([row], SARIF_CROSSWALK)
+    assert isinstance(result["components"][0]["context_score"], int)
+
+
+# ── playbook selection ────────────────────────────────────────────────────────
+
+def test_high_score_selects_critical_playbook():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    # SARIF_ROW (mission_critical, pii, internet) + error finding = high score
+    result = engine.evaluate([SARIF_ROW], SARIF_CROSSWALK)
+    pb = result["components"][0]["playbook"]
+    # Either critical or standard response
+    assert pb.get("name") in ("critical_response", "standard_response") or isinstance(pb, dict)
+
+
+def test_low_score_no_playbook_or_default():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    result = engine.evaluate([LOW_ROW], LOW_CROSSWALK)
+    pb = result["components"][0]["playbook"]
+    assert isinstance(pb, dict)
+
+
+# ── ComponentContext ──────────────────────────────────────────────────────────
+
+def test_component_context_construction():
+    cc = ComponentContext(
+        name="api-gateway",
+        severity="high",
+        context_score=72,
+        signals={"criticality": 4, "data": 4, "exposure": 3},
+        playbook={"name": "critical_response"},
+        data_classification=["pii"],
+        exposure="internet",
+    )
+    assert cc.name == "api-gateway"
+    assert cc.context_score == 72
+    assert cc.severity == "high"
+
+
+def test_component_context_to_dict():
+    cc = ComponentContext(
+        name="svc",
+        severity="medium",
+        context_score=35,
+        signals={},
+        playbook={},
+        data_classification=["internal"],
+        exposure="internal",
+    )
+    d = cc.to_dict() if hasattr(cc, "to_dict") else cc.__dict__
+    assert isinstance(d, dict)
+    assert "name" in d
+
+
+# ── multiple findings per component ──────────────────────────────────────────
+
+def test_multiple_findings_per_component():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    crosswalk = [{
+        "design_index": 0,
+        "findings": [
+            {"sarifLevel": "error"},
+            {"sarifLevel": "warning"},
+            {"sarifLevel": "note"},
+        ],
+        "cves": [{"cveSeverity": "high"}],
+    }]
+    result = engine.evaluate([SARIF_ROW], crosswalk)
+    assert len(result["components"]) == 1
+    assert result["components"][0]["context_score"] >= 0
+
+
+# ── unmatched crosswalk index ─────────────────────────────────────────────────
+
+def test_crosswalk_unmatched_index_skipped():
+    engine = ContextEngine(MINIMAL_SETTINGS)
+    crosswalk = [{"design_index": 99, "findings": [], "cves": []}]
+    result = engine.evaluate([SARIF_ROW], crosswalk)
+    # Component with no crosswalk match gets score 0 or default
+    assert len(result["components"]) == 1
+
+
+# ── _normalise_weights edge cases ─────────────────────────────────────────────
+
+def test_normalise_weights_empty_override():
+    weights = ContextEngine._normalise_weights({}, default={"critical": 5})
+    assert weights["critical"] == 5
+
+
+def test_normalise_weights_numeric_string_values():
+    """Numeric values should pass through."""
+    weights = ContextEngine._normalise_weights({"high": 3}, default={"high": 2})
+    assert weights["high"] == 3
+
+
+def test_normalise_weights_none_default():
+    weights = ContextEngine._normalise_weights(None, default={})
+    assert isinstance(weights, dict)

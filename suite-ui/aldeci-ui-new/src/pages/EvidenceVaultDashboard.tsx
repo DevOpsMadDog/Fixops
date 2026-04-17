@@ -5,13 +5,22 @@
  * Route: /evidence-vault
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Lock, Unlock, Shield, AlertTriangle, CheckCircle2,
   XCircle, Clock, Eye, Download, FileCheck, FolderOpen,
   PlusCircle, Hash,
 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -124,6 +133,10 @@ export default function EvidenceVaultDashboard() {
   const [selectedEvidence, setSelectedEvidence] = useState(MOCK_EVIDENCE[0]);
   const [sealedSet, setSealedSet] = useState<Set<string>>(new Set(MOCK_EVIDENCE.filter(e => e.sealed).map(e => e.id)));
   const [verifyId, setVerifyId] = useState("");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/evidence-vault/evidence?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [verifyContent, setVerifyContent] = useState("");
   const [verifyResult, setVerifyResult] = useState<"valid" | "invalid" | null>(null);
 

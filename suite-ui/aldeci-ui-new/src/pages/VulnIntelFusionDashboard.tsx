@@ -12,11 +12,12 @@
  * API: /api/v1/vuln-intel-fusion
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ShieldAlert, AlertTriangle, TrendingUp, Database, RefreshCw, Plus, Zap,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -146,6 +147,10 @@ export default function VulnIntelFusionDashboard() {
   const [selectedCve, setSelectedCve] = useState<string>("CVE-2024-3400");
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",
   });

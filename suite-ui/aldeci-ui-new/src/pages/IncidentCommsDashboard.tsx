@@ -11,9 +11,18 @@
  * API: GET /api/v1/incident-comms
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare, Send, Radio, Clock, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -130,6 +139,10 @@ export default function IncidentCommsDashboard() {
   const [incident, setIncident] = useState(INCIDENTS[0]);
   const [commType, setCommType] = useState<CommType>("update");
   const [channel, setChannel] = useState<Channel>("slack");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/incident-comms/comms?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);

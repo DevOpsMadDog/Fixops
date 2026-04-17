@@ -10,11 +10,12 @@
  * API: /api/v1/cyber-threat-models
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   GitBranch, ShieldAlert, CheckCircle2, XCircle, RefreshCw, Plus, Target,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,10 @@ export default function CyberThreatModelingDashboard() {
   const [showModelForm, setShowModelForm] = useState(false);
   const [showTreeForm, setShowTreeForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/cyber-threat-models/models?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [modelForm, setModelForm] = useState({ model_name: "", scope: "application", methodology: "STRIDE", risk_level: "high" });
   const [treeForm, setTreeForm] = useState({ tree_name: "", model_id: "m1", likelihood: "medium", impact: "high", risk_level: "high" });
 

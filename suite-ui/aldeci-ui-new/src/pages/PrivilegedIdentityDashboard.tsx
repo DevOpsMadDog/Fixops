@@ -5,12 +5,21 @@
  * Route: /privileged-identity
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Shield, Lock, AlertTriangle, CheckCircle2, XCircle, Clock,
   RefreshCw, UserCheck, Activity, Key, Eye, Users,
 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,6 +110,10 @@ export default function PrivilegedIdentityDashboard() {
     new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id))
   );
   const [rotatedSet, setRotatedSet] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const highRisk = MOCK_ACCOUNTS.filter(a => ["critical","high"].includes(a.risk_level)).length;
   const activeSessions = MOCK_SESSIONS.length;

@@ -5,12 +5,21 @@
  * Route: /network-anomaly
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Activity, AlertTriangle, TrendingUp, TrendingDown,
   CheckCircle2, PlusCircle, Network, BarChart2, Wifi,
 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -95,6 +104,10 @@ export default function NetworkAnomalyDashboard() {
   const [resolvedSet, setResolvedSet] = useState<Set<string>>(new Set(["anm-006"]));
   const [segmentFilter, setSegmentFilter] = useState("DMZ");
   const [showDetectForm, setShowDetectForm] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/network-anomaly/anomalies?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [detectForm, setDetectForm] = useState({ segment: "DMZ", protocol: "TCP", bytes: "", packets: "" });
 
   const anomalies = MOCK_ANOMALIES.filter(a => !resolvedSet.has(a.id));

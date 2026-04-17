@@ -11,12 +11,13 @@
  * API: /api/v1/risk-quant
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign, AlertTriangle, TrendingUp, Shield, RefreshCw,
   ChevronDown, Plus, BarChart2,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,10 @@ export default function RiskQuantDashboard() {
   const [scenarioFilter, setScenarioFilter] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",
     asset_value: "", sle: "", aro: "", risk_level: "high",

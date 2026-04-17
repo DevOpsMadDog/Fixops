@@ -8,7 +8,16 @@
  * API: GET /api/v1/incident-lessons
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -116,6 +125,10 @@ const maxTypeCount = Math.max(...Object.values(typeBarCounts));
 
 export default function IncidentLessonsDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string>(MOCK_LESSONS[0].id);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/incident-lessons/lessons?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const overdueActions = MOCK_ACTIONS.filter(a => a.status === "overdue");
   const selectedLesson_obj = MOCK_LESSONS.find(l => l.id === selectedLesson);

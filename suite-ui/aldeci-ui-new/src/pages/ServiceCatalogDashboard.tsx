@@ -5,12 +5,21 @@
  * Route: /service-catalog
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen, CheckCircle2, XCircle, Clock, AlertTriangle,
   TrendingUp, Activity, Users, PlusCircle, Zap,
 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,6 +130,10 @@ function AvailabilityGauge({ pct }: { pct: number }) {
 export default function ServiceCatalogDashboard() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestForm, setRequestForm] = useState({ service: "", requester: "", dept: "Engineering", priority: "medium", notes: "" });
+
+  useEffect(() => {
+    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const activeServices = MOCK_SERVICES.filter(s => s.status === "active").length;
   const totalRequests = MOCK_REQUESTS.length;

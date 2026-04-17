@@ -11,11 +11,12 @@
  * API: /api/v1/tprm-exchange
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Building2, ShieldAlert, ClipboardCheck, AlertTriangle, RefreshCw, Plus, CheckCircle2,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -155,6 +156,10 @@ export default function TprmExchangeDashboard() {
   const [completedAssessments, setCompletedAssessments] = useState<Set<string>>(
     new Set(MOCK_ASSESSMENTS.filter(a => a.status === "completed").map(a => a.id))
   );
+
+  useEffect(() => {
+    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState({ vendor_name: "", category: "cloud-provider", criticality: "high", contract_value: "" });

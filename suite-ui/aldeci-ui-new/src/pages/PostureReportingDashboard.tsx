@@ -5,12 +5,21 @@
  * Route: /posture-reports
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   FileText, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight,
   BarChart2, Send, PlusCircle, Lock, Globe, Users, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -154,6 +163,10 @@ export default function PostureReportingDashboard() {
   const [selectedReport, setSelectedReport] = useState(MOCK_REPORTS[0]);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [metricFilter, setMetricFilter] = useState(selectedReport.metrics[0].metric_name);
+
+  useEffect(() => {
+    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
 

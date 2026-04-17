@@ -1,4 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const ORG_ID = "aldeci-demo";
+async function apiFetch(path: string) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
 
 const services = [
   { id: "svc-001", service_name: "payment-api", service_type: "api", criticality: "critical", environment: "production", data_classification: "PCI", owner: "alice.chen", dependency_count: 4, dependent_count: 8, status: "healthy" },
@@ -44,6 +53,10 @@ export default function DependencyMappingDashboard() {
   const [activeTab, setActiveTab] = useState<"services" | "graph" | "blast" | "critical">("services");
   const [filterService, setFilterService] = useState("svc-001");
   const [analysisType, setAnalysisType] = useState<"downstream" | "upstream">("downstream");
+
+  useEffect(() => {
+    apiFetch(`/api/v1/dependency-mapping/services?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [blastResult, setBlastResult] = useState<null | { affected: string[]; affectedCount: number; criticalCount: number }>(null);
   const [showAddService, setShowAddService] = useState(false);
   const [showAddDep, setShowAddDep] = useState(false);

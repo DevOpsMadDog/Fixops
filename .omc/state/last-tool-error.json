@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/Users/devops.ai/fixops/Fixops/.venv/bin/python scripts/aspm_real_repo_test.py --offline --repo juice-shop --repo flask 2>&1\",\"timeout\":60000,\"description\":\"Run ASPM harness in offline mod...",
-  "error": "Exit code 1\n  File \"/Users/devops.ai/fixops/Fixops/scripts/aspm_real_repo_test.py\", line 763\n    global API_BASE\n    ^\nSyntaxError: name 'API_BASE' is used prior to global declaration",
-  "timestamp": "2026-04-17T22:53:53.409Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"PYTHONPATH=suite-api:suite-core:suite-evidence-risk:suite-attack:suite-feeds:suite-integrations:. python -m uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level warning 2>&1 &\\n...",
+  "error": "Exit code 1\n2026-04-18 09:31:28 [info     ] change_management_db_initialized db_path=data/change_management.db\n2026-04-18 09:31:28 [info     ] cab_engine_initialized\nWebSocket router not available: No module named 'suite_core'\nCTEM Pipeline router not available: No module named 'suite_core'\n2026-04-18 09:31:28 [info     ] SecurityMetricsEngine initialised db_path=security_metrics.db\n/Users/devops.ai/fixops/Fixops/suite-api/apps/api/db_security_router.py:69: UserWarning: Field name \"schema\" in \"S...",
+  "timestamp": "2026-04-17T23:31:35.922Z",
+  "retry_count": 4
 }
