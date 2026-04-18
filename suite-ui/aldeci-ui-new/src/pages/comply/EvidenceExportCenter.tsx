@@ -635,7 +635,7 @@ export default function EvidenceExportCenter() {
                       </TableCell>
                     </TableRow>
                   ))
-                )}
+                }
               </TableBody>
             </Table>
             </div>

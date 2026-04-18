@@ -462,9 +462,11 @@ export default function CompetitiveComparisonPage() {
                 </td>
                 {visibleVendors.map(v => (
                   <Cell key={v} vendor={v} value={row.values[v]} isAldeci={v === "ALDECI"} />
-                )))}
+                ))
+              )}
               </tr>
-            )))}
+            ))
+          )}
           </tbody>
         </table>
 
@@ -633,7 +635,7 @@ export default function CompetitiveComparisonPage() {
           )}
               </div>
             </div>
-          )))}
+          ))}
         </div>
 
         <div className="px-4 py-3 bg-gray-700/30 text-xs text-gray-400 border-t border-gray-700">

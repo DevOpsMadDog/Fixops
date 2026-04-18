@@ -88,7 +88,7 @@ function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[]
                     </Button>
                   </div>
                 ))
-              )}
+              }
               </div>
             )}
           </div>
@@ -518,7 +518,7 @@ export default function TeamsPage() {
                   mttr: t.avg_mttr ?? 0,
                   sla: t.sla_compliance ?? 0,
                 ))
-              )}
+              }
                 margin={{ top: 4, right: 12, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />

@@ -245,7 +245,7 @@ export default function HuntingPlaybookDashboard() {
                     </div>
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         )}

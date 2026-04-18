@@ -460,7 +460,7 @@ export default function TicketIntegration() {
                   onTestConnection={handleTest}
                 />
               ))
-            )}
+            }
             </div>
           )}
         </TabsContent>

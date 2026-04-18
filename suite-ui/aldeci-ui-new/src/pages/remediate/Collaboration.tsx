@@ -159,7 +159,7 @@ function RoomSidebar({
             </div>
           </button>
         ))
-      )}
+      }
     </div>
   );
 }
@@ -583,7 +583,7 @@ export default function Collaboration() {
                             </AvatarFallback>
                           </Avatar>
                         ))
-                      )}
+                      }
                         {selectedRoom.participants.length > 4 && (
                           <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] -ml-1 border-2 border-background">
                             +{selectedRoom.participants.length - 4}
@@ -678,7 +678,7 @@ export default function Collaboration() {
                                 </span>
                               </div>
                             ))
-                          )}
+                          }
                         </div>
                       </CardContent>
                     </Card>
@@ -710,7 +710,7 @@ export default function Collaboration() {
                                 </div>
                               </div>
                             ))
-                          )}
+                          }
                           </div>
                         )}
                       </CardContent>

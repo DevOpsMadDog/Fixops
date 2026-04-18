@@ -347,9 +347,11 @@ export default function CNAPPDashboard() {
                           {count}
                         </span>
                       </td>
-                    )))}
+                    ))
+                  )}
                   </tr>
-                )))}
+                ))
+              )}
               </tbody>
             </table>
           </div>

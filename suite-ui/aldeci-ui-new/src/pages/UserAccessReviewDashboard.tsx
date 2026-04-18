@@ -306,11 +306,13 @@ export default function UserAccessReviewDashboard() {
                           >
                             {d}
                           </button>
-                        )))}
+                        ))
+                      )}
                       </div>
                     </td>
                   </tr>
-                )))}
+                ))
+              )}
               </tbody>
             </table>
           </div>

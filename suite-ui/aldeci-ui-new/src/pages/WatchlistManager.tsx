@@ -382,7 +382,8 @@ export default function WatchlistManager() {
                 <p className="text-[10px] text-muted-foreground font-medium">Recently added:</p>
                 {added.slice(0, 4).map((entry, idx) => (
                   <div key={idx} className="text-[10px] text-green-400 font-mono truncate">{entry}</div>
-                )))}
+                ))
+              )}
               </div>
             )}
           </CardContent>

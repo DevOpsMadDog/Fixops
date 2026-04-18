@@ -179,7 +179,8 @@ export default function CloudIRDashboard() {
                         </div>
                       </td>
                     </tr>
-                  )))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>

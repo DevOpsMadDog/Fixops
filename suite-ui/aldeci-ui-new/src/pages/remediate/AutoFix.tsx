@@ -611,7 +611,7 @@ export default function AutoFix() {
                         </TableCell>
                       </TableRow>
                     ))
-                  )}
+                  }
                 </TableBody>
               </Table>
               </div>
@@ -676,7 +676,7 @@ export default function AutoFix() {
                       </CardContent>
                     </Card>
                   ))
-              )}
+              }
             </CardContent>
           </Card>
         </TabsContent>

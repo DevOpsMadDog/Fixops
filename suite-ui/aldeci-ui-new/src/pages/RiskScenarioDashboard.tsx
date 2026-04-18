@@ -370,7 +370,8 @@ export default function RiskScenarioDashboard() {
                 <tr>
                   {["Scenario","Category","Inherent","Residual","Reduction","Level"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                  )))}
+                  ))
+                )}
                 </tr>
               </thead>
               <tbody>
@@ -446,7 +447,8 @@ export default function RiskScenarioDashboard() {
                     </div>
                   </div>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Click on a scenario to view its mitigations.</p>

@@ -244,7 +244,8 @@ export default function SecurityBudgetDashboard() {
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
                               transition={{ duration: 0.6, delay: i * 0.04 }}
-                              )))}
+                              ))
+                            )}
                             />
                           </div>
                           <span className="text-[11px] tabular-nums text-muted-foreground w-8 text-right">{pct}%</span>

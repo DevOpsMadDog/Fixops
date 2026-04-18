@@ -1239,7 +1239,7 @@ export default function ThreatHunting() {
                               onRun={handleRunQuery}
                             />
                           ))
-                        )}
+                        }
                         </div>
                       )}
                     </CardContent>

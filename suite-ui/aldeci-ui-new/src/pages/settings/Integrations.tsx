@@ -440,7 +440,7 @@ export default function Integrations() {
                     </TableCell>
                   </TableRow>
                 ))
-              )}
+              }
             </TableBody>
           </Table>
           </div>

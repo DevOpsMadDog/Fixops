@@ -391,7 +391,7 @@ export default function CVESearch() {
                               )}
                             </button>
                           </div>
-                        )))}
+                        ))}
                       </div>
                     </ScrollArea>
                   </CardContent>

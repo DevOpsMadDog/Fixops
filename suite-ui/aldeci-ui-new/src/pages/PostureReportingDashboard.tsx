@@ -298,7 +298,7 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 

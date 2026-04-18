@@ -526,7 +526,7 @@ export default function MPTEConsole() {
                         </TableCell>
                       </TableRow>
                     ))
-                  )}
+                  }
                 </TableBody>
               </Table>
               </div>
@@ -560,7 +560,7 @@ export default function MPTEConsole() {
                         {pieData.map((entry) => (
                           <Cell key={entry.name} fill={entry.color} />
                         ))
-                      )}
+                      }
                       </Pie>
                       <Tooltip
                         contentStyle={{

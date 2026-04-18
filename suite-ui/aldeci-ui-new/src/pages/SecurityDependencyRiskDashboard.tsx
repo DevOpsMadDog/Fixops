@@ -338,10 +338,12 @@ export default function SecurityDependencyRiskDashboard() {
                         <span className="text-gray-600">└─</span>
                         <span className="font-mono text-gray-300">{c}</span>
                       </div>
-                    )))}
+                    ))
+                  )}
                   </div>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </div>
         </div>

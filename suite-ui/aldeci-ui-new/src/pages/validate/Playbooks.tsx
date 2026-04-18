@@ -472,7 +472,7 @@ export default function Playbooks() {
                 }}
               />
             ))
-          )}
+          }
         </div>
       ) : (
         <Card>
@@ -539,7 +539,7 @@ export default function Playbooks() {
                       </TableCell>
                     </TableRow>
                   ))
-                )}
+                }
               </TableBody>
             </Table>
             </div>

@@ -416,7 +416,7 @@ export default function Reachability() {
                               }}
                             />
                           ))
-                        )}
+                        }
                         </div>
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {asset.path_length}
@@ -441,7 +441,7 @@ export default function Reachability() {
                     </TableCell>
                   </TableRow>
                 ))
-              )}
+              }
             </TableBody>
           </Table>
           </div>

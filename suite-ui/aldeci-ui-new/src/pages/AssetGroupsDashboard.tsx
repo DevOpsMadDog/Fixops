@@ -346,7 +346,7 @@ export default function AssetGroupsDashboard() {
                   >
                     {tab}
                   </button>
-                )))}
+                ))}
               </div>
             </div>
           </div>
@@ -400,7 +400,8 @@ export default function AssetGroupsDashboard() {
                   <tr>
                     {["Policy Name","Type","Status"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    )))}
+                    ))
+                  )}
                   </tr>
                 </thead>
                 <tbody>
@@ -419,7 +420,8 @@ export default function AssetGroupsDashboard() {
                         </div>
                       </td>
                     </tr>
-                  )))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>

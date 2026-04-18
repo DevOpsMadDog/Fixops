@@ -224,7 +224,7 @@ export default function AlertEnrichmentDashboard() {
                         <ResultTypeBadge r={h.result_type} />
                         <span className="text-gray-500 ml-auto">{fmt(h.enriched_at)}</span>
                       </div>
-                    )))}
+                    ))}
                   </motion.div>
                 )}
               </div>

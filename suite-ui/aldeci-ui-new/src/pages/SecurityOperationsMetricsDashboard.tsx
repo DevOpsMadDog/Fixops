@@ -201,7 +201,8 @@ export default function SecurityOperationsMetricsDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
+      ))
+    )}
     </div>
   );
 
@@ -233,7 +234,8 @@ export default function SecurityOperationsMetricsDashboard() {
               <p className={cn("text-2xl font-bold", c.color)}>{c.value}{c.suffix}</p>
             </div>
           </div>
-        )))}
+        ))
+      )}
       </div>
 
       {/* Gauges + trend */}
@@ -299,7 +301,8 @@ export default function SecurityOperationsMetricsDashboard() {
               <tr className="border-b border-gray-700">
                 {["Severity", "Category", "Source", "Age", "Status", "Assigned To", "Actions"].map(h => (
                   <th key={h} className="text-left text-gray-400 font-medium py-2 pr-4 whitespace-nowrap">{h}</th>
-                )))}
+                ))
+              )}
               </tr>
             </thead>
             <tbody>

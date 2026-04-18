@@ -382,13 +382,15 @@ export default function CWPPDashboard() {
                       <span className="w-1 h-1 rounded-full bg-muted-foreground/50 flex-shrink-0" />
                       {r}
                     </li>
-                  )))}
+                  ))
+                )}
                 </ul>
                 <p className="text-[11px] text-muted-foreground">
                   Applied to <span className="font-semibold text-foreground">{p.applied.toLocaleString()}</span> workloads
                 </p>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>

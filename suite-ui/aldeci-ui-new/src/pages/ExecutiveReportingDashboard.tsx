@@ -431,7 +431,7 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    )))}
+                    ))}
                   </div>
                 )}
               </div>

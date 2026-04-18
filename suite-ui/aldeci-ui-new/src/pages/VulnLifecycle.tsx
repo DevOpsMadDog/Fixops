@@ -350,7 +350,7 @@ export default function VulnLifecycle() {
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
       ))
-    )}
+    }
     </div>
   );
 
@@ -379,7 +379,7 @@ export default function VulnLifecycle() {
                 >
                   {label}
                 </Button>
-              )))}
+              ))}
             </div>
           }
         />

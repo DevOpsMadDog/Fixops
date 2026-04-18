@@ -406,7 +406,7 @@ export default function IncidentTimelineDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>

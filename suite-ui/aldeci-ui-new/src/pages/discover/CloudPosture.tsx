@@ -253,7 +253,7 @@ export default function CloudPosture() {
                     {regionChartData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))
-                  )}
+                  }
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

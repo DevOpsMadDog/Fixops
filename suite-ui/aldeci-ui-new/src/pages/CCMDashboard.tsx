@@ -309,7 +309,8 @@ export default function CCMDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -345,7 +346,8 @@ export default function CCMDashboard() {
                   Remediate
                 </Button>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

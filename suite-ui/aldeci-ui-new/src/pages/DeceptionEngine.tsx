@@ -257,7 +257,7 @@ export default function DeceptionEngine() {
                     )}
                   </TableCell>
                 </TableRow>
-              )))}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -296,10 +296,12 @@ export default function DeceptionEngine() {
                 <div className="flex flex-wrap gap-1">
                   {a.techniques.map((t) => (
                     <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 border border-slate-600">{t}</span>
-                  )))}
+                  ))
+                )}
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </div>
         </CardContent>
       </Card>

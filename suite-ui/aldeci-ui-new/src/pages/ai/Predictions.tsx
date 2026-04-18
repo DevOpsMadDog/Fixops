@@ -237,7 +237,7 @@ export default function Predictions() {
                             → {target}: {((prob as number) * 100).toFixed(0)}%
                           </span>
                         ))
-                      )}
+                      }
                       </div>
                     )}
                   </motion.div>

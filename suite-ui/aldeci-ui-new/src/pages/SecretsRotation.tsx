@@ -462,7 +462,8 @@ export default function SecretsRotation() {
                         <span className="text-green-400">{event.new_expiry}</span>
                       </div>
                     </motion.div>
-                  )))}
+                  ))
+                )}
                 </div>
               </ScrollArea>
             </CardContent>

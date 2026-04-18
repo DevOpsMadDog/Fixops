@@ -367,7 +367,7 @@ export default function SupplyChainDashboard() {
                   <Progress value={item.pct} className="h-1.5" />
                 )}
               </div>
-            )))}
+            ))}
             <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
               Last SBOM import: 2026-04-15 22:14 UTC &nbsp;·&nbsp; Format: CycloneDX 1.4
             </div>

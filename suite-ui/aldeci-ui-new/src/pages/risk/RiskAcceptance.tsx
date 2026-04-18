@@ -548,7 +548,7 @@ function DetailDialog({ record, onClose, onApprove, onReject }: DetailDialogProp
                       <span className="text-foreground/80">{cc.description}</span>
                     </li>
                   ))
-                )}
+                }
                 </ul>
               )}
             </div>
@@ -747,7 +747,7 @@ function PendingCard({ record, onClick }: { record: RiskAcceptanceRecord; onClic
                         {cc.description}
                       </li>
                     ))
-                  )}
+                  }
                     {record.compensating_controls.length > 2 && (
                       <li className="text-xs text-muted-foreground">+{record.compensating_controls.length - 2} more — open to review all</li>
                     )}
@@ -1096,7 +1096,7 @@ export default function RiskAcceptance() {
                 pendingRecords.map((r) => (
                   <PendingCard key={r.id} record={r} onClick={() => setSelectedRecord(r)} />
                 ))
-              )}
+              }
             </motion.div>
           ) : (
             <motion.div
@@ -1116,7 +1116,7 @@ export default function RiskAcceptance() {
                             {h}
                           </th>
                         ))
-                      )}
+                      }
                       </tr>
                     </thead>
                     <tbody>
@@ -1130,7 +1130,7 @@ export default function RiskAcceptance() {
                         ledgerRecords.map((r) => (
                           <AcceptedRow key={r.id} record={r} onClick={() => setSelectedRecord(r)} />
                         ))
-                      )}
+                      }
                     </tbody>
                   </table>
                 </ScrollArea>

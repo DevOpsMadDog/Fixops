@@ -689,7 +689,7 @@ export default function IncidentTimeline() {
                     <PhaseProgress current={inc.current_phase} />
                   </div>
                 </button>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -755,7 +755,7 @@ export default function IncidentTimeline() {
                     <Badge key={sys} variant="outline" className="bg-slate-800 text-slate-300 border-slate-600 font-mono text-xs">
                       {sys}
                     </Badge>
-                  )))}
+                  ))}
                 </div>
               </div>
 

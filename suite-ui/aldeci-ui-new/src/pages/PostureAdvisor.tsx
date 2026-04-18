@@ -536,7 +536,7 @@ export default function PostureAdvisor() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {data.roadmap.map((roadmapPhase: RoadmapPhase, idx: number) => (
                 <motion.div
                   key={roadmapPhase.phase}
@@ -658,7 +658,8 @@ export default function PostureAdvisor() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            )))}
+                            ))
+                          )}
                           >
                             <span className="flex items-center gap-1">
                               {priorityIcon(rec.priority)}
@@ -669,7 +670,8 @@ export default function PostureAdvisor() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            )))}
+                            ))
+                          )}
                           >
                             {rec.effort}
                           </Badge>
@@ -700,7 +702,7 @@ export default function PostureAdvisor() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    )))}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -723,9 +725,9 @@ export default function PostureAdvisor() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Radar chart */}
-              <div className="col-span-1 flex justify-center">
+              <div className="md:col-span-1 flex justify-center">
                 <RadarChart categories={data.categories} />
               </div>
 
@@ -759,7 +761,7 @@ export default function PostureAdvisor() {
                           </div>
                         </div>
                       </div>
-                    )))}
+                    ))}
                 </div>
               </div>
             </div>

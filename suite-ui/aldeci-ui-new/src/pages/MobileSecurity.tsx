@@ -418,7 +418,8 @@ export default function MobileSecurity() {
                       {rule.label}
                     </span>
                   </div>
-                )))}
+                ))
+              )}
                 <div className="pt-2 space-y-1">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Compliance</span>
@@ -439,7 +440,7 @@ export default function MobileSecurity() {
                 </div>
               </CardContent>
             </Card>
-          )))}
+          ))}
         </div>
       </div>
 

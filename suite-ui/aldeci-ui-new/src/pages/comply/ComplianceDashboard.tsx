@@ -804,7 +804,7 @@ function ControlMappingTable({ controls }: { controls: Control[] }) {
                     <TableCell className="text-xs text-muted-foreground">{ctrl.lastReviewed}</TableCell>
                   </TableRow>
                 ))
-              )}
+              }
             </TableBody>
           </Table>
         </div>

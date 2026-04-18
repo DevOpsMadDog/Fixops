@@ -336,6 +336,7 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
         {isLoading ? (
           <div className="text-slate-400">Loading...</div>
         ) : (
+          <div className="overflow-x-auto">
           <ScrollArea className="w-full">
             <table className="w-full text-sm">
               <thead>
@@ -408,7 +409,8 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
                         </div>
                       </td>
                     </motion.tr>
-                  )))
+                  ))
+                )}
               </tbody>
             </table>
           </ScrollArea>
@@ -454,7 +456,7 @@ function RecentThreatFeed({ indicators, isLoading }: ThreatFeedProps) {
               >
                 {sev.charAt(0).toUpperCase() + sev.slice(1)}
               </Button>
-            )))}
+            ))}
           </div>
         </div>
       </CardHeader>

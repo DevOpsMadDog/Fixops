@@ -723,7 +723,7 @@ export default function CorrelationEngine() {
                     }
                   />
                 ))
-              )}
+              }
             </div>
           </ScrollArea>
         </CardContent>

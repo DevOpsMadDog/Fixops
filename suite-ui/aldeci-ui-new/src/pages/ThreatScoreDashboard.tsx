@@ -271,7 +271,7 @@ export default function ThreatScoreDashboard() {
                   </div>
                 )}
               </motion.div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

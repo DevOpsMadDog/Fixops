@@ -556,7 +556,7 @@ export default function VulnHeatmap() {
                 count={cat.count}
                 max={maxCategoryCount}
               />
-            )))}
+            ))}
           </CardContent>
         </Card>
 

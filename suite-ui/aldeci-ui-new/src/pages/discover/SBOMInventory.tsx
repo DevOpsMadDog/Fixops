@@ -665,7 +665,7 @@ export default function SBOMInventory() {
                         </TableCell>
                       </TableRow>
                     ))
-                  )}
+                  }
                 </TableBody>
               </Table>
               </div>
@@ -723,7 +723,7 @@ export default function SBOMInventory() {
                         {licenseChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.fill} />
                         ))
-                      )}
+                      }
                       </Pie>
                       <RechartsTooltip
                         contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}

@@ -257,7 +257,8 @@ export default function ComplianceMappingDashboard() {
                   <th className="text-left py-2 px-3 text-gray-400 font-medium">Framework</th>
                   {["Access Control","Monitoring","Encryption","Incident Resp","Audit Logging","Risk Mgmt","Vendor Mgmt","Training"].map((h) => (
                     <th key={h} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{h}</th>
-                  )))}
+                  ))
+                )}
                 </tr>
               </thead>
               <tbody>

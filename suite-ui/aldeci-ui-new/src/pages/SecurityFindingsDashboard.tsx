@@ -347,7 +347,8 @@ export default function SecurityFindingsDashboard() {
                 <div className="space-y-1">
                   {selectedFinding.evidence.map(e => (
                     <div key={e} className="text-xs font-mono text-blue-400 truncate">{e}</div>
-                  )))}
+                  ))
+                )}
                 </div>
               </div>
               {selectedFinding.suppressed_by && (
@@ -432,7 +433,8 @@ export default function SecurityFindingsDashboard() {
               <tr>
                 {["Title","Type","Source","Severity","CVSS","Asset","Status","Count"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                )))}
+                ))
+              )}
               </tr>
             </thead>
             <tbody>

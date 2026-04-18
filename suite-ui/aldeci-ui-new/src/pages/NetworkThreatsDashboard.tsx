@@ -245,7 +245,7 @@ export default function NetworkThreatsDashboard() {
                 >
                   {f}
                 </button>
-              )))}
+              ))}
             </div>
           </div>
           <div className="overflow-x-auto">

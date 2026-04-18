@@ -418,7 +418,7 @@ function EvidenceDrawer({ control, onClose }: { control: Control | null; onClose
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
                   ))
-                )}
+                }
               </div>
 
               <Separator />
@@ -923,7 +923,7 @@ export default function ComplianceDashboard() {
                     </div>
                   </motion.div>
                 ))
-              )}
+              }
               </div>
             )}
 

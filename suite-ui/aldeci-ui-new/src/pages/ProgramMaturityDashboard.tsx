@@ -185,7 +185,8 @@ export default function ProgramMaturityDashboard() {
                       <div className="flex gap-1">
                         {[1,2,3,4,5].map(lvl => (
                           <div key={lvl} className={`flex-1 h-3 rounded ${lvl <= d.current_level ? levelColor(d.current_level) : "bg-gray-700"} ${lvl === d.target_level ? "ring-2 ring-white ring-opacity-50" : ""}`} />
-                        )))}
+                        ))
+                      )}
                       </div>
                     </div>
                     <div className="mb-2">

@@ -338,7 +338,7 @@ export default function EndpointComplianceDashboard() {
                       {ep.last_scan ? new Date(ep.last_scan).toLocaleDateString() : "Never"}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

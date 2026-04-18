@@ -898,7 +898,7 @@ export default function SupplyChainSecurity() {
                         <dt className="text-xs text-muted-foreground shrink-0">{label}</dt>
                         <dd className="text-xs text-right font-medium truncate">{value}</dd>
                       </div>
-                    )))}
+                    ))}
                   </dl>
                 </div>
 

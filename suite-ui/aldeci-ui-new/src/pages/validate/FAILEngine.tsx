@@ -393,7 +393,7 @@ export default function FAILEngine() {
                 </CardContent>
               </Card>
             ))
-          )}
+          }
         </TabsContent>
 
         <TabsContent value="scorecard">
@@ -483,7 +483,7 @@ export default function FAILEngine() {
                 neglectZones.map((zone, i) => (
                   <NeglectZoneCard key={i} zone={zone} />
                 ))
-              )}
+              }
             </CardContent>
           </Card>
         </TabsContent>
@@ -559,7 +559,7 @@ export default function FAILEngine() {
                         </TableCell>
                       </TableRow>
                     ))
-                  )}
+                  }
                 </TableBody>
               </Table>
               </div>
@@ -591,7 +591,7 @@ export default function FAILEngine() {
                         name: key,
                         value: val,
                       ))
-                    )}
+                    }
                       margin={{ top: 4, right: 4, left: -16, bottom: 4 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -613,7 +613,8 @@ export default function FAILEngine() {
                             key={key}
                             fill={i === 0 ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
                           />
-                        ))}
+                        ))
+                      )}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>

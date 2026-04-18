@@ -235,7 +235,8 @@ export default function NetworkAnalysis() {
                     </div>
                     <span className="text-xs text-slate-500 shrink-0">{a.ts}</span>
                   </motion.div>
-                )))}
+                ))
+              )}
               </CardContent>
             </Card>
           </div>

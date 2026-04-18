@@ -1073,7 +1073,7 @@ export default function VendorManagement() {
                           index={i}
                         />
                       ))
-                    )}
+                    }
                   </AnimatePresence>
                 </tbody>
               </table>

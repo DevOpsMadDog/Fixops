@@ -302,14 +302,15 @@ export default function SBOMExportDashboard() {
                                     : <span className="text-red-400 font-semibold">No</span>}
                                 </td>
                               </tr>
-                            )))}
+                            ))
+                          )}
                           </tbody>
                         </table>
                       </td>
                     </tr>
                   )}
                 </>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

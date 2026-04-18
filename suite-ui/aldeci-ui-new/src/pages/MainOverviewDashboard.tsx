@@ -361,7 +361,7 @@ export default function MainOverviewDashboard() {
                     />
                   </div>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </motion.div>

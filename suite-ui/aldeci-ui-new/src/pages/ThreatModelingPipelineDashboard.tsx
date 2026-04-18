@@ -389,7 +389,8 @@ export default function ThreatModelingPipelineDashboard() {
                     </button>
                   </td>
                 </tr>
-              )))}
+              ))
+            )}
             </tbody>
           </table>
         )}

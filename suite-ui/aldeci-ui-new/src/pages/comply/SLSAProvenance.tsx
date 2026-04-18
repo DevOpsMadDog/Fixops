@@ -444,10 +444,11 @@ export default function SLSAProvenance() {
                               {ctrls.map((c) => (
                                 <Badge key={c} variant="outline" className="text-xs py-0 h-4 font-mono">{c}</Badge>
                               ))
-                            )}
+                            }
                             </div>
                           </div>
-                        ))}
+                        ))
+                      )}
                       </div>
                     )}
                   </div>
@@ -531,7 +532,7 @@ export default function SLSAProvenance() {
                     </TableCell>
                   </TableRow>
                 ))
-              )}
+              }
             </TableBody>
           </Table>
           </div>

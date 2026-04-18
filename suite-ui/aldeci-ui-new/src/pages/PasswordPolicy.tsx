@@ -239,7 +239,8 @@ export default function PasswordPolicy() {
                       {req.label}
                     </span>
                   </div>
-                )))}
+                ))
+              )}
                 <div className="pt-2 space-y-1 border-t border-border/50">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Compliance</span>
@@ -262,7 +263,7 @@ export default function PasswordPolicy() {
                 </div>
               </CardContent>
             </Card>
-          )))}
+          ))}
         </div>
       </div>
 

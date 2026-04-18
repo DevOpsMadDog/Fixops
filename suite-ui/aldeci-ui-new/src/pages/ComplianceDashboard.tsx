@@ -789,7 +789,8 @@ export default function ComplianceDashboard() {
                     </div>
                     <span className="tabular-nums text-muted-foreground/60">{m.date}</span>
                   </div>
-                )))}
+                ))
+              )}
               </div>
             </CardContent>
           </Card>

@@ -1170,7 +1170,7 @@ export default function IncidentResponse() {
                         onClick={() => setSelectedId(selectedId === inc.id ? null : inc.id)}
                       />
                     ))
-                  )}
+                  }
                 </AnimatePresence>
               </div>
             </ScrollArea>

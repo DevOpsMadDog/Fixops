@@ -293,12 +293,14 @@ export default function CapacityPlanningDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {r.skills.map(s => (
                           <Badge key={s} className="text-[9px] border border-border text-muted-foreground">{s}</Badge>
-                        )))}
+                        ))
+                      )}
                       </div>
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge s={r.status} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

@@ -117,7 +117,7 @@ function AuditDetailDrawer({ log }: { log: any }) {
                 <p className="text-sm font-medium mt-0.5 font-mono truncate">{value}</p>
               </div>
             ))
-          )}
+          }
           </div>
 
           {/* Hash chain verification */}
@@ -159,7 +159,8 @@ function AuditDetailDrawer({ log }: { log: any }) {
                     <Link2 className="h-2.5 w-2.5" />
                     {ctrl}
                   </Badge>
-                ))}
+                ))
+              )}
               </div>
             </div>
           )}
@@ -546,7 +547,7 @@ export default function AuditTrail() {
                               {ctrl}
                             </Badge>
                           ))
-                        )}
+                        }
                           {controlBadges.length > 1 && (
                             <Badge variant="outline" className="text-xs py-0 h-4 text-muted-foreground">
                               +{controlBadges.length - 1}

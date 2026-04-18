@@ -558,7 +558,7 @@ export default function Workflows() {
                   onDelete={handleDelete}
                 />
               ))
-            )}
+            }
             </div>
           )}
         </TabsContent>

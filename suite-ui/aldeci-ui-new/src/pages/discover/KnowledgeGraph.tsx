@@ -206,7 +206,7 @@ export default function KnowledgeGraph() {
                 variant="ghost"
                 size="sm"
                 className="w-full text-xs h-7"
-                onClick={() => setActiveNodeTypes(new Set(NODE_TYPES.map((n) => n.key)))}
+                onClick={() => setActiveNodeTypes(new Set(NODE_TYPES.map((n) => n.key))}
               >
                 Select All
               </Button>

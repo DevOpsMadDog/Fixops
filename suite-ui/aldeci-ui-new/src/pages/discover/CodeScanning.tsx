@@ -473,7 +473,7 @@ export default function CodeScanning() {
                         {scannerChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))
-                      )}
+                      }
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -504,7 +504,7 @@ export default function CodeScanning() {
                         {severityChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))
-                      )}
+                      }
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -550,7 +550,7 @@ export default function CodeScanning() {
                               {scannerFindings.filter((f) => f.severity?.toLowerCase() === sev).length}
                             </TableCell>
                           ))
-                        )}
+                        }
                         </TableRow>
                       );
                     })

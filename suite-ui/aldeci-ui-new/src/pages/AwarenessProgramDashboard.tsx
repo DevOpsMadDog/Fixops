@@ -323,7 +323,8 @@ export default function AwarenessProgramDashboard() {
                     {d.compliance_rate}%
                   </span>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </div>
         </div>
