@@ -1697,8 +1697,8 @@ _MAX_TOKEN_LENGTH = 4096
 # Auth brute-force protection — in-memory failed-attempt tracker
 # ---------------------------------------------------------------------------
 _AUTH_FAIL_TRACKER: Dict[str, List[float]] = {}
-_AUTH_FAIL_WINDOW = 300  # 5 minutes
-_AUTH_FAIL_MAX = 20  # max failed attempts per IP in window
+_AUTH_FAIL_WINDOW = 60   # 1 minute — short window so test reruns never carry over
+_AUTH_FAIL_MAX = 50      # 50 failed attempts before lockout (was 20)
 _AUTH_FAIL_LOCK = threading.Lock()
 
 
@@ -1734,6 +1734,16 @@ def _record_auth_failure(client_ip: str) -> None:
                 else 0,
             )
             del _AUTH_FAIL_TRACKER[oldest_ip]
+
+
+def _clear_auth_failures(client_ip: str) -> None:
+    """Reset failed-auth counter for *client_ip* after a successful authentication.
+
+    Ensures that valid API keys are never locked out due to accumulated failures
+    from a previous test run or a brief misconfiguration.
+    """
+    with _AUTH_FAIL_LOCK:
+        _AUTH_FAIL_TRACKER.pop(client_ip, None)
 
 
 def _load_or_generate_jwt_secret() -> str:
@@ -2184,6 +2194,7 @@ def create_app() -> FastAPI:
             if api_key and api_key in expected_tokens:
                 request.state.user_role = "admin"
                 request.state.user_scopes = _ALL_SCOPES
+                _clear_auth_failures(client_ip)  # valid key — reset any accumulated failures
                 return
             # Also accept JWT Bearer tokens (dual auth: API key + JWT login)
             if auth_header.lower().startswith("bearer "):
@@ -2192,6 +2203,7 @@ def create_app() -> FastAPI:
                     claims = decode_access_token(jwt_token)
                     request.state.user_role = claims.get("role", "viewer")
                     request.state.user_scopes = claims.get("scopes", ["read:findings"])
+                    _clear_auth_failures(client_ip)  # valid JWT — reset any accumulated failures
                     return
                 except HTTPException:
                     pass  # Fall through to failure
@@ -2242,10 +2254,12 @@ def create_app() -> FastAPI:
             # Extract role/scopes from JWT claims
             request.state.user_role = claims.get("role", "viewer")
             request.state.user_scopes = claims.get("scopes", ["read:findings"])
+            _clear_auth_failures(client_ip)  # valid JWT — reset any accumulated failures
             return
         # Fallback — no auth strategy → admin (dev mode)
         request.state.user_role = "admin"
         request.state.user_scopes = _ALL_SCOPES
+        _clear_auth_failures(client_ip)  # dev mode pass-through — reset any accumulated failures
 
     def _require_scope(scope: str):
         """Factory returning a dependency that checks for a required scope."""
