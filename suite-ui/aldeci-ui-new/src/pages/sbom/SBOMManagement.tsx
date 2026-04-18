@@ -727,7 +727,8 @@ function ImportSBOMModal({ onClose }: { onClose: () => void }) {
               {f === "CycloneDX" ? <FileJson className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
               {f}
             </button>
-          ))}
+          ))
+          )}
         </div>
 
         {/* Metadata */}
@@ -1050,7 +1051,8 @@ export default function SBOMManagement() {
                           </div>
                         </td>
                       </motion.tr>
-                    ))}
+                    ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1296,7 +1298,8 @@ export default function SBOMManagement() {
                             <span className="text-[10px] ml-1.5 opacity-60">{formatDateShort(s.importedAt)}</span>
                           </span>
                         </label>
-                      ))}
+                      ))
+                      )}
                     </div>
                   </div>
 
@@ -1323,7 +1326,8 @@ export default function SBOMManagement() {
                             <span className="text-[10px] ml-1.5 opacity-60">{formatDateShort(s.importedAt)}</span>
                           </span>
                         </label>
-                      ))}
+                      ))
+                      )}
                     </div>
                   </div>
                 </div>

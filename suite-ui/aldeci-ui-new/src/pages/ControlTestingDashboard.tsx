@@ -359,7 +359,8 @@ export default function ControlTestingDashboard() {
                       {c.next_test}
                     </td>
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>

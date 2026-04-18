@@ -635,7 +635,8 @@ export default function CompetitiveComparisonPage() {
           )}
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
 
         <div className="px-4 py-3 bg-gray-700/30 text-xs text-gray-400 border-t border-gray-700">
@@ -662,10 +663,12 @@ export default function CompetitiveComparisonPage() {
                     <span className="text-emerald-500 flex-shrink-0 mt-0.5">›</span>
                     {item}
                   </li>
-                ))}
+                ))
+                )}
               </ul>
             </div>
-          ))}
+          ))
+          )}
         </div>
       </div>
 

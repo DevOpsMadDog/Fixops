@@ -440,7 +440,8 @@ export default function ThreatModelDashboard() {
                       <Badge className={cn("text-[10px] border capitalize", EFFORT_COLORS[m.effort])}>{m.effort}</Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
           </div>

@@ -498,7 +498,8 @@ export default function PlaybookEditor() {
                       onMoveUp={() => moveStep(i, "up")}
                       onMoveDown={() => moveStep(i, "down")}
                     />
-                  ))}
+                  ))
+                  )}
                 <div className="flex justify-center mt-3">
                     <Button
                       variant="outline"
@@ -570,7 +571,8 @@ export default function PlaybookEditor() {
                   <span className="text-muted-foreground">{item.label}</span>
                   <span className="font-semibold">{item.val}</span>
                 </div>
-              ))}
+              ))
+              )}
             </CardContent>
           </Card>
         </div>

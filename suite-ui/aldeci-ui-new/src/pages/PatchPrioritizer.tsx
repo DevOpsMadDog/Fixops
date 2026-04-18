@@ -655,7 +655,8 @@ export default function PatchPrioritizer() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </CardContent>
         </Card>

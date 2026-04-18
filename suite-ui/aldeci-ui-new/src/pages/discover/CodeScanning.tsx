@@ -417,7 +417,8 @@ export default function CodeScanning() {
                                             >
                                               {line}
                                             </span>
-                                          ))}
+                                          ))
+                                          )}
                                         </code>
                                       </pre>
                                     </div>
@@ -472,7 +473,8 @@ export default function CodeScanning() {
                       <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                         {scannerChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
-                        ))}
+                        ))
+                        )}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -502,7 +504,8 @@ export default function CodeScanning() {
                       <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                         {severityChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
-                        ))}
+                        ))
+                        )}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -547,7 +550,8 @@ export default function CodeScanning() {
                             <TableCell key={sev} className="text-right font-mono text-sm text-muted-foreground">
                               {scannerFindings.filter((f) => f.severity?.toLowerCase() === sev).length}
                             </TableCell>
-                          ))}
+                          ))
+                          )}
                         </TableRow>
                       );
                     })
@@ -581,7 +585,8 @@ export default function CodeScanning() {
                     <p className="text-xs text-muted-foreground mb-1">{label}</p>
                     <div className="text-sm font-medium">{value}</div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
               <Separator />
               <div>

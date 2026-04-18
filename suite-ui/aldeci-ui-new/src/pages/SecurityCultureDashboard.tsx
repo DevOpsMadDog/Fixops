@@ -359,7 +359,8 @@ export default function SecurityCultureDashboard() {
                     </div>
                   )}
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
 

@@ -471,7 +471,8 @@ export default function Playbooks() {
                   setDetailOpen(true);
                 }}
               />
-            ))}
+            ))
+            )}
           </div>
       ) : (
         <Card>
@@ -537,7 +538,8 @@ export default function Playbooks() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
             </Table>
             </div>

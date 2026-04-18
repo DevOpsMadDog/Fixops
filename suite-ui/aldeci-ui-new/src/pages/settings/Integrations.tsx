@@ -439,7 +439,8 @@ export default function Integrations() {
                       {intg.sync_duration ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
           </Table>
           </div>
@@ -506,7 +507,8 @@ export default function Integrations() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
         </CardContent>

@@ -310,7 +310,8 @@ export default function AssetRiskDashboard() {
                       })
                   )}
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
               <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">

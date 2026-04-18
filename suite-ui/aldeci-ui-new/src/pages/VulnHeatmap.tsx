@@ -556,7 +556,8 @@ export default function VulnHeatmap() {
                 count={cat.count}
                 max={maxCategoryCount}
               />
-            ))}
+            ))
+            )}
           </CardContent>
         </Card>
 
@@ -578,7 +579,8 @@ export default function VulnHeatmap() {
                   </div>
                   <span className="text-gray-500 text-xs">{day.label}</span>
                 </div>
-              ))}
+              ))
+              )}
             </div>
             <div className="flex items-center gap-4 mt-4 text-xs">
               <span className="flex items-center gap-1.5">

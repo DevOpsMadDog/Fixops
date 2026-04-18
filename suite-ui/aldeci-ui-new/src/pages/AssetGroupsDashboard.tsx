@@ -346,7 +346,8 @@ export default function AssetGroupsDashboard() {
                   >
                     {tab}
                   </button>
-                ))}
+                ))
+                )}
               </div>
             </div>
           </div>

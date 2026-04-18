@@ -368,7 +368,8 @@ export default function SecurityPostureDashboard() {
                 >
                   <span className="text-[9px] text-muted-foreground pr-1 -translate-y-2">{v}</span>
                 </div>
-              ))}
+              ))
+              )}
               {/* Bars */}
               <div className="absolute inset-0 flex items-end gap-1 pt-2">
                 {HISTORY.length === 0 ? (

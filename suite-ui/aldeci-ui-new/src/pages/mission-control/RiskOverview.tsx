@@ -406,7 +406,8 @@ export default function RiskOverview() {
                         >
                           {pieData.map((entry, i) => (
                             <Cell key={i} fill={entry.color} fillOpacity={0.85} />
-                          ))}
+                          ))
+                          )}
                         </Pie>
                         <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
                         <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
@@ -421,7 +422,8 @@ export default function RiskOverview() {
                           </div>
                           <span className="font-bold tabular-nums">{d.value}</span>
                         </div>
-                      ))}
+                      ))
+                      )}
                     </div>
                   </>
                 ) : (

@@ -383,7 +383,8 @@ export default function DependencyMappingDashboard() {
                     <span className={`text-2xl font-bold ${s.dependent_count >= 8 ? "text-red-400" : s.dependent_count >= 5 ? "text-orange-400" : "text-yellow-400"}`}>{s.dependent_count}</span>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
         )}

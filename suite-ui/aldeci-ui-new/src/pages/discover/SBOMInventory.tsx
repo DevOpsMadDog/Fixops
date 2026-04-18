@@ -664,7 +664,8 @@ export default function SBOMInventory() {
                           )}>{asset.status || "—"}</Badge>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
               </Table>
               </div>
@@ -721,7 +722,8 @@ export default function SBOMInventory() {
                       >
                         {licenseChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.fill} />
-                        ))}
+                        ))
+                        )}
                       </Pie>
                       <RechartsTooltip
                         contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
@@ -746,7 +748,8 @@ export default function SBOMInventory() {
                     </div>
                     <span className="font-mono text-sm font-bold">{entry.value}</span>
                   </div>
-                ))}
+                ))
+                )}
                 <Separator />
                 {licenseChartData.some((e) => e.name.toUpperCase().includes("GPL")) && (
                   <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/20 rounded-md">

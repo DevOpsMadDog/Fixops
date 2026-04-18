@@ -206,7 +206,8 @@ function FixPreviewDialog({
                       <span className="text-muted-foreground">{String(result.duration)}</span>
                     )}
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </div>
           )}
@@ -610,7 +611,8 @@ export default function AutoFix() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
               </Table>
               </div>
@@ -674,7 +676,8 @@ export default function AutoFix() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  ))
+                  )}
               </CardContent>
           </Card>
         </TabsContent>

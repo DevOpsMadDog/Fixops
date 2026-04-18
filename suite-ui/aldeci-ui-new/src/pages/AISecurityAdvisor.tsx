@@ -377,7 +377,8 @@ export default function AISecurityAdvisor() {
                   {msg.ts && <span className="ml-2 text-[10px] text-muted-foreground">{msg.ts}</span>}
                 </div>
               </div>
-            ))}
+            ))
+            )}
             {chatLoading && (
               <div className="flex items-start gap-2">
                 <div className="shrink-0 w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center">

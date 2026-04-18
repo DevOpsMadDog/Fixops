@@ -298,7 +298,8 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              ))}
+              ))
+              )}
             </CardContent>
           </Card>
 
@@ -328,7 +329,8 @@ export default function PostureReportingDashboard() {
                         <td className="py-2 flex justify-center"><TrendIcon trend={m.trend} /></td>
                         <td className="py-2 text-right text-zinc-500 font-mono">{m.benchmark_value}{m.unit}</td>
                       </tr>
-                    ))}
+                    ))
+                    )}
                   </tbody>
                 </table>
               </div>

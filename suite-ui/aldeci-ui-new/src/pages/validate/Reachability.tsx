@@ -144,7 +144,8 @@ function NetworkPathDialog({
                       {!!path.protocol && <span>Protocol: {String(path.protocol)}</span>}
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             )}
           </div>
@@ -415,7 +416,8 @@ export default function Reachability() {
                                     : "hsl(var(--muted))",
                               }}
                             />
-                          ))}
+                          ))
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {asset.path_length}
@@ -439,7 +441,8 @@ export default function Reachability() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
           </Table>
           </div>

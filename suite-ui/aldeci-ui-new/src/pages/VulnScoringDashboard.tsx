@@ -287,7 +287,8 @@ export default function VulnScoringDashboard() {
                       <div className={`h-2 rounded-full ${scoreBarColor(c.value)}`} style={{ width: `${c.value}%` }} />
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
               <div className="mt-3 text-xs text-gray-400">
                 Assets affected: <span className="text-white font-semibold">{selected.assets_affected}</span>

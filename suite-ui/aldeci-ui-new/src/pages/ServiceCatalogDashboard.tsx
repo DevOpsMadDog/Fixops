@@ -337,7 +337,8 @@ export default function ServiceCatalogDashboard() {
                     </div>
                   )}
                 </div>
-              ))}
+              ))
+              )}
             </CardContent>
           </Card>
 

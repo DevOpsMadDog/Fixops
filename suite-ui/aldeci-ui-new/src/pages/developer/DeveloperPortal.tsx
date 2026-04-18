@@ -673,7 +673,8 @@ function ReposTable({ repos }: { repos: Repo[] }) {
                     <TrendIcon trend={repo.trend} delta={repo.trendDelta} />
                   </td>
                 </motion.tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -924,7 +925,8 @@ function LearningSidebar({ resources }: { resources: LearningResource[] }) {
                 </div>
               </div>
             </motion.a>
-          ))}
+          ))
+          )}
         </div>
       </CardContent>
     </Card>

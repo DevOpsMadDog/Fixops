@@ -557,7 +557,8 @@ export default function Workflows() {
                   onDuplicate={handleDuplicate}
                   onDelete={handleDelete}
                 />
-              ))}
+              ))
+              )}
             </div>
           )}
         </TabsContent>
@@ -585,7 +586,8 @@ export default function Workflows() {
                       <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 font-medium">THEN</span>
                       {actionLabels.map((a, i) => (
                         <span key={i} className="px-1.5 py-0.5 rounded bg-muted">{a}</span>
-                      ))}
+                      ))
+                      )}
                     </div>
                     <Button
                       variant="outline"

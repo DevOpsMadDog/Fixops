@@ -346,7 +346,8 @@ export default function UserAccessReviewDashboard() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
       </div>
     </div>

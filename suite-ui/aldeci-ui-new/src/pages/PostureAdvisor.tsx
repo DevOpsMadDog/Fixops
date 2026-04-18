@@ -702,7 +702,8 @@ export default function PostureAdvisor() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

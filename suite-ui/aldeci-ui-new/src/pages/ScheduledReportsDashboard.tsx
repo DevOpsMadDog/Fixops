@@ -648,7 +648,8 @@ export default function ScheduledReportsDashboard() {
                     </div>
                   </TableCell>
                 </motion.tr>
-              ))}
+              ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

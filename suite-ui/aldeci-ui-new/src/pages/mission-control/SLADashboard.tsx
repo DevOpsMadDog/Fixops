@@ -531,7 +531,8 @@ export default function SLADashboard() {
                         <StatusBadge status={row.status} />
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
               </div>

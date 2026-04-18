@@ -158,7 +158,8 @@ function RoomSidebar({
               </div>
             </div>
           </button>
-        ))}
+        ))
+        )}
       </div>
   );
 }
@@ -600,7 +601,8 @@ export default function Collaboration() {
                           <Badge key={fid} variant="outline" className="text-[10px]">
                             {fid}
                           </Badge>
-                        ))}
+                        ))
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -676,7 +678,8 @@ export default function Collaboration() {
                                   {item.text}
                                 </span>
                               </div>
-                            ))}
+                            ))
+                            )}
                           </div>
                       </CardContent>
                     </Card>
@@ -707,7 +710,8 @@ export default function Collaboration() {
                                   <p className="text-muted-foreground">{att.size}</p>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                            )}
                           </div>
                         )}
                       </CardContent>

@@ -275,7 +275,8 @@ export default function HuntingAutomationDashboard() {
                 )}
               </div>
             </Card>
-          ))}
+          ))
+          )}
         </div>
 
         {/* High-yield Queries Panel */}

@@ -288,9 +288,11 @@ export default function AssetTagsDashboard() {
                           <span className="inline-block w-4 h-4 text-gray-700">—</span>
                         )}
                       </td>
-                    ))}
+                    ))
+                    )}
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>

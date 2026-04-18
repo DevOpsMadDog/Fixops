@@ -338,7 +338,8 @@ export default function EndpointComplianceDashboard() {
                       {ep.last_scan ? new Date(ep.last_scan).toLocaleDateString() : "Never"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -387,7 +388,8 @@ export default function EndpointComplianceDashboard() {
                     <p className="font-medium text-slate-200 mb-1">{chk.check_name}</p>
                     <p className="text-slate-500 line-clamp-2">{chk.remediation}</p>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </CardContent>
           </Card>

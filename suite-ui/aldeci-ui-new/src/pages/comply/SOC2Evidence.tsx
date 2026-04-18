@@ -320,7 +320,8 @@ export default function SOC2Evidence() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
           </Table>
           </div>
@@ -432,7 +433,8 @@ export default function SOC2Evidence() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
             </div>

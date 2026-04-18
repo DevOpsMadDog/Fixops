@@ -476,7 +476,8 @@ export default function Reports() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
           </Table>
           </div>

@@ -506,7 +506,8 @@ export default function CyberInsuranceDashboard() {
                     <Clock className="h-3 w-3 shrink-0 text-amber-400 mt-0.5" />
                     <span className="text-xs text-muted-foreground">{rec}</span>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             )}
 

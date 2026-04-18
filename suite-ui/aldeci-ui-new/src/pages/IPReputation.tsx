@@ -378,7 +378,8 @@ export default function IPReputation() {
                         >
                           :{port}
                         </Badge>
-                      ))}
+                      ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -415,7 +416,8 @@ export default function IPReputation() {
                               )}
                             </button>
                           </div>
-                        ))}
+                        ))
+                        )}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -447,7 +449,8 @@ export default function IPReputation() {
                             </span>
                             <ExternalLink className="w-4 h-4 text-slate-500 flex-shrink-0 group-hover:text-red-500" />
                           </a>
-                        ))}
+                        ))
+                        )}
                       </div>
                     </ScrollArea>
                   </CardContent>

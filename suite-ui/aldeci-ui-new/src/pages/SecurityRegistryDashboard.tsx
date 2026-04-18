@@ -204,7 +204,8 @@ export default function SecurityRegistryDashboard() {
           >
             {s === "all" ? "All Artifacts" : STATUS_CONFIG[s as ArtifactStatus]?.label ?? s}
           </button>
-        ))}
+        ))
+        )}
       </div>
 
       {/* Registry Table */}

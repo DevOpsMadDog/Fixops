@@ -434,7 +434,8 @@ export default function ExecutiveView() {
                     <Bar dataKey="score" radius={[0, 4, 4, 0]} name="Risk Score">
                       {riskByUnit.slice(0, 8).map((_: unknown, i: number) => (
                         <Cell key={i} fill={UNIT_COLORS[i % UNIT_COLORS.length]} fillOpacity={0.8} />
-                      ))}
+                      ))
+                      )}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -473,7 +474,8 @@ export default function ExecutiveView() {
                     status={String(fw.status)}
                     score={fw.score > 0 ? fw.score : undefined}
                   />
-                ))}
+                ))
+                )}
               </div>
               <Separator className="my-3" />
               <div className="flex items-center justify-between text-xs">

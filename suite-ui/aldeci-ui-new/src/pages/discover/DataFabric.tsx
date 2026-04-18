@@ -264,7 +264,8 @@ function ModelTreeNode({ node, depth = 0 }: { node: ModelNode; depth?: number })
               >
                 {s === "All" ? "All" : s.split(" ")[0]}
               </span>
-            ))}
+            ))
+            )}
             {node.sources.length > 3 && (
               <span className="text-[9px] text-muted-foreground">+{node.sources.length - 3}</span>
             )}
@@ -276,7 +277,8 @@ function ModelTreeNode({ node, depth = 0 }: { node: ModelNode; depth?: number })
         <div>
           {node.children!.map((child) => (
             <ModelTreeNode key={child.id} node={child} depth={depth + 1} />
-          ))}
+          ))
+          )}
         </div>
       )}
     </div>

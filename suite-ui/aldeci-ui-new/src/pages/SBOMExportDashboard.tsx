@@ -310,7 +310,8 @@ export default function SBOMExportDashboard() {
                     </tr>
                   )}
                 </>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

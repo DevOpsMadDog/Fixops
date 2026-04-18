@@ -475,7 +475,8 @@ export default function AssetInventory() {
                       onClick={() => setSelectedId(selectedId === asset.id ? null : asset.id)}
                       index={i}
                     />
-                  ))}
+                  ))
+                  )}
                 </tbody>
             </table>
           </ScrollArea>

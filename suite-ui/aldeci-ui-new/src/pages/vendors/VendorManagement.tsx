@@ -656,7 +656,8 @@ function AssessmentPanel({ vendor }: { vendor: Vendor }) {
                   )}
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
       )}
@@ -1072,7 +1073,8 @@ export default function VendorManagement() {
                           onSelect={() => setSelectedVendor(prev => prev?.id === vendor.id ? null : vendor)}
                           index={i}
                         />
-                      ))}
+                      ))
+                      )}
                     </AnimatePresence>
                 </tbody>
               </table>

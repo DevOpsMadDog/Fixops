@@ -276,7 +276,8 @@ export default function DLPDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {(p.channels ?? []).slice(0, 2).map((ch: string) => (
                           <ChannelBadge key={ch} channel={ch} />
-                        ))}
+                        ))
+                        )}
                         {(p.channels ?? []).length > 2 && (
                           <Badge className="text-[9px] border border-border text-muted-foreground">+{(p.channels.length - 2)}</Badge>
                         )}
@@ -293,7 +294,8 @@ export default function DLPDashboard() {
                       {(p.hit_count ?? 0).toLocaleString()}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
                 </TableBody>
             </Table>
           </div>
@@ -343,7 +345,8 @@ export default function DLPDashboard() {
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[160px] truncate">{inc.file_name}</TableCell>
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{inc.timestamp}</TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
                 </TableBody>
             </Table>
           </div>
@@ -379,7 +382,8 @@ export default function DLPDashboard() {
                   />
                 </div>
               </div>
-            ))}
+            ))
+            )}
             </CardContent>
         </Card>
 

@@ -755,7 +755,8 @@ export default function IncidentTimeline() {
                     <Badge key={sys} variant="outline" className="bg-slate-800 text-slate-300 border-slate-600 font-mono text-xs">
                       {sys}
                     </Badge>
-                  ))}
+                  ))
+                  )}
                 </div>
               </div>
 
@@ -777,7 +778,8 @@ export default function IncidentTimeline() {
                       <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
                       <span className="text-xs text-gray-300 font-mono">{t}</span>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </div>
 
@@ -789,7 +791,8 @@ export default function IncidentTimeline() {
                       <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0 mt-0.5" />
                       <span className="text-xs text-gray-300 leading-relaxed">{lesson}</span>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </div>
             </CardContent>

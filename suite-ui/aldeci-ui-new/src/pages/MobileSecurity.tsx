@@ -440,7 +440,8 @@ export default function MobileSecurity() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))
+          )}
         </div>
       </div>
 
@@ -485,7 +486,8 @@ export default function MobileSecurity() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
           </div>

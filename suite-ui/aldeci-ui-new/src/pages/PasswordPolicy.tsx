@@ -263,7 +263,8 @@ export default function PasswordPolicy() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))
+          )}
         </div>
       </div>
 
