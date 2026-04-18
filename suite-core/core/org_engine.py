@@ -1,0 +1,373 @@
+"""Org Management Engine — ALDECI multi-tenancy.
+
+Provides organisation listing, creation, and summary across all engine
+SQLite databases.  Each engine stores data keyed by ``org_id``; this engine
+discovers all known tenants by scanning those databases for distinct
+``org_id`` values.
+
+Patterns:
+    - WAL mode + RLock for thread safety
+    - Single SQLite registry at data/orgs.db
+    - Separate scan of engine DBs to collect known org_ids
+    - org_id isolation enforced throughout
+"""
+
+from __future__ import annotations
+
+import glob
+import logging
+import os
+import sqlite3
+import threading
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+_logger = logging.getLogger(__name__)
+
+# Default location for the org registry DB
+_DEFAULT_DB = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "..",
+    "data",
+    "orgs.db",
+)
+
+# Root of all engine databases (suite-core/core/)
+_ENGINE_DB_GLOB = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "*.db",
+)
+
+# Also scan suite-api data dir
+_API_DATA_GLOB = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "..",
+    "data",
+    "*.db",
+)
+
+
+class OrgEngine:
+    """Registry for organisations with cross-DB discovery.
+
+    Args:
+        db_path: Path to the org registry SQLite file.  Defaults to
+            ``data/orgs.db`` two levels above this file.
+        engine_db_globs: Additional glob patterns to scan for engine DBs
+            when discovering org_ids.  Defaults to the core/ directory and
+            the data/ directory.
+    """
+
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        engine_db_globs: Optional[List[str]] = None,
+    ) -> None:
+        self._db_path = db_path or _DEFAULT_DB
+        self._engine_db_globs: List[str] = engine_db_globs if engine_db_globs is not None else [
+            _ENGINE_DB_GLOB,
+            _API_DATA_GLOB,
+        ]
+        self._lock = threading.RLock()
+        os.makedirs(os.path.dirname(os.path.abspath(self._db_path)), exist_ok=True)
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Initialisation
+    # ------------------------------------------------------------------
+
+    def _init_db(self) -> None:
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS orgs (
+                        org_id      TEXT PRIMARY KEY,
+                        name        TEXT NOT NULL,
+                        description TEXT DEFAULT '',
+                        created_at  TEXT NOT NULL,
+                        is_active   INTEGER NOT NULL DEFAULT 1
+                    )
+                """)
+                conn.commit()
+                # Ensure the built-in "default" org always exists
+                conn.execute("""
+                    INSERT OR IGNORE INTO orgs (org_id, name, description, created_at, is_active)
+                    VALUES ('default', 'Default Organization', 'Built-in default tenant', ?, 1)
+                """, (datetime.now(timezone.utc).isoformat(),))
+                conn.commit()
+            finally:
+                conn.close()
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def list_orgs(self, include_discovered: bool = True) -> List[Dict[str, Any]]:
+        """Return all known organisations.
+
+        Args:
+            include_discovered: When True (default), also returns org_ids
+                discovered from engine databases that are not yet in the
+                registry (marked as ``source: "discovered"``).
+
+        Returns:
+            List of org dicts sorted by org_id.
+        """
+        with self._lock:
+            conn = self._connect()
+            try:
+                rows = conn.execute(
+                    "SELECT org_id, name, description, created_at, is_active FROM orgs ORDER BY org_id"
+                ).fetchall()
+                registered: Dict[str, Dict[str, Any]] = {
+                    r["org_id"]: {
+                        "org_id": r["org_id"],
+                        "name": r["name"],
+                        "description": r["description"],
+                        "created_at": r["created_at"],
+                        "is_active": bool(r["is_active"]),
+                        "source": "registry",
+                    }
+                    for r in rows
+                }
+            finally:
+                conn.close()
+
+        result = list(registered.values())
+
+        if include_discovered:
+            for discovered_id in self._discover_org_ids():
+                if discovered_id not in registered:
+                    result.append({
+                        "org_id": discovered_id,
+                        "name": discovered_id,
+                        "description": "Discovered from engine databases",
+                        "created_at": None,
+                        "is_active": True,
+                        "source": "discovered",
+                    })
+
+        result.sort(key=lambda x: x["org_id"])
+        return result
+
+    def create_org(self, org_id: str, name: str, description: str = "") -> Dict[str, Any]:
+        """Create a new organisation in the registry.
+
+        Args:
+            org_id: Unique identifier (slug-style, e.g. ``acme-corp``).
+            name: Human-readable display name.
+            description: Optional description.
+
+        Returns:
+            The created org dict.
+
+        Raises:
+            ValueError: If org_id is empty or already exists.
+        """
+        if not org_id or not org_id.strip():
+            raise ValueError("org_id must not be empty")
+        org_id = org_id.strip()
+        name = (name or org_id).strip()
+
+        with self._lock:
+            conn = self._connect()
+            try:
+                existing = conn.execute(
+                    "SELECT org_id FROM orgs WHERE org_id = ?", (org_id,)
+                ).fetchone()
+                if existing:
+                    raise ValueError(f"Organisation '{org_id}' already exists")
+
+                created_at = datetime.now(timezone.utc).isoformat()
+                conn.execute(
+                    """
+                    INSERT INTO orgs (org_id, name, description, created_at, is_active)
+                    VALUES (?, ?, ?, ?, 1)
+                    """,
+                    (org_id, name, description, created_at),
+                )
+                conn.commit()
+                return {
+                    "org_id": org_id,
+                    "name": name,
+                    "description": description,
+                    "created_at": created_at,
+                    "is_active": True,
+                    "source": "registry",
+                }
+            finally:
+                conn.close()
+
+    def get_org(self, org_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a single org from the registry (does not scan engine DBs).
+
+        Returns:
+            Org dict or None if not found.
+        """
+        with self._lock:
+            conn = self._connect()
+            try:
+                row = conn.execute(
+                    "SELECT org_id, name, description, created_at, is_active FROM orgs WHERE org_id = ?",
+                    (org_id,),
+                ).fetchone()
+            finally:
+                conn.close()
+        if row is None:
+            return None
+        return {
+            "org_id": row["org_id"],
+            "name": row["name"],
+            "description": row["description"],
+            "created_at": row["created_at"],
+            "is_active": bool(row["is_active"]),
+            "source": "registry",
+        }
+
+    def get_org_summary(self, org_id: str) -> Dict[str, Any]:
+        """Return a dashboard summary for an org.
+
+        Counts how many engine databases contain data for this org_id.
+
+        Args:
+            org_id: Organisation to summarise.
+
+        Returns:
+            Dict with org metadata and engine coverage stats.
+        """
+        org = self.get_org(org_id)
+        if org is None:
+            # Could be a discovered org — synthesise minimal metadata
+            org = {
+                "org_id": org_id,
+                "name": org_id,
+                "description": "",
+                "created_at": None,
+                "is_active": True,
+                "source": "discovered",
+            }
+
+        db_files = self._all_engine_db_files()
+        engines_with_data: List[str] = []
+        total_rows = 0
+
+        for db_file in db_files:
+            try:
+                count, tables = self._count_rows_for_org(db_file, org_id)
+                if count > 0:
+                    engines_with_data.append(os.path.basename(db_file))
+                    total_rows += count
+            except Exception:  # noqa: BLE001
+                pass  # skip unreadable DBs
+
+        return {
+            **org,
+            "summary": {
+                "engines_with_data": len(engines_with_data),
+                "total_rows": total_rows,
+                "engine_files": engines_with_data,
+            },
+        }
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _all_engine_db_files(self) -> List[str]:
+        """Return all SQLite DB file paths from configured glob patterns."""
+        files: List[str] = []
+        for pattern in self._engine_db_globs:
+            files.extend(glob.glob(pattern))
+        # Exclude the org registry itself
+        own = os.path.abspath(self._db_path)
+        return [f for f in files if os.path.abspath(f) != own]
+
+    def _discover_org_ids(self) -> List[str]:
+        """Scan all engine DBs and collect distinct org_id values."""
+        discovered: set[str] = set()
+        for db_file in self._all_engine_db_files():
+            try:
+                org_ids = self._scan_db_for_org_ids(db_file)
+                discovered.update(org_ids)
+            except Exception:  # noqa: BLE001
+                pass
+        # Filter out empty/None and the sentinel "default" (always in registry)
+        return [o for o in discovered if o and o != "default"]
+
+    def _scan_db_for_org_ids(self, db_path: str) -> List[str]:
+        """Return all distinct org_id values from a single SQLite file."""
+        results: List[str] = []
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=2)
+            conn.row_factory = sqlite3.Row
+            try:
+                tables = [
+                    r[0]
+                    for r in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                ]
+                for table in tables:
+                    # Check if table has an org_id column
+                    try:
+                        cols = [
+                            c[1]
+                            for c in conn.execute(
+                                f"PRAGMA table_info({table})"
+                            ).fetchall()
+                        ]
+                        if "org_id" not in cols:
+                            continue
+                        rows = conn.execute(
+                            f"SELECT DISTINCT org_id FROM {table} WHERE org_id IS NOT NULL AND org_id != ''"
+                        ).fetchall()
+                        results.extend(r[0] for r in rows)
+                    except sqlite3.OperationalError:
+                        continue
+            finally:
+                conn.close()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
+            pass
+        return results
+
+    def _count_rows_for_org(self, db_path: str, org_id: str):
+        """Return (total_rows, tables_with_data) for an org in a single DB."""
+        total = 0
+        tables_with_data: List[str] = []
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=2)
+        try:
+            tables = [
+                r[0]
+                for r in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            ]
+            for table in tables:
+                try:
+                    cols = [
+                        c[1]
+                        for c in conn.execute(f"PRAGMA table_info({table})").fetchall()
+                    ]
+                    if "org_id" not in cols:
+                        continue
+                    count = conn.execute(
+                        f"SELECT COUNT(*) FROM {table} WHERE org_id = ?", (org_id,)
+                    ).fetchone()[0]
+                    if count > 0:
+                        tables_with_data.append(table)
+                        total += count
+                except sqlite3.OperationalError:
+                    continue
+        finally:
+            conn.close()
+        return total, tables_with_data

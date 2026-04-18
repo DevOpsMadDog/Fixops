@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_security_posture_pdf_router.py -x --tb=short --timeout=30 -q -o \\\"addopts=\\\" 2>&1\"}",
-  "error": "Exit code 1\n\ntests/test_security_posture_pdf_router.py::test_pdf_bytes_are_valid \n-------------------------------- live log setup --------------------------------\n2026-04-18 14:25:39 [ WARNING] apps.api.auth_deps: JWT signing key is only 30 chars (minimum 32) — JWT auth disabled.\nPASSED                                                                   [ 33%]\ntests/test_security_posture_pdf_router.py::test_endpoint_returns_pdf \n-------------------------------- live log call ----------------------...",
-  "timestamp": "2026-04-18T04:25:39.989Z",
-  "retry_count": 6
+  "tool_input_preview": "{\"command\":\"curl -s \\\"http://localhost:8000/openapi.json\\\" | python3 -c \\\"\\nimport sys, json\\ndata = json.load(sys.stdin)\\npaths = data.get('paths', {})\\nreport_paths = [p for p in paths if 'report' i...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n           ^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.11/3.11.15/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n           ^^^^^^^^^^^^^^^^^^^^^^...",
+  "timestamp": "2026-04-18T04:27:29.192Z",
+  "retry_count": 2
 }

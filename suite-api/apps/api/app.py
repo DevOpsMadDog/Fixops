@@ -7098,7 +7098,7 @@ def create_app() -> FastAPI:
     try:
         from apps.api.security_posture_pdf_router import router as security_posture_pdf_router
         app.include_router(security_posture_pdf_router)
-        _logger.info("Mounted Security Posture PDF router at /api/v1/reports/security-posture-pdf")
+        _logger.info("Mounted Security Posture PDF router at /api/v1/security-posture-pdf/download")
     except ImportError:
         pass
 

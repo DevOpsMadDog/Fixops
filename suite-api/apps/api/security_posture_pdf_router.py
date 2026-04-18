@@ -28,7 +28,7 @@ from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/reports", tags=["security-posture-pdf"])
+router = APIRouter(prefix="/api/v1/security-posture-pdf", tags=["security-posture-pdf"])
 
 # ---------------------------------------------------------------------------
 # Lazy engine accessors — each returns (data_dict, error_str_or_None)
@@ -64,9 +64,8 @@ def _vuln_stats(org_id: str) -> Dict[str, Any]:
         # list critical CVEs sorted by cvss_score desc
         cves = engine.list_cves(
             org_id,
-            filters={"severity": "critical"},
+            severity="critical",
             limit=10,
-            offset=0,
         )
         return {"stats": stats, "critical_cves": cves}
     except Exception as exc:
@@ -596,10 +595,10 @@ def _build_security_posture_pdf(
     # ------------------------------------------------------------------
     story += _section("4. Alert Statistics")
 
-    open_alerts = alerts.get("unacknowledged", 0)
-    alerts_24h = alerts.get("alerts_24h", 0)
-    mttr_hrs = alerts.get("mttr_hours", 0.0)
-    by_sev = alerts.get("by_severity", {})
+    open_alerts = alerts.get("unacknowledged", 0) or 0
+    alerts_24h = alerts.get("alerts_24h", 0) or 0
+    mttr_hrs = float(alerts.get("mttr_hours") or 0.0)
+    by_sev = alerts.get("by_severity", {}) or {}
 
     alert_summary_data = [
         ["Metric", "Value"],
@@ -850,7 +849,7 @@ def _build_recommendations(
 # ---------------------------------------------------------------------------
 
 @router.get(
-    "/security-posture-pdf",
+    "/download",
     dependencies=[Depends(api_key_auth)],
     response_class=StreamingResponse,
     summary="Download comprehensive security posture PDF report",
