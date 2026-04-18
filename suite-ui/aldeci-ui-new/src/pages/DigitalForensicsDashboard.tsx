@@ -152,6 +152,7 @@ export default function DigitalForensicsDashboard() {
   const [selectedCase, setSelectedCase] = useState("DF-2024-001");
   const [liveData, setLiveData] = useState<Record<string, any> | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -163,7 +164,8 @@ export default function DigitalForensicsDashboard() {
       const cases = casesResult.status === "fulfilled" ? casesResult.value : null;
       if (stats || cases) {
         setLiveData({ stats, cases });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -173,6 +175,14 @@ export default function DigitalForensicsDashboard() {
   };
 
   const liveCases = liveData?.cases?.items ?? liveData?.cases ?? CASES;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -226,7 +236,13 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveCases.map((c: any) => (
+                {liveCases.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveCases.map((c: any) => (
                   <TableRow
                     key={c.id}
                     className={cn("hover:bg-muted/30 cursor-pointer", selectedCase === c.id && "bg-primary/5 border-l-2 border-l-primary")}
@@ -245,6 +261,7 @@ export default function DigitalForensicsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -279,7 +296,13 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EVIDENCE.map((e, i) => (
+                {EVIDENCE.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  EVIDENCE.map((e, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><EvidenceTypeBadge type={e.type} /></TableCell>
                     <TableCell className="text-xs py-2 max-w-[120px] truncate font-mono text-muted-foreground">{e.filename}</TableCell>
@@ -288,6 +311,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 text-muted-foreground">{e.collected_by}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -313,7 +337,13 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CUSTODY_CHAIN.map((entry, i) => (
+                {CUSTODY_CHAIN.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CUSTODY_CHAIN.map((entry, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><CustodyActionBadge action={entry.action} /></TableCell>
                     <TableCell className="text-xs py-2 text-muted-foreground">{entry.actor}</TableCell>
@@ -321,6 +351,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 max-w-[160px] truncate text-muted-foreground">{entry.notes}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -338,7 +369,13 @@ export default function DigitalForensicsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {ANALYSES.map((a) => (
+            {ANALYSES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ANALYSES.map((a) => (
               <div key={a.type} className="rounded-lg border border-border bg-muted/10 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <AnalysisTypeBadge type={a.type} />
@@ -359,6 +396,7 @@ export default function DigitalForensicsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

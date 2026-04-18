@@ -202,7 +202,13 @@ export default function ThreatHuntingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {hunts.map((h) => (
+                {hunts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  hunts.map((h) => (
                   <TableRow key={h.hunt_name} className="hover:bg-muted/30">
                     <TableCell className="font-medium max-w-[260px] truncate">{h.hunt_name}</TableCell>
                     <TableCell>
@@ -218,6 +224,7 @@ export default function ThreatHuntingPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -253,19 +260,33 @@ export default function ThreatHuntingPage() {
               onChange={(e) => setTactic(e.target.value)}
             >
               <option value="">Select MITRE Tactic...</option>
-              {TACTIC_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+              {TACTIC_OPTIONS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TACTIC_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               value={dataSource}
               onChange={(e) => setDataSource(e.target.value)}
+              )}
             >
               <option value="">Select Data Source...</option>
-              {DATA_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+              {DATA_SOURCES.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                DATA_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <Button
               className="w-full gap-2"
               disabled={!hypothesis.trim() || !tactic || !dataSource || startHuntMutation.isPending}
+              )}
               onClick={() => {
                 startHuntMutation.mutate({ name: hypothesis, tactic, dataSource });
                 setHypothesis(""); setTactic(""); setDataSource("");
@@ -287,7 +308,13 @@ export default function ThreatHuntingPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {MOCK_IOCS.map((ioc, i) => (
+            {MOCK_IOCS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_IOCS.map((ioc, i) => (
               <div key={i} className="flex items-center gap-3 rounded-md border border-border p-2 text-sm">
                 <Badge variant="outline" className="shrink-0 text-xs w-20 justify-center">{ioc.ioc_type}</Badge>
                 <span className="font-mono text-xs text-foreground truncate flex-1">{ioc.value}</span>
@@ -295,6 +322,7 @@ export default function ThreatHuntingPage() {
                 {confidenceBadge(ioc.confidence)}
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -313,7 +341,13 @@ export default function ThreatHuntingPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-              {MITRE_TACTICS.map((t) => (
+              {MITRE_TACTICS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MITRE_TACTICS.map((t) => (
                 <div
                   key={t.name}
                   className={cn(
@@ -330,6 +364,7 @@ export default function ThreatHuntingPage() {
                   }
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

@@ -127,6 +127,7 @@ export default function ThreatHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -138,7 +139,8 @@ export default function ThreatHuntingDashboard() {
       const hunts = huntsResult.status === "fulfilled" ? huntsResult.value : null;
       if (stats || hunts) {
         setLiveData({ stats, sessions: hunts });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -146,6 +148,14 @@ export default function ThreatHuntingDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -231,7 +241,13 @@ export default function ThreatHuntingDashboard() {
           <CardDescription className="text-xs">Saved hunt queries across KQL, SPL, EQL, SIGMA, YARA</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {QUERIES.map((q) => (
+          {QUERIES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            QUERIES.map((q) => (
             <div key={q.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
               <QueryTypeBadge type={q.query_type} />
               <div className="flex-1 min-w-0">
@@ -257,6 +273,7 @@ export default function ThreatHuntingDashboard() {
               </Button>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -321,7 +338,13 @@ export default function ThreatHuntingDashboard() {
             <CardDescription className="text-xs">Reusable hunting procedures</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {PLAYBOOKS.map((pb) => (
+            {PLAYBOOKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              PLAYBOOKS.map((pb) => (
               <div key={pb.id} className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-medium leading-tight">{pb.title}</span>
@@ -338,6 +361,7 @@ export default function ThreatHuntingDashboard() {
                 </Button>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

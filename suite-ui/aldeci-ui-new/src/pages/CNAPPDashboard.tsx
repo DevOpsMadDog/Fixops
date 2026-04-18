@@ -159,6 +159,7 @@ export default function CNAPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -173,13 +174,22 @@ export default function CNAPPDashboard() {
       if (stats || findings || workloads) {
         setLiveData({ stats, findings, workloads });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const cspmScore = liveData?.stats?.cspm_score ?? 74;
   const cwppScore = liveData?.stats?.cwpp_score ?? 81;
   const ciemScore = liveData?.stats?.ciem_score ?? 68;
   const compositeScore = Math.round((cspmScore + cwppScore + ciemScore) / 3);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -310,13 +320,26 @@ export default function CNAPPDashboard() {
               <thead>
                 <tr>
                   <th className="text-left pb-2 pr-4 text-[11px] text-muted-foreground font-medium w-40">Category</th>
-                  {HEATMAP_SEVS.map((s) => (
+                  {HEATMAP_SEVS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    HEATMAP_SEVS.map((s) => (
                     <th key={s} className="pb-2 px-2 text-[11px] text-center font-medium text-muted-foreground">{s}</th>
                   ))}
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {HEATMAP_CATS.map((cat) => (
+                {HEATMAP_CATS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  HEATMAP_CATS.map((cat) => (
                   <tr key={cat}>
                     <td className="pr-4 py-1.5 text-[11px] text-muted-foreground capitalize">{cat.replace(/_/g, " ")}</td>
                     {(HEATMAP_DATA[cat] ?? []).map((count, ci) => (
@@ -328,6 +351,7 @@ export default function CNAPPDashboard() {
                     ))}
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -360,7 +384,13 @@ export default function CNAPPDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {POLICIES.map((p, i) => (
+                {POLICIES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  POLICIES.map((p, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs py-2.5 max-w-[220px] truncate font-medium">{p.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -380,6 +410,7 @@ export default function CNAPPDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

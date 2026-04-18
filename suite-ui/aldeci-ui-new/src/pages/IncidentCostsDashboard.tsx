@@ -161,6 +161,7 @@ export default function IncidentCostsDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("ic-001");
 
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setFetchError(null);
@@ -182,7 +183,16 @@ export default function IncidentCostsDashboard() {
   const byType: Record<string, number> = {};
   MOCK_INCIDENTS.forEach(i => {
     byType[i.incident_type] = (byType[i.incident_type] ?? 0) + (i.actual_cost ?? i.estimated_cost);
-  });
+  
+    setLoading(false);});
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -256,7 +266,13 @@ export default function IncidentCostsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_INCIDENTS.map(inc => {
+                {MOCK_INCIDENTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_INCIDENTS.map(inc => {
                   const actual = inc.actual_cost ?? inc.estimated_cost;
                   const over = inc.actual_cost !== null && inc.actual_cost > inc.estimated_cost;
                   return (
@@ -279,6 +295,7 @@ export default function IncidentCostsDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -351,7 +368,13 @@ export default function IncidentCostsDashboard() {
       <div className="bg-gray-800 rounded-lg p-5">
         <h2 className="font-semibold text-white text-sm mb-4">Cost by Category (All Incidents)</h2>
         <div className="space-y-3">
-          {CATEGORY_BREAKDOWN.map(c => (
+          {CATEGORY_BREAKDOWN.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            CATEGORY_BREAKDOWN.map(c => (
             <div key={c.category}>
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-gray-300">{c.category}</span>
@@ -362,6 +385,7 @@ export default function IncidentCostsDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

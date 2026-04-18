@@ -180,6 +180,7 @@ function ScoreBar({ score }: { score: number }): JSX.Element {
 
 export default function CSPMDashboard() {
   const [remediating, setRemediating] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   const { data: scoreData, isLoading: scoreLoading } = useQuery<CSPMScore>({
     queryKey: ["cspm-posture", ORG_ID],
@@ -262,6 +263,14 @@ export default function CSPMDashboard() {
   const cisBenchmark: CISBenchmark = MOCK_CIS;
   const cisTotal = cisBenchmark.pass + cisBenchmark.fail + cisBenchmark.manual;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -314,7 +323,13 @@ export default function CSPMDashboard() {
         transition={{ delay: 0.2 }}
         className="grid grid-cols-3 gap-4"
       >
-        {providers.map((p) => {
+        {providers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          providers.map((p) => {
           const grade = scoreGrade(p.score);
           return (
             <Card
@@ -364,6 +379,7 @@ export default function CSPMDashboard() {
             </Card>
           );
         })}
+        )}
       </motion.div>
 
       {/* ── Findings Table ── */}
@@ -398,7 +414,13 @@ export default function CSPMDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {findings.map((f) => (
+                  {findings.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    findings.map((f) => (
                     <TableRow
                       key={f.id}
                       className="border-slate-700/50 hover:bg-slate-800/30 transition-colors"
@@ -448,6 +470,7 @@ export default function CSPMDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -516,7 +539,13 @@ export default function CSPMDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {MOCK_REMEDIATION.map((item, idx) => (
+            {MOCK_REMEDIATION.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_REMEDIATION.map((item, idx) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 hover:border-slate-600/60 transition-colors"
@@ -545,6 +574,7 @@ export default function CSPMDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>

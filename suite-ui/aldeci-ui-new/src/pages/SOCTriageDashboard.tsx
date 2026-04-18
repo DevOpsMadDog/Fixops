@@ -175,6 +175,7 @@ export default function SOCTriageDashboard() {
   const [analystNotes, setAnalystNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [verdictMsg, setVerdictMsg] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -225,6 +226,14 @@ export default function SOCTriageDashboard() {
     ? alerts
     : alerts.filter((a) => a.ai_classification === filterCls);
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -240,7 +249,8 @@ export default function SOCTriageDashboard() {
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
-        }
+        
+    setLoading(false);}
       />
 
       {/* KPIs */}

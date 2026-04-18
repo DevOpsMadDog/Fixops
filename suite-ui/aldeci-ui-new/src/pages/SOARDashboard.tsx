@@ -110,6 +110,7 @@ export default function SOARDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -117,7 +118,8 @@ export default function SOARDashboard() {
       apiFetch(`/api/v1/soar/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/soar/playbooks?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/soar/executions?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/soar/mttr?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/soar/mttr?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsRes, playbooksRes, executionsRes, mttrRes]) => {
       const stats      = statsRes.status      === "fulfilled" ? statsRes.value      : null;
       const playbooks  = playbooksRes.status  === "fulfilled" ? playbooksRes.value  : null;
@@ -133,6 +135,14 @@ export default function SOARDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -281,7 +291,13 @@ export default function SOARDashboard() {
             <CardDescription className="text-xs">SOAR platform connections</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {INTEGRATIONS.map((intg) => (
+            {INTEGRATIONS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              INTEGRATIONS.map((intg) => (
               <div key={intg.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/50">
                 <div className="flex items-center gap-2">
                   <div className={cn("w-2 h-2 rounded-full", intg.connected ? "bg-green-400" : "bg-red-400")} />
@@ -300,6 +316,7 @@ export default function SOARDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -314,7 +331,13 @@ export default function SOARDashboard() {
           <CardDescription className="text-xs">Success rate per action type across all executions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {ACTION_RATES.map((a) => (
+          {ACTION_RATES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            ACTION_RATES.map((a) => (
             <div key={a.action} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-mono text-muted-foreground">{a.action}</span>
@@ -330,6 +353,7 @@ export default function SOARDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

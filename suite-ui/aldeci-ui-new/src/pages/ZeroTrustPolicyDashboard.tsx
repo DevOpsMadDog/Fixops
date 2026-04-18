@@ -160,6 +160,7 @@ export default function ZeroTrustPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -167,7 +168,8 @@ export default function ZeroTrustPolicyDashboard() {
       apiFetch(`/api/v1/zero-trust/policies?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/zero-trust/access-log?org_id=${ORG_ID}&limit=15`),
       apiFetch(`/api/v1/zero-trust/trust-scores?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/zero-trust/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/zero-trust/stats?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([policiesResult, requestsResult, scoresResult, statsResult]) => {
       const policies = policiesResult.status === "fulfilled" ? policiesResult.value : null;
       const requests = requestsResult.status === "fulfilled" ? requestsResult.value : null;
@@ -183,6 +185,14 @@ export default function ZeroTrustPolicyDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -360,7 +370,13 @@ export default function ZeroTrustPolicyDashboard() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
-                {VIOLATIONS.map((v, i) => (
+                {VIOLATIONS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  VIOLATIONS.map((v, i) => (
                   <div key={i} className="flex items-start gap-2 px-4 py-2.5">
                     <span className={cn("w-2 h-2 rounded-full mt-1 shrink-0", SEV_COLORS[v.severity])} />
                     <div className="flex-1 min-w-0">
@@ -370,6 +386,7 @@ export default function ZeroTrustPolicyDashboard() {
                     <span className="text-[10px] text-muted-foreground/60 tabular-nums shrink-0">{v.ts}</span>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>

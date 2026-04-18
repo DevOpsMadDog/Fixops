@@ -108,6 +108,7 @@ export default function SecurityMetricsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -145,9 +146,18 @@ export default function SecurityMetricsDashboard() {
         }))
       : TOP_METRICS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 8 }
+    setLoading(false);}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
@@ -182,7 +192,13 @@ export default function SecurityMetricsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-2 h-40">
-            {TREND_DATA.map((m) => (
+            {TREND_DATA.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TREND_DATA.map((m) => (
               <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
                 <div className="w-full flex items-end gap-0.5 h-32">
                   <div
@@ -199,6 +215,7 @@ export default function SecurityMetricsDashboard() {
                 <span className="text-[9px] text-muted-foreground">{m.month}</span>
               </div>
             ))}
+            )}
           </div>
           <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -234,7 +251,13 @@ export default function SecurityMetricsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveTopMetrics.map((row) => (
+                {liveTopMetrics.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveTopMetrics.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-bold">{row.current}</TableCell>
@@ -253,6 +276,7 @@ export default function SecurityMetricsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -271,7 +295,13 @@ export default function SecurityMetricsDashboard() {
             <CardDescription className="text-xs">Security posture score by domain (0–100)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              CATEGORIES.map((cat) => (
               <div key={cat.name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className={cn("font-semibold", cat.text)}>{cat.name}</span>
@@ -287,6 +317,7 @@ export default function SecurityMetricsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -300,7 +331,13 @@ export default function SecurityMetricsDashboard() {
             <CardDescription className="text-xs">Automated escalation rules and current status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {THRESHOLDS.map((t) => (
+            {THRESHOLDS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              THRESHOLDS.map((t) => (
               <div
                 key={t.name}
                 className={cn(
@@ -331,6 +368,7 @@ export default function SecurityMetricsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

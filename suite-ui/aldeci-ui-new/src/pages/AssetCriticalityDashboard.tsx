@@ -177,7 +177,13 @@ function TierDonut({ assets }: { assets: Asset[] }) {
   return (
     <div className="flex flex-col items-center">
       <svg viewBox="0 0 160 160" className="w-40 h-40">
-        {segments.map((seg, i) => (
+        {segments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          segments.map((seg, i) => (
           <circle
             key={i}
             cx={cx} cy={cy} r={r}
@@ -189,17 +195,25 @@ function TierDonut({ assets }: { assets: Asset[] }) {
             strokeLinecap="butt"
           />
         ))}
+        )}
         <text x={cx} y={cy + 6} textAnchor="middle" fontSize="22" fontWeight="bold" fill="white">{total}</text>
         <text x={cx} y={cy + 18} textAnchor="middle" fontSize="8" fill="#94a3b8">assets</text>
       </svg>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
-        {TIERS.map((t, i) => (
+        {TIERS.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          TIERS.map((t, i) => (
           <div key={t} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: TIER_CONFIG[t].color }} />
             <span className="text-gray-300">{TIER_CONFIG[t].label.replace("Tier ", "T")}</span>
             <span className="text-gray-500">({counts[i]})</span>
           </div>
         ))}
+        )}
       </div>
     </div>
   );
@@ -218,7 +232,13 @@ function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {chain.map((a, i) => (
+      {chain.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        chain.map((a, i) => (
         <div key={a.id} className="flex items-center gap-2">
           <div className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${TIER_CONFIG[a.tier].text} border-current/30`}
             style={{ borderColor: TIER_CONFIG[a.tier].color + "40", background: TIER_CONFIG[a.tier].color + "15" }}>
@@ -227,6 +247,7 @@ function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
           {i < chain.length - 1 && <span className="text-gray-500">→</span>}
         </div>
       ))}
+      )}
     </div>
   );
 }
@@ -235,9 +256,18 @@ function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
 
 export default function AssetCriticalityDashboard() {
   const [selectedId, setSelectedId] = useState<string>(ASSETS[0].id);
+  const [loading, setLoading] = useState(true);
   const sorted = [...ASSETS].sort((a, b) => b.criticality_score - a.criticality_score);
   const selected = ASSETS.find((a) => a.id === selectedId)!;
   const top10 = sorted.slice(0, 10);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -273,7 +303,13 @@ export default function AssetCriticalityDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((a) => {
+                {sorted.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  sorted.map((a) => {
                   const tc = TIER_CONFIG[a.tier];
                   return (
                     <tr
@@ -308,6 +344,7 @@ export default function AssetCriticalityDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -360,7 +397,13 @@ export default function AssetCriticalityDashboard() {
               <Trophy size={18} className="text-orange-400" /> Top-10 Most Critical
             </h2>
             <div className="space-y-2">
-              {top10.map((a, i) => {
+              {top10.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                top10.map((a, i) => {
                 const tc = TIER_CONFIG[a.tier];
                 return (
                   <div key={a.id} className="flex items-center gap-3 text-sm">
@@ -370,6 +413,7 @@ export default function AssetCriticalityDashboard() {
                   </div>
                 );
               })}
+              )}
             </div>
           </div>
         </div>

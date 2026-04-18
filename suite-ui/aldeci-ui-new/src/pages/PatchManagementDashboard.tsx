@@ -95,6 +95,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function PatchManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [livePatches, setLivePatches] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]     = useState<any | null>(null);
 
   useEffect(() => {
@@ -107,10 +108,19 @@ export default function PatchManagementDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const patches = livePatches ?? MOCK_PATCHES;
   const stats   = liveStats   ?? MOCK_STATS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -167,7 +177,13 @@ export default function PatchManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patches.map((patch: any, i: number) => (
+                {patches.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  patches.map((patch: any, i: number) => (
                   <TableRow key={patch.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-blue-300 max-w-[240px] truncate">
                       {patch.title ?? "—"}
@@ -191,6 +207,7 @@ export default function PatchManagementDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

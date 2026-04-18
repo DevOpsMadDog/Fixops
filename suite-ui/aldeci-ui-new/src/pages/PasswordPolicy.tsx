@@ -133,6 +133,7 @@ export default function PasswordPolicy() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -140,7 +141,8 @@ export default function PasswordPolicy() {
       apiFetch(`/api/v1/password-policy/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/password-policy/violations?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/password-policy/audits?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/password-policy/policies?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/password-policy/policies?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsRes, violRes, auditRes, policiesRes]) => {
       const stats      = statsRes.status     === "fulfilled" ? statsRes.value     : null;
       const violations = violRes.status      === "fulfilled" ? violRes.value      : null;
@@ -170,6 +172,14 @@ export default function PasswordPolicy() {
       }
     }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -204,7 +214,13 @@ export default function PasswordPolicy() {
           Active Policies
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {POLICIES.map((policy) => (
+          {POLICIES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            POLICIES.map((policy) => (
             <Card key={policy.name}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -248,6 +264,7 @@ export default function PasswordPolicy() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -356,7 +373,13 @@ export default function PasswordPolicy() {
             <CardDescription className="text-xs">Across all {(3847).toLocaleString()} audited accounts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {STRENGTH_DIST.map((s) => (
+            {STRENGTH_DIST.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              STRENGTH_DIST.map((s) => (
               <div key={s.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{s.label}</span>
@@ -375,6 +398,7 @@ export default function PasswordPolicy() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

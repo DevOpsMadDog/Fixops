@@ -174,17 +174,27 @@ function CircleProgress({ pct }: { pct: number }) {
 
 export default function SecurityCultureDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<string>("asm-001");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/security-culture", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); 
+    setLoading(false);});
   }, []);
 
   const selAsmn = MOCK_ASSESSMENTS.find(a => a.id === selectedAssessment)!;
 
   const avgCulture = Math.round(MOCK_DEPT_SCORES.reduce((s, d) => s + d.culture_score, 0) / MOCK_DEPT_SCORES.length);
   const avgMetric  = Math.round(MOCK_METRICS.reduce((s, m) => s + m.value, 0) / MOCK_METRICS.length);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -219,7 +229,13 @@ export default function SecurityCultureDashboard() {
 
       {/* Culture metrics grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {MOCK_METRICS.map(metric => {
+        {MOCK_METRICS.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          MOCK_METRICS.map(metric => {
           const pct = Math.round((metric.value / metric.target) * 100);
           const gap = metric.target - metric.value;
           return (
@@ -246,6 +262,7 @@ export default function SecurityCultureDashboard() {
             </div>
           );
         })}
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -257,7 +274,13 @@ export default function SecurityCultureDashboard() {
             </h2>
           </div>
           <div className="divide-y divide-gray-700/50">
-            {MOCK_INITIATIVES.map(ini => (
+            {MOCK_INITIATIVES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_INITIATIVES.map(ini => (
               <div key={ini.id} className="p-4 flex items-center gap-3">
                 <CircleProgress pct={ini.completion_rate} />
                 <div className="flex-1 min-w-0">
@@ -272,6 +295,7 @@ export default function SecurityCultureDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -284,7 +308,13 @@ export default function SecurityCultureDashboard() {
               </h2>
             </div>
             <div className="divide-y divide-gray-700/50">
-              {MOCK_ASSESSMENTS.map(asm => (
+              {MOCK_ASSESSMENTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_ASSESSMENTS.map(asm => (
                 <div
                   key={asm.id}
                   onClick={() => setSelectedAssessment(asm.id)}
@@ -329,6 +359,7 @@ export default function SecurityCultureDashboard() {
                   )}
                 </div>
               ))}
+              )}
             </div>
           </div>
 

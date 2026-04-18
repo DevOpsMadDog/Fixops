@@ -115,6 +115,8 @@ function StatusDot({ status }: { status: string }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function NetworkTopology() {
+  const [loading, setLoading] = useState(true);
+
   const [refreshing, setRefreshing]   = useState(false);
   const [srcNode, setSrcNode]         = useState("");
   const [dstNode, setDstNode]         = useState("");
@@ -142,6 +144,14 @@ export default function NetworkTopology() {
     if (srcNode.trim() && dstNode.trim()) setPathResult(MOCK_PATH);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -160,7 +170,8 @@ export default function NetworkTopology() {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs */
+    setLoading(false);}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Nodes"       value={liveData?.stats?.total_assets ?? liveData?.assets?.length ?? 847}    icon={Server}  />
         <KpiCard title="Network Segments"  value={liveData?.stats?.total_segments ?? 12}     icon={Layers}  />
@@ -193,7 +204,13 @@ export default function NetworkTopology() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {NODES.map((n) => (
+                {NODES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  NODES.map((n) => (
                   <TableRow key={n.hostname} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{n.hostname}</TableCell>
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{n.ip}</TableCell>
@@ -205,6 +222,7 @@ export default function NetworkTopology() {
                     <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -218,7 +236,13 @@ export default function NetworkTopology() {
           Network Segments
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SEGMENTS.map((seg) => (
+          {SEGMENTS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            SEGMENTS.map((seg) => (
             <Card key={seg.name} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -238,6 +262,7 @@ export default function NetworkTopology() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -256,7 +281,13 @@ export default function NetworkTopology() {
           <CardDescription className="text-xs">Unexpected cross-segment paths connecting exposed assets to internal critical nodes</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {EXPOSURES.map((e, i) => (
+          {EXPOSURES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            EXPOSURES.map((e, i) => (
             <div key={i} className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-1.5">
               <div className="flex items-center gap-2 text-xs">
                 <Shield className="h-3.5 w-3.5 text-red-400 shrink-0" />
@@ -268,6 +299,7 @@ export default function NetworkTopology() {
               <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -308,12 +340,19 @@ export default function NetworkTopology() {
             >
               <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Path discovered — {pathResult.length} hops</p>
               <div className="flex items-center gap-1 flex-wrap">
-                {pathResult.map((node, i) => (
+                {pathResult.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  pathResult.map((node, i) => (
                   <span key={i} className="flex items-center gap-1">
                     <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">{node}</span>
                     {i < pathResult.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                   </span>
                 ))}
+                )}
               </div>
             </motion.div>
           )}

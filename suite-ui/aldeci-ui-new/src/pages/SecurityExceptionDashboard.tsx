@@ -186,6 +186,7 @@ export default function SecurityExceptionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -229,9 +230,18 @@ export default function SecurityExceptionDashboard() {
       }))
     : EXCEPTIONS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 8 }
+    setLoading(false);}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
@@ -283,7 +293,13 @@ export default function SecurityExceptionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exceptions.map((row) => (
+                {exceptions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  exceptions.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
@@ -298,6 +314,7 @@ export default function SecurityExceptionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -317,7 +334,13 @@ export default function SecurityExceptionDashboard() {
           <CardDescription className="text-xs">Exceptions awaiting security team review and approval decision</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {PENDING_QUEUE.map((item) => (
+          {PENDING_QUEUE.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            PENDING_QUEUE.map((item) => (
             <div key={item.id} className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -352,6 +375,7 @@ export default function SecurityExceptionDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -367,7 +391,13 @@ export default function SecurityExceptionDashboard() {
             <CardDescription className="text-xs">Exceptions requiring renewal or remediation decisions soon</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {EXPIRING.map((item) => (
+            {EXPIRING.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              EXPIRING.map((item) => (
               <div key={item.id} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -379,6 +409,7 @@ export default function SecurityExceptionDashboard() {
                 <CountdownBar days={item.daysLeft} />
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -393,7 +424,13 @@ export default function SecurityExceptionDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {TYPE_DIST.map((t) => (
+              {TYPE_DIST.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TYPE_DIST.map((t) => (
                 <div key={t.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{t.label}</span>
@@ -409,6 +446,7 @@ export default function SecurityExceptionDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -421,7 +459,13 @@ export default function SecurityExceptionDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {RISK_DIST.map((r) => (
+              {RISK_DIST.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                RISK_DIST.map((r) => (
                 <div key={r.label} className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground w-16 shrink-0">{r.label}</span>
                   <div className="flex-1 h-4 bg-muted/30 rounded overflow-hidden">
@@ -435,6 +479,7 @@ export default function SecurityExceptionDashboard() {
                   <span className="text-xs font-bold tabular-nums w-4 text-right">{r.count}</span>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

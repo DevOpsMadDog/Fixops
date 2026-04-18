@@ -138,12 +138,14 @@ export default function SBOMExportDashboard() {
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
+      .then(d => { if (Array.isArray(d)) setSelectedProject(d); 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const filteredComponents = MOCK_COMPONENTS.filter(c =>
     c.component_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -158,6 +160,14 @@ export default function SBOMExportDashboard() {
     setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"…`);
     setTimeout(() => setExportMsg(`${format} export ready — ${selectedProject.component_count} components`), 1500);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -197,7 +207,13 @@ export default function SBOMExportDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Projects</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {MOCK_PROJECTS.map(p => (
+          {MOCK_PROJECTS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MOCK_PROJECTS.map(p => (
             <button key={p.id} onClick={() => setSelectedProject(p)}
               className={cn("bg-gray-800 rounded-lg p-4 text-left transition-all border",
                 selectedProject.id === p.id ? "border-cyan-500/60" : "border-transparent hover:border-gray-600")}>
@@ -210,6 +226,7 @@ export default function SBOMExportDashboard() {
               <p className="text-gray-600 text-[10px] mt-1">Exported {fmt(p.latest_export)}</p>
             </button>
           ))}
+          )}
         </div>
       </div>
 
@@ -239,7 +256,13 @@ export default function SBOMExportDashboard() {
               </tr>
             </thead>
             <tbody>
-              {filteredComponents.map(c => (
+              {filteredComponents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredComponents.map(c => (
                 <>
                   <tr key={c.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 cursor-pointer"
                     onClick={() => setExpandedComp(expandedComp === c.id ? null : c.id)}>
@@ -289,6 +312,7 @@ export default function SBOMExportDashboard() {
                   )}
                 </>
               ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -309,7 +333,13 @@ export default function SBOMExportDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_HISTORY.map(h => (
+              {MOCK_HISTORY.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_HISTORY.map(h => (
                 <tr key={h.id} className="border-b border-gray-700/50 hover:bg-gray-700/20">
                   <td className="py-2.5 pr-4"><FormatBadge fmt={h.format} /></td>
                   <td className="py-2.5 pr-4 text-gray-300 font-mono text-xs">{h.version_tag}</td>
@@ -318,6 +348,7 @@ export default function SBOMExportDashboard() {
                   <td className="py-2.5 text-gray-400 text-xs">{h.exported_by}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -151,6 +151,7 @@ export default function MobileSecurity() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -174,7 +175,8 @@ export default function MobileSecurity() {
               risk_score: e.risk_score ?? 0,
               last_checkin: e.last_seen ?? e.last_checkin ?? "—",
             })),
-          }
+          
+    setLoading(false);}
         : null;
       // Map EDR stats to mobile stats shape
       const mobileStats = stats
@@ -195,6 +197,14 @@ export default function MobileSecurity() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -234,7 +244,13 @@ export default function MobileSecurity() {
             <CardDescription className="text-xs">Device distribution by operating system</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {PLATFORMS.map((p) => (
+            {PLATFORMS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              PLATFORMS.map((p) => (
               <div key={p.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -253,6 +269,7 @@ export default function MobileSecurity() {
                 </div>
               </div>
             ))}
+            )}
             <div className="pt-2 text-[11px] text-muted-foreground border-t border-border/50">
               95.3% enrollment rate · 87.6% compliance rate
             </div>
@@ -270,7 +287,13 @@ export default function MobileSecurity() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-3 h-36">
-              {COMPLIANCE_TREND.map((m) => (
+              {COMPLIANCE_TREND.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                COMPLIANCE_TREND.map((m) => (
                 <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
                   <div className="w-full flex items-end gap-0.5 h-28">
                     <div
@@ -287,6 +310,7 @@ export default function MobileSecurity() {
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
               ))}
+              )}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500/70 inline-block" />Compliant</span>
@@ -373,7 +397,13 @@ export default function MobileSecurity() {
           MDM Policies
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {MDM_POLICIES.map((policy) => (
+          {MDM_POLICIES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MDM_POLICIES.map((policy) => (
             <Card key={policy.name}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -414,6 +444,7 @@ export default function MobileSecurity() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 

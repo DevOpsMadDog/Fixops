@@ -167,6 +167,7 @@ function SurfaceScoreGauge({ score }: { score: number }) {
 export default function AttackSurfaceDashboard() {
   const [refreshing, setRefreshing]   = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveData, setLiveData]       = useState<any>(null);
   const [scanning, setScanning]       = useState(false);
   const [scanMsg, setScanMsg]         = useState<string | null>(null);
@@ -184,7 +185,8 @@ export default function AttackSurfaceDashboard() {
       const paths   = pathsRes.status   === "fulfilled" ? pathsRes.value   : null;
       const changes = changesRes.status === "fulfilled" ? changesRes.value : null;
       if (summary || assets || paths || changes) setLiveData({ summary, assets, paths, changes });
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -218,6 +220,14 @@ export default function AttackSurfaceDashboard() {
   const openExp      = exposures.filter((e) => e.status === "open" || e.status === "investigating").length;
   const criticalExp  = exposures.filter((e) => e.severity === "critical" && e.status === "open").length;
   const surfaceScore = summary?.risk_score != null ? Math.round((1 - summary.risk_score) * 100) : 32;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -277,7 +287,13 @@ export default function AttackSurfaceDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {assets.map((ast: any, i: number) => {
+                  {assets.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    assets.map((ast: any, i: number) => {
                     const riskPct = Math.round((ast.risk_score ?? ast.risk ?? 0) * 100);
                     const isPublic = ast.is_public ?? (ast.exposure_level === "EXTERNAL") ?? false;
                     return (
@@ -308,6 +324,7 @@ export default function AttackSurfaceDashboard() {
                       </TableRow>
                     );
                   })}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -369,7 +386,13 @@ export default function AttackSurfaceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exposures.map((exp) => (
+                {exposures.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  exposures.map((exp) => (
                   <TableRow key={exp.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><ExposureTypeBadge type={exp.exposure_type} /></TableCell>
                     <TableCell className="py-2"><SevBadge sev={exp.severity} /></TableCell>
@@ -379,6 +402,7 @@ export default function AttackSurfaceDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{exp.first_detected}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -395,7 +419,13 @@ export default function AttackSurfaceDashboard() {
           <CardDescription className="text-xs">New assets, opened ports, and exposure delta</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2.5">
-          {changes.map((chg: any) => (
+          {changes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            changes.map((chg: any) => (
             <div key={chg.id} className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-3">
               <ChangeTypeBadge type={chg.change_type} />
               <div className="flex-1 min-w-0">
@@ -407,6 +437,7 @@ export default function AttackSurfaceDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

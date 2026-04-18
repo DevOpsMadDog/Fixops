@@ -130,6 +130,7 @@ export default function AttackSimulation() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -173,8 +174,17 @@ export default function AttackSimulation() {
         status:   "completed",
         started:  s.created_at?.slice(0, 10) ?? "—",
         findings: s.objectives?.length ?? 0,
-      }))
+      
+    setLoading(false);}))
     : SIMULATIONS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -232,7 +242,13 @@ export default function AttackSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableRows.map((row) => (
+                {tableRows.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  tableRows.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[180px] truncate">{row.name}</TableCell>
                     <TableCell className="py-2.5"><SimTypeBadge type={row.type} /></TableCell>
@@ -248,6 +264,7 @@ export default function AttackSimulation() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -267,7 +284,13 @@ export default function AttackSimulation() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-11">
-            {MITRE_TACTICS.map((t) => (
+            {MITRE_TACTICS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MITRE_TACTICS.map((t) => (
               <div
                 key={t.tactic}
                 className={cn("rounded-lg p-2.5 text-center cursor-default transition-opacity hover:opacity-80", coverageColor(t.pct))}
@@ -277,6 +300,7 @@ export default function AttackSimulation() {
                 <div className="text-sm font-bold tabular-nums">{t.pct}%</div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -294,7 +318,13 @@ export default function AttackSimulation() {
           </CardHeader>
           <CardContent>
             <div className="relative space-y-0">
-              {TIMELINE.map((event, idx) => (
+              {TIMELINE.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TIMELINE.map((event, idx) => (
                 <div key={event.technique} className="flex gap-3">
                   {/* vertical line */}
                   <div className="flex flex-col items-center">
@@ -319,6 +349,7 @@ export default function AttackSimulation() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -344,7 +375,13 @@ export default function AttackSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {FINDINGS.map((f) => (
+                {FINDINGS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  FINDINGS.map((f) => (
                   <TableRow key={f.id} className="hover:bg-muted/30">
                     <TableCell className="text-[10px] font-mono py-2">{f.id}</TableCell>
                     <TableCell className="py-2"><SeverityBadge sev={f.severity} /></TableCell>
@@ -359,6 +396,7 @@ export default function AttackSimulation() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

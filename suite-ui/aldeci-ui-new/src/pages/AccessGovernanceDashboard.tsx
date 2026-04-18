@@ -220,7 +220,13 @@ export default function AccessGovernanceDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {entitlements.map(ent => {
+              {entitlements.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                entitlements.map(ent => {
                 const expiry = expiryWarning(ent.expires_at);
                 return (
                   <tr key={ent.id} className={`hover:bg-gray-700/30 transition-colors ${ent.revoked ? "opacity-50" : ""}`}>
@@ -253,6 +259,7 @@ export default function AccessGovernanceDashboard() {
                   </tr>
                 );
               })}
+              )}
             </tbody>
           </table>
         </div>
@@ -265,7 +272,13 @@ export default function AccessGovernanceDashboard() {
           <span className="bg-red-800/50 text-red-300 px-2 py-1 rounded text-xs font-medium">{openViolations} open</span>
         </div>
         <div className="space-y-3">
-          {violations.map(v => (
+          {violations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            violations.map(v => (
             <div key={v.id} className={`p-4 rounded-lg border transition-opacity ${v.acknowledged ? "opacity-50 border-gray-700 bg-gray-700/20" : "border-gray-600 bg-gray-700/30"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -293,6 +306,7 @@ export default function AccessGovernanceDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
 
@@ -303,7 +317,13 @@ export default function AccessGovernanceDashboard() {
           <span className="text-gray-400 text-sm">{highRiskRoles} high-risk role{highRiskRoles !== 1 ? "s" : ""}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MOCK_ROLES.map(role => (
+          {MOCK_ROLES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MOCK_ROLES.map(role => (
             <div key={role.id} className={`rounded-lg p-4 space-y-2 ${riskLevelConfig[role.risk_level].color}`}>
               <div className="flex items-start justify-between gap-2">
                 <p className="text-white font-semibold">{role.role_name}</p>
@@ -321,6 +341,7 @@ export default function AccessGovernanceDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

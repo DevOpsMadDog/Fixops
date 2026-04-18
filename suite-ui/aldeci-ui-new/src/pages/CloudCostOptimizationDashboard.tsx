@@ -107,11 +107,18 @@ export default function CloudCostOptimizationDashboard() {
             <AlertTriangle className="w-4 h-4" /> {underutilized.length} underutilized resources — estimated ${wastedMonthly.toLocaleString()}/month wasted
           </div>
           <div className="flex flex-wrap gap-2">
-            {underutilized.map(r => (
+            {underutilized.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              underutilized.map(r => (
               <span key={r.id} className="bg-red-900/40 border border-red-700 text-red-300 text-xs px-2 py-1 rounded">
                 {r.resource_name} ({r.utilization_pct}% util)
               </span>
             ))}
+            )}
           </div>
         </div>
       )}
@@ -144,7 +151,13 @@ export default function CloudCostOptimizationDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {sorted.map(r => (
+              {sorted.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                sorted.map(r => (
                 <tr key={r.id} className={`hover:bg-gray-700/30 transition-colors ${r.underutilized ? "bg-red-900/10" : ""}`}>
                   <td className="py-3 pr-4">
                     <div className="text-gray-200 font-medium text-sm">{r.resource_name}</div>
@@ -171,6 +184,7 @@ export default function CloudCostOptimizationDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

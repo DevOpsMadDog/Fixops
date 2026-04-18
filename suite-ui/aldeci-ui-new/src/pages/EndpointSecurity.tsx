@@ -230,7 +230,13 @@ export default function EndpointSecurity() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {coverage.map((c) => (
+            {coverage.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              coverage.map((c) => (
               <div key={c.os} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-300 font-medium">{c.os}</span>
@@ -246,6 +252,7 @@ export default function EndpointSecurity() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -257,7 +264,13 @@ export default function EndpointSecurity() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {policies.map((p) => (
+            {policies.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              policies.map((p) => (
               <div key={p.label} className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-300">{p.label}</span>
@@ -266,6 +279,7 @@ export default function EndpointSecurity() {
                 <Progress value={p.pct} className="h-1.5" />
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -330,7 +344,13 @@ export default function EndpointSecurity() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {threats.map((t) => (
+              {threats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                threats.map((t) => (
                 <TableRow key={t.id} className="border-white/5 hover:bg-white/5">
                   <TableCell className="pl-6 font-mono text-xs text-slate-200">{t.hostname}</TableCell>
                   <TableCell className="text-xs font-semibold text-slate-100">{t.threat_name}</TableCell>
@@ -340,6 +360,7 @@ export default function EndpointSecurity() {
                   <TableCell>{severityBadge(t.severity)}</TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -366,7 +387,13 @@ export default function EndpointSecurity() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {endpoints.map((ep) => (
+              {endpoints.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                endpoints.map((ep) => (
                 <TableRow key={ep.id} className="border-white/5 hover:bg-white/5">
                   <TableCell className="pl-6 font-mono text-xs text-slate-200">{ep.hostname}</TableCell>
                   <TableCell className="text-xs text-slate-400">{ep.os}</TableCell>
@@ -381,6 +408,7 @@ export default function EndpointSecurity() {
                   </TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

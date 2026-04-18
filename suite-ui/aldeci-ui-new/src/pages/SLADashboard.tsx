@@ -117,6 +117,7 @@ export default function SLADashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -179,7 +180,8 @@ export default function SLADashboard() {
         owner:   r.assigned_to ?? "—",
         due:     r.deadline   ?? "—",
         overdue: r.hours_overdue != null ? `${Math.round(r.hours_overdue)}h` : "—",
-      }))
+      
+    setLoading(false);}))
     : BREACHES;
 
   const liveAtRisk = Array.isArray(liveData?.atRisk) && liveData.atRisk.length > 0
@@ -193,6 +195,14 @@ export default function SLADashboard() {
         urgent:    (r.hours_remaining ?? 999) < 2,
       }))
     : AT_RISK;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -232,7 +242,13 @@ export default function SLADashboard() {
             <CardDescription className="text-xs">% of findings resolved within SLA window</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {SEVERITY_BARS.map((bar) => (
+            {SEVERITY_BARS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SEVERITY_BARS.map((bar) => (
               <div key={bar.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -251,6 +267,7 @@ export default function SLADashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -265,7 +282,13 @@ export default function SLADashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-3 h-36">
-              {MTTR_TREND.map((m) => (
+              {MTTR_TREND.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MTTR_TREND.map((m) => (
                 <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
                   <div className="w-full flex items-end gap-0.5 h-28">
                     <div
@@ -287,6 +310,7 @@ export default function SLADashboard() {
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
               ))}
+              )}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/70 inline-block" />Critical</span>
@@ -327,7 +351,13 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveBreaches.map((row) => (
+                {liveBreaches.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveBreaches.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
@@ -343,6 +373,7 @@ export default function SLADashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -377,7 +408,13 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveAtRisk.map((row) => (
+                {liveAtRisk.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveAtRisk.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(
@@ -395,6 +432,7 @@ export default function SLADashboard() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -423,7 +461,13 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TEAMS.map((t) => (
+                {TEAMS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  TEAMS.map((t) => (
                   <TableRow key={t.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{t.name}</TableCell>
                     <TableCell className="py-2.5 w-32">
@@ -438,6 +482,7 @@ export default function SLADashboard() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{t.open}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -468,7 +513,13 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SLA_POLICY.map((p) => (
+                {SLA_POLICY.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  SLA_POLICY.map((p) => (
                   <TableRow key={p.severity} className="hover:bg-muted/30">
                     <TableCell className="py-2.5"><SeverityBadge sev={p.severity} /></TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.response}</TableCell>
@@ -476,6 +527,7 @@ export default function SLADashboard() {
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.resolve}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

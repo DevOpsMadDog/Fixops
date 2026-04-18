@@ -216,7 +216,13 @@ export default function ActorTrackingDashboard() {
 
       {/* Actor cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {actors.map(actor => (
+        {actors.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          actors.map(actor => (
           <div
             key={actor.id}
             onClick={() => setSelectedId(actor.id)}
@@ -264,6 +270,7 @@ export default function ActorTrackingDashboard() {
             </div>
           </div>
         ))}
+        )}
       </div>
 
       {/* Bottom: Activity feed + Intel panel + TTP bars */}
@@ -276,7 +283,13 @@ export default function ActorTrackingDashboard() {
             </h2>
           </div>
           <div className="divide-y divide-gray-700/50">
-            {MOCK_ACTIVITY.map(ev => (
+            {MOCK_ACTIVITY.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_ACTIVITY.map(ev => (
               <div key={ev.id} className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded-full font-medium">{ev.activity_type}</span>
@@ -294,6 +307,7 @@ export default function ActorTrackingDashboard() {
                 <div className="text-gray-500 text-xs mt-1">{relativeTime(ev.timestamp)}</div>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -341,7 +355,13 @@ export default function ActorTrackingDashboard() {
             </h2>
           </div>
           <div className="p-4 space-y-3">
-            {TOP_TTPS.map(({ ttp, count }) => (
+            {TOP_TTPS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TOP_TTPS.map(({ ttp, count }) => (
               <div key={ttp}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-300">{ttp}</span>
@@ -355,6 +375,7 @@ export default function ActorTrackingDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
       </div>

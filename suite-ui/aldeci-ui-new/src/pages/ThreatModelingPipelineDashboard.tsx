@@ -168,13 +168,15 @@ export default function ThreatModelingPipelineDashboard() {
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(() => { /* live data available */ 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
   const [mitigatedIds, setMitigatedIds] = useState<Set<string>>(new Set());
   const [newThreat, setNewThreat] = useState({ name: "", stride: "Spoofing", likelihood: "3", impact: "3" });
+  const [loading, setLoading] = useState(true);
 
   function handleMitigate(id: string) {
     setMitigating(id);
@@ -190,6 +192,14 @@ export default function ThreatModelingPipelineDashboard() {
   }
 
   const visibleThreats = UNMITIGATED.filter((t) => !mitigatedIds.has(t.id));
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

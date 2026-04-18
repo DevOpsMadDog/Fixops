@@ -113,12 +113,14 @@ function scoreColor(s: number) {
 // ── Component ──────────────────────────────────────────────────
 export default function DeceptionEngine() {
   const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
       apiFetch(`/api/v1/deception/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/deception/canaries?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/deception/alerts?org_id=${ORG_ID}&hours=168`),
+      apiFetch(`/api/v1/deception/alerts?org_id=${ORG_ID
+    setLoading(false);}&hours=168`),
     ]).then(([statsRes, canariesRes, alertsRes]) => {
       const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
       const canaries = canariesRes.status === "fulfilled" ? canariesRes.value : null;
@@ -131,6 +133,14 @@ export default function DeceptionEngine() {
 
   const activeHoneypots = liveData?.stats?.active_honeypots ?? HONEYPOTS.filter((h) => h.status === "active").length;
   const triggeredCanaries = liveData?.stats?.triggered_canaries ?? CANARIES.filter((c) => c.triggered).length;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-900 p-8 space-y-8">
@@ -178,7 +188,13 @@ export default function DeceptionEngine() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-            {HONEYPOTS.map((hp) => (
+            {HONEYPOTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              HONEYPOTS.map((hp) => (
               <div key={hp.id} className={cn("p-4 rounded-lg border", hp.status === "maintenance" ? "border-slate-600 bg-slate-800/30" : hp.last_triggered ? "border-orange-500/30 bg-orange-500/5" : "border-slate-700 bg-slate-800/20")}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">{HP_ICON[hp.type]}<span className="text-xs text-slate-400">{HP_LABEL[hp.type]}</span></div>
@@ -197,6 +213,7 @@ export default function DeceptionEngine() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -258,7 +275,13 @@ export default function DeceptionEngine() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {ATTACKERS.map((a) => (
+            {ATTACKERS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ATTACKERS.map((a) => (
               <div key={a.ip} className="p-5 rounded-lg border border-slate-700 bg-slate-800/30 hover:border-red-500/30 transition-all">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -279,6 +302,7 @@ export default function DeceptionEngine() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

@@ -608,13 +608,15 @@ function RiskTrendChart() {
 export default function SecurityAwareness() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/awareness-score/orgs/${ORG_ID}/stats`),
       apiFetch(`/awareness-score/orgs/${ORG_ID}/employees`),
-      apiFetch(`/awareness-score/orgs/${ORG_ID}/department-summary`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID
+    setLoading(false);}/department-summary`),
       apiFetch(`/awareness-score/orgs/${ORG_ID}/scores`),
     ]).then(([statsRes, employeesRes, deptRes, scoresRes]) => {
       const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
@@ -657,6 +659,14 @@ export default function SecurityAwareness() {
         risk_score: e.risk_score ?? 0,
       }));
   })();
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6">

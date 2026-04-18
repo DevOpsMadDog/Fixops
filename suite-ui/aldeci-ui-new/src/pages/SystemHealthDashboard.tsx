@@ -231,6 +231,7 @@ export default function SystemHealthDashboard() {
   const [health, setHealth] = useState<HealthData>(MOCK_HEALTH);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "healthy" | "degraded" | "unavailable">("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/system-health/?org_id=${ORG_ID}`).then((d) => {
@@ -255,8 +256,17 @@ export default function SystemHealthDashboard() {
     .sort((a, b) => {
       // Sort by last_updated ascending (most recent first) — rough sort on string
       return (a.last_updated ?? "").localeCompare(b.last_updated ?? "");
-    })
+    
+    setLoading(false);})
     .slice(0, 8);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -359,7 +369,13 @@ export default function SystemHealthDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {filteredEngines.map((engine) => (
+            {filteredEngines.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              filteredEngines.map((engine) => (
               <div
                 key={engine.name}
                 className={cn(
@@ -382,6 +398,7 @@ export default function SystemHealthDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -397,7 +414,13 @@ export default function SystemHealthDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {recentEngines.map((engine) => (
+            {recentEngines.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              recentEngines.map((engine) => (
               <div
                 key={engine.name}
                 className="flex items-start gap-2.5 rounded-md border border-muted/40 bg-muted/10 px-3 py-2.5 hover:bg-muted/20 transition-colors"
@@ -413,6 +436,7 @@ export default function SystemHealthDashboard() {
                 {engineStatusDot(engine.status)}
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

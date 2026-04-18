@@ -119,6 +119,7 @@ export default function GRCDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -126,7 +127,8 @@ export default function GRCDashboard() {
       apiFetch(`/api/v1/grc/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/grc/frameworks?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/grc/risks?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID
+    setLoading(false);}`),
       apiFetch(`/api/v1/grc/assessments?org_id=${ORG_ID}`),
     ]).then(([statsRes, frameworksRes, risksRes, controlsRes, assessmentsRes]) => {
       const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
@@ -144,6 +146,14 @@ export default function GRCDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -221,12 +231,19 @@ export default function GRCDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
-                {CONTROLS.map((c) => (
+                {CONTROLS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CONTROLS.map((c) => (
                   <div key={c.label} className={cn("rounded-lg border p-3 text-center", c.color)}>
                     <div className="text-2xl font-bold tabular-nums">{c.count}</div>
                     <div className="text-[10px] font-medium mt-0.5">{c.label}</div>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>

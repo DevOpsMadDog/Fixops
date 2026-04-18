@@ -111,6 +111,7 @@ export default function SecurityTrainingDashboard() {
   const [activeTab, setActiveTab] = useState<"catalog" | "enrollments" | "campaigns" | "categories">("catalog");
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -118,7 +119,8 @@ export default function SecurityTrainingDashboard() {
       apiFetch(`/api/v1/security-training/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/security-training/courses?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/security-training/enrollments?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/security-training/campaigns?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/security-training/campaigns?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsRes, coursesRes, enrollRes, campRes]) => {
       const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
       const courses   = coursesRes.status   === "fulfilled" ? coursesRes.value   : null;
@@ -129,6 +131,14 @@ export default function SecurityTrainingDashboard() {
       }
     }).finally(() => setDataLoading(false));
   }, []);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -272,7 +282,13 @@ export default function SecurityTrainingDashboard() {
             <TrendingUp className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">Completion by Category</span>
           </div>
-          {CATEGORIES.map((cat) => (
+          {CATEGORIES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            CATEGORIES.map((cat) => (
             <div key={cat.name} className="space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-foreground">{cat.name}</span>
@@ -284,6 +300,7 @@ export default function SecurityTrainingDashboard() {
               />
             </div>
           ))}
+          )}
         </div>
       )}
     </div>

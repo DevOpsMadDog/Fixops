@@ -293,7 +293,13 @@ export default function APISecurityMgmtDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayEndpoints.map((ep: any, i: number) => (
+                {displayEndpoints.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  displayEndpoints.map((ep: any, i: number) => (
                   <TableRow key={ep.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
                       <MethodBadge method={ep.http_method ?? "GET"} />
@@ -323,6 +329,7 @@ export default function APISecurityMgmtDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -357,7 +364,13 @@ export default function APISecurityMgmtDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayAbuse.map((ev: any, i: number) => (
+                  {displayAbuse.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    displayAbuse.map((ev: any, i: number) => (
                     <TableRow key={ev.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2">
                         <AbuseTypeBadge type={ev.event_type ?? "unknown"} />
@@ -376,6 +389,7 @@ export default function APISecurityMgmtDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -392,7 +406,13 @@ export default function APISecurityMgmtDashboard() {
             <CardDescription className="text-xs">OWASP API Top 10 and schema validation scan history</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {displayScans.map((scan: any, i: number) => (
+            {displayScans.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              displayScans.map((scan: any, i: number) => (
               <div key={scan.id ?? i} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold truncate">{scan.target_service || "unknown"}</span>
@@ -424,6 +444,7 @@ export default function APISecurityMgmtDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 

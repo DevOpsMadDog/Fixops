@@ -153,6 +153,7 @@ export default function ContainerSecurityDashboard() {
   const [policies, setPolicies] = useState<any[]>([]);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -195,7 +196,16 @@ export default function ContainerSecurityDashboard() {
     setRefreshing(true);
     loadData();
     setTimeout(() => setRefreshing(false), 800);
-  };
+  
+    setLoading(false);};
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -250,7 +260,13 @@ export default function ContainerSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CONTAINERS.map((c, i) => (
+                {CONTAINERS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CONTAINERS.map((c, i) => (
                   <TableRow key={c.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium font-mono">{c.name}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[160px] truncate">{c.image}</TableCell>
@@ -270,6 +286,7 @@ export default function ContainerSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground font-mono">{c.namespace}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -298,7 +315,13 @@ export default function ContainerSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayVulns.map((v) => (
+                {displayVulns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  displayVulns.map((v) => (
                   <TableRow key={v.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-blue-400">{v.id}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{v.container}</TableCell>
@@ -311,6 +334,7 @@ export default function ContainerSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -328,7 +352,13 @@ export default function ContainerSecurityDashboard() {
               <CardDescription className="text-xs">Anomalous behaviors detected at runtime</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {RUNTIME_ALERTS.map((a) => (
+              {RUNTIME_ALERTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                RUNTIME_ALERTS.map((a) => (
                 <div key={a.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <AlertTypeBadge type={a.anomaly_type} />
@@ -338,6 +368,7 @@ export default function ContainerSecurityDashboard() {
                   <div className="text-[11px] text-muted-foreground">{a.description}</div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -352,7 +383,13 @@ export default function ContainerSecurityDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2">
-                {K8S_CONTEXTS.map((ctx) => (
+                {K8S_CONTEXTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  K8S_CONTEXTS.map((ctx) => (
                   <div key={ctx.namespace} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
                     <div className="flex items-center justify-between gap-1">
                       <span className="font-mono text-xs font-semibold">{ctx.namespace}</span>
@@ -367,6 +404,7 @@ export default function ContainerSecurityDashboard() {
                     </div>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -394,7 +432,13 @@ export default function ContainerSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {policies.map((p: any) => (
+                {policies.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  policies.map((p: any) => (
                   <TableRow key={p.id ?? p.name} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{p.name}</TableCell>
                     <TableCell className="py-2 text-center">
@@ -412,6 +456,7 @@ export default function ContainerSecurityDashboard() {
                     <TableCell className="py-2 text-center text-xs tabular-nums text-muted-foreground">{p.max_image_size_mb ?? "—"}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

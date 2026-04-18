@@ -380,7 +380,13 @@ export default function CompetitiveComparisonPage() {
       {/* Vendor toggles */}
       <div className="flex flex-wrap gap-2 items-center">
         <span className="text-xs text-gray-400 mr-1">Compare:</span>
-        {VENDORS.map(v => (
+        {VENDORS.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          VENDORS.map(v => (
           <button
             key={v}
             onClick={() => toggleVendor(v)}
@@ -394,11 +400,18 @@ export default function CompetitiveComparisonPage() {
             {v}
           </button>
         ))}
+        )}
       </div>
 
       {/* Category filter tabs */}
       <div className="flex flex-wrap gap-2">
-        {categories.map(cat => (
+        {categories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          categories.map(cat => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -411,6 +424,7 @@ export default function CompetitiveComparisonPage() {
             {cat}
           </button>
         ))}
+        )}
       </div>
 
       {/* Feature matrix table */}
@@ -419,7 +433,13 @@ export default function CompetitiveComparisonPage() {
           <thead>
             <tr className="border-b border-gray-700">
               <th className="text-left px-4 py-3 text-gray-400 font-medium w-56">Feature</th>
-              {visibleVendors.map(v => (
+              {visibleVendors.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                visibleVendors.map(v => (
                 <th key={v} className={`px-3 py-3 text-center font-semibold text-xs ${v === "ALDECI" ? "text-emerald-400 bg-emerald-900/20" : VENDOR_TEXT[v]}`}>
                   {v}
                   {v === "ALDECI" && (
@@ -427,10 +447,17 @@ export default function CompetitiveComparisonPage() {
                   )}
                 </th>
               ))}
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700/50">
-            {filteredRows.map((row, i) => (
+            {filteredRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              filteredRows.map((row, i) => (
               <tr key={i} className="hover:bg-gray-700/20 transition-colors">
                 <td className="px-4 py-2.5">
                   <div className="text-gray-200 text-xs font-medium">{row.feature}</div>
@@ -441,6 +468,7 @@ export default function CompetitiveComparisonPage() {
                 ))}
               </tr>
             ))}
+            )}
           </tbody>
         </table>
 
@@ -471,7 +499,13 @@ export default function CompetitiveComparisonPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
-                {COST_TABLE.map((row, i) => (
+                {COST_TABLE.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  COST_TABLE.map((row, i) => (
                   <tr key={i} className={i === 0 ? "bg-emerald-900/20" : "hover:bg-gray-700/20"}>
                     <td className="px-4 py-3">
                       <div className={`text-xs font-semibold ${i === 0 ? "text-emerald-300" : "text-gray-200"}`}>{row.label}</div>
@@ -488,6 +522,7 @@ export default function CompetitiveComparisonPage() {
                     </td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -507,7 +542,13 @@ export default function CompetitiveComparisonPage() {
           Where ALDECI Wins
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {WIN_SCENARIOS.map(s => (
+          {WIN_SCENARIOS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            WIN_SCENARIOS.map(s => (
             <div key={s.title} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-emerald-500/40 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <div className="font-semibold text-white text-sm">{s.title}</div>
@@ -535,6 +576,7 @@ export default function CompetitiveComparisonPage() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
 
@@ -550,7 +592,13 @@ export default function CompetitiveComparisonPage() {
 
         {/* Average scores row */}
         <div className="grid grid-cols-6 divide-x divide-gray-700 border-b border-gray-700">
-          {VENDORS.map(v => (
+          {VENDORS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            VENDORS.map(v => (
             <div key={v} className={`p-3 text-center ${v === "ALDECI" ? "bg-emerald-900/20" : ""}`}>
               <div className={`text-xs font-semibold mb-1 ${VENDOR_TEXT[v]}`}>{v}</div>
               <div className={`text-2xl font-bold ${v === "ALDECI" ? "text-emerald-300" : "text-gray-300"}`}>
@@ -559,11 +607,18 @@ export default function CompetitiveComparisonPage() {
               <div className="text-xs text-gray-500 mt-0.5">avg</div>
             </div>
           ))}
+          )}
         </div>
 
         {/* Per-dimension bars */}
         <div className="p-4 space-y-4">
-          {SCORECARD_DIMS.map(dim => (
+          {SCORECARD_DIMS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            SCORECARD_DIMS.map(dim => (
             <div key={dim}>
               <div className="text-xs text-gray-400 mb-2">{dim}</div>
               <div className="space-y-1.5">
@@ -585,6 +640,7 @@ export default function CompetitiveComparisonPage() {
               </div>
             </div>
           ))}
+          )}
         </div>
 
         <div className="px-4 py-3 bg-gray-700/30 text-xs text-gray-400 border-t border-gray-700">

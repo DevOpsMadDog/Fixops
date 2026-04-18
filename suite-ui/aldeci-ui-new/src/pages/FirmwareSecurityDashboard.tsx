@@ -112,6 +112,7 @@ export default function FirmwareSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     devices: any[] | null;
     vulns: any[] | null;
@@ -144,6 +145,14 @@ export default function FirmwareSecurityDashboard() {
   const devices = liveData.devices ?? MOCK_DEVICES;
   const vulns   = liveData.vulns   ?? MOCK_VULNS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -164,7 +173,8 @@ export default function FirmwareSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"    value={stats.total_devices}   icon={Cpu}          trend="flat" />
+        <KpiCard title="Total Devices"    value={stats.total_devices}   icon={Cpu
+    setLoading(false);}          trend="flat" />
         <KpiCard title="Active Devices"   value={stats.active_devices}  icon={Shield}       trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Vulns"      value={stats.total_vulns}     icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Unpatched Vulns"  value={stats.unpatched_vulns} icon={ShieldAlert}  trend="down" className="border-red-500/20" />
@@ -198,7 +208,13 @@ export default function FirmwareSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {devices.map((d: any, i: number) => (
+                {devices.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  devices.map((d: any, i: number) => (
                   <TableRow key={d.device_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{d.device_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.device_type}</TableCell>
@@ -208,6 +224,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.last_scanned}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -241,7 +258,13 @@ export default function FirmwareSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vulns.map((v: any, i: number) => (
+                {vulns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  vulns.map((v: any, i: number) => (
                   <TableRow key={v.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-blue-400">{v.cve_id}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={v.severity ?? "medium"} /></TableCell>
@@ -254,6 +277,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2"><StatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

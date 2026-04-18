@@ -262,6 +262,7 @@ function KanbanColumn({
 export default function VulnLifecycle() {
   const [sevFilter, setSevFilter] = useState<Severity | "all">("all");
   const [liveStats, setLiveStats] = useState<Record<string, any> | null>(null);
+  const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -292,7 +293,8 @@ export default function VulnLifecycle() {
     retry: 1,
     staleTime: 30_000,
     initialData: MOCK_VULNS,
-  });
+  
+    setLoading(false);});
 
   const transition = useMutation({
     mutationFn: async ({ id, next }: { id: string; next: VulnState }) => {
@@ -344,6 +346,14 @@ export default function VulnLifecycle() {
     { label: "Medium",   value: "medium"   },
     { label: "Low",      value: "low"      },
   ];
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <TooltipProvider>

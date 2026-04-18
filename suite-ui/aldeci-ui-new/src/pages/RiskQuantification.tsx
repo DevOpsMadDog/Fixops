@@ -104,6 +104,7 @@ export default function RiskQuantification() {
   const [runningMC, setRunningMC] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchAll = () =>
     Promise.allSettled([
@@ -141,6 +142,14 @@ export default function RiskQuantification() {
     setTimeout(() => setRunningMC(null), 1200);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -164,7 +173,8 @@ export default function RiskQuantification() {
         <KpiCard title="Total Scenarios"        value={liveData?.stats?.total_scenarios ?? 18}                                    icon={BarChart3}    />
         <KpiCard title="Total ALE"              value={liveData?.stats?.total_ale != null ? `$${(liveData.stats.total_ale/1000000).toFixed(1)}M/yr` : "$2.4M/yr"} icon={DollarSign}   trend="up" className="border-red-500/20" />
         <KpiCard title="Highest Risk Scenario"  value={liveData?.stats?.highest_ale != null ? fmt(liveData.stats.highest_ale) : "$847K"}              icon={AlertTriangle} trend="up" className="border-amber-500/20" />
-        <KpiCard title="Avg ROI of Controls"    value={liveData?.stats?.avg_roi != null ? `${liveData.stats.avg_roi}%` : "340%"}                      icon={TrendingUp}   trend="up" className="border-green-500/20" />
+        <KpiCard title="Avg ROI of Controls"    value={liveData?.stats?.avg_roi != null ? `${liveData.stats.avg_roi}%` : "340%"
+    setLoading(false);}                      icon={TrendingUp}   trend="up" className="border-green-500/20" />
       </div>
 
       {/* Risk Scenarios Table */}

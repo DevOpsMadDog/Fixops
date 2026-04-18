@@ -139,6 +139,7 @@ export default function SecurityRoadmap() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -190,11 +191,20 @@ export default function SecurityRoadmap() {
   const totalInitiatives  = liveData?.stats?.total_initiatives  ?? 24;
   const inProgress        = liveData?.stats?.in_progress        ?? 8;
   const completionRate    = liveData?.stats?.completion_rate != null
-    ? `${Math.round(liveData.stats.completion_rate)}%`
+    ? `${Math.round(liveData.stats.completion_rate)
+    setLoading(false);}%`
     : "67%";
   const totalBudget       = liveData?.stats?.total_budget_usd != null
     ? `$${(liveData.stats.total_budget_usd / 1_000_000).toFixed(1)}M`
     : "$2.4M";
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -247,7 +257,13 @@ export default function SecurityRoadmap() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveInitiatives.map((row) => (
+                {liveInitiatives.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveInitiatives.map((row) => (
                   <TableRow key={row.title} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
                     <TableCell className="py-2.5"><CategoryBadge cat={row.category} /></TableCell>
@@ -264,6 +280,7 @@ export default function SecurityRoadmap() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -286,7 +303,13 @@ export default function SecurityRoadmap() {
               {/* Vertical line */}
               <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
               <div className="space-y-4">
-                {MILESTONES.map((m, i) => (
+                {MILESTONES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MILESTONES.map((m, i) => (
                   <div key={i} className="relative flex items-start gap-3">
                     {/* Icon positioned over the line */}
                     <div className="absolute -left-4">
@@ -299,6 +322,7 @@ export default function SecurityRoadmap() {
                     </div>
                   </div>
                 ))}
+                )}
               </div>
             </div>
           </CardContent>
@@ -316,7 +340,13 @@ export default function SecurityRoadmap() {
               <CardDescription className="text-xs">Security gaps linked to roadmap initiatives</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {liveGaps.map((g, i) => (
+              {liveGaps.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                liveGaps.map((g, i) => (
                 <div key={i} className="flex items-start gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -328,6 +358,7 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -341,7 +372,13 @@ export default function SecurityRoadmap() {
               <CardDescription className="text-xs">Spend vs allocated (in $K)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {BUDGET.map((b) => (
+              {BUDGET.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                BUDGET.map((b) => (
                 <div key={b.category} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium">{b.category}</span>
@@ -366,6 +403,7 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

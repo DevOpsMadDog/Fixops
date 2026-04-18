@@ -128,6 +128,7 @@ export default function VulnRiskQueue() {
   const [rejected, setRejected] = useState<Set<string>>(new Set());
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -139,7 +140,8 @@ export default function VulnRiskQueue() {
       const stats  = statsResult.status  === "fulfilled" ? statsResult.value  : null;
       if (scored || stats) {
         setLiveData({ scored, stats });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -149,6 +151,14 @@ export default function VulnRiskQueue() {
   };
 
   const distMax = Math.max(...DISTRIBUTION.map((d) => d.count));
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -256,7 +266,13 @@ export default function VulnRiskQueue() {
             <CardDescription className="text-xs">Vulnerability count by severity tier</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DISTRIBUTION.map((d) => (
+            {DISTRIBUTION.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              DISTRIBUTION.map((d) => (
               <div key={d.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className={cn("font-semibold", d.text)}>{d.label}</span>
@@ -272,6 +288,7 @@ export default function VulnRiskQueue() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -295,7 +312,13 @@ export default function VulnRiskQueue() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TEAMS.map((t) => (
+                {TEAMS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  TEAMS.map((t) => (
                   <TableRow key={t.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{t.name}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-bold">{t.assigned}</TableCell>
@@ -305,6 +328,7 @@ export default function VulnRiskQueue() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{t.avgResolution}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -326,7 +350,13 @@ export default function VulnRiskQueue() {
           <CardDescription className="text-xs">Formal risk acceptance requests awaiting CISO approval</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {RISK_ACCEPTANCE.map((r) => (
+          {RISK_ACCEPTANCE.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            RISK_ACCEPTANCE.map((r) => (
             <div
               key={r.id}
               className={cn(
@@ -374,6 +404,7 @@ export default function VulnRiskQueue() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

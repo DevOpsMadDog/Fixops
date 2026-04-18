@@ -167,10 +167,12 @@ export default function PostureTrendsDashboard() {
     fetch(`${_API_BASE}/trends`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setTrends(d); })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); 
+    setLoading(false);});
   }, []);
 
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -203,6 +205,14 @@ export default function PostureTrendsDashboard() {
     !best || Math.abs(t.change_pct) > Math.abs(best.change_pct) ? t : best, null);
 
   const categories = [...new Set(MOCK_TRENDS.map(t => t.category))];
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -264,11 +274,18 @@ export default function PostureTrendsDashboard() {
         <div className="bg-amber-900/20 border border-amber-700 rounded-lg p-4">
           <p className="text-amber-400 font-semibold text-sm mb-2">Stagnating Metrics — No meaningful change detected</p>
           <div className="flex flex-wrap gap-2">
-            {stagnating.map(m => (
+            {stagnating.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              stagnating.map(m => (
               <span key={m.id} className="bg-amber-800/40 text-amber-200 px-2 py-1 rounded text-xs">
                 {m.metric_name} ({m.current_value} {m.unit})
               </span>
             ))}
+            )}
           </div>
         </div>
       )}
@@ -281,7 +298,13 @@ export default function PostureTrendsDashboard() {
         >
           All
         </button>
-        {categories.map(cat => (
+        {categories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          categories.map(cat => (
           <button
             key={cat}
             onClick={() => setFilterCategory(cat)}
@@ -290,11 +313,18 @@ export default function PostureTrendsDashboard() {
             {categoryLabels[cat]}
           </button>
         ))}
+        )}
       </div>
 
       {/* Metric Trend Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredTrends.map(metric => {
+        {filteredTrends.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          filteredTrends.map(metric => {
           const ind = velocityIndicator(metric.velocity, metric.higher_is_better);
           const sColor = sparklineColor(metric.velocity, metric.higher_is_better);
           const path = sparklinePath(metric.datapoints);
@@ -344,6 +374,7 @@ export default function PostureTrendsDashboard() {
             </div>
           );
         })}
+        )}
       </div>
 
       {/* Targets Progress Table */}
@@ -362,7 +393,13 @@ export default function PostureTrendsDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {MOCK_TARGETS.map(tp => (
+              {MOCK_TARGETS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_TARGETS.map(tp => (
                 <tr key={tp.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-2.5 pr-4 text-gray-200 font-medium">{tp.metric_name}</td>
                   <td className="py-2.5 pr-4 text-white font-semibold">{tp.current} <span className="text-gray-500 text-xs font-normal">{tp.unit}</span></td>
@@ -376,6 +413,7 @@ export default function PostureTrendsDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

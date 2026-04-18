@@ -216,7 +216,13 @@ export default function CloudSecurityFindingsDashboard() {
               </tr>
             </thead>
             <tbody>
-              {displayed.map(f => (
+              {displayed.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                displayed.map(f => (
                 <tr key={f.id} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4"><ProviderBadge p={f.provider} /></td>
                   <td className="py-2.5 pr-4 text-xs text-gray-300 font-mono">{f.account_id.slice(0, 12)}</td>
@@ -236,6 +242,7 @@ export default function CloudSecurityFindingsDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -247,7 +254,13 @@ export default function CloudSecurityFindingsDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Remediation Tracking</h2>
           <div className="space-y-2">
-            {MOCK_REMEDIATIONS.map(r => (
+            {MOCK_REMEDIATIONS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_REMEDIATIONS.map(r => (
               <div key={r.id} className={cn("flex items-center justify-between p-3 rounded-lg", r.overdue ? "bg-red-900/20 border border-red-500/20" : "bg-gray-700/30")}>
                 <div>
                   <p className="text-sm text-white font-medium">{r.finding_id}</p>
@@ -259,6 +272,7 @@ export default function CloudSecurityFindingsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -266,7 +280,13 @@ export default function CloudSecurityFindingsDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Top Affected Resources</h2>
           <div className="space-y-3">
-            {MOCK_TOP_RESOURCES.map(r => (
+            {MOCK_TOP_RESOURCES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_TOP_RESOURCES.map(r => (
               <div key={r.resource_id}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-300 font-mono truncate max-w-[200px]" title={r.resource_id}>{r.resource_id}</span>
@@ -277,6 +297,7 @@ export default function CloudSecurityFindingsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
       </div>

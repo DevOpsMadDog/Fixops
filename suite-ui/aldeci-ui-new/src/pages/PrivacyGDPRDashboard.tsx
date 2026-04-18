@@ -126,13 +126,15 @@ function RegBadge({ reg }: { reg: string }) {
 export default function PrivacyGDPRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
       apiFetch(`/api/v1/privacy/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/privacy/dsrs?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/privacy/consents?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/privacy/incidents?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/privacy/incidents?org_id=${ORG_ID
+    setLoading(false);}`),
       apiFetch(`/api/v1/privacy/processing-activities?org_id=${ORG_ID}`),
     ]).then(([statsR, dsrsR, consentsR, incidentsR, activitiesR]) => {
       const stats      = statsR.status      === "fulfilled" ? statsR.value      : null;
@@ -152,6 +154,14 @@ export default function PrivacyGDPRDashboard() {
   const openIncidents  = INCIDENTS.filter((i) => i.status !== "closed").length;
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div

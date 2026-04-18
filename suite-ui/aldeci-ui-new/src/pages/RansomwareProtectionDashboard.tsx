@@ -136,7 +136,13 @@ export default function RansomwareProtectionDashboard() {
           {loading && <span className="text-xs text-gray-400 ml-2">Loading...</span>}
         </h2>
         <div className="space-y-3">
-          {patterns.map(p => (
+          {patterns.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            patterns.map(p => (
             <div key={p.id} className={`p-4 rounded-lg border flex items-center justify-between ${p.enabled ? "border-gray-600 bg-gray-700/30" : "border-gray-700 bg-gray-700/10 opacity-60"}`}>
               <div className="flex items-center gap-3">
                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${severityColor[p.severity] || "bg-gray-700 text-gray-200"}`}>{p.severity}</span>
@@ -150,6 +156,7 @@ export default function RansomwareProtectionDashboard() {
               </span>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

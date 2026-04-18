@@ -54,7 +54,9 @@ export default function ProgramMaturityDashboard() {
   }, []);
   const [showAddImprovement, setShowAddImprovement] = useState(false);
   const [newDomain, setNewDomain] = useState({ domain_name: "", domain_type: "identity", current_level: 1, target_level: 3 });
-  const [newImprovement, setNewImprovement] = useState({ domain_id: "d-001", improvement_name: "", priority: "medium", target_level: 3, effort_days: 30, due_date: "" });
+  const [newImprovement, setNewImprovement] = useState({ domain_id: "d-001", improvement_name: "", priority: "medium", target_level: 3, effort_days: 30, due_date: "" 
+    setLoading(false);});
+  const [loading, setLoading] = useState(true);
 
   const avgCurrentLevel = (domains.reduce((a, d) => a + d.current_level, 0) / domains.length).toFixed(1);
   const avgScore = Math.round(domains.reduce((a, d) => a + d.score, 0) / domains.length);
@@ -63,6 +65,14 @@ export default function ProgramMaturityDashboard() {
 
   const filteredImprovements = filterDomain === "all" ? improvements : improvements.filter(i => i.domain_id === filterDomain);
   const today = "2026-04-16";
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
@@ -148,7 +158,13 @@ export default function ProgramMaturityDashboard() {
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {domains.map(d => {
+              {domains.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                domains.map(d => {
                 const gap = d.current_level - d.target_level;
                 return (
                   <div key={d.id} className="bg-gray-800 rounded-lg p-5">
@@ -182,6 +198,7 @@ export default function ProgramMaturityDashboard() {
                   </div>
                 );
               })}
+              )}
             </div>
           </>
         )}
@@ -196,7 +213,13 @@ export default function ProgramMaturityDashboard() {
                   <tr>{["Assessment", "Assessor", "Status", "Overall Level", "Score", "Domains", "Completed"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {assessments.map(a => (
+                  {assessments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    assessments.map(a => (
                     <tr key={a.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{a.assessment_name}</td>
                       <td className="px-4 py-3 text-gray-300">{a.assessor}</td>
@@ -216,6 +239,7 @@ export default function ProgramMaturityDashboard() {
                       <td className="px-4 py-3 text-gray-400">{a.completed_at || "—"}</td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -230,17 +254,31 @@ export default function ProgramMaturityDashboard() {
                 <h2 className="font-semibold">Improvement Roadmap</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterDomain} onChange={e => setFilterDomain(e.target.value)}>
                   <option value="all">All Domains</option>
-                  {domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
+                  {domains.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAddImprovement(!showAddImprovement)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">+ Add Improvement</button>
+                  )}
             </div>
             {showAddImprovement && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newImprovement.domain_id} onChange={e => setNewImprovement({ ...newImprovement, domain_id: e.target.value })}>
-                  {domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
+                  {domains.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
                 </select>
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newImprovement.priority} onChange={e => setNewImprovement({ ...newImprovement, priority: e.target.value })}>
+                  )}
                   {["critical","high","medium","low"].map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm col-span-2" placeholder="Improvement name" value={newImprovement.improvement_name} onChange={e => setNewImprovement({ ...newImprovement, improvement_name: e.target.value })} />
@@ -253,7 +291,13 @@ export default function ProgramMaturityDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredImprovements.map(i => {
+              {filteredImprovements.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredImprovements.map(i => {
                 const domain = domains.find(d => d.id === i.domain_id);
                 const overdue = i.status !== "completed" && i.due_date < today;
                 return (
@@ -277,6 +321,7 @@ export default function ProgramMaturityDashboard() {
                   </div>
                 );
               })}
+              )}
             </div>
           </div>
         )}

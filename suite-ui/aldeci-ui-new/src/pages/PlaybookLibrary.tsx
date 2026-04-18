@@ -327,6 +327,7 @@ export default function PlaybookLibrary() {
   const [selectedExec, setSelectedExec] = useState<Execution | null>(null);
   const [showCreatePanel, setShowCreatePanel] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -350,7 +351,8 @@ export default function PlaybookLibrary() {
           }));
           setPlaybooks(mapped);
         }
-      }
+      
+    setLoading(false);}
     });
   }, []);
 
@@ -364,6 +366,14 @@ export default function PlaybookLibrary() {
   };
 
   const execSteps = selectedExec ? (MOCK_STEPS[selectedExec.id] ?? []) : [];
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-900 p-8 space-y-8">

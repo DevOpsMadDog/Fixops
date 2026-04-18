@@ -417,7 +417,13 @@ function ModelsList({
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
-          {models.map((model) => (
+          {models.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            models.map((model) => (
             <button
               key={model.id}
               onClick={() => onSelect(model.id)}
@@ -432,6 +438,7 @@ function ModelsList({
               <div className="text-xs opacity-75 truncate mt-0.5">{model.description}</div>
             </button>
           ))}
+          )}
         </div>
       </ScrollArea>
     </div>

@@ -128,10 +128,12 @@ const SECTORS: Sector[] = ["all", "financial", "technology", "healthcare", "manu
 
 export default function SecurityBenchmarksDashboard() {
   const [sectorFilter, setSectorFilter] = useState<Sector>("all");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/security-benchmarks", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(() => { /* live data available */ 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
 
@@ -149,6 +151,14 @@ export default function SecurityBenchmarksDashboard() {
     "below-average": filtered.filter(m => m.performance === "below-average").length,
     "lagging":       filtered.filter(m => m.performance === "lagging").length,
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -197,7 +207,13 @@ export default function SecurityBenchmarksDashboard() {
 
       {/* Sector filter */}
       <div className="flex gap-2 flex-wrap">
-        {SECTORS.map(s => (
+        {SECTORS.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          SECTORS.map(s => (
           <button
             key={s}
             onClick={() => setSectorFilter(s)}
@@ -206,11 +222,18 @@ export default function SecurityBenchmarksDashboard() {
             {s === "all" ? "All Sectors" : s}
           </button>
         ))}
+        )}
       </div>
 
       {/* Benchmark cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map(metric => {
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          filtered.map(metric => {
           const pct = percentilePosition(metric);
           return (
             <div key={metric.id} className="bg-gray-800 rounded-lg p-4">
@@ -258,6 +281,7 @@ export default function SecurityBenchmarksDashboard() {
             </div>
           );
         })}
+        )}
       </div>
     </div>
   );

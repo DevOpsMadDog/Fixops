@@ -121,7 +121,13 @@ export default function ThreatIndicatorDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {filtered.map(ioc => (
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filtered.map(ioc => (
                 <tr key={ioc.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-3 pr-4">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${typeColor[ioc.indicator_type] || "bg-gray-700 text-gray-200"}`}>
@@ -146,6 +152,7 @@ export default function ThreatIndicatorDashboard() {
                   <td className="py-3 text-gray-400 text-xs">{ioc.created_at}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

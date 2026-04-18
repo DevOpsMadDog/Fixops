@@ -392,7 +392,13 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
 
   return (
     <div className="flex items-end gap-3 h-32 px-2">
-      {data.map((d, i) => {
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        data.map((d, i) => {
         const heightPct = (d.score / max) * 100;
         const isLatest = i === data.length - 1;
         return (
@@ -417,6 +423,7 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
           </div>
         );
       })}
+      )}
     </div>
   );
 }
@@ -428,6 +435,7 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
 export default function ExecutiveRiskReport() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveSupplemental, setLiveSupplemental] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   // Fetch supplemental data from real endpoints
   useEffect(() => {
@@ -442,7 +450,8 @@ export default function ExecutiveRiskReport() {
       if (riskStats || kpis || posture) {
         setLiveSupplemental({ riskStats, kpis, posture });
       }
-    });
+    
+    setLoading(false);});
   }, []);
 
   const { data: report, isLoading } = useQuery({
@@ -513,6 +522,14 @@ export default function ExecutiveRiskReport() {
       ? undefined as unknown as number  // posture/stats doesn't have a score — skip
       : liveSupplemental?.kpis?.overall_score ?? d.overall_score;
   const displayScore = typeof liveScore === "number" && !isNaN(liveScore) ? liveScore : d.overall_score;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6 p-6">

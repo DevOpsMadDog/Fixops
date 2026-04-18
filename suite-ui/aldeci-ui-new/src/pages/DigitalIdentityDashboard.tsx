@@ -79,6 +79,7 @@ export default function DigitalIdentityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; profiles: any[] | null }>({
+  const [loading, setLoading] = useState(true);
     stats: null, profiles: null,
   });
 
@@ -106,6 +107,14 @@ export default function DigitalIdentityDashboard() {
   const stats    = liveData.stats    ?? MOCK_STATS;
   const profiles = liveData.profiles ?? MOCK_PROFILES;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -124,7 +133,8 @@ export default function DigitalIdentityDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Profiles"       value={stats.total_profiles}       icon={Fingerprint}  trend="up"   />
+        <KpiCard title="Total Profiles"       value={stats.total_profiles
+    setLoading(false);}       icon={Fingerprint}  trend="up"   />
         <KpiCard title="Verified Identities"  value={stats.verified_identities}  icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Suspended"            value={stats.suspended_count}      icon={UserX}        trend="down" className="border-red-500/20" />
         <KpiCard title="Pending Verification" value={stats.pending_verification} icon={Clock}        trend="flat" className="border-yellow-500/20" />
@@ -157,7 +167,13 @@ export default function DigitalIdentityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.map((p: any, i: number) => (
+                {profiles.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  profiles.map((p: any, i: number) => (
                   <TableRow key={p.user_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
                       {(p.user_id ?? "").slice(0, 14)}…
@@ -173,6 +189,7 @@ export default function DigitalIdentityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "—"}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

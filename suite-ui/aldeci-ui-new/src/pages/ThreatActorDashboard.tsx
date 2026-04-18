@@ -213,6 +213,7 @@ export default function ThreatActorDashboard() {
   const [search, setSearch] = useState("");
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -220,7 +221,8 @@ export default function ThreatActorDashboard() {
       apiFetch(`/api/v1/threat-actors/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-actors/actors?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/threat-actors/watchlist?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-actors/iocs?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/threat-actors/iocs?org_id=${ORG_ID
+    setLoading(false);}&limit=20`),
     ]).then(([statsResult, actorsResult, watchlistResult, iocsResult]) => {
       const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
       const actors    = actorsResult.status    === "fulfilled" ? actorsResult.value    : null;
@@ -244,6 +246,14 @@ export default function ThreatActorDashboard() {
 
   const maxSector = Math.max(...SECTOR_TARGETS.map((s) => s.count));
   const maxSoph = Math.max(...BY_SOPHISTICATION.map((s) => s.count));
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -309,7 +319,13 @@ export default function ThreatActorDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredActors.map((actor) => (
+                {filteredActors.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  filteredActors.map((actor) => (
                   <TableRow key={actor.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-semibold py-2.5">{actor.name}</TableCell>
                     <TableCell className="py-2.5"><ActorTypeBadge type={actor.type} /></TableCell>
@@ -326,6 +342,7 @@ export default function ThreatActorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -339,7 +356,13 @@ export default function ThreatActorDashboard() {
           Active Campaigns
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {CAMPAIGNS.map((c) => (
+          {CAMPAIGNS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            CAMPAIGNS.map((c) => (
             <Card key={c.name} className={cn(c.status === "active" ? "border-orange-500/20" : "border-border/40")}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
@@ -364,6 +387,7 @@ export default function ThreatActorDashboard() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -458,13 +482,20 @@ export default function ThreatActorDashboard() {
               <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">By Actor Type</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {BY_TYPE.map((t) => (
+              {BY_TYPE.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                BY_TYPE.map((t) => (
                 <div key={t.label} className="flex items-center gap-2 text-xs">
                   <span className={cn("w-2.5 h-2.5 rounded-sm shrink-0", t.color)} />
                   <span className="flex-1 text-muted-foreground">{t.label}</span>
                   <span className="font-bold tabular-nums">{t.count}</span>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -474,7 +505,13 @@ export default function ThreatActorDashboard() {
               <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">By Sophistication</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {BY_SOPHISTICATION.map((s) => (
+              {BY_SOPHISTICATION.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                BY_SOPHISTICATION.map((s) => (
                 <div key={s.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{s.label}</span>
@@ -490,6 +527,7 @@ export default function ThreatActorDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -499,7 +537,13 @@ export default function ThreatActorDashboard() {
               <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Top Targeted Sectors</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {SECTOR_TARGETS.map((s) => (
+              {SECTOR_TARGETS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                SECTOR_TARGETS.map((s) => (
                 <div key={s.sector} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{s.sector}</span>
@@ -515,6 +559,7 @@ export default function ThreatActorDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

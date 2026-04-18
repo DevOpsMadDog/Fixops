@@ -185,6 +185,7 @@ export default function SecurityFindingsDashboard() {
   }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   const filtered = FINDINGS.filter(f =>
     (filterSeverity === "all" || f.severity === filterSeverity) &&
@@ -199,12 +200,21 @@ export default function SecurityFindingsDashboard() {
     high: FINDINGS.filter(f => f.severity === "high").length,
     medium: FINDINGS.filter(f => f.severity === "medium").length,
     low: FINDINGS.filter(f => f.severity === "low").length,
-  };
+  
+    setLoading(false);};
 
   // Top 5 assets by finding count
   const assetCounts: Record<string, number> = {};
   FINDINGS.forEach(f => { assetCounts[f.asset_id] = (assetCounts[f.asset_id] || 0) + 1; });
   const top5Assets = Object.entries(assetCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -280,7 +290,13 @@ export default function SecurityFindingsDashboard() {
             <Shield className="w-4 h-4 text-orange-400" /> Top Assets by Findings
           </div>
           <div className="space-y-3">
-            {top5Assets.map(([asset, count], idx) => (
+            {top5Assets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              top5Assets.map(([asset, count], idx) => (
               <div key={asset} className="flex items-center gap-3">
                 <span className="text-gray-500 text-xs w-4">{idx + 1}</span>
                 <div className="flex-1 min-w-0">
@@ -295,6 +311,7 @@ export default function SecurityFindingsDashboard() {
                 <span className="text-xs font-bold text-orange-400">{count}</span>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -364,7 +381,13 @@ export default function SecurityFindingsDashboard() {
             onChange={e => setFilterSeverity(e.target.value)}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            {ALL_SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+            {ALL_SEVERITIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ALL_SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -372,9 +395,16 @@ export default function SecurityFindingsDashboard() {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
+            )}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
+            {ALL_STATUSES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -382,9 +412,16 @@ export default function SecurityFindingsDashboard() {
           <select
             value={filterTool}
             onChange={e => setFilterTool(e.target.value)}
+            )}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            {ALL_TOOLS.map(t => <option key={t} value={t}>{t}</option>)}
+            {ALL_TOOLS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ALL_TOOLS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <span className="text-xs text-gray-400 ml-auto">{filtered.length} of {FINDINGS.length} findings</span>
@@ -399,10 +436,17 @@ export default function SecurityFindingsDashboard() {
                 {["Title","Type","Source","Severity","CVSS","Asset","Status","Count"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
                 ))}
+            )}
               </tr>
             </thead>
             <tbody>
-              {filtered.map(f => (
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filtered.map(f => (
                 <tr
                   key={f.id}
                   onClick={() => setSelectedFinding(f)}
@@ -444,6 +488,7 @@ export default function SecurityFindingsDashboard() {
                   <td className="px-4 py-3 text-gray-400 text-center">{f.occurrence_count}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

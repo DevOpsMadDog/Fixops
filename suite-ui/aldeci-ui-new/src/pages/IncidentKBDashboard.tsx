@@ -194,6 +194,7 @@ export default function IncidentKBDashboard() {
     loadData();
   }, []);
   const [executeMsg, setExecuteMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const filteredArticles = search.trim()
     ? MOCK_ARTICLES.filter(a => matchesSearch(a, search.trim()))
@@ -206,13 +207,22 @@ export default function IncidentKBDashboard() {
 
   function handleHelpful(id: string) {
     setHelpfulMap(prev => ({ ...prev, [id]: !prev[id] }));
-  }
+  
+    setLoading(false);}
 
   function handleExecute(rb: Runbook) {
     setExecutedRunbooks(prev => ({ ...prev, [rb.id]: true }));
     setExecuteMsg(`Executing "${rb.runbook_name}"...`);
     setTimeout(() => setExecuteMsg(null), 3000);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

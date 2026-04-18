@@ -138,6 +138,7 @@ export default function SecurityTabletopDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     exercises: any[] | null;
     findings: any[] | null;
@@ -170,6 +171,14 @@ export default function SecurityTabletopDashboard() {
   const exercises = liveData.exercises ?? MOCK_EXERCISES;
   const findings  = liveData.findings  ?? MOCK_FINDINGS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -190,7 +199,8 @@ export default function SecurityTabletopDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Exercises"    value={stats.total_exercises}    icon={Users}          trend="up"   />
+        <KpiCard title="Total Exercises"    value={stats.total_exercises
+    setLoading(false);}    icon={Users}          trend="up"   />
         <KpiCard title="Completed"          value={stats.completed_exercises} icon={CheckCircle}    trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Findings"     value={stats.total_findings}     icon={ClipboardList}  trend="flat" />
         <KpiCard title="Open Findings"      value={stats.open_findings}      icon={FileWarning}    trend="down" className="border-red-500/20" />
@@ -223,7 +233,13 @@ export default function SecurityTabletopDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exercises.map((ex: any, i: number) => (
+                {exercises.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  exercises.map((ex: any, i: number) => (
                   <TableRow key={ex.title ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px]">{ex.title}</TableCell>
                     <TableCell className="py-2"><ScenarioTypeBadge type={ex.scenario_type ?? "unknown"} /></TableCell>
@@ -234,6 +250,7 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ex.scheduled_at}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -267,7 +284,13 @@ export default function SecurityTabletopDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.map((f: any, i: number) => (
+                {findings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  findings.map((f: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px]">{f.title}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">{(f.finding_type ?? "gap").replace(/_/g, " ")}</TableCell>
@@ -276,6 +299,7 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{f.exercise_id}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

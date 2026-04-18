@@ -118,6 +118,7 @@ export default function NetworkAnomalyDashboard() {
     loadData();
   }, []);
   const [detectForm, setDetectForm] = useState({ segment: "DMZ", protocol: "TCP", bytes: "", packets: "" });
+  const [loading, setLoading] = useState(true);
 
   const anomalies = MOCK_ANOMALIES.filter(a => !resolvedSet.has(a.id));
   const activeAnomalies = anomalies.length;
@@ -129,9 +130,18 @@ export default function NetworkAnomalyDashboard() {
 
   const sevDist = ["critical", "high", "medium", "low"].map(s => ({
     label: s, count: anomalies.filter(a => a.severity === s).length,
-  }));
+  
+    setLoading(false);}));
 
   const maxSev = Math.max(...sevDist.map(s => s.count), 1);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -251,7 +261,13 @@ export default function NetworkAnomalyDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-1.5 h-28">
-                {trafficData.map((v, i) => {
+                {trafficData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  trafficData.map((v, i) => {
                   const pct = (v / maxTraffic) * 100;
                   const isSpike = v > maxTraffic * 0.6;
                   return (
@@ -261,6 +277,7 @@ export default function NetworkAnomalyDashboard() {
                     </div>
                   );
                 })}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -272,7 +289,13 @@ export default function NetworkAnomalyDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Severity Distribution</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {sevDist.map(s => (
+              {sevDist.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                sevDist.map(s => (
                 <div key={s.label}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="capitalize text-zinc-300">{s.label}</span>
@@ -284,6 +307,7 @@ export default function NetworkAnomalyDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -291,7 +315,13 @@ export default function NetworkAnomalyDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Baseline Health</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {MOCK_BASELINES.map(b => (
+              {MOCK_BASELINES.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_BASELINES.map(b => (
                 <div key={b.id} className="border border-zinc-700 rounded-lg p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-300">{b.segment}</span>
@@ -305,6 +335,7 @@ export default function NetworkAnomalyDashboard() {
                   <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date}</p>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

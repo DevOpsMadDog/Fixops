@@ -157,6 +157,7 @@ export default function IdentityAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -171,8 +172,17 @@ export default function IdentityAnalyticsDashboard() {
       if (stats || risks || profiles) {
         setLiveData({ stats, risks, profiles });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -210,7 +220,13 @@ export default function IdentityAnalyticsDashboard() {
           <CardDescription className="text-xs">Identity count by risk tier across all 1,247 tracked identities</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {RISK_TIERS.map((tier) => (
+          {RISK_TIERS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            RISK_TIERS.map((tier) => (
             <div key={tier.label} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className={cn("font-semibold", tier.text)}>{tier.label}</span>
@@ -226,6 +242,7 @@ export default function IdentityAnalyticsDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -320,7 +337,13 @@ export default function IdentityAnalyticsDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {LOGIN_EVENTS.map((ev, i) => (
+                  {LOGIN_EVENTS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    LOGIN_EVENTS.map((ev, i) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="py-2"><EventBadge type={ev.type} /></TableCell>
                       <TableCell className="text-xs font-mono py-2 max-w-[80px] truncate">{ev.user}</TableCell>
@@ -334,6 +357,7 @@ export default function IdentityAnalyticsDashboard() {
                       <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{ev.at}</TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -398,7 +422,13 @@ export default function IdentityAnalyticsDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {CERT_QUEUE.map((c, i) => (
+              {CERT_QUEUE.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                CERT_QUEUE.map((c, i) => (
                 <TableRow key={i} className="hover:bg-muted/30">
                   <TableCell className="text-xs font-mono py-2.5">{c.user}</TableCell>
                   <TableCell className="text-xs py-2.5 max-w-[180px] truncate">{c.access}</TableCell>
@@ -411,6 +441,7 @@ export default function IdentityAnalyticsDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

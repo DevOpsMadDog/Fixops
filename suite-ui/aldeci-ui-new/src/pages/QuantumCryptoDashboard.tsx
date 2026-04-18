@@ -118,6 +118,7 @@ export default function QuantumCryptoDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     assets: any[] | null;
     migrations: any[] | null;
@@ -150,6 +151,14 @@ export default function QuantumCryptoDashboard() {
   const assets     = liveData.assets     ?? MOCK_ASSETS;
   const migrations = liveData.migrations ?? MOCK_MIGRATIONS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -170,7 +179,8 @@ export default function QuantumCryptoDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"        value={stats.total_assets}                           icon={Lock}          trend="flat" />
+        <KpiCard title="Total Assets"        value={stats.total_assets
+    setLoading(false);}                           icon={Lock}          trend="flat" />
         <KpiCard title="Quantum Vulnerable"  value={stats.quantum_vulnerable}                     icon={AlertTriangle} trend="down" className="border-red-500/20" />
         <KpiCard title="Migrated"            value={stats.migrated}                               icon={CheckCircle}   trend="up"   className="border-green-500/20" />
         <KpiCard title="Migration Progress"  value={`${stats.migration_progress_pct}%`}           icon={Atom}          trend="up"   className="border-purple-500/20" />
@@ -204,7 +214,13 @@ export default function QuantumCryptoDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.map((a: any, i: number) => (
+                {assets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  assets.map((a: any, i: number) => (
                   <TableRow key={a.asset_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{a.asset_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.asset_type?.replace(/_/g, " ")}</TableCell>
@@ -218,6 +234,7 @@ export default function QuantumCryptoDashboard() {
                     <TableCell className="py-2"><RiskLevelBadge level={a.risk_level ?? "medium"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -252,7 +269,13 @@ export default function QuantumCryptoDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {migrations.map((m: any, i: number) => (
+                {migrations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  migrations.map((m: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{m.asset_id}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-400">{m.from_algorithm}</TableCell>
@@ -262,6 +285,7 @@ export default function QuantumCryptoDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{m.planned_date}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -94,6 +94,7 @@ function formatTs(ts: string | null) {
 
 export default function DigitalTwinDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [liveSims, setLiveSims]     = useState<any[] | null>(null);
   const [liveStats, setLiveStats]   = useState<any | null>(null);
 
@@ -107,10 +108,19 @@ export default function DigitalTwinDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const simulations = liveSims    ?? MOCK_SIMULATIONS;
   const stats       = liveStats   ?? MOCK_STATS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -167,7 +177,13 @@ export default function DigitalTwinDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {simulations.map((sim: any, i: number) => (
+                {simulations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  simulations.map((sim: any, i: number) => (
                   <TableRow key={sim.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-cyan-300">
                       {truncateId(sim.twin_id ?? "—")}
@@ -189,6 +205,7 @@ export default function DigitalTwinDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -231,6 +231,7 @@ function EscalationPathCard({ path }: { path: EscalationPath }) {
 export default function CloudIAM() {
   const [activeProvider, setActiveProvider] = useState<"All" | Provider>("All");
   const [liveStats, setLiveStats] = useState<{ total: number; critical: number; high: number } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Fetch identity analytics sessions and stats
   const { data: iaSessions } = useQuery<any>({
@@ -281,6 +282,14 @@ export default function CloudIAM() {
     : MOCK_PRINCIPALS;
   const filtered = activeProvider === "All" ? principals : principals.filter(p => p.provider === activeProvider);
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
@@ -315,7 +324,8 @@ export default function CloudIAM() {
                   >
                     {p}
                   </button>
-                ))}
+                ))
+    setLoading(false);}
               </div>
             </div>
           </CardHeader>
@@ -330,7 +340,13 @@ export default function CloudIAM() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((p, i) => (
+                  {filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    filtered.map((p, i) => (
                     <motion.tr
                       key={p.id}
                       initial={{ opacity: 0, x: -8 }}
@@ -353,6 +369,7 @@ export default function CloudIAM() {
                       </td>
                     </motion.tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -397,9 +414,16 @@ export default function CloudIAM() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {ESCALATION_PATHS.map(path => (
+          {ESCALATION_PATHS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            ESCALATION_PATHS.map(path => (
             <EscalationPathCard key={path.id} path={path} />
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -413,7 +437,13 @@ export default function CloudIAM() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {UNUSED_BY_SERVICE.map(svc => (
+            {UNUSED_BY_SERVICE.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              UNUSED_BY_SERVICE.map(svc => (
               <div key={svc.service} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-300 font-medium w-16">{svc.service}</span>
@@ -424,6 +454,7 @@ export default function CloudIAM() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -435,7 +466,13 @@ export default function CloudIAM() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {ANOMALIES.map(a => (
+            {ANOMALIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ANOMALIES.map(a => (
               <div key={a.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-700/20 border border-slate-700/30">
                 <AlertTriangle className={cn("h-4 w-4 mt-0.5 flex-shrink-0", a.severity === "critical" ? "text-red-400" : a.severity === "high" ? "text-orange-400" : "text-yellow-400")} />
                 <div className="min-w-0 flex-1">
@@ -448,6 +485,7 @@ export default function CloudIAM() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -461,7 +499,13 @@ export default function CloudIAM() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {RECOMMENDATIONS.map((rec, i) => (
+          {RECOMMENDATIONS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            RECOMMENDATIONS.map((rec, i) => (
             <motion.div
               key={rec.id}
               initial={{ opacity: 0, y: 6 }}
@@ -482,6 +526,7 @@ export default function CloudIAM() {
               </div>
             </motion.div>
           ))}
+          )}
         </CardContent>
       </Card>
     </div>

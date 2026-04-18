@@ -318,6 +318,7 @@ async function apiFetch(path: string) {
 export default function VendorRiskDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -336,7 +337,8 @@ export default function VendorRiskDashboard() {
           : null;
         setLiveData({ vendors: vendors ?? register, register });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const vendors = liveData?.vendors ?? MOCK_VENDORS;
@@ -354,6 +356,14 @@ export default function VendorRiskDashboard() {
   const hasHighRiskVendors = criticalCount > 0 || highCount > 0;
   const highRiskVendors = vendors.filter(
     (v) => v.risk_level === "critical" || v.risk_level === "high"
+  );
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
   );
 
   return (
@@ -386,7 +396,13 @@ export default function VendorRiskDashboard() {
                     high risk levels require immediate attention.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {highRiskVendors.map((v) => (
+                    {highRiskVendors.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    ) : (
+                      highRiskVendors.map((v) => (
                       <Badge
                         key={v.id}
                         variant="outline"
@@ -395,6 +411,7 @@ export default function VendorRiskDashboard() {
                         {v.name} ({v.overall_score})
                       </Badge>
                     ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -463,7 +480,13 @@ export default function VendorRiskDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {vendors.map((vendor) => (
+                      {vendors.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                          <p className="text-lg font-medium">No data available</p>
+                          <p className="text-sm">Data will appear here once available</p>
+                        </div>
+                      ) : (
+                        vendors.map((vendor) => (
                         <TableRow
                           key={vendor.id}
                           className="border-slate-700 hover:bg-slate-700/30"
@@ -508,6 +531,7 @@ export default function VendorRiskDashboard() {
                           </TableCell>
                         </TableRow>
                       ))}
+                      )}
                     </TableBody>
                   </Table>
                 </ScrollArea>
@@ -525,7 +549,13 @@ export default function VendorRiskDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {MOCK_RISK_DOMAINS.map((domain, idx) => (
+                {MOCK_RISK_DOMAINS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_RISK_DOMAINS.map((domain, idx) => (
                   <div key={idx}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-slate-200">
@@ -557,6 +587,7 @@ export default function VendorRiskDashboard() {
                     />
                   </div>
                 ))}
+                )}
               </CardContent>
             </Card>
           </div>
@@ -573,7 +604,13 @@ export default function VendorRiskDashboard() {
           <CardContent>
             <ScrollArea className="h-[280px]">
               <div className="space-y-3">
-                {MOCK_ASSESSMENTS.map((assessment, idx) => (
+                {MOCK_ASSESSMENTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_ASSESSMENTS.map((assessment, idx) => (
                   <motion.div
                     key={assessment.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -604,6 +641,7 @@ export default function VendorRiskDashboard() {
                     </div>
                   </motion.div>
                 ))}
+                )}
               </div>
             </ScrollArea>
           </CardContent>

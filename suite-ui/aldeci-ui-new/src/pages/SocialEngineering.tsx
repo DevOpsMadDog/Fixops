@@ -114,6 +114,7 @@ export default function SocialEngineering() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -174,8 +175,17 @@ export default function SocialEngineering() {
         type:      t.template_type ?? "phishing",
         clickRate: t.click_rate ?? t.avg_click_rate ?? 0,
         lastUsed:  t.last_used ?? t.created_at ?? "—",
-      }))
+      
+    setLoading(false);}))
     : TEMPLATES;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -245,7 +255,13 @@ export default function SocialEngineering() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableCampaigns.map((c) => {
+                {tableCampaigns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  tableCampaigns.map((c) => {
                   const clickPct  = c.sent > 0 ? ((c.clicked / c.sent) * 100).toFixed(1) : "0.0";
                   const reportPct = c.sent > 0 ? ((c.reported / c.sent) * 100).toFixed(1) : "0.0";
                   return (
@@ -265,6 +281,7 @@ export default function SocialEngineering() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -283,7 +300,13 @@ export default function SocialEngineering() {
             <CardDescription className="text-xs">Sorted by click rate descending — red bars indicate high risk</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DEPT_CLICK_RATES.map((d) => (
+            {DEPT_CLICK_RATES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              DEPT_CLICK_RATES.map((d) => (
               <div key={d.dept} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{d.dept}</span>
@@ -304,6 +327,7 @@ export default function SocialEngineering() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -317,7 +341,13 @@ export default function SocialEngineering() {
             <CardDescription className="text-xs">Security awareness module completion rates</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {TRAINING_MODULES.map((m) => (
+            {TRAINING_MODULES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TRAINING_MODULES.map((m) => (
               <div key={m.name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium truncate pr-2">{m.name}</span>
@@ -331,6 +361,7 @@ export default function SocialEngineering() {
                 <Progress value={m.completion} className="h-1.5" />
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -342,7 +373,13 @@ export default function SocialEngineering() {
           Top Phishing Templates
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {tableTemplates.map((t) => (
+          {tableTemplates.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            tableTemplates.map((t) => (
             <Card key={t.name} className={cn("hover:border-border/80 transition-colors", t.clickRate > 10 && "border-red-500/20")}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -362,6 +399,7 @@ export default function SocialEngineering() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
     </motion.div>

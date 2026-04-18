@@ -182,11 +182,13 @@ export default function SecurityScorecardDashboard() {
     }).catch(() => { setError('Failed to load data'); });
   }, []);
   const [generated, setGenerated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
-  };
+  
+    setLoading(false);};
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -208,6 +210,14 @@ export default function SecurityScorecardDashboard() {
 
   const trendChange = TREND_DATA[TREND_DATA.length - 1].score - TREND_DATA[0].score;
   const trendUp = trendChange >= 0;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -338,7 +348,13 @@ export default function SecurityScorecardDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1.5 h-36">
-              {TREND_DATA.map((pt, i) => {
+              {TREND_DATA.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TREND_DATA.map((pt, i) => {
                 const pct = scoreToPercent(pt.score);
                 const isLatest = i === TREND_DATA.length - 1;
                 return (
@@ -358,6 +374,7 @@ export default function SecurityScorecardDashboard() {
                   </div>
                 );
               })}
+              )}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
               <span>{TREND_DATA[0].day}</span>
@@ -387,7 +404,13 @@ export default function SecurityScorecardDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2.5">
-              {PEER_DATA.map((p) => (
+              {PEER_DATA.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                PEER_DATA.map((p) => (
                 <div key={p.label} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span
@@ -418,6 +441,7 @@ export default function SecurityScorecardDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
             <div className="mt-4 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2.5">
               <p className="text-[11px] text-purple-300 font-medium">

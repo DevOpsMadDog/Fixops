@@ -199,6 +199,7 @@ export default function XDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -213,13 +214,22 @@ export default function XDRDashboard() {
       if (stats || incidents || signals) {
         setLiveData({ stats, incidents, signals });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -323,7 +333,13 @@ export default function XDRDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
-              {KILL_CHAIN.map((t) => (
+              {KILL_CHAIN.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                KILL_CHAIN.map((t) => (
                 <motion.div
                   key={t.tag}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -341,6 +357,7 @@ export default function XDRDashboard() {
                   </div>
                 </motion.div>
               ))}
+              )}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-muted/40 inline-block border border-border" />None</span>
@@ -360,7 +377,13 @@ export default function XDRDashboard() {
             <CardDescription className="text-xs">Active cross-domain detection rules</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {RULES.map((rule, i) => (
+            {RULES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              RULES.map((rule, i) => (
               <div key={i} className={cn("rounded-lg border bg-muted/20 p-3 space-y-1.5", !rule.enabled && "opacity-50")}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold truncate">{rule.name}</span>
@@ -373,6 +396,7 @@ export default function XDRDashboard() {
                 <div className="text-[10px] text-blue-400">{rule.mitre_tactic}</div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

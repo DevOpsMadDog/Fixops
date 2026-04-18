@@ -96,6 +96,7 @@ export default function AssetTagsDashboard() {
   const [assetQuery, setAssetQuery] = useState("");
   const [tagging, setTagging] = useState(false);
   const [tagSuccess, setTagSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const filteredTags = selectedCategory
     ? MOCK_TAGS.filter((t) => t.category === selectedCategory)
@@ -111,6 +112,14 @@ export default function AssetTagsDashboard() {
     setTagging(true);
     setTimeout(() => { setTagging(false); setTagSuccess(true); setTimeout(() => setTagSuccess(false), 2000); }, 1500);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -138,7 +147,13 @@ export default function AssetTagsDashboard() {
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Tag Categories</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {CATEGORY_INFO.map((cat, i) => (
+          {CATEGORY_INFO.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            CATEGORY_INFO.map((cat, i) => (
             <motion.div
               key={cat.category}
               initial={{ opacity: 0, y: 8 }}
@@ -159,6 +174,7 @@ export default function AssetTagsDashboard() {
               <p className="text-xs text-gray-500 mt-0.5">{cat.description}</p>
             </motion.div>
           ))}
+          )}
         </div>
       </div>
 
@@ -177,13 +193,20 @@ export default function AssetTagsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {filteredTags.map((tag) => (
+              {filteredTags.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredTags.map((tag) => (
                 <div key={tag.id} className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm", tag.color)}>
                   <Tag className="w-3 h-3" />
                   <span>{tag.name}</span>
                   <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded-full">{tag.asset_count.toLocaleString()}</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -204,12 +227,19 @@ export default function AssetTagsDashboard() {
               <label className="text-xs text-gray-400">Category</label>
               <select value={newTagCategory} onChange={(e) => setNewTagCategory(e.target.value as TagCategory)}
                 className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                {CATEGORY_INFO.map((c) => <option key={c.category} value={c.category}>{c.label}</option>)}
+                {CATEGORY_INFO.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CATEGORY_INFO.map((c) => <option key={c.category} value={c.category}>{c.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-400">Asset Query (name, IP, or tag)</label>
               <input type="text" value={assetQuery} onChange={(e) => setAssetQuery(e.target.value)}
+                )}
                 placeholder="e.g. env:production"
                 className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
             </div>
@@ -232,13 +262,26 @@ export default function AssetTagsDashboard() {
               <thead>
                 <tr className="border-b border-gray-700/50">
                   <th className="text-left py-2 px-3 text-gray-400 font-medium">Asset</th>
-                  {MATRIX_TAG_COLS.map((col) => (
+                  {MATRIX_TAG_COLS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    MATRIX_TAG_COLS.map((col) => (
                     <th key={col} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{col}</th>
                   ))}
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {MATRIX_ASSETS.map((asset) => (
+                {MATRIX_ASSETS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MATRIX_ASSETS.map((asset) => (
                   <tr key={asset.name} className="border-b border-gray-700/30 hover:bg-gray-800/20">
                     <td className="py-2 px-3 font-mono text-gray-300">{asset.name}</td>
                     {MATRIX_TAG_COLS.map((col) => (
@@ -252,6 +295,7 @@ export default function AssetTagsDashboard() {
                     ))}
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>

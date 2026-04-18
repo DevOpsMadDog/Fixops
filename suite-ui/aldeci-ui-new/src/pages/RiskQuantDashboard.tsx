@@ -153,6 +153,7 @@ export default function RiskQuantDashboard() {
     apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [form, setForm] = useState({
+  const [loading, setLoading] = useState(true);
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",
     asset_value: "", sle: "", aro: "", risk_level: "high",
   });
@@ -160,7 +161,8 @@ export default function RiskQuantDashboard() {
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
-  };
+  
+    setLoading(false);};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +179,14 @@ export default function RiskQuantDashboard() {
   const filteredControls = scenarioFilter === "all"
     ? MOCK_CONTROLS
     : MOCK_CONTROLS.filter(c => c.scenario_id === scenarioFilter);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
@@ -274,7 +284,13 @@ export default function RiskQuantDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_SCENARIOS.map(s => (
+                {MOCK_SCENARIOS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_SCENARIOS.map(s => (
                   <TableRow
                     key={s.id}
                     className={cn("hover:bg-muted/30 cursor-pointer", scenarioFilter === s.id && "bg-muted/20")}
@@ -290,6 +306,7 @@ export default function RiskQuantDashboard() {
                     <TableCell className="py-2"><RiskBadge level={s.risk_level} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -332,7 +349,13 @@ export default function RiskQuantDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredControls.map(c => (
+                {filteredControls.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  filteredControls.map(c => (
                   <TableRow key={c.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{c.control_name}</TableCell>
                     <TableCell className="py-2"><TypeBadge type={c.control_type} /></TableCell>
@@ -354,6 +377,7 @@ export default function RiskQuantDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -370,7 +394,13 @@ export default function RiskQuantDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {MOCK_SNAPSHOTS.map((snap, i) => {
+            {MOCK_SNAPSHOTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_SNAPSHOTS.map((snap, i) => {
               const maxAle = Math.max(...MOCK_SNAPSHOTS.map(s => s.total_ale));
               const pct = (snap.total_ale / maxAle) * 100;
               return (
@@ -389,6 +419,7 @@ export default function RiskQuantDashboard() {
                 </div>
               );
             })}
+            )}
           </div>
         </CardContent>
       </Card>

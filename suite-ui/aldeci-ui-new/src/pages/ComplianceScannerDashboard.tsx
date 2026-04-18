@@ -144,6 +144,7 @@ export default function ComplianceScannerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -151,7 +152,8 @@ export default function ComplianceScannerDashboard() {
       apiFetch(`/api/v1/compliance-scanner/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/compliance-scanner/profiles?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/compliance-scanner/results?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/compliance-scanner/tasks?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/compliance-scanner/tasks?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsRes, profilesRes, resultsRes, tasksRes]) => {
       const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
       const profiles = profilesRes.status === "fulfilled" ? profilesRes.value : null;
@@ -167,6 +169,14 @@ export default function ComplianceScannerDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -308,7 +318,13 @@ export default function ComplianceScannerDashboard() {
             <CardDescription className="text-xs">Current compliance posture per standard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {FRAMEWORK_SCORES.map((fw) => (
+            {FRAMEWORK_SCORES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              FRAMEWORK_SCORES.map((fw) => (
               <div key={fw.name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{fw.name}</span>
@@ -326,6 +342,7 @@ export default function ComplianceScannerDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

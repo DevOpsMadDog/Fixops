@@ -116,6 +116,7 @@ export default function ComplianceGapDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     assessments: any[] | null;
     gaps: any[] | null;
@@ -148,6 +149,14 @@ export default function ComplianceGapDashboard() {
   const frameworks  = liveData.assessments ?? MOCK_FRAMEWORKS;
   const gaps        = liveData.gaps        ?? MOCK_GAPS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -168,7 +177,8 @@ export default function ComplianceGapDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assessments"      value={stats.total_assessments}                    icon={FileText}      trend="flat"   />
+        <KpiCard title="Total Assessments"      value={stats.total_assessments
+    setLoading(false);}                    icon={FileText}      trend="flat"   />
         <KpiCard title="Open Gaps"              value={stats.open_gaps}                             icon={AlertTriangle} trend="down"   className="border-red-500/20" />
         <KpiCard title="Critical Gaps"          value={stats.critical_gaps}                         icon={Shield}        trend="down"   className="border-orange-500/20" />
         <KpiCard title="Avg Remediation (hrs)"  value={stats.avg_remediation_hours.toFixed(1)}      icon={Clock}         trend="flat"   className="border-blue-500/20" />
@@ -185,7 +195,13 @@ export default function ComplianceGapDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {frameworks.map((fw: any, i: number) => {
+            {frameworks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              frameworks.map((fw: any, i: number) => {
               const pct = fw.compliance_pct ?? 0;
               return (
                 <motion.div
@@ -215,6 +231,7 @@ export default function ComplianceGapDashboard() {
                 </motion.div>
               );
             })}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -252,7 +269,13 @@ export default function ComplianceGapDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gaps.map((g: any, i: number) => (
+                {gaps.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  gaps.map((g: any, i: number) => (
                   <TableRow key={g.control_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{g.control_id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium whitespace-nowrap">{g.control_name}</TableCell>
@@ -268,6 +291,7 @@ export default function ComplianceGapDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

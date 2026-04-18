@@ -335,7 +335,13 @@ function EvidenceTable({ items, onUpload }: EvidenceTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item, i) => {
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            items.map((item, i) => {
             const badge = evidenceBadge(item.status);
             const StatusIcon = badge.icon;
             return (
@@ -382,6 +388,7 @@ function EvidenceTable({ items, onUpload }: EvidenceTableProps) {
               </motion.tr>
             );
           })}
+          )}
         </TableBody>
       </Table>
     </div>
@@ -393,7 +400,13 @@ function EvidenceTable({ items, onUpload }: EvidenceTableProps) {
 function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
   return (
     <div className="space-y-2.5">
-      {gaps.map((gap, i) => (
+      {gaps.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        gaps.map((gap, i) => (
         <motion.div
           key={gap.id}
           initial={{ opacity: 0, x: -8 }}
@@ -440,6 +453,7 @@ function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
           </div>
         </motion.div>
       ))}
+      )}
     </div>
   );
 }
@@ -476,7 +490,13 @@ function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
           <div className="absolute top-3 left-0 right-0 h-px bg-white/8" />
 
           <div className="flex items-start gap-0">
-            {milestones.map((m, i) => {
+            {milestones.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              milestones.map((m, i) => {
               const style = milestoneTypeStyle[m.type];
               const isLast = i === milestones.length - 1;
               return (
@@ -510,6 +530,7 @@ function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
                 </div>
               );
             })}
+            )}
           </div>
         </div>
       </div>
@@ -667,9 +688,16 @@ export default function ComplianceDashboard() {
           <Separator className="flex-1" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {fwData.map((fw) => (
+          {fwData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            fwData.map((fw) => (
             <FrameworkCard key={fw.id} fw={fw} />
           ))}
+          )}
         </div>
       </section>
 

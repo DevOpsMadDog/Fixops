@@ -131,6 +131,7 @@ export default function SupplyChainIntelDashboard() {
   const [checkLoading, setCheckLoading] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -149,7 +150,8 @@ export default function SupplyChainIntelDashboard() {
       if (stats || packages || sbom || malicious || vulns) {
         setLiveData({ stats, packages, sbom, malicious, vulns });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleSearch = () => {
@@ -166,6 +168,14 @@ export default function SupplyChainIntelDashboard() {
       )
       .finally(() => setCheckLoading(false));
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -382,7 +392,13 @@ export default function SupplyChainIntelDashboard() {
               {(!searched || (!checkLoading && !checkResult)) && (
                 <>
                   <p className="text-[10px] text-muted-foreground">{searched ? `No result for "${query}" — showing demo` : 'Showing demo results for "lodash"'}</p>
-                  {PKG_CHECK_RESULTS.map((r, i) => (
+                  {PKG_CHECK_RESULTS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    PKG_CHECK_RESULTS.map((r, i) => (
                     <div key={i} className={cn(
                       "flex items-center justify-between rounded-lg border px-3 py-2",
                       r.malicious ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/10"
@@ -402,6 +418,7 @@ export default function SupplyChainIntelDashboard() {
                       </div>
                     </div>
                   ))}
+                  )}
                 </>
               )}
             </div>

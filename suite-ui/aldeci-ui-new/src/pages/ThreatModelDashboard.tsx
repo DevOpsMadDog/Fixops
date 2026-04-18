@@ -162,6 +162,7 @@ export default function ThreatModelDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -197,10 +198,19 @@ export default function ThreatModelDashboard() {
 
   const threats = THREATS_BY_MODEL[selected] ?? [];
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }
+    setLoading(false);}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >

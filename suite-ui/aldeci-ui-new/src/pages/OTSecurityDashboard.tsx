@@ -95,6 +95,7 @@ function ProtocolBadge({ protocol }: { protocol: string }) {
 export default function OTSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveAssets, setLiveAssets] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]   = useState<any | null>(null);
 
   useEffect(() => {
@@ -107,10 +108,19 @@ export default function OTSecurityDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const assets = liveAssets ?? MOCK_ASSETS;
   const stats  = liveStats  ?? MOCK_STATS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -167,7 +177,13 @@ export default function OTSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.map((asset: any, i: number) => (
+                {assets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  assets.map((asset: any, i: number) => (
                   <TableRow key={asset.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-semibold">
                       {asset.asset_id ?? asset.name ?? asset.id}
@@ -189,6 +205,7 @@ export default function OTSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

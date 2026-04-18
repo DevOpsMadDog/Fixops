@@ -145,6 +145,7 @@ export default function DataGovernanceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -152,7 +153,8 @@ export default function DataGovernanceDashboard() {
       apiFetch(`/api/v1/data-governance/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/data-governance/assets?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/data-governance/violations?org_id=${ORG_ID}&resolved=false`),
-      apiFetch(`/api/v1/data-governance/policies?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/data-governance/policies?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsResult, assetsResult, violationsResult, policiesResult]) => {
       const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
       const assets     = assetsResult.status     === "fulfilled" ? assetsResult.value     : null;
@@ -168,6 +170,14 @@ export default function DataGovernanceDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -326,7 +336,13 @@ export default function DataGovernanceDashboard() {
             <CardDescription className="text-xs">Active data flows with encryption and approval status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {FLOWS.map((flow, i) => (
+            {FLOWS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              FLOWS.map((flow, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-xs font-mono">
@@ -353,6 +369,7 @@ export default function DataGovernanceDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

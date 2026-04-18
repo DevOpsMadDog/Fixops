@@ -131,6 +131,7 @@ export default function IncidentTimelineDashboard() {
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [liveSystems, setLiveSystems] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -215,7 +216,8 @@ export default function IncidentTimelineDashboard() {
 
   const stats = liveData?.stats;
   const activeCount    = stats?.active_count ?? stats?.open ?? 3;
-  const avgMttr        = stats?.avg_mttr_hours != null ? `${Number(stats.avg_mttr_hours).toFixed(1)}h` : "4.2 days";
+  const avgMttr        = stats?.avg_mttr_hours != null ? `${Number(stats.avg_mttr_hours).toFixed(1)
+    setLoading(false);}h` : "4.2 days";
   const avgMttd        = stats?.avg_mttd_hours != null ? `${Number(stats.avg_mttd_hours).toFixed(1)}h` : "2.1 hrs";
   const affectedSystems = stats?.total_affected_systems ?? 18;
 
@@ -224,6 +226,14 @@ export default function IncidentTimelineDashboard() {
     fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div

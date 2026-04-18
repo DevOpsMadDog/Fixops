@@ -137,6 +137,7 @@ export default function PAMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -151,13 +152,22 @@ export default function PAMDashboard() {
       if (stats || accounts || sessions) {
         setLiveData({ stats, accounts, sessions });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -360,7 +370,13 @@ export default function PAMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {POLICIES.map((p, i) => (
+                {POLICIES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  POLICIES.map((p, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs py-2.5 font-medium max-w-[150px] truncate">{p.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -383,6 +399,7 @@ export default function PAMDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

@@ -131,6 +131,7 @@ function LicenseRiskBadge({ level }: { level: string }) {
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
   const [vulns, setVulns] = useState(MOCK_VULNS);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -147,7 +148,16 @@ export default function SecurityDependencyRiskDashboard() {
 
   function patchVuln(id: string) {
     setVulns(prev => prev.map(v => v.id === id ? { ...v, patched: true } : v));
-  }
+  
+    setLoading(false);}
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -231,7 +241,13 @@ export default function SecurityDependencyRiskDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Vulnerabilities ({filteredVulns.length})</h2>
           <div className="space-y-2">
-            {filteredVulns.map(v => {
+            {filteredVulns.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              filteredVulns.map(v => {
               const dep = MOCK_DEPS.find(d => d.id === v.dep_id);
               return (
                 <div key={v.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
@@ -263,6 +279,7 @@ export default function SecurityDependencyRiskDashboard() {
                 </div>
               );
             })}
+            )}
           </div>
         </div>
 
@@ -275,7 +292,13 @@ export default function SecurityDependencyRiskDashboard() {
               <h2 className="text-lg font-semibold text-white">License Conflicts</h2>
             </div>
             <div className="space-y-2">
-              {MOCK_LICENSE_CONFLICTS.map(l => (
+              {MOCK_LICENSE_CONFLICTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_LICENSE_CONFLICTS.map(l => (
                 <div key={l.package_name} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-white">{l.package_name}</p>
@@ -291,6 +314,7 @@ export default function SecurityDependencyRiskDashboard() {
                   <LicenseRiskBadge level={l.risk_level} />
                 </div>
               ))}
+              )}
             </div>
           </div>
 
@@ -298,7 +322,13 @@ export default function SecurityDependencyRiskDashboard() {
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Transitive Dependencies</h2>
             <div className="space-y-3">
-              {MOCK_TRANSITIVE.map(t => (
+              {MOCK_TRANSITIVE.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_TRANSITIVE.map(t => (
                 <div key={t.parent}>
                   <div className="flex items-center gap-2 text-sm mb-1">
                     <Package className="w-3.5 h-3.5 text-yellow-400" />
@@ -314,6 +344,7 @@ export default function SecurityDependencyRiskDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>

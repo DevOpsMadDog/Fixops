@@ -155,7 +155,13 @@ export default function NetworkAnalysis() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((t,i)=>(
+                  {filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    filtered.map((t,i)=>(
                     <motion.tr key={t.id} initial={{opacity:0}} animate={{opacity:1}} transition={{delay:i*0.04}}
                       className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
                       <td className="py-2.5 px-3 font-mono text-slate-200 text-xs">{t.src}</td>
@@ -178,6 +184,7 @@ export default function NetworkAnalysis() {
                       </td>
                     </motion.tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             )}
@@ -191,7 +198,13 @@ export default function NetworkAnalysis() {
               <CardTitle className="flex items-center gap-2"><Radio className="w-5 h-5 text-purple-400"/>Protocol Distribution</CardTitle>
             </CardHeader>
             <CardContent className="pt-5 space-y-3">
-              {PROTOCOLS.map((p,i)=>(
+              {PROTOCOLS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                PROTOCOLS.map((p,i)=>(
                 <div key={p.label} className="space-y-1">
                   <div className="flex justify-between text-sm"><span className="text-slate-300">{p.label}</span><span className="text-slate-400 font-semibold">{p.pct}%</span></div>
                   <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -199,6 +212,7 @@ export default function NetworkAnalysis() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -238,13 +252,20 @@ export default function NetworkAnalysis() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid grid-cols-4 gap-2">
-                {REGIONS.map((r,i)=>(
+                {REGIONS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  REGIONS.map((r,i)=>(
                   <motion.div key={r.label} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.05}}
                     className={cn("rounded-lg border p-3 text-center",r.cls)}>
                     <p className="text-xs font-semibold text-slate-200 leading-tight mb-1">{r.label}</p>
                     <p className={cn("text-xs capitalize font-medium",r.level==="high"?"text-red-300":r.level==="medium"?"text-yellow-300":"text-green-300")}>{r.level}</p>
                   </motion.div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -255,11 +276,18 @@ export default function NetworkAnalysis() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="flex items-end gap-0.5 h-24">
-                {HOURLY.map((v,h)=>(
+                {HOURLY.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  HOURLY.map((v,h)=>(
                   <motion.div key={h} title={`${String(h).padStart(2,"0")}:00 — ${v}${ANOMALY_HOURS.has(h)?" ⚠":""}`}
                     initial={{height:0,opacity:0}} animate={{height:`${(v/MAX_H)*100}%`,opacity:1}} transition={{delay:h*0.02,duration:0.4}}
                     className={cn("flex-1 rounded-t cursor-pointer",ANOMALY_HOURS.has(h)?"bg-gradient-to-t from-red-600 to-red-400":"bg-gradient-to-t from-blue-600 to-blue-400 opacity-60")}/>
                 ))}
+                )}
               </div>
               <div className="flex justify-between mt-1">
                 {[0,4,8,12,16,20,23].map(h=><span key={h} className="text-xs text-slate-600">{String(h).padStart(2,"0")}h</span>)}

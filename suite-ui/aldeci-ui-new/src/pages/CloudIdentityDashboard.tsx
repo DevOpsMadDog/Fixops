@@ -121,6 +121,7 @@ export default function CloudIdentityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; identities: any[] | null; reviews: any[] | null }>({
+  const [loading, setLoading] = useState(true);
     stats: null, identities: null, reviews: null,
   });
 
@@ -151,6 +152,14 @@ export default function CloudIdentityDashboard() {
   const identities = liveData.identities ?? MOCK_IDENTITIES;
   const reviews    = liveData.reviews    ?? MOCK_REVIEWS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -169,7 +178,8 @@ export default function CloudIdentityDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Identities"    value={stats.total_identities}    icon={Users}       trend="flat" />
+        <KpiCard title="Total Identities"    value={stats.total_identities}    icon={Users
+    setLoading(false);}       trend="flat" />
         <KpiCard title="Admin Count"         value={stats.admin_count}         icon={ShieldAlert} trend="flat" className="border-orange-500/20" />
         <KpiCard
           title="MFA Disabled"
@@ -209,7 +219,13 @@ export default function CloudIdentityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {identities.map((ident: any, i: number) => (
+                {identities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  identities.map((ident: any, i: number) => (
                   <TableRow key={ident.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-mono">{ident.name}</TableCell>
                     <TableCell className="py-2"><IdentityTypeBadge type={ident.type ?? "user"} /></TableCell>
@@ -227,6 +243,7 @@ export default function CloudIdentityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -259,7 +276,13 @@ export default function CloudIdentityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reviews.map((rev: any, i: number) => (
+                {reviews.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  reviews.map((rev: any, i: number) => (
                   <TableRow key={rev.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-mono text-muted-foreground">{rev.identity_name ?? rev.id}</TableCell>
                     <TableCell className="py-2 text-[11px]">{rev.review_type}</TableCell>
@@ -267,6 +290,7 @@ export default function CloudIdentityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(rev.reviewed_at)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

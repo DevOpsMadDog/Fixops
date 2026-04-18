@@ -169,6 +169,7 @@ export default function AssetRiskDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -222,8 +223,17 @@ export default function AssetRiskDashboard() {
         type:  a.asset_type ?? "Server",
         score: Math.round(a.risk_score ?? a.score ?? 0),
         added: a.registered_at ? new Date(a.registered_at).toLocaleDateString() : "—",
-      }))
+      
+    setLoading(false);}))
     : RECENT_ASSETS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -268,13 +278,26 @@ export default function AssetRiskDashboard() {
                 <thead>
                   <tr>
                     <th className="text-left text-muted-foreground font-normal pb-2 w-24" />
-                    {ASSET_TYPES.map((t) => (
+                    {ASSET_TYPES.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    ) : (
+                      ASSET_TYPES.map((t) => (
                       <th key={t} className="text-center text-muted-foreground font-medium pb-2 px-1">{t}</th>
                     ))}
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {CRITICALITY_LEVELS.map((crit) => (
+                  {CRITICALITY_LEVELS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    CRITICALITY_LEVELS.map((crit) => (
                     <tr key={crit}>
                       <td className="text-muted-foreground font-medium py-1 pr-2 text-right text-xs">{crit}</td>
                       {ASSET_TYPES.map((type) => {
@@ -289,6 +312,7 @@ export default function AssetRiskDashboard() {
                       })}
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
               <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
@@ -312,7 +336,13 @@ export default function AssetRiskDashboard() {
               <CardDescription className="text-xs">Score contribution by factor type</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {RISK_FACTORS.map((f) => (
+              {RISK_FACTORS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                RISK_FACTORS.map((f) => (
                 <div key={f.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{f.label}</span>
@@ -328,6 +358,7 @@ export default function AssetRiskDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -339,7 +370,13 @@ export default function AssetRiskDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {recentAssets.map((a) => (
+              {recentAssets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                recentAssets.map((a) => (
                 <div key={a.name} className="flex items-center gap-2">
                   <ScoreIndicator score={a.score} />
                   <div className="flex-1 min-w-0">
@@ -349,6 +386,7 @@ export default function AssetRiskDashboard() {
                   <span className="text-[10px] text-muted-foreground shrink-0">{a.added}</span>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>
@@ -380,7 +418,13 @@ export default function AssetRiskDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topAssets.map((row) => (
+                {topAssets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  topAssets.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>
@@ -390,6 +434,7 @@ export default function AssetRiskDashboard() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.top_factor}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

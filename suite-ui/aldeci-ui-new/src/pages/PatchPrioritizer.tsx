@@ -317,6 +317,7 @@ export default function PatchPrioritizer() {
   const [sortBy, setSortBy] = useState<"score" | "deadline" | "cvss">("score");
   const [patchData, setPatchData] = useState<PatchPrioritizerData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsLoading(true);
@@ -352,7 +353,8 @@ export default function PatchPrioritizer() {
           patches_in_sla:          stats?.total              ?? MOCK_PATCH_DATA.patches_in_sla,
           avg_time_to_patch_days:  stats?.avg_patch_age_days ?? MOCK_PATCH_DATA.avg_time_to_patch_days,
         });
-      } else {
+      
+    setLoading(false);} else {
         setPatchData(MOCK_PATCH_DATA);
       }
     }).finally(() => setIsLoading(false));
@@ -396,6 +398,14 @@ export default function PatchPrioritizer() {
   if (isLoading) return <PageSkeleton />;
 
   const data: PatchPrioritizerData = patchData ?? MOCK_PATCH_DATA;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-8 p-6">
@@ -526,7 +536,13 @@ export default function PatchPrioritizer() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedPatches.map((patch) => (
+                  {sortedPatches.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    sortedPatches.map((patch) => (
                     <TableRow
                       key={patch.id}
                       className={cn(
@@ -590,6 +606,7 @@ export default function PatchPrioritizer() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

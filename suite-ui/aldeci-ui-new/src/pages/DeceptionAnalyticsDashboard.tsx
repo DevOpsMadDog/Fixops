@@ -131,6 +131,7 @@ export default function DeceptionAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     assets: any[] | null;
     interactions: any[] | null;
@@ -163,6 +164,14 @@ export default function DeceptionAnalyticsDashboard() {
   const assets       = liveData.assets       ?? MOCK_ASSETS;
   const interactions = liveData.interactions ?? MOCK_INTERACTIONS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -183,7 +192,8 @@ export default function DeceptionAnalyticsDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"         value={stats.total_assets}         icon={Crosshair}    trend="up"   />
+        <KpiCard title="Total Assets"         value={stats.total_assets}         icon={Crosshair
+    setLoading(false);}    trend="up"   />
         <KpiCard title="Active Assets"        value={stats.active_assets}        icon={Wifi}         trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Interactions"   value={stats.total_interactions}   icon={Activity}     trend="up"   className="border-orange-500/20" />
         <KpiCard title="Unique Attacker IPs"  value={stats.unique_attacker_ips}  icon={Users}        trend="up"   className="border-red-500/20" />
@@ -216,7 +226,13 @@ export default function DeceptionAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.map((a: any, i: number) => (
+                {assets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  assets.map((a: any, i: number) => (
                   <TableRow key={a.asset_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{a.asset_name}</TableCell>
                     <TableCell className="py-2"><AssetTypeBadge type={a.asset_type ?? "honeypot"} /></TableCell>
@@ -225,6 +241,7 @@ export default function DeceptionAnalyticsDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.last_interaction)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -258,7 +275,13 @@ export default function DeceptionAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {interactions.map((ia: any, i: number) => (
+                {interactions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  interactions.map((ia: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{ia.attacker_technique}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={ia.severity ?? "medium"} /></TableCell>
@@ -269,6 +292,7 @@ export default function DeceptionAnalyticsDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ia.asset_id}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

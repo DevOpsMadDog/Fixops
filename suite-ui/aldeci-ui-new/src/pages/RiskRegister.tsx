@@ -335,6 +335,7 @@ async function fetchRisks(): Promise<Risk[]> {
 export default function RiskRegister() {
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [liveStats, setLiveStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -346,7 +347,8 @@ export default function RiskRegister() {
       if (assessments || vendorStats) {
         setLiveStats({ riskStats: vendorStats, vendorStats, assessments });
       }
-    });
+    
+    setLoading(false);});
   }, []);
 
   const { data, isLoading, refetch } = useQuery({
@@ -369,6 +371,14 @@ export default function RiskRegister() {
     Math.max(...TREND_DATA.map((d) => d.critical + d.high + d.medium)) || 1;
 
   const categoryTotal = CATEGORY_DATA.reduce((s, c) => s + c.count, 0);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <>

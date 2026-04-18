@@ -95,6 +95,7 @@ export default function IPReputationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -104,7 +105,8 @@ export default function IPReputationDashboard() {
     ]).then(([statsR, blockR]) => {
       const stats     = statsR.status === "fulfilled" ? statsR.value : null;
       const blocklist = blockR.status === "fulfilled" ? blockR.value : null;
-      if (stats || blocklist) setLiveData({ stats, blocklist });
+      if (stats || blocklist) setLiveData({ stats, blocklist 
+    setLoading(false);});
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -113,6 +115,14 @@ export default function IPReputationDashboard() {
   const stats     = liveData?.stats ?? MOCK_STATS;
   const blocklist = liveData?.blocklist?.items ?? liveData?.blocklist ?? MOCK_BLOCKLIST;
   const lookups   = MOCK_LOOKUPS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -161,7 +171,13 @@ export default function IPReputationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {blocklist.map((b: any, i: number) => (
+                {blocklist.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  blocklist.map((b: any, i: number) => (
                   <TableRow key={b.ip ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{b.ip}</TableCell>
                     <TableCell className="py-2"><ThreatTypeBadge type={b.threat_type} /></TableCell>
@@ -169,6 +185,7 @@ export default function IPReputationDashboard() {
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{b.blocked_at}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -193,7 +210,13 @@ export default function IPReputationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lookups.map((l: any, i: number) => {
+                {lookups.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  lookups.map((l: any, i: number) => {
                   const colors = scoreColor(l.score);
                   return (
                     <TableRow key={l.ip ?? i} className="hover:bg-muted/30">
@@ -215,6 +238,7 @@ export default function IPReputationDashboard() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </CardContent>

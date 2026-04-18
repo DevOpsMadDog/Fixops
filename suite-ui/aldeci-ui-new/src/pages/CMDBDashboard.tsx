@@ -151,6 +151,7 @@ export default function CMDBDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -204,8 +205,17 @@ export default function CMDBDashboard() {
         by:     c.changed_by  ?? "—",
         date:   c.change_date ?? c.created_at ?? "—",
         status: "completed",
-      }))
+      
+    setLoading(false);}))
     : RECENT_CHANGES;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -263,7 +273,13 @@ export default function CMDBDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveCIs.map((ci) => (
+                {liveCIs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveCIs.map((ci) => (
                   <TableRow key={ci.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{ci.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -296,6 +312,7 @@ export default function CMDBDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -314,7 +331,13 @@ export default function CMDBDashboard() {
             <CardDescription className="text-xs">Distribution by configuration item type</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {TYPE_BREAKDOWN.map((t) => (
+            {TYPE_BREAKDOWN.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TYPE_BREAKDOWN.map((t) => (
               <div key={t.type} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="capitalize text-muted-foreground">{t.type.replace("_", " ")}</span>
@@ -330,6 +353,7 @@ export default function CMDBDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -344,7 +368,13 @@ export default function CMDBDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {ENV_DIST.map((e) => (
+              {ENV_DIST.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                ENV_DIST.map((e) => (
                 <div key={e.env} className={cn("rounded-lg border p-4 flex flex-col gap-1", e.color)}>
                   <span className="text-xs font-semibold text-foreground">{e.env}</span>
                   <span className={cn("text-2xl font-bold tabular-nums", e.text)}>
@@ -353,6 +383,7 @@ export default function CMDBDashboard() {
                   <span className="text-[10px] text-muted-foreground">{e.pct}% of total</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -386,7 +417,13 @@ export default function CMDBDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveChanges.map((c, i) => (
+                {liveChanges.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveChanges.map((c, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{c.ci}</TableCell>
                     <TableCell className="py-2.5">
@@ -404,6 +441,7 @@ export default function CMDBDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

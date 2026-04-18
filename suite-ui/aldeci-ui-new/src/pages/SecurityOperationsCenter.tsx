@@ -123,6 +123,7 @@ export default function SecurityOperationsCenter() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -134,7 +135,8 @@ export default function SecurityOperationsCenter() {
       const soarExecutions = soarExecutionsResult.status === "fulfilled" ? soarExecutionsResult.value : null;
       if (soarStats || soarExecutions) {
         setLiveData({ soarStats, soarCases: soarExecutions, insiderStats: null });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -174,6 +176,14 @@ export default function SecurityOperationsCenter() {
             status: c.status ?? "new",
           }))
         : ALERTS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -234,7 +244,13 @@ export default function SecurityOperationsCenter() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveAlerts.map((row) => (
+                {liveAlerts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveAlerts.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(
@@ -265,6 +281,7 @@ export default function SecurityOperationsCenter() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -283,7 +300,13 @@ export default function SecurityOperationsCenter() {
             <CardDescription className="text-xs">Current shift — open tickets, closed today, avg response time</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
-            {ANALYSTS.map((a) => (
+            {ANALYSTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ANALYSTS.map((a) => (
               <div
                 key={a.name}
                 className="rounded-lg border border-border bg-muted/10 p-3 flex flex-col gap-2"
@@ -308,6 +331,7 @@ export default function SecurityOperationsCenter() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -321,7 +345,13 @@ export default function SecurityOperationsCenter() {
             <CardDescription className="text-xs">Alert volume by detection source — last 24 hours</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {SOURCES.map((src) => (
+            {SOURCES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SOURCES.map((src) => (
               <div key={src.name} className="flex items-center gap-3">
                 <span className="text-xs font-medium w-12 shrink-0">{src.name}</span>
                 <div className="flex-1 h-4 rounded bg-muted/30 overflow-hidden relative">
@@ -335,6 +365,7 @@ export default function SecurityOperationsCenter() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{src.count}</span>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -349,7 +380,13 @@ export default function SecurityOperationsCenter() {
           <CardDescription className="text-xs">Items flagged for incoming shift — requires immediate attention</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {HANDOFF_ITEMS.map((item, idx) => (
+          {HANDOFF_ITEMS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            HANDOFF_ITEMS.map((item, idx) => (
             <div
               key={idx}
               className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3"
@@ -358,6 +395,7 @@ export default function SecurityOperationsCenter() {
               <p className="text-xs text-muted-foreground leading-relaxed">{item.note}</p>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

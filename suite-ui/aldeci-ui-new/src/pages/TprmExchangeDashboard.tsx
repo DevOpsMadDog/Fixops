@@ -174,11 +174,13 @@ export default function TprmExchangeDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState({ vendor_name: "", category: "cloud-provider", criticality: "high", contract_value: "" });
+  const [loading, setLoading] = useState(true);
 
   const handleComplete = async (assessId: string) => {
     try { await apiFetch(`/api/v1/tprm-exchange/assessments/${assessId}/complete?org_id=${ORG_ID}`, { method: "POST" }); } catch (_) {}
     setCompletedAssessments(s => new Set([...s, assessId]));
-  };
+  
+    setLoading(false);};
 
   const filteredAssessments = vendorFilter === "all"
     ? MOCK_ASSESSMENTS
@@ -189,6 +191,14 @@ export default function TprmExchangeDashboard() {
     : MOCK_INCIDENTS.filter(i => i.vendor_id === vendorFilter);
 
   const vendorName = (vid: string) => MOCK_VENDORS.find(v => v.id === vid)?.vendor_name ?? vid;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">

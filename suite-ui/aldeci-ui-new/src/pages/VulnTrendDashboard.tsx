@@ -94,6 +94,7 @@ export default function VulnTrendDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchAll = () =>
     Promise.allSettled([
@@ -124,6 +125,14 @@ export default function VulnTrendDashboard() {
     fetchAll().finally(() => { setRefreshing(false); setDataLoading(false); });
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -146,7 +155,8 @@ export default function VulnTrendDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Tracked"       value={liveData?.stats?.total_vulns ?? liveData?.stats?.total_tracked ?? "1,847"}             icon={Bug}          trend="up" />
         <KpiCard title="SLA Breach Rate"     value={liveData?.stats?.sla_breach_rate != null ? `${liveData.stats.sla_breach_rate}%` : "8.4%"} icon={AlertTriangle} trend="up"  className="border-red-500/20" />
-        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "12.4d"} icon={Clock}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "12.4d"
+    setLoading(false);} icon={Clock}        trend="down" className="border-amber-500/20" />
         <KpiCard title="Resolved This Week"  value={liveData?.stats?.resolved_this_week ?? 47}                                              icon={TrendingDown}  trend="up" />
       </div>
 
@@ -236,7 +246,13 @@ export default function VulnTrendDashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
-            {TREND_ANALYSIS.map((t) => (
+            {TREND_ANALYSIS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TREND_ANALYSIS.map((t) => (
               <div key={t.sev} className="flex items-center justify-between">
                 <SeverityBadge sev={t.sev} />
                 <div className="flex items-center gap-2">
@@ -247,6 +263,7 @@ export default function VulnTrendDashboard() {
                 </div>
               </div>
             ))}
+            )}
             <div className="pt-2 border-t border-border/40 text-xs text-muted-foreground">
               Compared to week of Apr 8. Data from vulnerability scanner aggregation.
             </div>
@@ -282,7 +299,13 @@ export default function VulnTrendDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SLA_ROWS.map((row) => {
+                {SLA_ROWS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  SLA_ROWS.map((row) => {
                   const breached = row.days_remaining < 0 && !row.resolved;
                   const barPct = Math.max(0, Math.min(100, (row.days_remaining / row.sla_days) * 100));
                   return (
@@ -317,6 +340,7 @@ export default function VulnTrendDashboard() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </div>

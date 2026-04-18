@@ -118,11 +118,13 @@ function TypeBadge({ type }: { type: ArtifactType }) {
 
 export default function SecurityRegistryDashboard() {
   const [filterStatus, setFilterStatus] = useState<ArtifactStatus | "all">("all");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/security-registry", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); 
+    setLoading(false);});
   }, []);
 
   const filtered = filterStatus === "all"
@@ -133,6 +135,14 @@ export default function SecurityRegistryDashboard() {
   const activeCount = MOCK_ARTIFACTS.filter((a) => a.status === "active").length;
   const pendingReview = MOCK_ARTIFACTS.filter((a) => a.status === "review").length;
   const deprecatedCount = MOCK_ARTIFACTS.filter((a) => a.status === "deprecated").length;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -158,7 +168,13 @@ export default function SecurityRegistryDashboard() {
 
       {/* Type Stats */}
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-        {TYPE_STATS.map((ts, i) => (
+        {TYPE_STATS.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          TYPE_STATS.map((ts, i) => (
           <motion.div
             key={ts.type}
             initial={{ opacity: 0, y: 6 }}
@@ -171,6 +187,7 @@ export default function SecurityRegistryDashboard() {
             <p className="text-xs text-gray-500 capitalize">{ts.type}s</p>
           </motion.div>
         ))}
+        )}
       </div>
 
       {/* Filter Tabs */}
@@ -214,7 +231,13 @@ export default function SecurityRegistryDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((artifact, i) => (
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filtered.map((artifact, i) => (
                 <motion.tr
                   key={artifact.id}
                   initial={{ opacity: 0 }}
@@ -246,6 +269,7 @@ export default function SecurityRegistryDashboard() {
                   <TableCell className="text-right text-sm text-gray-300">{artifact.review_count}</TableCell>
                 </motion.tr>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

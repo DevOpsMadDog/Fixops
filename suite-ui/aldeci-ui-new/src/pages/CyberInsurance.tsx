@@ -202,7 +202,13 @@ export default function CyberInsurance() {
 
       {/* Policy Cards */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {POLICIES.map((p, i) => (
+        {POLICIES.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          POLICIES.map((p, i) => (
           <Card key={i} className="flex flex-col">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -233,6 +239,7 @@ export default function CyberInsurance() {
             </CardContent>
           </Card>
         ))}
+        )}
       </div>
 
       {/* Risk Assessment + Claims */}
@@ -257,7 +264,13 @@ export default function CyberInsurance() {
                 </div>
               </div>
             </div>
-            {RISK_SCORES.map((s) => (
+            {RISK_SCORES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              RISK_SCORES.map((s) => (
               <div key={s.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{s.label}</span>
@@ -273,6 +286,7 @@ export default function CyberInsurance() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -286,7 +300,13 @@ export default function CyberInsurance() {
             <CardDescription className="text-xs">Risks not covered by current policies</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {GAPS.map((g, i) => (
+            {GAPS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              GAPS.map((g, i) => (
               <div key={i} className="rounded-lg border border-border/50 bg-muted/10 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-semibold">{g.title}</span>
@@ -298,6 +318,7 @@ export default function CyberInsurance() {
                 </Button>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -329,7 +350,13 @@ export default function CyberInsurance() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CLAIMS.map((row) => (
+                {CLAIMS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CLAIMS.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="py-2.5"><IncidentBadge type={row.type} /></TableCell>
@@ -340,6 +367,7 @@ export default function CyberInsurance() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

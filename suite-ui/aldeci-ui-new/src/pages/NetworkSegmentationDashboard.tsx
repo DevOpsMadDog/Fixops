@@ -129,6 +129,7 @@ export default function NetworkSegmentationDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadData = (isRefresh = false) => {
     setFetchError(null);
@@ -155,6 +156,14 @@ export default function NetworkSegmentationDashboard() {
     loadData(true);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -166,7 +175,8 @@ export default function NetworkSegmentationDashboard() {
         title="Network Segmentation"
         description="Micro-segmentation coverage, flow policies, and lateral movement risk"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh
+    setLoading(false);} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
@@ -213,7 +223,13 @@ export default function NetworkSegmentationDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {segments.map((seg: any) => (
+                  {segments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    segments.map((seg: any) => (
                     <TableRow key={seg.id} className="hover:bg-muted/30">
                       <TableCell className="py-2 font-mono text-xs text-foreground">{seg.name}</TableCell>
                       <TableCell className="py-2"><SegTypeBadge type={seg.type} /></TableCell>
@@ -221,6 +237,7 @@ export default function NetworkSegmentationDashboard() {
                       <TableCell className="py-2"><TrustBadge level={seg.trust_level} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

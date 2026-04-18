@@ -122,6 +122,7 @@ export default function PrivilegedIdentityDashboard() {
     new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id))
   );
   const [rotatedSet, setRotatedSet] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
@@ -135,6 +136,14 @@ export default function PrivilegedIdentityDashboard() {
   }).length;
   const uncertified = MOCK_ACCOUNTS.filter(a => !certifiedSet.has(a.id)).length;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       <PageHeader
@@ -142,7 +151,8 @@ export default function PrivilegedIdentityDashboard() {
         description="Privileged account lifecycle, session monitoring, and access certification"
       />
 
-      {/* KPI Cards */}
+      {/* KPI Cards */
+    setLoading(false);}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard title="Total Accounts" value={MOCK_ACCOUNTS.length} icon={<Users className="h-5 w-5" />} />
         <KpiCard title="High Risk" value={highRisk} icon={<AlertTriangle className="h-5 w-5 text-red-400" />} />
@@ -179,7 +189,13 @@ export default function PrivilegedIdentityDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_ACCOUNTS.map(a => {
+                {MOCK_ACCOUNTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_ACCOUNTS.map(a => {
                   const { days, needsRotation: needs } = rotationAge(a.password_last_rotated);
                   const isRotated = rotatedSet.has(a.id);
                   const isCertified = certifiedSet.has(a.id);
@@ -215,6 +231,7 @@ export default function PrivilegedIdentityDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -226,7 +243,13 @@ export default function PrivilegedIdentityDashboard() {
         <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Active Sessions</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {MOCK_SESSIONS.map(s => (
+            {MOCK_SESSIONS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_SESSIONS.map(s => (
               <motion.div key={s.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                 className="bg-zinc-900 rounded-lg p-3 border border-zinc-700 space-y-2">
                 <div className="flex items-center justify-between">
@@ -244,6 +267,7 @@ export default function PrivilegedIdentityDashboard() {
                 </div>
               </motion.div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

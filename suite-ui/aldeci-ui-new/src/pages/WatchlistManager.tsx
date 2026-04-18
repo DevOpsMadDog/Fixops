@@ -123,6 +123,7 @@ export default function WatchlistManager() {
   const [added, setAdded]             = useState<string[]>([]);
   const [liveData, setLiveData]       = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -154,6 +155,14 @@ export default function WatchlistManager() {
     setIocInput("");
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -176,7 +185,8 @@ export default function WatchlistManager() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Active Watchlists"   value={liveData?.stats?.watchlist_count ?? 12}    icon={List}   trend="up" />
         <KpiCard title="Total Indicators"    value={liveData?.stats?.total ?? "4,782"}         icon={Shield} trend="up" />
-        <KpiCard title="Matches Today"       value={liveData?.stats?.by_severity ? ((liveData.stats.by_severity.critical ?? 0) + (liveData.stats.by_severity.high ?? 0)) : 23} icon={Eye} trend="up" className="border-amber-500/20" />
+        <KpiCard title="Matches Today"       value={liveData?.stats?.by_severity ? ((liveData.stats.by_severity.critical ?? 0) + (liveData.stats.by_severity.high ?? 0)) : 23} icon={Eye
+    setLoading(false);} trend="up" className="border-amber-500/20" />
         <KpiCard title="Auto-Blocked"        value={liveData?.stats?.enriched_count ?? 187}    icon={Zap}    trend="up" className="border-green-500/20" />
       </div>
 
@@ -211,7 +221,13 @@ export default function WatchlistManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {WATCHLISTS.map((row) => (
+                {WATCHLISTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  WATCHLISTS.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2 text-muted-foreground">{row.id}</TableCell>
                     <TableCell className="text-xs py-2 font-medium">{row.name}</TableCell>
@@ -242,6 +258,7 @@ export default function WatchlistManager() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -274,7 +291,13 @@ export default function WatchlistManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MATCHES.map((row, idx) => (
+                  {MATCHES.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    MATCHES.map((row, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2 max-w-[120px] truncate">{row.watchlist}</TableCell>
                       <TableCell className="text-xs py-2 font-mono max-w-[140px] truncate text-muted-foreground">
@@ -291,6 +314,7 @@ export default function WatchlistManager() {
                       <TableCell className="py-2"><SeverityBadge sev={row.severity} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -323,9 +347,16 @@ export default function WatchlistManager() {
                 onChange={(e) => setIocType(e.target.value)}
                 className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                {TYPE_OPTIONS.map((t) => (
+                {TYPE_OPTIONS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  TYPE_OPTIONS.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
+                )}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -335,9 +366,16 @@ export default function WatchlistManager() {
                 onChange={(e) => setTargetList(e.target.value)}
                 className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                {WATCHLIST_OPTIONS.map((w) => (
+                {WATCHLIST_OPTIONS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  WATCHLIST_OPTIONS.map((w) => (
                   <option key={w} value={w}>{w}</option>
                 ))}
+                )}
               </select>
             </div>
             <Button size="sm" className="h-8 text-xs" onClick={handleAdd}>
@@ -366,7 +404,13 @@ export default function WatchlistManager() {
           <CardDescription className="text-xs">Highest-frequency IP matches across all watchlists</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {TOP_IPS.map((ip) => (
+          {TOP_IPS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            TOP_IPS.map((ip) => (
             <div
               key={ip.ip}
               className="rounded-lg border border-border bg-muted/10 p-3 flex flex-col gap-2"
@@ -383,6 +427,7 @@ export default function WatchlistManager() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

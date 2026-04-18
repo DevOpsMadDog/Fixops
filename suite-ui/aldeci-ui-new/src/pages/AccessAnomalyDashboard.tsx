@@ -111,7 +111,13 @@ export default function AccessAnomalyDashboard() {
           </label>
         </div>
         <div className="space-y-3">
-          {filtered.map(a => (
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            filtered.map(a => (
             <div key={a.id} className={`p-4 rounded-lg border ${a.resolved ? "border-gray-700 bg-gray-700/10 opacity-60" : "border-gray-600 bg-gray-700/30"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -132,6 +138,7 @@ export default function AccessAnomalyDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

@@ -87,6 +87,7 @@ function RiskScoreBar({ score }: { score: number }) {
 export default function IdentityRiskDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
   const [liveIdentities, setLiveIdentities] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]           = useState<any | null>(null);
 
   useEffect(() => {
@@ -99,10 +100,19 @@ export default function IdentityRiskDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const identities = liveIdentities ?? MOCK_IDENTITIES;
   const stats      = liveStats      ?? MOCK_STATS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div

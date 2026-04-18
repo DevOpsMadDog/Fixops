@@ -170,6 +170,7 @@ export default function NDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -184,13 +185,22 @@ export default function NDRDashboard() {
       if (stats || alerts || flows) {
         setLiveData({ stats, alerts, flows });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -344,7 +354,13 @@ export default function NDRDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {SEGMENTS.map((seg) => (
+              {SEGMENTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                SEGMENTS.map((seg) => (
                 <div key={seg.name} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs font-semibold truncate">{seg.name}</span>
@@ -362,6 +378,7 @@ export default function NDRDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -376,7 +393,13 @@ export default function NDRDashboard() {
             <CardDescription className="text-xs">Baseline deviation alerts — normal range vs observed</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {ANOMALIES.map((a, i) => (
+            {ANOMALIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ANOMALIES.map((a, i) => (
               <div key={i} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-semibold">{a.ip}</span>
@@ -390,6 +413,7 @@ export default function NDRDashboard() {
                 <div className="text-[10px] text-amber-400 font-medium">+{a.deviation}% above baseline</div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

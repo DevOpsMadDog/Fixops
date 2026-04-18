@@ -193,6 +193,7 @@ export default function ConfigBenchmarkDashboard() {
   const [expandedCheck, setExpandedCheck] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -206,7 +207,8 @@ export default function ConfigBenchmarkDashboard() {
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
       if (stats || profiles || assessments) {
         setLiveData({ stats, profiles, assessments });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -214,6 +216,14 @@ export default function ConfigBenchmarkDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -324,7 +334,13 @@ export default function ConfigBenchmarkDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {CHECK_RESULTS.map((c) => (
+                  {CHECK_RESULTS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    CHECK_RESULTS.map((c) => (
                     <TableRow key={c.ref} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 w-8"><StatusIcon status={c.status} /></TableCell>
                       <TableCell className="text-[10px] font-mono py-2.5 text-muted-foreground whitespace-nowrap">{c.ref}</TableCell>
@@ -337,6 +353,7 @@ export default function ConfigBenchmarkDashboard() {
                       <TableCell className="text-[10px] py-2.5 font-mono text-muted-foreground max-w-[100px] truncate">{c.expected}</TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -353,7 +370,13 @@ export default function ConfigBenchmarkDashboard() {
             <CardDescription className="text-xs">Average score across all profiles per standard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
-            {SCORE_BY_STANDARD.map((s) => (
+            {SCORE_BY_STANDARD.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SCORE_BY_STANDARD.map((s) => (
               <div key={s.standard} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{s.standard}</span>
@@ -371,6 +394,7 @@ export default function ConfigBenchmarkDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -388,7 +412,13 @@ export default function ConfigBenchmarkDashboard() {
           <CardDescription className="text-xs">Click a check to expand remediation steps</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {FAILED_CHECKS.map((fc) => {
+          {FAILED_CHECKS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            FAILED_CHECKS.map((fc) => {
             const isOpen = expandedCheck === fc.ref;
             return (
               <div key={fc.ref} className="rounded-md border border-border/60 overflow-hidden">
@@ -418,6 +448,7 @@ export default function ConfigBenchmarkDashboard() {
               </div>
             );
           })}
+          )}
         </CardContent>
       </Card>
     </motion.div>

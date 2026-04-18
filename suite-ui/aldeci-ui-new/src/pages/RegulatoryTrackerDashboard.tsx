@@ -190,6 +190,7 @@ export default function RegulatoryTrackerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -204,13 +205,22 @@ export default function RegulatoryTrackerDashboard() {
       if (stats || upcoming || active) {
         setLiveData({ stats, upcoming, active });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -311,7 +321,13 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {OBLIGATIONS.map((row, i) => (
+                {OBLIGATIONS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  OBLIGATIONS.map((row, i) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs py-2.5 max-w-[220px] truncate font-medium">{row.title}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.reg}</TableCell>
@@ -321,6 +337,7 @@ export default function RegulatoryTrackerDashboard() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -339,7 +356,13 @@ export default function RegulatoryTrackerDashboard() {
             <CardDescription className="text-xs">Recent compliance assessments with gap counts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {ASSESSMENTS.map((a, i) => (
+            {ASSESSMENTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ASSESSMENTS.map((a, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -358,6 +381,7 @@ export default function RegulatoryTrackerDashboard() {
                 <p className="text-[10px] text-muted-foreground">Assessed by: {a.assessor}</p>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -382,7 +406,13 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CATALOG.map((reg, i) => (
+                {CATALOG.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CATALOG.map((reg, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2">{reg.name}</TableCell>
                     <TableCell className="py-2"><JurisdictionBadge j={reg.jurisdiction} /></TableCell>
@@ -395,6 +425,7 @@ export default function RegulatoryTrackerDashboard() {
                     <TableCell className="text-xs py-2 text-muted-foreground font-mono">{reg.version}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

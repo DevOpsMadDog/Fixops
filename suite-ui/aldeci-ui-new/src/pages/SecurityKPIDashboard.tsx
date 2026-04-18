@@ -303,7 +303,13 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
     <div className="space-y-1">
       <div className="text-xs text-slate-400">{label}</div>
       <div className="flex gap-0.5 h-8 items-end">
-        {data.map((value, i) => {
+        {data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          data.map((value, i) => {
           const height = ((value - min) / range) * 100;
           const bgColor =
             trend === "down"
@@ -320,6 +326,7 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
             />
           );
         })}
+        )}
       </div>
     </div>
   );
@@ -333,6 +340,7 @@ export default function SecurityKPIDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -344,7 +352,8 @@ export default function SecurityKPIDashboard() {
       const current   = currentResult.status === "fulfilled" ? currentResult.value : null;
       if (executive || current) {
         setLiveData({ executive, current });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -377,6 +386,14 @@ export default function SecurityKPIDashboard() {
           : MOCK_SCORECARD.kpis,
       }
     : MOCK_SCORECARD;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -574,7 +591,13 @@ export default function SecurityKPIDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_CATEGORY_SCORES.map((cat) => (
+            {MOCK_CATEGORY_SCORES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_CATEGORY_SCORES.map((cat) => (
               <motion.div
                 key={cat.category}
                 initial={{ opacity: 0, x: -10 }}
@@ -601,6 +624,7 @@ export default function SecurityKPIDashboard() {
                 />
               </motion.div>
             ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -621,7 +645,13 @@ export default function SecurityKPIDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_STRENGTHS.map((strength, idx) => (
+            {MOCK_STRENGTHS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_STRENGTHS.map((strength, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
@@ -633,6 +663,7 @@ export default function SecurityKPIDashboard() {
                 <p className="text-sm text-slate-400 mt-1">{strength.description}</p>
               </motion.div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -645,7 +676,13 @@ export default function SecurityKPIDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_WEAKNESSES.map((weakness, idx) => (
+            {MOCK_WEAKNESSES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_WEAKNESSES.map((weakness, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
@@ -678,6 +715,7 @@ export default function SecurityKPIDashboard() {
                 <p className="text-sm text-slate-400 mt-1">{weakness.description}</p>
               </motion.div>
             ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>

@@ -320,12 +320,19 @@ export default function CISOReportDashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {bullets.map((bullet, i) => (
+              {bullets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                bullets.map((bullet, i) => (
                 <li key={i} className="flex gap-3 text-sm">
                   <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
                   <span className="text-muted-foreground leading-relaxed">{bullet}</span>
                 </li>
               ))}
+              )}
             </ul>
           </CardContent>
         </Card>
@@ -411,7 +418,13 @@ export default function CISOReportDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topRisks.map((risk, i) => (
+                {topRisks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  topRisks.map((risk, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium text-sm max-w-[160px]">
                       {risk.title}
@@ -441,6 +454,7 @@ export default function CISOReportDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

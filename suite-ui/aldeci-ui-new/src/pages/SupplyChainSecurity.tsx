@@ -276,7 +276,13 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-6 gap-1.5">
-          {grid.map((dep) => (
+          {grid.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            grid.map((dep) => (
             <motion.div
               key={dep.id}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -298,6 +304,7 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
               <span className="text-xs font-bold text-center">{dep.risk_score}</span>
             </motion.div>
           ))}
+          )}
         </div>
       </CardContent>
     </Card>
@@ -375,7 +382,13 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
               </tr>
             </thead>
             <tbody>
-              {filtered.map((dep) => (
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filtered.map((dep) => (
                 <motion.tr
                   key={dep.id}
                   initial={{ opacity: 0, y: 4 }}
@@ -447,6 +460,7 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
                   </td>
                 </motion.tr>
               ))}
+              )}
             </tbody>
           </table>
         </ScrollArea>
@@ -517,7 +531,13 @@ function TransitiveDependencyTree() {
       <CardContent>
         <ScrollArea className="h-64">
           <div className="space-y-1 pr-4 font-mono text-sm">
-            {MOCK_TREE.map((dep, idx) => (
+            {MOCK_TREE.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_TREE.map((dep, idx) => (
               <motion.div
                 key={`${dep.name}-${idx}`}
                 initial={{ opacity: 0, x: -8 }}
@@ -532,6 +552,7 @@ function TransitiveDependencyTree() {
                 </span>
               </motion.div>
             ))}
+            )}
           </div>
         </ScrollArea>
       </CardContent>
@@ -628,7 +649,13 @@ function RecentEvents() {
       <CardContent>
         <ScrollArea className="h-64">
           <div className="space-y-3 pr-4">
-            {EVENTS.map((item, idx) => {
+            {EVENTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              EVENTS.map((item, idx) => {
               const EventIcon = item.icon;
               const bgColor =
                 item.type === "critical"
@@ -658,6 +685,7 @@ function RecentEvents() {
                 </motion.div>
               );
             })}
+            )}
           </div>
         </ScrollArea>
       </CardContent>

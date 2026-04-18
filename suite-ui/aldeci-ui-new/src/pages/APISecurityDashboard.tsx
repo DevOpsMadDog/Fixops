@@ -111,11 +111,20 @@ const OWASP_MAX = 25;
 
 export default function APISecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -170,7 +179,13 @@ export default function APISecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {API_INVENTORY.map((row) => (
+                {API_INVENTORY.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  API_INVENTORY.map((row) => (
                   <TableRow key={row.endpoint} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[220px] truncate">{row.endpoint}</TableCell>
                     <TableCell className="py-2.5"><MethodBadge m={row.method} /></TableCell>
@@ -191,6 +206,7 @@ export default function APISecurityDashboard() {
                     <TableCell className="py-2.5"><RiskBadge r={row.risk} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -209,7 +225,13 @@ export default function APISecurityDashboard() {
             <CardDescription className="text-xs">Vulnerability count by OWASP API Security category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {OWASP_VULNS.map((v) => (
+            {OWASP_VULNS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              OWASP_VULNS.map((v) => (
               <div key={v.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground truncate max-w-[240px]">{v.label}</span>
@@ -225,6 +247,7 @@ export default function APISecurityDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -238,7 +261,13 @@ export default function APISecurityDashboard() {
             <CardDescription className="text-xs">Recent detected anomalies and actions taken</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {ANOMALIES.map((ev, i) => (
+            {ANOMALIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ANOMALIES.map((ev, i) => (
               <div key={i} className="flex flex-col gap-1 p-2 rounded-lg bg-muted/20 border border-border/50">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-mono text-muted-foreground">{ev.ts}</span>
@@ -255,6 +284,7 @@ export default function APISecurityDashboard() {
                 <span className="text-[10px] text-muted-foreground font-medium">{ev.type.replace(/_/g, " ")}</span>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -270,12 +300,19 @@ export default function APISecurityDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {SCHEMA_STATS.map((s) => (
+            {SCHEMA_STATS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SCHEMA_STATS.map((s) => (
               <div key={s.label} className={cn("rounded-lg border p-4 text-center", s.color)}>
                 <div className="text-2xl font-bold tabular-nums">{s.count}</div>
                 <div className="text-[10px] font-medium mt-1">{s.label}</div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

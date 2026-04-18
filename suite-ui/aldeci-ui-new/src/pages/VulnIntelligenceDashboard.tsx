@@ -341,7 +341,13 @@ export default function VulnIntelligenceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayCves.map((cve: any, i: number) => (
+                {displayCves.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  displayCves.map((cve: any, i: number) => (
                   <TableRow key={cve.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
                       <span className="font-mono text-[11px] text-blue-400 flex items-center gap-1">
@@ -377,6 +383,7 @@ export default function VulnIntelligenceDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -401,7 +408,13 @@ export default function VulnIntelligenceDashboard() {
             <CardDescription className="text-xs">Vendor security advisories — track and apply patches</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {displayAdvisories.map((adv: any, i: number) => (
+            {displayAdvisories.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              displayAdvisories.map((adv: any, i: number) => (
               <div key={adv.id ?? i} className={cn(
                 "rounded-lg border bg-muted/20 p-3 space-y-2",
                 adv.status === "new" ? "border-amber-500/20" : "border-border"
@@ -439,6 +452,7 @@ export default function VulnIntelligenceDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -457,7 +471,13 @@ export default function VulnIntelligenceDashboard() {
             <CardDescription className="text-xs">Vendor, product, and keyword subscriptions for CVE notifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {displaySubs.map((sub: any, i: number) => (
+            {displaySubs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              displaySubs.map((sub: any, i: number) => (
               <div key={sub.id ?? i} className={cn(
                 "flex items-center justify-between rounded-lg border p-3",
                 sub.active === false ? "border-border bg-muted/10 opacity-60" : "border-border bg-muted/20"
@@ -491,6 +511,7 @@ export default function VulnIntelligenceDashboard() {
                 </div>
               </div>
             ))}
+            )}
 
             <div className="pt-2">
               <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed border-blue-500/30 text-blue-400 hover:bg-blue-500/10">

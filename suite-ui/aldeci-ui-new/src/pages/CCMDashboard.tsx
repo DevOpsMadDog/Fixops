@@ -166,6 +166,7 @@ export default function CCMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -180,13 +181,22 @@ export default function CCMDashboard() {
       if (stats || controls || failures) {
         setLiveData({ stats, controls, failures });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -235,7 +245,13 @@ export default function CCMDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {FRAMEWORKS.map((fw) => (
+              {FRAMEWORKS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                FRAMEWORKS.map((fw) => (
                 <TableRow key={fw.name} className="hover:bg-muted/30">
                   <TableCell className="text-xs font-medium py-2.5">{fw.name}</TableCell>
                   <TableCell className="text-xs py-2.5 text-right tabular-nums text-muted-foreground">{fw.total}</TableCell>
@@ -245,6 +261,7 @@ export default function CCMDashboard() {
                   <TableCell className="py-2.5"><FrameworkStatusBadge status={fw.status} /></TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -343,7 +360,13 @@ export default function CCMDashboard() {
             <CardDescription className="text-xs">Last 8 automated test runs with pass/fail summary</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {TEST_HISTORY.map((run, i) => {
+            {TEST_HISTORY.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TEST_HISTORY.map((run, i) => {
               const passRate = Math.round((run.passed / run.total) * 100);
               return (
                 <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
@@ -373,6 +396,7 @@ export default function CCMDashboard() {
                 </div>
               );
             })}
+            )}
           </CardContent>
         </Card>
       </div>

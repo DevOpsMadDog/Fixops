@@ -142,6 +142,7 @@ export default function CWPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -167,6 +168,14 @@ export default function CWPPDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -188,7 +197,8 @@ export default function CWPPDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Workloads Protected"  value={liveData?.summary?.total_workloads ?? liveData?.summary?.protected_count ?? 847}    icon={Shield}        trend="up"   />
-        <KpiCard title="Suspicious"           value={liveData?.summary?.threat_count ?? liveData?.summary?.suspicious_count ?? 12}        icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Suspicious"           value={liveData?.summary?.threat_count ?? liveData?.summary?.suspicious_count ?? 12
+    setLoading(false);}        icon={AlertTriangle} trend="up"   className="border-red-500/20" />
         <KpiCard title="Open Findings"        value={liveData?.summary?.finding_count ?? liveData?.summary?.open_findings ?? 234}         icon={Activity}      trend="down" className="border-amber-500/20" />
         <KpiCard title="Events Blocked Today" value={liveData?.summary?.blocked_events ?? liveData?.summary?.events_blocked ?? "1,847"}   icon={Zap}           trend="up"   className="border-green-500/20" />
       </div>
@@ -324,7 +334,13 @@ export default function CWPPDashboard() {
             <CardDescription className="text-xs">Open findings grouped by category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {FINDING_TYPES.map((f) => (
+            {FINDING_TYPES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              FINDING_TYPES.map((f) => (
               <div key={f.type} className={cn("flex items-center justify-between rounded-lg border p-3", f.bg)}>
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-medium">{f.type.replace(/_/g, " ")}</span>
@@ -333,6 +349,7 @@ export default function CWPPDashboard() {
                 <span className={cn("text-sm font-bold tabular-nums", f.color)}>{f.count}</span>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -346,7 +363,13 @@ export default function CWPPDashboard() {
             <CardDescription className="text-xs">Active runtime security policies and coverage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {POLICIES.map((p) => (
+            {POLICIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              POLICIES.map((p) => (
               <div key={p.name} className="rounded-lg border border-border bg-muted/10 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold">{p.name}</span>
@@ -368,6 +391,7 @@ export default function CWPPDashboard() {
                 </p>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

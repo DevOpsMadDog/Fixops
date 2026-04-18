@@ -173,6 +173,7 @@ export default function CloudSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -198,6 +199,14 @@ export default function CloudSecurityDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -219,7 +228,8 @@ export default function CloudSecurityDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Cloud Accounts"      value={liveData?.stats?.total_accounts    ?? liveData?.accounts?.length ?? 12}    icon={Cloud}         />
-        <KpiCard title="Open Findings"       value={liveData?.stats?.total_findings    ?? liveData?.findings?.length ?? 234}   icon={AlertTriangle} trend="up" className="border-amber-500/20" />
+        <KpiCard title="Open Findings"       value={liveData?.stats?.total_findings    ?? liveData?.findings?.length ?? 234}   icon={AlertTriangle
+    setLoading(false);} trend="up" className="border-amber-500/20" />
         <KpiCard title="Critical Misconfigs" value={liveData?.stats?.critical_findings ?? liveData?.stats?.critical_count ?? 18} icon={Zap}         trend="up" className="border-red-500/20" />
         <KpiCard title="Avg Posture Score"   value={liveData?.stats?.avg_risk_score != null ? `${(100 - liveData.stats.avg_risk_score).toFixed(1)}%` : "73.2%"} icon={Shield} trend="up" className="border-green-500/20" />
       </div>
@@ -292,7 +302,13 @@ export default function CloudSecurityDashboard() {
             <CardDescription className="text-xs">Pass / fail breakdown across 6 security frameworks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {BENCHMARKS.map((b) => {
+            {BENCHMARKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              BENCHMARKS.map((b) => {
               const pct = Math.round((b.pass / b.total) * 100);
               return (
                 <div key={b.name} className="space-y-1.5">
@@ -315,6 +331,7 @@ export default function CloudSecurityDashboard() {
                 </div>
               );
             })}
+            )}
           </CardContent>
         </Card>
 

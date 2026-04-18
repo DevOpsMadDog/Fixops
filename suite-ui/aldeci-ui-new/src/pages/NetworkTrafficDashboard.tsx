@@ -132,6 +132,7 @@ export default function NetworkTrafficDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -139,7 +140,8 @@ export default function NetworkTrafficDashboard() {
       apiFetch(`/api/v1/network-traffic/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/network-traffic/anomalies?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/network-traffic/top-talkers?org_id=${ORG_ID}&limit=10`),
-      apiFetch(`/api/v1/network-traffic/rules?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/network-traffic/rules?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsR, anomR, talkR, rulesR]) => {
       const stats    = statsR.status  === "fulfilled" ? statsR.value  : null;
       const anomalies= anomR.status   === "fulfilled" ? anomR.value   : null;
@@ -159,6 +161,14 @@ export default function NetworkTrafficDashboard() {
   const flaggedFlows= liveData?.stats?.flagged_flows  ?? anomalies.length;
   const anomalyRate = liveData?.stats?.anomaly_rate   ?? "0.64%";
   const avgRisk     = liveData?.stats?.avg_risk_score ?? Math.round(anomalies.reduce((s: number, f: any) => s + (f.risk_score ?? 0), 0) / anomalies.length);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -212,7 +222,13 @@ export default function NetworkTrafficDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {anomalies.map((f: any, i: number) => (
+                {anomalies.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  anomalies.map((f: any, i: number) => (
                   <TableRow key={f.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><AnomalyTypeBadge type={f.anomaly_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{f.src_ip}</TableCell>
@@ -236,6 +252,7 @@ export default function NetworkTrafficDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -265,7 +282,13 @@ export default function NetworkTrafficDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topTalkers.map((t: any, i: number) => (
+                {topTalkers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  topTalkers.map((t: any, i: number) => (
                   <TableRow key={t.src_ip ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{t.src_ip}</TableCell>
                     <TableCell className="py-2">
@@ -290,6 +313,7 @@ export default function NetworkTrafficDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -315,7 +339,13 @@ export default function NetworkTrafficDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rules.map((r: any) => (
+                {rules.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  rules.map((r: any) => (
                   <TableRow key={r.id ?? r.rule_name} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[130px] truncate">{r.name ?? r.rule_name}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">
@@ -325,6 +355,7 @@ export default function NetworkTrafficDashboard() {
                     <TableCell className="py-2 text-right text-xs tabular-nums text-muted-foreground">{(r.hit_count ?? r.hits ?? 0).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -341,7 +372,13 @@ export default function NetworkTrafficDashboard() {
           <CardDescription className="text-xs">Traffic breakdown by protocol (% of total flows)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {PROTOCOLS.map((p, i) => (
+          {PROTOCOLS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            PROTOCOLS.map((p, i) => (
             <div key={p.name} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium w-12">{p.name}</span>
@@ -357,6 +394,7 @@ export default function NetworkTrafficDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

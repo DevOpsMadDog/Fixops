@@ -145,7 +145,13 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
   const maxMttr = Math.max(...data.map(d => d.mttr));
   return (
     <div className="space-y-4">
-      {data.map(d => (
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        data.map(d => (
         <div key={d.date} className="grid grid-cols-[60px_1fr_1fr] gap-3 items-center text-xs">
           <span className="text-gray-400">{d.date}</span>
           <div className="flex items-center gap-1">
@@ -162,6 +168,7 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
           </div>
         </div>
       ))}
+      )}
       <div className="grid grid-cols-[60px_1fr_1fr] gap-3 text-xs text-gray-500 border-t border-gray-700 pt-2">
         <span />
         <span className="text-teal-500">MTTD</span>
@@ -175,11 +182,13 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
 
 export default function SecurityOperationsMetricsDashboard() {
   const [queue, setQueue] = useState(MOCK_QUEUE);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); 
+    setLoading(false);});
   }, []);
 
   function ackAlert(id: string) {
@@ -188,6 +197,14 @@ export default function SecurityOperationsMetricsDashboard() {
   function resolveAlert(id: string) {
     setQueue(prev => prev.map(a => a.id === id ? { ...a, status: "resolved" } : a));
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -250,7 +267,13 @@ export default function SecurityOperationsMetricsDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_ANALYSTS.map((a, i) => (
+              {MOCK_ANALYSTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_ANALYSTS.map((a, i) => (
                 <tr key={a.name} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4">
                     <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
@@ -263,6 +286,7 @@ export default function SecurityOperationsMetricsDashboard() {
                   <td className="py-2.5"><EfficiencyBadge e={a.efficiency} /></td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -281,7 +305,13 @@ export default function SecurityOperationsMetricsDashboard() {
               </tr>
             </thead>
             <tbody>
-              {queue.map(a => (
+              {queue.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                queue.map(a => (
                 <tr key={a.id} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4"><SeverityBadge s={a.severity} /></td>
                   <td className="py-2.5 pr-4 text-gray-200">{a.category}</td>
@@ -301,6 +331,7 @@ export default function SecurityOperationsMetricsDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

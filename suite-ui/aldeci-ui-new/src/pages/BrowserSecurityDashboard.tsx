@@ -148,6 +148,7 @@ export default function BrowserSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     events: any[] | null;
     extensions: any[] | null;
@@ -180,6 +181,14 @@ export default function BrowserSecurityDashboard() {
   const events     = liveData.events     ?? MOCK_EVENTS;
   const extensions = liveData.extensions ?? MOCK_EXTENSIONS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -200,7 +209,8 @@ export default function BrowserSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Policies"   value={stats.total_policies}   icon={Globe}       trend="flat" />
+        <KpiCard title="Total Policies"   value={stats.total_policies
+    setLoading(false);}   icon={Globe}       trend="flat" />
         <KpiCard title="Active Policies"  value={stats.active_policies}  icon={ShieldCheck} trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Events"     value={stats.total_events}     icon={AlertTriangle} trend="flat" />
         <KpiCard title="Blocked Events"   value={stats.blocked_events}   icon={Ban}         trend="down" className="border-red-500/20" />
@@ -233,7 +243,13 @@ export default function BrowserSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {events.map((ev: any, i: number) => (
+                {events.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  events.map((ev: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><EventTypeBadge type={ev.event_type ?? "unknown"} /></TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={ev.severity ?? "low"} /></TableCell>
@@ -246,6 +262,7 @@ export default function BrowserSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -279,7 +296,13 @@ export default function BrowserSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {extensions.map((ext: any, i: number) => (
+                {extensions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  extensions.map((ext: any, i: number) => (
                   <TableRow key={ext.name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{ext.name}</TableCell>
                     <TableCell className="py-2"><BrowserBadge type={ext.browser_type ?? "chrome"} /></TableCell>
@@ -288,6 +311,7 @@ export default function BrowserSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ext.publisher}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

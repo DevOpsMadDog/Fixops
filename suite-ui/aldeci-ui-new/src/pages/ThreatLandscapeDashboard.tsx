@@ -138,11 +138,13 @@ export default function ThreatLandscapeDashboard() {
   useEffect(() => {
     fetch("/api/v1/threat-landscape", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(() => { /* live data available */ 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
   const [resolvedMsg, setResolvedMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const filteredActors = MOCK_ACTORS.filter(a => {
     if (filterActive === "active") return a.active;
@@ -163,6 +165,14 @@ export default function ThreatLandscapeDashboard() {
     setResolvedMsg("Threat marked as resolved.");
     setTimeout(() => setResolvedMsg(null), 3000);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -225,7 +235,13 @@ export default function ThreatLandscapeDashboard() {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredActors.map(actor => (
+          {filteredActors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            filteredActors.map(actor => (
             <div key={actor.id} className="bg-gray-800 rounded-lg p-5 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -267,6 +283,7 @@ export default function ThreatLandscapeDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
 
@@ -274,7 +291,13 @@ export default function ThreatLandscapeDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Emerging Threats</h2>
         <div className="space-y-3">
-          {threats.map(threat => (
+          {threats.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            threats.map(threat => (
             <div key={threat.id} className={`p-4 rounded-lg border transition-opacity ${threat.resolved ? "opacity-50 border-gray-700 bg-gray-700/20" : "border-gray-700 bg-gray-700/30"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -303,6 +326,7 @@ export default function ThreatLandscapeDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
 
@@ -322,7 +346,13 @@ export default function ThreatLandscapeDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {MOCK_ASSESSMENTS.map(a => (
+              {MOCK_ASSESSMENTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_ASSESSMENTS.map(a => (
                 <tr key={a.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-2.5 pr-4 text-gray-300">{a.date}</td>
                   <td className="py-2.5 pr-4 text-gray-200">{a.sector}</td>
@@ -336,6 +366,7 @@ export default function ThreatLandscapeDashboard() {
                   <td className="py-2.5 text-gray-400">{a.analyst}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

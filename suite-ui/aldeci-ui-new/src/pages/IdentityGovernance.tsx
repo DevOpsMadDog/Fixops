@@ -422,6 +422,7 @@ export default function IdentityGovernance() {
   );
   const [igaStats, setIgaStats] = useState<any>(null);
   const [identityAnalytics, setIdentityAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   // Fetch governance stats + identity-analytics data
   useEffect(() => {
@@ -437,7 +438,8 @@ export default function IdentityGovernance() {
     Promise.allSettled([
       fetchIgaStats(),
       iaFetch(`/identity-analytics/sessions?org_id=${ORG_ID}&limit=20`),
-      iaFetch(`/identity-analytics/stats?org_id=${ORG_ID}`),
+      iaFetch(`/identity-analytics/stats?org_id=${ORG_ID
+    setLoading(false);}`),
     ]).then(([statsRes, sessionsRes, iaStatsRes]) => {
       if (statsRes.status === "fulfilled") setIgaStats(statsRes.value);
       const sessions  = sessionsRes.status  === "fulfilled" ? sessionsRes.value  : null;
@@ -486,6 +488,14 @@ export default function IdentityGovernance() {
   function handleDisable(id: string) {
     setDisabledAccounts((prev) => new Set(prev).add(id));
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -544,7 +554,13 @@ export default function IdentityGovernance() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveCampaigns.map((campaign) => {
+                {liveCampaigns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveCampaigns.map((campaign) => {
                   const pct =
                     campaign.total_count > 0
                       ? Math.round(
@@ -604,6 +620,7 @@ export default function IdentityGovernance() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -642,7 +659,13 @@ export default function IdentityGovernance() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reviewQueue.map((item) => {
+                  {reviewQueue.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    reviewQueue.map((item) => {
                     const decision = decisions[item.id];
                     return (
                       <TableRow
@@ -744,6 +767,7 @@ export default function IdentityGovernance() {
                       </TableRow>
                     );
                   })}
+                  )}
                 </TableBody>
               </Table>
             </ScrollArea>
@@ -775,7 +799,13 @@ export default function IdentityGovernance() {
               <ScrollArea className="h-[340px]">
                 <div className="space-y-2">
                   <AnimatePresence>
-                    {orphanedAccounts.map((account, idx) => {
+                    {orphanedAccounts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    ) : (
+                      orphanedAccounts.map((account, idx) => {
                       const isDisabled = disabledAccounts.has(account.id);
                       return (
                         <motion.div
@@ -829,6 +859,7 @@ export default function IdentityGovernance() {
                         </motion.div>
                       );
                     })}
+                    )}
                   </AnimatePresence>
                 </div>
               </ScrollArea>
@@ -851,7 +882,13 @@ export default function IdentityGovernance() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {sodViolations.map((violation, idx) => (
+                {sodViolations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  sodViolations.map((violation, idx) => (
                   <motion.div
                     key={violation.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -897,6 +934,7 @@ export default function IdentityGovernance() {
                     </div>
                   </motion.div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>

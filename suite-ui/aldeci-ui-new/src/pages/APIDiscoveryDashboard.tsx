@@ -107,6 +107,7 @@ export default function APIDiscoveryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     endpoints: any[] | null;
   }>({ stats: null, endpoints: null });
@@ -135,6 +136,14 @@ export default function APIDiscoveryDashboard() {
   const stats     = liveData.stats     ?? MOCK_STATS;
   const endpoints = liveData.endpoints ?? MOCK_ENDPOINTS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -153,7 +162,8 @@ export default function APIDiscoveryDashboard() {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs */
+    setLoading(false);}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Endpoints"       value={stats.total_endpoints}         icon={Code}          trend="up"   />
         <KpiCard title="Undocumented"          value={stats.undocumented_endpoints}  icon={Search}        trend="up"   className="border-amber-500/20" />
@@ -189,7 +199,13 @@ export default function APIDiscoveryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {endpoints.map((ep: any, i: number) => (
+                {endpoints.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  endpoints.map((ep: any, i: number) => (
                   <TableRow key={ep.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><MethodBadge method={ep.method ?? "GET"} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{ep.path}</TableCell>
@@ -203,6 +219,7 @@ export default function APIDiscoveryDashboard() {
                     <TableCell className="py-2"><EndpointStatusBadge status={ep.status ?? "documented"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

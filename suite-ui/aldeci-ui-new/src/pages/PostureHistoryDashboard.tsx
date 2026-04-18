@@ -108,15 +108,25 @@ export default function PostureHistoryDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); 
+    setLoading(false);});
   }, []);
 
   const [selectedDomain, setSelectedDomain] = useState<Domain>("network");
+  const [loading, setLoading] = useState(true);
 
   const trendPoints = TREND_DATA[selectedDomain];
   const maxVal = Math.max(...trendPoints);
   const minVal = Math.min(...trendPoints);
   const range = maxVal - minVal || 1;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -155,7 +165,13 @@ export default function PostureHistoryDashboard() {
 
       {/* Domain Score Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {DOMAIN_SCORES.map(ds => {
+        {DOMAIN_SCORES.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          DOMAIN_SCORES.map(ds => {
           const gap = ds.latest_score - ds.baseline_score;
           return (
             <div
@@ -182,6 +198,7 @@ export default function PostureHistoryDashboard() {
             </div>
           );
         })}
+        )}
       </div>
 
       {/* Trend Chart */}
@@ -191,7 +208,13 @@ export default function PostureHistoryDashboard() {
         </h2>
         <p className="text-gray-400 text-sm mb-6">Click a domain card above to change view</p>
         <div className="flex items-end gap-2 h-40">
-          {trendPoints.map((val, i) => {
+          {trendPoints.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            trendPoints.map((val, i) => {
             const heightPct = range === 0 ? 50 : ((val - minVal) / range) * 80 + 10;
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -204,6 +227,7 @@ export default function PostureHistoryDashboard() {
               </div>
             );
           })}
+          )}
         </div>
       </div>
 
@@ -221,7 +245,13 @@ export default function PostureHistoryDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {SNAPSHOTS.map(snap => (
+              {SNAPSHOTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                SNAPSHOTS.map(snap => (
                 <tr key={snap.id} className="hover:bg-gray-700/50">
                   <td className="py-3 pr-4 text-gray-300">{snap.date}</td>
                   <td className="py-3 pr-4">
@@ -238,6 +268,7 @@ export default function PostureHistoryDashboard() {
                   <td className="py-3 text-gray-400 text-xs">{snap.source}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

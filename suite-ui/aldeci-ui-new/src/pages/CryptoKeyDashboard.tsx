@@ -82,6 +82,7 @@ function ExpiryBadge({ days }: { days: number }) {
 
 export default function CryptoKeyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [expiring, setExpiring]     = useState<typeof MOCK_EXPIRING>(MOCK_EXPIRING);
   const [rotating, setRotating]     = useState<string | null>(null);
@@ -96,7 +97,8 @@ export default function CryptoKeyDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const handleRotate = (id: string) => {
     setRotating(id);
@@ -104,6 +106,14 @@ export default function CryptoKeyDashboard() {
   };
 
   const keyTypeCount = Object.keys(stats.by_type ?? {}).length;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -167,7 +177,13 @@ export default function CryptoKeyDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expiring.map((k: any) => (
+                {expiring.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  expiring.map((k: any) => (
                   <TableRow key={k.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{k.name}</TableCell>
                     <TableCell className="py-2"><KeyTypeBadge type={k.type} /></TableCell>
@@ -187,6 +203,7 @@ export default function CryptoKeyDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

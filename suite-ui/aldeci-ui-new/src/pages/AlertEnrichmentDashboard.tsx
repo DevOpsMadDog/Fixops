@@ -180,7 +180,13 @@ export default function AlertEnrichmentDashboard() {
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Enrichment Queue — Critical First</h2>
           <div className="space-y-2">
-            {sortedQueue.map(alert => (
+            {sortedQueue.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              sortedQueue.map(alert => (
               <div key={alert.id}>
                 <div
                   className={cn("bg-gray-900 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-700/40 transition-all",
@@ -223,6 +229,7 @@ export default function AlertEnrichmentDashboard() {
                 )}
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -233,7 +240,13 @@ export default function AlertEnrichmentDashboard() {
               <AlertTriangle className="w-4 h-4 text-red-400" /> High Risk Alerts (≥7.0)
             </h2>
             <div className="space-y-2">
-              {highRisk.map(a => (
+              {highRisk.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                highRisk.map(a => (
                 <div key={a.id} className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
                   <div className="flex items-center justify-between">
                     <IndicatorBadge t={a.indicator_type} />
@@ -246,6 +259,7 @@ export default function AlertEnrichmentDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
 
@@ -253,7 +267,13 @@ export default function AlertEnrichmentDashboard() {
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Source Reliability</h2>
             <div className="space-y-3">
-              {sources.map(src => (
+              {sources.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                sources.map(src => (
                 <div key={src.id} className="bg-gray-900 rounded-lg px-3 py-2">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-white font-medium">{src.source_name}</p>
@@ -274,6 +294,7 @@ export default function AlertEnrichmentDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>

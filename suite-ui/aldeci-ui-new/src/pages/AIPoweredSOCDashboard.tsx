@@ -139,6 +139,7 @@ export default function AIPoweredSOCDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     detections: any[] | null;
     models: any[] | null;
@@ -171,6 +172,14 @@ export default function AIPoweredSOCDashboard() {
   const detections = liveData.detections ?? MOCK_DETECTIONS;
   const models     = liveData.models     ?? MOCK_MODELS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -191,7 +200,8 @@ export default function AIPoweredSOCDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Detections"   value={stats.total_detections}                         icon={Eye}          trend="up"   />
+        <KpiCard title="Total Detections"   value={stats.total_detections
+    setLoading(false);}                         icon={Eye}          trend="up"   />
         <KpiCard title="Auto-Triaged"       value={stats.auto_triaged_count}                       icon={Brain}        trend="up"   className="border-blue-500/20" />
         <KpiCard title="Active Models"      value={stats.active_models}                            icon={Cpu}          trend="flat" className="border-purple-500/20" />
         <KpiCard title="Avg Accuracy"       value={`${stats.avg_model_accuracy}%`}                 icon={TrendingUp}   trend="up"   className="border-green-500/20" />
@@ -225,7 +235,13 @@ export default function AIPoweredSOCDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {detections.map((d: any, i: number) => (
+                {detections.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  detections.map((d: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{d.detection_name}</TableCell>
                     <TableCell className="py-2"><ModelTypeBadge type={d.model_type ?? "anomaly"} /></TableCell>
@@ -237,6 +253,7 @@ export default function AIPoweredSOCDashboard() {
                     <TableCell className="py-2"><DetectionStatusBadge status={d.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -271,7 +288,13 @@ export default function AIPoweredSOCDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {models.map((m: any, i: number) => (
+                {models.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  models.map((m: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{m.model_name}</TableCell>
                     <TableCell className="py-2"><ModelTypeBadge type={m.model_type ?? "anomaly"} /></TableCell>
@@ -281,6 +304,7 @@ export default function AIPoweredSOCDashboard() {
                     <TableCell className="py-2"><ModelStatusBadge status={m.status ?? "active"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

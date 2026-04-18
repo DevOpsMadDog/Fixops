@@ -115,7 +115,13 @@ function ChannelBreakdown() {
 
   return (
     <div className="flex flex-col gap-2">
-      {counts.map(({ channel, count }) => (
+      {counts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        counts.map(({ channel, count }) => (
         <div key={channel} className="flex items-center gap-2">
           <Badge className={cn("border text-xs capitalize w-24 justify-center", CHANNEL_COLORS[channel])}>{channel}</Badge>
           <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -129,6 +135,7 @@ function ChannelBreakdown() {
           <span className="text-xs text-gray-400 w-4 text-right">{count}</span>
         </div>
       ))}
+      )}
     </div>
   );
 }
@@ -155,12 +162,21 @@ export default function IncidentCommsDashboard() {
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   function handleSend() {
     if (!subject) return;
     setSending(true);
     setTimeout(() => { setSending(false); setSent(true); setTimeout(() => setSent(false), 2000); }, 1500);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -173,7 +189,8 @@ export default function IncidentCommsDashboard() {
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </Button>
-        }
+        
+    setLoading(false);}
       />
 
       {/* Fetch Error Banner */}
@@ -212,7 +229,13 @@ export default function IncidentCommsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_COMMS.map((comm, i) => (
+                {MOCK_COMMS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_COMMS.map((comm, i) => (
                   <motion.tr
                     key={comm.id}
                     initial={{ opacity: 0 }}
@@ -235,6 +258,7 @@ export default function IncidentCommsDashboard() {
                     <TableCell className="text-xs text-gray-400 whitespace-nowrap">{comm.sent_at}</TableCell>
                   </motion.tr>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -252,26 +276,47 @@ export default function IncidentCommsDashboard() {
                 <label className="text-xs text-gray-400">Incident</label>
                 <select value={incident} onChange={(e) => setIncident(e.target.value)}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                  {INCIDENTS.map((inc) => <option key={inc} value={inc}>{inc}</option>)}
+                  {INCIDENTS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    INCIDENTS.map((inc) => <option key={inc} value={inc}>{inc}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Communication Type</label>
                 <select value={commType} onChange={(e) => setCommType(e.target.value as CommType)}
+                  )}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                  {COMM_TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
+                  {COMM_TYPES.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    COMM_TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Channel</label>
                 <select value={channel} onChange={(e) => setChannel(e.target.value as Channel)}
+                  )}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                  {CHANNELS.map((ch) => <option key={ch} value={ch} className="capitalize">{ch}</option>)}
+                  {CHANNELS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    CHANNELS.map((ch) => <option key={ch} value={ch} className="capitalize">{ch}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Subject</label>
                 <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
+                  )}
                   placeholder="Communication subject..."
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
               </div>

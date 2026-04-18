@@ -103,7 +103,13 @@ export default function TrainingEffectivenessDashboard() {
           {loading && <span className="text-xs text-gray-400 ml-2">Loading...</span>}
         </h2>
         <div className="space-y-4">
-          {programs.map(prog => (
+          {programs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            programs.map(prog => (
             <div key={prog.id} className="bg-gray-700/30 rounded-lg p-4 border border-gray-700">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -142,6 +148,7 @@ export default function TrainingEffectivenessDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

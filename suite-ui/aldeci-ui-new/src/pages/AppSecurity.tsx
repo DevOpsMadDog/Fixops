@@ -127,6 +127,7 @@ export default function AppSecurity() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -136,7 +137,8 @@ export default function AppSecurity() {
     ]).then(([statsResult, appsResult]) => {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const apps  = appsResult.status  === "fulfilled" ? appsResult.value  : null;
-      if (stats || apps) setLiveData({ stats, apps });
+      if (stats || apps) setLiveData({ stats, apps 
+    setLoading(false);});
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -154,6 +156,14 @@ export default function AppSecurity() {
   };
 
   const owaspMax = Math.max(...OWASP_TOP10.map(o => o.count));
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -244,7 +254,13 @@ export default function AppSecurity() {
             <CardDescription className="text-xs">Findings mapped to OWASP Top 10 categories</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {OWASP_TOP10.map((o) => (
+            {OWASP_TOP10.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              OWASP_TOP10.map((o) => (
               <div key={o.id} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -267,6 +283,7 @@ export default function AppSecurity() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -297,7 +314,13 @@ export default function AppSecurity() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SCANS.map((s, i) => (
+                {SCANS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  SCANS.map((s, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[150px] truncate">{s.app}</TableCell>
                     <TableCell className="py-2.5"><ToolBadge tool={s.tool} /></TableCell>
@@ -313,6 +336,7 @@ export default function AppSecurity() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{s.time}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -348,7 +372,13 @@ export default function AppSecurity() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CRITICAL_FINDINGS.map((f, i) => (
+                {CRITICAL_FINDINGS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  CRITICAL_FINDINGS.map((f, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{f.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[120px] truncate">{f.app}</TableCell>
@@ -371,6 +401,7 @@ export default function AppSecurity() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

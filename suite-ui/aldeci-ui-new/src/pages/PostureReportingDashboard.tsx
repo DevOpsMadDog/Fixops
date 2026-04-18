@@ -181,6 +181,7 @@ export default function PostureReportingDashboard() {
   }, []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
+  const [loading, setLoading] = useState(true);
 
   const trendData = ((selectedReport.trend_history as unknown) as Record<string, number[]>)[metricFilter] ?? [];
   const maxTrend = Math.max(...trendData, 1);
@@ -190,6 +191,14 @@ export default function PostureReportingDashboard() {
   const avgScore = Math.round(MOCK_REPORTS.reduce((a, r) => a + r.overall_score, 0) / MOCK_REPORTS.length);
   const drafts = MOCK_REPORTS.filter(r => r.status === "draft").length;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       <PageHeader
@@ -197,7 +206,8 @@ export default function PostureReportingDashboard() {
         description="Security posture reports across all frameworks and audiences"
       />
 
-      {/* KPI Cards */}
+      {/* KPI Cards */
+    setLoading(false);}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Total Reports" value={totalReports} icon={<FileText className="h-5 w-5" />} />
         <KpiCard title="Published" value={published} icon={<Globe className="h-5 w-5" />} />
@@ -235,7 +245,13 @@ export default function PostureReportingDashboard() {
             </motion.div>
           )}
 
-          {MOCK_REPORTS.map(r => (
+          {MOCK_REPORTS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MOCK_REPORTS.map(r => (
             <motion.div key={r.id} whileHover={{ scale: 1.01 }} onClick={() => { setSelectedReport(r); setMetricFilter(r.metrics[0].metric_name); }}
               className={cn("bg-gray-800 rounded-lg p-4 cursor-pointer border transition-all", selectedReport.id === r.id ? "border-blue-500/50" : "border-zinc-700/50 hover:border-zinc-600")}>
               <div className="flex items-start justify-between mb-2">
@@ -251,6 +267,7 @@ export default function PostureReportingDashboard() {
               <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
             </motion.div>
           ))}
+          )}
         </div>
 
         {/* Right Panel */}
@@ -332,7 +349,13 @@ export default function PostureReportingDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2 h-24">
-                {trendData.map((v, i) => (
+                {trendData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  trendData.map((v, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full bg-blue-500/20 rounded-sm relative" style={{ height: `${(v / maxTrend) * 80}px` }}>
                       <div className="absolute bottom-0 left-0 right-0 bg-blue-500 rounded-sm" style={{ height: `${(v / maxTrend) * 80}px` }} />
@@ -340,6 +363,7 @@ export default function PostureReportingDashboard() {
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>

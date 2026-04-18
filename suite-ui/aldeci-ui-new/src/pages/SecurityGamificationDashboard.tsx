@@ -105,6 +105,7 @@ export default function SecurityGamificationDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
   const [liveLeaderboard, setLiveLB]      = useState<any[] | null>(null);
   const [liveChallenges, setLiveChallenges] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]         = useState<any | null>(null);
 
   useEffect(() => {
@@ -119,11 +120,20 @@ export default function SecurityGamificationDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const leaderboard = liveLeaderboard ?? MOCK_LEADERBOARD;
   const challenges  = liveChallenges  ?? MOCK_CHALLENGES;
   const stats       = liveStats       ?? MOCK_STATS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -171,7 +181,13 @@ export default function SecurityGamificationDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leaderboard.map((entry: any, i: number) => (
+                  {leaderboard.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    leaderboard.map((entry: any, i: number) => (
                     <TableRow key={entry.user_id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2">
                         <RankBadge rank={entry.rank ?? i + 1} />
@@ -184,6 +200,7 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -211,7 +228,13 @@ export default function SecurityGamificationDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {challenges.map((ch: any, i: number) => (
+                  {challenges.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    challenges.map((ch: any, i: number) => (
                     <TableRow key={ch.title ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-[11px] font-medium max-w-[160px] truncate">
                         {ch.title ?? "—"}
@@ -227,6 +250,7 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

@@ -146,6 +146,7 @@ export default function ExecutiveBriefing() {
   const [refreshing, setRefreshing]   = useState(false);
   const [liveData, setLiveData]       = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -176,6 +177,14 @@ export default function ExecutiveBriefing() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -230,7 +239,8 @@ export default function ExecutiveBriefing() {
               ? `${Math.round(liveData.execKpis.overall_health_score)}%`
               : liveData?.kpis?.compliance_score != null
               ? `${liveData.kpis.compliance_score}%`
-              : "87%"}
+              : "87%"
+    setLoading(false);}
           </span>
           <span className="text-sm font-semibold text-green-300">Compliance Score</span>
           <span className="text-[11px] text-muted-foreground text-center">Across 6 regulatory frameworks</span>
@@ -261,7 +271,13 @@ export default function ExecutiveBriefing() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ROI_TABLE.map((r) => (
+                  {ROI_TABLE.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    ROI_TABLE.map((r) => (
                     <TableRow key={r.control} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2.5 max-w-[140px] truncate">{r.control}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{r.cost}</TableCell>
@@ -270,6 +286,7 @@ export default function ExecutiveBriefing() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-right font-bold text-green-400">{r.roi}%</TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -286,7 +303,13 @@ export default function ExecutiveBriefing() {
             <CardDescription className="text-xs">6 framework compliance status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {FRAMEWORKS.map((f) => (
+            {FRAMEWORKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              FRAMEWORKS.map((f) => (
               <div key={f.name} className="flex items-center gap-3">
                 <span className="text-xs font-medium w-32 flex-shrink-0">{f.name}</span>
                 <div className="flex-1 relative h-2 rounded-full bg-muted/30 overflow-hidden">
@@ -305,6 +328,7 @@ export default function ExecutiveBriefing() {
                 <StatusBadge status={f.status} />
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -374,7 +398,13 @@ export default function ExecutiveBriefing() {
           <CardDescription className="text-xs">Business-impact risks requiring board-level awareness or decision</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {BOARD_RISKS.map((r, i) => (
+          {BOARD_RISKS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            BOARD_RISKS.map((r, i) => (
             <div key={r.title} className={cn("flex items-start gap-3 p-3 rounded-lg border", r.color)}>
               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center text-xs font-bold text-foreground">
                 {i + 1}
@@ -392,6 +422,7 @@ export default function ExecutiveBriefing() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -405,7 +436,13 @@ export default function ExecutiveBriefing() {
           <CardDescription className="text-xs">YTD spend vs. allocated budget by category (USD thousands)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {BUDGET.map((b) => {
+          {BUDGET.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            BUDGET.map((b) => {
             const pctSpent = Math.round((b.spent / b.allocated) * 100);
             return (
               <div key={b.category} className="space-y-1.5">
@@ -438,6 +475,7 @@ export default function ExecutiveBriefing() {
               </div>
             );
           })}
+          )}
           <div className="flex items-center gap-4 pt-1 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-sm bg-blue-500 inline-block" />Spent</span>
             <span className="flex items-center gap-1"><span className="w-0.5 h-3 bg-white/40 inline-block" />Allocated limit</span>

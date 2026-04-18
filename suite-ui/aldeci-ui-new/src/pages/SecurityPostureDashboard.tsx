@@ -116,6 +116,7 @@ export default function SecurityPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -130,7 +131,8 @@ export default function SecurityPostureDashboard() {
       if (score || components || stats) {
         setLiveData({ score, components, stats });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -157,6 +159,14 @@ export default function SecurityPostureDashboard() {
 
   const chartMin = SCORE_MIN;
   const chartRange = SCORE_MAX - chartMin;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -241,7 +251,13 @@ export default function SecurityPostureDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {liveComponents.map((c) => (
+          {liveComponents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            liveComponents.map((c) => (
             <div key={c.name} className={cn("space-y-1.5 rounded-lg p-2", c.low && "bg-red-500/5 border border-red-500/15")}>
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
@@ -263,6 +279,7 @@ export default function SecurityPostureDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -293,7 +310,13 @@ export default function SecurityPostureDashboard() {
                 />
               </div>
             </div>
-            {BENCHMARKS.map((b) => {
+            {BENCHMARKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              BENCHMARKS.map((b) => {
               const diff = liveOverallScore - b.avg;
               return (
                 <div key={b.sector} className="space-y-1.5">
@@ -322,6 +345,7 @@ export default function SecurityPostureDashboard() {
                 </div>
               );
             })}
+            )}
           </CardContent>
         </Card>
 
@@ -348,7 +372,13 @@ export default function SecurityPostureDashboard() {
               ))}
               {/* Bars */}
               <div className="absolute inset-0 flex items-end gap-1 pt-2">
-                {HISTORY.map((h, i) => (
+                {HISTORY.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  HISTORY.map((h, i) => (
                   <div key={h.month} className="flex-1 flex flex-col items-center gap-0.5">
                     <motion.div
                       initial={{ height: 0 }}
@@ -363,6 +393,7 @@ export default function SecurityPostureDashboard() {
                     <span className="text-[8px] text-muted-foreground">{h.month.slice(0, 1)}</span>
                   </div>
                 ))}
+                )}
               </div>
             </div>
             <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -383,7 +414,13 @@ export default function SecurityPostureDashboard() {
           <CardDescription className="text-xs">Ranked by potential score impact — act on these to increase your posture score</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {RECOMMENDATIONS.map((r, i) => (
+          {RECOMMENDATIONS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            RECOMMENDATIONS.map((r, i) => (
             <div
               key={r.title}
               className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
@@ -403,6 +440,7 @@ export default function SecurityPostureDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

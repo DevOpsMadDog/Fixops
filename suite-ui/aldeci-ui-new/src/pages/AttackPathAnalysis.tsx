@@ -199,7 +199,13 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
   return (
     <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="max-w-full">
       {/* Edges */}
-      {edges.map((edge, idx) => {
+      {edges.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        edges.map((edge, idx) => {
         const from = positions[edge.from];
         const to = positions[edge.to];
         if (!from || !to) return null;
@@ -216,6 +222,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
           />
         );
       })}
+      )}
 
       {/* Arrow marker */}
       <defs>
@@ -232,7 +239,13 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
       </defs>
 
       {/* Nodes */}
-      {nodes.map((node) => {
+      {nodes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        nodes.map((node) => {
         const pos = positions[node.id];
         if (!pos) return null;
         const color = getNodeColor(node);
@@ -273,6 +286,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
           </g>
         );
       })}
+      )}
     </svg>
   );
 }
@@ -408,6 +422,7 @@ function CrownJewelRow({ jewel, index }: { jewel: CrownJewel; index: number }) {
 export default function AttackPathAnalysis() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -449,7 +464,8 @@ export default function AttackPathAnalysis() {
   const crownJewels: CrownJewel[] = liveData?.crown ?? MOCK_CROWN_JEWELS;
 
   const nodeMap = useMemo(() => {
-    const map: Record<string, GraphNode> = {};
+    const map: Record<string, GraphNode> = {
+    setLoading(false);};
     stats?.graph.nodes.forEach((node) => {
       map[node.id] = node;
     });
@@ -463,6 +479,14 @@ export default function AttackPathAnalysis() {
   const criticalPaths = useMemo(() => {
     return stats?.paths.filter((p) => p.blast_radius >= 5) || [];
   }, [stats]);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">

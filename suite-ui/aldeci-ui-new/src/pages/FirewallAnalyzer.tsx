@@ -271,6 +271,7 @@ const ORG_ID = "default";
 export default function FirewallAnalyzer() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchAll = () =>
     Promise.allSettled([
@@ -305,6 +306,14 @@ export default function FirewallAnalyzer() {
   const trendMin = Math.min(...TREND_DATA.map((d) => d.count));
   const trendRange = trendMax - trendMin || 1;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-900 p-8 space-y-8">
       {/* Header */}
@@ -315,7 +324,8 @@ export default function FirewallAnalyzer() {
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={dataLoading}>
             <RefreshCw className={cn("h-4 w-4", dataLoading && "animate-spin")} />
           </Button>
-        }
+        
+    setLoading(false);}
       />
 
       {/* KPIs */}
@@ -374,7 +384,13 @@ export default function FirewallAnalyzer() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {findings.map((finding, idx) => (
+                  {findings.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    findings.map((finding, idx) => (
                     <motion.tr
                       key={finding.rule_id}
                       initial={{ opacity: 0 }}
@@ -416,6 +432,7 @@ export default function FirewallAnalyzer() {
                       </TableCell>
                     </motion.tr>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -434,7 +451,13 @@ export default function FirewallAnalyzer() {
           Firewall Inventory
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {firewallDevices.map((fw, idx) => (
+          {firewallDevices.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            firewallDevices.map((fw, idx) => (
             <motion.div
               key={fw.id}
               initial={{ opacity: 0, scale: 0.97 }}
@@ -478,6 +501,7 @@ export default function FirewallAnalyzer() {
               </Card>
             </motion.div>
           ))}
+          )}
         </div>
       </motion.div>
 
@@ -499,7 +523,13 @@ export default function FirewallAnalyzer() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="flex items-end gap-2 h-40">
-                {TREND_DATA.map((point, idx) => {
+                {TREND_DATA.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  TREND_DATA.map((point, idx) => {
                   const heightPct = ((point.count - trendMin) / trendRange) * 80 + 10;
                   return (
                     <div key={point.month} className="flex-1 flex flex-col items-center gap-1">
@@ -523,6 +553,7 @@ export default function FirewallAnalyzer() {
                     </div>
                   );
                 })}
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-3 text-center">
                 +158 rules added over 12 months (+14.5% rule bloat)

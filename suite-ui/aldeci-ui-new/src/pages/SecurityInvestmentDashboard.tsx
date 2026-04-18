@@ -125,7 +125,8 @@ export default function SecurityInvestmentDashboard() {
   useEffect(() => {
     fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setInvestments(d); })
+      .then(d => { if (Array.isArray(d)) setInvestments(d); 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
 
@@ -137,6 +138,7 @@ export default function SecurityInvestmentDashboard() {
       .catch(() => { setError('Failed to load data'); });
   }, []);
   const [newAlloc, setNewAlloc] = useState({ category: "detection", amount: "" });
+  const [loading, setLoading] = useState(true);
 
   const totalInvested = INVESTMENTS.reduce((s, i) => s + i.amount, 0);
   const avgROI = Math.round(INVESTMENTS.reduce((s, i) => s + i.roi_score, 0) / INVESTMENTS.length);
@@ -144,6 +146,14 @@ export default function SecurityInvestmentDashboard() {
   const completedCount = INVESTMENTS.filter((i) => i.status === "completed").length;
 
   const top5 = [...INVESTMENTS].sort((a, b) => b.roi_score - a.roi_score).slice(0, 5);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -239,7 +249,13 @@ export default function SecurityInvestmentDashboard() {
               </tr>
             </thead>
             <tbody>
-              {INVESTMENTS.map((inv) => (
+              {INVESTMENTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                INVESTMENTS.map((inv) => (
                 <tr key={inv.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                   <td className="py-2 font-medium text-gray-200">{inv.investment_name}</td>
                   <td className="py-2">
@@ -265,6 +281,7 @@ export default function SecurityInvestmentDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -275,7 +292,13 @@ export default function SecurityInvestmentDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Budget Utilization by Category</h2>
           <div className="space-y-4">
-            {BUDGET.map((b) => {
+            {BUDGET.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              BUDGET.map((b) => {
               const pct = Math.round((b.spent / b.allocated) * 100);
               const over = b.spent > b.allocated;
               return (
@@ -297,6 +320,7 @@ export default function SecurityInvestmentDashboard() {
                 </div>
               );
             })}
+            )}
           </div>
         </div>
 
@@ -307,7 +331,13 @@ export default function SecurityInvestmentDashboard() {
               <CheckCircle2 size={18} className="text-emerald-400" /> ROI Outcomes
             </h2>
             <div className="space-y-3">
-              {OUTCOMES.map((o) => (
+              {OUTCOMES.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                OUTCOMES.map((o) => (
                 <div key={o.id} className="flex items-center justify-between gap-2 text-sm border-b border-gray-700/50 pb-2 last:border-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`px-2 py-0.5 rounded text-xs shrink-0 ${OUTCOME_COLOR[o.outcome_type]}`}>
@@ -327,6 +357,7 @@ export default function SecurityInvestmentDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
 
@@ -336,13 +367,20 @@ export default function SecurityInvestmentDashboard() {
               <Trophy size={18} className="text-yellow-400" /> Top-5 by ROI
             </h2>
             <div className="space-y-2">
-              {top5.map((inv, i) => (
+              {top5.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                top5.map((inv, i) => (
                 <div key={inv.id} className="flex items-center gap-3 text-sm">
                   <span className="text-gray-500 w-4">{i + 1}.</span>
                   <span className="flex-1 text-gray-200 truncate">{inv.investment_name}</span>
                   <span className="text-green-400 font-bold font-mono">{inv.roi_score}%</span>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>

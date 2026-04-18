@@ -165,6 +165,7 @@ export default function EDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -179,13 +180,22 @@ export default function EDRDashboard() {
       if (stats || endpoints || detections) {
         setLiveData({ stats, endpoints, detections });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -322,7 +332,13 @@ export default function EDRDashboard() {
             <CardDescription className="text-xs">Isolated and recently released endpoints</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {ISOLATION_LOG.map((iso, i) => (
+            {ISOLATION_LOG.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              ISOLATION_LOG.map((iso, i) => (
               <div key={i} className={cn("rounded-lg border bg-muted/20 p-3 space-y-1.5", iso.status === "isolated" ? "border-orange-500/30" : "border-border")}>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-semibold">{iso.hostname}</span>
@@ -337,6 +353,7 @@ export default function EDRDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -366,7 +383,13 @@ export default function EDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PROCESS_EVENTS.map((pe, i) => (
+                {PROCESS_EVENTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  PROCESS_EVENTS.map((pe, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SevDot sev={pe.severity} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] font-semibold">{pe.process}</TableCell>
@@ -380,6 +403,7 @@ export default function EDRDashboard() {
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{pe.observed_at}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

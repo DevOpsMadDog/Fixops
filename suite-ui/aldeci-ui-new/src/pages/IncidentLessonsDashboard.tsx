@@ -127,6 +127,7 @@ export default function IncidentLessonsDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string>(MOCK_LESSONS[0].id);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setFetchError(null);
@@ -144,6 +145,14 @@ export default function IncidentLessonsDashboard() {
   const lessonActions = MOCK_ACTIONS.filter(a => a.lesson_id === selectedLesson);
   const lessonOutcomes = MOCK_OUTCOMES.filter(o => o.lesson_id === selectedLesson);
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {/* Header */}
@@ -152,7 +161,8 @@ export default function IncidentLessonsDashboard() {
         <p className="text-gray-400 mt-1">Post-incident analysis, action items, and implementation tracking</p>
       </div>
 
-      {/* Fetch Error Banner */}
+      {/* Fetch Error Banner */
+    setLoading(false);}
       {fetchError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>

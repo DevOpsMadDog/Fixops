@@ -130,6 +130,7 @@ export default function IOCHunter() {
   const [iocType, setIocType]       = useState("All");
   const [liveData, setLiveData]     = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -169,10 +170,19 @@ export default function IOCHunter() {
     : IOCS;
   const firstIoc = displayIocs[0] ?? IOCS[0];
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }
+    setLoading(false);}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >
@@ -200,7 +210,13 @@ export default function IOCHunter() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex rounded-md border border-border overflow-hidden">
-              {IOC_TYPES.map((t) => (
+              {IOC_TYPES.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                IOC_TYPES.map((t) => (
                 <button
                   key={t}
                   onClick={() => setIocType(t)}
@@ -214,6 +230,7 @@ export default function IOCHunter() {
                   {t}
                 </button>
               ))}
+              )}
             </div>
             <Input
               placeholder="Enter IP, domain, hash, URL, or email…"
@@ -263,7 +280,13 @@ export default function IOCHunter() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayIocs.map((ioc: any, i: number) => (
+                {displayIocs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  displayIocs.map((ioc: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[180px] truncate">{ioc.value}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={ioc.type} /></TableCell>
@@ -285,6 +308,7 @@ export default function IOCHunter() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -343,7 +367,13 @@ export default function IOCHunter() {
             <Eye className="h-4 w-4 text-indigo-400" />
             Watchlists
           </h3>
-          {WATCHLISTS.map((wl) => (
+          {WATCHLISTS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            WATCHLISTS.map((wl) => (
             <Card key={wl.name} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4 flex items-center justify-between gap-4">
                 <div className="space-y-0.5 min-w-0">
@@ -357,6 +387,7 @@ export default function IOCHunter() {
               </CardContent>
             </Card>
           ))}
+          )}
 
           {/* Recent additions */}
           <Card>
@@ -364,7 +395,13 @@ export default function IOCHunter() {
               <CardTitle className="text-sm font-semibold">Recent Additions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1.5">
-              {RECENT_ADDITIONS.map((r, i) => (
+              {RECENT_ADDITIONS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                RECENT_ADDITIONS.map((r, i) => (
                 <div key={i} className="flex items-center gap-2 py-1 border-b border-border/30 last:border-0">
                   <TypeIcon type={r.type} />
                   <span className="text-xs font-mono flex-1 truncate">{r.value}</span>
@@ -372,6 +409,7 @@ export default function IOCHunter() {
                   <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{r.ts}</span>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

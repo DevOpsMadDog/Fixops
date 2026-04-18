@@ -131,6 +131,7 @@ export default function ThreatCorrelation() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchAll = () =>
     Promise.allSettled([
@@ -164,6 +165,14 @@ export default function ThreatCorrelation() {
     setDataLoading(true);
     fetchAll().finally(() => { setRefreshing(false); setDataLoading(false); });
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -237,7 +246,8 @@ export default function ThreatCorrelation() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{rule.hits ?? rule.hit_count ?? 0}</TableCell>
                   </TableRow>
-                ))}
+                ))
+    setLoading(false);}
               </TableBody>
             </Table>
           </div>
@@ -333,7 +343,13 @@ export default function ThreatCorrelation() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-[2px] h-36">
-              {TIMELINE.map((d) => (
+              {TIMELINE.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TIMELINE.map((d) => (
                 <div key={d.hour} className="flex-1 flex flex-col items-center gap-0 relative" title={`${d.hour}:00 — ${d.events} events, ${d.correlated} correlated`}>
                   <div className="w-full flex items-end gap-[1px] h-28 relative">
                     {/* event bar */}
@@ -350,6 +366,7 @@ export default function ThreatCorrelation() {
                   <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
                 </div>
               ))}
+              )}
             </div>
             <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/40 inline-block" />Events</span>

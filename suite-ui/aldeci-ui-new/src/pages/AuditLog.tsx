@@ -740,6 +740,7 @@ export default function AuditLogPage() {
 
   // Live stats from /api/v1/audit/user-activity for KPI enrichment
   const [liveStats, setLiveStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     Promise.allSettled([
       fetch(`${API_BASE}/api/v1/audit/logs?limit=1000`, {
@@ -818,7 +819,8 @@ export default function AuditLogPage() {
     a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [filtered]);
+  
+    setLoading(false);}, [filtered]);
 
   // KPI derivation — prefer live stats, fall back to mock-derived counts
   const kpis = {
@@ -831,6 +833,14 @@ export default function AuditLogPage() {
     ).length || 7),
     policyViolations: liveStats?.policyViolations ?? 3,
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6 pb-8">

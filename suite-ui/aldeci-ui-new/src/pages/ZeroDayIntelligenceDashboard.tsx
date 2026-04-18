@@ -133,6 +133,7 @@ export default function ZeroDayIntelligenceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     vulns: any[] | null;
     actors: any[] | null;
@@ -165,6 +166,14 @@ export default function ZeroDayIntelligenceDashboard() {
   const vulns  = liveData.vulns  ?? MOCK_VULNS;
   const actors = liveData.actors ?? MOCK_ACTORS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -185,7 +194,8 @@ export default function ZeroDayIntelligenceDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Vulns"         value={stats.total_vulns}        icon={Bug}         trend="flat" />
+        <KpiCard title="Total Vulns"         value={stats.total_vulns
+    setLoading(false);}        icon={Bug}         trend="flat" />
         <KpiCard title="Unpatched"           value={stats.unpatched_count}    icon={ShieldOff}   trend="down" className="border-orange-500/20" />
         <KpiCard title="Actively Exploited"  value={stats.actively_exploited} icon={Zap}         trend="down" className="border-red-500/20" />
         <KpiCard title="Critical"            value={stats.critical_count}     icon={AlertTriangle} trend="down" className="border-red-500/20" />
@@ -218,7 +228,13 @@ export default function ZeroDayIntelligenceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vulns.map((v: any, i: number) => (
+                {vulns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  vulns.map((v: any, i: number) => (
                   <TableRow key={v.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{v.cve_id}</TableCell>
                     <TableCell className="py-2"><DisclosureBadge type={v.disclosure_type ?? "n-day"} /></TableCell>
@@ -229,6 +245,7 @@ export default function ZeroDayIntelligenceDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -261,7 +278,13 @@ export default function ZeroDayIntelligenceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {actors.map((a: any, i: number) => (
+                {actors.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  actors.map((a: any, i: number) => (
                   <TableRow key={a.actor_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-semibold">{a.actor_name}</TableCell>
                     <TableCell className="py-2"><ActorTypeBadge type={a.actor_type ?? "unknown"} /></TableCell>
@@ -271,6 +294,7 @@ export default function ZeroDayIntelligenceDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.vulnerability_id}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

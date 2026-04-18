@@ -128,7 +128,13 @@ export default function PrivacyImpactDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {pias.map(pia => (
+              {pias.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                pias.map(pia => (
                 <tr key={pia.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-3 pr-4 text-gray-200 font-medium">{pia.title}</td>
                   <td className="py-3 pr-4">
@@ -140,6 +146,7 @@ export default function PrivacyImpactDashboard() {
                   <td className="py-3 text-gray-400 text-xs">{pia.created_at}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

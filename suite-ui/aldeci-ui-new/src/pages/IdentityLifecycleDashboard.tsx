@@ -79,6 +79,7 @@ export default function IdentityLifecycleDashboard() {
   const [showGrantAccess, setShowGrantAccess] = useState(false);
   const [newAccount, setNewAccount] = useState({ username: "", display_name: "", account_type: "employee", department: "", manager: "" });
   const [newEntitlement, setNewEntitlement] = useState({ account_id: "acc-001", system_name: "", role: "", access_level: "read" });
+  const [loading, setLoading] = useState(true);
 
   const totalAccounts = accounts.length;
   const activeAccounts = accounts.filter(a => a.status === "active").length;
@@ -93,6 +94,14 @@ export default function IdentityLifecycleDashboard() {
 
   const today = "2026-04-16";
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -101,7 +110,8 @@ export default function IdentityLifecycleDashboard() {
           <p className="text-gray-400 text-sm mt-1">Account provisioning, entitlements, orphan detection, and audit trail</p>
         </div>
 
-        {/* Fetch Error Banner */}
+        {/* Fetch Error Banner */
+    setLoading(false);}
         {fetchError && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6">
             <span className="text-sm">Failed to load live data: {fetchError}</span>

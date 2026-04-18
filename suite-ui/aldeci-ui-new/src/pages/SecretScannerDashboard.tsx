@@ -135,6 +135,8 @@ function FindingStatusBadge({ status }: { status: string }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecretScannerDashboard() {
+  const [loading, setLoading] = useState(true);
+
   const [refreshing, setRefreshing]     = useState(false);
   const [dataLoading, setDataLoading]   = useState(false);
   const [liveData, setLiveData]         = useState<any>(null);
@@ -154,7 +156,8 @@ export default function SecretScannerDashboard() {
     }).finally(() => setDataLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
+    setLoading(false);};
 
   const handleScan = async () => {
     if (!scanForm.target_path.trim()) return;
@@ -181,6 +184,14 @@ export default function SecretScannerDashboard() {
   const totalFindings = findings.filter((f: any) => f.status !== "false_positive").length;
   const criticalSecs  = findings.filter((f: any) => f.severity === "critical" && f.status === "active").length;
   const remediated    = findings.filter((f: any) => f.status === "remediated").length;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -230,7 +241,13 @@ export default function SecretScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.map((job: any) => (
+                {jobs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  jobs.map((job: any) => (
                   <TableRow key={job.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><TargetTypeBadge type={job.target_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground max-w-[220px] truncate">{job.target_path}</TableCell>
@@ -244,6 +261,7 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.created_at}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -277,7 +295,13 @@ export default function SecretScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.map((f: any) => (
+                {findings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  findings.map((f: any) => (
                   <TableRow key={f.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SecretTypeBadge type={f.secret_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[180px] truncate">{f.file_path}</TableCell>
@@ -292,6 +316,7 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2"><FindingStatusBadge status={f.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -347,7 +372,13 @@ export default function SecretScannerDashboard() {
             <CardDescription className="text-xs">Findings breakdown by secret category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {SECRET_DIST.map((item, i) => (
+            {SECRET_DIST.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SECRET_DIST.map((item, i) => (
               <div key={item.type} className="space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="font-mono text-muted-foreground">{item.type.replace(/_/g, " ")}</span>
@@ -363,6 +394,7 @@ export default function SecretScannerDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

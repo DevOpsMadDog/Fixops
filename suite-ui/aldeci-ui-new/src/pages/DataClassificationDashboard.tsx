@@ -148,6 +148,7 @@ export default function DataClassificationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -159,9 +160,18 @@ export default function DataClassificationDashboard() {
       const assets = assetsResult.status === "fulfilled" ? assetsResult.value : null;
       if (stats || assets) {
         setLiveData({ stats, assets });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -204,7 +214,13 @@ export default function DataClassificationDashboard() {
             <CardDescription className="text-xs">Data items by sensitivity level</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {CLASSIFICATION_LEVELS.map((lvl) => (
+            {CLASSIFICATION_LEVELS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              CLASSIFICATION_LEVELS.map((lvl) => (
               <div key={lvl.level} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -225,6 +241,7 @@ export default function DataClassificationDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -238,7 +255,13 @@ export default function DataClassificationDashboard() {
             <CardDescription className="text-xs">Finding counts by data category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {DATA_TYPES.map((d) => (
+            {DATA_TYPES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              DATA_TYPES.map((d) => (
               <div key={d.type} className="flex items-center gap-3">
                 <span className="text-sm w-4 shrink-0">{d.icon}</span>
                 <span className={cn("text-xs font-medium w-24 shrink-0", d.color)}>{d.type}</span>
@@ -255,6 +278,7 @@ export default function DataClassificationDashboard() {
                 </span>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -288,7 +312,13 @@ export default function DataClassificationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {VIOLATIONS.map((row, i) => (
+                {VIOLATIONS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  VIOLATIONS.map((row, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{row.user}</TableCell>
                     <TableCell className="py-2.5"><DataTypeBadge type={row.dataType} /></TableCell>
@@ -316,6 +346,7 @@ export default function DataClassificationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -333,7 +364,13 @@ export default function DataClassificationDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {SCANS.map((scan, i) => (
+            {SCANS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SCANS.map((scan, i) => (
               <div
                 key={i}
                 className="rounded-lg border border-border bg-muted/10 p-4 flex flex-col gap-2 hover:bg-muted/20 transition-colors"
@@ -366,6 +403,7 @@ export default function DataClassificationDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

@@ -89,6 +89,7 @@ export default function ThreatExposureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; topExposed: any[] | null; assets: any[] | null }>({
+  const [loading, setLoading] = useState(true);
     stats: null, topExposed: null, assets: null,
   });
 
@@ -119,6 +120,14 @@ export default function ThreatExposureDashboard() {
   const topExposed = liveData.topExposed ?? MOCK_TOP_EXPOSED;
   const assets     = liveData.assets     ?? MOCK_ASSETS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -137,7 +146,8 @@ export default function ThreatExposureDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"        value={stats.total_assets}        icon={Target}       trend="flat" />
+        <KpiCard title="Total Assets"        value={stats.total_assets}        icon={Target
+    setLoading(false);}       trend="flat" />
         <KpiCard title="Critical Exposure"   value={stats.critical_exposure}   icon={AlertTriangle} trend="down" className="border-red-500/20" />
         <KpiCard title="Average Score"       value={stats.average_score}       icon={BarChart2}    trend="flat" className="border-yellow-500/20" />
         <KpiCard title="Correlations Today"  value={stats.correlations_today}  icon={Activity}     trend="up"   className="border-blue-500/20" />
@@ -153,7 +163,13 @@ export default function ThreatExposureDashboard() {
           <CardDescription className="text-xs">Highest exposure score assets with threat correlation</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {topExposed.map((a: any, i: number) => (
+          {topExposed.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            topExposed.map((a: any, i: number) => (
             <div key={i} className="space-y-1">
               <div className="flex items-center justify-between text-[12px]">
                 <span className="font-medium">{a.asset_name}</span>
@@ -177,6 +193,7 @@ export default function ThreatExposureDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -209,7 +226,13 @@ export default function ThreatExposureDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.map((a: any, i: number) => (
+                {assets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  assets.map((a: any, i: number) => (
                   <TableRow key={a.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.id}</TableCell>
                     <TableCell className="py-2 text-[12px] font-medium">{a.name}</TableCell>
@@ -226,6 +249,7 @@ export default function ThreatExposureDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_assessed}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

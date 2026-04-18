@@ -94,6 +94,7 @@ function LangBadge({ lang }: { lang: string }) {
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
@@ -109,8 +110,17 @@ export default function SCADashboard() {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
       .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false))
       .finally(() => setRefreshing(false));
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -172,7 +182,13 @@ export default function SCADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.map((proj: any) => (
+                {projects.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  projects.map((proj: any) => (
                   <TableRow key={proj.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-xs text-foreground">{proj.name}</TableCell>
                     <TableCell className="py-2">
@@ -202,6 +218,7 @@ export default function SCADashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -442,7 +442,13 @@ export default function VulnHeatmap() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {top10.map((asset, idx) => {
+                  {top10.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    top10.map((asset, idx) => {
                     const badge = getRiskBadge(asset.risk_score);
                     const Icon = ASSET_TYPE_ICON[asset.type];
                     return (
@@ -520,6 +526,7 @@ export default function VulnHeatmap() {
                       </TableRow>
                     );
                   })}
+                  )}
                 </TableBody>
               </Table>
             </div>

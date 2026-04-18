@@ -141,6 +141,7 @@ function AvailabilityGauge({ pct }: { pct: number }) {
 export default function ServiceCatalogDashboard() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestForm, setRequestForm] = useState({ service: "", requester: "", dept: "Engineering", priority: "medium", notes: "" });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
@@ -159,7 +160,16 @@ export default function ServiceCatalogDashboard() {
     const met = reqs.filter(r => r.sla_met === true).length;
     const total = reqs.filter(r => r.sla_met !== null).length;
     return { ...svc, req_count: reqs.length, sla_met: met, total_measured: total, compliance: total ? Math.round((met / total) * 100) : null };
-  });
+  
+    setLoading(false);});
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -239,7 +249,13 @@ export default function ServiceCatalogDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_SERVICES.map(s => (
+                {MOCK_SERVICES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_SERVICES.map(s => (
                   <tr key={s.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
                     <td className="py-2 px-2 text-zinc-200 font-medium">{s.service_name}</td>
                     <td className="py-2 px-2"><Badge className={cn("text-[9px] border whitespace-nowrap", CATEGORY_COLORS[s.category] ?? "border-zinc-600 text-zinc-400")}>{s.category.replace("-"," ")}</Badge></td>
@@ -253,6 +269,7 @@ export default function ServiceCatalogDashboard() {
                     </td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -274,7 +291,13 @@ export default function ServiceCatalogDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_REQUESTS.map(r => (
+                  {MOCK_REQUESTS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    MOCK_REQUESTS.map(r => (
                     <tr key={r.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
                       <td className="py-2 px-1 text-zinc-300">{r.requester}</td>
                       <td className="py-2 px-1"><Badge className={cn("text-[9px] border", DEPT_COLORS[r.dept] ?? "border-zinc-600 text-zinc-400")}>{r.dept}</Badge></td>
@@ -290,6 +313,7 @@ export default function ServiceCatalogDashboard() {
                       </td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -321,7 +345,13 @@ export default function ServiceCatalogDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-400" />Outages</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {MOCK_OUTAGES.map(o => (
+              {MOCK_OUTAGES.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_OUTAGES.map(o => (
                 <div key={o.id} className="bg-zinc-900 rounded-lg p-3 border border-zinc-700 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs text-zinc-200">{o.service_name}</p>
@@ -337,6 +367,7 @@ export default function ServiceCatalogDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

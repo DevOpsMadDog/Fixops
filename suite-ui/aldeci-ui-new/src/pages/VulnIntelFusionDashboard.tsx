@@ -163,6 +163,7 @@ export default function VulnIntelFusionDashboard() {
     apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [form, setForm] = useState({
+  const [loading, setLoading] = useState(true);
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",
   });
 
@@ -176,10 +177,19 @@ export default function VulnIntelFusionDashboard() {
     } catch (_) {}
     setShowForm(false);
     setForm({ cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "" });
-  };
+  
+    setLoading(false);};
 
   const sources = MOCK_SOURCES[selectedCve] ?? [];
   const assets  = MOCK_ASSETS[selectedCve] ?? [];
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
@@ -267,7 +277,13 @@ export default function VulnIntelFusionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_CVES.map(c => (
+                {MOCK_CVES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_CVES.map(c => (
                   <TableRow
                     key={c.cve_id}
                     className={cn("hover:bg-muted/30 cursor-pointer", selectedCve === c.cve_id && "bg-muted/20")}
@@ -289,6 +305,7 @@ export default function VulnIntelFusionDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{c.affected_assets}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -322,7 +339,13 @@ export default function VulnIntelFusionDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sources.map((s, i) => (
+                    {sources.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    ) : (
+                      sources.map((s, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="py-2 text-[11px] font-semibold">{s.source_name}</TableCell>
                         <TableCell className="py-2"><CvssBadge score={s.cvss} /></TableCell>
@@ -335,6 +358,7 @@ export default function VulnIntelFusionDashboard() {
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
                     ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -368,7 +392,13 @@ export default function VulnIntelFusionDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {assets.map((a, i) => (
+                    {assets.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    ) : (
+                      assets.map((a, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="py-2 font-mono text-[11px]">{a.asset_name}</TableCell>
                         <TableCell className="py-2"><AssetTypeBadge t={a.asset_type} /></TableCell>
@@ -380,6 +410,7 @@ export default function VulnIntelFusionDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -403,7 +434,13 @@ export default function VulnIntelFusionDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {PRIORITY_QUEUE.map((c, i) => (
+            {PRIORITY_QUEUE.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              PRIORITY_QUEUE.map((c, i) => (
               <div
                 key={c.cve_id}
                 className={cn(
@@ -426,6 +463,7 @@ export default function VulnIntelFusionDashboard() {
                 <span className="text-[10px] text-muted-foreground shrink-0">{c.affected_assets} assets</span>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

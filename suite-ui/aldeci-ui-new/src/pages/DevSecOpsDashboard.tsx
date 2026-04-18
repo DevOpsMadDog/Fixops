@@ -141,6 +141,7 @@ export default function DevSecOpsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -155,13 +156,22 @@ export default function DevSecOpsDashboard() {
       if (stats || pipelines || findings) {
         setLiveData({ stats, pipelines, findings });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -251,7 +261,13 @@ export default function DevSecOpsDashboard() {
           <CardDescription className="text-xs">8 most recent pipeline runs — bar width proportional to duration</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {BUILD_HISTORY.map((run) => {
+          {BUILD_HISTORY.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            BUILD_HISTORY.map((run) => {
             const widthPct = Math.max(8, (run.duration / MAX_DURATION) * 100);
             const barColor =
               run.status === "passed"  ? "bg-green-500/70" :
@@ -277,6 +293,7 @@ export default function DevSecOpsDashboard() {
               </div>
             );
           })}
+          )}
           <div className="flex items-center gap-4 pt-2 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500/70 inline-block" />Passed</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-orange-500/70 inline-block" />Blocked</span>
@@ -345,13 +362,20 @@ export default function DevSecOpsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {GATE_POLICIES.map((p) => (
+            {GATE_POLICIES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              GATE_POLICIES.map((p) => (
               <div key={p.name} className={cn("rounded-lg border p-3 space-y-1.5", p.bg)}>
                 <span className={cn("text-xs font-semibold", p.color)}>{p.name}</span>
                 <div className="font-mono text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-1">{p.rule}</div>
                 <Badge className={cn("text-[10px] border mt-1", p.bg, p.color)}>{p.threshold}</Badge>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

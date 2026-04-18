@@ -195,12 +195,26 @@ function Sparkline({ data }: { data: Snapshot[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-12">
       <polyline points={pts} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinejoin="round" />
-      {data.map((d, i) => (
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        data.map((d, i) => (
         <circle key={i} cx={toX(i)} cy={toY(d.score)} r="3" fill="#22c55e" />
       ))}
-      {data.map((d, i) => (
+      )}
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        data.map((d, i) => (
         <text key={`l${i}`} x={toX(i)} y={H} fontSize="7" fill="#94a3b8" textAnchor="middle">{d.date}</text>
       ))}
+      )}
     </svg>
   );
 }
@@ -260,7 +274,13 @@ export default function CyberResilienceDashboard() {
         <div className="bg-gray-800 rounded-lg p-6 lg:col-span-3">
           <h2 className="text-lg font-semibold mb-4">NIST CSF Domain Maturity</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {CSF_DOMAINS.map((d) => (
+            {CSF_DOMAINS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              CSF_DOMAINS.map((d) => (
               <div key={d.key} className="bg-gray-700/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-sm" style={{ color: d.color }}>{d.name}</span>
@@ -275,6 +295,7 @@ export default function CyberResilienceDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
       </div>
@@ -296,7 +317,13 @@ export default function CyberResilienceDashboard() {
             </tr>
           </thead>
           <tbody>
-            {EXERCISES.map((ex) => (
+            {EXERCISES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              EXERCISES.map((ex) => (
               <tr key={ex.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                 <td className="py-2 text-gray-200 font-medium">{ex.exercise_name}</td>
                 <td className="py-2">{typeBadge(ex.type)}</td>
@@ -312,6 +339,7 @@ export default function CyberResilienceDashboard() {
                 <td className="py-2 pl-4 text-gray-400">{ex.scheduled_date}</td>
               </tr>
             ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -323,7 +351,13 @@ export default function CyberResilienceDashboard() {
             <BookOpen size={18} className="text-green-400" /> Lessons Learned
           </h2>
           <div className="space-y-3">
-            {LESSONS.map((l) => (
+            {LESSONS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              LESSONS.map((l) => (
               <div key={l.id} className="bg-gray-700/40 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm text-gray-200">{l.finding}</p>
@@ -332,6 +366,7 @@ export default function CyberResilienceDashboard() {
                 <p className="text-xs text-gray-500 mt-1">Source: {l.exercise}</p>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -352,7 +387,13 @@ export default function CyberResilienceDashboard() {
             </select>
           </div>
           <div className="space-y-4">
-            {filteredMetrics.map((m) => {
+            {filteredMetrics.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              filteredMetrics.map((m) => {
               const pct = Math.min(100, Math.round((m.value / m.target) * 100));
               const onTarget = m.value >= m.target;
               return (
@@ -375,6 +416,7 @@ export default function CyberResilienceDashboard() {
                 </div>
               );
             })}
+            )}
           </div>
         </div>
       </div>

@@ -156,6 +156,7 @@ export default function AwarenessScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -170,13 +171,22 @@ export default function AwarenessScoreDashboard() {
       if (stats || employees || scores) {
         setLiveData({ stats, employees, scores });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -214,7 +224,13 @@ export default function AwarenessScoreDashboard() {
           <CardDescription className="text-xs">Employee population by security awareness tier</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {TIER_BANDS.map((band) => (
+          {TIER_BANDS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            TIER_BANDS.map((band) => (
             <div key={band.tier} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
@@ -235,6 +251,7 @@ export default function AwarenessScoreDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -340,7 +357,13 @@ export default function AwarenessScoreDashboard() {
             <CardDescription className="text-xs">Average awareness score and risk counts by department</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DEPARTMENTS.map((d) => (
+            {DEPARTMENTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              DEPARTMENTS.map((d) => (
               <div key={d.dept} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{d.dept}</span>
@@ -356,6 +379,7 @@ export default function AwarenessScoreDashboard() {
                 <ScoreBar score={d.avg_score} />
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

@@ -63,6 +63,7 @@ export default function HuntingPlaybookDashboard() {
   const [newPlaybook, setNewPlaybook] = useState({ playbook_name: "", hunt_type: "proactive", threat_category: "", mitre_technique: "" });
   const [newExec, setNewExec] = useState({ playbook_id: "pb-001", analyst: "" });
   const [newHyp, setNewHyp] = useState({ playbook_id: "pb-001", hypothesis_text: "", confidence: "medium" });
+  const [loading, setLoading] = useState(true);
 
   const totalPlaybooks = playbooks.length;
   const totalExecutions = executions.length;
@@ -72,6 +73,14 @@ export default function HuntingPlaybookDashboard() {
   const filteredExecs = filterPlaybook === "all" ? executions : executions.filter(e => e.playbook_id === filterPlaybook);
   const filteredHyps = filterPlaybook === "all" ? hypotheses : hypotheses.filter(h => h.playbook_id === filterPlaybook);
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -80,7 +89,8 @@ export default function HuntingPlaybookDashboard() {
           <p className="text-gray-400 text-sm mt-1">Hunt execution history, playbook library, and hypothesis tracking</p>
         </div>
 
-        {/* Fetch Error Banner */}
+        {/* Fetch Error Banner */
+    setLoading(false);}
         {fetchError && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6">
             <span className="text-sm">Failed to load live data: {fetchError}</span>
@@ -140,7 +150,13 @@ export default function HuntingPlaybookDashboard() {
                   <tr>{["Playbook Name", "Hunt Type", "Threat Category", "MITRE", "Success Rate", "Executions", "Avg Duration", "Action"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {playbooks.map(p => (
+                  {playbooks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    playbooks.map(p => (
                     <tr key={p.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{p.playbook_name}</td>
                       <td className="px-4 py-3"><span className="bg-indigo-700 text-indigo-100 text-xs px-2 py-0.5 rounded">{p.hunt_type}</span></td>
@@ -161,6 +177,7 @@ export default function HuntingPlaybookDashboard() {
                       </td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -175,17 +192,31 @@ export default function HuntingPlaybookDashboard() {
                 <h2 className="font-semibold">Execution History</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterPlaybook} onChange={e => setFilterPlaybook(e.target.value)}>
                   <option value="all">All Playbooks</option>
-                  {playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
+                  {playbooks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowStartExec(!showStartExec)} className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded">+ Start Execution</button>
+                  )}
             </div>
             {showStartExec && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newExec.playbook_id} onChange={e => setNewExec({ ...newExec, playbook_id: e.target.value })}>
-                  {playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
+                  {playbooks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Analyst name" value={newExec.analyst} onChange={e => setNewExec({ ...newExec, analyst: e.target.value })} />
+                  )}
                 <div className="col-span-2 flex gap-2">
                   <button className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded" onClick={() => setShowStartExec(false)}>Start Hunt</button>
                   <button className="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-1.5 rounded" onClick={() => setShowStartExec(false)}>Cancel</button>
@@ -193,7 +224,13 @@ export default function HuntingPlaybookDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredExecs.map(e => (
+              {filteredExecs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredExecs.map(e => (
                 <div key={e.id} className="p-4">
                   <div className="flex items-start justify-between">
                     <div>
@@ -212,6 +249,7 @@ export default function HuntingPlaybookDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}
@@ -224,17 +262,31 @@ export default function HuntingPlaybookDashboard() {
                 <h2 className="font-semibold">Hunt Hypotheses</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterPlaybook} onChange={e => setFilterPlaybook(e.target.value)}>
                   <option value="all">All Playbooks</option>
-                  {playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
+                  {playbooks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAddHypothesis(!showAddHypothesis)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">+ Add Hypothesis</button>
+                  )}
             </div>
             {showAddHypothesis && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newHyp.playbook_id} onChange={e => setNewHyp({ ...newHyp, playbook_id: e.target.value })}>
-                  {playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
+                  {playbooks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    playbooks.map(p => <option key={p.id} value={p.id}>{p.playbook_name}</option>)}
                 </select>
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newHyp.confidence} onChange={e => setNewHyp({ ...newHyp, confidence: e.target.value })}>
+                  )}
                   <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
                 </select>
                 <textarea className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm col-span-2 h-20 resize-none" placeholder="Hypothesis text" value={newHyp.hypothesis_text} onChange={e => setNewHyp({ ...newHyp, hypothesis_text: e.target.value })} />
@@ -245,7 +297,13 @@ export default function HuntingPlaybookDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredHyps.map(h => (
+              {filteredHyps.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredHyps.map(h => (
                 <div key={h.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -261,6 +319,7 @@ export default function HuntingPlaybookDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}

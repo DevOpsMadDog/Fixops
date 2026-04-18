@@ -283,6 +283,7 @@ function RiskScoreBadge({ score }: { score: number }) {
 export default function EmailSecurity() {
   const [enforcing, setEnforcing] = useState<Set<string>>(new Set());
   const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -298,7 +299,8 @@ export default function EmailSecurity() {
             blocked_count:   feedStats.total_items ?? feedStats.total ?? null,
             spoofing_count:  feedStats.by_type?.spoofing ?? null,
             total_volume:    feedStats.total_items ?? null,
-          }
+          
+    setLoading(false);}
         : null;
       const items = Array.isArray(feedItems)
         ? feedItems
@@ -328,6 +330,14 @@ export default function EmailSecurity() {
   const dmarcBars = liveData?.reports ?? MOCK_DMARC_BARS;
   const maxTotal = Math.max(
     ...dmarcBars.map((b: any) => (b.pass ?? b.pass_count ?? 0) + (b.fail ?? b.fail_count ?? 0) + (b.quarantine ?? b.quarantine_count ?? 0) + (b.reject ?? b.reject_count ?? 0))
+  );
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
   );
 
   return (
@@ -384,7 +394,13 @@ export default function EmailSecurity() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {MOCK_DOMAINS.map((domain, idx) => (
+              {MOCK_DOMAINS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_DOMAINS.map((domain, idx) => (
                 <motion.div
                   key={domain.id}
                   initial={{ opacity: 0, scale: 0.97 }}
@@ -428,6 +444,7 @@ export default function EmailSecurity() {
                   )}
                 </motion.div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -456,7 +473,13 @@ export default function EmailSecurity() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="flex items-end gap-2 h-40">
-              {dmarcBars.map((bar: any, idx: number) => {
+              {dmarcBars.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                dmarcBars.map((bar: any, idx: number) => {
                 const total = (bar.pass ?? bar.pass_count ?? 0) + (bar.fail ?? bar.fail_count ?? 0) + (bar.quarantine ?? bar.quarantine_count ?? 0) + (bar.reject ?? bar.reject_count ?? 0);
                 const scale = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
                 const passV = bar.pass ?? bar.pass_count ?? 0;
@@ -485,6 +508,7 @@ export default function EmailSecurity() {
                   </div>
                 );
               })}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -597,7 +621,13 @@ export default function EmailSecurity() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_LOOKALIKES.map((d, idx) => (
+                  {MOCK_LOOKALIKES.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    MOCK_LOOKALIKES.map((d, idx) => (
                     <motion.tr
                       key={d.id}
                       initial={{ opacity: 0 }}
@@ -625,6 +655,7 @@ export default function EmailSecurity() {
                       </TableCell>
                     </motion.tr>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -645,7 +676,13 @@ export default function EmailSecurity() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
-              {RECOMMENDATIONS.map((rec, idx) => {
+              {RECOMMENDATIONS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                RECOMMENDATIONS.map((rec, idx) => {
                 const Icon = rec.icon;
                 return (
                   <motion.div
@@ -671,6 +708,7 @@ export default function EmailSecurity() {
                   </motion.div>
                 );
               })}
+              )}
             </CardContent>
           </Card>
         </motion.div>

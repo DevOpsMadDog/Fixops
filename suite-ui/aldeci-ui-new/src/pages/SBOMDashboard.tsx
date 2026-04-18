@@ -157,6 +157,7 @@ export default function SBOMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const ORG_ID = "aldeci-demo";
 
@@ -225,10 +226,19 @@ export default function SBOMDashboard() {
 
   const totalVulns = MOCK_VULN_BREAKDOWN.reduce((sum, v) => sum + v.count, 0);
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }
+    setLoading(false);}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >

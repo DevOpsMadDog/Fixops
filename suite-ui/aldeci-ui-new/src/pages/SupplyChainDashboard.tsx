@@ -117,6 +117,7 @@ export default function SupplyChainDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -148,6 +149,14 @@ export default function SupplyChainDashboard() {
   const cveAffected     = liveData?.stats?.cve_affected     ?? liveData?.risks?.cve_affected     ?? 112;
   const licenseIssues   = liveData?.stats?.license_issues   ?? liveData?.risks?.license_issues   ?? 9;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -160,7 +169,8 @@ export default function SupplyChainDashboard() {
         title="Supply Chain Risk"
         description="Third-party vendor and component risk management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading
+    setLoading(false);}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
@@ -305,7 +315,13 @@ export default function SupplyChainDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {RISK_BREAKDOWN.map((r) => (
+              {RISK_BREAKDOWN.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                RISK_BREAKDOWN.map((r) => (
                 <div
                   key={r.type}
                   className={cn("rounded-lg border p-3 flex flex-col gap-1", r.border, r.bg)}
@@ -315,6 +331,7 @@ export default function SupplyChainDashboard() {
                   <span className="text-[11px] text-muted-foreground">{r.label}</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

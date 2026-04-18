@@ -148,6 +148,7 @@ export default function SecurityMaturityDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [liveAssessments, setLiveAssessments] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -184,6 +185,14 @@ export default function SecurityMaturityDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -197,7 +206,8 @@ export default function SecurityMaturityDashboard() {
         description="Framework-based maturity assessment, domain scoring, and improvement roadmap"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+            <Button variant="outline" size="sm" onClick={handleRefresh
+    setLoading(false);} disabled={refreshing || dataLoading}>
               <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
             <Button size="sm" className="gap-1.5">

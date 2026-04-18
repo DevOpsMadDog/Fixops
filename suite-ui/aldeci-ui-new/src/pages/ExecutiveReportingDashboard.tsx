@@ -185,6 +185,7 @@ export default function ExecutiveReportingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     reports: ExecReport[] | null;
     kpis: ExecKpi[] | null;
     boards: BoardPresentation[] | null;
@@ -228,6 +229,14 @@ export default function ExecutiveReportingDashboard() {
   const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: ExecKpi) => k.status === "at_risk").length;
   const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: ExecKpi) => k.status === "off_track").length;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -243,7 +252,8 @@ export default function ExecutiveReportingDashboard() {
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
-        }
+        
+    setLoading(false);}
       />
 
       {/* KPI cards */}
@@ -289,7 +299,13 @@ export default function ExecutiveReportingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((r: ExecReport) => (
+                {reports.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  reports.map((r: ExecReport) => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[240px] truncate">{r.title}</TableCell>
                     <TableCell className="py-2"><ReportTypeBadge type={r.report_type ?? "monthly"} /></TableCell>
@@ -303,6 +319,7 @@ export default function ExecutiveReportingDashboard() {
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -342,7 +359,13 @@ export default function ExecutiveReportingDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpis.map((k: ExecKpi) => (
+                  {kpis.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    kpis.map((k: ExecKpi) => (
                     <TableRow key={k.id ?? k.kpi_name} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-xs font-medium">{k.kpi_name}</TableCell>
                       <TableCell className="py-2 text-right">
@@ -361,6 +384,7 @@ export default function ExecutiveReportingDashboard() {
                       <TableCell className="py-2"><KpiStatusBadge status={k.status ?? "on_track"} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -377,7 +401,13 @@ export default function ExecutiveReportingDashboard() {
             <CardDescription className="text-xs">Recent board and executive security briefings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {boards.map((bp: BoardPresentation) => (
+            {boards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              boards.map((bp: BoardPresentation) => (
               <div key={bp.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-semibold leading-tight">{bp.title}</span>
@@ -410,6 +440,7 @@ export default function ExecutiveReportingDashboard() {
                 )}
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

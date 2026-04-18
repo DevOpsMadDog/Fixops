@@ -117,6 +117,7 @@ export default function DarkWebMonitoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     mentions: any[] | null;
     exposures: any[] | null;
@@ -149,6 +150,14 @@ export default function DarkWebMonitoringDashboard() {
   const mentions  = liveData.mentions  ?? MOCK_MENTIONS;
   const exposures = liveData.exposures ?? MOCK_EXPOSURES;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -169,7 +178,8 @@ export default function DarkWebMonitoringDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Mentions"      value={stats.total_mentions}      icon={Globe}       trend="up"   />
+        <KpiCard title="Total Mentions"      value={stats.total_mentions
+    setLoading(false);}      icon={Globe}       trend="up"   />
         <KpiCard title="Open Mentions"       value={stats.open_mentions}       icon={Eye}         trend="up"   className="border-amber-500/20" />
         <KpiCard title="Critical Exposures"  value={stats.critical_exposures}  icon={AlertTriangle} trend="up" className="border-red-500/20" />
         <KpiCard title="Keywords Tracked"    value={stats.keywords_tracked}    icon={ShieldAlert} trend="flat" className="border-blue-500/20" />
@@ -203,7 +213,13 @@ export default function DarkWebMonitoringDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mentions.map((m: any, i: number) => (
+                {mentions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  mentions.map((m: any, i: number) => (
                   <TableRow key={m.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{m.id}</TableCell>
                     <TableCell className="py-2 text-[11px] capitalize">{(m.source_category ?? "").replace(/_/g, " ")}</TableCell>
@@ -213,6 +229,7 @@ export default function DarkWebMonitoringDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(m.detected_at)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -246,7 +263,13 @@ export default function DarkWebMonitoringDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exposures.map((e: any, i: number) => (
+                {exposures.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  exposures.map((e: any, i: number) => (
                   <TableRow key={e.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{e.id}</TableCell>
                     <TableCell className="py-2 text-[11px]">{e.affected_system}</TableCell>
@@ -255,6 +278,7 @@ export default function DarkWebMonitoringDashboard() {
                     <TableCell className="py-2"><MentionStatusBadge status={e.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

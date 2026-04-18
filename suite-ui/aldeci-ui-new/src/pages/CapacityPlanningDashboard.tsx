@@ -276,7 +276,13 @@ export default function CapacityPlanningDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_RESOURCES.map(r => (
+                {MOCK_RESOURCES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_RESOURCES.map(r => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{r.resource_name}</TableCell>
                     <TableCell className="py-2"><RoleBadge role={r.role} /></TableCell>
@@ -293,6 +299,7 @@ export default function CapacityPlanningDashboard() {
                     <TableCell className="py-2"><StatusBadge s={r.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -326,7 +333,13 @@ export default function CapacityPlanningDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_DEMANDS.map(d => (
+                {MOCK_DEMANDS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_DEMANDS.map(d => (
                   <TableRow key={d.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{d.demand_name}</TableCell>
                     <TableCell className="py-2">
@@ -345,6 +358,7 @@ export default function CapacityPlanningDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.timeline}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -361,7 +375,13 @@ export default function CapacityPlanningDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {MOCK_SNAPSHOTS.map((snap, i) => (
+            {MOCK_SNAPSHOTS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_SNAPSHOTS.map((snap, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className="text-[11px] text-muted-foreground w-24 shrink-0">{snap.snapshot_date}</span>
                 <div className="flex-1 h-6 bg-muted rounded overflow-hidden relative">
@@ -373,6 +393,7 @@ export default function CapacityPlanningDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

@@ -133,6 +133,15 @@ function TrendBadge({ trend }: { trend: string }) {
 
 export default function APISecurityPage() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -182,7 +191,13 @@ export default function APISecurityPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {OWASP_TOP10.map((row) => (
+                {OWASP_TOP10.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  OWASP_TOP10.map((row) => (
                   <TableRow key={row.rank} className="hover:bg-muted/30">
                     <TableCell className="text-[10px] font-mono py-2.5 text-muted-foreground whitespace-nowrap">{row.rank}</TableCell>
                     <TableCell className="text-xs py-2.5 font-medium max-w-[220px]">{row.name}</TableCell>
@@ -215,6 +230,7 @@ export default function APISecurityPage() {
                     <TableCell className="py-2.5 text-center"><TrendBadge trend={row.trend} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -250,7 +266,13 @@ export default function APISecurityPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {API_FINDINGS.map((row, i) => (
+                {API_FINDINGS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  API_FINDINGS.map((row, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-[10px] font-mono py-2.5 max-w-[200px] truncate text-blue-300">{row.endpoint}</TableCell>
                     <TableCell className="py-2.5"><MethodBadge method={row.method} /></TableCell>
@@ -263,6 +285,7 @@ export default function APISecurityPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -293,7 +316,13 @@ export default function APISecurityPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {TRAFFIC_ANOMALIES.map((ev, i) => (
+                  {TRAFFIC_ANOMALIES.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    TRAFFIC_ANOMALIES.map((ev, i) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-[10px] font-mono py-2 text-muted-foreground">{ev.ip}</TableCell>
                       <TableCell className="py-2"><AnomalyBadge type={ev.type} /></TableCell>
@@ -307,6 +336,7 @@ export default function APISecurityPage() {
                       <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{ev.ts}</TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -324,7 +354,13 @@ export default function APISecurityPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {INVENTORY_HEALTH.map((stat) => (
+              {INVENTORY_HEALTH.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                INVENTORY_HEALTH.map((stat) => (
                 <div
                   key={stat.label}
                   className={cn(
@@ -336,6 +372,7 @@ export default function APISecurityPage() {
                   <span className="text-[11px] text-muted-foreground">{stat.label}</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

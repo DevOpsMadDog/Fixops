@@ -129,6 +129,7 @@ export default function CrossDomainAnalytics() {
   const [dataLoading, setDataLoading] = useState(false);
   const [liveIocResults, setLiveIocResults] = useState<any>(null);
   const [iocLoading, setIocLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -144,7 +145,8 @@ export default function CrossDomainAnalytics() {
       const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
       if (exec || assets || trend || domains) {
         setLiveData({ exec, assets, trend, domains });
-      }
+      
+    setLoading(false);}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -175,6 +177,14 @@ export default function CrossDomainAnalytics() {
       }
     }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -214,7 +224,13 @@ export default function CrossDomainAnalytics() {
             <CardDescription className="text-xs">Aggregated posture across all domains</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {EXEC_SUMMARY.map((row) => {
+            {EXEC_SUMMARY.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              EXEC_SUMMARY.map((row) => {
               let displayValue = row.value;
               if (liveData?.exec) {
                 if (row.label === "Security Posture") displayValue = liveData.exec.posture_score ?? row.value;
@@ -230,6 +246,7 @@ export default function CrossDomainAnalytics() {
                 </div>
               );
             })}
+            )}
           </CardContent>
         </Card>
 
@@ -244,7 +261,13 @@ export default function CrossDomainAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-3 h-36">
-              {TREND.map((m) => (
+              {TREND.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TREND.map((m) => (
                 <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
                   <span className="text-[10px] text-muted-foreground mb-1">{m.score}%</span>
                   <div className="w-full flex items-end h-24">
@@ -261,6 +284,7 @@ export default function CrossDomainAnalytics() {
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

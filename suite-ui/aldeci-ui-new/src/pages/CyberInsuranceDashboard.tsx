@@ -236,6 +236,7 @@ export default function CyberInsuranceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     policies: InsurancePolicy[] | null;
     claims: InsuranceClaim[] | null;
     stats: InsuranceStats | null;
@@ -279,6 +280,14 @@ export default function CyberInsuranceDashboard() {
   const annualPremium   = stats?.annual_premium    ?? policies.reduce((s: number, p: InsurancePolicy) => s + (p.premium_annual ?? 0), 0);
   const openClaims      = stats?.open_claims       ?? claims.filter((c: InsuranceClaim) => c.status !== "settled" && c.status !== "denied").length;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -294,7 +303,8 @@ export default function CyberInsuranceDashboard() {
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
-        }
+        
+    setLoading(false);}
       />
 
       {/* KPIs */}
@@ -336,7 +346,13 @@ export default function CyberInsuranceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {policies.map((p: InsurancePolicy) => (
+                {policies.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  policies.map((p: InsurancePolicy) => (
                   <TableRow key={p.policy_id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{p.carrier}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{p.policy_number}</TableCell>
@@ -359,6 +375,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2"><PolicyStatusBadge status={p.status ?? "active"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -394,7 +411,13 @@ export default function CyberInsuranceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {claims.map((c: InsuranceClaim) => (
+                {claims.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  claims.map((c: InsuranceClaim) => (
                   <TableRow key={c.claim_id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.claim_id}</TableCell>
                     <TableCell className="py-2"><IncidentTypeBadge type={c.incident_type ?? ""} /></TableCell>
@@ -409,6 +432,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2"><ClaimStatusBadge status={c.status ?? "filed"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

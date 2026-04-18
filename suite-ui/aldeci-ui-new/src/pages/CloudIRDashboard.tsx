@@ -156,7 +156,13 @@ export default function CloudIRDashboard() {
                   <tr>{["Incident", "Provider", "Type", "Severity", "Status", "Containment", "Resolution", "Blast Radius", "Services", "Regions"].map(h => <th key={h} className="text-left px-4 py-2 whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {incidents.map(i => (
+                  {incidents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    incidents.map(i => (
                     <tr key={i.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium whitespace-nowrap">{i.incident_name}</td>
                       <td className="px-4 py-3">{providerBadge(i.cloud_provider)}</td>
@@ -174,6 +180,7 @@ export default function CloudIRDashboard() {
                       </td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -188,17 +195,31 @@ export default function CloudIRDashboard() {
                 <h2 className="font-semibold">Containment Actions</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterIncident} onChange={e => setFilterIncident(e.target.value)}>
                   <option value="all">All Incidents</option>
-                  {incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
+                  {incidents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAddAction(!showAddAction)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">+ Add Action</button>
+                  )}
             </div>
             {showAddAction && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newAction.incident_id} onChange={e => setNewAction({ ...newAction, incident_id: e.target.value })}>
-                  {incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
+                  {incidents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
                 </select>
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newAction.action_type} onChange={e => setNewAction({ ...newAction, action_type: e.target.value })}>
+                  )}
                   {["isolate","terminate_instance","revoke_credentials","revoke_tokens","snapshot","block_ip"].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Resource ID" value={newAction.resource_id} onChange={e => setNewAction({ ...newAction, resource_id: e.target.value })} />
@@ -210,7 +231,13 @@ export default function CloudIRDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredActions.map(a => (
+              {filteredActions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredActions.map(a => (
                 <div key={a.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -228,6 +255,7 @@ export default function CloudIRDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}
@@ -248,7 +276,13 @@ export default function CloudIRDashboard() {
               </select>
             </div>
             <div className="divide-y divide-gray-700">
-              {filteredPlaybooks.map(p => (
+              {filteredPlaybooks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filteredPlaybooks.map(p => (
                 <div key={p.id} className="p-4 flex items-center gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -265,6 +299,7 @@ export default function CloudIRDashboard() {
                   <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded">Execute</button>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}

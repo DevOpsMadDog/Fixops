@@ -140,10 +140,12 @@ export default function ThreatResponseDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedIncident(d); })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); 
+    setLoading(false);});
   }, []);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [resolveMsg, setResolveMsg] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const actions = MOCK_ACTIONS[selectedIncident.id] ?? [];
   const activeIncidents = MOCK_INCIDENTS.filter(i => !resolved.has(i.id));
@@ -154,6 +156,14 @@ export default function ThreatResponseDashboard() {
     const next = MOCK_INCIDENTS.find(i => i.id !== selectedIncident.id && !resolved.has(i.id));
     if (next) setSelectedIncident(next);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

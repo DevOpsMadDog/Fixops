@@ -188,7 +188,13 @@ export default function ExceptionWorkflowDashboard() {
           <Bell className="w-5 h-5 text-amber-400 flex-shrink-0" />
           <span className="text-amber-300 text-sm font-medium">
             {expiringSoon.length} exception{expiringSoon.length > 1 ? "s" : ""} expiring within 30 days:&nbsp;
-            {expiringSoon.map(e => e.policy_name).join(", ")}
+            {expiringSoon.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              expiringSoon.map(e => e.policy_name).join(", ")}
           </span>
         </div>
       )}
@@ -213,6 +219,7 @@ export default function ExceptionWorkflowDashboard() {
           { label: "Expired",  value: counts.expired,  color: "text-gray-400" },
         ].map(k => (
           <div key={k.label} className="bg-gray-800 rounded-lg p-4 text-center">
+            )}
             <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
             <div className="text-gray-400 text-xs mt-1">{k.label}</div>
           </div>
@@ -221,7 +228,13 @@ export default function ExceptionWorkflowDashboard() {
 
       {/* Status filter tabs */}
       <div className="flex gap-2 flex-wrap">
-        {STATUSES.map(s => (
+        {STATUSES.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          STATUSES.map(s => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -230,6 +243,7 @@ export default function ExceptionWorkflowDashboard() {
             {s === "all" ? "All" : s}
           </button>
         ))}
+        )}
       </div>
 
       {/* Main layout: table + detail panel */}
@@ -252,7 +266,13 @@ export default function ExceptionWorkflowDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(exc => {
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  filtered.map(exc => {
                   const days = daysUntil(exc.expires_at);
                   const overdue = days < 0;
                   const soon = !overdue && days <= 30;
@@ -281,6 +301,7 @@ export default function ExceptionWorkflowDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -360,7 +381,13 @@ export default function ExceptionWorkflowDashboard() {
           <div className="bg-gray-800 rounded-lg p-5">
             <h2 className="font-semibold text-white text-sm mb-3">Renewal History</h2>
             <div className="space-y-3">
-              {MOCK_RENEWALS.map(r => (
+              {MOCK_RENEWALS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_RENEWALS.map(r => (
                 <div key={r.id} className="border-l-2 border-indigo-500/50 pl-3">
                   <div className="text-gray-300 text-xs font-medium">{r.policy_name}</div>
                   <div className="text-gray-400 text-xs mt-0.5">
@@ -371,6 +398,7 @@ export default function ExceptionWorkflowDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>

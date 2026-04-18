@@ -124,6 +124,7 @@ export default function SecurityMetricsDashboard2() {
   const [selectedMetric, setSelectedMetric] = useState<string>("m1");
   const [refreshing, setRefreshing] = useState(false);
   const [acked, setAcked] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
@@ -136,7 +137,16 @@ export default function SecurityMetricsDashboard2() {
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
-  };
+  
+    setLoading(false);};
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -179,7 +189,13 @@ export default function SecurityMetricsDashboard2() {
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Metric Dashboard</h3>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {METRICS.map((m) => (
+          {METRICS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            METRICS.map((m) => (
             <Card
               key={m.id}
               onClick={() => setSelectedMetric(m.id)}
@@ -207,6 +223,7 @@ export default function SecurityMetricsDashboard2() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -223,7 +240,13 @@ export default function SecurityMetricsDashboard2() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1 h-28 mb-2">
-              {readings.map((v, i) => {
+              {readings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                readings.map((v, i) => {
                 const pct = maxReading > 0 ? (v / maxReading) * 100 : 0;
                 const isLast = i === readings.length - 1;
                 return (
@@ -238,6 +261,7 @@ export default function SecurityMetricsDashboard2() {
                   </div>
                 );
               })}
+              )}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>12 readings ago</span>
@@ -261,7 +285,13 @@ export default function SecurityMetricsDashboard2() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-64 overflow-y-auto divide-y divide-border/40">
-              {ALERTS.map((a) => (
+              {ALERTS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                ALERTS.map((a) => (
                 <div
                   key={a.id}
                   className={cn(
@@ -289,6 +319,7 @@ export default function SecurityMetricsDashboard2() {
                   )}
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -317,7 +348,13 @@ export default function SecurityMetricsDashboard2() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {AGGREGATES.map((row) => (
+                {AGGREGATES.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  AGGREGATES.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right">{row.daily_avg}</TableCell>
@@ -327,6 +364,7 @@ export default function SecurityMetricsDashboard2() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.monthly_avg}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

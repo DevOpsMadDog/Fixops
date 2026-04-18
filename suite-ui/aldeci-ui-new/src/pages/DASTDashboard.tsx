@@ -190,7 +190,13 @@ export default function DASTDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.map((f) => (
+                {findings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  findings.map((f) => (
                   <TableRow key={f.id} className="border-white/10 hover:bg-white/5">
                     <TableCell className="font-mono text-xs text-white/70">{f.endpoint}</TableCell>
                     <TableCell className="text-white/80">{f.vuln_type}</TableCell>
@@ -199,6 +205,7 @@ export default function DASTDashboard() {
                     <TableCell><StatusBadge status={f.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

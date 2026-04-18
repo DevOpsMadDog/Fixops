@@ -165,6 +165,7 @@ export default function ThreatIntelConfidenceDashboard() {
   const [iocs, setIocs] = useState(MOCK_IOCS);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
@@ -191,7 +192,16 @@ export default function ThreatIntelConfidenceDashboard() {
       }));
       setExpiring(false);
     }, 1000);
-  }
+  
+    setLoading(false);}
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">

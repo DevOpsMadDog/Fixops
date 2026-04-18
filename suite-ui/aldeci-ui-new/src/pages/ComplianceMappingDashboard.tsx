@@ -159,7 +159,13 @@ export default function ComplianceMappingDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {MOCK_FRAMEWORKS.map((fw, i) => (
+            {MOCK_FRAMEWORKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_FRAMEWORKS.map((fw, i) => (
               <motion.div
                 key={fw.id}
                 initial={{ opacity: 0, x: -8 }}
@@ -183,6 +189,7 @@ export default function ComplianceMappingDashboard() {
                 <ProgressBar value={fw.implementation_rate} />
               </motion.div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -215,7 +222,13 @@ export default function ComplianceMappingDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((ctrl) => (
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                filtered.map((ctrl) => (
                 <TableRow key={ctrl.id} className="border-gray-700/50 hover:bg-gray-800/30">
                   <TableCell className="text-xs text-gray-400">{ctrl.framework}</TableCell>
                   <TableCell className="font-mono text-xs text-blue-400">{ctrl.control_id}</TableCell>
@@ -227,6 +240,7 @@ export default function ComplianceMappingDashboard() {
                   <TableCell className="text-right text-sm text-gray-300">{ctrl.mappings}</TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -249,7 +263,13 @@ export default function ComplianceMappingDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_FRAMEWORKS.map((fw) => {
+                {MOCK_FRAMEWORKS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_FRAMEWORKS.map((fw) => {
                   const scores = [
                     Math.min(100, fw.implementation_rate + Math.floor(Math.random() * 10 - 5)),
                     Math.min(100, fw.implementation_rate + Math.floor(Math.random() * 14 - 7)),
@@ -277,6 +297,7 @@ export default function ComplianceMappingDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>

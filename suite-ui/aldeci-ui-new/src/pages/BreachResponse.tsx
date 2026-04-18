@@ -132,6 +132,7 @@ export default function BreachResponse() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -173,8 +174,17 @@ export default function BreachResponse() {
         records:     c.estimated_records_affected ?? 0,
         notifiable:  c.notifiable ?? false,
         deadline:    c.regulatory_deadline ?? "—",
-      }))
+      
+    setLoading(false);}))
     : BREACH_CASES;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -213,7 +223,13 @@ export default function BreachResponse() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-0">
-            {TIMELINE_STEPS.map((step, idx) => (
+            {TIMELINE_STEPS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TIMELINE_STEPS.map((step, idx) => (
               <div key={step.label} className="flex items-center flex-1 min-w-0">
                 <div className="flex flex-col items-center gap-1.5 flex-1">
                   <div className={cn(
@@ -241,6 +257,7 @@ export default function BreachResponse() {
                 )}
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -276,7 +293,13 @@ export default function BreachResponse() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableCases.map((row) => (
+                {tableCases.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  tableCases.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2">{row.id}</TableCell>
                     <TableCell className="text-xs py-2 max-w-[180px] truncate">{row.title}</TableCell>
@@ -297,6 +320,7 @@ export default function BreachResponse() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -327,7 +351,13 @@ export default function BreachResponse() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {NOTIFICATIONS.map((row, idx) => (
+                  {NOTIFICATIONS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    NOTIFICATIONS.map((row, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-mono py-2">{row.caseId}</TableCell>
                       <TableCell className="text-xs py-2 max-w-[120px] truncate">{row.party}</TableCell>
@@ -336,6 +366,7 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -364,7 +395,13 @@ export default function BreachResponse() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {REGULATORY_REPORTS.map((row, idx) => (
+                  {REGULATORY_REPORTS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    REGULATORY_REPORTS.map((row, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-bold py-2">{row.regulator}</TableCell>
                       <TableCell className="text-xs font-mono py-2">{row.caseId}</TableCell>
@@ -378,6 +415,7 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

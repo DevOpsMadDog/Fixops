@@ -119,6 +119,7 @@ export default function SecurityChaosDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     experiments: any[] | null;
     observations: any[] | null;
@@ -151,6 +152,14 @@ export default function SecurityChaosDashboard() {
   const experiments  = liveData.experiments  ?? MOCK_EXPERIMENTS;
   const observations = liveData.observations ?? MOCK_OBSERVATIONS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -171,7 +180,8 @@ export default function SecurityChaosDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Experiments"    value={stats.total_experiments}    icon={FlaskConical}  trend="up"   />
+        <KpiCard title="Total Experiments"    value={stats.total_experiments}    icon={FlaskConical
+    setLoading(false);}  trend="up"   />
         <KpiCard title="Active Experiments"   value={stats.active_experiments}   icon={Activity}      trend="flat" className="border-green-500/20" />
         <KpiCard title="Avg Resilience Score" value={`${stats.avg_resilience_score}`} icon={Zap}      trend="up"   className="border-blue-500/20" />
         <KpiCard title="Open Findings"        value={stats.open_findings}        icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
@@ -205,7 +215,13 @@ export default function SecurityChaosDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {experiments.map((ex: any, i: number) => (
+                {experiments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  experiments.map((ex: any, i: number) => (
                   <TableRow key={ex.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ex.id}</TableCell>
                     <TableCell className="py-2 text-[11px] capitalize">{(ex.experiment_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -215,6 +231,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ex.started_at)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -248,7 +265,13 @@ export default function SecurityChaosDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {observations.map((ob: any, i: number) => (
+                {observations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  observations.map((ob: any, i: number) => (
                   <TableRow key={ob.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ob.id}</TableCell>
                     <TableCell className="py-2 text-[11px] capitalize">{(ob.observation_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -257,6 +280,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-xs truncate">{ob.detail}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

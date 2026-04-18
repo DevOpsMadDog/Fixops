@@ -229,6 +229,7 @@ export default function GRCAssessment() {
   const [framework, setFramework] = useState<Framework>("SOC2");
   const [liveStats, setLiveStats] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -256,6 +257,14 @@ export default function GRCAssessment() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -274,7 +283,8 @@ export default function GRCAssessment() {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs */
+    setLoading(false);}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Assessments"     value={liveStats?.frameworks?.length ?? liveStats?.stats?.total_assessments ?? 12}                                                                                      icon={ClipboardCheck} trend="up"   />
         <KpiCard title="Controls Tested" value={liveStats?.stats?.total_controls ?? 847}                                                                                                                        icon={BarChart3}      trend="up"   className="border-blue-500/20" />
@@ -290,7 +300,13 @@ export default function GRCAssessment() {
             Control Assessment — {framework}
           </CardTitle>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {FRAMEWORKS.map((fw) => (
+            {FRAMEWORKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              FRAMEWORKS.map((fw) => (
               <button
                 key={fw}
                 onClick={() => setFramework(fw)}
@@ -304,6 +320,7 @@ export default function GRCAssessment() {
                 {fw}
               </button>
             ))}
+            )}
           </div>
           <CardDescription className="text-xs mt-1">
             {implemented} of {controls.length} controls implemented ({passRate}% pass rate)
@@ -325,7 +342,13 @@ export default function GRCAssessment() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {controls.map((c) => (
+                {controls.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  controls.map((c) => (
                   <TableRow
                     key={c.ref}
                     className={cn(
@@ -347,6 +370,7 @@ export default function GRCAssessment() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -365,7 +389,13 @@ export default function GRCAssessment() {
             <CardDescription className="text-xs">Remediation priorities by criticality</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {GAPS.map((g) => (
+            {GAPS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              GAPS.map((g) => (
               <div key={g.priority} className={cn("rounded-lg border p-4 space-y-2", g.color)}>
                 <div className="flex items-center justify-between">
                   <span className={cn("text-sm font-bold", g.text)}>{g.priority}</span>
@@ -378,6 +408,7 @@ export default function GRCAssessment() {
                 <p className="text-[11px] text-muted-foreground leading-relaxed">{g.desc}</p>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -397,23 +428,37 @@ export default function GRCAssessment() {
                 <p className="text-[11px] font-semibold text-green-400 flex items-center gap-1">
                   <CheckCircle className="h-3 w-3" /> Complete
                 </p>
-                {READINESS_COMPLETE.map((item) => (
+                {READINESS_COMPLETE.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  READINESS_COMPLETE.map((item) => (
                   <p key={item} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
                     {item}
                   </p>
                 ))}
+                )}
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" /> Still Needed
                 </p>
-                {READINESS_NEEDED.map((item) => (
+                {READINESS_NEEDED.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  READINESS_NEEDED.map((item) => (
                   <p key={item} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
                     {item}
                   </p>
                 ))}
+                )}
               </div>
             </div>
           </CardContent>

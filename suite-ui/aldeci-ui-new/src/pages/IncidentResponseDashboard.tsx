@@ -144,6 +144,7 @@ export default function IncidentResponseDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -158,7 +159,8 @@ export default function IncidentResponseDashboard() {
       if (stats || incidents || playbooks) {
         setLiveData({ stats, incidents, playbooks });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -196,6 +198,14 @@ export default function IncidentResponseDashboard() {
             slaBreach: inc.sla_breached ?? false,
           }))
         : INCIDENTS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -254,7 +264,13 @@ export default function IncidentResponseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveIncidents.map((inc) => (
+                {liveIncidents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  liveIncidents.map((inc) => (
                   <TableRow
                     key={inc.id}
                     className={cn("hover:bg-muted/30", inc.slaBreach && "bg-red-500/5 border-l-2 border-l-red-500")}
@@ -289,6 +305,7 @@ export default function IncidentResponseDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -308,7 +325,13 @@ export default function IncidentResponseDashboard() {
           </CardHeader>
           <CardContent>
             <div className="relative flex flex-col gap-0">
-              {TIMELINE_STEPS.map((step, i) => (
+              {TIMELINE_STEPS.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                TIMELINE_STEPS.map((step, i) => (
                 <div key={step.label} className="flex items-start gap-3">
                   {/* Icon + connector line */}
                   <div className="flex flex-col items-center">
@@ -345,6 +368,7 @@ export default function IncidentResponseDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -361,7 +385,13 @@ export default function IncidentResponseDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {TASKS.map((task, i) => (
+            {TASKS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              TASKS.map((task, i) => (
               <div
                 key={i}
                 className={cn(
@@ -388,6 +418,7 @@ export default function IncidentResponseDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -419,7 +450,13 @@ export default function IncidentResponseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ARTIFACTS.map((a, i) => (
+                {ARTIFACTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  ARTIFACTS.map((a, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[220px] truncate">{a.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -432,6 +469,7 @@ export default function IncidentResponseDashboard() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{a.ts}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

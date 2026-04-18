@@ -245,7 +245,13 @@ export default function AssetGroupsDashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Group grid */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 content-start">
-          {GROUPS.map(g => (
+          {GROUPS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            GROUPS.map(g => (
             <div
               key={g.id}
               onClick={() => setSelectedGroup(g)}
@@ -269,6 +275,7 @@ export default function AssetGroupsDashboard() {
               <div className="text-xs text-gray-500 mt-1 truncate">Owner: {g.owner}</div>
             </div>
           ))}
+          )}
         </div>
 
         {/* Stats */}

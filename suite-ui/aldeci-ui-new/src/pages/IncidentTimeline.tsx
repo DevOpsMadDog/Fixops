@@ -396,7 +396,13 @@ const PhaseProgress = ({ current }: { current: Phase }) => {
   const idx = PHASE_ORDER.indexOf(current);
   return (
     <div className="flex items-center gap-1">
-      {PHASE_ORDER.map((phase, i) => (
+      {PHASE_ORDER.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Data will appear here once available</p>
+        </div>
+      ) : (
+        PHASE_ORDER.map((phase, i) => (
         <div key={phase} className="flex items-center gap-1">
           <div
             className={cn(
@@ -410,6 +416,7 @@ const PhaseProgress = ({ current }: { current: Phase }) => {
           )}
         </div>
       ))}
+      )}
     </div>
   );
 };
@@ -432,7 +439,13 @@ const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_duratio
   return (
     <div className="space-y-3">
       <div className="flex h-6 rounded-full overflow-hidden gap-0.5">
-        {phases.map(p => (
+        {phases.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          phases.map(p => (
           <div
             key={p.label}
             className={cn("h-full transition-all", p.color)}
@@ -440,15 +453,23 @@ const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_duratio
             title={`${p.label}: ${p.hours}h`}
           />
         ))}
+        )}
       </div>
       <div className="flex flex-wrap gap-4">
-        {phases.map(p => (
+        {phases.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Data will appear here once available</p>
+          </div>
+        ) : (
+          phases.map(p => (
           <div key={p.label} className="flex items-center gap-2">
             <div className={cn("w-3 h-3 rounded-full", p.color)} />
             <span className="text-sm text-gray-300">{p.label}</span>
             <span className="text-sm font-semibold text-white">{p.hours}h</span>
           </div>
         ))}
+        )}
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-gray-400">Total MTTR:</span>
           <span className="text-sm font-bold text-blue-400">{total.toFixed(1)}h</span>

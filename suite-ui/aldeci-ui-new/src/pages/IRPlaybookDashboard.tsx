@@ -197,7 +197,13 @@ export default function IRPlaybookDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {executions.map((ex) => (
+                {executions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  executions.map((ex) => (
                   <TableRow key={ex.id} className="border-white/10 hover:bg-white/5">
                     <TableCell className="font-medium text-white/90">{ex.playbook}</TableCell>
                     <TableCell className="text-white/60 text-sm">{ex.incident_type.replace(/_/g, " ")}</TableCell>
@@ -207,6 +213,7 @@ export default function IRPlaybookDashboard() {
                     <TableCell><StatusBadge status={ex.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

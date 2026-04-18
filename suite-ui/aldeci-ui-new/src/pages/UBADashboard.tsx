@@ -136,6 +136,7 @@ export default function UBADashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -193,8 +194,17 @@ export default function UBADashboard() {
         type:     e.event_type ?? "failed_login",
         ip:       e.source_ip ?? "—",
         ts:       e.timestamp ?? e.created_at ?? "—",
-      }))
+      
+    setLoading(false);}))
     : ANOMALY_EVENTS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -252,7 +262,13 @@ export default function UBADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableUsers.map((u) => (
+                {tableUsers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  tableUsers.map((u) => (
                   <TableRow key={u.username} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{u.username}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{u.dept}</TableCell>
@@ -286,6 +302,7 @@ export default function UBADashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -304,7 +321,13 @@ export default function UBADashboard() {
             <CardDescription className="text-xs">Users grouped by risk score bucket</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {SCORE_BUCKETS.map((b) => (
+            {SCORE_BUCKETS.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              SCORE_BUCKETS.map((b) => (
               <div key={b.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground tabular-nums w-14">{b.label}</span>
@@ -320,6 +343,7 @@ export default function UBADashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -334,7 +358,13 @@ export default function UBADashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/50 max-h-80 overflow-y-auto">
-              {tableEvents.map((e, i) => (
+              {tableEvents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                tableEvents.map((e, i) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20">
                   <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">{e.username}</span>
                   <EventTypeBadge type={e.type} />
@@ -343,6 +373,7 @@ export default function UBADashboard() {
                   <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10 shrink-0">anomalous</Badge>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -359,7 +390,13 @@ export default function UBADashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {DEPT_HEATMAP.map((d) => (
+            {DEPT_HEATMAP.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              DEPT_HEATMAP.map((d) => (
               <div
                 key={d.dept}
                 className={cn(
@@ -373,6 +410,7 @@ export default function UBADashboard() {
                 <span className="text-[10px] text-muted-foreground">{d.users} users</span>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

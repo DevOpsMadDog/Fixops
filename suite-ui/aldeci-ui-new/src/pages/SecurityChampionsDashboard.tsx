@@ -239,6 +239,7 @@ export default function SecurityChampionsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -253,13 +254,22 @@ export default function SecurityChampionsDashboard() {
       if (stats || champions || campaigns) {
         setLiveData({ stats, champions, campaigns });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -370,7 +380,13 @@ export default function SecurityChampionsDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ACTIVITIES.map((a, i) => (
+                  {ACTIVITIES.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    ACTIVITIES.map((a, i) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{a.champion}</TableCell>
                       <TableCell className="py-2"><ActivityTypeBadge type={a.type} /></TableCell>
@@ -378,6 +394,7 @@ export default function SecurityChampionsDashboard() {
                       <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{a.completed_at.slice(0, 10)}</TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -406,7 +423,13 @@ export default function SecurityChampionsDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {CERTIFICATIONS.map((cert, i) => (
+                  {CERTIFICATIONS.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    CERTIFICATIONS.map((cert, i) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{cert.champion}</TableCell>
                       <TableCell className="text-xs py-2 font-semibold">{cert.cert}</TableCell>
@@ -415,6 +438,7 @@ export default function SecurityChampionsDashboard() {
                       <TableCell className="py-2"><CertStatusBadge status={cert.status} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -471,7 +495,13 @@ export default function SecurityChampionsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {LEVEL_DISTRIBUTION.map((l) => (
+            {LEVEL_DISTRIBUTION.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              LEVEL_DISTRIBUTION.map((l) => (
               <div key={l.level} className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/20 border border-border/40">
                 <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", l.color + "/20", "border-2", l.color.replace("bg-", "border-"))}>
                   <Trophy className={cn("h-5 w-5", l.text)} />
@@ -486,6 +516,7 @@ export default function SecurityChampionsDashboard() {
                 )}
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

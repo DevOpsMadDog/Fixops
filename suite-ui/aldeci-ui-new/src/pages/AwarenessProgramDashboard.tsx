@@ -138,10 +138,19 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 
 export default function AwarenessProgramDashboard() {
   const [selectedProgram, setSelectedProgram] = useState(MOCK_PROGRAMS[0]);
+  const [loading, setLoading] = useState(true);
 
   const totalEnrolled   = MOCK_PROGRAMS.reduce((s, p) => s + p.enrolled, 0);
   const totalCompleted  = MOCK_PROGRAMS.reduce((s, p) => s + p.completed, 0);
   const avgPassRate     = Math.round(MOCK_PROGRAMS.reduce((s, p) => s + p.pass_rate, 0) / MOCK_PROGRAMS.length);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -175,7 +184,13 @@ export default function AwarenessProgramDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Programs</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {MOCK_PROGRAMS.map(p => (
+          {MOCK_PROGRAMS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MOCK_PROGRAMS.map(p => (
             <button key={p.id} onClick={() => setSelectedProgram(p)}
               className={cn("bg-gray-900 rounded-lg p-4 text-left hover:bg-gray-700/50 transition-all border",
                 selectedProgram.id === p.id ? "border-blue-500/60" : "border-transparent")}>
@@ -204,6 +219,7 @@ export default function AwarenessProgramDashboard() {
               </div>
             </button>
           ))}
+          )}
         </div>
       </div>
 
@@ -226,7 +242,13 @@ export default function AwarenessProgramDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_ENROLLMENTS.map(e => (
+                {MOCK_ENROLLMENTS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_ENROLLMENTS.map(e => (
                   <tr key={e.id} className="border-b border-gray-700/50 hover:bg-gray-700/20">
                     <td className="py-2.5 pr-4 text-white text-xs font-medium">{e.user_name}</td>
                     <td className="py-2.5 pr-4"><DeptBadge d={e.department} /></td>
@@ -252,6 +274,7 @@ export default function AwarenessProgramDashboard() {
                     <td className="py-2.5 text-gray-400 text-xs">{e.attempts}</td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -264,7 +287,13 @@ export default function AwarenessProgramDashboard() {
               <AlertTriangle className="w-4 h-4 text-orange-400" /> Overdue Enrollments
             </h2>
             <div className="space-y-2">
-              {MOCK_OVERDUE.map((u, i) => (
+              {MOCK_OVERDUE.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                MOCK_OVERDUE.map((u, i) => (
                 <div key={i} className="bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <p className="text-white text-xs font-semibold">{u.user_name}</p>
@@ -276,6 +305,7 @@ export default function AwarenessProgramDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
 
@@ -308,7 +338,13 @@ export default function AwarenessProgramDashboard() {
           <Bell className="w-4 h-4 text-yellow-400" /> Awareness Events
         </h2>
         <div className="space-y-2">
-          {MOCK_EVENTS.map(ev => (
+          {MOCK_EVENTS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MOCK_EVENTS.map(ev => (
             <div key={ev.id} className="bg-gray-900 rounded-lg px-4 py-3 flex items-center gap-4">
               <EventTypeBadge t={ev.event_type} />
               <p className="text-xs text-gray-300 flex-1">{ev.description}</p>
@@ -319,6 +355,7 @@ export default function AwarenessProgramDashboard() {
               <span className="text-[10px] text-gray-500 w-16 text-right">{ev.affected_users} user{ev.affected_users > 1 ? "s" : ""}</span>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

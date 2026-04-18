@@ -150,6 +150,7 @@ export default function NetworkThreatsDashboard() {
   }, []);
 
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "resolved">("all");
+  const [loading, setLoading] = useState(true);
 
   const filteredThreats = filterStatus === "all"
     ? threats
@@ -160,9 +161,18 @@ export default function NetworkThreatsDashboard() {
   const totalThreats   = threats.length;
   const topIPs = topSourceIPs(threats);
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {/* Header */}
+      {/* Header */
+    setLoading(false);}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Network Threats</h1>
@@ -198,7 +208,13 @@ export default function NetworkThreatsDashboard() {
         <div className="bg-red-900/20 border border-red-700 rounded-lg p-5">
           <p className="text-red-400 font-semibold text-sm mb-3">Anomalous Baselines Detected ({MOCK_BASELINES.length})</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {MOCK_BASELINES.map(b => (
+            {MOCK_BASELINES.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              MOCK_BASELINES.map(b => (
               <div key={b.id} className="bg-red-900/30 rounded-lg p-3">
                 <p className="text-red-200 text-xs font-semibold">{b.metric_name}</p>
                 <div className="flex items-baseline gap-1 mt-1">
@@ -211,6 +227,7 @@ export default function NetworkThreatsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
       )}
@@ -249,7 +266,13 @@ export default function NetworkThreatsDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
-                {filteredThreats.map(t => (
+                {filteredThreats.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  filteredThreats.map(t => (
                   <tr key={t.id} className={`hover:bg-gray-700/30 transition-colors ${t.status === "resolved" ? "opacity-50" : ""}`}>
                     <td className="py-2 pr-2 text-gray-200 font-medium max-w-[160px] truncate">{t.threat_name}</td>
                     <td className="py-2 pr-2">
@@ -279,6 +302,7 @@ export default function NetworkThreatsDashboard() {
                     </td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -288,7 +312,13 @@ export default function NetworkThreatsDashboard() {
         <div className="lg:col-span-1 bg-gray-800 rounded-lg p-5">
           <h2 className="text-sm font-semibold text-white mb-4">Top Source IPs</h2>
           <div className="space-y-3">
-            {topIPs.map((ip, idx) => (
+            {topIPs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Data will appear here once available</p>
+              </div>
+            ) : (
+              topIPs.map((ip, idx) => (
               <div key={ip.ip} className="flex items-center gap-2">
                 <span className="text-gray-600 text-xs w-4">{idx + 1}</span>
                 <div className="flex-1 min-w-0">
@@ -303,6 +333,7 @@ export default function NetworkThreatsDashboard() {
                 <span className="text-red-400 text-xs font-bold shrink-0">{ip.count}</span>
               </div>
             ))}
+            )}
           </div>
         </div>
       </div>
@@ -311,7 +342,13 @@ export default function NetworkThreatsDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Threat Detection Rules</h2>
         <div className="space-y-3">
-          {MOCK_RULES.map(rule => (
+          {MOCK_RULES.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            MOCK_RULES.map(rule => (
             <div key={rule.id} className={`flex items-center gap-4 p-3 rounded-lg border transition-opacity ${rule.enabled ? "border-gray-700 bg-gray-700/30" : "border-gray-700/50 bg-gray-700/10 opacity-60"}`}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -334,6 +371,7 @@ export default function NetworkThreatsDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

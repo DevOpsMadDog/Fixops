@@ -112,7 +112,8 @@ export default function SecurityOKRDashboard() {
   useEffect(() => {
     fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setObjectives(d); })
+      .then(d => { if (Array.isArray(d)) setObjectives(d); 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
 
@@ -128,6 +129,7 @@ export default function SecurityOKRDashboard() {
   }, []);
   const [updateNotes, setUpdateNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const filteredObjectives = MOCK_OBJECTIVES.filter(o => o.period === period);
 
@@ -147,6 +149,14 @@ export default function SecurityOKRDashboard() {
       setTimeout(() => { setSubmitted(false); setUpdateKR(null); setUpdateValue(""); setUpdateNotes(""); }, 3000);
     }
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

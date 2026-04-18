@@ -140,6 +140,7 @@ export default function SecurityHealthDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<Record<string, any> | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -154,7 +155,8 @@ export default function SecurityHealthDashboard() {
       if (stats || checks || incidents) {
         setLiveData({ stats, checks, incidents });
       }
-    }).finally(() => setDataLoading(false));
+    
+    setLoading(false);}).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -184,6 +186,14 @@ export default function SecurityHealthDashboard() {
 
   const liveChecks    = liveData?.checks?.items    ?? liveData?.checks    ?? CHECKS;
   const liveIncidents = liveData?.incidents?.items ?? liveData?.incidents ?? INCIDENTS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -247,7 +257,13 @@ export default function SecurityHealthDashboard() {
 
         {/* Domain health cards (7 domains, 2 cols for remaining 3 cols) */}
         <div className="lg:col-span-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-          {DOMAINS.map((d) => {
+          {DOMAINS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            DOMAINS.map((d) => {
             const colors = domainScoreColor(d.score);
             return (
               <Card key={d.name} className="p-3 space-y-2">
@@ -276,6 +292,7 @@ export default function SecurityHealthDashboard() {
               </Card>
             );
           })}
+          )}
         </div>
       </div>
 
@@ -304,7 +321,13 @@ export default function SecurityHealthDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {liveChecks.map((row: any) => {
+                  {liveChecks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    liveChecks.map((row: any) => {
                     const colors = domainScoreColor(row.score);
                     return (
                       <TableRow key={row.name} className="hover:bg-muted/30">
@@ -329,6 +352,7 @@ export default function SecurityHealthDashboard() {
                       </TableRow>
                     );
                   })}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -349,7 +373,13 @@ export default function SecurityHealthDashboard() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {liveIncidents.map((inc: any) => (
+              {liveIncidents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                liveIncidents.map((inc: any) => (
                 <div key={inc.id} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <SeverityBadge sev={inc.sev} />
@@ -362,6 +392,7 @@ export default function SecurityHealthDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -376,7 +407,13 @@ export default function SecurityHealthDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2 h-28">
-                {TREND.map((w, i) => {
+                {TREND.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  TREND.map((w, i) => {
                   const heightPct = (w.score / TREND_MAX) * 100;
                   const isLatest = i === TREND.length - 1;
                   return (
@@ -397,6 +434,7 @@ export default function SecurityHealthDashboard() {
                     </div>
                   );
                 })}
+                )}
               </div>
             </CardContent>
           </Card>

@@ -100,7 +100,8 @@ export default function VulnScanDashboard() {
   useEffect(() => {
     fetch(`${_API_BASE}/scans`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setScans(d); })
+      .then(d => { if (Array.isArray(d)) setScans(d); 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
 
@@ -113,6 +114,7 @@ export default function VulnScanDashboard() {
   }, []);
   const [target, setTarget] = useState("");
   const [triggering, setTriggering] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const activeScanCount = MOCK_SCANS.filter((s) => s.status === "running").length;
   const totalFindings = MOCK_SCANS.reduce((s, sc) => s + sc.findings_count, 0);
@@ -125,6 +127,14 @@ export default function VulnScanDashboard() {
     setTriggering(true);
     setTimeout(() => setTriggering(false), 2000);
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -167,7 +177,13 @@ export default function VulnScanDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_SCANS.map((scan, i) => (
+                {MOCK_SCANS.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  MOCK_SCANS.map((scan, i) => (
                   <motion.tr
                     key={scan.id}
                     initial={{ opacity: 0 }}
@@ -187,6 +203,7 @@ export default function VulnScanDashboard() {
                     <TableCell className="text-xs text-gray-400">{scan.started_at}</TableCell>
                   </motion.tr>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -200,7 +217,13 @@ export default function VulnScanDashboard() {
               <CardTitle className="text-sm font-semibold">Findings by Severity</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              {SEVERITY_BREAKDOWN.map((sev) => (
+              {SEVERITY_BREAKDOWN.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                SEVERITY_BREAKDOWN.map((sev) => (
                 <div key={sev.label} className="flex flex-col gap-1">
                   <div className="flex justify-between text-xs">
                     <span className={sev.textColor}>{sev.label}</span>
@@ -216,6 +239,7 @@ export default function VulnScanDashboard() {
                   </div>
                 </div>
               ))}
+              )}
               <div className="mt-2 pt-2 border-t border-gray-700/50 flex justify-between text-xs">
                 <span className="text-gray-400">Total</span>
                 <span className="text-gray-200 font-semibold">{SEVERITY_BREAKDOWN.reduce((s, sv) => s + sv.count, 0).toLocaleString()}</span>
@@ -236,7 +260,13 @@ export default function VulnScanDashboard() {
                   onChange={(e) => setScannerType(e.target.value)}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
                 >
-                  {SCANNER_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {SCANNER_TYPES.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                      <p className="text-lg font-medium">No data available</p>
+                      <p className="text-sm">Data will appear here once available</p>
+                    </div>
+                  ) : (
+                    SCANNER_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
@@ -245,6 +275,7 @@ export default function VulnScanDashboard() {
                   type="text"
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
+                  )}
                   placeholder="10.0.0.0/24"
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />

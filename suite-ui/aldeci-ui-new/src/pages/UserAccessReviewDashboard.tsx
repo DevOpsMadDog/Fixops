@@ -107,10 +107,12 @@ export default function UserAccessReviewDashboard() {
   useEffect(() => {
     fetch("/api/v1/access-reviews", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
+      .then(() => { /* live data available */ 
+    setLoading(false);})
       .catch(() => { setError('Failed to load data'); });
   }, []);
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
+  const [loading, setLoading] = useState(true);
     Object.fromEntries(MOCK_ITEMS.map(i => [i.id, i.decision]))
   );
 
@@ -124,6 +126,14 @@ export default function UserAccessReviewDashboard() {
   function setDecision(itemId: string, decision: ItemDecision) {
     setItemDecisions(prev => ({ ...prev, [itemId]: decision }));
   }
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">

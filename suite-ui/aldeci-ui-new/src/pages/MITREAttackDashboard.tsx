@@ -335,7 +335,13 @@ export default function MITREAttackDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gaps.map((gap) => (
+                {gaps.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  gaps.map((gap) => (
                   <TableRow key={gap.technique_id}>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
@@ -373,6 +379,7 @@ export default function MITREAttackDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

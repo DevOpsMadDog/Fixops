@@ -82,6 +82,7 @@ export default function ServiceAccountAuditDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -91,7 +92,8 @@ export default function ServiceAccountAuditDashboard() {
     ]).then(([statsR, accountsR]) => {
       const stats    = statsR.status    === "fulfilled" ? statsR.value    : null;
       const accounts = accountsR.status === "fulfilled" ? accountsR.value : null;
-      if (stats || accounts) setLiveData({ stats, accounts });
+      if (stats || accounts) setLiveData({ stats, accounts 
+    setLoading(false);});
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -99,6 +101,14 @@ export default function ServiceAccountAuditDashboard() {
 
   const stats    = liveData?.stats ?? MOCK_STATS;
   const accounts = liveData?.accounts?.items ?? liveData?.accounts ?? MOCK_ACCOUNTS;
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div
@@ -148,7 +158,13 @@ export default function ServiceAccountAuditDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.map((a: any, i: number) => (
+                {accounts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  accounts.map((a: any, i: number) => (
                   <TableRow key={a.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-medium">{a.name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.system}</TableCell>
@@ -181,6 +197,7 @@ export default function ServiceAccountAuditDashboard() {
                     <TableCell className="py-2"><ActionBadge action={a.action} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

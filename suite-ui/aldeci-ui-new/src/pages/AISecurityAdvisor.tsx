@@ -210,6 +210,7 @@ export default function AISecurityAdvisor() {
   const [liveSessions, setLiveSessions] = useState<Session[] | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -233,7 +234,8 @@ export default function AISecurityAdvisor() {
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  
+    setLoading(false);}, [chatMessages]);
 
   const handleSend = async () => {
     const q = question.trim();
@@ -279,6 +281,14 @@ export default function AISecurityAdvisor() {
       }
     }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <motion.div

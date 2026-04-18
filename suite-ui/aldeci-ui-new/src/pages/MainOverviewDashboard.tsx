@@ -193,9 +193,16 @@ function AlertSeverityChart({ data }: { data: { severity: string; count: number 
           itemStyle={{ color: "#a1a1aa" }}
         />
         <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-          {data.map((entry) => (
+          {data.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Data will appear here once available</p>
+            </div>
+          ) : (
+            data.map((entry) => (
             <Cell key={entry.severity} fill={SEV_COLOUR[entry.severity] ?? "#6b7280"} />
           ))}
+          )}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -424,7 +431,13 @@ export default function MainOverviewDashboard() {
               <div className="relative flex flex-col gap-0">
                 {/* Timeline line */}
                 <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-700" />
-                {inc.map((incident, idx) => (
+                {inc.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  inc.map((incident, idx) => (
                   <motion.div
                     key={incident.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -455,6 +468,7 @@ export default function MainOverviewDashboard() {
                     </div>
                   </motion.div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -475,7 +489,13 @@ export default function MainOverviewDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {fd.map((feed) => (
+              {fd.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                  <p className="text-lg font-medium">No data available</p>
+                  <p className="text-sm">Data will appear here once available</p>
+                </div>
+              ) : (
+                fd.map((feed) => (
                 <div
                   key={feed.name}
                   className={cn(
@@ -501,6 +521,7 @@ export default function MainOverviewDashboard() {
                   </span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

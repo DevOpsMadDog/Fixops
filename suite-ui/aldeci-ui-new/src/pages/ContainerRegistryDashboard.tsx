@@ -183,7 +183,13 @@ export default function ContainerRegistryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scans.map((scan: any) => (
+                {scans.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  scans.map((scan: any) => (
                   <TableRow key={scan.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-xs text-foreground">{scan.image}</TableCell>
                     <TableCell className="py-2">
@@ -216,6 +222,7 @@ export default function ContainerRegistryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

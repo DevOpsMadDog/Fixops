@@ -110,6 +110,7 @@ export default function AutonomousRemediationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
+  const [loading, setLoading] = useState(true);
     stats: any | null;
     workflows: any[] | null;
     executions: any[] | null;
@@ -142,6 +143,14 @@ export default function AutonomousRemediationDashboard() {
   const workflows  = liveData.workflows  ?? MOCK_WORKFLOWS;
   const executions = liveData.executions ?? MOCK_EXECUTIONS;
 
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -162,7 +171,8 @@ export default function AutonomousRemediationDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Workflows"       value={stats.total_workflows}                         icon={Settings}     trend="up"   />
+        <KpiCard title="Total Workflows"       value={stats.total_workflows}                         icon={Settings
+    setLoading(false);}     trend="up"   />
         <KpiCard title="Active Workflows"      value={stats.active_workflows}                        icon={Play}         trend="up"   className="border-blue-500/20" />
         <KpiCard title="Succeeded Executions"  value={stats.succeeded_executions}                    icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Success Rate"          value={`${stats.success_rate}%`}                      icon={Zap}          trend="up"   className="border-purple-500/20" />
@@ -196,7 +206,13 @@ export default function AutonomousRemediationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workflows.map((w: any, i: number) => (
+                {workflows.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  workflows.map((w: any, i: number) => (
                   <TableRow key={w.name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{w.name}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{w.trigger_type?.replace(/_/g, " ")}</TableCell>
@@ -206,6 +222,7 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{w.success_count ?? 0}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -239,7 +256,13 @@ export default function AutonomousRemediationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {executions.map((e: any, i: number) => (
+                {executions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                    <p className="text-lg font-medium">No data available</p>
+                    <p className="text-sm">Data will appear here once available</p>
+                  </div>
+                ) : (
+                  executions.map((e: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{e.workflow_id}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{e.target_id}</TableCell>
@@ -248,6 +271,7 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(e.started_at)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
