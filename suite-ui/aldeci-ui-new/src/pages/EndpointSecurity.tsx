@@ -40,9 +40,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type ThreatStatus = "Active" | "Contained" | "Investigating";
 type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
@@ -69,9 +69,9 @@ interface EndpointRow {
   issues_count: number;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_THREATS: ThreatDetection[] = [
   { id: "t1", hostname: "WORKSTATION-042", threat_name: "POWERSHELL EMPIRE", tactic: "Execution", detection_time: "2026-04-16 09:14", status: "Active", severity: "CRITICAL" },
@@ -99,9 +99,9 @@ const MOCK_ENDPOINTS: EndpointRow[] = [
   { id: "e15", hostname: "SERVER-BACKUP-01", os: "Ubuntu 20.04",        last_seen: "3 hr ago",   agent_version: "7.14.0", threat_score: 2.9, patch_status: "Needs patch",             issues_count: 1 },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function severityBadge(s: Severity) {
   const cls = {
@@ -149,9 +149,9 @@ function ThreatScoreBar({ score }: { score: number }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Component
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function EndpointSecurity() {
   const { data: endpointsData, isLoading: epLoading } = useQuery({

@@ -1,5 +1,5 @@
 /**
- * ITDR Dashboard — Identity Threat Detection & Response
+ * ITDR Dashboard = Identity Threat Detection & Response
  *
  * Detects and responds to identity-based threats across the environment.
  *   1. KPI cards: Total Threats, Open Threats, Critical Threats, Response Actions
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_threats: 89,
@@ -67,7 +67,7 @@ const MOCK_ACTIONS = [
   { id: "a-006", action_type: "password_reset",       status: "completed", automated: true,  threat_id: "t-006", executed_at: "2026-04-15T18:05:00Z" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -113,7 +113,7 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ITDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);

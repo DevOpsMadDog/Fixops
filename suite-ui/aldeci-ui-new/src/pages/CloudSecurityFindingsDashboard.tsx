@@ -21,7 +21,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// == Mock data ==================================================================
 
 const PROVIDERS = ["AWS", "Azure", "GCP", "Alibaba", "OCI", "IBM"];
 
@@ -58,7 +58,7 @@ const PROVIDER_COUNTS: Record<string, number> = {
   AWS: 3, Azure: 2, GCP: 2, Alibaba: 1, OCI: 1, IBM: 1,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────────────────────
+// == Badge helpers ==============================================================
 
 function SeverityBadge({ s }: { s: string }) {
   const cls: Record<string, string> = {
@@ -100,7 +100,7 @@ function dayAge(dateStr: string) {
   return Math.round((now.getTime() - d.getTime()) / 86400000);
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// == Main Component =============================================================
 
 export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
@@ -139,10 +139,10 @@ export default function CloudSecurityFindingsDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -207,7 +207,7 @@ export default function CloudSecurityFindingsDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Findings ({displayed.length})</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["Provider", "Account", "Region", "Resource Type", "Severity", "Status", "CVSS", "Age", "Actions"].map(h => (
@@ -263,7 +263,7 @@ export default function CloudSecurityFindingsDashboard() {
               <div key={r.id} className={cn("flex items-center justify-between p-3 rounded-lg", r.overdue ? "bg-red-900/20 border border-red-500/20" : "bg-gray-700/30")}>
                 <div>
                   <p className="text-sm text-white font-medium">{r.finding_id}</p>
-                  <p className="text-xs text-gray-400">{r.assignee} · due {r.due_date}</p>
+                  <p className="text-xs text-gray-400">{r.assignee} = due {r.due_date}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {r.overdue && <span className="text-xs text-red-400 font-bold">OVERDUE</span>}

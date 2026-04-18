@@ -22,7 +22,7 @@ import {
   Filter,
 } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type Framework = "ALL" | "SOC2" | "ISO27001" | "PCI-DSS" | "HIPAA" | "NIST" | "GDPR" | "FedRAMP" | "CIS";
 type Priority = "critical" | "high" | "medium" | "low";
@@ -40,11 +40,11 @@ interface CalEvent {
   reminder_due?: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const TODAY = "2026-04-16";
 const YEAR = 2026;
-const MONTH = 3; // 0-indexed → April
+const MONTH = 3; // 0-indexed = April
 
 const EVENTS: CalEvent[] = [
   { id: "e01", event_name: "SOC2 Type II Evidence Collection", framework: "SOC2", due_date: "2026-04-02", priority: "critical", assigned_to: "Audit Team", recurrence: "annual", overdue: true },
@@ -59,7 +59,7 @@ const EVENTS: CalEvent[] = [
   { id: "e10", event_name: "GDPR Consent Audit", framework: "GDPR", due_date: "2026-05-12", priority: "medium", assigned_to: "Privacy Officer", recurrence: "annual" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function priorityBadge(p: Priority) {
   const map: Record<Priority, string> = {
@@ -130,7 +130,7 @@ const PRIORITY_DOT: Record<Priority, string> = {
 
 const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", "NIST", "GDPR", "FedRAMP", "CIS"];
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ComplianceCalendarDashboard() {
   const [calEvents, setCalEvents] = useState(EVENTS);
@@ -152,7 +152,7 @@ export default function ComplianceCalendarDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => {
-        // live data loaded — components read from API response
+        // live data loaded = components read from API response
         void d;
       })
       .catch(err => setError(err.message || 'Failed to load data'));
@@ -172,7 +172,7 @@ export default function ComplianceCalendarDashboard() {
   const weeks = buildCalendar(YEAR, MONTH);
   const monthName = new Date(YEAR, MONTH, 1).toLocaleString("default", { month: "long", year: "numeric" });
 
-  // map day → events for this month
+  // map day = events for this month
   const dayEventMap: Record<number, CalEvent[]> = {};
   EVENTS.forEach((ev) => {
     const d = new Date(ev.due_date);
@@ -195,10 +195,10 @@ export default function ComplianceCalendarDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -235,11 +235,11 @@ export default function ComplianceCalendarDashboard() {
 
       {/* Overdue alert banner */}
       {overdue.length > 0 && (
-        <div className="bg-red-900/30 border border-red-500/40 rounded-lg px-4 py-3 flex items-center gap-3">
+        <div className="bg-red-900/30 border border-red-500/40 rounded-lg px-4 py-3 flex items-center gap-3" role="status" aria-live="polite">
           <AlertTriangle className="text-red-400 shrink-0" size={20} />
           <div>
             <span className="text-red-300 font-semibold">{overdue.length} overdue event{overdue.length > 1 ? "s" : ""}: </span>
-            <span className="text-red-200 text-sm">{overdue.map((e) => e.event_name).join(" · ")}</span>
+            <span className="text-red-200 text-sm">{overdue.map((e) => e.event_name).join(" = ")}</span>
           </div>
         </div>
       )}

@@ -652,8 +652,7 @@ export default function CommandDashboard() {
                               <span className="font-medium truncate">{s.name}</span>
                               {s.type && <span className="text-muted-foreground text-[10px] ml-auto">{s.type}</span>}
                             </div>
-                          ))
-                          )}
+                          ))}
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between text-[10px] text-muted-foreground">

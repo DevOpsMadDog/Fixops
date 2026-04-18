@@ -90,9 +90,9 @@ export default function HuntingPlaybookDashboard() {
 
         {/* Fetch Error Banner */}
         {fetchError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6" role="status" aria-live="polite">
             <span className="text-sm">Failed to load live data: {fetchError}</span>
-            <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+            <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
           </div>
         )}
 
@@ -143,7 +143,7 @@ export default function HuntingPlaybookDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Playbook Name", "Hunt Type", "Threat Category", "MITRE", "Success Rate", "Executions", "Avg Duration", "Action"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
@@ -236,7 +236,7 @@ export default function HuntingPlaybookDashboard() {
                         {outcomeBadge(e.outcome)}
                         {e.findings_count > 0 && <span className="bg-red-700 text-white text-xs px-2 py-0.5 rounded-full">{e.findings_count} findings</span>}
                       </div>
-                      <div className="text-xs text-gray-400">Analyst: {e.analyst} | {e.start_time} → {e.end_time} | {e.duration_mins}m</div>
+                      <div className="text-xs text-gray-400">Analyst: {e.analyst} | {e.start_time} = {e.end_time} | {e.duration_mins}m</div>
                       {e.iocs_discovered.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {e.iocs_discovered.map(ioc => <span key={ioc} className="bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded font-mono">{ioc}</span>)}
@@ -245,8 +245,7 @@ export default function HuntingPlaybookDashboard() {
                     </div>
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
         )}
@@ -307,8 +306,8 @@ export default function HuntingPlaybookDashboard() {
                       <div className="flex items-center gap-2 mb-1">
                         {confBadge(h.confidence)}
                         {h.validated
-                          ? <span className="text-green-400 text-xs font-medium">✓ Validated</span>
-                          : <span className="text-orange-400 text-xs font-medium">⏳ Pending</span>}
+                          ? <span className="text-green-400 text-xs font-medium">= Validated</span>
+                          : <span className="text-orange-400 text-xs font-medium">= Pending</span>}
                       </div>
                       <p className="text-sm font-medium">{h.hypothesis_text}</p>
                       <p className="text-gray-400 text-xs mt-1">Evidence: {h.evidence}</p>

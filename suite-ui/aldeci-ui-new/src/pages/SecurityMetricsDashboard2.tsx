@@ -35,7 +35,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 type MetricStatus = "normal" | "warning" | "critical";
 type MetricTrend  = "up" | "down" | "flat";
@@ -83,7 +83,7 @@ const ALERTS = [
   { id: "a6",  severity: "warning",  metric: "SLA Compliance",        msg: "Trending down for 4 consecutive readings",   created: "2026-04-16 09:10" },
   { id: "a7",  severity: "warning",  metric: "Open Critical Vulns",   msg: "3 new critical findings in last 24 hrs",     created: "2026-04-16 09:20" },
   { id: "a8",  severity: "info",     metric: "MFA Adoption",          msg: "6% below full coverage target",              created: "2026-04-16 09:30" },
-  { id: "a9",  severity: "info",     metric: "Endpoint Detection %",  msg: "0.1% margin above target — monitor closely", created: "2026-04-16 09:45" },
+  { id: "a9",  severity: "info",     metric: "Endpoint Detection %",  msg: "0.1% margin above target = monitor closely", created: "2026-04-16 09:45" },
   { id: "a10", severity: "warning",  metric: "Patch Compliance Rate", msg: "48 endpoints missing Q1 patches",            created: "2026-04-16 10:00" },
 ];
 
@@ -98,7 +98,7 @@ const AGGREGATES = [
   { name: "EDR Coverage (%)",     daily_avg: 99.1, daily_min: 99.0,daily_max: 99.2,weekly_avg: 99.0, monthly_avg: 98.9 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const STATUS_STYLES: Record<MetricStatus, string> = {
   normal:   "border-green-500/30 text-green-400 bg-green-500/10",
@@ -118,7 +118,7 @@ function TrendIcon({ trend }: { trend: MetricTrend }) {
   return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityMetricsDashboard2() {
   const [selectedMetric, setSelectedMetric] = useState<string>("m1");
@@ -156,12 +156,12 @@ export default function SecurityMetricsDashboard2() {
       className="flex flex-col gap-6"
     >
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -233,7 +233,7 @@ export default function SecurityMetricsDashboard2() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-400" />
-              Readings — {selMetric?.name}
+              Readings = {selMetric?.name}
             </CardTitle>
             <CardDescription className="text-xs">Last 12 readings for selected metric</CardDescription>
           </CardHeader>

@@ -1,7 +1,7 @@
 /**
  * Security Maturity Dashboard
  *
- * Security Maturity Assessment — framework tabs, domain scoring, roadmap.
+ * Security Maturity Assessment = framework tabs, domain scoring, roadmap.
  *   1. KPIs: Assessments Completed, Avg Maturity Score, Domains at Target, Below Target
  *   2. Framework tabs: NIST CSF | CIS Controls | ISO 27001 | CMMI
  *   3. Domain progress bars (0-100 score)
@@ -44,7 +44,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const FRAMEWORKS = ["NIST CSF", "CIS Controls", "ISO 27001", "CMMI"];
 
@@ -93,7 +93,7 @@ const ASSESSMENTS = [
   { id: "ASSESS-004", framework: "CMMI",         completed: "2026-03-22", assessor: "Alex Rivera",    score: 62, status: "complete" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -140,7 +140,7 @@ function ScoreBar({ score, idx }: { score: number; idx: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityMaturityDashboard() {
   const [activeFramework, setActiveFramework] = useState("NIST CSF");
@@ -250,16 +250,16 @@ export default function SecurityMaturityDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Layers className="h-4 w-4 text-blue-400" />
-              Domain Scores — {activeFramework}
+              Domain Scores = {activeFramework}
             </CardTitle>
-            <CardDescription className="text-xs">Maturity score (0–100) per domain</CardDescription>
+            <CardDescription className="text-xs">Maturity score (0=100) per domain</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {domains.map((d, i) => (
               <div key={d.domain} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{d.domain}</span>
-                  <span className="text-muted-foreground">{d.current_level} → {d.target_level}</span>
+                  <span className="text-muted-foreground">{d.current_level} = {d.target_level}</span>
                 </div>
                 <ScoreBar score={d.score} idx={i} />
               </div>
@@ -274,7 +274,7 @@ export default function SecurityMaturityDashboard() {
               <TrendingUp className="h-4 w-4 text-amber-400" />
               Improvement Roadmap
             </CardTitle>
-            <CardDescription className="text-xs">Ordered by gap size — highest priority first</CardDescription>
+            <CardDescription className="text-xs">Ordered by gap size = highest priority first</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {roadmap.map((d, i) => (
@@ -282,7 +282,7 @@ export default function SecurityMaturityDashboard() {
                 <span className="text-[10px] font-bold text-muted-foreground w-5 shrink-0">#{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">{d.domain}</div>
-                  <div className="text-[10px] text-muted-foreground">{d.current_level} → {d.target_level} &nbsp;|&nbsp; Score: {d.score}</div>
+                  <div className="text-[10px] text-muted-foreground">{d.current_level} = {d.target_level} &nbsp;|&nbsp; Score: {d.score}</div>
                 </div>
                 <EffortBadge effort={d.effort} />
               </div>
@@ -299,7 +299,7 @@ export default function SecurityMaturityDashboard() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <BarChart2 className="h-4 w-4 text-purple-400" />
-            Domain Detail — {activeFramework}
+            Domain Detail = {activeFramework}
           </CardTitle>
           <CardDescription className="text-xs">Current level, target, score, and maturity status</CardDescription>
         </CardHeader>

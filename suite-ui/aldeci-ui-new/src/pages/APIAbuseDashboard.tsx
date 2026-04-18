@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_endpoints: 342,
@@ -63,7 +63,7 @@ const MOCK_INCIDENTS = [
   { abuse_type: "Token replay",          severity: "high",     source_ip: "198.54.117.10",  request_count: 290,   blocked: true,  status: "open"     },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function EndpointStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -119,7 +119,7 @@ function IncidentStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function APIAbuseDashboard() {
   const [refreshing, setRefreshing] = useState(false);

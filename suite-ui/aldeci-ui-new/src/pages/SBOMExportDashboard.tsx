@@ -20,7 +20,7 @@ import { motion } from "framer-motion";
 import { Package, Shield, Download, Search, FileText, AlertTriangle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_PROJECTS = [
   { id: "proj-001", project_name: "suite-api",      component_count: 142, vuln_count: 23, critical_vulns: 3, latest_export: "2026-04-16T08:00:00Z" },
@@ -74,7 +74,7 @@ const MOCK_HISTORY = [
   { id: "exp-005", format: "CycloneDX", version_tag: "v1.6", component_count:  89, generated_at: "2026-04-15T18:00:00Z", exported_by: "david@aldeci.io" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -109,12 +109,12 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
   return (
     <div className="bg-gray-800 rounded-lg p-6 flex items-start gap-4">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -131,7 +131,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function SBOMExportDashboard() {
   const [search, setSearch] = useState("");
@@ -156,8 +156,8 @@ export default function SBOMExportDashboard() {
   const totalCritical   = MOCK_PROJECTS.reduce((s, p) => s + p.critical_vulns, 0);
 
   function handleExport(format: string) {
-    setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"…`);
-    setTimeout(() => setExportMsg(`${format} export ready — ${selectedProject.component_count} components`), 1500);
+    setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"=`);
+    setTimeout(() => setExportMsg(`${format} export ready = ${selectedProject.component_count} components`), 1500);
   }
 
   if (loading) return (
@@ -174,7 +174,7 @@ export default function SBOMExportDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="w-6 h-6 text-cyan-400" /> SBOM Export</h1>
-          <p className="text-gray-400 text-sm mt-1">Software Bill of Materials — CycloneDX / SPDX generation</p>
+          <p className="text-gray-400 text-sm mt-1">Software Bill of Materials = CycloneDX / SPDX generation</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => handleExport("CycloneDX")} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -232,17 +232,17 @@ export default function SBOMExportDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-            Components — <span className="text-cyan-400">{selectedProject.project_name}</span>
+            Components = <span className="text-cyan-400">{selectedProject.project_name}</span>
           </h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Filter components…"
+              placeholder="Filter components="
               className="bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-1.5 text-sm text-white placeholder-gray-500 w-56 focus:outline-none focus:border-cyan-500" />
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Component</th>
@@ -279,7 +279,7 @@ export default function SBOMExportDashboard() {
                     <tr key={`${c.id}-vulns`}>
                       <td colSpan={6} className="bg-gray-900/60 px-6 py-3">
                         <p className="text-xs text-gray-400 font-semibold mb-2">Vulnerabilities in {c.component_name}</p>
-                        <table className="w-full text-xs">
+                        <table role="table" className="w-full text-xs">
                           <thead>
                             <tr className="text-gray-600 uppercase">
                               <th className="text-left pb-1 pr-4">CVE ID</th>
@@ -310,8 +310,7 @@ export default function SBOMExportDashboard() {
                     </tr>
                   )}
                 </>
-              ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -321,7 +320,7 @@ export default function SBOMExportDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Export History</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Format</th>

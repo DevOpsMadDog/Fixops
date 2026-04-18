@@ -4,7 +4,7 @@
  * Stats bar, filterable asset table, click-to-open detail panel.
  * Route: /assets
  *
- * API: GET /api/v1/assets  — falls back to mock data on failure.
+ * API: GET /api/v1/assets  = falls back to mock data on failure.
  */
 
 import { useState, useMemo } from "react";
@@ -39,9 +39,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type AssetType = "server" | "container" | "cloud" | "endpoint" | "database";
 type Env = "prod" | "staging" | "dev";
@@ -63,9 +63,9 @@ interface Asset {
   tags?: string[];
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_ASSETS: Asset[] = [
   { id: "a1", name: "prod-api-01", type: "server", risk_score: 87, owner: "platform-team", env: "prod", status: "active", last_seen: "1m ago", incidents: 2, findings: 14, ip: "10.0.1.42", os: "Ubuntu 22.04", tags: ["api", "critical"] },
@@ -78,9 +78,9 @@ const MOCK_ASSETS: Asset[] = [
   { id: "a8", name: "gcp-pubsub-events", type: "cloud", risk_score: 29, owner: "data-team", env: "prod", status: "active", last_seen: "1h ago", incidents: 0, findings: 0, tags: ["gcp", "events"] },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const TYPE_CONFIG: Record<AssetType, { label: string; icon: typeof Server; color: string }> = {
   server:    { label: "Server",    icon: Server,    color: "text-cyan-400 bg-cyan-500/10" },
@@ -110,9 +110,9 @@ function riskLabel(score: number): string {
   return "Low";
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Detail Panel
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const TIMELINE_EVENTS = [
   { time: "2m ago", event: "Vulnerability scan completed", type: "info" },
@@ -263,9 +263,9 @@ function DetailPanel({ asset, onClose }: { asset: Asset; onClose: () => void }) 
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Asset Row
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function AssetRow({
   asset,
@@ -337,9 +337,9 @@ function AssetRow({
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function AssetInventory() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -446,7 +446,7 @@ export default function AssetInventory() {
 
           {/* Table */}
           <ScrollArea className="flex-1">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground sticky top-0 bg-card z-10">
                   <th className="py-2.5 px-4 text-left font-medium">Name</th>

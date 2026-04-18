@@ -42,7 +42,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SCAN_JOBS = [
   { id: "JOB-001", target_type: "git_repo",   target_path: "github.com/acme/backend-api",    status: "completed", secrets_found: 5,  duration: "42s",  created_at: "14:30:00" },
@@ -76,7 +76,7 @@ const SECRET_DIST = [
 ];
 const MAX_DIST = SECRET_DIST[0].count;
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function TargetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -132,7 +132,7 @@ function FindingStatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>{status.replace(/_/g, " ")}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecretScannerDashboard() {
   const [loading, setLoading] = useState(true);
@@ -171,7 +171,7 @@ export default function SecretScannerDashboard() {
       });
       setScanMsg("Scan triggered successfully.");
     } catch {
-      setScanMsg("Scan queued (engine offline — will run when connected).");
+      setScanMsg("Scan queued (engine offline = will run when connected).");
     } finally {
       setScanning(false);
     }
@@ -357,7 +357,7 @@ export default function SecretScannerDashboard() {
             </div>
             <Button size="sm" className="w-full" onClick={handleScan} disabled={scanning || !scanForm.target_path.trim()}>
               {scanning ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : <Play className="h-3 w-3 mr-1.5" />}
-              {scanning ? "Scanning…" : "Start Scan"}
+              {scanning ? "Scanning=" : "Start Scan"}
             </Button>
             {scanMsg && <p className="text-[11px] text-green-400">{scanMsg}</p>}
           </CardContent>

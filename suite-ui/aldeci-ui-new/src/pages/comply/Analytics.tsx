@@ -373,7 +373,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table role="table" className="w-full text-xs">
                 <thead>
                   <tr>
                     <th className="text-left text-muted-foreground font-medium pb-3 w-28">Scanner</th>

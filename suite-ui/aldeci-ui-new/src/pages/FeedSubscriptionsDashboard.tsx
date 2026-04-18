@@ -24,7 +24,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface FeedSubscription {
   id: string;
@@ -56,7 +56,7 @@ interface IngestionLog {
   status: "success" | "partial" | "failed";
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const FEEDS: FeedSubscription[] = [
   {
@@ -126,7 +126,7 @@ const FEEDS: FeedSubscription[] = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const statusDot: Record<FeedSubscription["status"], string> = {
   active: "bg-green-400",
@@ -162,7 +162,7 @@ function fmtNum(n: number): string {
     : String(n);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function FeedSubscriptionsDashboard() {
   const [selectedFeed, setSelectedFeed] = useState<FeedSubscription | null>(FEEDS[0]);
@@ -185,10 +185,10 @@ export default function FeedSubscriptionsDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -207,7 +207,7 @@ export default function FeedSubscriptionsDashboard() {
 
       {/* Error banner */}
       {errorFeeds.length > 0 && (
-        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3" role="status" aria-live="polite">
           <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
           <span className="text-red-300 font-medium">
             {errorFeeds.length} feed{errorFeeds.length > 1 ? "s" : ""} in error state: {errorFeeds.map(f => f.feed_name).join(", ")}
@@ -286,7 +286,7 @@ export default function FeedSubscriptionsDashboard() {
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div className="font-semibold flex items-center gap-2">
               <Settings className="w-4 h-4 text-gray-400" />
-              {selectedFeed.feed_name} — Details
+              {selectedFeed.feed_name} = Details
             </div>
             <div className="flex gap-1 bg-gray-700 rounded-lg p-1">
               {(["logs","delivery"] as const).map(tab => (
@@ -305,7 +305,7 @@ export default function FeedSubscriptionsDashboard() {
 
           {activeTab === "logs" ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-700/50">
                   <tr>
                     {["Fetched At","IOCs Fetched","New","Updated","Status"].map(h => (

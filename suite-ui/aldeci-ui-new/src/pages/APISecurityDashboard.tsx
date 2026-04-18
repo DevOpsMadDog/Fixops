@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const API_INVENTORY = [
   { endpoint: "/api/v1/auth/login",         method: "POST",   auth: "JWT",     rateLimited: true,  lastScan: "2026-04-16 09:00", vulns: 0, risk: "low"      },
@@ -68,7 +68,7 @@ const SCHEMA_STATS = [
   { label: "False Positives",    count: "28",    color: "bg-green-500/20 border-green-500/30 text-green-400" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function MethodBadge({ m }: { m: string }) {
   const cls =
@@ -107,7 +107,7 @@ function SeverityBadge({ s }: { s: string }) {
 
 const OWASP_MAX = 25;
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function APISecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -276,7 +276,7 @@ export default function APISecurityDashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-blue-400 shrink-0">{ev.srcIp}</span>
-                  <span className="text-[10px] text-muted-foreground">→</span>
+                  <span className="text-[10px] text-muted-foreground">=</span>
                   <span className="text-[10px] font-mono truncate">{ev.endpoint}</span>
                 </div>
                 <span className="text-[10px] text-muted-foreground font-medium">{ev.type.replace(/_/g, " ")}</span>
@@ -293,7 +293,7 @@ export default function APISecurityDashboard() {
             <Zap className="h-4 w-4 text-cyan-400" />
             Schema Validation Statistics
           </CardTitle>
-          <CardDescription className="text-xs">OpenAPI schema enforcement — last 24 hours</CardDescription>
+          <CardDescription className="text-xs">OpenAPI schema enforcement = last 24 hours</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

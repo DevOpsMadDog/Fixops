@@ -5,7 +5,7 @@
  *   1. Posture score trio (CSPM / CWPP / CIEM circles)
  *   2. KPIs: Cloud Workloads, Critical Findings, Privileged Containers, Policies Active
  *   3. Workload inventory (12 rows)
- *   4. CNAPP findings heatmap (6 categories × 4 severities)
+ *   4. CNAPP findings heatmap (6 categories = 4 severities)
  *   5. Cloud policy table (8 policies)
  */
 
@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cloud, AlertTriangle, Container, Shield, RefreshCw, Server, BarChart3, Lock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const SCORES = [
   { label: "CSPM",  score: 74, grade: "C", color: "text-amber-400", ring: "stroke-amber-500", subtitle: "Cloud Security Posture" },
@@ -81,7 +81,7 @@ const POLICIES = [
   { name: "Container Image Signing",          type: "CWPP", action: "block", provider: "GCP",   enabled: false, violations: 0 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function ProviderBadge({ p }: { p: string }) {
   const map: Record<string, string> = {
@@ -153,7 +153,7 @@ function ScoreCircle({ label, score, grade, color, ring, subtitle }: {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CNAPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -283,7 +283,7 @@ export default function CNAPPDashboard() {
                     <TableCell className="py-2.5">
                       {w.privileged
                         ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Privileged</Badge>
-                        : <span className="text-[10px] text-muted-foreground">—</span>}
+                        : <span className="text-[10px] text-muted-foreground">=</span>}
                     </TableCell>
                     <TableCell className="py-2.5">
                       <div className="flex items-center gap-2">
@@ -316,7 +316,7 @@ export default function CNAPPDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table role="table" className="w-full text-xs">
               <thead>
                 <tr>
                   <th className="text-left pb-2 pr-4 text-[11px] text-muted-foreground font-medium w-40">Category</th>
@@ -350,8 +350,7 @@ export default function CNAPPDashboard() {
                     ))
                   )}
                   </tr>
-                ))
-              )}
+                ))}
               </tbody>
             </table>
           </div>

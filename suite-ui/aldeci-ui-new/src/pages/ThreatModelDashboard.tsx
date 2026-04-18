@@ -19,7 +19,7 @@ import {
   Cpu, Zap, CheckCircle, Clock,
 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const apiKey = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const apiFetch = (path: string) => fetch(`/api/v1${path}`, { headers: { "X-API-Key": apiKey } });
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,7 +30,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 interface ThreatModel {
   id: string;
@@ -67,8 +67,8 @@ const THREATS_BY_MODEL: Record<string, { stride: string; title: string; rating: 
     { stride: "S", title: "JWT token forgery via weak secret",        rating: "critical", status: "Open",        mitigations: 1 },
     { stride: "T", title: "API response tampering via MITM",          rating: "high",     status: "In Progress", mitigations: 2 },
     { stride: "I", title: "PII exposure in error messages",           rating: "high",     status: "Open",        mitigations: 0 },
-    { stride: "E", title: "IDOR — access other user's resources",     rating: "critical", status: "Open",        mitigations: 1 },
-    { stride: "D", title: "Rate limit bypass — exhaustion attack",    rating: "medium",   status: "Mitigated",   mitigations: 3 },
+    { stride: "E", title: "IDOR = access other user's resources",     rating: "critical", status: "Open",        mitigations: 1 },
+    { stride: "D", title: "Rate limit bypass = exhaustion attack",    rating: "medium",   status: "Mitigated",   mitigations: 3 },
     { stride: "R", title: "Missing audit log for admin actions",      rating: "medium",   status: "In Progress", mitigations: 1 },
     { stride: "T", title: "SQL injection in filter parameters",       rating: "critical", status: "Open",        mitigations: 0 },
     { stride: "I", title: "Sensitive data in URL query strings",      rating: "low",      status: "Mitigated",   mitigations: 2 },
@@ -78,7 +78,7 @@ const THREATS_BY_MODEL: Record<string, { stride: string; title: string; rating: 
     { stride: "I", title: "Financial data leak via log injection",        rating: "critical", status: "In Progress", mitigations: 2 },
     { stride: "T", title: "Message queue poisoning",                      rating: "high",     status: "Open",        mitigations: 0 },
     { stride: "S", title: "Service account impersonation",               rating: "high",     status: "Open",        mitigations: 1 },
-    { stride: "D", title: "Thundering herd — upstream cascade failure",  rating: "medium",   status: "Mitigated",   mitigations: 2 },
+    { stride: "D", title: "Thundering herd = upstream cascade failure",  rating: "medium",   status: "Mitigated",   mitigations: 2 },
   ],
 };
 
@@ -93,7 +93,7 @@ const MITIGATIONS = [
   { title: "Redact sensitive URL params",       type: "corrective",  status: "Done",        owner: "AppSec",   due: "2026-04-17", effort: "low"    },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const SYSTEM_TYPE_COLORS: Record<string, string> = {
   web_app:      "border-blue-500/30 text-blue-400 bg-blue-500/10",
@@ -155,7 +155,7 @@ const EFFORT_COLORS: Record<string, string> = {
 
 const HEATMAP_MAX = Math.max(...STRIDE_COUNTS.map((c) => c.count));
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatModelDashboard() {
   const [selected, setSelected] = useState<string>("tm1");
@@ -187,7 +187,7 @@ export default function ThreatModelDashboard() {
   const displayModels: typeof MODELS = Array.isArray(liveData?.models?.items ?? liveData?.models) && (liveData?.models?.items ?? liveData?.models).length > 0
     ? (liveData.models.items ?? liveData.models).map((m: any) => ({
         id:          m.model_id ?? m.id ?? String(Math.random()),
-        name:        m.name ?? m.system_name ?? "—",
+        name:        m.name ?? m.system_name ?? "=",
         system_type: m.system_type ?? "api",
         methodology: m.methodology ?? "STRIDE",
         data_class:  m.data_classification ?? m.data_class ?? "Internal",
@@ -339,7 +339,7 @@ export default function ThreatModelDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-400" />
-                Threats — {displayModels.find((m) => m.id === selected)?.name}
+                Threats = {displayModels.find((m) => m.id === selected)?.name}
               </CardTitle>
               <Badge className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">
                 {threats.length} threats
@@ -440,8 +440,7 @@ export default function ThreatModelDashboard() {
                       <Badge className={cn("text-[10px] border capitalize", EFFORT_COLORS[m.effort])}>{m.effort}</Badge>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

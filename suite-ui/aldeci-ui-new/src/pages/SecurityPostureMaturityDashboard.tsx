@@ -14,7 +14,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 import { Shield, Star, AlertTriangle, ChevronRight, TrendingUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// == Mock data ==================================================================
 
 const MOCK_OVERALL = 3.4;
 
@@ -58,7 +58,7 @@ const MOCK_HISTORY = [
   { date: "2026-04", level: 3.4 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// == Helpers ====================================================================
 
 function domainColor(level: number) {
   if (level >= 4) return "text-green-400";
@@ -106,12 +106,12 @@ function Stars({ level }: { level: number }) {
   return (
     <span className="flex gap-0.5">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -123,7 +123,7 @@ function Stars({ level }: { level: number }) {
   );
 }
 
-// ── Maturity gauge (SVG arc) ───────────────────────────────────────────────────
+// == Maturity gauge (SVG arc) ===================================================
 
 function MaturityGauge({ value }: { value: number }) {
   const min = 1, max = 5;
@@ -158,7 +158,7 @@ function MaturityGauge({ value }: { value: number }) {
   );
 }
 
-// ── Sparkline ─────────────────────────────────────────────────────────────────
+// == Sparkline =================================================================
 
 function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
   const vals = data.map(d => d.level);
@@ -194,7 +194,7 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// == Main Component =============================================================
 
 export default function SecurityPostureMaturityDashboard() {
   const [advanced, setAdvanced] = useState(false);
@@ -211,8 +211,7 @@ export default function SecurityPostureMaturityDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))
-      )}
+      ))}
     </div>
   );
 
@@ -323,7 +322,7 @@ export default function SecurityPostureMaturityDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Capability Roadmap</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 <th className="text-left text-gray-400 font-medium py-2 pr-4">Capability</th>

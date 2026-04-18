@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_APPS = [
   { id: "app-001", name: "Slack",          app_category: "collaboration",  vendor: "Salesforce",  risk_level: "low",    users_count: 1240, sanctioned: true  },
@@ -54,7 +54,7 @@ const MOCK_APPS = [
 
 const MOCK_STATS = { cloud_apps: 284, unsanctioned_apps: 91, high_risk_apps: 17, unique_users: 1847 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -77,7 +77,7 @@ function SanctionedBadge({ sanctioned }: { sanctioned: boolean }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CloudAccessSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -174,19 +174,19 @@ export default function CloudAccessSecurityDashboard() {
                   apps.map((app: any, i: number) => (
                   <TableRow key={app.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-cyan-300">
-                      {app.name ?? "—"}
+                      {app.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(app.app_category ?? "—").replace(/_/g, " ")}
+                      {(app.app_category ?? "=").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {app.vendor ?? "—"}
+                      {app.vendor ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskBadge level={app.risk_level ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-sky-300">
-                      {app.users_count?.toLocaleString() ?? "—"}
+                      {app.users_count?.toLocaleString() ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <SanctionedBadge sanctioned={!!app.sanctioned} />

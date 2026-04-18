@@ -3,10 +3,10 @@
  *
  * Track champion activities, certifications, awareness campaigns, and program health.
  *   1. KPIs: Active Champions, Certifications Valid, Active Campaigns, Avg Points Score
- *   2. Champions leaderboard — 15 rows sorted by points desc
- *   3. Activity feed — 20 activity rows
- *   4. Certifications panel — 12 cert rows
- *   5. Active campaigns — 5 campaign cards
+ *   2. Champions leaderboard = 15 rows sorted by points desc
+ *   3. Activity feed = 20 activity rows
+ *   4. Certifications panel = 12 cert rows
+ *   5. Active campaigns = 5 campaign cards
  *   6. Level distribution
  */
 
@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Award, Users, Shield, Star, RefreshCw, BookOpen, Trophy, CheckCircle, Clock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CHAMPIONS = [
   { rank: 1,  name: "Alex Chen",       department: "Engineering", team: "Platform",   level: "platinum", points: 2847, recent_activity: "Led secure code review for auth module", certs: 4 },
@@ -61,22 +61,22 @@ const CHAMPIONS = [
 const ACTIVITIES = [
   { champion: "Alex Chen",      type: "code_review",         points: 120, completed_at: "2026-04-16 09:15", department: "Engineering", desc: "Security review of OAuth token refresh logic" },
   { champion: "Sarah Kim",      type: "awareness_campaign",  points: 200, completed_at: "2026-04-16 08:30", department: "Security",    desc: "Q2 phishing awareness campaign kickoff" },
-  { champion: "Marcus Webb",    type: "vulnerability_report", points: 300, completed_at: "2026-04-15 17:45", department: "DevOps",      desc: "CI pipeline secrets exposure — medium severity" },
+  { champion: "Marcus Webb",    type: "vulnerability_report", points: 300, completed_at: "2026-04-15 17:45", department: "DevOps",      desc: "CI pipeline secrets exposure = medium severity" },
   { champion: "Priya Patel",    type: "vulnerability_report", points: 400, completed_at: "2026-04-15 16:20", department: "Engineering", desc: "SSRF vulnerability in internal API gateway" },
-  { champion: "James O'Brien",  type: "training",            points:  50, completed_at: "2026-04-15 14:00", department: "IT Ops",      desc: "Completed CISSP exam — passed" },
+  { champion: "James O'Brien",  type: "training",            points:  50, completed_at: "2026-04-15 14:00", department: "IT Ops",      desc: "Completed CISSP exam = passed" },
   { champion: "Diana Flores",   type: "mentoring",           points:  75, completed_at: "2026-04-15 13:30", department: "Engineering", desc: "OWASP Top 10 session with frontend team" },
   { champion: "Alex Chen",      type: "tool_contribution",   points: 150, completed_at: "2026-04-15 11:00", department: "Engineering", desc: "Custom Semgrep rule for SQL injection patterns" },
   { champion: "Raj Gupta",      type: "vulnerability_report", points: 250, completed_at: "2026-04-15 10:15", department: "Data",        desc: "PII exposure in analytics export endpoint" },
   { champion: "Emily Thornton", type: "tool_contribution",   points:  90, completed_at: "2026-04-14 17:30", department: "Engineering", desc: "Integrated SAST into iOS build pipeline" },
   { champion: "Carlos Mendez",  type: "code_review",         points:  80, completed_at: "2026-04-14 16:00", department: "DevOps",      desc: "K8s RBAC config review for production cluster" },
-  { champion: "Sarah Kim",      type: "training",            points:  60, completed_at: "2026-04-14 14:00", department: "Security",    desc: "Cloud security fundamentals — internal workshop" },
-  { champion: "Nadia Hassan",   type: "training",            points:  40, completed_at: "2026-04-14 13:00", department: "Product",     desc: "Threat modeling workshop — 3h session" },
-  { champion: "Luke Patterson", type: "training",            points:  50, completed_at: "2026-04-14 11:30", department: "Engineering", desc: "CompTIA Security+ — passed exam" },
-  { champion: "Marcus Webb",    type: "incident_response",   points: 180, completed_at: "2026-04-14 09:00", department: "DevOps",      desc: "Assisted in P2 incident — log4j scanner false positive" },
+  { champion: "Sarah Kim",      type: "training",            points:  60, completed_at: "2026-04-14 14:00", department: "Security",    desc: "Cloud security fundamentals = internal workshop" },
+  { champion: "Nadia Hassan",   type: "training",            points:  40, completed_at: "2026-04-14 13:00", department: "Product",     desc: "Threat modeling workshop = 3h session" },
+  { champion: "Luke Patterson", type: "training",            points:  50, completed_at: "2026-04-14 11:30", department: "Engineering", desc: "CompTIA Security+ = passed exam" },
+  { champion: "Marcus Webb",    type: "incident_response",   points: 180, completed_at: "2026-04-14 09:00", department: "DevOps",      desc: "Assisted in P2 incident = log4j scanner false positive" },
   { champion: "Yuki Tanaka",    type: "awareness_campaign",  points: 100, completed_at: "2026-04-13 16:45", department: "Security",    desc: "ISO 27001 evidence collection campaign" },
   { champion: "Omar Shaikh",    type: "vulnerability_report", points: 150, completed_at: "2026-04-13 15:20", department: "IT Ops",      desc: "Social engineering attempt reported to SecOps" },
-  { champion: "Grace Liu",      type: "vulnerability_report", points: 200, completed_at: "2026-04-13 14:00", department: "Engineering", desc: "Git history secrets leak — credentials rotated" },
-  { champion: "Alex Chen",      type: "mentoring",           points:  75, completed_at: "2026-04-13 12:30", department: "Engineering", desc: "Secure coding practices — onboarding session" },
+  { champion: "Grace Liu",      type: "vulnerability_report", points: 200, completed_at: "2026-04-13 14:00", department: "Engineering", desc: "Git history secrets leak = credentials rotated" },
+  { champion: "Alex Chen",      type: "mentoring",           points:  75, completed_at: "2026-04-13 12:30", department: "Engineering", desc: "Secure coding practices = onboarding session" },
   { champion: "Diana Flores",   type: "code_review",         points:  90, completed_at: "2026-04-13 11:00", department: "Engineering", desc: "Frontend XSS review for new form components" },
   { champion: "Tom Bradley",    type: "training",            points:  35, completed_at: "2026-04-13 10:00", department: "Data",        desc: "GDPR data handling and retention training module" },
 ];
@@ -150,13 +150,13 @@ const CAMPAIGNS = [
 ];
 
 const LEVEL_DISTRIBUTION = [
-  { level: "Platinum", count: 1,  threshold: 2500, color: "bg-purple-500",  text: "text-purple-400", next: "—" },
+  { level: "Platinum", count: 1,  threshold: 2500, color: "bg-purple-500",  text: "text-purple-400", next: "=" },
   { level: "Gold",     count: 4,  threshold: 1000, color: "bg-yellow-500",  text: "text-yellow-400", next: "2500 pts" },
   { level: "Silver",   count: 5,  threshold: 500,  color: "bg-gray-400",    text: "text-gray-300",   next: "1000 pts" },
   { level: "Bronze",   count: 6,  threshold: 0,    color: "bg-orange-600",  text: "text-orange-400", next: "500 pts" },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────
+// == Helpers ======================================================
 
 function LevelBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -233,7 +233,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 const MAX_POINTS = 2847;
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityChampionsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -304,7 +304,7 @@ export default function SecurityChampionsDashboard() {
             <Trophy className="h-4 w-4 text-yellow-400" />
             Champions Leaderboard
           </CardTitle>
-          <CardDescription className="text-xs">Ranked by total points — {CHAMPIONS.length} active champions shown</CardDescription>
+          <CardDescription className="text-xs">Ranked by total points = {CHAMPIONS.length} active champions shown</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -473,7 +473,7 @@ export default function SecurityChampionsDashboard() {
                   </div>
                   <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
                     <Clock className="h-2.5 w-2.5" />
-                    <span>{c.start} → {c.end}</span>
+                    <span>{c.start} = {c.end}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -507,10 +507,10 @@ export default function SecurityChampionsDashboard() {
                 </div>
                 <span className={cn("text-xs font-bold", l.text)}>{l.level}</span>
                 <span className="text-2xl font-black tabular-nums">{l.count}</span>
-                {l.next !== "—" && (
+                {l.next !== "=" && (
                   <span className="text-[9px] text-muted-foreground text-center">Next: {l.next}</span>
                 )}
-                {l.next === "—" && (
+                {l.next === "=" && (
                   <span className="text-[9px] text-muted-foreground text-center">Top tier</span>
                 )}
               </div>

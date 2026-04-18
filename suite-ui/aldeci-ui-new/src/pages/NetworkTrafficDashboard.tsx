@@ -43,7 +43,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const ANOMALOUS_FLOWS = [
   { id: "FL-001", anomaly_type: "c2_traffic",   src_ip: "10.4.22.17",    dst_ip: "185.220.101.34", risk_score: 97, flagged: true,  detected_at: "14:32:11", bytes: 4512000000 },
@@ -91,7 +91,7 @@ const PROTO_COLORS: Record<string, string> = {
   Other: "bg-slate-500",
 };
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function AnomalyTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -126,7 +126,7 @@ function fmtBytes(b: number): string {
 
 const MAX_BYTES = TOP_TALKERS[0].bytes_sent;
 
-// ── Component ────────────────────────────────────────────────
+// == Component ================================================
 
 export default function NetworkTrafficDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -330,7 +330,7 @@ export default function NetworkTrafficDashboard() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-[11px] h-8">Rule</TableHead>
-                  <TableHead className="text-[11px] h-8">Src → Dst</TableHead>
+                  <TableHead className="text-[11px] h-8">Src = Dst</TableHead>
                   <TableHead className="text-[11px] h-8">Action</TableHead>
                   <TableHead className="text-[11px] h-8 text-right">Hits</TableHead>
                 </TableRow>
@@ -346,7 +346,7 @@ export default function NetworkTrafficDashboard() {
                   <TableRow key={r.id ?? r.rule_name} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[130px] truncate">{r.name ?? r.rule_name}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">
-                      <span className="truncate block max-w-[120px]">{r.src} → {r.dst ?? r.dst_cidr}</span>
+                      <span className="truncate block max-w-[120px]">{r.src} = {r.dst ?? r.dst_cidr}</span>
                     </TableCell>
                     <TableCell className="py-2"><ActionBadge action={r.action} /></TableCell>
                     <TableCell className="py-2 text-right text-xs tabular-nums text-muted-foreground">{(r.hit_count ?? r.hits ?? 0).toLocaleString()}</TableCell>

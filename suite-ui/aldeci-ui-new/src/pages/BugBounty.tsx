@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ─────────────────────────────────────────────
+// == API helpers =============================================
 const ORG_ID = "default";
 
 function getApiKey(): string {
@@ -57,9 +57,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type Severity = "P1" | "P2" | "P3" | "P4";
 type SubmissionStatus = "New" | "Triaging" | "Valid" | "Duplicate" | "Invalid" | "Rewarded" | "Closed";
@@ -83,9 +83,9 @@ interface Researcher {
   badge: ReputationBadge;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_SUBMISSIONS: Submission[] = [
   { id: "BB-1041", researcher_handle: "h4cker99", title: "SQL injection in /api/v1/login", severity: "P1", status: "Rewarded", bounty_paid: 5000, submitted_at: "2026-04-14 09:12" },
@@ -109,9 +109,9 @@ const MOCK_RESEARCHERS: Researcher[] = [
 ];
 
 const IN_SCOPE = [
-  "*.aldeci.io — all subdomains",
-  "suite-api (FastAPI gateway) — all /api/v1/* endpoints",
-  "suite-ui (React SPA) — authenticated surfaces",
+  "*.aldeci.io = all subdomains",
+  "suite-api (FastAPI gateway) = all /api/v1/* endpoints",
+  "suite-ui (React SPA) = authenticated surfaces",
   "Authentication & session management",
   "Access control / privilege escalation",
   "Data injection (SQLi, XXE, SSTI)",
@@ -122,13 +122,13 @@ const OUT_OF_SCOPE = [
   "Denial of service (DoS/DDoS)",
   "Third-party services (Slack, Okta, etc.)",
   "scanner outputs / false positives without PoC",
-  "suite-ui/aldeci (legacy UI — FROZEN)",
+  "suite-ui/aldeci (legacy UI = FROZEN)",
   "Issues already publicly disclosed",
 ];
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function severityColor(s: Severity) {
   return cn({
@@ -157,9 +157,9 @@ function badgeColor(b: ReputationBadge) {
   });
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function BugBounty() {
   const [_tab, setTab] = useState<"submissions" | "researchers">("submissions");
@@ -265,7 +265,7 @@ export default function BugBounty() {
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {row.bounty_paid != null ? `$${row.bounty_paid.toLocaleString()}` : <span className="text-muted-foreground">—</span>}
+                    {row.bounty_paid != null ? `$${row.bounty_paid.toLocaleString()}` : <span className="text-muted-foreground">=</span>}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{row.submitted_at}</TableCell>
                 </TableRow>

@@ -4,7 +4,7 @@
  * SAST/DAST scan results and finding management.
  *   1. KPIs: Applications, Total Scans, Open Findings, Critical
  *   2. Application table (8 rows)
- *   3. OWASP Top 10 breakdown — horizontal bars
+ *   3. OWASP Top 10 breakdown = horizontal bars
  *   4. Recent scan results (10 scans)
  *   5. Critical findings table (8 rows)
  *
@@ -17,7 +17,7 @@ import {
   Code2, Shield, AlertTriangle, Bug, RefreshCw, BarChart3, Zap, Search,
 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const APPLICATIONS = [
   { name: "ALDECI Core API",      type: "api",    stack: ["Python", "FastAPI"], risk: "High",     lastScan: "2026-04-16 06:00", findings: 47 },
@@ -87,7 +87,7 @@ const CRITICAL_FINDINGS = [
   { id: "CWE-434", app: "Admin Dashboard", vuln: "Unrestricted File Upload",  severity: "Critical", file: "src/pages/Upload.tsx:L112",  status: "Investigating" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function RiskBadge({ risk }: { risk: string }) {
   const cls =
@@ -121,7 +121,7 @@ function ScanTypeBadge({ type }: { type: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{type}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AppSecurity() {
   const [refreshing, setRefreshing] = useState(false);
@@ -353,7 +353,7 @@ export default function AppSecurity() {
               {CRITICAL_FINDINGS.length} critical
             </Badge>
           </div>
-          <CardDescription className="text-xs">Findings requiring immediate remediation — P0 priority</CardDescription>
+          <CardDescription className="text-xs">Findings requiring immediate remediation = P0 priority</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

@@ -435,8 +435,7 @@ export default function EvidenceExportCenter() {
                       <p className="text-xs text-muted-foreground">{f.desc}</p>
                     </div>
                   </div>
-                ))
-                )}
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -464,8 +463,7 @@ export default function EvidenceExportCenter() {
                   </div>
                   <p className="text-xs text-muted-foreground ml-6">{opt.desc}</p>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -635,8 +633,7 @@ export default function EvidenceExportCenter() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
             </Table>
             </div>

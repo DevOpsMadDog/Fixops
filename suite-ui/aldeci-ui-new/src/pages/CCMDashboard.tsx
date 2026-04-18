@@ -1,19 +1,19 @@
 /**
- * CCMDashboard — Continuous Control Monitoring
+ * CCMDashboard = Continuous Control Monitoring
  *
  * Automated control testing, failure detection, and remediation tracking.
  *   1. KPIs: Controls Monitored, Pass Rate, Open Failures, Untested Controls
- *   2. Control coverage by framework — 6 framework rows
- *   3. Control test results table — 15 rows
- *   4. Failure tracker — 10 open failures
- *   5. Test history — last 8 test runs as timeline
+ *   2. Control coverage by framework = 6 framework rows
+ *   3. Control test results table = 15 rows
+ *   4. Failure tracker = 10 open failures
+ *   5. Test history = last 8 test runs as timeline
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, XCircle, AlertTriangle, CheckCircle, RefreshCw, BarChart3, Play, Clock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ───────────────────────────────────────────────────
+// == Mock data ===================================================
 
 const FRAMEWORKS = [
   { name: "SOC 2",      total: 64,  passing: 58, failing: 4,  passRate: 91, status: "pass" },
@@ -67,16 +67,16 @@ const CONTROLS = [
 ];
 
 const FAILURES = [
-  { type: "regression",          severity: "critical", control: "A.9.2.3 — Privileged access rights",       detected: "2026-04-16 04:12" },
-  { type: "gap",                 severity: "high",     control: "A.12.6 — Technical vuln management",       detected: "2026-04-15 14:33" },
-  { type: "gap",                 severity: "high",     control: "CIS 12.1 — Network infra patching",        detected: "2026-04-16 05:07" },
-  { type: "exception",           severity: "medium",   control: "164.312 — PHI access audit controls",      detected: "2026-04-15 18:44" },
-  { type: "design_deficiency",   severity: "high",     control: "PR.DS-5 — Data leak protections",          detected: "2026-04-16 03:55" },
-  { type: "regression",          severity: "medium",   control: "CC7.2 — System monitoring (partial)",      detected: "2026-04-14 22:11" },
-  { type: "gap",                 severity: "critical",  control: "Req 8.6 — User account management",        detected: "2026-04-13 09:30" },
-  { type: "exception",           severity: "low",      control: "CC9.2 — Vendor risk assessment gap",       detected: "2026-04-12 16:00" },
-  { type: "design_deficiency",   severity: "medium",   control: "A.18.2 — Policy compliance self-assess",   detected: "2026-04-11 11:20" },
-  { type: "regression",          severity: "high",     control: "DE.CM-7 — Unauthorized device monitoring", detected: "2026-04-10 08:45" },
+  { type: "regression",          severity: "critical", control: "A.9.2.3 = Privileged access rights",       detected: "2026-04-16 04:12" },
+  { type: "gap",                 severity: "high",     control: "A.12.6 = Technical vuln management",       detected: "2026-04-15 14:33" },
+  { type: "gap",                 severity: "high",     control: "CIS 12.1 = Network infra patching",        detected: "2026-04-16 05:07" },
+  { type: "exception",           severity: "medium",   control: "164.312 = PHI access audit controls",      detected: "2026-04-15 18:44" },
+  { type: "design_deficiency",   severity: "high",     control: "PR.DS-5 = Data leak protections",          detected: "2026-04-16 03:55" },
+  { type: "regression",          severity: "medium",   control: "CC7.2 = System monitoring (partial)",      detected: "2026-04-14 22:11" },
+  { type: "gap",                 severity: "critical",  control: "Req 8.6 = User account management",        detected: "2026-04-13 09:30" },
+  { type: "exception",           severity: "low",      control: "CC9.2 = Vendor risk assessment gap",       detected: "2026-04-12 16:00" },
+  { type: "design_deficiency",   severity: "medium",   control: "A.18.2 = Policy compliance self-assess",   detected: "2026-04-11 11:20" },
+  { type: "regression",          severity: "high",     control: "DE.CM-7 = Unauthorized device monitoring", detected: "2026-04-10 08:45" },
 ];
 
 const TEST_HISTORY = [
@@ -90,13 +90,13 @@ const TEST_HISTORY = [
   { runId: "RUN-2026-0412-PM", time: "2026-04-12 20:00", passed: 64, failed: 11, warned: 3, total: 78 },
 ];
 
-// ── Helpers ─────────────────────────────────────────────────────
+// == Helpers =====================================================
 
 function ControlStatusIcon({ status }: { status: string }) {
   if (status === "pass") return <CheckCircle className="h-4 w-4 text-green-400" />;
   if (status === "fail") return <XCircle className="h-4 w-4 text-red-400" />;
   if (status === "warn") return <AlertTriangle className="h-4 w-4 text-amber-400" />;
-  return <span className="text-muted-foreground text-xs">—</span>;
+  return <span className="text-muted-foreground text-xs">=</span>;
 }
 
 function TestTypeBadge({ type }: { type: string }) {
@@ -160,7 +160,7 @@ function PassRateBar({ rate }: { rate: number }) {
   );
 }
 
-// ── Component ───────────────────────────────────────────────────
+// == Component ===================================================
 
 export default function CCMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -346,8 +346,7 @@ export default function CCMDashboard() {
                   Remediate
                 </Button>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -386,9 +385,9 @@ export default function CCMDashboard() {
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{run.time}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-[10px]">
-                      <span className="text-green-400">✓ {run.passed} passed</span>
-                      {run.failed > 0 && <span className="text-red-400">✗ {run.failed} failed</span>}
-                      {run.warned > 0 && <span className="text-amber-400">⚠ {run.warned} warned</span>}
+                      <span className="text-green-400">= {run.passed} passed</span>
+                      {run.failed > 0 && <span className="text-red-400">= {run.failed} failed</span>}
+                      {run.warned > 0 && <span className="text-amber-400">= {run.warned} warned</span>}
                     </div>
                   </div>
                   <div className="w-20 shrink-0">

@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from "react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type ReviewStatus = "pending" | "in_progress" | "completed" | "overdue";
 type ReviewType = "user_access" | "privileged_access" | "application_access" | "role_certification" | "entitlement_review";
@@ -48,11 +48,11 @@ interface ReviewCampaign {
   owner: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_REVIEWS: AccessReview[] = [
   { id: "rev-001", review_name: "Q2 2026 User Access Certification", review_type: "user_access", status: "in_progress", reviewer: "Alice Chen", due_date: "2026-04-30", total_items: 142, completed_items: 89, overdue: false },
-  { id: "rev-002", review_name: "Privileged Account Review — April", review_type: "privileged_access", status: "overdue", reviewer: "Bob Martinez", due_date: "2026-04-10", total_items: 28, completed_items: 12, overdue: true },
+  { id: "rev-002", review_name: "Privileged Account Review = April", review_type: "privileged_access", status: "overdue", reviewer: "Bob Martinez", due_date: "2026-04-10", total_items: 28, completed_items: 12, overdue: true },
   { id: "rev-003", review_name: "AWS IAM Role Certification", review_type: "role_certification", status: "pending", reviewer: "Carol White", due_date: "2026-05-15", total_items: 67, completed_items: 0, overdue: false },
   { id: "rev-004", review_name: "SaaS Application Access Review", review_type: "application_access", status: "completed", reviewer: "David Kim", due_date: "2026-04-05", total_items: 95, completed_items: 95, overdue: false },
   { id: "rev-005", review_name: "Production Entitlement Review", review_type: "entitlement_review", status: "overdue", reviewer: "Eve Johnson", due_date: "2026-04-08", total_items: 54, completed_items: 21, overdue: true },
@@ -75,7 +75,7 @@ const MOCK_CAMPAIGNS: ReviewCampaign[] = [
   { id: "cmp-004", name: "SaaS Application Review", frequency: "Semi-annual", last_run: "2025-10-01", completion_rate: 87, owner: "IT Security" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const statusColors: Record<ReviewStatus, string> = {
   pending: "bg-gray-600 text-gray-200",
@@ -100,7 +100,7 @@ const decisionColors: Record<ItemDecision, string> = {
   pending: "bg-blue-700 text-blue-100",
 };
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function UserAccessReviewDashboard() {
   const [selectedReview, setSelectedReview] = useState<string>(MOCK_REVIEWS[0].id);
@@ -137,12 +137,12 @@ export default function UserAccessReviewDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -160,8 +160,8 @@ export default function UserAccessReviewDashboard() {
 
       {/* Overdue Banner */}
       {overdueCount > 0 && (
-        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3">
-          <span className="text-red-400 text-xl">⚠</span>
+        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3" role="status" aria-live="polite">
+          <span className="text-red-400 text-xl">=</span>
           <div>
             <p className="text-red-300 font-semibold">{overdueCount} overdue access review{overdueCount > 1 ? "s" : ""} require immediate attention</p>
             <p className="text-red-400 text-sm mt-0.5">Access reviews past their due date pose compliance and security risks</p>
@@ -188,7 +188,7 @@ export default function UserAccessReviewDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Access Reviews</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700 text-gray-400 text-left">
                 <th className="pb-3 pr-4">Review Name</th>
@@ -245,13 +245,13 @@ export default function UserAccessReviewDashboard() {
       {/* Review Items */}
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">
-          Review Items — {MOCK_REVIEWS.find(r => r.id === selectedReview)?.review_name}
+          Review Items = {MOCK_REVIEWS.find(r => r.id === selectedReview)?.review_name}
         </h2>
         {selectedItems.length === 0 ? (
           <p className="text-gray-400 text-sm">No items available. Select a review above.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-left">
                   <th className="pb-3 pr-4">User</th>
@@ -311,8 +311,7 @@ export default function UserAccessReviewDashboard() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -328,7 +327,7 @@ export default function UserAccessReviewDashboard() {
               <div className="flex-1">
                 <p className="text-white font-medium">{campaign.name}</p>
                 <p className="text-gray-400 text-sm mt-0.5">
-                  {campaign.frequency} · Owner: {campaign.owner} · Last run: {campaign.last_run}
+                  {campaign.frequency} = Owner: {campaign.owner} = Last run: {campaign.last_run}
                 </p>
               </div>
               <div className="flex items-center gap-3 ml-4">
@@ -346,8 +345,7 @@ export default function UserAccessReviewDashboard() {
                 </div>
               </div>
             </div>
-          ))
-          )}
+          ))}
         </div>
       </div>
     </div>

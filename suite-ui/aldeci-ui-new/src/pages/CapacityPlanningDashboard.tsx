@@ -1,7 +1,7 @@
 /**
  * Capacity Planning Dashboard
  *
- * Security team capacity planning — FTE utilization, demand vs supply, skills.
+ * Security team capacity planning = FTE utilization, demand vs supply, skills.
  *   1. KPI cards: total_fte, utilized_fte, demand_fte, gap_fte (red if >0)
  *   2. Resources table (skills chips, utilization bar)
  *   3. Demands table (gap alert)
@@ -41,7 +41,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_RESOURCES = [
   { id: "r1", resource_name: "Alice Chen",       role: "SOC Analyst L2",         team: "SOC",         fte: 1.0, utilization_pct: 92, skills: ["SIEM","Threat Hunting","Python"],       status: "active" },
@@ -74,7 +74,7 @@ const UTILIZED_FTE = parseFloat((TOTAL_FTE * (MOCK_RESOURCES.reduce((s, r) => s 
 const DEMAND_FTE   = MOCK_DEMANDS.reduce((s, d) => s + d.required_fte, 0);
 const GAP_FTE      = parseFloat((DEMAND_FTE - TOTAL_FTE).toFixed(1));
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function RoleBadge({ role }: { role: string }) {
   return <Badge className="text-[10px] border border-blue-500/30 text-blue-400 bg-blue-500/10">{role}</Badge>;
@@ -124,7 +124,7 @@ function UtilBar({ pct }: { pct: number }) {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function CapacityPlanningDashboard() {
   const [showResourceForm, setShowResourceForm] = useState(false);
@@ -145,10 +145,10 @@ export default function CapacityPlanningDashboard() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <PageHeader
@@ -299,8 +299,7 @@ export default function CapacityPlanningDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge s={r.status} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

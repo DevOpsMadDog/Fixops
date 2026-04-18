@@ -88,10 +88,10 @@ export default function ArchReviewDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <div className="max-w-7xl mx-auto">
@@ -150,7 +150,7 @@ export default function ArchReviewDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Review Name", "System", "Type", "Reviewer", "Findings", "Critical", "Score", "Risk", "Status", "Action"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
@@ -168,7 +168,7 @@ export default function ArchReviewDashboard() {
                       <td className="px-4 py-3"><span className="bg-purple-700 text-purple-100 text-xs px-2 py-0.5 rounded">{r.review_type.replace("_", " ")}</span></td>
                       <td className="px-4 py-3 text-gray-300">{r.reviewer}</td>
                       <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{r.finding_count}</span></td>
-                      <td className="px-4 py-3">{r.critical_count > 0 ? <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{r.critical_count}</span> : <span className="text-gray-500">—</span>}</td>
+                      <td className="px-4 py-3">{r.critical_count > 0 ? <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{r.critical_count}</span> : <span className="text-gray-500">=</span>}</td>
                       <td className="px-4 py-3 min-w-[120px]">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-700 rounded-full h-2">
@@ -276,7 +276,7 @@ export default function ArchReviewDashboard() {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Control", "Domain", "Implementation", "Effectiveness", "Gaps"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 )}
@@ -314,7 +314,7 @@ export default function ArchReviewDashboard() {
         {activeTab === "gaps" && (
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700">
-              <h2 className="font-semibold">Control Gaps — Not Implemented (sorted by effectiveness asc)</h2>
+              <h2 className="font-semibold">Control Gaps = Not Implemented (sorted by effectiveness asc)</h2>
             </div>
             <div className="divide-y divide-gray-700">
               {gapControls.length === 0 ? (
@@ -337,7 +337,7 @@ export default function ArchReviewDashboard() {
                     <div className="text-xs text-gray-400 mb-1">Effectiveness</div>
                     <div className="flex items-center gap-2">
                       <div className="w-24 bg-gray-700 rounded-full h-2">
-                        <div className="h-2 rounded-full bg-red-500" style={{ width: `${c.effectiveness}%` }} />
+                        <div className="h-2 rounded-full bg-red-500" style={{ width: `${c.effectiveness}%` }} / role="status" aria-live="polite">
                       </div>
                       <span className="text-red-400 font-bold text-sm">{c.effectiveness}</span>
                     </div>

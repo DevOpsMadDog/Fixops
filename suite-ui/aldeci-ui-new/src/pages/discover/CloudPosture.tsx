@@ -281,8 +281,7 @@ export default function CloudPosture() {
                 </div>
                 <Progress value={fw.pct} className="h-1.5" />
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -314,8 +313,7 @@ export default function CloudPosture() {
                   <SelectItem value="all">All Regions</SelectItem>
                   {regions.map((r) => (
                     <SelectItem key={r} value={r!}>{r}</SelectItem>
-                  ))
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
             )}
@@ -408,8 +406,7 @@ export default function CloudPosture() {
               </CardContent>
             </Card>
           </TabsContent>
-        ))
-        )}
+        ))}
       </Tabs>
     </motion.div>
   );

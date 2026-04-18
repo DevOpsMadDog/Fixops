@@ -1,11 +1,11 @@
 /**
- * Compliance Dashboard — P07 Persona (Compliance Officer)
+ * Compliance Dashboard = P07 Persona (Compliance Officer)
  *
  * Single-page dashboard showing all compliance data simultaneously:
- *   1. Framework Status Grid — 6 cards with progress + status badges
- *   2. Evidence Collection Table — control evidence with status + upload actions
- *   3. Compliance Gaps Panel — failing controls with risk level + remediation
- *   4. Audit Timeline — horizontal rail with last/next audit milestones
+ *   1. Framework Status Grid = 6 cards with progress + status badges
+ *   2. Evidence Collection Table = control evidence with status + upload actions
+ *   3. Compliance Gaps Panel = failing controls with risk level + remediation
+ *   4. Audit Timeline = horizontal rail with last/next audit milestones
  *
  * API: GET /api/v1/compliance/status, /api/v1/compliance/gaps, /api/v1/evidence/list
  * Fallback: mock data when API is unavailable
@@ -39,9 +39,9 @@ const API_KEY =
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 const ORG_ID = "aldeci-demo";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type FrameworkStatus = "in_progress" | "certified" | "gap";
 type EvidenceStatus = "Collected" | "Missing" | "Expired";
@@ -82,9 +82,9 @@ interface AuditMilestone {
   framework: string;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_FRAMEWORKS: Framework[] = [
   { id: "soc2", name: "SOC 2 Type II", progress: 78, status: "in_progress", controls_total: 64, controls_passing: 50 },
@@ -129,9 +129,9 @@ const MOCK_MILESTONES: AuditMilestone[] = [
   { id: "m9", label: "HIPAA Annual Renewal", date: "2026-08-01", type: "upcoming", framework: "HIPAA" },
 ];
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function progressColor(pct: number): string {
   if (pct >= 80) return "bg-emerald-500";
@@ -182,9 +182,9 @@ const FRAMEWORK_ICONS: Record<string, React.ElementType> = {
   cis: Package,
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // API fetch helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -229,9 +229,9 @@ async function fetchScannerStats(): Promise<Record<string, any>> {
   return apiFetch(`/api/v1/compliance-scanner/stats?org_id=${ORG_ID}`);
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Sub-components
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function FrameworkCard({ fw }: { fw: Framework }) {
   const Icon = FRAMEWORK_ICONS[fw.id] ?? ShieldCheck;
@@ -313,7 +313,7 @@ function FrameworkCard({ fw }: { fw: Framework }) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────
+// ==============================================================
 
 interface EvidenceTableProps {
   items: EvidenceItem[];
@@ -395,7 +395,7 @@ function EvidenceTable({ items, onUpload }: EvidenceTableProps) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────
+// ==============================================================
 
 function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
   return (
@@ -457,7 +457,7 @@ function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────
+// ==============================================================
 
 function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
   const today = new Date("2026-04-13");
@@ -558,9 +558,9 @@ function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
   );
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function ComplianceDashboard() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -605,7 +605,7 @@ export default function ComplianceDashboard() {
   const gapsData = gaps ?? MOCK_GAPS;
   const evidenceData = evidence ?? MOCK_EVIDENCE;
 
-  // KPI derivations — prefer live scanner stats when available
+  // KPI derivations = prefer live scanner stats when available
   const avgProgress = scannerStats?.compliance_rate != null
     ? Math.round(scannerStats.compliance_rate)
     : Math.round(fwData.reduce((s, f) => s + f.progress, 0) / fwData.length);
@@ -619,7 +619,7 @@ export default function ComplianceDashboard() {
       {/* Header */}
       <PageHeader
         title="Compliance Dashboard"
-        description="Framework status, evidence collection, and audit readiness — P07 Compliance Officer view"
+        description="Framework status, evidence collection, and audit readiness = P07 Compliance Officer view"
         badge="P07"
         actions={
           <div className="flex items-center gap-2">

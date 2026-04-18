@@ -26,7 +26,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_FRAMEWORKS = [
   { id: "fw-01", name: "SOC 2",        coverage_pct: 87, risk_level: "low",      controls: { implemented: 112, partial: 15, not_implemented: 3 } },
@@ -67,7 +67,7 @@ const MOCK_REMEDIATION = [
   { id: "rem-003", control_id: "HIPAA-164.3", plan: "Enable S3 bucket encryption at rest with KMS CMK for all PHI data stores.", owner: "carol@aldeci.io", target: "2026-05-10", progress: 20 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function RiskBadge({ r }: { r: string }) {
   const cls: Record<string, string> = {
@@ -116,7 +116,7 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function GapAnalysisDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
@@ -163,9 +163,9 @@ export default function GapAnalysisDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -174,7 +174,7 @@ export default function GapAnalysisDashboard() {
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm font-medium">{overdueGaps.length} control gap{overdueGaps.length > 1 ? "s are" : " is"} overdue — immediate remediation required</span>
+          <span className="text-sm font-medium">{overdueGaps.length} control gap{overdueGaps.length > 1 ? "s are" : " is"} overdue = immediate remediation required</span>
           <span className="ml-auto text-xs text-red-400">{overdueGaps.map(g => g.control_id).join(", ")}</span>
         </motion.div>
       )}
@@ -210,9 +210,9 @@ export default function GapAnalysisDashboard() {
                   style={{ width: `${fw.coverage_pct}%` }} />
               </div>
               <div className="flex gap-2 mt-2 text-[10px]">
-                <span className="text-emerald-400">{fw.controls.implemented}✓</span>
+                <span className="text-emerald-400">{fw.controls.implemented}=</span>
                 <span className="text-yellow-400">{fw.controls.partial}~</span>
-                <span className="text-red-400">{fw.controls.not_implemented}✗</span>
+                <span className="text-red-400">{fw.controls.not_implemented}=</span>
               </div>
             </button>
           )))}
@@ -223,7 +223,7 @@ export default function GapAnalysisDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Assessments</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Assessment</th>

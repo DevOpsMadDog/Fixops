@@ -3,10 +3,10 @@
  *
  * Trend analysis and KPI tracking across all security domains.
  *   1. KPIs: MTTD, MTTR, Security Score, SLA Compliance
- *   2. 12-month MTTD/MTTR trend chart — div-based bar groups
- *   3. Top 10 metrics table — value, target, variance, trend
- *   4. Category breakdown — Vuln Mgmt, Incident Response, Compliance, Access Control
- *   5. Alert thresholds panel — 4 threshold rules
+ *   2. 12-month MTTD/MTTR trend chart = div-based bar groups
+ *   3. Top 10 metrics table = value, target, variance, trend
+ *   4. Category breakdown = Vuln Mgmt, Incident Response, Compliance, Access Control
+ *   5. Alert thresholds panel = 4 threshold rules
  *
  * API stubs: GET /api/v1/kpi/metrics, /api/v1/kpi/trends, /api/v1/kpi/thresholds
  */
@@ -34,7 +34,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 
 const apiKey = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const apiFetch = (path: string) =>
@@ -43,7 +43,7 @@ const apiFetch = (path: string) =>
     return r.json();
   });
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const TREND_DATA = [
   { month: "May", mttd: 5.8, mttr: 9.2 },
@@ -89,7 +89,7 @@ const THRESHOLDS = [
   { name: "Score Degradation",  condition: "Security Score < 70",   status: "active", detail: "Initiates posture review" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TrendArrow({ trend, meeting }: { trend: string; meeting: boolean }) {
   if (trend === "up") {
@@ -102,7 +102,7 @@ function TrendArrow({ trend, meeting }: { trend: string; meeting: boolean }) {
     : <TrendingDown className="h-3.5 w-3.5 text-red-400" />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityMetricsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -138,9 +138,9 @@ export default function SecurityMetricsDashboard() {
     Array.isArray(liveData?.metrics)
       ? liveData.metrics.map((m: any) => ({
           name:    m.name    ?? m.metric_name ?? m.title,
-          current: String(m.current ?? m.value ?? m.current_value ?? "—"),
-          target:  String(m.target  ?? m.target_value ?? "—"),
-          variance:String(m.variance ?? "—"),
+          current: String(m.current ?? m.value ?? m.current_value ?? "="),
+          target:  String(m.target  ?? m.target_value ?? "="),
+          variance:String(m.variance ?? "="),
           meeting: Boolean(m.meeting ?? m.on_target ?? false),
           trend:   m.trend  ?? "up",
         }))
@@ -185,9 +185,9 @@ export default function SecurityMetricsDashboard() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-blue-400" />
-            MTTD / MTTR — 12-Month Trend
+            MTTD / MTTR = 12-Month Trend
           </CardTitle>
-          <CardDescription className="text-xs">Hours — lower is better</CardDescription>
+          <CardDescription className="text-xs">Hours = lower is better</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-2 h-40">
@@ -289,7 +289,7 @@ export default function SecurityMetricsDashboard() {
               <Shield className="h-4 w-4 text-purple-400" />
               Category Scores
             </CardTitle>
-            <CardDescription className="text-xs">Security posture score by domain (0–100)</CardDescription>
+            <CardDescription className="text-xs">Security posture score by domain (0=100)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {CATEGORIES.length === 0 ? (

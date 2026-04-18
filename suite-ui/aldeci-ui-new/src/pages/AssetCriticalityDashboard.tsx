@@ -11,7 +11,7 @@
 import { useState, useEffect } from "react";
 import { Server, AlertTriangle, GitBranch, Trophy } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type Tier = "tier-1-critical" | "tier-2-high" | "tier-3-medium" | "tier-4-low";
 
@@ -33,7 +33,7 @@ interface Factor {
   value: number; // out of 10
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const ASSETS: Asset[] = [
   {
@@ -129,7 +129,7 @@ const ASSETS: Asset[] = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const TIER_CONFIG: Record<Tier, { label: string; color: string; ring: string; text: string; bar: string }> = {
   "tier-1-critical": { label: "Tier 1 Critical", color: "#ef4444", ring: "ring-red-500", text: "text-red-400", bar: "bg-red-500" },
@@ -154,7 +154,7 @@ const TYPE_COLOR: Record<string, string> = {
   iot: "bg-orange-500/20 text-orange-300",
 };
 
-// ── Donut ──────────────────────────────────────────────────────
+// == Donut ======================================================
 
 const TIERS: Tier[] = ["tier-1-critical", "tier-2-high", "tier-3-medium", "tier-4-low"];
 
@@ -217,7 +217,7 @@ function TierDonut({ assets }: { assets: Asset[] }) {
   );
 }
 
-// ── Critical Path ──────────────────────────────────────────────
+// == Critical Path ==============================================
 
 function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
   const assetMap = Object.fromEntries(assets.map((a) => [a.id, a]));
@@ -242,14 +242,14 @@ function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
             style={{ borderColor: TIER_CONFIG[a.tier].color + "40", background: TIER_CONFIG[a.tier].color + "15" }}>
             {a.asset_name}
           </div>
-          {i < chain.length - 1 && <span className="text-gray-500">→</span>}
+          {i < chain.length - 1 && <span className="text-gray-500">=</span>}
         </div>
       )))}
     </div>
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AssetCriticalityDashboard() {
   const [selectedId, setSelectedId] = useState<string>(ASSETS[0].id);
@@ -289,7 +289,7 @@ export default function AssetCriticalityDashboard() {
         <div className="lg:col-span-3 bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Asset Inventory</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-700">
                   <th className="text-left py-2">Asset</th>
@@ -363,7 +363,7 @@ export default function AssetCriticalityDashboard() {
                 <div key={f.factor_name}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-gray-300">{f.factor_name}</span>
-                    <span className="text-gray-400">wt {f.weight}% · val {f.value}/10 · contrib {contribution.toFixed(0)}</span>
+                    <span className="text-gray-400">wt {f.weight}% = val {f.value}/10 = contrib {contribution.toFixed(0)}</span>
                   </div>
                   <div className="flex gap-2">
                     <div className="flex-1 bg-gray-700 rounded-full h-1.5">

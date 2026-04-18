@@ -174,7 +174,7 @@ export default function DigitalIdentityDashboard() {
                   profiles.map((p: any, i: number) => (
                   <TableRow key={p.user_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {(p.user_id ?? "").slice(0, 14)}…
+                      {(p.user_id ?? "").slice(0, 14)}=
                     </TableCell>
                     <TableCell className="py-2"><IALBadge level={p.identity_level ?? "IAL1"} /></TableCell>
                     <TableCell className="py-2"><VerificationStatusBadge status={p.verification_status ?? "unverified"} /></TableCell>
@@ -184,7 +184,7 @@ export default function DigitalIdentityDashboard() {
                         {p.assurance_level}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "—"}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "="}</TableCell>
                   </TableRow>
                 )))}
               </TableBody>

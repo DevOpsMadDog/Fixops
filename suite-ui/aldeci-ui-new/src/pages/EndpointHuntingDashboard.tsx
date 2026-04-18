@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_HUNTS = [
   { id: "HNT-001", name: "LOLBAS Execution Hunt",          query: "process.name IN ('regsvr32','mshta','wscript')",  endpoints_scanned: 1240, hits: 7,  status: "active" },
@@ -52,7 +52,7 @@ const MOCK_HUNTS = [
 
 const MOCK_STATS = { hunts_active: 6, endpoints_covered: 1240, threats_found: 23, iocs_matched: 47 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function HuntStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -73,7 +73,7 @@ function HitsBadge({ hits }: { hits: number }) {
   return <Badge className={cn("text-[10px] border tabular-nums font-mono", cls)}>{hits} hits</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function EndpointHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -114,7 +114,7 @@ export default function EndpointHuntingDashboard() {
     >
       <PageHeader
         title="Endpoint Threat Hunting"
-        description="Proactive hunt campaigns across managed endpoints — IOC sweeps and behavioral queries"
+        description="Proactive hunt campaigns across managed endpoints = IOC sweeps and behavioral queries"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -166,7 +166,7 @@ export default function EndpointHuntingDashboard() {
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{hunt.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium max-w-[180px] truncate">{hunt.name}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[240px] truncate">
-                      {hunt.query ?? hunt.hunt_query ?? "—"}
+                      {hunt.query ?? hunt.hunt_query ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right font-mono text-xs tabular-nums">
                       {(hunt.endpoints_scanned ?? hunt.endpoints ?? 0).toLocaleString()}

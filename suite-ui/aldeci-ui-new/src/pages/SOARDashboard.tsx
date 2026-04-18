@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, PlayCircle, GitBranch, Clock, RefreshCw, Activity, Link2 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const PLAYBOOKS = [
   { name: "Critical Alert Response",      trigger: "Alert",     enabled: true,  execs: 412, success: 97.1, lastRun: "2026-04-16 09:42" },
@@ -86,7 +86,7 @@ const ACTION_RATES = [
   { action: "send_email",     pct: 97.8, color: "bg-cyan-500" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TriggerBadge({ t }: { t: string }) {
   const cls =
@@ -104,7 +104,7 @@ function StatusBadge({ s }: { s: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{s}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SOARDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -179,7 +179,7 @@ export default function SOARDashboard() {
             </CardTitle>
             <Button variant="outline" size="sm" className="h-7 text-xs">New Playbook</Button>
           </div>
-          <CardDescription className="text-xs">Automated response workflows — click Run Now to trigger manually</CardDescription>
+          <CardDescription className="text-xs">Automated response workflows = click Run Now to trigger manually</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -217,7 +217,7 @@ export default function SOARDashboard() {
                     )}>
                       {successPct}%
                     </TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.last_executed_at ?? row.lastRun ?? "—"}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.last_executed_at ?? row.lastRun ?? "="}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Run Now</Button>
                     </TableCell>
@@ -232,7 +232,7 @@ export default function SOARDashboard() {
 
       {/* Recent executions + integrations */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recent executions — 2/3 width */}
+        {/* Recent executions = 2/3 width */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -259,18 +259,18 @@ export default function SOARDashboard() {
                     const execStatus = row.status ?? "completed";
                     const stepsStr = row.steps_completed != null && row.total_steps != null
                       ? `${row.steps_completed}/${row.total_steps}`
-                      : (row.steps ?? "—");
+                      : (row.steps ?? "=");
                     const durationStr = row.duration_seconds != null
                       ? `${row.duration_seconds.toFixed(1)}s`
-                      : (row.duration ?? "—");
+                      : (row.duration ?? "=");
                     return (
                     <TableRow key={row.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.playbook_id ?? row.playbook}</TableCell>
-                      <TableCell className="text-xs py-2 text-muted-foreground max-w-[160px] truncate">{row.trigger_event ?? row.event ?? "—"}</TableCell>
+                      <TableCell className="text-xs py-2 text-muted-foreground max-w-[160px] truncate">{row.trigger_event ?? row.event ?? "="}</TableCell>
                       <TableCell className="py-2"><StatusBadge s={execStatus} /></TableCell>
                       <TableCell className="text-xs tabular-nums py-2">{stepsStr}</TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{durationStr}</TableCell>
-                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.started_at ?? row.ts ?? "—"}</TableCell>
+                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.started_at ?? row.ts ?? "="}</TableCell>
                     </TableRow>
                     );
                   })}
@@ -280,7 +280,7 @@ export default function SOARDashboard() {
           </CardContent>
         </Card>
 
-        {/* Integrations — 1/3 width */}
+        {/* Integrations = 1/3 width */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">

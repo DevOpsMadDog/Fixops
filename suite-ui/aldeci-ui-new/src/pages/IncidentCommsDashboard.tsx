@@ -32,7 +32,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type CommType = "notification" | "update" | "escalation" | "resolution" | "postmortem" | "stakeholder" | "public";
 type Channel = "email" | "slack" | "sms" | "pagerduty" | "teams" | "jira" | "webhook";
@@ -49,27 +49,27 @@ interface CommEntry {
   status: "sent" | "failed" | "pending";
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_COMMS: CommEntry[] = [
-  { id: "cm-001", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "notification",  channel: "pagerduty", subject: "P1 Incident: DB Outage detected",                    recipient_count: 12, sent_at: "2026-04-16 08:03", status: "sent" },
-  { id: "cm-002", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "update",        channel: "slack",     subject: "INC-2041 Update: RCA in progress, ETA 30min",          recipient_count: 48, sent_at: "2026-04-16 08:45", status: "sent" },
-  { id: "cm-003", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "stakeholder",   channel: "email",     subject: "[Stakeholder] Production database impact — update",     recipient_count: 8,  sent_at: "2026-04-16 09:00", status: "sent" },
-  { id: "cm-004", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "resolution",    channel: "slack",     subject: "INC-2041 RESOLVED: Service restored at 09:22",         recipient_count: 52, sent_at: "2026-04-16 09:22", status: "sent" },
+  { id: "cm-001", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "notification",  channel: "pagerduty", subject: "P1 Incident: DB Outage detected",                    recipient_count: 12, sent_at: "2026-04-16 08:03", status: "sent" },
+  { id: "cm-002", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "update",        channel: "slack",     subject: "INC-2041 Update: RCA in progress, ETA 30min",          recipient_count: 48, sent_at: "2026-04-16 08:45", status: "sent" },
+  { id: "cm-003", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "stakeholder",   channel: "email",     subject: "[Stakeholder] Production database impact = update",     recipient_count: 8,  sent_at: "2026-04-16 09:00", status: "sent" },
+  { id: "cm-004", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "resolution",    channel: "slack",     subject: "INC-2041 RESOLVED: Service restored at 09:22",         recipient_count: 52, sent_at: "2026-04-16 09:22", status: "sent" },
   { id: "cm-005", incident_id: "INC-2038", incident_title: "API Latency Spike",         comm_type: "notification",  channel: "pagerduty", subject: "P2 Incident: API p99 latency > 5s threshold",          recipient_count: 6,  sent_at: "2026-04-16 06:15", status: "sent" },
   { id: "cm-006", incident_id: "INC-2038", incident_title: "API Latency Spike",         comm_type: "escalation",    channel: "teams",     subject: "Escalation: API latency unresolved after 2h",          recipient_count: 4,  sent_at: "2026-04-16 08:17", status: "sent" },
-  { id: "cm-007", incident_id: "INC-2035", incident_title: "S3 Misconfiguration",       comm_type: "postmortem",    channel: "jira",      subject: "PIR: S3 bucket public exposure — root cause & actions", recipient_count: 14, sent_at: "2026-04-16 10:00", status: "sent" },
+  { id: "cm-007", incident_id: "INC-2035", incident_title: "S3 Misconfiguration",       comm_type: "postmortem",    channel: "jira",      subject: "PIR: S3 bucket public exposure = root cause & actions", recipient_count: 14, sent_at: "2026-04-16 10:00", status: "sent" },
   { id: "cm-008", incident_id: "INC-2042", incident_title: "Suspicious Login Activity", comm_type: "notification",  channel: "slack",     subject: "Security Alert: Multiple failed logins from RU IP",    recipient_count: 9,  sent_at: "2026-04-16 10:30", status: "sent" },
-  { id: "cm-009", incident_id: "INC-2042", incident_title: "Suspicious Login Activity", comm_type: "update",        channel: "email",     subject: "Security Incident INC-2042 — investigation ongoing",   recipient_count: 5,  sent_at: "2026-04-16 11:00", status: "pending" },
-  { id: "cm-010", incident_id: "INC-2040", incident_title: "Certificate Expiry Alert",  comm_type: "public",        channel: "webhook",   subject: "Maintenance window notification — cert renewal",        recipient_count: 0,  sent_at: "2026-04-16 07:00", status: "failed" },
+  { id: "cm-009", incident_id: "INC-2042", incident_title: "Suspicious Login Activity", comm_type: "update",        channel: "email",     subject: "Security Incident INC-2042 = investigation ongoing",   recipient_count: 5,  sent_at: "2026-04-16 11:00", status: "pending" },
+  { id: "cm-010", incident_id: "INC-2040", incident_title: "Certificate Expiry Alert",  comm_type: "public",        channel: "webhook",   subject: "Maintenance window notification = cert renewal",        recipient_count: 0,  sent_at: "2026-04-16 07:00", status: "failed" },
 ];
 
 const INCIDENTS = [
-  "INC-2041 — DB Outage (P1)",
-  "INC-2042 — Suspicious Login (P2)",
-  "INC-2038 — API Latency (P2)",
-  "INC-2040 — Certificate Expiry (P3)",
-  "INC-2035 — S3 Misconfiguration (P2)",
+  "INC-2041 = DB Outage (P1)",
+  "INC-2042 = Suspicious Login (P2)",
+  "INC-2038 = API Latency (P2)",
+  "INC-2040 = Certificate Expiry (P3)",
+  "INC-2035 = S3 Misconfiguration (P2)",
 ];
 
 const COMM_TYPES: CommType[] = ["notification", "update", "escalation", "resolution", "postmortem", "stakeholder", "public"];
@@ -104,7 +104,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("border text-xs capitalize", map[status] ?? "")}>{status}</Badge>;
 }
 
-// ── Channel Breakdown ──────────────────────────────────────────
+// == Channel Breakdown ==========================================
 
 function ChannelBreakdown() {
   const counts = CHANNELS.map((ch) => ({
@@ -139,7 +139,7 @@ function ChannelBreakdown() {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function IncidentCommsDashboard() {
   const [incident, setIncident] = useState(INCIDENTS[0]);
@@ -192,9 +192,9 @@ export default function IncidentCommsDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 

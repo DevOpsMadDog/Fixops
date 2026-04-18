@@ -3,8 +3,8 @@
  *
  * Data sensitivity classification and DLP oversight.
  *   1. KPIs: Classified Items, PII Detected, Unclassified, Policy Violations
- *   2. Classification breakdown (5 levels) — horizontal bars
- *   3. Data type distribution (8 types) — colored rows
+ *   2. Classification breakdown (5 levels) = horizontal bars
+ *   3. Data type distribution (8 types) = colored rows
  *   4. Violation table (12 rows)
  *   5. Recent scan results (6 scan cards)
  *
@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, ShieldAlert, AlertTriangle, Search, RefreshCw, FileText, Lock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CLASSIFICATION_LEVELS = [
   { level: "TOP SECRET",  count: 1_247,   pct: 0.8,  color: "bg-red-600",    text: "text-red-500",    border: "border-red-500/30" },
@@ -50,14 +50,14 @@ const CLASSIFICATION_LEVELS = [
 ];
 
 const DATA_TYPES = [
-  { type: "PII",         count: 23_847, icon: "👤", color: "text-red-400",    bar: "bg-red-500"    },
-  { type: "PHI",         count: 8_124,  icon: "🏥", color: "text-pink-400",   bar: "bg-pink-500"   },
-  { type: "PCI",         count: 4_391,  icon: "💳", color: "text-amber-400",  bar: "bg-amber-500"  },
-  { type: "Credentials", count: 1_203,  icon: "🔑", color: "text-red-500",    bar: "bg-red-600"    },
-  { type: "IP / Source", count: 12_882, icon: "⚙️", color: "text-purple-400", bar: "bg-purple-500" },
-  { type: "Classified",  count: 9_659,  icon: "🔒", color: "text-orange-400", bar: "bg-orange-500" },
-  { type: "General",     count: 74_321, icon: "📄", color: "text-blue-400",   bar: "bg-blue-500"   },
-  { type: "Unknown",     count: 13_847, icon: "❓", color: "text-muted-foreground", bar: "bg-muted-foreground" },
+  { type: "PII",         count: 23_847, icon: "=", color: "text-red-400",    bar: "bg-red-500"    },
+  { type: "PHI",         count: 8_124,  icon: "=", color: "text-pink-400",   bar: "bg-pink-500"   },
+  { type: "PCI",         count: 4_391,  icon: "=", color: "text-amber-400",  bar: "bg-amber-500"  },
+  { type: "Credentials", count: 1_203,  icon: "=", color: "text-red-500",    bar: "bg-red-600"    },
+  { type: "IP / Source", count: 12_882, icon: "==", color: "text-purple-400", bar: "bg-purple-500" },
+  { type: "Classified",  count: 9_659,  icon: "=", color: "text-orange-400", bar: "bg-orange-500" },
+  { type: "General",     count: 74_321, icon: "=", color: "text-blue-400",   bar: "bg-blue-500"   },
+  { type: "Unknown",     count: 13_847, icon: "=", color: "text-muted-foreground", bar: "bg-muted-foreground" },
 ];
 
 const VIOLATIONS = [
@@ -76,7 +76,7 @@ const VIOLATIONS = [
 ];
 
 const SCANS = [
-  { name: "S3 Full Bucket Scan",       scope: "AWS S3 — all buckets",    itemsScanned: 284_112, violations: 47, scanTime: "4m 12s", status: "completed" },
+  { name: "S3 Full Bucket Scan",       scope: "AWS S3 = all buckets",    itemsScanned: 284_112, violations: 47, scanTime: "4m 12s", status: "completed" },
   { name: "Email Archive DLP",         scope: "Exchange Online archive",  itemsScanned: 1_204_891, violations: 89, scanTime: "18m 04s", status: "completed" },
   { name: "Endpoint File Crawler",     scope: "Windows endpoints (412)",  itemsScanned: 9_281_444, violations: 34, scanTime: "1h 02m", status: "completed" },
   { name: "GitHub Secrets Scan",       scope: "All org repos",           itemsScanned: 48_221, violations: 12, scanTime: "2m 38s", status: "completed" },
@@ -84,7 +84,7 @@ const SCANS = [
   { name: "SharePoint Content Audit",  scope: "SharePoint Online",       itemsScanned: 0, violations: 0, scanTime: "--", status: "scheduled" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -142,7 +142,7 @@ function ScanStatusBadge({ status }: { status: string }) {
 
 const MAX_TYPE_COUNT = Math.max(...DATA_TYPES.map(d => d.count));
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DataClassificationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -379,7 +379,7 @@ export default function DataClassificationDashboard() {
                   <div className="flex flex-col gap-0.5">
                     <span className="text-muted-foreground text-[10px]">Items scanned</span>
                     <span className="font-bold tabular-nums">
-                      {scan.itemsScanned > 0 ? scan.itemsScanned.toLocaleString() : "—"}
+                      {scan.itemsScanned > 0 ? scan.itemsScanned.toLocaleString() : "="}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-right">
@@ -388,7 +388,7 @@ export default function DataClassificationDashboard() {
                       "font-bold tabular-nums",
                       scan.violations > 0 ? "text-red-400" : "text-green-400"
                     )}>
-                      {scan.violations > 0 ? scan.violations : "—"}
+                      {scan.violations > 0 ? scan.violations : "="}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-right">

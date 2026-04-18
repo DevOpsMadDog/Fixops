@@ -571,8 +571,7 @@ export default function PlaybookEditor() {
                   <span className="text-muted-foreground">{item.label}</span>
                   <span className="font-semibold">{item.val}</span>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
         </div>

@@ -1,12 +1,12 @@
 /**
- * Vendor Risk Assessment Dashboard — Third-Party Risk Management
+ * Vendor Risk Assessment Dashboard = Third-Party Risk Management
  *
  * Single-page dashboard showing vendor risk assessment data:
- *   1. Summary stats — total vendors, critical/high risk counts, pending assessments
- *   2. Vendor Risk Register — table with vendor name, tier, risk score, last assessed, status, action button
- *   3. Risk by Domain — breakdown of 5 security domains with progress bars
- *   4. High Risk Vendors Alert — banner showing critical vendors if any exist
- *   5. Recent Assessments — activity feed of latest vendor assessments
+ *   1. Summary stats = total vendors, critical/high risk counts, pending assessments
+ *   2. Vendor Risk Register = table with vendor name, tier, risk score, last assessed, status, action button
+ *   3. Risk by Domain = breakdown of 5 security domains with progress bars
+ *   4. High Risk Vendors Alert = banner showing critical vendors if any exist
+ *   5. Recent Assessments = activity feed of latest vendor assessments
  *
  * API: GET /api/v1/vendor-risk/risk-register and /api/v1/vendor-risk/vendors
  * Fallback: mock data when API is unavailable
@@ -53,9 +53,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type VendorTier = "Tier 1" | "Tier 2" | "Tier 3";
 type RiskLevel = "critical" | "high" | "medium" | "low";
@@ -86,9 +86,9 @@ interface Assessment {
   assessor: string;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_VENDORS: Vendor[] = [
   {
@@ -227,9 +227,9 @@ const MOCK_ASSESSMENTS: Assessment[] = [
   },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function riskColor(level: RiskLevel): string {
   const map: Record<RiskLevel, string> = {
@@ -293,9 +293,9 @@ function formatAssessmentTime(isoStr: string): string {
   return `${Math.floor(diffDays / 7)}w ago`;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // API fetch helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -311,9 +311,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Component
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function VendorRiskDashboard() {
   const [liveData, setLiveData] = useState<any>(null);

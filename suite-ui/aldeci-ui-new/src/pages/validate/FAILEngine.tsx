@@ -392,8 +392,7 @@ export default function FAILEngine() {
                   </div>
                 </CardContent>
               </Card>
-            ))
-            )}
+            ))}
           </TabsContent>
 
         <TabsContent value="scorecard">
@@ -417,8 +416,7 @@ export default function FAILEngine() {
                       className="h-2"
                     />
                   </div>
-                ))
-                )}
+                ))}
                 {scorecardData.every((d) => d.value === 0) && (
                   <p className="text-center text-sm text-muted-foreground py-4">
                     No scorecard data available yet
@@ -643,8 +641,7 @@ export default function FAILEngine() {
                       <p className="text-xs text-muted-foreground">{item.label}</p>
                       <p className="font-semibold mt-1">{item.val}</p>
                     </div>
-                  ))
-                  )}
+                  ))}
                 </div>
               </CardContent>
             </Card>

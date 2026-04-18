@@ -33,7 +33,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helper ──────────────────────────────────────────────────────────────
+// == API helper ==============================================================
 const apiFetch = async (path: string) => {
   const key =
     localStorage.getItem("aldeci_api_key") ||
@@ -44,7 +44,7 @@ const apiFetch = async (path: string) => {
   return res.json();
 };
 
-// ── Mock data ───────────────────────────────────────────────────────────────
+// == Mock data ===============================================================
 
 const MOCK_STATS = {
   total_endpoints: 347,
@@ -86,10 +86,10 @@ const MOCK_DEPT_COMPLIANCE = [
   { department: "IT",             total_endpoints: 61, compliant: 18, partial: 21, non_compliant: 22, avg_compliance_score: 58.6, compliant_rate: 29.5, critical_failures: 14 },
 ];
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// == Helpers =================================================================
 
 const OS_ICONS: Record<string, string> = {
-  windows: "🪟", linux: "🐧", macos: "🍎", android: "🤖", ios: "📱",
+  windows: "=", linux: "=", macos: "=", android: "=", ios: "=",
 };
 
 function levelBadge(level: string) {
@@ -143,7 +143,7 @@ function benchmarkLabel(b: string) {
   return map[b] ?? b;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
+// == Component =============================================================
 
 export default function EndpointComplianceDashboard() {
   const [stats, setStats] = useState<typeof MOCK_STATS | null>(null);
@@ -253,7 +253,7 @@ export default function EndpointComplianceDashboard() {
                 const pct = total > 0 ? Math.round(((count as number) / total) * 100) : 0;
                 return (
                   <div key={os} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2">
-                    <span className="text-lg">{OS_ICONS[os] ?? "💻"}</span>
+                    <span className="text-lg">{OS_ICONS[os] ?? "="}</span>
                     <div>
                       <div className="text-xs font-medium text-slate-200 capitalize">{os}</div>
                       <div className="text-xs text-slate-500">{count as number} endpoints ({pct}%)</div>
@@ -306,9 +306,9 @@ export default function EndpointComplianceDashboard() {
                   <TableRow key={ep.id} className="border-slate-800 hover:bg-slate-800/40">
                     <TableCell className="font-mono text-xs text-slate-300">{ep.hostname}</TableCell>
                     <TableCell className="text-xs text-slate-400">
-                      {OS_ICONS[ep.os_type] ?? "💻"} {ep.os_type}
+                      {OS_ICONS[ep.os_type] ?? "="} {ep.os_type}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-400">{ep.department || "—"}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{ep.department || "="}</TableCell>
                     <TableCell>
                       <Badge className={cn("text-xs border", levelBadge(ep.compliance_level))}>
                         {levelLabel(ep.compliance_level)}
@@ -338,8 +338,7 @@ export default function EndpointComplianceDashboard() {
                       {ep.last_scan ? new Date(ep.last_scan).toLocaleDateString() : "Never"}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -388,8 +387,7 @@ export default function EndpointComplianceDashboard() {
                     <p className="font-medium text-slate-200 mb-1">{chk.check_name}</p>
                     <p className="text-slate-500 line-clamp-2">{chk.remediation}</p>
                   </div>
-                ))
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -458,7 +456,7 @@ export default function EndpointComplianceDashboard() {
                           className="bg-red-500 h-full"
                           style={{ width: `${(dept.non_compliant / dept.total_endpoints) * 100}%` }}
                           title={`${dept.non_compliant} non-compliant`}
-                        />
+                        / role="status" aria-live="polite">
                       )}
                     </div>
                   </div>

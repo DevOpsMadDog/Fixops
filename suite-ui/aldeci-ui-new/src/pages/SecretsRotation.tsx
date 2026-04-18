@@ -12,7 +12,7 @@
  *   5. Rotation History audit log
  *   6. Filters by status (All, Overdue, Due This Week, Compliant)
  *
- * API: GET /api/v1/secrets-rotation/list — fallback to mock data on failure
+ * API: GET /api/v1/secrets-rotation/list = fallback to mock data on failure
  */
 
 import { useState, useMemo } from "react";
@@ -48,9 +48,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type SecretType = "api_key" | "certificate" | "password" | "token";
 type SecretStatus = "compliant" | "due_soon" | "overdue" | "unknown";
@@ -76,9 +76,9 @@ interface RotationHistoryEvent {
   new_expiry: string;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_SECRETS: Secret[] = [
   { id: "s1", name: "AWS Root Key", type: "api_key", service: "AWS", last_rotated: "2025-10-15", next_rotation: "2026-04-10", status: "overdue", days_until_due: -4, owner: "infra-team" },
@@ -101,9 +101,9 @@ const MOCK_HISTORY: RotationHistoryEvent[] = [
   { id: "h5", secret_name: "Admin SSH Key", rotated_by: "diana.prince", rotated_at: "2026-02-28T13:10:00Z", old_expiry: "2026-02-28", new_expiry: "2026-05-28" },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const TYPE_CONFIG: Record<SecretType, { label: string; icon: typeof Key; color: string }> = {
   api_key:    { label: "API Key",       icon: Key,       color: "text-cyan-400 bg-cyan-500/10" },
@@ -133,9 +133,9 @@ function statusIcon(status: SecretStatus) {
   return AlertTriangle;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Rotation Calendar
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function RotationCalendar({ secrets }: { secrets: Secret[] }) {
   const today = new Date();
@@ -196,9 +196,9 @@ function RotationCalendar({ secrets }: { secrets: Secret[] }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Secret Row
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function SecretRow({
   secret,
@@ -262,9 +262,9 @@ function SecretRow({
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function SecretsRotation() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -394,7 +394,7 @@ export default function SecretsRotation() {
 
             {/* Table */}
             <ScrollArea className="flex-1">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground sticky top-0 bg-card z-10">
                     <th className="py-2.5 px-4 text-left font-medium">Name</th>
@@ -458,7 +458,7 @@ export default function SecretsRotation() {
                       </div>
                       <div className="text-[11px] text-muted-foreground">
                         <span className="text-gray-500">{event.old_expiry}</span>
-                        <span className="mx-1.5 text-gray-600">→</span>
+                        <span className="mx-1.5 text-gray-600">=</span>
                         <span className="text-green-400">{event.new_expiry}</span>
                       </div>
                     </motion.div>

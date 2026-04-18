@@ -18,7 +18,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { Layers, Users, Shield, Plus, BarChart2, AlertTriangle } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface AssetGroup {
   id: string;
@@ -43,7 +43,7 @@ interface GroupPolicy {
   enabled: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const GROUPS: AssetGroup[] = [
   {
@@ -127,7 +127,7 @@ const GROUPS: AssetGroup[] = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const critColor: Record<AssetGroup["criticality"], string> = {
   critical: "text-red-400 border-red-700",
@@ -170,7 +170,7 @@ const policyTypeColor: Record<GroupPolicy["policy_type"], string> = {
   backup: "bg-gray-700 text-gray-300",
 };
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AssetGroupsDashboard() {
   const [selectedGroup, setSelectedGroup] = useState<AssetGroup | null>(GROUPS[0]);
@@ -181,7 +181,7 @@ export default function AssetGroupsDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
     .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
     .then(d => {
-    // live data loaded — components read from API response
+    // live data loaded = components read from API response
     void d;
     })
     .catch(err => setError(err.message || 'Failed to load data'));
@@ -206,10 +206,10 @@ export default function AssetGroupsDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -346,8 +346,7 @@ export default function AssetGroupsDashboard() {
                   >
                     {tab}
                   </button>
-                ))
-                )}
+                ))}
               </div>
             </div>
           </div>
@@ -370,7 +369,7 @@ export default function AssetGroupsDashboard() {
 
           {activeTab === "members" ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-700/50">
                   <tr>
                     {["Asset ID","Type","Added By","Added At"].map(h => (
@@ -396,7 +395,7 @@ export default function AssetGroupsDashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-700/50">
                   <tr>
                     {["Policy Name","Type","Status"].map(h => (
@@ -421,8 +420,7 @@ export default function AssetGroupsDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  ))}
                 </tbody>
               </table>
             </div>

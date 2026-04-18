@@ -1,7 +1,7 @@
 /**
  * Executive Briefing
  *
- * Board-level security posture summary — Q2 2026.
+ * Board-level security posture summary = Q2 2026.
  *   1. Top risk indicators (3 large colored boxes)
  *   2. Security investment ROI table
  *   3. Regulatory compliance grid (6 frameworks)
@@ -16,7 +16,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -43,7 +43,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const ROI_TABLE = [
   { control: "EDR / Endpoint Protection",   cost: "$42K/yr",  prevented: 18, avoided: "$1.8M", roi: 4186 },
@@ -92,7 +92,7 @@ const BOARD_RISKS = [
     color: "border-amber-500/30 bg-amber-500/5",
   },
   {
-    title: "Insider threat — privileged account misuse",
+    title: "Insider threat = privileged account misuse",
     impact: "$320K",
     likelihood: "Low",
     action: "Accept",
@@ -110,7 +110,7 @@ const BUDGET = [
 
 const BUDGET_MAX = 380;
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function StatusBadge({ status }: { status: string }) {
   const cls =
@@ -140,7 +140,7 @@ function LikelihoodBadge({ l }: { l: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{l}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ExecutiveBriefing() {
   const [refreshing, setRefreshing]   = useState(false);
@@ -196,7 +196,7 @@ export default function ExecutiveBriefing() {
       {/* Header */}
       <PageHeader
         title="Executive Security Briefing"
-        description="Board-level security posture summary — Q2 2026"
+        description="Board-level security posture summary = Q2 2026"
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); fetchData(); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
@@ -212,7 +212,7 @@ export default function ExecutiveBriefing() {
 
       {/* Top risk indicators */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col items-center gap-2">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col items-center gap-2" role="status" aria-live="polite">
           <AlertTriangle className="h-8 w-8 text-red-400" />
           <span className="text-5xl font-black text-red-400 tabular-nums">
             {liveData?.incidents?.critical_count ?? liveData?.execKpis?.breached_count ?? liveData?.kpis?.critical_findings ?? 4}
@@ -255,7 +255,7 @@ export default function ExecutiveBriefing() {
               <DollarSign className="h-4 w-4 text-green-400" />
               Security Investment ROI
             </CardTitle>
-            <CardDescription className="text-xs">Cost vs. incidents prevented — sorted by ROI descending</CardDescription>
+            <CardDescription className="text-xs">Cost vs. incidents prevented = sorted by ROI descending</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -335,9 +335,9 @@ export default function ExecutiveBriefing() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-green-400" />
-            Incident Trend — Year-over-Year
+            Incident Trend = Year-over-Year
           </CardTitle>
-          <CardDescription className="text-xs">Security incidents: 2025 full year vs. 2026 YTD (Jan–Apr)</CardDescription>
+          <CardDescription className="text-xs">Security incidents: 2025 full year vs. 2026 YTD (Jan=Apr)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-8 justify-center py-4">
@@ -375,12 +375,12 @@ export default function ExecutiveBriefing() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold text-foreground">2026 YTD</p>
-                <p className="text-[11px] text-muted-foreground">8 incidents (Jan–Apr)</p>
+                <p className="text-[11px] text-muted-foreground">8 incidents (Jan=Apr)</p>
               </div>
             </div>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            At current pace: projected <strong className="text-green-400">24 incidents</strong> for full year 2026 — vs. 23 in 2025
+            At current pace: projected <strong className="text-green-400">24 incidents</strong> for full year 2026 = vs. 23 in 2025
           </p>
         </CardContent>
       </Card>

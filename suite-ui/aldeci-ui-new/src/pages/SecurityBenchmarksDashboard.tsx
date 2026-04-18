@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { BarChart2, TrendingUp, TrendingDown, Minus, RefreshCw, Target } from "lucide-react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// == Types =====================================================================
 
 type Sector = "all" | "financial" | "technology" | "healthcare" | "manufacturing";
 type Performance = "above-average" | "average" | "below-average" | "lagging";
@@ -33,7 +33,7 @@ interface BenchmarkMetric {
   trend: number[]; // 6-point sparkline values
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_METRICS: BenchmarkMetric[] = [
   { id: "bm-001", metric_name: "Mean Time to Detect (MTTD)",     category: "Incident Response", our_value: 4.2,   unit: "hours",   p25: 24,  p50: 12,   p75: 6,    p90: 3,    lower_is_better: true,  performance: "above-average", sectors: ["financial", "technology"],      source: "IBM",          trend: [18, 14, 11, 8, 5.5, 4.2] },
@@ -50,7 +50,7 @@ const MOCK_METRICS: BenchmarkMetric[] = [
   { id: "bm-012", metric_name: "Data Loss Incidents / Quarter",  category: "Data Protection",   our_value: 1,     unit: "count",   p25: 8,   p50: 4,    p75: 2,    p90: 0,    lower_is_better: true,  performance: "above-average", sectors: ["all"],                          source: "Verizon-DBIR", trend: [6, 5, 3, 2, 2, 1] },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function performanceBadge(p: Performance): string {
   return p === "above-average"  ? "bg-green-500/20 text-green-300"
@@ -75,7 +75,7 @@ function percentilePosition(metric: BenchmarkMetric): number {
   // Where does our_value sit in the p25-p90 range? Returns 0-100
   const { our_value, p25, p50, p75, p90, lower_is_better } = metric;
   const values = lower_is_better
-    ? [p90, p75, p50, p25].map(v => v) // lower = better → p90 is best
+    ? [p90, p75, p50, p25].map(v => v) // lower = better = p90 is best
     : [p25, p50, p75, p90];             // higher = better
   const range = Math.abs(values[3] - values[0]) || 1;
   const pos = lower_is_better
@@ -98,12 +98,12 @@ function Sparkline({ values }: { values: number[] }) {
   return (
     <svg width="60" height={SPARKLINE_HEIGHT} className="flex-shrink-0">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -124,7 +124,7 @@ function GapToMedian({ metric }: { metric: BenchmarkMetric }) {
 
 const SECTORS: Sector[] = ["all", "financial", "technology", "healthcare", "manufacturing"];
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function SecurityBenchmarksDashboard() {
   const [sectorFilter, setSectorFilter] = useState<Sector>("all");
@@ -169,7 +169,7 @@ export default function SecurityBenchmarksDashboard() {
             <Target className="w-6 h-6 text-purple-400" />
             Security Benchmarks
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Industry percentile comparison — Gartner, DBIR, SANS, Mandiant</p>
+          <p className="text-gray-400 text-sm mt-1">Industry percentile comparison = Gartner, DBIR, SANS, Mandiant</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -182,7 +182,7 @@ export default function SecurityBenchmarksDashboard() {
           <div>
             <div className="text-gray-400 text-xs mb-1">Overall Security Percentile</div>
             <div className="text-5xl font-bold text-purple-300">{overallPct}<span className="text-2xl text-gray-400">th</span></div>
-            <div className="text-gray-400 text-xs mt-1">vs industry peers · {filtered.length} metrics tracked</div>
+            <div className="text-gray-400 text-xs mt-1">vs industry peers = {filtered.length} metrics tracked</div>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center">
             {Object.entries(perfCounts).map(([k, v]) => (

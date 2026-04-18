@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_FINDINGS = [
   { id: "fin-001", cluster_id: "cluster-prod-us-east-1a2b3c4d", namespace: "kube-system",   finding_type: "RBAC Misconfiguration",     severity: "critical", title: "Cluster-admin binding to service account", status: "open"        },
@@ -59,7 +59,7 @@ const MOCK_STATS = {
   clusters_at_risk: 3,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -90,10 +90,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function truncateId(id: string) {
-  return id.length > 20 ? `${id.slice(0, 18)}…` : id;
+  return id.length > 20 ? `${id.slice(0, 18)}=` : id;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ContainerPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -134,7 +134,7 @@ export default function ContainerPostureDashboard() {
     >
       <PageHeader
         title="Container Posture"
-        description="Kubernetes cluster security posture — RBAC misconfigs, image vulnerabilities, network policy gaps, and runtime findings"
+        description="Kubernetes cluster security posture = RBAC misconfigs, image vulnerabilities, network policy gaps, and runtime findings"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -189,19 +189,19 @@ export default function ContainerPostureDashboard() {
                   findings.map((finding: any, i: number) => (
                   <TableRow key={finding.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-purple-300">
-                      {truncateId(finding.cluster_id ?? "—")}
+                      {truncateId(finding.cluster_id ?? "=")}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-violet-300">
-                      {finding.namespace ?? "—"}
+                      {finding.namespace ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {finding.finding_type ?? "—"}
+                      {finding.finding_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={finding.severity ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-foreground max-w-[200px] truncate">
-                      {finding.title ?? "—"}
+                      {finding.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <StatusBadge status={finding.status ?? "open"} />

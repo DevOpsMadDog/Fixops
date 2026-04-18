@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_incidents: 284,
@@ -61,7 +61,7 @@ const MOCK_INCIDENTS = [
   { id: "inc-012", severity: "low",      category: "mis_configuration",   status: "resolved", mttr_hours: 0.8,  sla_breached: false, reported_at: "2026-04-12T14:00:00Z" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -95,7 +95,7 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IncidentMetricsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -206,7 +206,7 @@ export default function IncidentMetricsDashboard() {
                     <TableCell className="py-2 text-[11px] capitalize">{(inc.category ?? "").replace(/_/g, " ")}</TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">
-                      {inc.mttr_hours != null ? `${inc.mttr_hours}h` : <span className="text-muted-foreground">—</span>}
+                      {inc.mttr_hours != null ? `${inc.mttr_hours}h` : <span className="text-muted-foreground">=</span>}
                     </TableCell>
                     <TableCell className="py-2 text-center">
                       {inc.sla_breached

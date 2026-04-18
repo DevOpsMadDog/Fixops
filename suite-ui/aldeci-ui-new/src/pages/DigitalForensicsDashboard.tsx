@@ -1,5 +1,5 @@
 /**
- * DigitalForensicsDashboard — Case management, evidence chain of custody, and analysis
+ * DigitalForensicsDashboard = Case management, evidence chain of custody, and analysis
  *
  * Route: /digital-forensics
  * Sections:
@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FolderOpen, Database, FlaskConical, Clock, RefreshCw, Shield, FileText, ChevronRight } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,13 +37,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CASES = [
   { id: "DF-2024-001", title: "Ransomware deployment on prod-db cluster", type: "ransom",      priority: "Critical", analyst: "K. Torres",   status: "active",    days: 4,  evidence: 12 },
   { id: "DF-2024-002", title: "Insider exfiltration via USB devices",     type: "insider",     priority: "High",     analyst: "M. Patel",    status: "analysis",  days: 7,  evidence: 8  },
   { id: "DF-2024-003", title: "Supply chain compromise in node_modules",  type: "malware",     priority: "Critical", analyst: "S. Kim",      status: "active",    days: 2,  evidence: 6  },
-  { id: "DF-2024-004", title: "Business email compromise — finance dept", type: "fraud",       priority: "High",     analyst: "J. Rivera",   status: "analysis",  days: 9,  evidence: 5  },
+  { id: "DF-2024-004", title: "Business email compromise = finance dept", type: "fraud",       priority: "High",     analyst: "J. Rivera",   status: "analysis",  days: 9,  evidence: 5  },
   { id: "DF-2024-005", title: "Customer PII exfil from API endpoint",     type: "data_breach", priority: "Critical", analyst: "L. Chen",     status: "reporting", days: 14, evidence: 17 },
   { id: "DF-2024-006", title: "Crypto-jacking on Kubernetes workers",     type: "malware",     priority: "Medium",   analyst: "D. Nguyen",   status: "active",    days: 3,  evidence: 4  },
   { id: "DF-2024-007", title: "Credential stuffing campaign against SSO", type: "data_breach", priority: "High",     analyst: "K. Torres",   status: "closed",    days: 22, evidence: 9  },
@@ -80,7 +80,7 @@ const CUSTODY_CHAIN = [
   { action: "analyzed",    actor: "L. Chen",     ts: "2026-04-16 12:45", notes: "Final analysis sign-off; chain of custody integrity confirmed" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function CaseTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -145,7 +145,7 @@ function CustodyActionBadge({ action }: { action: string }) {
   return <Badge className={cn("text-[10px] border", map[action] ?? "border-border text-muted-foreground")}>{action}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DigitalForensicsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -273,7 +273,7 @@ export default function DigitalForensicsDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Database className="h-4 w-4 text-purple-400" />
-                Evidence — {selectedCase}
+                Evidence = {selectedCase}
               </CardTitle>
               <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
                 {EVIDENCE.length} items
@@ -383,7 +383,7 @@ export default function DigitalForensicsDashboard() {
                 <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{a.findings}</p>
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-[11px] text-muted-foreground">
-                    <span className="font-semibold text-foreground">{a.iocs}</span> IOCs — {a.analyst}
+                    <span className="font-semibold text-foreground">{a.iocs}</span> IOCs = {a.analyst}
                   </span>
                   <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] gap-1">
                     View <ChevronRight className="h-3 w-3" />

@@ -1356,7 +1356,7 @@ export default function SOCT1Dashboard() {
           <div className="flex-1 min-w-0">
             <Card className="h-full flex flex-col">
               <div className="overflow-x-auto flex-1">
-                <table className="w-full text-sm">
+                <table role="table" className="w-full text-sm">
                   <thead className="sticky top-0 bg-card z-10">
                     <tr className="border-b border-border">
                       {/* Severity */}
@@ -1364,7 +1364,7 @@ export default function SOCT1Dashboard() {
                         <button
                           onClick={() => toggleSort("severity")}
                           className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                         aria-label="Sort by Severity">
                           Sev <SortIcon field="severity" />
                         </button>
                       </th>
@@ -1385,7 +1385,7 @@ export default function SOCT1Dashboard() {
                         <button
                           onClick={() => toggleSort("cvss")}
                           className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                         aria-label="Sort by Cvss">
                           CVSS <SortIcon field="cvss" />
                         </button>
                       </th>
@@ -1394,7 +1394,7 @@ export default function SOCT1Dashboard() {
                         <button
                           onClick={() => toggleSort("age")}
                           className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                         aria-label="Sort by Age">
                           Age <SortIcon field="age" />
                         </button>
                       </th>

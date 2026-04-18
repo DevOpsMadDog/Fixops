@@ -15,7 +15,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -64,9 +64,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type TriggerType = "Auto" | "Manual" | "Scheduled";
 type ExecStatus = "Success" | "Failed" | "In Progress";
@@ -99,9 +99,9 @@ interface ExecStep {
   result: string;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_PLAYBOOKS: Playbook[] = [
   {
@@ -262,7 +262,7 @@ const MOCK_STEPS: Record<string, ExecStep[]> = {
     { timestamp: "11:45:13", step_name: "Report", action: "Generate incident summary", result: "Report saved to EvidenceVault #EV-8821" },
   ],
   "EX-002": [
-    { timestamp: "09:14:02", step_name: "Alert Ingestion", action: "Parse EDR critical alert", result: "Host: WIN-042, Process: cmd.exe → psexec" },
+    { timestamp: "09:14:02", step_name: "Alert Ingestion", action: "Parse EDR critical alert", result: "Host: WIN-042, Process: cmd.exe = psexec" },
     { timestamp: "09:14:08", step_name: "Host Isolation", action: "Network-isolate WIN-042 via EDR API", result: "Isolated: WIN-042 removed from prod VLAN" },
     { timestamp: "09:14:20", step_name: "Snapshot", action: "Capture memory + disk snapshot", result: "Snapshot stored: forensics/WIN-042-20260416" },
     { timestamp: "09:15:01", step_name: "Lateral Movement Check", action: "Query BFS attack-path engine", result: "2 additional hosts at risk: WIN-019, WIN-055" },
@@ -284,15 +284,15 @@ const MOCK_STEPS: Record<string, ExecStep[]> = {
   ],
   "EX-005": [
     { timestamp: "22:07:01", step_name: "Auth Alert", action: "Parse auth failure threshold alert", result: "15 failures from 203.0.113.44 in 60s" },
-    { timestamp: "22:07:04", step_name: "IP Reputation", action: "Query AbuseIPDB + ThreatGraph", result: "Score: 98/100 — known attacker IP" },
+    { timestamp: "22:07:04", step_name: "IP Reputation", action: "Query AbuseIPDB + ThreatGraph", result: "Score: 98/100 = known attacker IP" },
     { timestamp: "22:07:10", step_name: "IP Block", action: "Add IP to WAF deny-list", result: "Blocked: 203.0.113.44 on WAF + firewall" },
     { timestamp: "22:07:58", step_name: "Notification", action: "Alert SOC and affected user", result: "User notified via email, SOC ticket INC-2839 created" },
   ],
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Styling helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const TRIGGER_STYLES: Record<TriggerType, string> = {
   Auto: "bg-blue-500/10 text-blue-400 border-blue-500/30",
@@ -318,9 +318,9 @@ const STATUS_ICONS: Record<ExecStatus, typeof CheckCircle2> = {
   "In Progress": Loader2,
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function PlaybookLibrary() {
   const [playbooks, setPlaybooks] = useState<Playbook[]>(MOCK_PLAYBOOKS);
@@ -344,8 +344,8 @@ export default function PlaybookLibrary() {
             id:               p.playbook_id ?? p.id ?? "?",
             name:             p.name ?? "Unnamed",
             trigger_type:     (p.trigger_type === "auto_alert" ? "Auto" : p.trigger_type === "scheduled" ? "Scheduled" : "Manual") as TriggerType,
-            trigger_desc:     p.trigger_conditions ? JSON.stringify(p.trigger_conditions) : "—",
-            last_executed:    p.last_executed ?? "—",
+            trigger_desc:     p.trigger_conditions ? JSON.stringify(p.trigger_conditions) : "=",
+            last_executed:    p.last_executed ?? "=",
             executions_count: p.executions_count ?? 0,
             enabled:          p.enabled ?? true,
           }));
@@ -512,7 +512,7 @@ export default function PlaybookLibrary() {
               <Terminal className="w-5 h-5 text-cyan-400" />
               Recent Executions
               <span className="text-sm font-normal text-slate-400 ml-1">
-                — click a row to view step log
+                = click a row to view step log
               </span>
             </CardTitle>
           </CardHeader>
@@ -613,7 +613,7 @@ export default function PlaybookLibrary() {
               <CardHeader className="border-b border-slate-700 flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Terminal className="w-4 h-4 text-blue-400" />
-                  {selectedExec.playbook_name} — Execution {selectedExec.id}
+                  {selectedExec.playbook_name} = Execution {selectedExec.id}
                   <Badge
                     className={cn(
                       "text-xs border ml-2",
@@ -679,7 +679,7 @@ export default function PlaybookLibrary() {
                             {step.action}
                           </p>
                           <p className="text-xs text-green-300/80">
-                            ↳ {step.result}
+                            = {step.result}
                           </p>
                         </div>
                       </motion.div>

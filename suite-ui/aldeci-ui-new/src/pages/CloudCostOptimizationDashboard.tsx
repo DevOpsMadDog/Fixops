@@ -69,10 +69,10 @@ export default function CloudCostOptimizationDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <div className="flex items-center justify-between">
@@ -82,7 +82,7 @@ export default function CloudCostOptimizationDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Resource costs, utilization, ROI analysis, and waste reduction</p>
         </div>
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm" aria-label="Refresh data">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -102,9 +102,9 @@ export default function CloudCostOptimizationDashboard() {
       </div>
 
       {underutilized.length > 0 && (
-        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-red-300 font-medium mb-2">
-            <AlertTriangle className="w-4 h-4" /> {underutilized.length} underutilized resources — estimated ${wastedMonthly.toLocaleString()}/month wasted
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4" role="status" aria-live="polite">
+          <div className="flex items-center gap-2 text-red-300 font-medium mb-2" role="status" aria-live="polite">
+            <AlertTriangle className="w-4 h-4" /> {underutilized.length} underutilized resources = estimated ${wastedMonthly.toLocaleString()}/month wasted
           </div>
           <div className="flex flex-wrap gap-2">
             {underutilized.length === 0 ? (
@@ -134,12 +134,11 @@ export default function CloudCostOptimizationDashboard() {
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${sortBy === s ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>
                 {s}
               </button>
-            ))
-            )}
+            ))}
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Resource</th>

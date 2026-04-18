@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_policies: 12,
@@ -68,7 +68,7 @@ const MOCK_EXTENSIONS = [
   { name: "Dark Reader",         browser_type: "firefox", risk_level: "low",      status: "approved",   publisher: "Dark Reader"    },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function EventTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -142,7 +142,7 @@ function BrowserBadge({ type }: { type: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function BrowserSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -257,7 +257,7 @@ export default function BrowserSecurityDashboard() {
                     <TableCell className="py-2 text-center">
                       {ev.blocked
                         ? <Ban className="h-3.5 w-3.5 text-red-400 inline" />
-                        : <span className="text-[10px] text-muted-foreground">—</span>}
+                        : <span className="text-[10px] text-muted-foreground">=</span>}
                     </TableCell>
                   </TableRow>
                 )))}

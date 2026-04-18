@@ -27,23 +27,23 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// == Types ======================================================================
 type ThreatLevel = "critical" | "high" | "medium" | "low";
 type FlowAction = "block" | "monitor" | "allow";
 
 interface TopTalker { id: string; src: string; flag: string; country: string; dst: string; proto: string; bytes: string; score: number; action: FlowAction; }
 interface Anomaly { id: string; ts: string; type: string; src: string; dst: string; severity: ThreatLevel; }
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// == Mock data ==================================================================
 const TALKERS: TopTalker[] = [
-  { id:"1", src:"45.83.64.12",      flag:"🇨🇳", country:"China",        dst:"10.0.1.45:443",   proto:"HTTPS", bytes:"2.3 GB",  score:94, action:"block"   },
-  { id:"2", src:"185.220.101.33",   flag:"🇷🇺", country:"Russia",       dst:"10.0.2.18:22",    proto:"SSH",   bytes:"18.4 MB", score:88, action:"block"   },
-  { id:"3", src:"175.45.176.0",     flag:"🇰🇵", country:"North Korea",  dst:"10.0.1.100:8080", proto:"HTTP",  bytes:"892 KB",  score:96, action:"block"   },
-  { id:"4", src:"52.94.28.1",       flag:"🇺🇸", country:"United States",dst:"10.0.3.22:443",   proto:"HTTPS", bytes:"4.1 GB",  score:2,  action:"allow"   },
-  { id:"5", src:"91.108.56.14",     flag:"🇮🇷", country:"Iran",         dst:"10.0.1.77:53",    proto:"DNS",   bytes:"234 MB",  score:91, action:"block"   },
-  { id:"6", src:"104.26.3.54",      flag:"🇺🇸", country:"United States",dst:"10.0.2.55:443",   proto:"HTTPS", bytes:"1.7 GB",  score:5,  action:"allow"   },
-  { id:"7", src:"185.220.101.47",   flag:"🇷🇺", country:"Russia",       dst:"10.0.1.12:3389",  proto:"RDP",   bytes:"67.3 MB", score:99, action:"block"   },
-  { id:"8", src:"13.248.148.20",    flag:"🇩🇪", country:"Germany",      dst:"10.0.3.80:443",   proto:"HTTPS", bytes:"328 MB",  score:8,  action:"monitor" },
+  { id:"1", src:"45.83.64.12",      flag:"==", country:"China",        dst:"10.0.1.45:443",   proto:"HTTPS", bytes:"2.3 GB",  score:94, action:"block"   },
+  { id:"2", src:"185.220.101.33",   flag:"==", country:"Russia",       dst:"10.0.2.18:22",    proto:"SSH",   bytes:"18.4 MB", score:88, action:"block"   },
+  { id:"3", src:"175.45.176.0",     flag:"==", country:"North Korea",  dst:"10.0.1.100:8080", proto:"HTTP",  bytes:"892 KB",  score:96, action:"block"   },
+  { id:"4", src:"52.94.28.1",       flag:"==", country:"United States",dst:"10.0.3.22:443",   proto:"HTTPS", bytes:"4.1 GB",  score:2,  action:"allow"   },
+  { id:"5", src:"91.108.56.14",     flag:"==", country:"Iran",         dst:"10.0.1.77:53",    proto:"DNS",   bytes:"234 MB",  score:91, action:"block"   },
+  { id:"6", src:"104.26.3.54",      flag:"==", country:"United States",dst:"10.0.2.55:443",   proto:"HTTPS", bytes:"1.7 GB",  score:5,  action:"allow"   },
+  { id:"7", src:"185.220.101.47",   flag:"==", country:"Russia",       dst:"10.0.1.12:3389",  proto:"RDP",   bytes:"67.3 MB", score:99, action:"block"   },
+  { id:"8", src:"13.248.148.20",    flag:"==", country:"Germany",      dst:"10.0.3.80:443",   proto:"HTTPS", bytes:"328 MB",  score:8,  action:"monitor" },
 ];
 
 const ANOMALIES: Anomaly[] = [
@@ -85,7 +85,7 @@ const ACT_CFG: Record<FlowAction, { label:string; cls:string; icon:React.ReactNo
   allow:   { label:"Allow",   cls:"text-green-400 bg-green-500/10", icon:<CheckCircle className="w-3 h-3 mr-1"/> },
 };
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// == Main Page =================================================================
 export default function NetworkAnalysis() {
   const [search, setSearch] = useState("");
 
@@ -139,13 +139,13 @@ export default function NetworkAnalysis() {
           <CardHeader className="border-b border-slate-700 pb-4">
             <div className="flex items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2"><Network className="w-5 h-5 text-blue-400"/>Top Talkers</CardTitle>
-              <input placeholder="Filter IP / country…" value={search} onChange={e=>setSearch(e.target.value)}
+              <input placeholder="Filter IP / country=" value={search} onChange={e=>setSearch(e.target.value)}
                 className="h-8 w-44 rounded border border-slate-700 bg-slate-800/50 px-3 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"/>
             </div>
           </CardHeader>
           <CardContent className="pt-0 overflow-x-auto">
-            {l1 ? <p className="text-slate-400 py-4 px-4">Loading…</p> : (
-              <table className="w-full text-sm">
+            {l1 ? <p className="text-slate-400 py-4 px-4">Loading=</p> : (
+              <table role="table" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-700/50">
                     {["Source IP","Country","Destination","Protocol","Bytes","Threat Score","Action"].map(h=>(
@@ -222,7 +222,7 @@ export default function NetworkAnalysis() {
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
-                {l2 ? <p className="text-slate-400">Loading…</p> : (anomalies as Anomaly[]).map((a,i)=>(
+                {l2 ? <p className="text-slate-400">Loading=</p> : (anomalies as Anomaly[]).map((a,i)=>(
                   <motion.div key={a.id} initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}} transition={{delay:i*0.06}}
                     className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
                     <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5 shrink-0"/>
@@ -231,7 +231,7 @@ export default function NetworkAnalysis() {
                         <span className="text-xs font-semibold text-slate-200">{a.type}</span>
                         <Badge variant="outline" className={cn("border-0 h-5 text-xs",SEV_CLR[a.severity])}>{a.severity.toUpperCase()}</Badge>
                       </div>
-                      <p className="text-xs text-slate-400 font-mono truncate">{a.src} → {a.dst}</p>
+                      <p className="text-xs text-slate-400 font-mono truncate">{a.src} = {a.dst}</p>
                     </div>
                     <span className="text-xs text-slate-500 shrink-0">{a.ts}</span>
                   </motion.div>
@@ -280,7 +280,7 @@ export default function NetworkAnalysis() {
                   </div>
                 ) : (
                   HOURLY.map((v,h)=>(
-                  <motion.div key={h} title={`${String(h).padStart(2,"0")}:00 — ${v}${ANOMALY_HOURS.has(h)?" ⚠":""}`}
+                  <motion.div key={h} title={`${String(h).padStart(2,"0")}:00 = ${v}${ANOMALY_HOURS.has(h)?" =":""}`}
                     initial={{height:0,opacity:0}} animate={{height:`${(v/MAX_H)*100}%`,opacity:1}} transition={{delay:h*0.02,duration:0.4}}
                     className={cn("flex-1 rounded-t cursor-pointer",ANOMALY_HOURS.has(h)?"bg-gradient-to-t from-red-600 to-red-400":"bg-gradient-to-t from-blue-600 to-blue-400 opacity-60")}/>
                 )))}
@@ -290,7 +290,7 @@ export default function NetworkAnalysis() {
               </div>
               <div className="flex items-center gap-4 mt-3">
                 <div className="flex items-center gap-1.5 text-xs text-slate-400"><div className="w-3 h-3 rounded-sm bg-blue-500/60"/>Normal</div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400"><div className="w-3 h-3 rounded-sm bg-red-500"/>Anomaly</div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-400"><div className="w-3 h-3 rounded-sm bg-red-500"/ role="status" aria-live="polite">Anomaly</div>
               </div>
             </CardContent>
           </Card>

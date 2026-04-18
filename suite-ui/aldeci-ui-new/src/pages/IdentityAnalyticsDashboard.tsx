@@ -3,7 +3,7 @@
  *
  * User risk scoring, anomaly detection, and access certification.
  *   1. KPIs: Identities Tracked, Critical Risk, MFA Disabled + Privileged, Pending Certifications
- *   2. Risk tier distribution — colored animated bars
+ *   2. Risk tier distribution = colored animated bars
  *   3. Identity risk table (15 rows)
  *   4. Login event feed (12 events)
  *   5. Active risks panel (8 open risks)
@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, AlertTriangle, ShieldAlert, RefreshCw, UserCheck, Clock, Activity, Lock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const RISK_TIERS = [
   { label: "Critical", count: 12,  color: "bg-red-500",    text: "text-red-400",    width: 10 },
@@ -91,14 +91,14 @@ const ACTIVE_RISKS = [
 ];
 
 const CERT_QUEUE = [
-  { user: "alice.chen",    access: "Admin — Kubernetes",   reviewer: "ops-manager",  next: "2026-04-20" },
-  { user: "carlos.ruiz",   access: "Privileged — AWS Root",reviewer: "ciso",          next: "2026-04-18" },
-  { user: "shared-mgmt",   access: "Shared — ERP Admin",  reviewer: "ciso",          next: "2026-04-17" },
-  { user: "grace.lee",     access: "Admin — GitHub Org",   reviewer: "dev-lead",      next: "2026-04-22" },
-  { user: "svc-deploy",    access: "CI/CD — Production",   reviewer: "devsec-lead",   next: "2026-04-19" },
+  { user: "alice.chen",    access: "Admin = Kubernetes",   reviewer: "ops-manager",  next: "2026-04-20" },
+  { user: "carlos.ruiz",   access: "Privileged = AWS Root",reviewer: "ciso",          next: "2026-04-18" },
+  { user: "shared-mgmt",   access: "Shared = ERP Admin",  reviewer: "ciso",          next: "2026-04-17" },
+  { user: "grace.lee",     access: "Admin = GitHub Org",   reviewer: "dev-lead",      next: "2026-04-22" },
+  { user: "svc-deploy",    access: "CI/CD = Production",   reviewer: "devsec-lead",   next: "2026-04-19" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TierBadge({ tier }: { tier: string }) {
   const cls =
@@ -151,7 +151,7 @@ function SevDot({ sev }: { sev: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full shrink-0", cls)} />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IdentityAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -283,11 +283,11 @@ export default function IdentityAnalyticsDashboard() {
                     <TableCell className="py-2.5">
                       {row.privileged
                         ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Privileged</Badge>
-                        : <span className="text-[10px] text-muted-foreground">—</span>}
+                        : <span className="text-[10px] text-muted-foreground">=</span>}
                     </TableCell>
                     <TableCell className="py-2.5">
                       <span className={cn("text-xs font-bold", row.mfa ? "text-green-400" : "text-red-400")}>
-                        {row.mfa ? "✓" : "✗"}
+                        {row.mfa ? "=" : "="}
                       </span>
                     </TableCell>
                     <TableCell className="py-2.5">
@@ -351,7 +351,7 @@ export default function IdentityAnalyticsDashboard() {
                       <TableCell className="text-xs py-2">{ev.country}</TableCell>
                       <TableCell className="py-2">
                         <span className={cn("text-xs font-bold", ev.success ? "text-green-400" : "text-red-400")}>
-                          {ev.success ? "✓" : "✗"}
+                          {ev.success ? "=" : "="}
                         </span>
                       </TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{ev.at}</TableCell>
@@ -385,7 +385,7 @@ export default function IdentityAnalyticsDashboard() {
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
                     <span className="font-mono text-foreground">{r.identity}</span>
-                    {" · "}detected {r.detected}
+                    {" = "}detected {r.detected}
                   </div>
                 </div>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] shrink-0">

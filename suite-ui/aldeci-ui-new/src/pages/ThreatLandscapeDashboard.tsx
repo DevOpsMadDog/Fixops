@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from "react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type ActorType = "nation_state" | "criminal" | "hacktivist" | "insider" | "unknown";
 type Sophistication = "very_high" | "high" | "medium" | "low";
@@ -50,7 +50,7 @@ interface AssessmentRecord {
   analyst: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ACTORS: ThreatActor[] = [
   {
@@ -93,7 +93,7 @@ const MOCK_ACTORS: ThreatActor[] = [
 const MOCK_THREATS: EmergingThreat[] = [
   { id: "et-001", threat_category: "Ransomware",     title: "NextGenLock ransomware targeting healthcare EHR systems", severity: "critical", first_observed: "2026-04-10", mitigations_count: 3, description: "New ransomware variant with wiper capability targeting HL7/FHIR endpoints.", resolved: false },
   { id: "et-002", threat_category: "Supply Chain",   title: "Compromised npm package with data-stealing payload",      severity: "high",     first_observed: "2026-04-08", mitigations_count: 5, description: "Malicious package mimicking popular crypto library, 14K downloads before takedown.", resolved: false },
-  { id: "et-003", threat_category: "Zero-Day",       title: "CVE-2026-19231 — RCE in Apache Kafka broker",             severity: "critical", first_observed: "2026-04-05", mitigations_count: 2, description: "Unauthenticated remote code execution via malformed consumer group request.", resolved: false },
+  { id: "et-003", threat_category: "Zero-Day",       title: "CVE-2026-19231 = RCE in Apache Kafka broker",             severity: "critical", first_observed: "2026-04-05", mitigations_count: 2, description: "Unauthenticated remote code execution via malformed consumer group request.", resolved: false },
   { id: "et-004", threat_category: "Phishing",       title: "AI-generated spearphishing campaign targeting CFOs",      severity: "high",     first_observed: "2026-04-01", mitigations_count: 7, description: "Deepfake voice + email combo targeting wire transfers.", resolved: false },
   { id: "et-005", threat_category: "DDoS",           title: "Layer 7 amplification attack wave targeting SaaS APIs",   severity: "medium",   first_observed: "2026-03-28", mitigations_count: 9, description: "Botnet of 300K compromised IoT devices coordinated through Telegram.", resolved: true  },
   { id: "et-006", threat_category: "Credential",     title: "Large-scale credential stuffing against SSO portals",     severity: "high",     first_observed: "2026-03-20", mitigations_count: 6, description: "2.1M compromised credentials from dark web combo lists.", resolved: false },
@@ -107,7 +107,7 @@ const MOCK_ASSESSMENTS: AssessmentRecord[] = [
   { id: "as-005", date: "2026-03-18", sector: "Technology",         overall_risk: "high",     threat_actors_active: 4, emerging_threats: 5, analyst: "T. Nguyen" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const actorTypeConfig: Record<ActorType, { label: string; color: string }> = {
   nation_state: { label: "Nation State", color: "bg-red-700 text-red-100" },
@@ -131,7 +131,7 @@ const severityConfig: Record<ThreatSeverity, { label: string; badge: string; tex
   low:      { label: "Low",      badge: "bg-green-700 text-green-100", text: "text-green-400" },
 };
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatLandscapeDashboard() {
   const [threats, setThreats] = useState<EmergingThreat[]>(MOCK_THREATS);
@@ -177,12 +177,12 @@ export default function ThreatLandscapeDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -279,13 +279,11 @@ export default function ThreatLandscapeDashboard() {
                 <div className="flex flex-wrap gap-1">
                   {actor.known_ttps.map(t => (
                     <span key={t} className="bg-gray-900 text-gray-400 px-2 py-0.5 rounded text-xs border border-gray-700">{t}</span>
-                  ))
-                )}
+                  ))}
                 </div>
               </div>
             </div>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -335,7 +333,7 @@ export default function ThreatLandscapeDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Assessment History</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Date</th>

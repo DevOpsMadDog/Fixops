@@ -28,7 +28,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const FEEDS = [
   { name: "NVD CVE Feed",           type: "cve",          format: "JSON",  freq: "Hourly",  lastFetched: "2m ago",   items: 234871, reliability: 98, enabled: true  },
@@ -92,7 +92,7 @@ const APT_CAMPAIGNS = [
 
 const IOC_TYPES = ["All", "IP", "Domain", "Hash", "URL"];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const TYPE_COLORS: Record<string, string> = {
   cve:          "border-red-500/30 text-red-400 bg-red-500/10",
@@ -108,12 +108,12 @@ function TypeBadge({ type }: { type: string }) {
   return (
     <Badge className={cn("text-[10px] border capitalize", TYPE_COLORS[type] ?? "border-border text-muted-foreground")}>
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -138,7 +138,7 @@ function fmtCount(n: number) {
   return n.toString();
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatFeedDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -371,8 +371,7 @@ export default function ThreatFeedDashboard() {
                       <span className="text-[9px] text-muted-foreground ml-auto">Seen {r.seen}</span>
                     </div>
                   </div>
-                ))
-              )}
+                ))}
               </div>
             )}
 

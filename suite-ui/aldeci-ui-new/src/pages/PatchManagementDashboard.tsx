@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_PATCHES = [
   { id: "pat-001", title: "Windows Server 2022 KB5034439",    patch_type: "os",          severity: "critical", status: "deployed",    deployed_count: 412, failed_count: 3  },
@@ -59,7 +59,7 @@ const MOCK_STATS = {
   success_rate: 96.8,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PatchManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -131,7 +131,7 @@ export default function PatchManagementDashboard() {
     >
       <PageHeader
         title="Patch Management"
-        description="Enterprise patch lifecycle — critical vulnerability remediation, deployment tracking, and success rate monitoring"
+        description="Enterprise patch lifecycle = critical vulnerability remediation, deployment tracking, and success rate monitoring"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -186,10 +186,10 @@ export default function PatchManagementDashboard() {
                   patches.map((patch: any, i: number) => (
                   <TableRow key={patch.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-blue-300 max-w-[240px] truncate">
-                      {patch.title ?? "—"}
+                      {patch.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize font-mono">
-                      {patch.patch_type ?? "—"}
+                      {patch.patch_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={patch.severity ?? "low"} />

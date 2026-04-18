@@ -14,7 +14,7 @@ const _API_BASE = "/api/v1/compliance-workflows";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type Framework = "SOC2" | "ISO27001" | "PCI-DSS" | "HIPAA" | "NIST" | "GDPR" | "CIS" | "FedRAMP";
 type WorkflowStatus = "not_started" | "in_progress" | "review" | "approved" | "closed";
@@ -53,7 +53,7 @@ interface ComplianceWorkflow {
   overdue: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_WORKFLOWS: ComplianceWorkflow[] = [
   { id: "wf-001", name: "Annual SOC 2 Type II Audit",         framework: "SOC2",     workflow_type: "Annual Audit",      status: "in_progress", owner: "GRC Lead",      completion_rate: 68, due_date: "2026-06-30", overdue: false },
@@ -93,7 +93,7 @@ const FRAMEWORK_READINESS: { framework: Framework; score: number; controls_total
   { framework: "FedRAMP",  score: 38,  controls_total: 325, controls_met: 124 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const frameworkColors: Record<Framework, string> = {
   "SOC2":     "bg-blue-700 text-blue-100",
@@ -139,7 +139,7 @@ function readinessTextColor(score: number) {
   return "text-red-400";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ComplianceWorkflowDashboard() {
   const [workflows, setWorkflows] = useState(MOCK_WORKFLOWS);
@@ -161,7 +161,7 @@ export default function ComplianceWorkflowDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => {
-        // live data loaded — components read from API response
+        // live data loaded = components read from API response
         void d;
       })
       .catch(err => setError(err.message || 'Failed to load data'));
@@ -190,10 +190,10 @@ export default function ComplianceWorkflowDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -234,12 +234,12 @@ export default function ComplianceWorkflowDashboard() {
 
       {/* Overdue alert */}
       {overdueTasks.length > 0 && (
-        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4">
+        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4" role="status" aria-live="polite">
           <p className="text-red-400 font-semibold text-sm mb-2">Overdue Tasks ({overdueTasks.length})</p>
           <div className="flex flex-wrap gap-2">
             {overdueTasks.map(t => (
               <span key={t.id} className="bg-red-800/50 text-red-200 px-2 py-1 rounded text-xs">
-                {t.task_name} — {t.assignee}
+                {t.task_name} = {t.assignee}
               </span>
             ))}
           </div>
@@ -263,7 +263,7 @@ export default function ComplianceWorkflowDashboard() {
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusConfig[wf.status].color}`}>{statusConfig[wf.status].label}</span>
               </div>
               <p className="text-white text-sm font-medium leading-snug">{wf.name}</p>
-              <p className="text-gray-500 text-xs mt-1">{wf.workflow_type} · {wf.owner}</p>
+              <p className="text-gray-500 text-xs mt-1">{wf.workflow_type} = {wf.owner}</p>
               <div className="mt-3 flex items-center gap-2">
                 <div className="flex-1 bg-gray-700 rounded-full h-1.5">
                   <div
@@ -288,7 +288,7 @@ export default function ComplianceWorkflowDashboard() {
           <div className="bg-gray-800 rounded-lg p-5">
             <h3 className="text-sm font-semibold text-gray-300 mb-3">Tasks</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead>
                   <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                     <th className="text-left pb-2 pr-3">Task</th>
@@ -370,8 +370,7 @@ export default function ComplianceWorkflowDashboard() {
               </div>
               <p className="text-gray-500 text-xs">{fr.controls_met} / {fr.controls_total} controls met</p>
             </div>
-          ))
-          )}
+          ))}
         </div>
       </div>
     </div>

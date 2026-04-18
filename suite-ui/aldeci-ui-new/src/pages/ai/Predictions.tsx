@@ -241,8 +241,7 @@ export default function Predictions() {
                       </div>
                     )}
                   </motion.div>
-                ))
-                )}
+                ))}
               </div></ScrollArea></CardContent>
             </Card>
           </div>

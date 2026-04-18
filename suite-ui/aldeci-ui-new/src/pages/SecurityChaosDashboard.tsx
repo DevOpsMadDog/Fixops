@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_experiments: 48,
@@ -68,7 +68,7 @@ const MOCK_OBSERVATIONS = [
   { id: "ob-007", observation_type: "response_latency",     severity: "low",      experiment_id: "ex-008", detail: "SOAR playbook triggered after 4 min" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function ExperimentStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -85,7 +85,7 @@ function ExperimentStatusBadge({ status }: { status: string }) {
 }
 
 function ResilienceScoreBadge({ score }: { score: number }) {
-  if (score === 0) return <span className="text-[11px] text-muted-foreground">—</span>;
+  if (score === 0) return <span className="text-[11px] text-muted-foreground">=</span>;
   const cls =
     score >= 80 ? "border-green-500/30 text-green-400 bg-green-500/10" :
     score >= 60 ? "border-amber-500/30 text-amber-400 bg-amber-500/10" :
@@ -113,7 +113,7 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityChaosDashboard() {
   const [refreshing, setRefreshing] = useState(false);

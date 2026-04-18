@@ -469,7 +469,7 @@ export default function KnowledgeGraph() {
           {nlQueryMutation.isError && (
             <Card className="border-red-500/20">
               <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-red-400">
+                <div className="flex items-center gap-2 text-red-400" role="status" aria-live="polite">
                   <Shield className="h-4 w-4" />
                   <p className="text-sm">Query failed. Please check your connection and try again.</p>
                 </div>

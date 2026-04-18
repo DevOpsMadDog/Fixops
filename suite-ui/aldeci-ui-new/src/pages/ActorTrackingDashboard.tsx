@@ -13,7 +13,7 @@ import { Users, Activity, Eye, AlertTriangle, CheckCircle, RefreshCw, Shield, Gl
 const API_BASE = "/api/v1/actor-tracking";
 const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// == Types =====================================================================
 
 type ActorType = "nation-state" | "cybercriminal" | "hacktivism" | "insider" | "apt";
 type ThreatLevel = "critical" | "high" | "medium" | "low";
@@ -55,7 +55,7 @@ interface IntelEntry {
   source: string;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_ACTORS: TrackedActor[] = [
   { id: "act-001", actor_name: "Lazarus Group",    alias: ["Hidden Cobra", "ZINC"],         actor_type: "nation-state",  nation_state: "North Korea", threat_level: "critical", targeting_our_sector: true,  last_activity: "2026-04-14", attribution_confidence: 91, ttps: ["spear-phishing", "supply-chain", "watering-hole", "ransomware", "cryptojacking"], active_campaigns: 3, intel_count: 48 },
@@ -72,13 +72,13 @@ const MOCK_ACTIVITY: ActivityEntry[] = [
   { id: "aev-003", actor_id: "act-005", actor_name: "Volt Typhoon",     activity_type: "Infrastructure Recon",    description: "Living-off-the-land recon detected on critical infra networks",          affected_sectors: ["Energy", "Utilities", "Defense"], verified: true,  timestamp: "2026-04-13T22:10:00Z" },
   { id: "aev-004", actor_id: "act-003", actor_name: "FIN7",             activity_type: "Cobalt Strike Beacon",    description: "CS beacon deployed via macro-enabled Word doc targeting POS systems",   affected_sectors: ["Retail", "Hospitality"],          verified: false, timestamp: "2026-04-10T11:30:00Z" },
   { id: "aev-005", actor_id: "act-004", actor_name: "Scattered Spider", activity_type: "SIM Swap Attack",         description: "Telecom provider targeted to bypass MFA on executive accounts",          affected_sectors: ["Technology", "Telecom"],          verified: true,  timestamp: "2026-04-05T18:44:00Z" },
-  { id: "aev-006", actor_id: "act-001", actor_name: "Lazarus Group",    activity_type: "Supply Chain Compromise", description: "Compromised open-source package with backdoor — 3 versions affected",   affected_sectors: ["Technology", "Financial"],        verified: true,  timestamp: "2026-04-11T06:55:00Z" },
+  { id: "aev-006", actor_id: "act-001", actor_name: "Lazarus Group",    activity_type: "Supply Chain Compromise", description: "Compromised open-source package with backdoor = 3 versions affected",   affected_sectors: ["Technology", "Financial"],        verified: true,  timestamp: "2026-04-11T06:55:00Z" },
 ];
 
 const MOCK_INTEL: Record<string, IntelEntry[]> = {
   "act-001": [
     { id: "int-001", actor_id: "act-001", intel_type: "technical-ioc", summary: "C2 infrastructure using FastFlux DNS on AS15169 subnets", confidence: 88, valid_until: "2026-05-01", source: "CISA Advisory" },
-    { id: "int-002", actor_id: "act-001", intel_type: "tactical",       summary: "Spear-phishing lures mimicking HR policy updates — Q2 2026", confidence: 92, valid_until: "2026-04-30", source: "Internal CTI" },
+    { id: "int-002", actor_id: "act-001", intel_type: "tactical",       summary: "Spear-phishing lures mimicking HR policy updates = Q2 2026", confidence: 92, valid_until: "2026-04-30", source: "Internal CTI" },
   ],
   "act-002": [
     { id: "int-003", actor_id: "act-002", intel_type: "strategic",      summary: "Targeting cloud identity providers ahead of elections",     confidence: 79, valid_until: "2026-06-01", source: "MSTIC" },
@@ -102,7 +102,7 @@ const TOP_TTPS = [
   { ttp: "mfa-bypass",           count: 5 },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -143,7 +143,7 @@ function actorTypeBadge(t: ActorType): string {
 
 const MAX_TTP = TOP_TTPS[0].count;
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function ActorTrackingDashboard() {
   const [selectedId, setSelectedId] = useState<string>("act-001");
@@ -179,10 +179,10 @@ export default function ActorTrackingDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -192,7 +192,7 @@ export default function ActorTrackingDashboard() {
             <Users className="w-6 h-6 text-red-400" />
             Actor Tracking
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Tracked threat actors — intelligence, TTPs, and activity</p>
+          <p className="text-gray-400 text-sm mt-1">Tracked threat actors = intelligence, TTPs, and activity</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -306,8 +306,7 @@ export default function ActorTrackingDashboard() {
                 </div>
                 <div className="text-gray-500 text-xs mt-1">{relativeTime(ev.timestamp)}</div>
               </div>
-            ))
-          )}
+            ))}
           </div>
         </div>
 
@@ -325,8 +324,7 @@ export default function ActorTrackingDashboard() {
               <div className="flex flex-wrap gap-1">
                 {selected.ttps.map(t => (
                   <span key={t} className="bg-gray-700 text-gray-300 text-xs px-2 py-0.5 rounded-full">{t}</span>
-                ))
-              )}
+                ))}
               </div>
             </div>
             {/* Intel entries */}

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_CONTROLS = [
   { id: "ctrl-001", name: "MFA Enforcement",          domain: "Identity",    weight: 10, control_status: "implemented",     last_assessed: "2026-04-15" },
@@ -54,7 +54,7 @@ const MOCK_CONTROLS = [
 
 const MOCK_STATS = { overall_score: 74, implemented_controls: 5, gap_controls: 2, score_level: "Good" };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -76,7 +76,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PostureScoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -171,19 +171,19 @@ export default function PostureScoringDashboard() {
                   controls.map((ctrl: any, i: number) => (
                   <TableRow key={ctrl.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-green-300">
-                      {ctrl.name ?? "—"}
+                      {ctrl.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {ctrl.domain ?? "—"}
+                      {ctrl.domain ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {ctrl.weight ?? "—"}
+                      {ctrl.weight ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={ctrl.control_status ?? "not_implemented"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {ctrl.last_assessed ?? "—"}
+                      {ctrl.last_assessed ?? "="}
                     </TableCell>
                   </TableRow>
                 )))}

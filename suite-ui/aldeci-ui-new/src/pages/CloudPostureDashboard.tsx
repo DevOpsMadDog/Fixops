@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_FINDINGS = [
   { id: "find-001", resource_id: "s3-prod-data",        provider: "AWS",   resource_type: "S3 Bucket",        severity: "critical", title: "Public read access enabled",     status: "open"     },
@@ -52,7 +52,7 @@ const MOCK_FINDINGS = [
 
 const MOCK_STATS = { cloud_accounts: 12, avg_posture_score: 68, open_findings: 47, critical_findings: 6 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -94,7 +94,7 @@ function ProviderBadge({ provider }: { provider: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CloudPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -190,19 +190,19 @@ export default function CloudPostureDashboard() {
                   findings.map((f: any, i: number) => (
                   <TableRow key={f.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-sky-300">
-                      {f.resource_id ?? "—"}
+                      {f.resource_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <ProviderBadge provider={f.provider ?? "Unknown"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {f.resource_type ?? "—"}
+                      {f.resource_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={f.severity ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[200px] truncate">
-                      {f.title ?? "—"}
+                      {f.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <StatusBadge status={f.status ?? "open"} />

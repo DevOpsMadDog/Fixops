@@ -727,8 +727,7 @@ function ImportSBOMModal({ onClose }: { onClose: () => void }) {
               {f === "CycloneDX" ? <FileJson className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
               {f}
             </button>
-          ))
-          )}
+          ))}
         </div>
 
         {/* Metadata */}
@@ -933,7 +932,7 @@ export default function SBOMManagement() {
             {/* Table */}
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table role="table" className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Project</th>
@@ -1051,8 +1050,7 @@ export default function SBOMManagement() {
                           </div>
                         </td>
                       </motion.tr>
-                    ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1298,8 +1296,7 @@ export default function SBOMManagement() {
                             <span className="text-[10px] ml-1.5 opacity-60">{formatDateShort(s.importedAt)}</span>
                           </span>
                         </label>
-                      ))
-                      )}
+                      ))}
                     </div>
                   </div>
 
@@ -1326,8 +1323,7 @@ export default function SBOMManagement() {
                             <span className="text-[10px] ml-1.5 opacity-60">{formatDateShort(s.importedAt)}</span>
                           </span>
                         </label>
-                      ))
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1339,7 +1335,7 @@ export default function SBOMManagement() {
                     <div className="text-[10px] text-muted-foreground uppercase">Added</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xl font-bold font-mono text-red-400">-{diffStats.removed}</div>
+                    <div className="text-xl font-bold font-mono text-red-400" role="status" aria-live="polite">-{diffStats.removed}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">Removed</div>
                   </div>
                   <div className="text-center">

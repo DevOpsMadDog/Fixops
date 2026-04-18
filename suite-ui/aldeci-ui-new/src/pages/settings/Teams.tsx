@@ -118,8 +118,7 @@ function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[]
                       <UserPlus2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                ))
-                )}
+                ))}
               </div>
             </div>
           )}
@@ -428,8 +427,7 @@ export default function TeamsPage() {
                               <Avatar key={j} className="h-6 w-6 border-2 border-background">
                                 <AvatarFallback className="text-xs">{getInitials(m.name ?? m.email ?? "?")}</AvatarFallback>
                               </Avatar>
-                            ))
-                            )}
+                            ))}
                           </div>
                           <span className="text-xs text-muted-foreground ml-1">
                             {team.members_count ?? (team.members ?? []).length}

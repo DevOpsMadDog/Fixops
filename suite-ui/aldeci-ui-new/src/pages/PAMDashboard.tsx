@@ -1,7 +1,7 @@
 /**
  * PAM Dashboard
  *
- * Privileged Access Management — vault, session control, and just-in-time access.
+ * Privileged Access Management = vault, session control, and just-in-time access.
  *   1. KPIs: Privileged Accounts, Active Sessions, Pending Approvals, Overdue Rotation
  *   2. Privileged accounts table (12 rows)
  *   3. Session requests table (10 rows)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Key, Clock, AlertTriangle, RefreshCw, Video, CheckCircle, XCircle, Lock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const ACCOUNTS = [
   { username: "ro**@prod-db-01",    type: "root",      system: "prod-db-01",    owner: "DBAdmin",   risk: 92, rotated: "45 days ago", status: "overdue" },
@@ -83,7 +83,7 @@ const POLICIES = [
   { name: "Break-Glass Emergency",      mfa: true,  approval: true,  maxDuration: "8h",  recording: true  },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TypeBadge({ type }: { type: string }) {
   const cls =
@@ -131,7 +131,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{status}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PAMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -295,7 +295,7 @@ export default function PAMDashboard() {
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
+                        <span className="text-[10px] text-muted-foreground">=</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -330,18 +330,17 @@ export default function PAMDashboard() {
                       </Badge>
                     )}
                   </div>
-                  <span className="text-xs font-medium truncate">{s.requester} → {s.target_system ?? s.target}</span>
+                  <span className="text-xs font-medium truncate">{s.requester} = {s.target_system ?? s.target}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {s.started_at ? new Date(s.started_at).toLocaleTimeString() : s.started ? `Started ${s.started}` : ""}
-                    {s.elapsed ? ` · Elapsed ${s.elapsed}` : ""}
+                    {s.elapsed ? ` = Elapsed ${s.elapsed}` : ""}
                   </span>
                 </div>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0 ml-2">
                   End
                 </Button>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -395,7 +394,7 @@ export default function PAMDashboard() {
                       {p.recording ? (
                         <Video className="h-3.5 w-3.5 text-red-400" />
                       ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
+                        <span className="text-[10px] text-muted-foreground">=</span>
                       )}
                     </TableCell>
                   </TableRow>

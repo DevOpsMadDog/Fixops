@@ -1,7 +1,7 @@
 /**
  * Risk Treatment Dashboard
  *
- * Risk treatment workflow tracking — progress, overdue items, and owner accountability.
+ * Risk treatment workflow tracking = progress, overdue items, and owner accountability.
  *   1. KPIs: Total Treatments, In Progress, Overdue, Avg Progress %
  *   2. Treatments table (title, treatment_type, treatment_status, risk_level, owner, progress_pct)
  *
@@ -37,12 +37,12 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_TREATMENTS = [
   { id: "rt-001", title: "Patch Critical CVEs in Web Tier",     treatment_type: "Remediation",    treatment_status: "in_progress", risk_level: "critical", owner: "Alex Chen",      progress_pct: 65 },
   { id: "rt-002", title: "MFA Rollout for Privileged Users",    treatment_type: "Control",        treatment_status: "in_progress", risk_level: "high",     owner: "Maria Lopez",    progress_pct: 80 },
-  { id: "rt-003", title: "Vendor Risk Acceptance — Acme Corp",  treatment_type: "Acceptance",     treatment_status: "deferred",    risk_level: "medium",   owner: "CISO",           progress_pct: 100 },
+  { id: "rt-003", title: "Vendor Risk Acceptance = Acme Corp",  treatment_type: "Acceptance",     treatment_status: "deferred",    risk_level: "medium",   owner: "CISO",           progress_pct: 100 },
   { id: "rt-004", title: "Firewall Rule Cleanup",               treatment_type: "Remediation",    treatment_status: "planned",     risk_level: "medium",   owner: "Network Team",   progress_pct: 0 },
   { id: "rt-005", title: "Encrypt S3 Buckets at Rest",          treatment_type: "Control",        treatment_status: "completed",   risk_level: "high",     owner: "Cloud Team",     progress_pct: 100 },
   { id: "rt-006", title: "Disable Legacy TLS 1.0/1.1",          treatment_type: "Remediation",    treatment_status: "in_progress", risk_level: "high",     owner: "DevOps",         progress_pct: 45 },
@@ -54,7 +54,7 @@ const MOCK_TREATMENTS = [
 
 const MOCK_STATS = { total_treatments: 134, in_progress: 47, overdue: 19, avg_progress_pct: 52.3 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -110,7 +110,7 @@ function exportCsv(treatments: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function RiskTreatmentDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -151,7 +151,7 @@ export default function RiskTreatmentDashboard() {
     >
       <PageHeader
         title="Risk Treatment"
-        description="Risk treatment workflow — track remediation, control implementation, acceptance, and transfer activities by owner"
+        description="Risk treatment workflow = track remediation, control implementation, acceptance, and transfer activities by owner"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -211,10 +211,10 @@ export default function RiskTreatmentDashboard() {
                   treatments.map((t: any, i: number) => (
                   <TableRow key={t.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[200px] truncate">
-                      {t.title ?? "—"}
+                      {t.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {t.treatment_type ?? "—"}
+                      {t.treatment_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={t.treatment_status ?? "planned"} />
@@ -223,7 +223,7 @@ export default function RiskTreatmentDashboard() {
                       <RiskBadge level={t.risk_level ?? "medium"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {t.owner ?? "—"}
+                      {t.owner ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <ProgressBar pct={t.progress_pct ?? 0} />

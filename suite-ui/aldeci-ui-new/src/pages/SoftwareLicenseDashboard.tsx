@@ -159,7 +159,7 @@ export default function SoftwareLicenseDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="border-red-500/30">
           <CardContent className="pt-4 pb-3 text-center">
-            <div className="text-2xl font-bold text-red-400">{breakdown.critical}</div>
+            <div className="text-2xl font-bold text-red-400" role="status" aria-live="polite">{breakdown.critical}</div>
             <div className="text-[11px] text-muted-foreground mt-1">Critical Risk</div>
           </CardContent>
         </Card>
@@ -236,8 +236,8 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-mono">{r.vulnerabilities}</TableCell>
                     <TableCell className="py-2 text-center">
                       {r.approved
-                        ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">✓ Approved</Badge>
-                        : <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">✗ Not Approved</Badge>}
+                        ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">= Approved</Badge>
+                        : <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">= Not Approved</Badge>}
                     </TableCell>
                   </TableRow>
                 )))}

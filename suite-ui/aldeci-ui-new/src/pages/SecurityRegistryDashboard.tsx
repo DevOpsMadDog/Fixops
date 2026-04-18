@@ -24,7 +24,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type ArtifactType = "policy" | "procedure" | "standard" | "guideline" | "runbook" | "playbook" | "template" | "checklist";
 type ArtifactStatus = "draft" | "review" | "active" | "deprecated";
@@ -42,7 +42,7 @@ interface RegistryArtifact {
   tags: string[];
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ARTIFACTS: RegistryArtifact[] = [
   { id: "reg-001", title: "Information Security Policy",           artifact_type: "policy",    status: "active",     version: "3.2", owner: "CISO",           last_reviewed: "2026-03-01", next_review: "2026-09-01", review_count: 12, tags: ["iso27001", "soc2"] },
@@ -70,7 +70,7 @@ const TYPE_STATS: { type: ArtifactType; count: number; icon: React.ReactNode; co
   { type: "checklist", count: 1,  icon: <CheckCircle2 className="w-4 h-4" />,  color: "text-teal-400" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const STATUS_CONFIG: Record<ArtifactStatus, { cls: string; label: string }> = {
   active:     { cls: "bg-green-500/10 text-green-400 border-green-500/20",   label: "Active" },
@@ -99,12 +99,12 @@ function TypeBadge({ type }: { type: ArtifactType }) {
   return (
     <span className={cn("inline-block px-2 py-0.5 rounded text-xs font-medium capitalize", TYPE_COLORS[type])}>
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -114,7 +114,7 @@ function TypeBadge({ type }: { type: ArtifactType }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function SecurityRegistryDashboard() {
   const [filterStatus, setFilterStatus] = useState<ArtifactStatus | "all">("all");
@@ -204,8 +204,7 @@ export default function SecurityRegistryDashboard() {
           >
             {s === "all" ? "All Artifacts" : STATUS_CONFIG[s as ArtifactStatus]?.label ?? s}
           </button>
-        ))
-        )}
+        ))}
       </div>
 
       {/* Registry Table */}
@@ -269,8 +268,7 @@ export default function SecurityRegistryDashboard() {
                   </TableCell>
                   <TableCell className="text-right text-sm text-gray-300">{artifact.review_count}</TableCell>
                 </motion.tr>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

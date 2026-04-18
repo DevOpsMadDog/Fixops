@@ -1,7 +1,7 @@
 /**
  * IR Playbook Dashboard
  *
- * Incident Response Playbooks — execution tracking, MTTD/MTTR metrics.
+ * Incident Response Playbooks = execution tracking, MTTD/MTTR metrics.
  *   1. KPIs: Playbooks, Executions, Avg MTTD (hours), Avg MTTR (hours)
  *   2. Recent executions table (playbook name, incident type, severity, MTTD, MTTR, status)
  *
@@ -34,7 +34,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_STATS = {
   playbooks: 12,
@@ -56,7 +56,7 @@ const MOCK_EXECUTIONS = [
   { id: "EXEC-010", playbook: "Business Email Compromise",  incident_type: "bec",             severity: "high",     mttd_hours: 4.8, mttr_hours: 9.2,  status: "completed" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -104,7 +104,7 @@ function MttrCell({ hours }: { hours: number }) {
   return <span className={`font-mono text-sm ${color}`}>{hours.toFixed(1)}h</span>;
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function IRPlaybookDashboard() {
   const [stats, setStats] = useState(MOCK_STATS);
@@ -121,7 +121,7 @@ export default function IRPlaybookDashboard() {
       if (s && typeof s.playbooks === "number") setStats(s);
       if (Array.isArray(e) && e.length > 0) setExecutions(e);
     } catch {
-      // API not available — keep mock data
+      // API not available = keep mock data
     } finally {
     }
   };
@@ -132,7 +132,7 @@ export default function IRPlaybookDashboard() {
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="IR Playbook Dashboard"
-        description="Incident Response Playbooks — execution tracking, MTTD/MTTR performance metrics"
+        description="Incident Response Playbooks = execution tracking, MTTD/MTTR performance metrics"
         actions={
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />

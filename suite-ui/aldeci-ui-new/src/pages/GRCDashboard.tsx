@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, CheckCircle, BarChart3, FileText, RefreshCw, ClipboardList } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const FRAMEWORKS = [
   { name: "SOC 2 Type II",  score: 91, color: "bg-green-500",  text: "text-green-400"  },
@@ -79,7 +79,7 @@ const ASSESSMENTS = [
   { framework: "NIST CSF 2.0",   assessor: "Internal Audit",  date: "2026-04-10", score: 78, status: "in-review" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function CategoryBadge({ cat }: { cat: string }) {
   return (
@@ -113,7 +113,7 @@ function scoreColor(score: number) {
   return "text-red-400";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function GRCDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -189,7 +189,7 @@ export default function GRCDashboard() {
               <BarChart3 className="h-4 w-4 text-blue-400" />
               Framework Compliance
             </CardTitle>
-            <CardDescription className="text-xs">Current compliance score per framework (green ≥80%, yellow ≥60%, red &lt;60%)</CardDescription>
+            <CardDescription className="text-xs">Current compliance score per framework (green =80%, yellow =60%, red &lt;60%)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {(liveData?.frameworks ?? FRAMEWORKS).map((f: any) => {
@@ -260,7 +260,7 @@ export default function GRCDashboard() {
                 <div key={a.id ?? a.framework ?? idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/50">
                   <div className="min-w-0">
                     <div className="text-xs font-medium truncate">{a.framework_id ?? a.framework}</div>
-                    <div className="text-[10px] text-muted-foreground">{a.assessor} · {a.assessment_date ?? a.date}</div>
+                    <div className="text-[10px] text-muted-foreground">{a.assessor} = {a.assessment_date ?? a.date}</div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     <span className={cn("text-xs font-bold tabular-nums", scoreColor(a.overall_score ?? a.score ?? 0))}>{a.overall_score ?? a.score ?? 0}%</span>
@@ -287,7 +287,7 @@ export default function GRCDashboard() {
               {(liveData?.risks ?? RISKS).filter((r: any) => r.status === "open").length} open
             </Badge>
           </div>
-          <CardDescription className="text-xs">Enterprise risk inventory — score = likelihood × impact</CardDescription>
+          <CardDescription className="text-xs">Enterprise risk inventory = score = likelihood = impact</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

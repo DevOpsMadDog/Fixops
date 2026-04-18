@@ -15,7 +15,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 import { Package, AlertTriangle, Shield, CheckCircle, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// == Mock data ==================================================================
 
 type Ecosystem = "npm" | "pypi" | "maven" | "nuget" | "cargo" | "go";
 
@@ -63,7 +63,7 @@ const MOCK_TRANSITIVE = [
 
 const SUMMARY = { total: 847, direct: 124, transitive: 723, high_risk: 31 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// == Helpers ====================================================================
 
 function riskColor(score: number) {
   if (score >= 7) return "#ef4444";
@@ -77,12 +77,12 @@ function RiskBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -126,7 +126,7 @@ function LicenseRiskBadge({ level }: { level: string }) {
   return <span className={cn("px-2 py-0.5 rounded text-xs font-medium", cls[level] ?? "bg-gray-700 text-gray-300")}>{level}</span>;
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// == Main Component =============================================================
 
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
@@ -209,7 +209,7 @@ export default function SecurityDependencyRiskDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Risky Dependencies ({filteredDeps.length})</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["Package", "Version", "Ecosystem", "Risk Score", "Vulns", "Critical", "License"].map(h => (
@@ -257,7 +257,7 @@ export default function SecurityDependencyRiskDashboard() {
                       <span className="text-xs text-gray-500 font-mono">CVSS {v.cvss_score.toFixed(1)}</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {dep?.package_name} · fix: {v.fixed_version}
+                      {dep?.package_name} = fix: {v.fixed_version}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4 flex-shrink-0">
@@ -335,15 +335,14 @@ export default function SecurityDependencyRiskDashboard() {
                   <div className="ml-5 space-y-1">
                     {t.children.map(c => (
                       <div key={c} className="flex items-center gap-2 text-xs text-gray-400">
-                        <span className="text-gray-600">└─</span>
+                        <span className="text-gray-600">==</span>
                         <span className="font-mono text-gray-300">{c}</span>
                       </div>
                     ))
                   )}
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </div>
         </div>

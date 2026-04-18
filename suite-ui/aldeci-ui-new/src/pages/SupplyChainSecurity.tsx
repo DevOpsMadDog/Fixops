@@ -42,9 +42,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type RiskLevel = "critical" | "high" | "medium" | "low";
 type Ecosystem = "npm" | "PyPI" | "Maven" | "RubyGems" | "NuGet" | "Composer";
@@ -82,9 +82,9 @@ interface SupplyChainSummary {
   components_scanned: number;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_SUMMARY: SupplyChainSummary = {
   total_dependencies: 842,
@@ -228,9 +228,9 @@ const MOCK_TREE: TransitiveDep[] = [
   { name: "markupsafe", version: "2.1.0", depth: 2 },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function riskColor(score: number): string {
   if (score >= 80) return "text-red-400 bg-red-500/10";
@@ -259,9 +259,9 @@ function licenseColor(status: LicenseStatus): string {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Dependency Risk Heatmap
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
   const grid = deps.slice(0, 12);
@@ -310,9 +310,9 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // High Risk Dependencies Table
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelectDep: (dep: Dependency) => void }) {
   const [search, setSearch] = useState("");
@@ -369,7 +369,7 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
 
         {/* Table */}
         <ScrollArea className="border rounded-lg">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/50 bg-muted/30">
                 <th className="px-4 py-2 text-left font-semibold">Package</th>
@@ -467,9 +467,9 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // SBOM Overview
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function SBOMOverview({ summary }: { summary: SupplyChainSummary }) {
   return (
@@ -513,9 +513,9 @@ function SBOMOverview({ summary }: { summary: SupplyChainSummary }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Transitive Dependency Tree
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function TransitiveDependencyTree() {
   return (
@@ -544,7 +544,7 @@ function TransitiveDependencyTree() {
                 className="text-muted-foreground"
               >
                 <span style={{ marginLeft: `${dep.depth * 24}px` }}>
-                  {dep.depth > 0 ? "├── " : ""}
+                  {dep.depth > 0 ? "=== " : ""}
                   <span className="text-foreground">{dep.name}</span>
                   <span className="text-xs ml-1">@{dep.version}</span>
                 </span>
@@ -557,9 +557,9 @@ function TransitiveDependencyTree() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // License Compliance Donut
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function LicenseCompliance({ deps }: { deps: Dependency[] }) {
   const permissive = deps.filter((d) => d.license_status === "permissive").length;
@@ -622,9 +622,9 @@ function LicenseCompliance({ deps }: { deps: Dependency[] }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Recent Supply Chain Events
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const EVENTS = [
   { time: "2 hours ago", event: "Log4j v2.17.1 critical CVE disclosed", type: "critical", icon: AlertTriangle },
@@ -690,9 +690,9 @@ function RecentEvents() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function SupplyChainSecurity() {
   const [selectedDep, setSelectedDep] = useState<Dependency | null>(null);

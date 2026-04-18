@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const OWASP_TOP10 = [
   { rank: "API1:2023",  name: "Broken Object Level Authorization", findings: 18, critical: 6, high: 8, medium: 4, trend: "up"   },
@@ -80,7 +80,7 @@ const INVENTORY_HEALTH = [
   { label: "In Testing",      value: 54,  color: "text-cyan-400",  bg: "bg-cyan-500/10 border-cyan-500/20" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -124,12 +124,12 @@ function AnomalyBadge({ type }: { type: string }) {
 }
 
 function TrendBadge({ trend }: { trend: string }) {
-  if (trend === "up")   return <span className="text-red-400 text-xs font-bold">↑</span>;
-  if (trend === "down") return <span className="text-green-400 text-xs font-bold">↓</span>;
-  return <span className="text-muted-foreground text-xs">→</span>;
+  if (trend === "up")   return <span className="text-red-400 text-xs font-bold">=</span>;
+  if (trend === "down") return <span className="text-green-400 text-xs font-bold">=</span>;
+  return <span className="text-muted-foreground text-xs">=</span>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function APISecurityPage() {
   const [refreshing, setRefreshing] = useState(false);
@@ -209,7 +209,7 @@ export default function APISecurityPage() {
                             className="h-4 rounded bg-red-500/70 flex items-center justify-center text-[9px] text-white font-bold"
                             style={{ width: `${row.critical * 14}px`, minWidth: "18px" }}
                             title={`Critical: ${row.critical}`}
-                          >{row.critical}</div>
+                           role="status" aria-live="polite">{row.critical}</div>
                         )}
                         {row.high > 0 && (
                           <div

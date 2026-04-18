@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_workloads: 287,
@@ -63,7 +63,7 @@ const MOCK_THREATS = [
   { threat_type: "Suspicious cron job added",  severity: "high",     detection_source: "File",     workload_id: "legacy-monolith",    status: "resolved" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function CloudProviderBadge({ provider }: { provider: string }) {
   const map: Record<string, string> = {
@@ -131,7 +131,7 @@ function ThreatStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CloudWorkloadProtectionDashboard() {
   const [refreshing, setRefreshing] = useState(false);

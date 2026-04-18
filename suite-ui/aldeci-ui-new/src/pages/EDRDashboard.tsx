@@ -1,7 +1,7 @@
 /**
  * EDR Dashboard
  *
- * Endpoint Detection & Response — process telemetry, malware detection, and endpoint isolation.
+ * Endpoint Detection & Response = process telemetry, malware detection, and endpoint isolation.
  *   1. KPIs: Endpoints Online, Isolated, New Detections, Critical Alerts
  *   2. Endpoint inventory (12 rows)
  *   3. Live detection feed (10 detections)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Monitor, AlertTriangle, Shield, Lock, RefreshCw, Activity, Terminal } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const ORG_ID = "default";
 
 function getApiKey() {
@@ -42,7 +42,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const ENDPOINTS = [
   { hostname: "WINDC-01",    ip: "10.4.22.5",   os: "Windows", status: "compromised", risk_score: 97, last_seen: "2 min ago",  agent: "7.3.1" },
@@ -89,13 +89,13 @@ const PROCESS_EVENTS = [
 
 const ISOLATION_LOG = [
   { hostname: "FS-SERVER-02", reason: "BlackCat ransomware staging detected",   isolated_by: "Auto-EDR",  duration: "47 min",  status: "isolated" },
-  { hostname: "WORKST-047",   reason: "LSASS credential dump — Mimikatz sig",   isolated_by: "Auto-EDR",  duration: "1h 12m",  status: "isolated" },
+  { hostname: "WORKST-047",   reason: "LSASS credential dump = Mimikatz sig",   isolated_by: "Auto-EDR",  duration: "1h 12m",  status: "isolated" },
   { hostname: "DB-SRV-01",    reason: "Rootkit kernel module loaded",            isolated_by: "Auto-EDR",  duration: "1h 54m",  status: "isolated" },
   { hostname: "WORKST-033",   reason: "Lateral movement via PsExec confirmed",   isolated_by: "analyst1",  duration: "3h 20m",  status: "released" },
   { hostname: "WORKST-021",   reason: "Cryptominer process terminated and clean", isolated_by: "analyst2", duration: "5h 41m",  status: "released" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function OsBadge({ os }: { os: string }) {
   const map: Record<string, string> = {
@@ -159,7 +159,7 @@ function RiskBar({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function EDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);

@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Crosshair, AlertTriangle, Search, Play, RefreshCw, BookOpen, BarChart3, Shield } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CAMPAIGNS = [
   { id: "HNT-001", name: "Lateral Movement via SMB", hunt_type: "lateral_movement", mitre_tactic: "TA0008", analyst: "A. Torres", status: "active",    start: "2026-04-10", findings: 6 },
@@ -80,7 +80,7 @@ const PLAYBOOKS = [
   { id: "PB-04", hunt_type: "ioc_match",        title: "IOC Sweep & Enrich",     steps: 5,  techniques: ["T1566", "T1203", "T1190"] },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function HuntTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -121,7 +121,7 @@ function SevDot({ sev }: { sev: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full shrink-0", cls)} title={sev} />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -276,7 +276,7 @@ export default function ThreatHuntingDashboard() {
 
       {/* Findings table + Playbooks */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Findings — takes 2 cols */}
+        {/* Findings = takes 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -315,7 +315,7 @@ export default function ThreatHuntingDashboard() {
                       <TableCell className="py-2.5">
                         {row.escalated
                           ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Escalated</Badge>
-                          : <span className="text-[10px] text-muted-foreground">—</span>}
+                          : <span className="text-[10px] text-muted-foreground">=</span>}
                       </TableCell>
                     </TableRow>
                   ))
@@ -359,8 +359,7 @@ export default function ThreatHuntingDashboard() {
                   <Shield className="h-3 w-3 mr-1" />Run Playbook
                 </Button>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>

@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_apps: 38,
@@ -63,7 +63,7 @@ const MOCK_FINDINGS = [
   { title: "Unencrypted local DB",       finding_type: "Manual",  severity: "high",     owasp_category: "M2: Insecure Data Storage",       status: "in_review"},
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function PlatformBadge({ platform }: { platform: string }) {
   const map: Record<string, string> = {
@@ -118,7 +118,7 @@ function FindingStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function MobileAppSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);

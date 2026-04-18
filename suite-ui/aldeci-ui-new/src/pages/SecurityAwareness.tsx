@@ -57,9 +57,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 interface PhishingCampaign {
   id: string;
@@ -95,9 +95,9 @@ interface UpcomingTraining {
   completion_rate: number;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_CAMPAIGNS: PhishingCampaign[] = [
   {
@@ -214,9 +214,9 @@ const MOCK_RISK_TREND = [
   { month: "Apr", score: 42 },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function riskScoreColor(score: number): string {
   if (score >= 80) return "text-red-400 bg-red-500/10 border-red-500/20";
@@ -232,9 +232,9 @@ function completionBarColor(rate: number): string {
   return "bg-red-500";
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Phishing Campaigns Table
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function CampaignsTable({ campaigns }: { campaigns: PhishingCampaign[] }) {
   return (
@@ -247,7 +247,7 @@ function CampaignsTable({ campaigns }: { campaigns: PhishingCampaign[] }) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="py-2.5 px-4 text-left font-medium">Campaign</th>
@@ -328,9 +328,9 @@ function CampaignsTable({ campaigns }: { campaigns: PhishingCampaign[] }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Department Completion Bars
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function DepartmentCompletion({ departments }: { departments: DepartmentCompletion[] }) {
   return (
@@ -384,9 +384,9 @@ function DepartmentCompletion({ departments }: { departments: DepartmentCompleti
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // High Risk Users Panel
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function HighRiskUsersPanel({ users }: { users: HighRiskUser[] }) {
   return (
@@ -399,7 +399,7 @@ function HighRiskUsersPanel({ users }: { users: HighRiskUser[] }) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="py-2.5 px-4 text-left font-medium">User</th>
@@ -478,9 +478,9 @@ function HighRiskUsersPanel({ users }: { users: HighRiskUser[] }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Upcoming Training Cards
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function UpcomingTrainings({ trainings }: { trainings: UpcomingTraining[] }) {
   return (
@@ -546,9 +546,9 @@ function UpcomingTrainings({ trainings }: { trainings: UpcomingTraining[] }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Risk Trend Chart (div-based bar chart)
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function RiskTrendChart() {
   const maxScore = Math.max(...MOCK_RISK_TREND.map((d) => d.score));
@@ -594,16 +594,16 @@ function RiskTrendChart() {
         </div>
         <p className="text-[11px] text-muted-foreground mt-3 flex items-center gap-1.5">
           <TrendingDown className="w-3.5 h-3.5 text-green-400" />
-          Org-wide risk dropped 16 points over 6 months — awareness program working
+          Org-wide risk dropped 16 points over 6 months = awareness program working
         </p>
       </CardContent>
     </Card>
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function SecurityAwareness() {
   const [liveData, setLiveData] = useState<any>(null);

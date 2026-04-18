@@ -154,8 +154,7 @@ function BundleDetailDialog({ bundle }: { bundle: any }) {
                   </Badge>
                   {status !== "unsigned" && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
 

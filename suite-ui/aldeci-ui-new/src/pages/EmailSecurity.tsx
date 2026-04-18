@@ -3,7 +3,7 @@
  *
  * DMARC enforcement, phishing detection, and email authentication monitoring:
  *   1. KPIs: DMARC Pass Rate, Blocked Phishing Today, Spoofing Attempts, Email Volume
- *   2. Domain Authentication status (3 domains — DMARC/SPF/DKIM badges + Enforce button)
+ *   2. Domain Authentication status (3 domains = DMARC/SPF/DKIM badges + Enforce button)
  *   3. DMARC Reports chart: 30-day trend bar chart (pass/fail/quarantine/reject)
  *   4. Top Email Threats table (8 rows)
  *   5. Lookalike Domain Detection (5 suspicious domains)
@@ -16,7 +16,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
@@ -56,9 +56,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type AuthStatus = "Pass" | "Fail" | "SoftFail" | "None";
 type DmarcPolicy = "none" | "quarantine" | "reject";
@@ -110,9 +110,9 @@ interface Recommendation {
   icon: typeof Shield;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_DOMAINS: DomainAuth[] = [
   { id: "d1", domain: "domain1.com", dmarc: "Pass", spf: "Pass", dkim: "Pass", policy: "quarantine" },
@@ -213,9 +213,9 @@ const RECOMMENDATIONS: Recommendation[] = [
   },
 ];
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Styling helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const AUTH_BADGE: Record<AuthStatus, string> = {
   Pass: "bg-green-500/10 text-green-400 border-green-500/30",
@@ -256,9 +256,9 @@ const IMPACT_TEXT: Record<"HIGH" | "MEDIUM" | "LOW", string> = {
   LOW: "text-blue-400",
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Sub-components
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function AuthStatusBadge({ status }: { status: AuthStatus }) {
   return (
@@ -276,9 +276,9 @@ function RiskScoreBadge({ score }: { score: number }) {
   return <span className={cn("font-bold tabular-nums", color)}>{score}</span>;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function EmailSecurity() {
   const [enforcing, setEnforcing] = useState<Set<string>>(new Set());
@@ -311,7 +311,7 @@ export default function EmailSecurity() {
             subject_preview: item.description ?? item.title ?? "",
             threat_type:    item.feed_type === "phishing" ? "Phishing" : (item.threat_type ?? "Phishing"),
             action_taken:   item.status === "blocked" ? "Blocked" : (item.status === "quarantined" ? "Quarantined" : "Blocked"),
-            similarity:     item.confidence != null ? `${item.confidence}%` : "—",
+            similarity:     item.confidence != null ? `${item.confidence}%` : "=",
           }))
         : null;
       if (stats || threats) {
@@ -457,7 +457,7 @@ export default function EmailSecurity() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-cyan-400" />
-                DMARC Reports — 30-Day Trend
+                DMARC Reports = 30-Day Trend
               </CardTitle>
               <div className="flex items-center gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500/70 inline-block" />Pass</span>
@@ -496,7 +496,7 @@ export default function EmailSecurity() {
                       >
                         <div className="bg-orange-500/70" style={{ height: `${rejH}%` }} />
                         <div className="bg-yellow-500/70" style={{ height: `${quarH}%` }} />
-                        <div className="bg-red-500/70" style={{ height: `${failH}%` }} />
+                        <div className="bg-red-500/70" style={{ height: `${failH}%` }} / role="status" aria-live="polite">
                         <div className="bg-green-500/70 flex-1" />
                       </div>
                     </div>
@@ -540,7 +540,7 @@ export default function EmailSecurity() {
                   {(liveData?.threats ?? MOCK_THREATS).map((threat: any, idx: number) => {
                     const threatType = (threat.threat_type ?? "Phishing") as ThreatType;
                     const actionTaken = (threat.action_taken ?? threat.status ?? "Blocked") as ActionTaken;
-                    const simScore = threat.similarity_score != null ? `${Math.round(threat.similarity_score * 100)}%` : (threat.similarity ?? "—");
+                    const simScore = threat.similarity_score != null ? `${Math.round(threat.similarity_score * 100)}%` : (threat.similarity ?? "=");
                     return (
                     <motion.tr
                       key={threat.id ?? idx}

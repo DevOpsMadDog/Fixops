@@ -1,7 +1,7 @@
 /**
  * Risk Quant Dashboard
  *
- * FAIR risk quantification — ALE/SLE scenarios, control ROI, portfolio snapshots.
+ * FAIR risk quantification = ALE/SLE scenarios, control ROI, portfolio snapshots.
  *   1. KPI cards: Total ALE, Critical Scenarios, Avg ALE, Top Control ROI
  *   2. Scenarios table (threat_type, risk_level badges)
  *   3. Controls panel with effectiveness bars and ROI
@@ -42,7 +42,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_SCENARIOS = [
   { id: "s1", scenario_name: "Ransomware Attack on Core Infrastructure", asset_name: "ERP System", threat_actor: "LockBit", threat_type: "ransomware", asset_value: 4500000, sle: 1800000, aro: 0.35, ale: 630000, risk_level: "critical" },
@@ -76,7 +76,7 @@ const AVG_ALE = TOTAL_ALE / MOCK_SCENARIOS.length;
 const CRITICAL = MOCK_SCENARIOS.filter(s => s.risk_level === "critical").length;
 const TOP_ROI = Math.max(...MOCK_CONTROLS.map(c => c.roi));
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function fmt$(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -94,12 +94,12 @@ function RiskBadge({ level }: { level: string }) {
   return (
     <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border text-muted-foreground")}>
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -141,7 +141,7 @@ function PctBar({ pct, color = "bg-blue-500" }: { pct: number; color?: string })
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function RiskQuantDashboard() {
   const [scenarioFilter, setScenarioFilter] = useState<string>("all");
@@ -191,7 +191,7 @@ export default function RiskQuantDashboard() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       <PageHeader
         title="FAIR Risk Quantification"
-        description="Financial risk quantification using FAIR methodology — ALE, SLE, and control ROI analysis"
+        description="Financial risk quantification using FAIR methodology = ALE, SLE, and control ROI analysis"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
@@ -311,7 +311,7 @@ export default function RiskQuantDashboard() {
           {scenarioFilter !== "all" && (
             <div className="px-4 py-2 border-t border-border">
               <Button variant="ghost" size="sm" className="text-[10px] h-6 text-muted-foreground" onClick={() => setScenarioFilter("all")}>
-                <ChevronDown className="h-3 w-3 mr-1" /> Clear filter — show all controls
+                <ChevronDown className="h-3 w-3 mr-1" /> Clear filter = show all controls
               </Button>
             </div>
           )}
@@ -330,7 +330,7 @@ export default function RiskQuantDashboard() {
               {scenarioFilter !== "all" && " (filtered)"}
             </Badge>
           </div>
-          <CardDescription className="text-xs">Click a scenario row to filter controls. ROI = (risk reduction − cost) / cost</CardDescription>
+          <CardDescription className="text-xs">Click a scenario row to filter controls. ROI = (risk reduction = cost) / cost</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -371,7 +371,7 @@ export default function RiskQuantDashboard() {
                     <TableCell className="py-2">
                       {c.recommended
                         ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">recommended</Badge>
-                        : <span className="text-[10px] text-muted-foreground">—</span>}
+                        : <span className="text-[10px] text-muted-foreground">=</span>}
                     </TableCell>
                   </TableRow>
                 )))}

@@ -77,12 +77,12 @@ export default function ProgramMaturityDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -209,7 +209,7 @@ export default function ProgramMaturityDashboard() {
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700"><h2 className="font-semibold">Assessment History</h2></div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Assessment", "Assessor", "Status", "Overall Level", "Score", "Domains", "Completed"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
@@ -225,7 +225,7 @@ export default function ProgramMaturityDashboard() {
                       <td className="px-4 py-3 font-medium">{a.assessment_name}</td>
                       <td className="px-4 py-3 text-gray-300">{a.assessor}</td>
                       <td className="px-4 py-3">{statusBadge(a.status)}</td>
-                      <td className="px-4 py-3 text-blue-400 font-bold">{a.overall_level > 0 ? `${a.overall_level}/5` : "—"}</td>
+                      <td className="px-4 py-3 text-blue-400 font-bold">{a.overall_level > 0 ? `${a.overall_level}/5` : "="}</td>
                       <td className="px-4 py-3 min-w-[140px]">
                         {a.overall_score > 0 ? (
                           <div className="flex items-center gap-2">
@@ -234,10 +234,10 @@ export default function ProgramMaturityDashboard() {
                             </div>
                             <span className="text-xs text-gray-400 w-8">{a.overall_score}</span>
                           </div>
-                        ) : <span className="text-gray-500">—</span>}
+                        ) : <span className="text-gray-500">=</span>}
                       </td>
                       <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{a.domains_assessed}</span></td>
-                      <td className="px-4 py-3 text-gray-400">{a.completed_at || "—"}</td>
+                      <td className="px-4 py-3 text-gray-400">{a.completed_at || "="}</td>
                     </tr>
                   )))}
                 </tbody>

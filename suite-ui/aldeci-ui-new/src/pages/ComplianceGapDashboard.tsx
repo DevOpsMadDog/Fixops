@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_assessments: 12,
@@ -69,7 +69,7 @@ const MOCK_GAPS = [
   { control_id: "PR.DS-1", control_name: "Data-at-Rest Protection",       framework: "NIST CSF", severity: "low",      status: "open",            description: "Non-production S3 buckets missing encryption policy tag" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function complianceColor(pct: number): string {
   if (pct >= 85) return "text-green-400";
@@ -110,7 +110,7 @@ function GapStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ComplianceGapDashboard() {
   const [refreshing, setRefreshing] = useState(false);

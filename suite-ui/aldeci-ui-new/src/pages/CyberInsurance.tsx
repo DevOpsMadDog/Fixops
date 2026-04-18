@@ -31,7 +31,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const POLICIES = [
   {
@@ -82,10 +82,10 @@ const OVERALL_SCORE = 66;
 const CLAIMS = [
   { id: "CLM-2024-001", type: "ransomware",             date: "2024-09-14", loss: "$420,000",  settlement: "$380,000", status: "settled",      adjuster: "Marsh & McLennan" },
   { id: "CLM-2025-002", type: "data_breach",            date: "2025-02-28", loss: "$85,000",   settlement: "$72,000",  status: "settled",      adjuster: "Aon Cyber" },
-  { id: "CLM-2025-003", type: "business_interruption",  date: "2025-06-10", loss: "$210,000",  settlement: "—",        status: "approved",     adjuster: "Marsh & McLennan" },
-  { id: "CLM-2025-004", type: "data_breach",            date: "2025-11-01", loss: "$47,000",   settlement: "—",        status: "under_review", adjuster: "Willis Towers" },
-  { id: "CLM-2026-005", type: "ransomware",             date: "2026-01-18", loss: "$650,000",  settlement: "—",        status: "filed",        adjuster: "Aon Cyber" },
-  { id: "CLM-2026-006", type: "business_interruption",  date: "2026-03-05", loss: "$95,000",   settlement: "—",        status: "under_review", adjuster: "Willis Towers" },
+  { id: "CLM-2025-003", type: "business_interruption",  date: "2025-06-10", loss: "$210,000",  settlement: "=",        status: "approved",     adjuster: "Marsh & McLennan" },
+  { id: "CLM-2025-004", type: "data_breach",            date: "2025-11-01", loss: "$47,000",   settlement: "=",        status: "under_review", adjuster: "Willis Towers" },
+  { id: "CLM-2026-005", type: "ransomware",             date: "2026-01-18", loss: "$650,000",  settlement: "=",        status: "filed",        adjuster: "Aon Cyber" },
+  { id: "CLM-2026-006", type: "business_interruption",  date: "2026-03-05", loss: "$95,000",   settlement: "=",        status: "under_review", adjuster: "Willis Towers" },
 ];
 
 const GAPS = [
@@ -106,7 +106,7 @@ const GAPS = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function PolicyStatusBadge({ status }: { status: string }) {
   const cls =
@@ -145,7 +145,7 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{urgency} priority</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CyberInsurance() {
   const [refreshing, setRefreshing] = useState(false);
@@ -181,10 +181,10 @@ export default function CyberInsurance() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -239,8 +239,7 @@ export default function CyberInsurance() {
               <Button variant="outline" size="sm" className="mt-auto h-7 text-xs w-full">View Details</Button>
             </CardContent>
           </Card>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Risk Assessment + Claims */}
@@ -261,7 +260,7 @@ export default function CyberInsurance() {
               <div>
                 <div className="text-xs font-semibold">Overall Security Score</div>
                 <div className="text-[10px] text-muted-foreground">
-                  {OVERALL_SCORE >= 80 ? "Preferred rate tier" : OVERALL_SCORE >= 60 ? "Standard rate tier" : "High-risk — premium surcharge likely"}
+                  {OVERALL_SCORE >= 80 ? "Preferred rate tier" : OVERALL_SCORE >= 60 ? "Standard rate tier" : "High-risk = premium surcharge likely"}
                 </div>
               </div>
             </div>

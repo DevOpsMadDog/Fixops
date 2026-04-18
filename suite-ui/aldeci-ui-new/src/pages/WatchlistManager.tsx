@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
@@ -35,7 +35,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ───────────────────────────────────────────────────
+// == Mock data ===================================================
 
 const WATCHLISTS = [
   { id: "WL-001", name: "APT29 Indicators",        category: "threat_actor",  count: 842,  created: "2026-01-12", lastHit: "2026-04-16", action: "block",  status: "active" },
@@ -64,17 +64,17 @@ const MATCHES = [
 ];
 
 const TOP_IPS = [
-  { ip: "185.220.101.47", count: 47, country: "🇩🇪", firstSeen: "2026-04-10", lastSeen: "2026-04-16", category: "ip_block" },
-  { ip: "194.165.16.10",  count: 31, country: "🇷🇺", firstSeen: "2026-04-08", lastSeen: "2026-04-16", category: "ip_block" },
-  { ip: "45.134.26.174",  count: 24, country: "🇧🇬", firstSeen: "2026-04-11", lastSeen: "2026-04-15", category: "threat_actor" },
-  { ip: "176.10.99.200",  count: 19, country: "🇨🇭", firstSeen: "2026-04-09", lastSeen: "2026-04-16", category: "ip_block" },
-  { ip: "91.108.4.222",   count: 14, country: "🇳🇱", firstSeen: "2026-04-12", lastSeen: "2026-04-15", category: "threat_actor" },
+  { ip: "185.220.101.47", count: 47, country: "==", firstSeen: "2026-04-10", lastSeen: "2026-04-16", category: "ip_block" },
+  { ip: "194.165.16.10",  count: 31, country: "==", firstSeen: "2026-04-08", lastSeen: "2026-04-16", category: "ip_block" },
+  { ip: "45.134.26.174",  count: 24, country: "==", firstSeen: "2026-04-11", lastSeen: "2026-04-15", category: "threat_actor" },
+  { ip: "176.10.99.200",  count: 19, country: "==", firstSeen: "2026-04-09", lastSeen: "2026-04-16", category: "ip_block" },
+  { ip: "91.108.4.222",   count: 14, country: "==", firstSeen: "2026-04-12", lastSeen: "2026-04-15", category: "threat_actor" },
 ];
 
 const WATCHLIST_OPTIONS = ["WL-001 APT29", "WL-002 Tor Exit", "WL-003 C2 Domains", "WL-004 Hashes", "WL-005 Insider"];
 const TYPE_OPTIONS = ["ip", "domain", "hash", "url", "user"];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function CategoryBadge({ cat }: { cat: string }) {
   const map: Record<string, string> = {
@@ -113,7 +113,7 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[sev] ?? "")}>{sev}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function WatchlistManager() {
   const [refreshing, setRefreshing]   = useState(false);
@@ -151,7 +151,7 @@ export default function WatchlistManager() {
 
   const handleAdd = () => {
     if (!iocInput.trim()) return;
-    setAdded((prev) => [`${iocInput} → ${targetList}`, ...prev]);
+    setAdded((prev) => [`${iocInput} = ${targetList}`, ...prev]);
     setIocInput("");
   };
 
@@ -265,14 +265,14 @@ export default function WatchlistManager() {
 
       {/* Recent Matches + Add to Watchlist */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recent Matches Feed — spans 2 cols */}
+        {/* Recent Matches Feed = spans 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Eye className="h-4 w-4 text-amber-400" />
               Recent Matches
             </CardTitle>
-            <CardDescription className="text-xs">IOC hits against active watchlists — last 6 hours</CardDescription>
+            <CardDescription className="text-xs">IOC hits against active watchlists = last 6 hours</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">

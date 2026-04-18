@@ -3,11 +3,11 @@
  *
  * Device enrollment, compliance, and threat management.
  *   1. KPIs: Total Devices, Enrolled, Compliant, Active Threats
- *   2. Platform breakdown — colored progress bars
+ *   2. Platform breakdown = colored progress bars
  *   3. Device table (12 rows)
  *   4. MDM policy table (3 policies)
  *   5. Active threats feed (8 threats)
- *   6. Compliance trend — 6-month div-based bars
+ *   6. Compliance trend = 6-month div-based bars
  *
  * API stubs: GET /api/v1/mdm/devices, /api/v1/mdm/threats, /api/v1/mdm/policies
  */
@@ -15,7 +15,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const PLATFORMS = [
   { label: "iOS", pct: 61, color: "bg-blue-500", text: "text-blue-400", count: 761 },
@@ -47,18 +47,18 @@ const PLATFORMS = [
 ];
 
 const DEVICES = [
-  { name: "iPhone 15 Pro — CEO",     platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 12, lastSeen: "2026-04-16 09:41" },
-  { name: "Galaxy S24 — SRE-01",     platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 18, lastSeen: "2026-04-16 09:38" },
-  { name: "iPad Pro — DesignLead",   platform: "iOS",     os: "17.3.2", enrolled: "Active",   compliant: true,  risk: 9,  lastSeen: "2026-04-16 09:22" },
-  { name: "Pixel 8 — DevOps-03",     platform: "Android", os: "14.0",   enrolled: "Active",   compliant: false, risk: 67, lastSeen: "2026-04-16 07:15" },
-  { name: "iPhone 14 — SecEng-02",   platform: "iOS",     os: "16.7.5", enrolled: "Active",   compliant: false, risk: 74, lastSeen: "2026-04-15 23:04" },
-  { name: "OnePlus 12 — CloudEng",   platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 22, lastSeen: "2026-04-16 09:33" },
-  { name: "iPhone 13 — Sales-07",    platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 15, lastSeen: "2026-04-16 08:58" },
-  { name: "Galaxy A54 — Contractor", platform: "Android", os: "13.0",   enrolled: "Pending",  compliant: false, risk: 88, lastSeen: "2026-04-14 16:30" },
-  { name: "iPhone SE — HR-04",       platform: "iOS",     os: "17.2.1", enrolled: "Active",   compliant: true,  risk: 11, lastSeen: "2026-04-16 09:02" },
-  { name: "WP Elite x3 — Legacy",    platform: "Windows Phone", os: "10.0", enrolled: "Active", compliant: false, risk: 91, lastSeen: "2026-04-12 11:00" },
-  { name: "Pixel 7a — AppDev-01",    platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 19, lastSeen: "2026-04-16 09:45" },
-  { name: "iPhone 15 — CISO",        platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 8,  lastSeen: "2026-04-16 09:50" },
+  { name: "iPhone 15 Pro = CEO",     platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 12, lastSeen: "2026-04-16 09:41" },
+  { name: "Galaxy S24 = SRE-01",     platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 18, lastSeen: "2026-04-16 09:38" },
+  { name: "iPad Pro = DesignLead",   platform: "iOS",     os: "17.3.2", enrolled: "Active",   compliant: true,  risk: 9,  lastSeen: "2026-04-16 09:22" },
+  { name: "Pixel 8 = DevOps-03",     platform: "Android", os: "14.0",   enrolled: "Active",   compliant: false, risk: 67, lastSeen: "2026-04-16 07:15" },
+  { name: "iPhone 14 = SecEng-02",   platform: "iOS",     os: "16.7.5", enrolled: "Active",   compliant: false, risk: 74, lastSeen: "2026-04-15 23:04" },
+  { name: "OnePlus 12 = CloudEng",   platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 22, lastSeen: "2026-04-16 09:33" },
+  { name: "iPhone 13 = Sales-07",    platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 15, lastSeen: "2026-04-16 08:58" },
+  { name: "Galaxy A54 = Contractor", platform: "Android", os: "13.0",   enrolled: "Pending",  compliant: false, risk: 88, lastSeen: "2026-04-14 16:30" },
+  { name: "iPhone SE = HR-04",       platform: "iOS",     os: "17.2.1", enrolled: "Active",   compliant: true,  risk: 11, lastSeen: "2026-04-16 09:02" },
+  { name: "WP Elite x3 = Legacy",    platform: "Windows Phone", os: "10.0", enrolled: "Active", compliant: false, risk: 91, lastSeen: "2026-04-12 11:00" },
+  { name: "Pixel 7a = AppDev-01",    platform: "Android", os: "14.0",   enrolled: "Active",   compliant: true,  risk: 19, lastSeen: "2026-04-16 09:45" },
+  { name: "iPhone 15 = CISO",        platform: "iOS",     os: "17.4.1", enrolled: "Active",   compliant: true,  risk: 8,  lastSeen: "2026-04-16 09:50" },
 ];
 
 const MDM_POLICIES = [
@@ -69,7 +69,7 @@ const MDM_POLICIES = [
       { label: "Require uppercase + symbols", enabled: true },
       { label: "Full-disk encryption", enabled: true },
       { label: "Remote wipe capability", enabled: true },
-      { label: "Screen lock ≤ 5 min", enabled: true },
+      { label: "Screen lock = 5 min", enabled: true },
     ],
     compliance: 87,
   },
@@ -80,7 +80,7 @@ const MDM_POLICIES = [
       { label: "Require uppercase", enabled: true },
       { label: "Full-disk encryption", enabled: true },
       { label: "Remote wipe capability", enabled: false },
-      { label: "Screen lock ≤ 15 min", enabled: true },
+      { label: "Screen lock = 15 min", enabled: true },
     ],
     compliance: 72,
   },
@@ -98,14 +98,14 @@ const MDM_POLICIES = [
 ];
 
 const THREATS = [
-  { device: "Galaxy A54 — Contractor", type: "Malware Detected",       severity: "Critical", status: "Active",      time: "2026-04-16 08:12" },
-  { device: "WP Elite x3 — Legacy",    type: "OS Jailbreak/Root",       severity: "Critical", status: "Active",      time: "2026-04-16 07:55" },
-  { device: "iPhone 14 — SecEng-02",   type: "Outdated OS (>90 days)",  severity: "High",     status: "Investigating", time: "2026-04-16 06:30" },
-  { device: "Pixel 8 — DevOps-03",     type: "Unapproved App Sideload", severity: "High",     status: "Active",      time: "2026-04-15 22:18" },
-  { device: "Galaxy A54 — Contractor", type: "Certificate Pinning Bypass", severity: "High", status: "Active",      time: "2026-04-15 21:05" },
-  { device: "OnePlus 12 — CloudEng",   type: "Public Wi-Fi No VPN",     severity: "Medium",   status: "Resolved",    time: "2026-04-15 18:44" },
-  { device: "iPhone 13 — Sales-07",    type: "Failed Login × 10",       severity: "Medium",   status: "Resolved",    time: "2026-04-15 15:20" },
-  { device: "iPad Pro — DesignLead",   type: "Backup to Personal Cloud", severity: "Low",     status: "Monitoring",  time: "2026-04-15 11:33" },
+  { device: "Galaxy A54 = Contractor", type: "Malware Detected",       severity: "Critical", status: "Active",      time: "2026-04-16 08:12" },
+  { device: "WP Elite x3 = Legacy",    type: "OS Jailbreak/Root",       severity: "Critical", status: "Active",      time: "2026-04-16 07:55" },
+  { device: "iPhone 14 = SecEng-02",   type: "Outdated OS (>90 days)",  severity: "High",     status: "Investigating", time: "2026-04-16 06:30" },
+  { device: "Pixel 8 = DevOps-03",     type: "Unapproved App Sideload", severity: "High",     status: "Active",      time: "2026-04-15 22:18" },
+  { device: "Galaxy A54 = Contractor", type: "Certificate Pinning Bypass", severity: "High", status: "Active",      time: "2026-04-15 21:05" },
+  { device: "OnePlus 12 = CloudEng",   type: "Public Wi-Fi No VPN",     severity: "Medium",   status: "Resolved",    time: "2026-04-15 18:44" },
+  { device: "iPhone 13 = Sales-07",    type: "Failed Login = 10",       severity: "Medium",   status: "Resolved",    time: "2026-04-15 15:20" },
+  { device: "iPad Pro = DesignLead",   type: "Backup to Personal Cloud", severity: "Low",     status: "Monitoring",  time: "2026-04-15 11:33" },
 ];
 
 const COMPLIANCE_TREND = [
@@ -117,7 +117,7 @@ const COMPLIANCE_TREND = [
   { month: "Apr", compliant: 88, non: 12 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -145,7 +145,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{status}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function MobileSecurity() {
   const [refreshing, setRefreshing] = useState(false);
@@ -169,11 +169,11 @@ export default function MobileSecurity() {
               id: e.endpoint_id ?? e.id,
               device_name: e.hostname ?? e.device_name ?? e.name,
               platform: e.os_type ?? e.platform ?? "Unknown",
-              os_version: e.os_version ?? "—",
+              os_version: e.os_version ?? "=",
               enrollment_status: e.enrollment_status ?? (e.is_managed ? "enrolled" : "pending"),
               compliance_status: e.compliance_status ?? (e.is_compliant ? "compliant" : "non_compliant"),
               risk_score: e.risk_score ?? 0,
-              last_checkin: e.last_seen ?? e.last_checkin ?? "—",
+              last_checkin: e.last_seen ?? e.last_checkin ?? "=",
             })),}
         : null;
       // Map EDR stats to mobile stats shape
@@ -268,7 +268,7 @@ export default function MobileSecurity() {
               </div>
             )))}
             <div className="pt-2 text-[11px] text-muted-foreground border-t border-border/50">
-              95.3% enrollment rate · 87.6% compliance rate
+              95.3% enrollment rate = 87.6% compliance rate
             </div>
           </CardContent>
         </Card>
@@ -302,7 +302,7 @@ export default function MobileSecurity() {
                       className="flex-1 rounded-t bg-red-500/70 transition-all"
                       style={{ height: `${m.non}%` }}
                       title={`Non-compliant: ${m.non}%`}
-                    />
+                    / role="status" aria-live="polite">
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
@@ -440,8 +440,7 @@ export default function MobileSecurity() {
                 </div>
               </CardContent>
             </Card>
-          ))
-          )}
+          ))}
         </div>
       </div>
 
@@ -486,8 +485,7 @@ export default function MobileSecurity() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardCheck, AlertTriangle, RefreshCw, BarChart3, CheckCircle, XCircle, AlertCircle, Play } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const PROFILES = [
   { id: "PRF-01", name: "Production Cloud",   frameworks: ["SOC2", "ISO27001", "PCI"],     last_scan: "2026-04-16 06:00", score: 84, status: "passing" },
@@ -82,7 +82,7 @@ const FRAMEWORK_SCORES = [
   { name: "GDPR",     score: 71, color: "bg-amber-500"  },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function FrameworkBadge({ fw }: { fw: string }) {
   const map: Record<string, string> = {
@@ -138,7 +138,7 @@ function TaskStatusBadge({ s }: { s: string }) {
   return <Badge className={cn("text-[10px] border", map[s] ?? "")}>{s.replace("_", " ")}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ComplianceScannerDashboard() {
   const [refreshing, setRefreshing] = useState(false);

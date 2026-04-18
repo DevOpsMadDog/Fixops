@@ -1,5 +1,5 @@
 /**
- * UBA Dashboard — User Behavior Analytics
+ * UBA Dashboard = User Behavior Analytics
  *
  * Insider threat detection and anomaly scoring.
  *   1. KPIs: Total Users, High Risk, Anomalies Today, Alerts Open
@@ -15,7 +15,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY  || "dev-key";
 const ORG_ID   = "aldeci-demo";
@@ -44,7 +44,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const HIGH_RISK_USERS = [
   { username: "j.doe",      dept: "Finance",   role: "Finance Analyst",   score: 92, anomalies: 14, lastAlert: "data_download",   status: "active" },
@@ -62,11 +62,11 @@ const HIGH_RISK_USERS = [
 ];
 
 const SCORE_BUCKETS = [
-  { label: "0–20",  count: 1842, color: "bg-green-500/70" },
-  { label: "21–40", count:  963, color: "bg-blue-500/70" },
-  { label: "41–60", count:  724, color: "bg-yellow-500/70" },
-  { label: "61–80", count:  295, color: "bg-amber-500/70" },
-  { label: "81–100", count:   23, color: "bg-red-500/70" },
+  { label: "0=20",  count: 1842, color: "bg-green-500/70" },
+  { label: "21=40", count:  963, color: "bg-blue-500/70" },
+  { label: "41=60", count:  724, color: "bg-yellow-500/70" },
+  { label: "61=80", count:  295, color: "bg-amber-500/70" },
+  { label: "81=100", count:   23, color: "bg-red-500/70" },
 ];
 
 const SCORE_MAX = 1842;
@@ -100,7 +100,7 @@ const DEPT_HEATMAP = [
   { dept: "Support",   avgScore: 19, users: 174, color: "bg-emerald-500/20 border-emerald-500/30", text: "text-emerald-400" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function scoreColor(score: number) {
   if (score >= 70) return "bg-red-500";
@@ -130,7 +130,7 @@ function EventTypeBadge({ type }: { type: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function UBADashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -164,7 +164,7 @@ export default function UBADashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Resolve KPI values — prefer live, fall back to mock counts
+  // Resolve KPI values = prefer live, fall back to mock counts
   const liveUsers  = Array.isArray(liveData?.users)  ? liveData.users  : null;
   const liveEvents = Array.isArray(liveData?.events) ? liveData.events : null;
   const liveAlerts = Array.isArray(liveData?.alerts) ? liveData.alerts : null;
@@ -174,12 +174,12 @@ export default function UBADashboard() {
   const kpiAnomaliestoday  = liveData?.stats?.anomalies_today ?? liveData?.stats?.total_events  ?? 47;
   const kpiAlertsOpen      = liveData?.stats?.open_alerts     ?? (liveAlerts?.length)            ?? 12;
 
-  // Table data — map API shape to mock shape if live data available
+  // Table data = map API shape to mock shape if live data available
   const tableUsers = liveUsers && liveUsers.length > 0
     ? liveUsers.map((u: any) => ({
-        username:  u.username ?? u.user_id ?? "—",
-        dept:      u.department ?? "—",
-        role:      u.role ?? "—",
+        username:  u.username ?? u.user_id ?? "=",
+        dept:      u.department ?? "=",
+        role:      u.role ?? "=",
         score:     Math.round(u.risk_score ?? u.score ?? 0),
         anomalies: u.anomaly_count ?? u.anomalies ?? 0,
         lastAlert: u.last_alert_type ?? u.last_event_type ?? "failed_login",
@@ -190,10 +190,10 @@ export default function UBADashboard() {
   // Anomaly events feed
   const tableEvents = liveEvents && liveEvents.length > 0
     ? liveEvents.map((e: any) => ({
-        username: e.user_id ?? e.username ?? "—",
+        username: e.user_id ?? e.username ?? "=",
         type:     e.event_type ?? "failed_login",
-        ip:       e.source_ip ?? "—",
-        ts:       e.timestamp ?? e.created_at ?? "—",
+        ip:       e.source_ip ?? "=",
+        ts:       e.timestamp ?? e.created_at ?? "=",
       }))
     : ANOMALY_EVENTS;
 
@@ -226,7 +226,7 @@ export default function UBADashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Users"      value={kpiTotalUsers}     icon={Users}         trend="up" />
-        <KpiCard title="High Risk (≥70)"  value={kpiHighRisk}       icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
+        <KpiCard title="High Risk (=70)"  value={kpiHighRisk}       icon={AlertTriangle}  trend="up"   className="border-red-500/20" />
         <KpiCard title="Anomalies Today"  value={kpiAnomaliestoday} icon={Activity}       trend="up"   className="border-amber-500/20" />
         <KpiCard title="Alerts Open"      value={kpiAlertsOpen}     icon={Bell}           trend="down" className="border-yellow-500/20" />
       </div>
@@ -243,7 +243,7 @@ export default function UBADashboard() {
               {HIGH_RISK_USERS.length} users
             </Badge>
           </div>
-          <CardDescription className="text-xs">Users with risk score ≥ 40, sorted by score descending</CardDescription>
+          <CardDescription className="text-xs">Users with risk score = 40, sorted by score descending</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -382,7 +382,7 @@ export default function UBADashboard() {
             <Building2 className="h-4 w-4 text-indigo-400" />
             Department Risk Heatmap
           </CardTitle>
-          <CardDescription className="text-xs">Average risk score per department — higher score = greater insider threat exposure</CardDescription>
+          <CardDescription className="text-xs">Average risk score per department = higher score = greater insider threat exposure</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,11 +1,11 @@
 /**
- * Patch Prioritizer — Intelligent Patch Prioritization Dashboard
+ * Patch Prioritizer = Intelligent Patch Prioritization Dashboard
  *
  * CVSS + EPSS + KEV composite scoring for vulnerability remediation:
- *   1. Top Metrics — Critical Patches Due, High Priority This Week, SLA compliance, Avg Time to Patch
- *   2. Priority Patch Queue — table sorted by composite score with color-coded rows
- *   3. Patch Groups — vendor/product grouping with aggregated metrics
- *   4. SLA Timeline — patches due in 7/14/30 day windows
+ *   1. Top Metrics = Critical Patches Due, High Priority This Week, SLA compliance, Avg Time to Patch
+ *   2. Priority Patch Queue = table sorted by composite score with color-coded rows
+ *   3. Patch Groups = vendor/product grouping with aggregated metrics
+ *   4. SLA Timeline = patches due in 7/14/30 day windows
  *
  * API: GET /api/v1/patch-prioritizer/queue, /api/v1/patch-prioritizer/groups
  * Fallback: mock data when API is unavailable
@@ -40,9 +40,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type KEVStatus = "Yes" | "No";
 
@@ -77,9 +77,9 @@ interface PatchPrioritizerData {
   avg_time_to_patch_days: number;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_PATCH_DATA: PatchPrioritizerData = {
   critical_patches_due: 3,
@@ -257,9 +257,9 @@ const MOCK_PATCH_DATA: PatchPrioritizerData = {
   ],
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function getScoreColor(score: number): string {
   if (score >= 80) return "bg-red-500/20 border-red-500/50";
@@ -282,9 +282,9 @@ function getScoreTextColor(score: number): string {
   return "text-blue-400";
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Progress Bar Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const CompositeScoreBar = ({ score }: { score: number }) => (
   <div className="flex items-center gap-2 w-full">
@@ -309,9 +309,9 @@ const CompositeScoreBar = ({ score }: { score: number }) => (
   </div>
 );
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function PatchPrioritizer() {
   const [sortBy, setSortBy] = useState<"score" | "deadline" | "cvss">("score");
@@ -410,11 +410,11 @@ export default function PatchPrioritizer() {
       {/* Header */}
       <PageHeader
         title="Patch Prioritizer"
-        subtitle="CVSS × EPSS × KEV composite scoring for vulnerability remediation"
+        subtitle="CVSS = EPSS = KEV composite scoring for vulnerability remediation"
         icon={Shield}
       />
 
-      {/* ── Scoring Explanation Banner ── */}
+      {/* == Scoring Explanation Banner == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -427,7 +427,7 @@ export default function PatchPrioritizer() {
               <div className="flex-1">
                 <p className="text-white font-semibold mb-1">Composite Score Formula</p>
                 <p className="text-sm text-gray-300">
-                  <span className="text-blue-400 font-mono">Priority = CVSS × EPSS × KEV_multiplier</span>
+                  <span className="text-blue-400 font-mono">Priority = CVSS = EPSS = KEV_multiplier</span>
                   {" "}where KEV_multiplier = 1.2 if exploited, 1.0 otherwise
                 </p>
               </div>
@@ -447,7 +447,7 @@ export default function PatchPrioritizer() {
         </Card>
       </motion.div>
 
-      {/* ── Top Metrics ── */}
+      {/* == Top Metrics == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -464,7 +464,7 @@ export default function PatchPrioritizer() {
           <KpiCard
             title="High Priority This Week"
             value={data.high_priority_this_week}
-            subtitle="Score ≥60, deadline ≤7d"
+            subtitle="Score =60, deadline =7d"
             icon={Zap}
             trend={{ value: 3, label: "vs last week" }}
           />
@@ -485,7 +485,7 @@ export default function PatchPrioritizer() {
         </div>
       </motion.div>
 
-      {/* ── Priority Patch Queue ── */}
+      {/* == Priority Patch Queue == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -611,7 +611,7 @@ export default function PatchPrioritizer() {
         </Card>
       </motion.div>
 
-      {/* ── Patch Groups ── */}
+      {/* == Patch Groups == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -655,14 +655,13 @@ export default function PatchPrioritizer() {
                     </div>
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* ── SLA Timeline ── */}
+      {/* == SLA Timeline == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -677,7 +676,7 @@ export default function PatchPrioritizer() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 rounded-lg bg-slate-800/30 border border-red-500/30">
+              <div className="p-4 rounded-lg bg-slate-800/30 border border-red-500/30" role="status" aria-live="polite">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-red-400" />
                   <p className="font-semibold text-white">Due in 7 Days</p>
@@ -708,7 +707,7 @@ export default function PatchPrioritizer() {
         </Card>
       </motion.div>
 
-      {/* ── Export Button ── */}
+      {/* == Export Button == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

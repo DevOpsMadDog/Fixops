@@ -1115,14 +1115,14 @@ export default function ComplianceDashboard() {
                     </div>
                     <div className="flex h-2 rounded-full overflow-hidden bg-muted">
                       <div className="bg-green-500 transition-all duration-700" style={{ width: `${passedPct}%` }} />
-                      <div className="bg-red-500/60 transition-all duration-700" style={{ width: `${failedPct}%` }} />
+                      <div className="bg-red-500/60 transition-all duration-700" style={{ width: `${failedPct}%` }} / role="status" aria-live="polite">
                     </div>
                   </div>
                 );
               })}
               <div className="flex items-center gap-4 pt-1 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-green-500" /> Passed</div>
-                <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-500/60" /> Failed</div>
+                <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-500/60" / role="status" aria-live="polite"> Failed</div>
               </div>
             </CardContent>
           </Card>

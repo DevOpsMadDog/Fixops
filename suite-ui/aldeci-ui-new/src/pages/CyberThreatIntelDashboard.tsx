@@ -37,19 +37,19 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_REPORTS = [
-  { id: "rpt-001", title: "Lazarus Group — Cloud Infrastructure Targeting",   intel_type: "threat_actor",  tlp: "red",   source_type: "ISAC",       confidence_score: 94, status: "published" },
-  { id: "rpt-002", title: "Cobalt Strike Beacon Campaign — APAC Region",      intel_type: "campaign",      tlp: "amber", source_type: "OSINT",      confidence_score: 87, status: "published" },
-  { id: "rpt-003", title: "RansomHub Affiliate TTPs — Q1 2026",               intel_type: "ransomware",    tlp: "amber", source_type: "Vendor",     confidence_score: 91, status: "published" },
+  { id: "rpt-001", title: "Lazarus Group = Cloud Infrastructure Targeting",   intel_type: "threat_actor",  tlp: "red",   source_type: "ISAC",       confidence_score: 94, status: "published" },
+  { id: "rpt-002", title: "Cobalt Strike Beacon Campaign = APAC Region",      intel_type: "campaign",      tlp: "amber", source_type: "OSINT",      confidence_score: 87, status: "published" },
+  { id: "rpt-003", title: "RansomHub Affiliate TTPs = Q1 2026",               intel_type: "ransomware",    tlp: "amber", source_type: "Vendor",     confidence_score: 91, status: "published" },
   { id: "rpt-004", title: "Zero-Day Exploit: Citrix ADC (CVE-2026-1234)",     intel_type: "vulnerability", tlp: "red",   source_type: "Internal",   confidence_score: 98, status: "published" },
-  { id: "rpt-005", title: "TA505 Phishing Kit — Financial Sector",            intel_type: "phishing",      tlp: "amber", source_type: "ISAC",       confidence_score: 82, status: "draft"     },
+  { id: "rpt-005", title: "TA505 Phishing Kit = Financial Sector",            intel_type: "phishing",      tlp: "amber", source_type: "ISAC",       confidence_score: 82, status: "draft"     },
   { id: "rpt-006", title: "APT41 Supply Chain Compromise Indicators",          intel_type: "threat_actor",  tlp: "red",   source_type: "Government", confidence_score: 96, status: "published" },
-  { id: "rpt-007", title: "Conti Successor Group — Infrastructure Reuse",     intel_type: "campaign",      tlp: "white", source_type: "OSINT",      confidence_score: 74, status: "published" },
-  { id: "rpt-008", title: "Malicious PyPI Packages — SolarStorm Variant",     intel_type: "malware",       tlp: "green", source_type: "Internal",   confidence_score: 89, status: "published" },
-  { id: "rpt-009", title: "DNS Tunneling Campaign — C2 Infrastructure Map",   intel_type: "infrastructure",tlp: "amber", source_type: "Vendor",     confidence_score: 83, status: "review"    },
-  { id: "rpt-010", title: "BEC Campaign — Executive Impersonation via AI",    intel_type: "social_eng",    tlp: "green", source_type: "OSINT",      confidence_score: 77, status: "published" },
+  { id: "rpt-007", title: "Conti Successor Group = Infrastructure Reuse",     intel_type: "campaign",      tlp: "white", source_type: "OSINT",      confidence_score: 74, status: "published" },
+  { id: "rpt-008", title: "Malicious PyPI Packages = SolarStorm Variant",     intel_type: "malware",       tlp: "green", source_type: "Internal",   confidence_score: 89, status: "published" },
+  { id: "rpt-009", title: "DNS Tunneling Campaign = C2 Infrastructure Map",   intel_type: "infrastructure",tlp: "amber", source_type: "Vendor",     confidence_score: 83, status: "review"    },
+  { id: "rpt-010", title: "BEC Campaign = Executive Impersonation via AI",    intel_type: "social_eng",    tlp: "green", source_type: "OSINT",      confidence_score: 77, status: "published" },
 ];
 
 const MOCK_STATS = {
@@ -59,7 +59,7 @@ const MOCK_STATS = {
   high_confidence_reports: 194,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function TLPBadge({ tlp }: { tlp: string }) {
   const map: Record<string, string> = {
@@ -94,7 +94,7 @@ function ConfidenceBar({ score }: { score: number }) {
   return <span className={cn("font-mono text-[11px]", color)}>{score}%</span>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CyberThreatIntelDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -135,7 +135,7 @@ export default function CyberThreatIntelDashboard() {
     >
       <PageHeader
         title="Cyber Threat Intelligence"
-        description="Strategic threat intelligence — reports, IOC feeds, TLP classification, and confidence-scored adversary analysis"
+        description="Strategic threat intelligence = reports, IOC feeds, TLP classification, and confidence-scored adversary analysis"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -190,16 +190,16 @@ export default function CyberThreatIntelDashboard() {
                   reports.map((report: any, i: number) => (
                   <TableRow key={report.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-orange-300 max-w-[240px] truncate">
-                      {report.title ?? "—"}
+                      {report.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(report.intel_type ?? "—").replace(/_/g, " ")}
+                      {(report.intel_type ?? "=").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <TLPBadge tlp={report.tlp ?? "white"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-amber-300 font-mono">
-                      {report.source_type ?? "—"}
+                      {report.source_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <ConfidenceBar score={report.confidence_score ?? 0} />

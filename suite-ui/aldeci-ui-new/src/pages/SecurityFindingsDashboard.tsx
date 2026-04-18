@@ -18,7 +18,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { Bug, Shield, AlertTriangle, CheckCircle2, Filter, BarChart2, FileText } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface Finding {
   id: string;
@@ -39,7 +39,7 @@ interface Finding {
   last_seen: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const FINDINGS: Finding[] = [
   {
@@ -96,7 +96,7 @@ const FINDINGS: Finding[] = [
     description: "Device IOT-SENS-003 still using vendor default password 'admin/admin' on SSH port 22.",
     remediation: "Change default credentials. Disable SSH if not needed. Place behind jump host.",
     evidence: ["shodan-alert-2026-04-10.json"],
-    suppressed_by: "it-admin", suppressed_reason: "Legacy device — cannot update until Q3 refresh",
+    suppressed_by: "it-admin", suppressed_reason: "Legacy device = cannot update until Q3 refresh",
     first_seen: "2026-04-10", last_seen: "2026-04-16",
   },
   {
@@ -133,7 +133,7 @@ const FINDINGS: Finding[] = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const severityColor: Record<Finding["severity"], string> = {
   critical: "bg-red-600 text-white",
@@ -172,7 +172,7 @@ const ALL_SEVERITIES = ["all","critical","high","medium","low","informational"] 
 const ALL_STATUSES = ["all","open","in_review","resolved","suppressed","accepted_risk"] as const;
 const ALL_TOOLS = ["all", ...Array.from(new Set(FINDINGS.map(f => f.source_tool)))];
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityFindingsDashboard() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
@@ -219,12 +219,12 @@ export default function SecurityFindingsDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -428,7 +428,7 @@ export default function SecurityFindingsDashboard() {
       {/* Findings table */}
       <div className="bg-gray-800 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead className="bg-gray-700/50">
               <tr>
                 {["Title","Type","Source","Severity","CVSS","Asset","Status","Count"].map(h => (

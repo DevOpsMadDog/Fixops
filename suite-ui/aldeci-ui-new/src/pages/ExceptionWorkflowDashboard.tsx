@@ -19,7 +19,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// == Types =====================================================================
 
 type ExceptionStatus = "pending" | "approved" | "rejected" | "needs-info" | "expired";
 type ExceptionType = "policy-waiver" | "risk-acceptance" | "compensating-control" | "temporary-bypass" | "architectural-exception";
@@ -53,14 +53,14 @@ interface RenewalHistory {
   new_expiry: string;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_EXCEPTIONS: ExceptionRequest[] = [
   { id: "exc-001", policy_name: "Multi-Factor Authentication Policy",      exception_type: "policy-waiver",           requestor: "Alice Chen",     department: "Engineering",   priority: "critical", status: "pending",   submitted_at: "2026-04-10", expires_at: "2026-04-30", risk_rating: 82, reviewer: "Bob Smith",   decision: null,        decision_date: null,          justification: "Legacy system cannot support MFA integration currently." },
-  { id: "exc-002", policy_name: "Privileged Access Management Standard",   exception_type: "compensating-control",    requestor: "Dan Lee",        department: "IT Ops",        priority: "high",     status: "approved",  submitted_at: "2026-03-15", expires_at: "2026-05-10", risk_rating: 65, reviewer: "Carol Wu",    decision: "approved",  decision_date: "2026-03-18",  justification: "Compensating control deployed — network segmentation active." },
-  { id: "exc-003", policy_name: "Data Encryption at Rest Policy",          exception_type: "risk-acceptance",         requestor: "Eve Martinez",   department: "Finance",       priority: "high",     status: "rejected",  submitted_at: "2026-04-01", expires_at: "2026-06-01", risk_rating: 91, reviewer: "Frank Ng",    decision: "rejected",  decision_date: "2026-04-03",  justification: "Encryption overhead claimed too high — rejected, remediation required." },
+  { id: "exc-002", policy_name: "Privileged Access Management Standard",   exception_type: "compensating-control",    requestor: "Dan Lee",        department: "IT Ops",        priority: "high",     status: "approved",  submitted_at: "2026-03-15", expires_at: "2026-05-10", risk_rating: 65, reviewer: "Carol Wu",    decision: "approved",  decision_date: "2026-03-18",  justification: "Compensating control deployed = network segmentation active." },
+  { id: "exc-003", policy_name: "Data Encryption at Rest Policy",          exception_type: "risk-acceptance",         requestor: "Eve Martinez",   department: "Finance",       priority: "high",     status: "rejected",  submitted_at: "2026-04-01", expires_at: "2026-06-01", risk_rating: 91, reviewer: "Frank Ng",    decision: "rejected",  decision_date: "2026-04-03",  justification: "Encryption overhead claimed too high = rejected, remediation required." },
   { id: "exc-004", policy_name: "Vulnerability Remediation SLA",           exception_type: "temporary-bypass",        requestor: "Grace Kim",      department: "Product",       priority: "medium",   status: "needs-info", submitted_at: "2026-04-08", expires_at: "2026-05-20", risk_rating: 58, reviewer: "Henry Park",  decision: "needs-info", decision_date: "2026-04-09",  justification: "Additional context required on affected asset scope." },
-  { id: "exc-005", policy_name: "Network Segmentation Requirement",        exception_type: "architectural-exception", requestor: "Ivan Torres",    department: "Cloud Infra",   priority: "critical", status: "approved",  submitted_at: "2026-02-20", expires_at: "2026-04-25", risk_rating: 74, reviewer: "Jana Wells",  decision: "approved",  decision_date: "2026-02-23",  justification: "Migration to new VPC architecture in progress — 90-day grace period approved." },
+  { id: "exc-005", policy_name: "Network Segmentation Requirement",        exception_type: "architectural-exception", requestor: "Ivan Torres",    department: "Cloud Infra",   priority: "critical", status: "approved",  submitted_at: "2026-02-20", expires_at: "2026-04-25", risk_rating: 74, reviewer: "Jana Wells",  decision: "approved",  decision_date: "2026-02-23",  justification: "Migration to new VPC architecture in progress = 90-day grace period approved." },
   { id: "exc-006", policy_name: "Software Composition Analysis Gate",      exception_type: "policy-waiver",           requestor: "Karl Stone",     department: "DevOps",        priority: "medium",   status: "approved",  submitted_at: "2026-03-28", expires_at: "2026-05-28", risk_rating: 44, reviewer: "Lisa Ray",    decision: "approved",  decision_date: "2026-04-01",  justification: "SCA tooling upgrade in progress; manual review process active." },
   { id: "exc-007", policy_name: "Endpoint Detection & Response Coverage",  exception_type: "compensating-control",    requestor: "Mike Adams",     department: "HR",            priority: "low",      status: "expired",   submitted_at: "2026-01-01", expires_at: "2026-04-01", risk_rating: 37, reviewer: "Nina Patel",  decision: "approved",  decision_date: "2026-01-05",  justification: "HR kiosks exempt; physical security compensates." },
   { id: "exc-008", policy_name: "Password Complexity Policy",              exception_type: "risk-acceptance",         requestor: "Olivia Brown",   department: "Customer Svc",  priority: "high",     status: "pending",   submitted_at: "2026-04-12", expires_at: "2026-06-12", risk_rating: 69, reviewer: "Paul Davis",  decision: null,        decision_date: null,          justification: "Legacy CRM vendor constrains password length to 8 chars." },
@@ -72,7 +72,7 @@ const MOCK_RENEWALS: RenewalHistory[] = [
   { id: "ren-003", exception_id: "exc-005", policy_name: "Network Segmentation Requirement",       renewed_by: "Ivan Torres", renewed_at: "2026-02-19", previous_expiry: "2026-02-20", new_expiry: "2026-04-25" },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 const TODAY = new Date("2026-04-16");
 
@@ -127,7 +127,7 @@ function typeLabel(t: ExceptionType): string {
   return t.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function ExceptionWorkflowDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("exc-001");
@@ -162,10 +162,10 @@ export default function ExceptionWorkflowDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -175,7 +175,7 @@ export default function ExceptionWorkflowDashboard() {
             <ShieldAlert className="w-6 h-6 text-amber-400" />
             Exception Workflow
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Security exception requests — review, approve, and track renewals</p>
+          <p className="text-gray-400 text-sm mt-1">Security exception requests = review, approve, and track renewals</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -201,7 +201,7 @@ export default function ExceptionWorkflowDashboard() {
 
       {/* Expired alert */}
       {expired.length > 0 && (
-        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-4" role="status" aria-live="polite">
           <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <span className="text-red-300 text-sm font-medium">
             {expired.length} expired exception{expired.length > 1 ? "s" : ""} require immediate action.
@@ -223,8 +223,7 @@ export default function ExceptionWorkflowDashboard() {
             <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
             <div className="text-gray-400 text-xs mt-1">{k.label}</div>
           </div>
-        ))
-        )}
+        ))}
       </div>
 
       {/* Status filter tabs */}
@@ -254,7 +253,7 @@ export default function ExceptionWorkflowDashboard() {
             <h2 className="font-semibold text-white">Exception Requests</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
                   <th className="text-left p-3">Policy</th>
@@ -394,7 +393,7 @@ export default function ExceptionWorkflowDashboard() {
                     Renewed by {r.renewed_by} on {r.renewed_at}
                   </div>
                   <div className="text-gray-500 text-xs mt-0.5">
-                    {r.previous_expiry} → <span className="text-green-400">{r.new_expiry}</span>
+                    {r.previous_expiry} = <span className="text-green-400">{r.new_expiry}</span>
                   </div>
                 </div>
               )))}

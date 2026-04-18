@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock Data ──────────────────────────────────────────────────
+// == Mock Data ==================================================
 
 const MOCK_REPORTS = [
   {
@@ -94,7 +94,7 @@ const MOCK_REPORTS = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-green-500/15 text-green-400 border-green-500/30",
@@ -150,12 +150,12 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
   return (
     <div className="flex items-center gap-2 w-full">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -168,7 +168,7 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function PostureReportingDashboard() {
   const [selectedReport, setSelectedReport] = useState(MOCK_REPORTS[0]);
@@ -264,7 +264,7 @@ export default function PostureReportingDashboard() {
                 <Badge className={cn("text-[9px] border capitalize", STATUS_COLORS[r.status])}>{r.status}</Badge>
               </div>
               <ScoreBar value={r.overall_score} />
-              <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
+              <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} = {r.period_end}</p>
             </motion.div>
           )))}
         </div>
@@ -275,7 +275,7 @@ export default function PostureReportingDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm text-zinc-200">Sections — {selectedReport.report_name}</CardTitle>
+                <CardTitle className="text-sm text-zinc-200">Sections = {selectedReport.report_name}</CardTitle>
                 {selectedReport.status === "draft" && (
                   <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs">
                     <Send className="h-3 w-3 mr-1" /> Publish
@@ -298,8 +298,7 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -310,7 +309,7 @@ export default function PostureReportingDashboard() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table role="table" className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-700">
                       <th className="text-left py-2 text-zinc-500 font-medium">Metric</th>
@@ -329,8 +328,7 @@ export default function PostureReportingDashboard() {
                         <td className="py-2 flex justify-center"><TrendIcon trend={m.trend} /></td>
                         <td className="py-2 text-right text-zinc-500 font-mono">{m.benchmark_value}{m.unit}</td>
                       </tr>
-                    ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>

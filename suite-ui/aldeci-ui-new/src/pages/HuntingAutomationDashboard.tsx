@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock Data ──────────────────────────────────────────────────
+// == Mock Data ==================================================
 
 const MOCK_HYPOTHESES = [
   {
@@ -59,8 +59,8 @@ const MOCK_HYPOTHESES = [
       { id: "q-005", query_name: "YARA DNS Tunnel Pattern", language: "YARA", data_source: "PCAP", execution_count: 6, findings_count: 1, avg_execution_secs: 45.8, last_executed: "2026-04-15T22:00:00Z" },
     ],
     executions: [
-      { id: "ex-003", status: "running", records_scanned: 500000, findings: 0, notes: "In progress — scanning Finance VLAN", ran_at: "2026-04-16T10:45:00Z" },
-      { id: "ex-004", status: "failed", records_scanned: 0, findings: 0, notes: "Data source timeout — DNS logs unavailable", ran_at: "2026-04-16T09:55:00Z" },
+      { id: "ex-003", status: "running", records_scanned: 500000, findings: 0, notes: "In progress = scanning Finance VLAN", ran_at: "2026-04-16T10:45:00Z" },
+      { id: "ex-004", status: "failed", records_scanned: 0, findings: 0, notes: "Data source timeout = DNS logs unavailable", ran_at: "2026-04-16T09:55:00Z" },
     ],
   },
   {
@@ -75,7 +75,7 @@ const MOCK_HYPOTHESES = [
       { id: "q-007", query_name: "npm postinstall hooks", language: "sigma", data_source: "EDR", execution_count: 15, findings_count: 2, avg_execution_secs: 6.3, last_executed: "2026-04-16T10:00:00Z" },
     ],
     executions: [
-      { id: "ex-005", status: "completed", records_scanned: 900000, findings: 4, notes: "4 builds triggered encoded PS — package react-loader-v2", ran_at: "2026-04-16T10:30:00Z" },
+      { id: "ex-005", status: "completed", records_scanned: 900000, findings: 4, notes: "4 builds triggered encoded PS = package react-loader-v2", ran_at: "2026-04-16T10:30:00Z" },
     ],
   },
   {
@@ -89,12 +89,12 @@ const MOCK_HYPOTHESES = [
       { id: "q-008", query_name: "VPN Auth After Term Date", language: "EQL", data_source: "IAM", execution_count: 10, findings_count: 0, avg_execution_secs: 14.2, last_executed: "2026-04-15T18:00:00Z" },
     ],
     executions: [
-      { id: "ex-006", status: "completed", records_scanned: 240000, findings: 0, notes: "No matches found — investigating token lifespan settings", ran_at: "2026-04-15T18:00:00Z" },
+      { id: "ex-006", status: "completed", records_scanned: 240000, findings: 0, notes: "No matches found = investigating token lifespan settings", ran_at: "2026-04-15T18:00:00Z" },
     ],
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const CATEGORY_COLORS: Record<string, string> = {
   "lateral-movement": "bg-red-500/15 text-red-400 border-red-500/30",
@@ -143,7 +143,7 @@ function timeAgo(iso: string) {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function HuntingAutomationDashboard() {
   const [selectedHyp, setSelectedHyp] = useState(MOCK_HYPOTHESES[0]);
@@ -187,9 +187,9 @@ export default function HuntingAutomationDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -269,14 +269,12 @@ export default function HuntingAutomationDashboard() {
                           </div>
                         </div>
                       </div>
-                    ))
-                  )}
+                    ))}
                   </motion.div>
                 )}
               </div>
             </Card>
-          ))
-          )}
+          ))}
         </div>
 
         {/* High-yield Queries Panel */}

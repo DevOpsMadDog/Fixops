@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_vulns: 38,
@@ -66,7 +66,7 @@ const MOCK_ACTORS = [
   { actor_name: "DarkNexus",   actor_type: "criminal",     confidence_score: 58, vulnerability_id: "CVE-2025-7743" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function DisclosureBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -127,7 +127,7 @@ function cvssColor(score: number): string {
   return "text-green-400";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ZeroDayIntelligenceDashboard() {
   const [refreshing, setRefreshing] = useState(false);

@@ -19,7 +19,7 @@ import {
   BarChart2,
 } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface CSFDomain {
   name: string;
@@ -51,7 +51,7 @@ interface Snapshot {
   score: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CSF_DOMAINS: CSFDomain[] = [
   { name: "Identify", key: "identify", maturity: 4, score: 82, color: "#38bdf8" },
@@ -97,7 +97,7 @@ const HISTORY: Snapshot[] = [
   { date: "Apr", score: 67 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function Stars({ count, max = 5 }: { count: number; max?: number }) {
   return (
@@ -142,7 +142,7 @@ function lessonStatus(s: string) {
   return <span className={`text-xs font-medium ${map[s] ?? "text-gray-400"}`}>{s.replace("_", " ")}</span>;
 }
 
-// ── SVG Arc Gauge ──────────────────────────────────────────────
+// == SVG Arc Gauge ==============================================
 
 function ArcGauge({ score }: { score: number }) {
   const r = 60;
@@ -181,7 +181,7 @@ function ArcGauge({ score }: { score: number }) {
   );
 }
 
-// ── Sparkline ──────────────────────────────────────────────────
+// == Sparkline ==================================================
 
 function Sparkline({ data }: { data: Snapshot[] }) {
   if (data.length < 2) return null;
@@ -217,7 +217,7 @@ function Sparkline({ data }: { data: Snapshot[] }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CyberResilienceDashboard() {
   const [metricFilter, setMetricFilter] = useState<string>("all");
@@ -239,10 +239,10 @@ export default function CyberResilienceDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -283,7 +283,7 @@ export default function CyberResilienceDashboard() {
                   <span className="font-semibold text-sm" style={{ color: d.color }}>{d.name}</span>
                   <Stars count={d.maturity} />
                 </div>
-                <div className="text-xs text-gray-400 mb-1">Level {d.maturity}/5 · Score {d.score}</div>
+                <div className="text-xs text-gray-400 mb-1">Level {d.maturity}/5 = Score {d.score}</div>
                 <div className="bg-gray-700 rounded-full h-2">
                   <div
                     className="h-2 rounded-full"
@@ -301,7 +301,7 @@ export default function CyberResilienceDashboard() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <BarChart2 size={18} className="text-green-400" /> Exercise Tracker
         </h2>
-        <table className="w-full text-sm">
+        <table role="table" className="w-full text-sm">
           <thead>
             <tr className="text-gray-400 border-b border-gray-700">
               <th className="text-left py-2">Exercise</th>
@@ -329,7 +329,7 @@ export default function CyberResilienceDashboard() {
                   {ex.findings_count > 0 ? (
                     <span className="text-orange-400 font-medium">{ex.findings_count}</span>
                   ) : (
-                    <span className="text-gray-500">—</span>
+                    <span className="text-gray-500">=</span>
                   )}
                 </td>
                 <td className="py-2 pl-4 text-gray-400">{ex.scheduled_date}</td>

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_REQUESTS = [
   { id: "req-001", resource: "prod-db-primary",       access_type: "read",       requester_id: "alice@corp.io",   status: "approved", request_date: "2026-04-14T09:10:00Z", expires_at: "2026-05-14T09:10:00Z" },
@@ -54,7 +54,7 @@ const MOCK_REQUESTS = [
 
 const MOCK_STATS = { total_requests: 284, pending: 41, approved: 198, avg_approval_time_hrs: 3.7 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -71,7 +71,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatTs(ts: string | null) {
-  if (!ts) return "—";
+  if (!ts) return "=";
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
@@ -84,7 +84,7 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AccessRequestManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -125,7 +125,7 @@ export default function AccessRequestManagementDashboard() {
     >
       <PageHeader
         title="Access Request Management"
-        description="Access provisioning lifecycle — track pending approvals, granted access, and expiry enforcement"
+        description="Access provisioning lifecycle = track pending approvals, granted access, and expiry enforcement"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -185,13 +185,13 @@ export default function AccessRequestManagementDashboard() {
                   requests.map((req: any, i: number) => (
                   <TableRow key={req.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-blue-300 max-w-[180px] truncate">
-                      {req.resource ?? "—"}
+                      {req.resource ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-cyan-300">
-                      {req.access_type ?? "—"}
+                      {req.access_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {req.requester_id ?? "—"}
+                      {req.requester_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={req.status ?? "pending"} />

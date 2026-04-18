@@ -1,7 +1,7 @@
 /**
  * Vulnerability Intelligence Fusion Dashboard
  *
- * Multi-source CVE intelligence fusion — CVSS, EPSS, KEV, fusion scoring.
+ * Multi-source CVE intelligence fusion = CVSS, EPSS, KEV, fusion scoring.
  *   1. KPI cards: total CVEs, KEV count (alert), critical count, avg fusion score
  *   2. CVE table (cvss badge, epss, kev badge, severity, fusion score bar, source count, affected assets)
  *   3. Source ingest panel (per-CVE source contributions)
@@ -42,7 +42,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_CVES = [
   { cve_id: "CVE-2024-3400",  cvss: 10.0, epss: 0.972, kev: true,  severity: "critical", fusion_score: 98, source_count: 5, affected_assets: 12 },
@@ -95,7 +95,7 @@ const CRITICAL_COUNT = MOCK_CVES.filter(c => c.severity === "critical").length;
 const AVG_FUSION     = (MOCK_CVES.reduce((s, c) => s + c.fusion_score, 0) / MOCK_CVES.length).toFixed(1);
 const PRIORITY_QUEUE = [...MOCK_CVES].sort((a, b) => b.fusion_score - a.fusion_score).slice(0, 10);
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function CvssBadge({ score }: { score: number }) {
   const cls = score >= 9 ? "border-red-500/30 text-red-400 bg-red-500/10"
@@ -134,12 +134,12 @@ function FusionBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -152,7 +152,7 @@ function FusionBar({ score }: { score: number }) {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function VulnIntelFusionDashboard() {
   const [selectedCve, setSelectedCve] = useState<string>("CVE-2024-3400");
@@ -194,7 +194,7 @@ export default function VulnIntelFusionDashboard() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       <PageHeader
         title="Vulnerability Intelligence Fusion"
-        description="Multi-source CVE intelligence fusion — CVSS, EPSS, CISA KEV, and composite scoring"
+        description="Multi-source CVE intelligence fusion = CVSS, EPSS, CISA KEV, and composite scoring"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
@@ -294,7 +294,7 @@ export default function VulnIntelFusionDashboard() {
                     <TableCell className="py-2">
                       {c.kev
                         ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">KEV</Badge>
-                        : <span className="text-[10px] text-muted-foreground">—</span>}
+                        : <span className="text-[10px] text-muted-foreground">=</span>}
                     </TableCell>
                     <TableCell className="py-2"><SeverityBadge s={c.severity} /></TableCell>
                     <TableCell className="py-2 min-w-[120px]"><FusionBar score={c.fusion_score} /></TableCell>
@@ -351,7 +351,7 @@ export default function VulnIntelFusionDashboard() {
                         <TableCell className="py-2">
                           {s.kev
                             ? <Badge className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">KEV</Badge>
-                            : <span className="text-[10px] text-muted-foreground">—</span>}
+                            : <span className="text-[10px] text-muted-foreground">=</span>}
                         </TableCell>
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
@@ -426,7 +426,7 @@ export default function VulnIntelFusionDashboard() {
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">top 10 by fusion score</Badge>
           </div>
-          <CardDescription className="text-xs">Ordered by composite fusion score — address in this sequence</CardDescription>
+          <CardDescription className="text-xs">Ordered by composite fusion score = address in this sequence</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">

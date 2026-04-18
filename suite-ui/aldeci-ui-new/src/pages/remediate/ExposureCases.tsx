@@ -575,8 +575,7 @@ export default function ExposureCases() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
           </Table>
           </div>

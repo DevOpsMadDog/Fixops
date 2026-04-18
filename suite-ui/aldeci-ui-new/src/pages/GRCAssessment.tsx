@@ -1,8 +1,8 @@
 /**
- * GRCAssessment — Control testing, gap analysis, and audit readiness
+ * GRCAssessment = Control testing, gap analysis, and audit readiness
  *
  * Route: /grc-assessment
- * Note: GRCDashboard already exists at /grc — this is a detailed assessment view.
+ * Note: GRCDashboard already exists at /grc = this is a detailed assessment view.
  *
  * Sections:
  *   1. KPIs: Assessments, Controls Tested, Pass Rate, Gaps Found
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 type Framework = "SOC2" | "ISO27001" | "NIST-CSF" | "PCI-DSS" | "HIPAA";
 
@@ -133,13 +133,13 @@ const CONTROLS: Record<Framework, Control[]> = {
     { ref: "164.308(a)(6)", title: "Security incident procedures",            category: "Administrative",  status: "implemented",     evidence: 9,  owner: "IR Team",   due: "2026-06-30" },
     { ref: "164.308(a)(7)", title: "Contingency plan documented",             category: "Administrative",  status: "partial",         evidence: 2,  owner: "Risk Team", due: "2026-05-15" },
     { ref: "164.310(a)(1)", title: "Facility access controls",                category: "Physical",        status: "implemented",     evidence: 6,  owner: "Facilities", due: "2026-06-30" },
-    { ref: "164.312(a)(1)", title: "Access control — unique user IDs",        category: "Technical",       status: "implemented",     evidence: 12, owner: "IAM Team",  due: "2026-06-30" },
+    { ref: "164.312(a)(1)", title: "Access control = unique user IDs",        category: "Technical",       status: "implemented",     evidence: 12, owner: "IAM Team",  due: "2026-06-30" },
     { ref: "164.312(a)(2)", title: "Emergency access procedure",              category: "Technical",       status: "not_implemented", evidence: 0,  owner: "SecOps",    due: "2026-04-22" },
-    { ref: "164.312(b)",   title: "Audit controls — hardware and software",   category: "Technical",       status: "implemented",     evidence: 11, owner: "SecOps",    due: "2026-06-30" },
-    { ref: "164.312(c)(1)", title: "Integrity — PHI not improperly altered",  category: "Technical",       status: "implemented",     evidence: 8,  owner: "DataSec",   due: "2026-06-30" },
+    { ref: "164.312(b)",   title: "Audit controls = hardware and software",   category: "Technical",       status: "implemented",     evidence: 11, owner: "SecOps",    due: "2026-06-30" },
+    { ref: "164.312(c)(1)", title: "Integrity = PHI not improperly altered",  category: "Technical",       status: "implemented",     evidence: 8,  owner: "DataSec",   due: "2026-06-30" },
     { ref: "164.312(d)",   title: "Person or entity authentication",          category: "Technical",       status: "implemented",     evidence: 9,  owner: "IAM Team",  due: "2026-06-30" },
-    { ref: "164.312(e)(1)", title: "Transmission security — encryption",      category: "Technical",       status: "implemented",     evidence: 10, owner: "NetSec",    due: "2026-06-30" },
-    { ref: "164.316(b)",   title: "Documentation — policies retained 6yrs",  category: "Policies",        status: "partial",         evidence: 3,  owner: "GRC Team",  due: "2026-05-01" },
+    { ref: "164.312(e)(1)", title: "Transmission security = encryption",      category: "Technical",       status: "implemented",     evidence: 10, owner: "NetSec",    due: "2026-06-30" },
+    { ref: "164.316(b)",   title: "Documentation = policies retained 6yrs",  category: "Policies",        status: "partial",         evidence: 3,  owner: "GRC Team",  due: "2026-05-01" },
   ],
 };
 
@@ -147,7 +147,7 @@ const GAPS = [
   {
     priority: "Critical",
     count: 12,
-    timeline: "Immediate — due within 30 days",
+    timeline: "Immediate = due within 30 days",
     color: "border-red-500/30 bg-red-500/10",
     text: "text-red-400",
     desc: "Controls not yet implemented with direct audit impact. Examiner findings likely if unresolved.",
@@ -155,7 +155,7 @@ const GAPS = [
   {
     priority: "High",
     count: 34,
-    timeline: "Short-term — due within 60 days",
+    timeline: "Short-term = due within 60 days",
     color: "border-amber-500/30 bg-amber-500/10",
     text: "text-amber-400",
     desc: "Partially implemented controls. Evidence insufficient or processes not consistently followed.",
@@ -163,7 +163,7 @@ const GAPS = [
   {
     priority: "Medium",
     count: 62,
-    timeline: "Medium-term — due within 90 days",
+    timeline: "Medium-term = due within 90 days",
     color: "border-yellow-500/30 bg-yellow-500/10",
     text: "text-yellow-400",
     desc: "Process improvements and documentation updates needed. No immediate audit risk.",
@@ -174,7 +174,7 @@ const READINESS_PCT = 82;
 const READINESS_COMPLETE = ["Access Controls (100%)", "Encryption (100%)", "Logging (97%)", "Incident Response (91%)", "Vulnerability Mgmt (84%)"];
 const READINESS_NEEDED   = ["Data Classification (47%)", "DLP Implementation (0%)", "Pen Test Evidence (60%)", "Recovery Procedures (55%)"];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function ControlStatusBadge({ status }: { status: ControlStatus }) {
   const map: Record<ControlStatus, string> = {
@@ -222,7 +222,7 @@ function AuditGauge({ pct }: { pct: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function GRCAssessment() {
   const [refreshing, setRefreshing] = useState(false);
@@ -296,7 +296,7 @@ export default function GRCAssessment() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4 text-blue-400" />
-            Control Assessment — {framework}
+            Control Assessment = {framework}
           </CardTitle>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {FRAMEWORKS.length === 0 ? (

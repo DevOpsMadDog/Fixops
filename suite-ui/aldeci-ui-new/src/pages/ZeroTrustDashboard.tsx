@@ -31,9 +31,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type Action = "Allow" | "Deny" | "Quarantine" | "Step-Up Auth";
 type MaturityLevel = "Traditional" | "Basic" | "Intermediate" | "Advanced" | "Optimal";
@@ -72,9 +72,9 @@ interface ZeroTrustData {
   decisions: Decision[];
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_ZERO_TRUST_DATA: ZeroTrustData = {
   score: 72,
@@ -112,7 +112,7 @@ const MOCK_ZERO_TRUST_DATA: ZeroTrustData = {
       name: "Data",
       maturity: 65,
       status: "Critical",
-      findings: ["Encryption in transit: 89% compliant", "Classification coverage: 42% — needs expansion"],
+      findings: ["Encryption in transit: 89% compliant", "Classification coverage: 42% = needs expansion"],
       icon: <Database className="w-5 h-5" />,
     },
   ],
@@ -218,9 +218,9 @@ const MOCK_ZERO_TRUST_DATA: ZeroTrustData = {
   ],
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // SVG Components
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 /**
  * Zero Trust Score Gauge (SVG circular progress)
@@ -314,8 +314,8 @@ const MicroSegmentationMap = () => {
           <div className="text-gray-400 text-xs">Privileged access</div>
         </div>
 
-        <div className="border border-red-500/50 bg-red-500/10 px-3 py-2 rounded">
-          <div className="text-red-400 font-semibold">Zone 5: Isolated</div>
+        <div className="border border-red-500/50 bg-red-500/10 px-3 py-2 rounded" role="status" aria-live="polite">
+          <div className="text-red-400 font-semibold" role="status" aria-live="polite">Zone 5: Isolated</div>
           <div className="text-gray-400 text-xs">High-risk systems</div>
         </div>
 
@@ -329,16 +329,16 @@ const MicroSegmentationMap = () => {
 
       <div className="text-gray-400 text-xs space-y-1">
         <div>Zone Connections:</div>
-        <div className="ml-2">DMZ ↔ Corp (strict rules) | Corp ↔ Data (auth required)</div>
-        <div className="ml-2">Admin → All (with approval) | Guest (isolated)</div>
+        <div className="ml-2">DMZ = Corp (strict rules) | Corp = Data (auth required)</div>
+        <div className="ml-2">Admin = All (with approval) | Guest (isolated)</div>
       </div>
     </div>
   );
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function ZeroTrustDashboard() {
   const [expandedPolicy, setExpandedPolicy] = useState<string | null>(null);
@@ -434,7 +434,7 @@ export default function ZeroTrustDashboard() {
                     <div className="space-y-1">
                       {pillar.findings.map((finding, idx) => (
                         <div key={idx} className="text-xs text-gray-400 flex gap-2">
-                          <span className="text-gray-600 flex-shrink-0">•</span>
+                          <span className="text-gray-600 flex-shrink-0">=</span>
                           <span>{finding}</span>
                         </div>
                       ))}

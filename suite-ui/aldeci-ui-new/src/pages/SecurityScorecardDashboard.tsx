@@ -5,8 +5,8 @@
  *   1. Overall grade circle (A/B/C/D/F, large, color-coded)
  *   2. 6 domain score progress bars: Identity, Endpoint, Network, Cloud, Data, Application
  *   3. 30-day score trend chart (div-based bar chart)
- *   4. Peer benchmarking panel — percentile rank vs. industry
- *   5. "Generate Scorecard" button → POST /api/v1/security-scorecard/scorecards
+ *   4. Peer benchmarking panel = percentile rank vs. industry
+ *   5. "Generate Scorecard" button = POST /api/v1/security-scorecard/scorecards
  *
  * API: GET /api/v1/security-scorecard/ (mock until router deployed)
  */
@@ -33,7 +33,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface DomainScore {
   domain: string;
@@ -53,7 +53,7 @@ interface ScorecardData {
   domains: DomainScore[];
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SCORECARD: ScorecardData = {
   overall_score: 87,
@@ -97,7 +97,7 @@ const PEER_DATA = [
   { label: "Bottom 25%",  threshold: 65, highlight: false },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function gradeColor(grade: string): { text: string; bg: string; border: string; ring: string } {
   switch (grade) {
@@ -127,19 +127,19 @@ function scoreToPercent(score: number): number {
   return ((score - TREND_MIN) / (TREND_MAX - TREND_MIN)) * 100;
 }
 
-// ── Grade Circle ───────────────────────────────────────────────
+// == Grade Circle ===============================================
 
 function GradeCircle({ grade, score }: { grade: string; score: number }) {
   const colors = gradeColor(grade);
   return (
     <div className="flex flex-col items-center gap-3">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -169,7 +169,7 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────
+// == Main component =============================================
 
 export default function SecurityScorecardDashboard() {
   const [scorecard, setScorecard] = useState<ScorecardData>(MOCK_SCORECARD);
@@ -199,7 +199,7 @@ export default function SecurityScorecardDashboard() {
         body: JSON.stringify({ org_id: "aldeci-demo", period: "Q2 2026" }),
       });
     } catch {
-      // Mock — API may not be deployed yet
+      // Mock = API may not be deployed yet
     }
     setTimeout(() => {
       setGenerating(false);
@@ -248,7 +248,7 @@ export default function SecurityScorecardDashboard() {
               ) : (
                 <Award className="h-4 w-4" />
               )}
-              {generating ? "Generating…" : generated ? "Generated!" : "Generate Scorecard"}
+              {generating ? "Generating=" : generated ? "Generated!" : "Generate Scorecard"}
             </Button>
           </div>
         }
@@ -340,7 +340,7 @@ export default function SecurityScorecardDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-blue-400" />
-              Score Trend — Last 30 Days
+              Score Trend = Last 30 Days
             </CardTitle>
             <CardDescription className="text-xs">
               {trendUp ? "+" : ""}{trendChange} points over period
@@ -419,7 +419,7 @@ export default function SecurityScorecardDashboard() {
                         p.highlight ? "text-purple-300" : "text-muted-foreground"
                       )}
                     >
-                      {p.highlight ? "▶ " : ""}{p.label}
+                      {p.highlight ? "= " : ""}{p.label}
                     </span>
                     <span
                       className={cn(

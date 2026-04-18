@@ -1,7 +1,7 @@
 /**
  * Zero Trust Policy Dashboard
  *
- * Never trust, always verify — continuous access evaluation.
+ * Never trust, always verify = continuous access evaluation.
  *   1. KPIs: Active Policies, Access Requests Today, Allow Rate, Violations
  *   2. Policy table (10 rows)
  *   3. Access request log (15 recent requests)
@@ -19,7 +19,7 @@ import {
   AlertTriangle, CheckCircle, XCircle, Eye,
 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -43,17 +43,17 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const POLICIES = [
   { name: "Unmanaged Device Block",         type: "device_trust",    action: "deny",        conditions: ["device_managed=false"],            priority: 1,  enabled: true  },
   { name: "Admin MFA Enforcement",           type: "user_identity",   action: "mfa_required", conditions: ["role=admin", "mfa_verified=false"], priority: 2,  enabled: true  },
-  { name: "Sensitive Data — Trusted Nets",   type: "network_access",  action: "allow",        conditions: ["network=corp", "data_class=secret"], priority: 3,  enabled: true  },
-  { name: "External IP — Finance Apps",      type: "application",     action: "deny",         conditions: ["src_external=true", "app=finance"],  priority: 4,  enabled: true  },
+  { name: "Sensitive Data = Trusted Nets",   type: "network_access",  action: "allow",        conditions: ["network=corp", "data_class=secret"], priority: 3,  enabled: true  },
+  { name: "External IP = Finance Apps",      type: "application",     action: "deny",         conditions: ["src_external=true", "app=finance"],  priority: 4,  enabled: true  },
   { name: "Contractor Access Restriction",   type: "user_identity",   action: "monitor",      conditions: ["user_type=contractor"],             priority: 5,  enabled: true  },
   { name: "Cloud Storage DLP Gate",          type: "data",            action: "mfa_required", conditions: ["resource=s3", "pii_detected=true"],  priority: 6,  enabled: true  },
   { name: "High-Risk Score Auto-Block",      type: "user_identity",   action: "deny",         conditions: ["risk_score>80"],                    priority: 7,  enabled: true  },
-  { name: "SaaS App — Corp Network Only",    type: "application",     action: "allow",        conditions: ["src=corp_vpn", "app_type=saas"],     priority: 8,  enabled: false },
+  { name: "SaaS App = Corp Network Only",    type: "application",     action: "allow",        conditions: ["src=corp_vpn", "app_type=saas"],     priority: 8,  enabled: false },
   { name: "Legacy System Monitoring",        type: "network_access",  action: "monitor",      conditions: ["dst_legacy=true"],                  priority: 9,  enabled: true  },
   { name: "PCI Scope Micro-segmentation",    type: "network_access",  action: "deny",         conditions: ["zone=pci", "src_zone!=pci"],         priority: 10, enabled: true  },
 ];
@@ -89,16 +89,16 @@ const TRUST_SCORES = [
 
 const VIOLATIONS = [
   { type: "policy_bypass",    severity: "critical", ctx: "carol.white bypassed device policy on BYOD-092",          ts: "09:44:22" },
-  { type: "risk_threshold",   severity: "critical", ctx: "frank.lee — risk score 88 exceeded auto-block threshold", ts: "09:45:02" },
+  { type: "risk_threshold",   severity: "critical", ctx: "frank.lee = risk score 88 exceeded auto-block threshold", ts: "09:45:02" },
   { type: "mfa_skip",         severity: "high",     ctx: "liam.brown attempted access without MFA from BYOD-077",   ts: "09:45:55" },
   { type: "policy_bypass",    severity: "high",     ctx: "jack.o'brien contractor accessing restricted deploy API",  ts: "09:45:33" },
-  { type: "risk_threshold",   severity: "high",     ctx: "olivia.moore — borderline risk score 72 on BYOD",         ts: "09:46:31" },
+  { type: "risk_threshold",   severity: "high",     ctx: "olivia.moore = borderline risk score 72 on BYOD",         ts: "09:46:31" },
   { type: "geo_anomaly",      severity: "medium",   ctx: "Unusual login location detected for henry.patel",          ts: "09:45:19" },
   { type: "trust_decay",      severity: "medium",   ctx: "BYOD-092 trust score dropped 40pts in last 24 hrs",       ts: "09:30:00" },
-  { type: "session_anomaly",  severity: "low",      ctx: "dave.jones — concurrent sessions from 2 different IPs",   ts: "09:44:38" },
+  { type: "session_anomaly",  severity: "low",      ctx: "dave.jones = concurrent sessions from 2 different IPs",   ts: "09:44:38" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const POLICY_TYPE_COLORS: Record<string, string> = {
   device_trust:   "border-blue-500/30 text-blue-400 bg-blue-500/10",
@@ -154,7 +154,7 @@ function DecisionBadge({ decision }: { decision: string }) {
   return <Badge className={cn("text-[10px] border", map[decision] ?? "")}>{label[decision] ?? decision}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ZeroTrustPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -203,7 +203,7 @@ export default function ZeroTrustPolicyDashboard() {
       {/* Header */}
       <PageHeader
         title="Zero Trust Policies"
-        description="Never trust, always verify — continuous access evaluation"
+        description="Never trust, always verify = continuous access evaluation"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -244,7 +244,7 @@ export default function ZeroTrustPolicyDashboard() {
               <TableBody>
                 {(liveData?.policies ?? POLICIES).map((p: any) => (
                   <TableRow key={p.name ?? p.policy_name ?? p.id} className="hover:bg-muted/30">
-                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{p.priority ?? "—"}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{p.priority ?? "="}</TableCell>
                     <TableCell className="text-xs py-2.5 font-medium">{p.name ?? p.policy_name}</TableCell>
                     <TableCell className="py-2.5">
                       <Badge className={cn("text-[10px] border", POLICY_TYPE_COLORS[p.type ?? p.resource_type] ?? "border-border text-muted-foreground")}>
@@ -253,7 +253,7 @@ export default function ZeroTrustPolicyDashboard() {
                     </TableCell>
                     <TableCell className="py-2.5">
                       <Badge className={cn("text-[10px] border", ACTION_COLORS[p.action] ?? "border-border text-muted-foreground")}>
-                        {(p.action ?? "—").replace("_", " ")}
+                        {(p.action ?? "=").replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-2.5">
@@ -350,7 +350,7 @@ export default function ZeroTrustPolicyDashboard() {
                         <Badge className={cn("text-[10px] border capitalize", ENTITY_TYPE_COLORS[e.type ?? e.entity_type] ?? "border-border text-muted-foreground")}>{e.type ?? e.entity_type}</Badge>
                       </TableCell>
                       <TableCell className="py-2"><TrustBar score={e.score ?? e.trust_score ?? 0} /></TableCell>
-                      <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{e.factors ?? (e.score_factors ? Object.keys(e.score_factors).length : "—")}</TableCell>
+                      <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{e.factors ?? (e.score_factors ? Object.keys(e.score_factors).length : "=")}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

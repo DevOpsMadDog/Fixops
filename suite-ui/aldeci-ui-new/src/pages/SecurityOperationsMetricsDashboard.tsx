@@ -14,7 +14,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 import { Activity, Clock, Users, AlertOctagon, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// == Mock data ==================================================================
 
 const MOCK_STATS = {
   mttd_minutes: 38,
@@ -52,7 +52,7 @@ const MOCK_QUEUE = [
   { id: "alrt-006", severity: "low",      category: "Port Scan",       source: "IDS",   detected_at: "2026-04-16T07:30:00", status: "resolved",    assigned_to: "Dave Park"   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// == Helpers ====================================================================
 
 function SeverityBadge({ s }: { s: string }) {
   const cls: Record<string, string> = {
@@ -91,7 +91,7 @@ function timeAge(iso: string) {
   return `${Math.floor(mins/60)}h ${mins%60}m ago`;
 }
 
-// ── SVG Gauge ──────────────────────────────────────────────────────────────────
+// == SVG Gauge ==================================================================
 
 function MetricGauge({ label, value, max, unit, color }: {
   label: string; value: number; max: number; unit: string; color: string;
@@ -109,12 +109,12 @@ function MetricGauge({ label, value, max, unit, color }: {
   return (
     <div className="flex flex-col items-center">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -138,7 +138,7 @@ function MetricGauge({ label, value, max, unit, color }: {
   );
 }
 
-// ── Trend bars ────────────────────────────────────────────────────────────────
+// == Trend bars ================================================================
 
 function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
   const maxMttd = Math.max(...data.map(d => d.mttd));
@@ -177,7 +177,7 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// == Main Component =============================================================
 
 export default function SecurityOperationsMetricsDashboard() {
   const [queue, setQueue] = useState(MOCK_QUEUE);
@@ -234,8 +234,7 @@ export default function SecurityOperationsMetricsDashboard() {
               <p className={cn("text-2xl font-bold", c.color)}>{c.value}{c.suffix}</p>
             </div>
           </div>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Gauges + trend */}
@@ -257,7 +256,7 @@ export default function SecurityOperationsMetricsDashboard() {
           <h2 className="text-lg font-semibold text-white">Analyst Leaderboard</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 <th className="text-left text-gray-400 font-medium py-2 pr-4">Rank</th>
@@ -296,7 +295,7 @@ export default function SecurityOperationsMetricsDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Alert Queue</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["Severity", "Category", "Source", "Age", "Status", "Assigned To", "Actions"].map(h => (

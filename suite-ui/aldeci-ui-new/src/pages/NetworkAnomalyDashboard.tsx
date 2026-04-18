@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock Data ──────────────────────────────────────────────────
+// == Mock Data ==================================================
 
 const MOCK_ANOMALIES = [
   { id: "anm-001", segment: "DMZ", protocol: "TCP", anomaly_type: "spike", severity: "critical", deviation_pct: 340, baseline: 1200, observed: 5280, detected_at: "2026-04-16T10:32:00Z", resolved: false },
@@ -56,7 +56,7 @@ const MOCK_TRAFFIC = {
   "OT Network": [800, 820, 810, 790, 230, 350, 540, 700],
 };
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/30",
@@ -98,7 +98,7 @@ function BytesBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function NetworkAnomalyDashboard() {
   const [resolvedSet, setResolvedSet] = useState<Set<string>>(new Set(["anm-006"]));
@@ -150,9 +150,9 @@ export default function NetworkAnomalyDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -211,7 +211,7 @@ export default function NetworkAnomalyDashboard() {
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Active Anomalies</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table role="table" className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-700">
                       {["Segment", "Protocol", "Type", "Severity", "Deviation", "Baseline", "Observed", "Detected", ""].map(h => (
@@ -326,7 +326,7 @@ export default function NetworkAnomalyDashboard() {
                   </div>
                   <BytesBar value={b.avg_bytes} max={20000} />
                   <div className="flex justify-between text-[10px] text-zinc-500">
-                    <span>σ={b.std_dev.toLocaleString()}</span>
+                    <span>=={b.std_dev.toLocaleString()}</span>
                     <Badge className="text-[9px] border border-zinc-600 text-zinc-400">{b.sample_count.toLocaleString()} samples</Badge>
                   </div>
                   <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date}</p>

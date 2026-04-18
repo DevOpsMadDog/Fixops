@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_RISKS = [
   { id: "risk-001", name: "Ransomware Attack",         risk_category: "Cyber",       likelihood: 4, impact: 5, risk_score: 20, risk_level: "critical", status: "open"        },
@@ -54,7 +54,7 @@ const MOCK_RISKS = [
 
 const MOCK_STATS = { total_risks: 47, critical_risks: 3, high_risks: 11, open_risks: 29 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskLevelBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function RiskRegisterDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -187,19 +187,19 @@ export default function RiskRegisterDashboard() {
                   risks.map((risk: any, i: number) => (
                   <TableRow key={risk.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-orange-300">
-                      {risk.name ?? "—"}
+                      {risk.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {risk.risk_category ?? "—"}
+                      {risk.risk_category ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {risk.likelihood ?? "—"}
+                      {risk.likelihood ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {risk.impact ?? "—"}
+                      {risk.impact ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] font-semibold text-amber-300">
-                      {risk.risk_score ?? "—"}
+                      {risk.risk_score ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskLevelBadge level={risk.risk_level ?? "low"} />

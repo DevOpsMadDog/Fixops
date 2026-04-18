@@ -1,7 +1,7 @@
 /**
  * Supply Chain Risk Dashboard
  *
- * Third-party vendor and component risk management — detailed view.
+ * Third-party vendor and component risk management = detailed view.
  * (SupplyChainSecurity.tsx exists at /supply-chain; this is /supply-chain-risk)
  *   1. KPIs: Suppliers, Critical Tier, EOL Components, Open Risks
  *   2. Supplier table (12 rows)
@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Package, AlertTriangle, Shield, RefreshCw, Upload, BarChart3, Globe } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -40,7 +40,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const SUPPLIERS = [
   { name: "AWS",              category: "cloud",    country: "US",  tier: "High",     score: 91, assessed: "2026-04-10", risks: 3  },
@@ -79,7 +79,7 @@ const RISK_BREAKDOWN = [
   { type: "license",         label: "License Issues",   count: 9,  severity: "Medium",   color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TierBadge({ tier }: { tier: string }) {
   const cls =
@@ -111,7 +111,7 @@ function ScoreBar({ value }: { value: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SupplyChainDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -143,7 +143,7 @@ export default function SupplyChainDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derived values — prefer live data (stats endpoint), fall back to mock constants
+  // Derived values = prefer live data (stats endpoint), fall back to mock constants
   const totalComponents = liveData?.stats?.total_components ?? liveData?.risks?.total_components ?? 1_847;
   const eolCount        = liveData?.stats?.eol_components   ?? liveData?.risks?.eol_components   ?? 34;
   const cveAffected     = liveData?.stats?.cve_affected     ?? liveData?.risks?.cve_affected     ?? 112;
@@ -209,12 +209,12 @@ export default function SupplyChainDashboard() {
               </TableHeader>
               <TableBody>
                 {(liveData?.vendors ?? SUPPLIERS).map((s: any) => {
-                  const name     = s.name ?? s.vendor_name ?? "—";
+                  const name     = s.name ?? s.vendor_name ?? "=";
                   const category = s.category ?? s.vendor_url ?? "service";
-                  const country  = s.country ?? "—";
+                  const country  = s.country ?? "=";
                   const tier     = s.tier ?? "Medium";
                   const score    = s.score ?? s.security_score ?? 0;
-                  const assessed = s.assessed ?? s.last_assessed ?? s.assessment_date ?? "—";
+                  const assessed = s.assessed ?? s.last_assessed ?? s.assessment_date ?? "=";
                   const risks    = s.risks ?? s.known_breaches ?? 0;
                   return (
                   <TableRow key={name} className="hover:bg-muted/30">
@@ -262,13 +262,13 @@ export default function SupplyChainDashboard() {
               </TableHeader>
               <TableBody>
                 {(liveData?.components ?? COMPONENTS).map((c: any, idx: number) => {
-                  const name     = c.name ?? c.component_name ?? "—";
-                  const version  = c.version ?? "—";
-                  const supplier = c.supplier ?? c.publisher ?? "—";
-                  const license  = c.license ?? c.license_id ?? "—";
+                  const name     = c.name ?? c.component_name ?? "=";
+                  const version  = c.version ?? "=";
+                  const supplier = c.supplier ?? c.publisher ?? "=";
+                  const license  = c.license ?? c.license_id ?? "=";
                   const cves     = c.cves ?? c.cve_count ?? 0;
                   const eol      = c.eol ?? c.is_eol ?? false;
-                  const purl     = c.purl ?? c.package_url ?? "—";
+                  const purl     = c.purl ?? c.package_url ?? "=";
                   return (
                   <TableRow key={`${name}-${version}-${idx}`} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium font-mono py-2.5">{name}</TableCell>
@@ -367,10 +367,9 @@ export default function SupplyChainDashboard() {
                   <Progress value={item.pct} className="h-1.5" />
                 )}
               </div>
-            ))
-            )}
+            ))}
             <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
-              Last SBOM import: 2026-04-15 22:14 UTC &nbsp;·&nbsp; Format: CycloneDX 1.4
+              Last SBOM import: 2026-04-15 22:14 UTC &nbsp;=&nbsp; Format: CycloneDX 1.4
             </div>
           </CardContent>
         </Card>

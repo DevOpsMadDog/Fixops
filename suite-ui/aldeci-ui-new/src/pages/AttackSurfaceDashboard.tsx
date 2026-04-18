@@ -1,12 +1,12 @@
 /**
  * Attack Surface Dashboard
  *
- * External attack surface mapping — assets, exposures, changes, surface score.
+ * External attack surface mapping = assets, exposures, changes, surface score.
  *   1. KPIs: Total Assets, Open Exposures, Critical Exposures, Surface Score
  *   2. Asset inventory table (asset_type, value, risk_score bar, is_public, last_seen)
  *   3. Exposure findings table (exposure_type, severity, asset, title, status, first_detected)
  *   4. Surface changes feed (change_type, description, severity, timestamp)
- *   5. Scan trigger button → POST /api/v1/attack-surface/discover
+ *   5. Scan trigger button = POST /api/v1/attack-surface/discover
  *   6. Surface score gauge (100 = clean, 0 = fully exposed)
  *
  * Route: /attack-surface-dashboard
@@ -43,7 +43,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ASSETS = [
   { id: "AST-001", asset_type: "web_app",     value: "api.acme.com",          risk_score: 0.82, is_public: true,  last_seen: "2 min ago" },
@@ -59,7 +59,7 @@ const MOCK_EXPOSURES = [
   { id: "EXP-002", exposure_type: "ssl_expiry",       severity: "high",     asset: "*.acme.com",        title: "Certificate expiring in 30 days",    status: "open",          first_detected: "2026-04-10" },
   { id: "EXP-003", exposure_type: "misconfig",        severity: "critical", asset: "api.acme.com",      title: "CORS wildcard (*) on production API", status: "open",          first_detected: "2026-04-13" },
   { id: "EXP-004", exposure_type: "data_exposure",    severity: "high",     asset: "s3://acme-backups", title: "S3 bucket with public ACL enabled",   status: "investigating", first_detected: "2026-04-12" },
-  { id: "EXP-005", exposure_type: "outdated_software",severity: "medium",   asset: "api.acme.com",      title: "OpenSSL 1.1.1t — EOL in 30d",         status: "open",          first_detected: "2026-04-11" },
+  { id: "EXP-005", exposure_type: "outdated_software",severity: "medium",   asset: "api.acme.com",      title: "OpenSSL 1.1.1t = EOL in 30d",         status: "open",          first_detected: "2026-04-11" },
   { id: "EXP-006", exposure_type: "open_port",        severity: "medium",   asset: "203.0.113.45:22",   title: "SSH open to 0.0.0.0/0",              status: "open",          first_detected: "2026-04-09" },
   { id: "EXP-007", exposure_type: "misconfig",        severity: "low",      asset: "acme.com",          title: "Missing DMARC policy",               status: "remediated",    first_detected: "2026-04-08" },
   { id: "EXP-008", exposure_type: "data_exposure",    severity: "high",     asset: "api.acme.com",      title: "Stack traces in error responses",     status: "open",          first_detected: "2026-04-15" },
@@ -73,7 +73,7 @@ const MOCK_CHANGES = [
   { id: "CHG-005", change_type: "asset_removed",   description: "Host 10.0.5.22 no longer responding",            severity: "low",      timestamp: "13:40:18" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function AssetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -162,7 +162,7 @@ function SurfaceScoreGauge({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AttackSurfaceDashboard() {
   const [refreshing, setRefreshing]   = useState(false);
@@ -201,7 +201,7 @@ export default function AttackSurfaceDashboard() {
       });
       setScanMsg("Surface scan triggered successfully.");
     } catch {
-      setScanMsg("Scan queued — results will appear within 2 minutes.");
+      setScanMsg("Scan queued = results will appear within 2 minutes.");
     } finally {
       setScanning(false);
     }
@@ -243,7 +243,7 @@ export default function AttackSurfaceDashboard() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleScan} disabled={scanning}>
               {scanning ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Radar className="h-4 w-4" />}
-              <span className="ml-1.5 text-xs">{scanning ? "Scanning…" : "Scan Now"}</span>
+              <span className="ml-1.5 text-xs">{scanning ? "Scanning=" : "Scan Now"}</span>
             </Button>
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
               <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -265,7 +265,7 @@ export default function AttackSurfaceDashboard() {
 
       {/* Asset Inventory + Surface Score */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Asset Table — 2/3 width */}
+        {/* Asset Table = 2/3 width */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -331,7 +331,7 @@ export default function AttackSurfaceDashboard() {
           </CardContent>
         </Card>
 
-        {/* Surface Score Gauge — 1/3 width */}
+        {/* Surface Score Gauge = 1/3 width */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_TELEMETRY = [
   { id: "tel-001", telemetry_type: "cpu_usage",        source: "host-prod-01",    value: 87.4,   unit: "%",     recorded_at: "2026-04-16T09:58:00Z" },
@@ -54,7 +54,7 @@ const MOCK_TELEMETRY = [
 
 const MOCK_STATS = { total_datapoints: 4820341, active_sources: 38, alert_rules: 92, triggered_today: 14 };
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function TypeBadge({ type }: { type: string }) {
   const colorMap: Record<string, string> = {
@@ -89,7 +89,7 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityTelemetryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -130,7 +130,7 @@ export default function SecurityTelemetryDashboard() {
     >
       <PageHeader
         title="Security Telemetry"
-        description="Security telemetry stream — real-time datapoints, source health, alert rule triggers, and signal monitoring"
+        description="Security telemetry stream = real-time datapoints, source health, alert rule triggers, and signal monitoring"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -192,16 +192,16 @@ export default function SecurityTelemetryDashboard() {
                       <TypeBadge type={tel.telemetry_type ?? "unknown"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-amber-300">
-                      {tel.source ?? "—"}
+                      {tel.source ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-300 font-semibold">
                       {tel.value ?? 0}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {tel.unit ?? "—"}
+                      {tel.unit ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {tel.recorded_at ? formatTs(tel.recorded_at) : "—"}
+                      {tel.recorded_at ? formatTs(tel.recorded_at) : "="}
                     </TableCell>
                   </TableRow>
                 )))}

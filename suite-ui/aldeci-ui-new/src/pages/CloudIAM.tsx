@@ -45,9 +45,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type RiskLevel = "critical" | "high" | "medium" | "low";
 type Provider = "AWS" | "Azure" | "GCP";
@@ -89,9 +89,9 @@ interface Recommendation {
   affected_count: number;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_PRINCIPALS: Principal[] = [
   { id: "1", principal_name: "svc-data-pipeline@prod.iam", principal_type: "Service Account", provider: "GCP", last_activity: "90 days ago", permissions_count: 312, unused_permissions_pct: 94, risk_score: 98, risk_level: "critical" },
@@ -109,19 +109,19 @@ const MOCK_PRINCIPALS: Principal[] = [
 const ESCALATION_PATHS: EscalationPath[] = [
   {
     id: "1",
-    title: "Developer → Production Admin",
+    title: "Developer = Production Admin",
     steps: ["john.doe (User)", "sts:AssumeRole", "dev-cross-account-role", "iam:PassRole", "AdminRole (AdministratorAccess)"],
     severity: "critical",
   },
   {
     id: "2",
-    title: "CI/CD Service → Secrets Access",
+    title: "CI/CD Service = Secrets Access",
     steps: ["ci-cd-automation (SA)", "secretsmanager:GetSecretValue", "prod-db-credentials", "rds:Connect", "prod-database (Full Access)"],
     severity: "high",
   },
   {
     id: "3",
-    title: "Lambda Execution → Data Exfiltration",
+    title: "Lambda Execution = Data Exfiltration",
     steps: ["lambda-ingest-fn (Role)", "s3:GetObject s3:ListBucket", "customer-data-bucket", "s3:PutObject", "external-storage-bucket"],
     severity: "high",
   },
@@ -137,10 +137,10 @@ const UNUSED_BY_SERVICE = [
 
 const ANOMALIES: Anomaly[] = [
   { id: "1", principal: "svc-data-pipeline@prod.iam", event: "First-time service access", detail: "Accessed BigQuery for the first time after 90 days of inactivity", time: "14 min ago", severity: "critical" },
-  { id: "2", principal: "john.doe@corp.com", event: "Access from new region", detail: "Console login from ap-southeast-1 — user typically operates from us-east-1", time: "1 hr ago", severity: "high" },
+  { id: "2", principal: "john.doe@corp.com", event: "Access from new region", detail: "Console login from ap-southeast-1 = user typically operates from us-east-1", time: "1 hr ago", severity: "high" },
   { id: "3", principal: "ci-cd-automation", event: "Access at unusual hour", detail: "API calls to IAM:CreateRole at 03:47 UTC (outside business hours)", time: "3 hrs ago", severity: "high" },
   { id: "4", principal: "analytics-reader", event: "Bulk data download", detail: "Downloaded 4.2 GB from S3 customer-exports bucket in single session", time: "6 hrs ago", severity: "medium" },
-  { id: "5", principal: "eks-node-role", event: "Privilege escalation attempt", detail: "Attempted iam:PassRole on AdminRole — denied by SCP", time: "Yesterday", severity: "medium" },
+  { id: "5", principal: "eks-node-role", event: "Privilege escalation attempt", detail: "Attempted iam:PassRole on AdminRole = denied by SCP", time: "Yesterday", severity: "medium" },
 ];
 
 const RECOMMENDATIONS: Recommendation[] = [
@@ -151,9 +151,9 @@ const RECOMMENDATIONS: Recommendation[] = [
   { id: "5", title: "Scope EC2:* to minimum required actions across dev roles", impact: "Reduces over-provisioned dev permissions by 67%", priority: "medium", affected_count: 34 },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const riskBadge = (level: RiskLevel) => {
   const map: Record<RiskLevel, string> = {
@@ -171,9 +171,9 @@ const providerColor: Record<Provider, string> = {
   GCP: "text-green-400",
 };
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Sub-components
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function LeastPrivilegeGauge({ score }: { score: number }) {
   const radius = 54;
@@ -195,7 +195,7 @@ function LeastPrivilegeGauge({ score }: { score: number }) {
         <text x="70" y="66" textAnchor="middle" fill={color} fontSize="24" fontWeight="bold">{score}</text>
         <text x="70" y="84" textAnchor="middle" fill="#64748b" fontSize="11">/100</text>
       </svg>
-      <span className="text-xs text-red-400 font-medium">Red Zone — High Risk</span>
+      <span className="text-xs text-red-400 font-medium">Red Zone = High Risk</span>
       <span className="text-xs text-slate-400 text-center px-2">
         Projected improvement: <span className="text-green-400 font-semibold">+28 pts</span> if recommendations applied
       </span>
@@ -224,9 +224,9 @@ function EscalationPathCard({ path }: { path: EscalationPath }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function CloudIAM() {
   const [activeProvider, setActiveProvider] = useState<"All" | Provider>("All");
@@ -258,7 +258,7 @@ export default function CloudIAM() {
         principal_name: s.user_id ?? s.username ?? s.principal ?? "unknown",
         principal_type: "User" as PrincipalType,
         provider: "AWS" as Provider,
-        last_activity: s.last_seen ?? s.timestamp ?? "—",
+        last_activity: s.last_seen ?? s.timestamp ?? "=",
         permissions_count: s.event_count ?? s.actions ?? 0,
         unused_permissions_pct: s.unused_pct ?? 0,
         risk_score: riskScore,
@@ -329,7 +329,7 @@ export default function CloudIAM() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table role="table" className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-slate-700/50">
                     {["Principal", "Type", "Provider", "Last Activity", "Perms", "Unused %", "Risk"].map(h => (

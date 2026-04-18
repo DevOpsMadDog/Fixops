@@ -5,7 +5,7 @@
  * API: GET /api/v1/crypto-keys/stats, /api/v1/crypto-keys/expiring
  *
  * KPIs: Total Keys, Expiring (30d), Revoked, Key Types
- * Table: Expiring keys — name, type, purpose, days until expiry, rotate button
+ * Table: Expiring keys = name, type, purpose, days until expiry, rotate button
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_STATS = {
   total: 156,
@@ -55,7 +55,7 @@ const MOCK_EXPIRING = [
   { id: "KEY-008", name: "session-secret-prod",   type: "aes256",   purpose: "Session token secret",   days_until_expiry: 30 },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function KeyTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -78,7 +78,7 @@ function ExpiryBadge({ days }: { days: number }) {
   return <span className={cn("text-xs tabular-nums", cls)}>{days}d</span>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CryptoKeyDashboard() {
   const [refreshing, setRefreshing] = useState(false);

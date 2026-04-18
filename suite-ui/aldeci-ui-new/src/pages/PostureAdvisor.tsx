@@ -1,11 +1,11 @@
 /**
- * Security Posture Advisor — CTO Virtual Advisor Page
+ * Security Posture Advisor = CTO Virtual Advisor Page
  *
  * AI-powered security posture recommendations with:
- *   1. Current Posture Score — circular progress gauge (SVG)
- *   2. Improvement Roadmap — 3-phase timeline with Quick Wins, Medium Term, Strategic
- *   3. Active Recommendations — table with priority, effort, score_impact
- *   4. Category Breakdown — radar chart (static SVG polygon)
+ *   1. Current Posture Score = circular progress gauge (SVG)
+ *   2. Improvement Roadmap = 3-phase timeline with Quick Wins, Medium Term, Strategic
+ *   3. Active Recommendations = table with priority, effort, score_impact
+ *   4. Category Breakdown = radar chart (static SVG polygon)
  *
  * API: GET /api/v1/posture-advisor/analyze, /api/v1/posture-advisor/roadmap
  * Fallback: mock data when API is unavailable
@@ -31,9 +31,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type Priority = "Critical" | "High" | "Medium" | "Low";
 type Effort = "Quick" | "Medium" | "High";
@@ -66,9 +66,9 @@ interface PostureData {
   categories: Record<string, { count: number; impact: number }>;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_POSTURE_DATA: PostureData = {
   current_score: 62,
@@ -189,9 +189,9 @@ const MOCK_POSTURE_DATA: PostureData = {
   },
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // SVG Components
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 /**
  * Circular Progress Gauge (SVG stroke-dasharray)
@@ -362,9 +362,9 @@ const RadarChart = ({ categories }: { categories: Record<string, { count: number
   );
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function priorityColor(priority: Priority): string {
   const map: Record<Priority, string> = {
@@ -408,9 +408,9 @@ function categoryIcon(category: string) {
   return map[category] || <Target className="w-4 h-4" />;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function PostureAdvisor() {
   const [dismissedRecommendations, setDismissedRecommendations] = useState<Set<string>>(
@@ -458,7 +458,7 @@ export default function PostureAdvisor() {
         subtitle="AI-powered improvement recommendations from your virtual CISO"
       />
 
-      {/* ── Current Posture Score ── */}
+      {/* == Current Posture Score == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -522,7 +522,7 @@ export default function PostureAdvisor() {
         </Card>
       </motion.div>
 
-      {/* ── Improvement Roadmap ── */}
+      {/* == Improvement Roadmap == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -596,7 +596,7 @@ export default function PostureAdvisor() {
         </Card>
       </motion.div>
 
-      {/* ── Active Recommendations Table ── */}
+      {/* == Active Recommendations Table == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -670,8 +670,7 @@ export default function PostureAdvisor() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            ))
-                          )}
+                            ))}
                           >
                             {rec.effort}
                           </Badge>
@@ -702,8 +701,7 @@ export default function PostureAdvisor() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -712,7 +710,7 @@ export default function PostureAdvisor() {
         </Card>
       </motion.div>
 
-      {/* ── Category Breakdown — Radar Chart ── */}
+      {/* == Category Breakdown = Radar Chart == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

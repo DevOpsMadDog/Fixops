@@ -611,8 +611,7 @@ export default function AttackPaths() {
                             <p className="text-xs text-muted-foreground">{step.action}</p>
                           </div>
                         </div>
-                      ))
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>

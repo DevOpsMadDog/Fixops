@@ -40,7 +40,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_MODELS = [
   { id: "m1", model_name: "Payment Processing System", scope: "application", methodology: "STRIDE", risk_score: 3.8, risk_level: "critical", threat_count: 12, mitigated_count: 7, created_at: "2026-03-10" },
@@ -64,7 +64,7 @@ const CRITICAL_MODELS = MOCK_MODELS.filter(m => m.risk_level === "critical").len
 const AVG_RISK = (MOCK_MODELS.reduce((s, m) => s + m.risk_score, 0) / MOCK_MODELS.length).toFixed(1);
 const UNMITIGATED = MOCK_TREES.filter(t => !t.mitigated).length;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -111,7 +111,7 @@ function RiskGauge({ score }: { score: number }) {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function CyberThreatModelingDashboard() {
   const [selectedModel, setSelectedModel] = useState<string>("all");
@@ -146,15 +146,15 @@ export default function CyberThreatModelingDashboard() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <PageHeader
         title="Cyber Threat Modeling"
-        description="STRIDE, PASTA, and MITRE ATT&CK–based threat models with attack tree analysis"
+        description="STRIDE, PASTA, and MITRE ATT&CK=based threat models with attack tree analysis"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setRefreshing(v => { setTimeout(() => setRefreshing(false), 800); return true; })} disabled={refreshing}>
@@ -339,7 +339,7 @@ export default function CyberThreatModelingDashboard() {
                   {tree.path_steps.map((step, i) => (
                     <span key={i} className="flex items-center gap-1">
                       <span className="text-[10px] bg-muted px-2 py-0.5 rounded text-foreground/80">{step}</span>
-                      {i < tree.path_steps.length - 1 && <span className="text-muted-foreground text-[10px]">→</span>}
+                      {i < tree.path_steps.length - 1 && <span className="text-muted-foreground text-[10px]">=</span>}
                     </span>
                   ))}
                 </div>

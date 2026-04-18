@@ -234,8 +234,7 @@ function MergeSplitDialog({
             <div className="flex gap-2 mt-2">
               {group.scanners.map((s) => (
                 <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
-              ))
-              )}
+              ))}
             </div>
           </div>
           <div className="space-y-2">
@@ -506,7 +505,7 @@ export default function CorrelationEngine() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs border-collapse">
+              <table role="table" className="w-full text-xs border-collapse">
                 <thead>
                   <tr>
                     <th className="p-2 text-left text-muted-foreground font-medium w-28" />
@@ -799,8 +798,7 @@ function VulnGroupRow({
               <Badge key={s} variant="outline" className="text-[10px] h-4 px-1.5">
                 {s}
               </Badge>
-            ))
-            )}
+            ))}
           </div>
         </div>
 
@@ -856,8 +854,7 @@ function VulnGroupRow({
                   <Badge key={c} variant="secondary" className="text-[10px]">
                     {c}
                   </Badge>
-                ))
-                )}
+                ))}
               </div>
             </div>
             <div>

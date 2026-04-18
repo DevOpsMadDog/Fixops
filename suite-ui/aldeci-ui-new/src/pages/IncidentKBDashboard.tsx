@@ -19,7 +19,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type ArticleType = "playbook" | "reference" | "post_mortem" | "how_to" | "policy" | "faq";
 type IncidentType = "ransomware" | "data_breach" | "ddos" | "phishing" | "insider_threat" | "supply_chain" | "zero_day" | "account_takeover";
@@ -50,25 +50,25 @@ interface Runbook {
   steps_count: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ARTICLES: KBArticle[] = [
   {
-    id: "art-001", title: "Ransomware Response — Containment & Recovery",
+    id: "art-001", title: "Ransomware Response = Containment & Recovery",
     article_type: "playbook", incident_type: "ransomware", severity: "critical",
     view_count: 842, helpful_count: 134, author: "IR Team", updated_at: "2026-04-01",
     content_preview: "Step-by-step guide for ransomware containment: isolate affected hosts, preserve forensic evidence, initiate backup restoration, notify stakeholders.",
     tags: ["ransomware", "containment", "recovery", "backup"],
   },
   {
-    id: "art-002", title: "Data Breach Notification Requirements — GDPR & CCPA",
+    id: "art-002", title: "Data Breach Notification Requirements = GDPR & CCPA",
     article_type: "policy", incident_type: "data_breach", severity: "critical",
     view_count: 631, helpful_count: 98, author: "Legal/GRC", updated_at: "2026-03-15",
     content_preview: "Regulatory timelines: GDPR 72-hour DPA notification, CCPA consumer notice requirements, breach documentation checklist.",
     tags: ["gdpr", "ccpa", "breach", "notification", "compliance"],
   },
   {
-    id: "art-003", title: "DDoS Mitigation Runbook — Layer 3/4 and Layer 7",
+    id: "art-003", title: "DDoS Mitigation Runbook = Layer 3/4 and Layer 7",
     article_type: "playbook", incident_type: "ddos", severity: "high",
     view_count: 415, helpful_count: 71, author: "NetSec", updated_at: "2026-02-20",
     content_preview: "Traffic scrubbing activation, rate limiting thresholds, upstream provider escalation contacts, CDN configuration for Layer 7 attacks.",
@@ -82,14 +82,14 @@ const MOCK_ARTICLES: KBArticle[] = [
     tags: ["phishing", "email", "investigation", "sandbox"],
   },
   {
-    id: "art-005", title: "Insider Threat — HR & Legal Escalation Path",
+    id: "art-005", title: "Insider Threat = HR & Legal Escalation Path",
     article_type: "reference", incident_type: "insider_threat", severity: "high",
     view_count: 289, helpful_count: 44, author: "HR Security", updated_at: "2026-01-30",
     content_preview: "When to involve HR, legal hold procedures, user account suspension without tipping off, chain of custody for evidence.",
     tags: ["insider", "hr", "legal", "evidence", "confidentiality"],
   },
   {
-    id: "art-006", title: "Supply Chain Attack — Dependency Integrity Verification",
+    id: "art-006", title: "Supply Chain Attack = Dependency Integrity Verification",
     article_type: "post_mortem", incident_type: "supply_chain", severity: "critical",
     view_count: 374, helpful_count: 62, author: "AppSec", updated_at: "2026-03-28",
     content_preview: "Post-mortem analysis of SolarWinds-style compromise patterns. Hash verification procedures, SBOM comparison, rollback strategy.",
@@ -103,7 +103,7 @@ const MOCK_ARTICLES: KBArticle[] = [
     tags: ["zero-day", "patch", "emergency", "compensating-controls"],
   },
   {
-    id: "art-008", title: "Account Takeover — Session Revocation & User Notification",
+    id: "art-008", title: "Account Takeover = Session Revocation & User Notification",
     article_type: "faq", incident_type: "account_takeover", severity: "medium",
     view_count: 723, helpful_count: 117, author: "IAM Team", updated_at: "2026-04-12",
     content_preview: "Force-logout all sessions, reset MFA enrollments, notify affected users, review OAuth grants, audit recent activity.",
@@ -128,7 +128,7 @@ const SEARCH_ANALYTICS = [
   { term: "zero-day patch",         count: 51 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const articleTypeConfig: Record<ArticleType, { label: string; color: string }> = {
   playbook:    { label: "Playbook",    color: "bg-blue-700 text-blue-100" },
@@ -174,7 +174,7 @@ function matchesSearch(article: KBArticle, query: string): boolean {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IncidentKBDashboard() {
   const [search, setSearch] = useState("");
@@ -236,9 +236,9 @@ export default function IncidentKBDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -274,7 +274,7 @@ export default function IncidentKBDashboard() {
             onClick={() => setSearch("")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-lg"
           >
-            ×
+            =
           </button>
         )}
       </div>
@@ -332,7 +332,7 @@ export default function IncidentKBDashboard() {
                       onClick={() => handleHelpful(article.id)}
                       className={`flex items-center gap-1 transition-colors ${isHelpful ? "text-red-400" : "text-gray-500 hover:text-red-400"}`}
                     >
-                      <span>{isHelpful ? "♥" : "♡"}</span>
+                      <span>{isHelpful ? "=" : "="}</span>
                       <span>{article.helpful_count + (isHelpful ? 1 : 0)}</span>
                     </button>
                   </div>
@@ -386,7 +386,7 @@ export default function IncidentKBDashboard() {
                         : "bg-blue-600 hover:bg-blue-700 text-white"
                     }`}
                   >
-                    {executed ? "Running…" : "Execute"}
+                    {executed ? "Running=" : "Execute"}
                   </button>
                 </div>
               );

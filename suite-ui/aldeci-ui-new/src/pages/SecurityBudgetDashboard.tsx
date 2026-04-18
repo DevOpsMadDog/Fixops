@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   fiscal_year: 2026,
@@ -69,7 +69,7 @@ const MOCK_TRANSACTIONS = [
   { vendor: "HackerOne",        description: "Bug bounty platform fee",        amount: 25000,  date: "2026-03-10", status: "rejected"  },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function fmtMoney(n: number): string {
   if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
@@ -97,7 +97,7 @@ function TransactionStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityBudgetDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -156,7 +156,7 @@ export default function SecurityBudgetDashboard() {
       {/* Header */}
       <PageHeader
         title="Security Budget Tracker"
-        description={`Security spend, allocations, and ROI — FY${stats.fiscal_year ?? 2026}`}
+        description={`Security spend, allocations, and ROI = FY${stats.fiscal_year ?? 2026}`}
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -177,7 +177,7 @@ export default function SecurityBudgetDashboard() {
         <CardContent className="pt-4 pb-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-muted-foreground">Budget Utilization — FY{stats.fiscal_year ?? 2026}</span>
+              <span className="font-medium text-muted-foreground">Budget Utilization = FY{stats.fiscal_year ?? 2026}</span>
               <span className={cn("font-bold tabular-nums",
                 utilPct >= 90 ? "text-red-400" : utilPct >= 75 ? "text-orange-400" : "text-blue-400"
               )}>

@@ -1,7 +1,7 @@
 /**
  * XDR Dashboard
  *
- * Extended Detection & Response — cross-domain signal correlation and unified incident management.
+ * Extended Detection & Response = cross-domain signal correlation and unified incident management.
  *   1. KPIs: Signals Today, Active Incidents, Critical Incidents, Auto-Correlated
  *   2. Incident command center (6 active incidents)
  *   3. Kill chain coverage heat (11 MITRE tactics)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, Zap, GitMerge, RefreshCw, Activity, Layers } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const ORG_ID = "default";
 
 function getApiKey() {
@@ -42,7 +42,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const INCIDENTS = [
   {
@@ -121,17 +121,17 @@ const SIGNALS = [
 ];
 
 const RULES = [
-  { name: "Multi-Source Lateral Movement",      conditions: "endpoint∧network signals, same src within 5m", severity: "critical", mitre_tactic: "Lateral Movement",       enabled: true },
-  { name: "Credential Harvest + Exfil Chain",  conditions: "phishing_click → lsass_dump → data_exfil",     severity: "critical", mitre_tactic: "Credential Access",      enabled: true },
-  { name: "IAM Anomaly + Cloud Data Access",   conditions: "iam_anomaly ∧ unusual_geo_login within 10m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
-  { name: "Ransomware Kill Chain",             conditions: "process_injection → file_encrypt → c2_beacon", severity: "critical", mitre_tactic: "Impact",                 enabled: true },
-  { name: "DNS Tunneling + Beacon Combo",      conditions: "dns_tunneling ∧ c2_beacon same host",          severity: "high",     mitre_tactic: "Command & Control",      enabled: true },
-  { name: "Brute Force → Privilege Escalation",conditions: "brute_force_success → priv_esc within 30m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
-  { name: "Insider Threat Exfiltration",       conditions: "large_upload ∧ off_hours ∧ new_dst_country",  severity: "medium",   mitre_tactic: "Exfiltration",           enabled: true },
-  { name: "Supply Chain Compromise Indicator", conditions: "pkg_anomaly ∧ outbound_c2 ∧ ioc_match",       severity: "high",     mitre_tactic: "Initial Access",         enabled: false },
+  { name: "Multi-Source Lateral Movement",      conditions: "endpoint=network signals, same src within 5m", severity: "critical", mitre_tactic: "Lateral Movement",       enabled: true },
+  { name: "Credential Harvest + Exfil Chain",  conditions: "phishing_click = lsass_dump = data_exfil",     severity: "critical", mitre_tactic: "Credential Access",      enabled: true },
+  { name: "IAM Anomaly + Cloud Data Access",   conditions: "iam_anomaly = unusual_geo_login within 10m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
+  { name: "Ransomware Kill Chain",             conditions: "process_injection = file_encrypt = c2_beacon", severity: "critical", mitre_tactic: "Impact",                 enabled: true },
+  { name: "DNS Tunneling + Beacon Combo",      conditions: "dns_tunneling = c2_beacon same host",          severity: "high",     mitre_tactic: "Command & Control",      enabled: true },
+  { name: "Brute Force = Privilege Escalation",conditions: "brute_force_success = priv_esc within 30m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
+  { name: "Insider Threat Exfiltration",       conditions: "large_upload = off_hours = new_dst_country",  severity: "medium",   mitre_tactic: "Exfiltration",           enabled: true },
+  { name: "Supply Chain Compromise Indicator", conditions: "pkg_anomaly = outbound_c2 = ioc_match",       severity: "high",     mitre_tactic: "Initial Access",         enabled: false },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function StageBadge({ stage }: { stage: string }) {
   const map: Record<string, string> = {
@@ -193,7 +193,7 @@ function killChainColor(count: number) {
   return "bg-amber-500/20 border-amber-500/40 text-amber-300";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function XDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -329,7 +329,7 @@ export default function XDRDashboard() {
               <Layers className="h-4 w-4 text-orange-400" />
               MITRE Kill Chain Coverage
             </CardTitle>
-            <CardDescription className="text-xs">Incident count per tactic — intensity indicates exposure</CardDescription>
+            <CardDescription className="text-xs">Incident count per tactic = intensity indicates exposure</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">

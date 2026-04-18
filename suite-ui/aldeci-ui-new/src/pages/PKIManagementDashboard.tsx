@@ -1,7 +1,7 @@
 /**
  * PKI Management Dashboard
  *
- * Public Key Infrastructure — certificate lifecycle and CA hierarchy management.
+ * Public Key Infrastructure = certificate lifecycle and CA hierarchy management.
  *   1. KPI cards: Total Certs, Active, Expiring (30d), Revoked
  *   2. Certificates table
  *   3. Certificate Authorities table
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_certs: 284,
@@ -66,7 +66,7 @@ const MOCK_CAS = [
   { name: "Legacy Root CA",        ca_type: "root",         subject: "CN=Legacy Root CA, O=OldCorp",            status: "deprecated", cert_count: 0 },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function CertTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -137,7 +137,7 @@ function expiryColor(dateStr: string, status: string): string {
   return "text-muted-foreground";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PKIManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -194,7 +194,7 @@ export default function PKIManagementDashboard() {
       {/* Header */}
       <PageHeader
         title="PKI Management"
-        description="Public Key Infrastructure — certificate lifecycle, CA hierarchy, and expiry tracking"
+        description="Public Key Infrastructure = certificate lifecycle, CA hierarchy, and expiry tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -272,7 +272,7 @@ export default function PKIManagementDashboard() {
               {cas.length} CAs
             </Badge>
           </div>
-          <CardDescription className="text-xs">CA hierarchy — root and intermediate authorities with issued certificate counts</CardDescription>
+          <CardDescription className="text-xs">CA hierarchy = root and intermediate authorities with issued certificate counts</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

@@ -477,8 +477,7 @@ export default function ThreatFeeds() {
                   >
                     {mitreData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
-                    ))
-                    )}
+                    ))}
                   </Pie>
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
@@ -533,7 +532,7 @@ export default function ThreatFeeds() {
                     </p>
                   </div>
                   {stats.kev > 0 && (
-                    <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/20 rounded-md">
+                    <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/20 rounded-md" role="status" aria-live="polite">
                       <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
                       <p className="text-xs text-red-400">
                         {stats.kev} active KEVs require immediate remediation per CISA mandate.
@@ -588,8 +587,7 @@ export default function ThreatFeeds() {
                   </div>
                   <span className={cn("font-mono font-bold", color)}>{count}</span>
                 </div>
-              ))
-              )}
+              ))}
               <Separator />
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total</span>

@@ -13,7 +13,7 @@ const _API_BASE = "/api/v1/posture-history";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type Domain = "network" | "endpoint" | "cloud" | "identity" | "application" | "data" | "compliance" | "physical";
 type Trend = "improving" | "declining" | "stable";
@@ -36,7 +36,7 @@ interface Snapshot {
   source: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const DOMAIN_SCORES: DomainScore[] = [
   { domain: "network",     label: "Network",     latest_score: 78, baseline_score: 70, trend: "improving", change: +8  },
@@ -64,7 +64,7 @@ const SNAPSHOTS: Snapshot[] = [
   { id: "snap-012", date: "2026-04-05", domain: "identity",    score: 71, source: "IAM Auditor" },
 ];
 
-// Trend chart data — weekly scores for each domain (8 data points)
+// Trend chart data = weekly scores for each domain (8 data points)
 const TREND_DATA: Record<Domain, number[]> = {
   network:     [68, 70, 71, 73, 74, 76, 77, 78],
   endpoint:    [73, 72, 71, 70, 69, 68, 66, 65],
@@ -76,12 +76,12 @@ const TREND_DATA: Record<Domain, number[]> = {
   physical:    [76, 76, 76, 76, 76, 76, 76, 76],
 };
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function trendIcon(trend: Trend) {
-  if (trend === "improving") return <span className="text-green-400">↑</span>;
-  if (trend === "declining") return <span className="text-red-400">↓</span>;
-  return <span className="text-gray-400">→</span>;
+  if (trend === "improving") return <span className="text-green-400">=</span>;
+  if (trend === "declining") return <span className="text-red-400">=</span>;
+  return <span className="text-gray-400">=</span>;
 }
 
 function scoreColor(score: number) {
@@ -96,7 +96,7 @@ function scoreBarColor(score: number) {
   return "bg-red-500";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PostureHistoryDashboard() {
   const [period, setPeriod] = useState<Period>("weekly");
@@ -105,7 +105,7 @@ export default function PostureHistoryDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
-        // live data loaded — components read from API response
+        // live data loaded = components read from API response
         void d;
       })
       .catch(() => { setError('Failed to load data'); })
@@ -131,12 +131,12 @@ export default function PostureHistoryDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -204,7 +204,7 @@ export default function PostureHistoryDashboard() {
       {/* Trend Chart */}
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-1">
-          {DOMAIN_SCORES.find(d => d.domain === selectedDomain)?.label} — Score Trend ({period})
+          {DOMAIN_SCORES.find(d => d.domain === selectedDomain)?.label} = Score Trend ({period})
         </h2>
         <p className="text-gray-400 text-sm mb-6">Click a domain card above to change view</p>
         <div className="flex items-end gap-2 h-40">
@@ -235,7 +235,7 @@ export default function PostureHistoryDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Snapshot History</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700 text-gray-400 text-left">
                 <th className="pb-3 pr-4">Date</th>

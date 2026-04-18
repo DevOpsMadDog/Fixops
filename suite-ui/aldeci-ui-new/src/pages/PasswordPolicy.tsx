@@ -3,10 +3,10 @@
  *
  * Policy enforcement and violation tracking.
  *   1. KPIs: Active Policies, Users Audited, Violations Found, Compliance Rate
- *   2. Policy cards (3) — complexity requirements + compliance bar + Edit button
+ *   2. Policy cards (3) = complexity requirements + compliance bar + Edit button
  *   3. Violation table (12 rows)
  *   4. Audit history (6 audits)
- *   5. Password strength distribution — horizontal bars
+ *   5. Password strength distribution = horizontal bars
  *
  * API stubs: GET /api/v1/password-policy/policies, /api/v1/password-policy/violations, /api/v1/password-policy/audits
  */
@@ -18,7 +18,7 @@ import {
   RefreshCw, BarChart3, ClipboardList, Users,
 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const POLICIES = [
   {
@@ -94,7 +94,7 @@ const VIOLATIONS = [
   { userId: "usr_g3u8***", policy: "Corporate Standard", type: "Minimum Length Fail",     severity: "Medium", detected: "2026-04-15 15:42", status: "Remediated" },
   { userId: "usr_h6v5***", policy: "Guest/Contractor",   type: "No Rotation in 95d",      severity: "Medium", detected: "2026-04-15 13:20", status: "Remediated" },
   { userId: "usr_i4w1***", policy: "Privileged Account", type: "Rotation Overdue 7d",     severity: "High",   detected: "2026-04-15 11:05", status: "Open" },
-  { userId: "usr_j7x3***", policy: "Corporate Standard", type: "Common Pattern (123…)",   severity: "Medium", detected: "2026-04-14 23:50", status: "Remediated" },
+  { userId: "usr_j7x3***", policy: "Corporate Standard", type: "Common Pattern (123=)",   severity: "Medium", detected: "2026-04-14 23:50", status: "Remediated" },
   { userId: "usr_k2y9***", policy: "Corporate Standard", type: "No Uppercase Letter",     severity: "Low",    detected: "2026-04-14 19:30", status: "Remediated" },
   { userId: "usr_l5z6***", policy: "Guest/Contractor",   type: "Weak Password",           severity: "High",   detected: "2026-04-14 16:15", status: "Remediated" },
 ];
@@ -116,7 +116,7 @@ const STRENGTH_DIST = [
   { label: "Very Strong",count: 1034,color: "bg-green-400", pct: 26.9 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -127,7 +127,7 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PasswordPolicy() {
   const [refreshing, setRefreshing] = useState(false);
@@ -263,8 +263,7 @@ export default function PasswordPolicy() {
                 </div>
               </CardContent>
             </Card>
-          ))
-          )}
+          ))}
         </div>
       </div>
 
@@ -280,7 +279,7 @@ export default function PasswordPolicy() {
               {(liveData?.violations?.violations ?? VIOLATIONS).filter((v: any) => v.status === "Open" || v.status === "open").length} open
             </Badge>
           </div>
-          <CardDescription className="text-xs">Detected password policy violations — user IDs are masked for privacy</CardDescription>
+          <CardDescription className="text-xs">Detected password policy violations = user IDs are masked for privacy</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

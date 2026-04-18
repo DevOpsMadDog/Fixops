@@ -1,12 +1,12 @@
 /**
- * Threat Hunting — Proactive hypothesis-driven threat detection
+ * Threat Hunting = Proactive hypothesis-driven threat detection
  *
  * Sections:
- *   1. KPI row — Active Hunts, Hypotheses Validated, IOCs Discovered, Avg Duration
- *   2. Active Hunts table — name, MITRE tactic, status, hunter, started, findings
- *   3. Hypothesis Builder — textarea, tactic dropdown, data source, Start Hunt
- *   4. IOC Feed — recent IOCs discovered from hunts
- *   5. MITRE Coverage — 10-tactic grid with covered/uncovered badges
+ *   1. KPI row = Active Hunts, Hypotheses Validated, IOCs Discovered, Avg Duration
+ *   2. Active Hunts table = name, MITRE tactic, status, hunter, started, findings
+ *   3. Hypothesis Builder = textarea, tactic dropdown, data source, Start Hunt
+ *   4. IOC Feed = recent IOCs discovered from hunts
+ *   5. MITRE Coverage = 10-tactic grid with covered/uncovered badges
  *
  * API: GET /api/v1/threat-hunting/hunts (mock fallback)
  * Route: /threat-hunting
@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface Hunt {
   hunt_name: string;
@@ -49,7 +49,7 @@ interface IOCEntry {
   confidence: "high" | "medium" | "low";
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_HUNTS: Hunt[] = [
   { hunt_name: "Living off the Land PowerShell abuse", mitre_tactic: "Execution",           status: "active",   hunter: "j.smith",   started_date: "2026-04-14", findings_count: 0 },
@@ -88,7 +88,7 @@ const DATA_SOURCES = ["Windows Event Logs", "DNS Logs", "Network Flow", "EDR Tel
 const TACTIC_OPTIONS = ["Reconnaissance", "Initial Access", "Execution", "Persistence", "Privilege Escalation",
   "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "C2", "Exfiltration", "Impact"];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function statusBadge(status: Hunt["status"]) {
   return status === "active"
@@ -105,7 +105,7 @@ function confidenceBadge(c: IOCEntry["confidence"]) {
   return <Badge className={cn("capitalize", map[c])}>{c}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatHuntingPage() {
   const queryClient = useQueryClient();
@@ -148,7 +148,7 @@ export default function ThreatHuntingPage() {
     },
     retry: false,
     staleTime: 30_000,
-    // fallback to mock on error handled by initialData not available — error boundary catches,
+    // fallback to mock on error handled by initialData not available = error boundary catches,
     // defaulting to MOCK_HUNTS via initialData below
     initialData: MOCK_HUNTS,
   });

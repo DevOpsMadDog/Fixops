@@ -3,17 +3,17 @@
  *
  * Multi-jurisdiction change tracking, obligations, and compliance assessments.
  *   1. KPIs: Active Regulations, Pending Changes, Overdue Obligations, Avg Compliance
- *   2. Upcoming changes timeline — 10 regulatory changes
- *   3. Obligations table — 12 rows
- *   4. Assessment history — 8 assessments
- *   5. Regulation catalog — 10 regulations
+ *   2. Upcoming changes timeline = 10 regulatory changes
+ *   3. Obligations table = 12 rows
+ *   4. Assessment history = 8 assessments
+ *   5. Regulation catalog = 10 regulations
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, AlertTriangle, ClipboardCheck, BarChart3, RefreshCw, Globe, Calendar } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ───────────────────────────────────────────────────
+// == Mock data ===================================================
 
 const UPCOMING_CHANGES = [
   { id: "RC-001", reg: "EU AI Act",            changeType: "new_requirement", impact: "critical", domains: ["AI/ML", "Data"], effectiveAt: "2026-05-01", daysUntil: 15 },
@@ -91,7 +91,7 @@ const CATALOG = [
   { name: "Cyber Resilience Act",jurisdiction:"EU",  category: "cybersecurity",status: "pending",  version: "Draft" },
 ];
 
-// ── Helpers ─────────────────────────────────────────────────────
+// == Helpers =====================================================
 
 function ChangeTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -184,7 +184,7 @@ function ComplianceBar({ pct }: { pct: number }) {
   );
 }
 
-// ── Component ───────────────────────────────────────────────────
+// == Component ===================================================
 
 export default function RegulatoryTrackerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -257,7 +257,7 @@ export default function RegulatoryTrackerDashboard() {
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">{UPCOMING_CHANGES.length} changes</Badge>
           </div>
-          <CardDescription className="text-xs">Sorted by effective date — impact to your compliance posture</CardDescription>
+          <CardDescription className="text-xs">Sorted by effective date = impact to your compliance posture</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -372,7 +372,7 @@ export default function RegulatoryTrackerDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>{a.gaps} gaps</span>
-                    <span>·</span>
+                    <span>=</span>
                     <span>{a.assessedAt}</span>
                   </div>
                 </div>

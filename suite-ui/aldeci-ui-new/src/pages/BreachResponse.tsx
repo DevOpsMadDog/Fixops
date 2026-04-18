@@ -6,7 +6,7 @@
  *   2. Breach cases table (10 rows)
  *   3. Notification log (8 rows)
  *   4. Regulatory reports (6 rows)
- *   5. Response timeline — horizontal stepper
+ *   5. Response timeline = horizontal stepper
  *
  * API stubs: GET /api/v1/breach/cases, /api/v1/breach/notifications, /api/v1/breach/reports
  */
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Bell, FileText, Clock, RefreshCw, Shield } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,19 +38,19 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ───────────────────────────────────────────────────
+// == Mock data ===================================================
 
 const BREACH_CASES = [
   { id: "BR-2026-001", title: "Customer PII exfiltration via API",       type: "external_attack", discovered: "2026-04-01", status: "reported",   records: 18420, notifiable: true,  deadline: "2026-04-04" },
-  { id: "BR-2026-002", title: "S3 bucket misconfiguration — health data", type: "accidental",      discovered: "2026-04-03", status: "contained",  records: 9102,  notifiable: true,  deadline: "2026-04-06" },
+  { id: "BR-2026-002", title: "S3 bucket misconfiguration = health data", type: "accidental",      discovered: "2026-04-03", status: "contained",  records: 9102,  notifiable: true,  deadline: "2026-04-06" },
   { id: "BR-2026-003", title: "Insider downloads of financial records",    type: "insider",         discovered: "2026-04-05", status: "confirmed",  records: 4300,  notifiable: true,  deadline: "2026-04-08" },
-  { id: "BR-2026-004", title: "Vendor credential leak — prod DB",          type: "vendor_breach",   discovered: "2026-04-07", status: "confirmed",  records: 7200,  notifiable: true,  deadline: "2026-04-10" },
-  { id: "BR-2026-005", title: "Ransomware — HR file server",               type: "external_attack", discovered: "2026-04-08", status: "contained",  records: 2810,  notifiable: false, deadline: "2026-04-11" },
-  { id: "BR-2026-006", title: "Email mis-delivery — legal documents",      type: "accidental",      discovered: "2026-04-10", status: "reported",   records: 94,    notifiable: false, deadline: "2026-04-13" },
-  { id: "BR-2026-007", title: "Third-party SaaS breach — payroll data",    type: "vendor_breach",   discovered: "2026-04-11", status: "confirmed",  records: 3200,  notifiable: true,  deadline: "2026-04-14" },
-  { id: "BR-2026-008", title: "Phishing — executive email takeover",       type: "external_attack", discovered: "2026-04-12", status: "suspected",  records: 0,     notifiable: false, deadline: "2026-04-19" },
-  { id: "BR-2026-009", title: "USB exfiltration — trade secrets",          type: "insider",         discovered: "2026-04-13", status: "suspected",  records: 0,     notifiable: false, deadline: "2026-04-20" },
-  { id: "BR-2026-010", title: "Cloud storage sync — unencrypted backups",  type: "accidental",      discovered: "2026-04-14", status: "suspected",  records: 2697,  notifiable: true,  deadline: "2026-04-21" },
+  { id: "BR-2026-004", title: "Vendor credential leak = prod DB",          type: "vendor_breach",   discovered: "2026-04-07", status: "confirmed",  records: 7200,  notifiable: true,  deadline: "2026-04-10" },
+  { id: "BR-2026-005", title: "Ransomware = HR file server",               type: "external_attack", discovered: "2026-04-08", status: "contained",  records: 2810,  notifiable: false, deadline: "2026-04-11" },
+  { id: "BR-2026-006", title: "Email mis-delivery = legal documents",      type: "accidental",      discovered: "2026-04-10", status: "reported",   records: 94,    notifiable: false, deadline: "2026-04-13" },
+  { id: "BR-2026-007", title: "Third-party SaaS breach = payroll data",    type: "vendor_breach",   discovered: "2026-04-11", status: "confirmed",  records: 3200,  notifiable: true,  deadline: "2026-04-14" },
+  { id: "BR-2026-008", title: "Phishing = executive email takeover",       type: "external_attack", discovered: "2026-04-12", status: "suspected",  records: 0,     notifiable: false, deadline: "2026-04-19" },
+  { id: "BR-2026-009", title: "USB exfiltration = trade secrets",          type: "insider",         discovered: "2026-04-13", status: "suspected",  records: 0,     notifiable: false, deadline: "2026-04-20" },
+  { id: "BR-2026-010", title: "Cloud storage sync = unencrypted backups",  type: "accidental",      discovered: "2026-04-14", status: "suspected",  records: 2697,  notifiable: true,  deadline: "2026-04-21" },
 ];
 
 const NOTIFICATIONS = [
@@ -82,7 +82,7 @@ const TIMELINE_STEPS = [
   { label: "Review",     done: false },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function BreachTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -126,7 +126,7 @@ function NotifTypeBadge({ type }: { type: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[type] ?? "")}>{type}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function BreachResponse() {
   const [refreshing, setRefreshing] = useState(false);
@@ -154,7 +154,7 @@ export default function BreachResponse() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Resolve KPI values — engine returns: total_cases, confirmed, notifications_sent
+  // Resolve KPI values = engine returns: total_cases, confirmed, notifications_sent
   const kpiActiveCases       = liveData?.stats?.total_cases        ?? liveData?.stats?.active_cases  ?? 7;
   const kpiConfirmedBreaches  = liveData?.stats?.confirmed          ?? liveData?.stats?.confirmed_breaches ?? 3;
   const kpiRecordsAffected   = liveData?.stats?.total_records_affected
@@ -162,18 +162,18 @@ export default function BreachResponse() {
     : "47,823";
   const kpiNotificationsSent = liveData?.stats?.notifications_sent ?? 12;
 
-  // Live cases table — map API shape to mock shape
+  // Live cases table = map API shape to mock shape
   const liveCasesArr = liveData?.cases?.cases ?? liveData?.cases;
   const tableCases = Array.isArray(liveCasesArr) && liveCasesArr.length > 0
     ? liveCasesArr.map((c: any) => ({
-        id:          c.case_id ?? c.id ?? "—",
-        title:       c.title ?? "—",
+        id:          c.case_id ?? c.id ?? "=",
+        title:       c.title ?? "=",
         type:        c.breach_type ?? "external_attack",
-        discovered:  c.discovered_at ?? c.created_at ?? "—",
+        discovered:  c.discovered_at ?? c.created_at ?? "=",
         status:      c.status ?? "suspected",
         records:     c.estimated_records_affected ?? 0,
         notifiable:  c.notifiable ?? false,
-        deadline:    c.regulatory_deadline ?? "—",
+        deadline:    c.regulatory_deadline ?? "=",
       }))
     : BREACH_CASES;
 
@@ -216,7 +216,7 @@ export default function BreachResponse() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Clock className="h-4 w-4 text-blue-400" />
-            Response Timeline — BR-2026-001
+            Response Timeline = BR-2026-001
           </CardTitle>
           <CardDescription className="text-xs">Current active case progress through mandatory response stages</CardDescription>
         </CardHeader>
@@ -239,7 +239,7 @@ export default function BreachResponse() {
                         ? "bg-blue-500/20 border-blue-500 text-blue-400 animate-pulse"
                         : "bg-muted/30 border-border text-muted-foreground"
                   )}>
-                    {step.done ? "✓" : idx + 1}
+                    {step.done ? "=" : idx + 1}
                   </div>
                   <span className={cn(
                     "text-[10px] font-medium text-center",
@@ -305,7 +305,7 @@ export default function BreachResponse() {
                     <TableCell className="text-xs py-2 tabular-nums text-muted-foreground">{row.discovered}</TableCell>
                     <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs py-2 tabular-nums font-medium">
-                      {row.records > 0 ? row.records.toLocaleString() : "—"}
+                      {row.records > 0 ? row.records.toLocaleString() : "="}
                     </TableCell>
                     <TableCell className="py-2">
                       {row.notifiable

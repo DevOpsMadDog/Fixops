@@ -32,7 +32,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ACCOUNTS = [
   { id: "SA-001", name: "svc-deploy-prod",    system: "Kubernetes",  risk_score: 92, last_rotation: "182d ago", unused: false, action: "rotate_now"  },
@@ -52,7 +52,7 @@ const MOCK_STATS = {
   overdue_rotations: 15,
 };
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function ActionBadge({ action }: { action: string }) {
   const map: Record<string, string> = {
@@ -76,7 +76,7 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-// ── Component ────────────────────────────────────────────────
+// == Component ================================================
 
 export default function ServiceAccountAuditDashboard() {
   const [refreshing, setRefreshing] = useState(false);

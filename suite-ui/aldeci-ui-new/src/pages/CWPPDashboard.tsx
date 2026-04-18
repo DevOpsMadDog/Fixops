@@ -1,5 +1,5 @@
 /**
- * CWPPDashboard — Cloud Workload Protection Platform
+ * CWPPDashboard = Cloud Workload Protection Platform
  *
  * Route: /cwpp
  * Sections:
@@ -24,7 +24,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const WORKLOADS = [
   { name: "api-gateway-prod", type: "container",   runtime: "docker",      image: "nginx:1.25.3",           cluster: "prod-k8s-1",  risk: 12, status: "running",    findings: 2  },
@@ -101,7 +101,7 @@ const POLICIES = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -136,7 +136,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className="text-[10px] border border-border text-muted-foreground">{status}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CWPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -232,8 +232,8 @@ export default function CWPPDashboard() {
                   name: w.name ?? w.workload_id ?? "unknown",
                   type: w.workload_type ?? w.type ?? "container",
                   runtime: w.metadata?.runtime ?? w.runtime ?? "docker",
-                  image: w.metadata?.image ?? w.image ?? "—",
-                  cluster: w.metadata?.cluster ?? w.cluster ?? "—",
+                  image: w.metadata?.image ?? w.image ?? "=",
+                  cluster: w.metadata?.cluster ?? w.cluster ?? "=",
                   risk: w.risk_score ?? w.risk ?? 0,
                   status: w.status ?? "running",
                   findings: w.finding_count ?? w.findings ?? 0,
@@ -300,7 +300,7 @@ export default function CWPPDashboard() {
                   type: e.threat_type ?? e.event_type ?? e.type ?? "syscall_anomaly",
                   blocked: e.blocked ?? e.action === "block",
                   desc: e.description ?? e.details ?? e.message ?? "",
-                  ts: e.detected_at ?? e.timestamp ?? e.ts ?? "—",
+                  ts: e.detected_at ?? e.timestamp ?? e.ts ?? "=",
                 })) : EVENTS).map((e, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2">{e.workload}</TableCell>
@@ -389,8 +389,7 @@ export default function CWPPDashboard() {
                   Applied to <span className="font-semibold text-foreground">{p.applied.toLocaleString()}</span> workloads
                 </p>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>

@@ -37,22 +37,22 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ASSETS = [
-  { id: "OT-001", asset_id: "PLC-PROD-01",   type: "plc",          zone: "Level 1 — Control",    protocol: "Modbus TCP",    risk_level: "critical", last_seen: "1 min ago" },
-  { id: "OT-002", asset_id: "HMI-OPS-03",    type: "hmi",          zone: "Level 2 — SCADA",      protocol: "EtherNet/IP",   risk_level: "high",     last_seen: "2 min ago" },
-  { id: "OT-003", asset_id: "RTU-FIELD-07",  type: "rtu",          zone: "Level 0 — Field",      protocol: "DNP3",          risk_level: "high",     last_seen: "5 min ago" },
-  { id: "OT-004", asset_id: "SCADA-SRV-01",  type: "scada_server", zone: "Level 3 — Operations", protocol: "OPC-UA",        risk_level: "critical", last_seen: "3 min ago" },
-  { id: "OT-005", asset_id: "EWS-ENG-02",    type: "engineering_ws",zone: "Level 3 — Operations",protocol: "RDP/OPC",       risk_level: "medium",   last_seen: "15 min ago" },
-  { id: "OT-006", asset_id: "IED-SUBST-12",  type: "ied",          zone: "Level 0 — Field",      protocol: "IEC 61850",     risk_level: "high",     last_seen: "8 min ago" },
-  { id: "OT-007", asset_id: "HIST-DATA-01",  type: "historian",    zone: "Level 3 — Operations", protocol: "OPC-DA",        risk_level: "medium",   last_seen: "10 min ago" },
-  { id: "OT-008", asset_id: "FWALL-PURDUE",  type: "firewall",     zone: "Level 3.5 — DMZ",      protocol: "TCP/IP",        risk_level: "low",      last_seen: "1 min ago" },
+  { id: "OT-001", asset_id: "PLC-PROD-01",   type: "plc",          zone: "Level 1 = Control",    protocol: "Modbus TCP",    risk_level: "critical", last_seen: "1 min ago" },
+  { id: "OT-002", asset_id: "HMI-OPS-03",    type: "hmi",          zone: "Level 2 = SCADA",      protocol: "EtherNet/IP",   risk_level: "high",     last_seen: "2 min ago" },
+  { id: "OT-003", asset_id: "RTU-FIELD-07",  type: "rtu",          zone: "Level 0 = Field",      protocol: "DNP3",          risk_level: "high",     last_seen: "5 min ago" },
+  { id: "OT-004", asset_id: "SCADA-SRV-01",  type: "scada_server", zone: "Level 3 = Operations", protocol: "OPC-UA",        risk_level: "critical", last_seen: "3 min ago" },
+  { id: "OT-005", asset_id: "EWS-ENG-02",    type: "engineering_ws",zone: "Level 3 = Operations",protocol: "RDP/OPC",       risk_level: "medium",   last_seen: "15 min ago" },
+  { id: "OT-006", asset_id: "IED-SUBST-12",  type: "ied",          zone: "Level 0 = Field",      protocol: "IEC 61850",     risk_level: "high",     last_seen: "8 min ago" },
+  { id: "OT-007", asset_id: "HIST-DATA-01",  type: "historian",    zone: "Level 3 = Operations", protocol: "OPC-DA",        risk_level: "medium",   last_seen: "10 min ago" },
+  { id: "OT-008", asset_id: "FWALL-PURDUE",  type: "firewall",     zone: "Level 3.5 = DMZ",      protocol: "TCP/IP",        risk_level: "low",      last_seen: "1 min ago" },
 ];
 
 const MOCK_STATS = { ot_assets: 248, critical_assets: 34, active_alerts: 9, protocol_violations: 16 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function AssetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -90,7 +90,7 @@ function ProtocolBadge({ protocol }: { protocol: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function OTSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -131,7 +131,7 @@ export default function OTSecurityDashboard() {
     >
       <PageHeader
         title="OT Security"
-        description="Operational technology asset monitoring — ICS, SCADA, PLC, and field device security"
+        description="Operational technology asset monitoring = ICS, SCADA, PLC, and field device security"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -160,7 +160,7 @@ export default function OTSecurityDashboard() {
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Purdue model zone mapping — PLCs, HMIs, RTUs, SCADA servers, and field devices
+            Purdue model zone mapping = PLCs, HMIs, RTUs, SCADA servers, and field devices
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -192,7 +192,7 @@ export default function OTSecurityDashboard() {
                       <AssetTypeBadge type={asset.type ?? asset.asset_type ?? "plc"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[180px] truncate">
-                      {asset.zone ?? asset.purdue_level ?? "—"}
+                      {asset.zone ?? asset.purdue_level ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <ProtocolBadge protocol={asset.protocol ?? asset.ot_protocol ?? "Modbus"} />
@@ -201,7 +201,7 @@ export default function OTSecurityDashboard() {
                       <RiskLevelBadge level={asset.risk_level ?? asset.risk ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {asset.last_seen ?? "—"}
+                      {asset.last_seen ?? "="}
                     </TableCell>
                   </TableRow>
                 )))}

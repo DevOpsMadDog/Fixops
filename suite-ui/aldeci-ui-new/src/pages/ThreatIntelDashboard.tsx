@@ -59,9 +59,9 @@ function authedFetch(url: string) {
   return fetch(url, { headers: { "X-API-Key": API_KEY } });
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type FeedStatus = "live" | "degraded" | "down";
 type IocType = "ip" | "domain" | "hash" | "url";
@@ -83,9 +83,9 @@ interface IOC {
   last_seen: string;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_FEEDS: Feed[] = [
   { id: "otx", name: "AlienVault OTX", status: "live", ioc_count: 14832, last_updated: "2m ago" },
@@ -119,9 +119,9 @@ const TREND_DATA = [
   { day: "Sun", ip: 1420, domain: 870, hash: 530, url: 360 },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -164,9 +164,9 @@ const CHART_TOOLTIP_STYLE = {
   color: "oklch(0.93 0.005 250)",
 };
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Feed Status Card
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function FeedCard({ feed, index }: { feed: Feed; index: number }) {
   const cfg = STATUS_CONFIG[feed.status];
@@ -209,16 +209,16 @@ function FeedCard({ feed, index }: { feed: Feed; index: number }) {
           <p className="text-2xl font-bold tabular-nums tracking-tight mb-1">
             {formatCount(feed.ioc_count)}
           </p>
-          <p className="text-xs text-muted-foreground">IOCs · Updated {feed.last_updated}</p>
+          <p className="text-xs text-muted-foreground">IOCs = Updated {feed.last_updated}</p>
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // IOC Row
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function IocRow({ ioc, index }: { ioc: IOC; index: number }) {
   const [copied, setCopied] = useState(false);
@@ -272,9 +272,9 @@ function IocRow({ ioc, index }: { ioc: IOC; index: number }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function ThreatIntelDashboard() {
   const [search, setSearch] = useState("");
@@ -409,7 +409,7 @@ export default function ThreatIntelDashboard() {
 
       {/* Main content: IOC table + trend chart */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 min-h-0">
-        {/* IOC Browser — takes 3/5 */}
+        {/* IOC Browser = takes 3/5 */}
         <Card className="xl:col-span-3 flex flex-col min-h-0">
           <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-semibold">IOC Browser</CardTitle>
@@ -418,7 +418,7 @@ export default function ThreatIntelDashboard() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search indicators…"
+                placeholder="Search indicators="
                 className="pl-8 h-8 text-xs"
               />
             </div>
@@ -426,7 +426,7 @@ export default function ThreatIntelDashboard() {
           <Separator />
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-[340px]">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
                     <th className="py-2 px-3 text-left font-medium w-20">Type</th>
@@ -454,7 +454,7 @@ export default function ThreatIntelDashboard() {
           </div>
         </Card>
 
-        {/* Trend Chart — takes 2/5 */}
+        {/* Trend Chart = takes 2/5 */}
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">7-Day IOC Trend</CardTitle>

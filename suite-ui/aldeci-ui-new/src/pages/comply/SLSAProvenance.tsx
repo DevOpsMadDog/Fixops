@@ -142,8 +142,7 @@ function AttestationDialog({ build }: { build: any }) {
                 <p className="text-xs text-muted-foreground">{label}</p>
                 <p className="text-sm font-medium font-mono mt-0.5">{value}</p>
               </div>
-            ))
-            )}
+            ))}
           </div>
 
           {/* Provenance timeline */}
@@ -166,8 +165,7 @@ function AttestationDialog({ build }: { build: any }) {
                     <Link2 className="h-2.5 w-2.5" />
                     {fw}
                   </Badge>
-                ))
-                )}
+                ))}
               </div>
             </div>
           )}
@@ -449,8 +447,7 @@ export default function SLSAProvenance() {
                               )}
                             </div>
                           </div>
-                        ))
-                      )}
+                        ))}
                       </div>
                     )}
                   </div>
@@ -533,8 +530,7 @@ export default function SLSAProvenance() {
                       <AttestationDialog build={build} />
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
           </Table>
           </div>

@@ -4,7 +4,7 @@
  * Phishing simulation and security awareness.
  *   1. KPIs: Campaigns Run, Employees Tested, Click Rate, Reported Rate
  *   2. Campaign table (8 rows)
- *   3. Click rate by department — horizontal bars
+ *   3. Click rate by department = horizontal bars
  *   4. Top phishing templates (6 cards)
  *   5. Training completion progress bars
  *
@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID  = "default";
 
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CAMPAIGNS = [
   { name: "CEO Fraud Q1",        type: "pretexting", group: "Finance",     launched: "2026-04-01", sent: 48,  clicked: 12, reported: 8,  status: "completed" },
@@ -79,7 +79,7 @@ const TRAINING_MODULES = [
   { name: "Incident Reporting Procedures",     completion: 73 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function CampaignTypeBadge({ type }: { type: string }) {
   const cls =
@@ -108,7 +108,7 @@ function ClickRateBadge({ rate }: { rate: number }) {
 
 const DEPT_MAX = Math.max(...DEPT_CLICK_RATES.map((d) => d.rate));
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SocialEngineering() {
   const [refreshing, setRefreshing] = useState(false);
@@ -152,14 +152,14 @@ export default function SocialEngineering() {
     ? `${liveData.stats.avg_report_rate.toFixed(1)}%`
     : "34.7%";
 
-  // Campaign table — map API shape to mock shape
+  // Campaign table = map API shape to mock shape
   const liveCampaignsArr = Array.isArray(liveData?.campaigns) ? liveData.campaigns : null;
   const tableCampaigns = liveCampaignsArr && liveCampaignsArr.length > 0
     ? liveCampaignsArr.map((c: any) => ({
-        name:     c.name ?? "—",
+        name:     c.name ?? "=",
         type:     c.campaign_type ?? "phishing",
-        group:    c.target_group ?? "—",
-        launched: c.start_date ?? c.created_at ?? "—",
+        group:    c.target_group ?? "=",
+        launched: c.start_date ?? c.created_at ?? "=",
         sent:     c.total_targets   ?? c.sent     ?? 0,
         clicked:  c.total_clicked   ?? c.clicked  ?? 0,
         reported: c.total_reported  ?? c.reported ?? 0,
@@ -167,14 +167,14 @@ export default function SocialEngineering() {
       }))
     : CAMPAIGNS;
 
-  // Templates — map API shape to mock shape
+  // Templates = map API shape to mock shape
   const liveTemplatesArr = Array.isArray(liveData?.templates) ? liveData.templates : null;
   const tableTemplates = liveTemplatesArr && liveTemplatesArr.length > 0
     ? liveTemplatesArr.slice(0, 6).map((t: any) => ({
-        name:      t.name ?? "—",
+        name:      t.name ?? "=",
         type:      t.template_type ?? "phishing",
         clickRate: t.click_rate ?? t.avg_click_rate ?? 0,
-        lastUsed:  t.last_used ?? t.created_at ?? "—",
+        lastUsed:  t.last_used ?? t.created_at ?? "=",
       }))
     : TEMPLATES;
 
@@ -296,7 +296,7 @@ export default function SocialEngineering() {
               <BarChart3 className="h-4 w-4 text-amber-400" />
               Click Rate by Department
             </CardTitle>
-            <CardDescription className="text-xs">Sorted by click rate descending — red bars indicate high risk</CardDescription>
+            <CardDescription className="text-xs">Sorted by click rate descending = red bars indicate high risk</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {DEPT_CLICK_RATES.length === 0 ? (
@@ -388,9 +388,9 @@ export default function SocialEngineering() {
                   <span className="tabular-nums">Last: {t.lastUsed}</span>
                 </div>
                 {t.clickRate > 10 && (
-                  <div className="flex items-center gap-1 text-[10px] text-red-400">
+                  <div className="flex items-center gap-1 text-[10px] text-red-400" role="status" aria-live="polite">
                     <TrendingDown className="h-3 w-3" />
-                    High risk — prioritize retraining
+                    High risk = prioritize retraining
                   </div>
                 )}
               </CardContent>

@@ -26,7 +26,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface Scan {
   id: string;
@@ -42,7 +42,7 @@ interface Scan {
   duration_min: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SCANS: Scan[] = [
   { id: "sc-001", scanner_type: "Nessus",       target: "10.0.0.0/16",        status: "completed", findings_count: 347, critical_count: 12, high_count: 48,  medium_count: 187, low_count: 100, started_at: "2026-04-16 08:00", duration_min: 42 },
@@ -64,7 +64,7 @@ const SEVERITY_BREAKDOWN = [
 
 const SCANNER_TYPES = ["Nessus", "Qualys", "OpenVAS", "Tenable.io", "Rapid7", "Burp Suite", "OWASP ZAP", "Trivy"];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function ScanStatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode }> = {
@@ -77,12 +77,12 @@ function ScanStatusBadge({ status }: { status: string }) {
   return (
     <Badge className={cn("border text-xs gap-1 capitalize", cls)}>
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -92,7 +92,7 @@ function ScanStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function VulnScanDashboard() {
   const [scans, setScans] = useState(MOCK_SCANS);
@@ -194,11 +194,11 @@ export default function VulnScanDashboard() {
                     <TableCell className="text-sm font-medium text-gray-200">{scan.scanner_type}</TableCell>
                     <TableCell className="font-mono text-xs text-gray-400 max-w-[140px] truncate">{scan.target}</TableCell>
                     <TableCell><ScanStatusBadge status={scan.status} /></TableCell>
-                    <TableCell className="text-right text-sm text-gray-300">{scan.findings_count > 0 ? scan.findings_count.toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-right text-sm text-gray-300">{scan.findings_count > 0 ? scan.findings_count.toLocaleString() : "="}</TableCell>
                     <TableCell className="text-right">
                       {scan.critical_count > 0 ? (
                         <span className="text-red-400 font-semibold text-sm">{scan.critical_count}</span>
-                      ) : <span className="text-gray-500 text-sm">—</span>}
+                      ) : <span className="text-gray-500 text-sm">=</span>}
                     </TableCell>
                     <TableCell className="text-xs text-gray-400">{scan.started_at}</TableCell>
                   </motion.tr>

@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock Data ──────────────────────────────────────────────────
+// == Mock Data ==================================================
 
 const MOCK_SERVICES = [
   { id: "svc-001", service_name: "Vulnerability Scanning", category: "assessment", owner_team: "SecOps", sla_response_hours: 4, sla_resolution_hours: 48, request_count: 284, availability_pct: 99.8, status: "active" },
@@ -57,7 +57,7 @@ const MOCK_OUTAGES = [
   { id: "out-003", service_name: "DLP Policy Exception", outage_type: "unplanned", severity: "moderate", duration_mins: 62, affected_users: 15, started_at: "2026-04-12T11:30:00Z" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const CATEGORY_COLORS: Record<string, string> = {
   assessment:        "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -115,12 +115,12 @@ function AvailabilityGauge({ pct }: { pct: number }) {
   return (
     <div className="flex items-center gap-1.5">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -136,7 +136,7 @@ function AvailabilityGauge({ pct }: { pct: number }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function ServiceCatalogDashboard() {
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -203,7 +203,7 @@ export default function ServiceCatalogDashboard() {
                   <label className="text-[10px] text-zinc-500 mb-1 block">Service</label>
                   <select className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white"
                     value={requestForm.service} onChange={e => setRequestForm(p => ({ ...p, service: e.target.value }))}>
-                    <option value="">Select service…</option>
+                    <option value="">Select service=</option>
                     {MOCK_SERVICES.filter(s => s.status === "active").map(s => <option key={s.id}>{s.service_name}</option>)}
                   </select>
                 </div>
@@ -228,7 +228,7 @@ export default function ServiceCatalogDashboard() {
                   </div>
                 </div>
               </div>
-              <textarea className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white placeholder-zinc-600 resize-none" rows={2} placeholder="Notes / business justification…" value={requestForm.notes} onChange={e => setRequestForm(p => ({ ...p, notes: e.target.value }))} />
+              <textarea className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white placeholder-zinc-600 resize-none" rows={2} placeholder="Notes / business justification=" value={requestForm.notes} onChange={e => setRequestForm(p => ({ ...p, notes: e.target.value }))} />
               <Button size="sm" className="mt-3 bg-blue-600 hover:bg-blue-700 text-xs" onClick={() => setShowRequestForm(false)}>Submit Request</Button>
             </CardContent>
           </Card>
@@ -240,7 +240,7 @@ export default function ServiceCatalogDashboard() {
         <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Services</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table role="table" className="w-full text-xs">
               <thead>
                 <tr className="border-b border-zinc-700">
                   {["Service", "Category", "Owner", "SLA Response", "SLA Resolution", "Requests", "Availability", "Status"].map(h => (
@@ -281,7 +281,7 @@ export default function ServiceCatalogDashboard() {
           <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Service Requests</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table role="table" className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-zinc-700">
                     {["Requester", "Dept", "Service", "Priority", "Status", "Response", "Resolution", "SLA"].map(h => (
@@ -304,12 +304,12 @@ export default function ServiceCatalogDashboard() {
                       <td className="py-2 px-1 text-zinc-400 max-w-[120px] truncate">{r.service_name}</td>
                       <td className="py-2 px-1"><Badge className={cn("text-[9px] border capitalize", PRIORITY_COLORS[r.priority])}>{r.priority}</Badge></td>
                       <td className="py-2 px-1"><Badge className={cn("text-[9px] border capitalize", REQUEST_STATUS_COLORS[r.status])}>{r.status.replace("_"," ")}</Badge></td>
-                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.response_hrs ? `${r.response_hrs}h` : "—"}</td>
-                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.resolution_hrs ? `${r.resolution_hrs}h` : "—"}</td>
+                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.response_hrs ? `${r.response_hrs}h` : "="}</td>
+                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.resolution_hrs ? `${r.resolution_hrs}h` : "="}</td>
                       <td className="py-2 px-1">
                         {r.sla_met === true && <Badge className="text-[9px] border border-green-500/30 text-green-400 bg-green-500/10">Met</Badge>}
                         {r.sla_met === false && <Badge className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">Missed</Badge>}
-                        {r.sla_met === null && <span className="text-zinc-600">—</span>}
+                        {r.sla_met === null && <span className="text-zinc-600">=</span>}
                       </td>
                     </tr>
                   )))}
@@ -337,8 +337,7 @@ export default function ServiceCatalogDashboard() {
                     </div>
                   )}
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
 

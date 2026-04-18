@@ -33,7 +33,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ALERTS = [
   { id: "NM-001", interface_name: "eth0",    severity: "critical", metric: "packet_loss",    value: "18.4%",  detected_at: "14:52:01" },
@@ -60,7 +60,7 @@ const MOCK_STATS = {
   avg_utilization_pct: 54,
 };
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const map: Record<string, string> = {
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ────────────────────────────────────────────────
+// == Component ================================================
 
 export default function NetworkMonitoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);

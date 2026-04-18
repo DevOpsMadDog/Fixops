@@ -748,11 +748,10 @@ export default function SBOMInventory() {
                     </div>
                     <span className="font-mono text-sm font-bold">{entry.value}</span>
                   </div>
-                ))
-                )}
+                ))}
                 <Separator />
                 {licenseChartData.some((e) => e.name.toUpperCase().includes("GPL")) && (
-                  <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/20 rounded-md">
+                  <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/20 rounded-md" role="status" aria-live="polite">
                     <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
                     <p className="text-xs text-red-400">
                       GPL-licensed packages detected. Review for license compliance implications.

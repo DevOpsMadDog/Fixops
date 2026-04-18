@@ -656,8 +656,7 @@ function AssessmentPanel({ vendor }: { vendor: Vendor }) {
                   )}
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </div>
       )}
@@ -1026,28 +1025,28 @@ export default function VendorManagement() {
           {/* Table */}
           <Card className={cn("flex-1 min-w-0 overflow-hidden", selectedVendor && "xl:max-w-[calc(100%-400px-20px)]")}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/20">
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground w-14">Grade</th>
                     <th className="px-4 py-3 text-left">
-                      <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" aria-label="Sort by Name">
                         Vendor <SortIcon col="name" />
                       </button>
                     </th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell text-xs font-medium text-muted-foreground">Category</th>
                     <th className="px-4 py-3 text-left w-36">
-                      <button onClick={() => toggleSort("score")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <button onClick={() => toggleSort("score")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" aria-label="Sort by Score">
                         Score <SortIcon col="score" />
                       </button>
                     </th>
                     <th className="px-4 py-3 text-left w-24">
-                      <button onClick={() => toggleSort("tier")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <button onClick={() => toggleSort("tier")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" aria-label="Sort by Tier">
                         Tier <SortIcon col="tier" />
                       </button>
                     </th>
                     <th className="px-4 py-3 text-left w-32 hidden md:table-cell">
-                      <button onClick={() => toggleSort("assessed")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <button onClick={() => toggleSort("assessed")} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" aria-label="Sort by Assessed">
                         Assessed <SortIcon col="assessed" />
                       </button>
                     </th>

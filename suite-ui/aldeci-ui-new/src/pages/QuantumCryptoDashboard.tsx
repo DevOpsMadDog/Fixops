@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_assets:           312,
@@ -67,7 +67,7 @@ const MOCK_MIGRATIONS = [
   { asset_id: "s3-bucket",  from_algorithm: "RSA-2048", to_algorithm: "AES-256-GCM",        priority: "low",      status: "migrated",    planned_date: "2025-12-01" },
 ];
 
-// ── Interfaces ─────────────────────────────────────────────────
+// == Interfaces =================================================
 
 interface QuantumStats {
   total_assets: number;
@@ -94,7 +94,7 @@ interface QuantumMigration {
   planned_date: string;
 }
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskLevelBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -139,7 +139,7 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function QuantumCryptoDashboard() {
   const [refreshing, setRefreshing] = useState(false);

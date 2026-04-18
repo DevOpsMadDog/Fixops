@@ -13,7 +13,7 @@ const _API_BASE = "/api/v1/intel-enrichment";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type IOCType = "ip" | "domain" | "url" | "hash" | "email" | "asn";
 type EnrichmentStatus = "pending" | "in_progress" | "completed" | "failed";
@@ -41,7 +41,7 @@ interface EnrichmentSource {
   total_queries: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_REQUESTS: EnrichmentRequest[] = [
   { id: "enr-001", indicator: "185.220.101.45",          ioc_type: "ip",     status: "completed", sources_queried: 8, sources_responded: 8, created_at: "2026-04-16 09:00", reputation_score: 92, malicious: true,  confidence: 95, tags: ["tor-exit-node", "bruteforce"] },
@@ -64,7 +64,7 @@ const MOCK_SOURCES: EnrichmentSource[] = [
   { id: "src-008", name: "RiskIQ",          ioc_types: ["domain", "ip", "email"],        success_rate: 88,  avg_response_ms: 940,  total_queries: 3562  },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const typeColors: Record<IOCType, string> = {
   ip:     "bg-blue-700 text-blue-100",
@@ -82,7 +82,7 @@ const statusColors: Record<EnrichmentStatus, string> = {
   failed:      "bg-red-700 text-red-100",
 };
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IntelEnrichmentDashboard() {
   const [requests, setRequests] = useState(MOCK_REQUESTS);
@@ -140,9 +140,9 @@ export default function IntelEnrichmentDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -166,7 +166,7 @@ export default function IntelEnrichmentDashboard() {
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Enrichment Requests</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-left">
                   <th className="pb-3 pr-4">Indicator</th>
@@ -267,7 +267,7 @@ export default function IntelEnrichmentDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Enrichment Sources</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700 text-gray-400 text-left">
                 <th className="pb-3 pr-4">Source</th>
@@ -311,8 +311,7 @@ export default function IntelEnrichmentDashboard() {
                   <td className="py-3 pr-4 text-gray-400 text-xs">{src.avg_response_ms}ms</td>
                   <td className="py-3 text-gray-400">{src.total_queries.toLocaleString()}</td>
                 </tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </div>

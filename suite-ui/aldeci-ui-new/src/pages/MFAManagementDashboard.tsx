@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_enrolled: 342,
@@ -68,7 +68,7 @@ const MOCK_EVENTS = [
   { user_id: "usr-001", event_type: "verification", mfa_type: "totp",         success: true,  timestamp: "2026-04-16T06:10:08Z" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function MFATypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -120,7 +120,7 @@ function fmtTime(ts: string): string {
   }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function MFAManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);

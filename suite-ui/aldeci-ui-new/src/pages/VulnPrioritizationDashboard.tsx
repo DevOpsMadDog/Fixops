@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_QUEUE = [
   { cve_id: "CVE-2024-3400",  asset_id: "prod-firewall-01",   priority_score: 98, priority_level: "critical", cvss_score: 10.0, epss_score: 0.94, status: "open" },
@@ -52,7 +52,7 @@ const MOCK_QUEUE = [
 
 const MOCK_STATS = { total_vulns: 3847, critical_priority: 127, exploited_in_wild: 43, avg_priority_score: 68 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function PriorityBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -86,7 +86,7 @@ function PriorityScore({ score }: { score: number }) {
   return <span className={cn("font-mono font-bold text-[12px]", color)}>{score}</span>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function VulnPrioritizationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -156,7 +156,7 @@ export default function VulnPrioritizationDashboard() {
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Prioritized by composite risk score — CVSS severity, EPSS exploitation probability, KEV status, and asset exposure
+            Prioritized by composite risk score = CVSS severity, EPSS exploitation probability, KEV status, and asset exposure
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -183,10 +183,10 @@ export default function VulnPrioritizationDashboard() {
                   queue.map((vuln: any, i: number) => (
                   <TableRow key={vuln.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-semibold text-rose-300">
-                      {vuln.cve_id ?? "—"}
+                      {vuln.cve_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground max-w-[140px] truncate">
-                      {vuln.asset_id ?? "—"}
+                      {vuln.asset_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <PriorityScore score={vuln.priority_score ?? 0} />

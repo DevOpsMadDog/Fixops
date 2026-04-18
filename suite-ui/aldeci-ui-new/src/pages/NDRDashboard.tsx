@@ -1,7 +1,7 @@
 /**
  * NDR Dashboard
  *
- * Network Detection & Response — traffic analysis, anomaly detection, network threat hunting.
+ * Network Detection & Response = traffic analysis, anomaly detection, network threat hunting.
  *   1. KPIs: Monitored Flows, High-Risk Flows, C2 Suspects, Open Alerts
  *   2. Network alert feed (15 alerts)
  *   3. Top talkers table (10 flows)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Network, AlertTriangle, Activity, Shield, RefreshCw, Eye, Radio } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const ORG_ID = "default";
 
 function getApiKey() {
@@ -42,23 +42,23 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const ALERTS = [
   { id: "NDR-001", alert_type: "c2_beacon",         severity: "critical", src_ip: "10.4.22.17",    dst_ip: "185.220.101.34", description: "Periodic C2 beacon to known Cobalt Strike server",        mitre: "T1071.001", detected_at: "14:32:11", status: "open" },
-  { id: "NDR-002", alert_type: "data_exfil",        severity: "critical", src_ip: "192.168.1.44",  dst_ip: "203.0.113.99",   description: "Abnormal outbound data transfer — 4.2 GB in 12 minutes",   mitre: "T1041",     detected_at: "14:28:47", status: "investigating" },
+  { id: "NDR-002", alert_type: "data_exfil",        severity: "critical", src_ip: "192.168.1.44",  dst_ip: "203.0.113.99",   description: "Abnormal outbound data transfer = 4.2 GB in 12 minutes",   mitre: "T1041",     detected_at: "14:28:47", status: "investigating" },
   { id: "NDR-003", alert_type: "lateral_movement",  severity: "high",     src_ip: "10.4.22.17",    dst_ip: "10.4.30.5",      description: "SMB lateral movement detected across subnet boundary",        mitre: "T1021.002", detected_at: "14:22:03", status: "open" },
   { id: "NDR-004", alert_type: "port_scan",         severity: "high",     src_ip: "10.5.12.100",   dst_ip: "10.0.0.0/24",    description: "Internal host scanning entire /24 subnet on port 22/445",   mitre: "T1046",     detected_at: "14:18:55", status: "open" },
-  { id: "NDR-005", alert_type: "dns_tunneling",     severity: "high",     src_ip: "10.2.8.14",     dst_ip: "8.8.8.8",        description: "High-entropy DNS TXT queries — possible DNS tunneling",      mitre: "T1071.004", detected_at: "14:15:22", status: "open" },
-  { id: "NDR-006", alert_type: "brute_force",       severity: "medium",   src_ip: "45.33.32.156",  dst_ip: "10.0.1.5",       description: "SSH brute force — 847 attempts in 3 minutes",               mitre: "T1110.001", detected_at: "14:12:09", status: "blocked" },
+  { id: "NDR-005", alert_type: "dns_tunneling",     severity: "high",     src_ip: "10.2.8.14",     dst_ip: "8.8.8.8",        description: "High-entropy DNS TXT queries = possible DNS tunneling",      mitre: "T1071.004", detected_at: "14:15:22", status: "open" },
+  { id: "NDR-006", alert_type: "brute_force",       severity: "medium",   src_ip: "45.33.32.156",  dst_ip: "10.0.1.5",       description: "SSH brute force = 847 attempts in 3 minutes",               mitre: "T1110.001", detected_at: "14:12:09", status: "blocked" },
   { id: "NDR-007", alert_type: "c2_beacon",         severity: "high",     src_ip: "10.3.15.88",    dst_ip: "91.108.4.175",   description: "Suspected Metasploit beacon on non-standard port 4444",     mitre: "T1071.001", detected_at: "14:08:44", status: "open" },
-  { id: "NDR-008", alert_type: "port_scan",         severity: "medium",   src_ip: "198.51.100.22", dst_ip: "10.0.2.0/24",    description: "External SYN scan on web-tier hosts — 12 ports probed",     mitre: "T1046",     detected_at: "14:05:31", status: "open" },
+  { id: "NDR-008", alert_type: "port_scan",         severity: "medium",   src_ip: "198.51.100.22", dst_ip: "10.0.2.0/24",    description: "External SYN scan on web-tier hosts = 12 ports probed",     mitre: "T1046",     detected_at: "14:05:31", status: "open" },
   { id: "NDR-009", alert_type: "lateral_movement",  severity: "high",     src_ip: "10.4.30.5",     dst_ip: "10.4.30.201",    description: "Pass-the-hash attempt detected via NTLMv2 negotiation",      mitre: "T1550.002", detected_at: "14:01:17", status: "investigating" },
-  { id: "NDR-010", alert_type: "data_exfil",        severity: "medium",   src_ip: "10.1.9.33",     dst_ip: "104.21.44.99",   description: "Slow-drip exfiltration pattern — 200 MB over 6 hours",      mitre: "T1048.003", detected_at: "13:58:05", status: "open" },
-  { id: "NDR-011", alert_type: "dns_tunneling",     severity: "medium",   src_ip: "10.5.2.67",     dst_ip: "1.1.1.1",        description: "Anomalous subdomain length in DNS queries — avg 58 chars",  mitre: "T1071.004", detected_at: "13:52:49", status: "open" },
-  { id: "NDR-012", alert_type: "brute_force",       severity: "medium",   src_ip: "192.0.2.100",   dst_ip: "10.0.1.20",      description: "RDP brute force from external IP — credential stuffing",     mitre: "T1110.004", detected_at: "13:44:33", status: "blocked" },
-  { id: "NDR-013", alert_type: "c2_beacon",         severity: "medium",   src_ip: "10.2.11.5",     dst_ip: "77.88.55.60",    description: "Periodic HTTPS beacon with jitter — TLS JA3 match",         mitre: "T1071.001", detected_at: "13:38:20", status: "open" },
-  { id: "NDR-014", alert_type: "port_scan",         severity: "low",      src_ip: "10.6.0.44",     dst_ip: "10.0.0.1",       description: "Internal ICMP sweep — possible network mapping activity",   mitre: "T1018",     detected_at: "13:31:08", status: "closed" },
+  { id: "NDR-010", alert_type: "data_exfil",        severity: "medium",   src_ip: "10.1.9.33",     dst_ip: "104.21.44.99",   description: "Slow-drip exfiltration pattern = 200 MB over 6 hours",      mitre: "T1048.003", detected_at: "13:58:05", status: "open" },
+  { id: "NDR-011", alert_type: "dns_tunneling",     severity: "medium",   src_ip: "10.5.2.67",     dst_ip: "1.1.1.1",        description: "Anomalous subdomain length in DNS queries = avg 58 chars",  mitre: "T1071.004", detected_at: "13:52:49", status: "open" },
+  { id: "NDR-012", alert_type: "brute_force",       severity: "medium",   src_ip: "192.0.2.100",   dst_ip: "10.0.1.20",      description: "RDP brute force from external IP = credential stuffing",     mitre: "T1110.004", detected_at: "13:44:33", status: "blocked" },
+  { id: "NDR-013", alert_type: "c2_beacon",         severity: "medium",   src_ip: "10.2.11.5",     dst_ip: "77.88.55.60",    description: "Periodic HTTPS beacon with jitter = TLS JA3 match",         mitre: "T1071.001", detected_at: "13:38:20", status: "open" },
+  { id: "NDR-014", alert_type: "port_scan",         severity: "low",      src_ip: "10.6.0.44",     dst_ip: "10.0.0.1",       description: "Internal ICMP sweep = possible network mapping activity",   mitre: "T1018",     detected_at: "13:31:08", status: "closed" },
   { id: "NDR-015", alert_type: "lateral_movement",  severity: "low",      src_ip: "10.4.22.50",    dst_ip: "10.4.22.100",    description: "WMI remote execution within same segment",                  mitre: "T1047",     detected_at: "13:25:44", status: "closed" },
 ];
 
@@ -85,15 +85,15 @@ const SEGMENTS = [
 ];
 
 const ANOMALIES = [
-  { ip: "10.4.22.17",   metric: "bytes_sent",   deviation: 847, normal_range: "50 MB – 200 MB",  observed: "4.2 GB",  risk: "critical" },
-  { ip: "10.2.8.14",    metric: "dns_queries",  deviation: 412, normal_range: "100 – 500/hr",    observed: "2,062/hr",risk: "high" },
-  { ip: "10.5.12.100",  metric: "connections",  deviation: 310, normal_range: "10 – 50/min",     observed: "205/min", risk: "high" },
-  { ip: "192.168.1.44", metric: "bytes_sent",   deviation: 193, normal_range: "1 GB – 2 GB/day", observed: "5.9 GB",  risk: "high" },
-  { ip: "10.3.15.88",   metric: "tcp_sessions", deviation: 88,  normal_range: "20 – 80/hr",      observed: "151/hr",  risk: "medium" },
-  { ip: "10.6.0.44",    metric: "icmp_packets", deviation: 44,  normal_range: "0 – 10/hr",       observed: "14/hr",   risk: "low" },
+  { ip: "10.4.22.17",   metric: "bytes_sent",   deviation: 847, normal_range: "50 MB = 200 MB",  observed: "4.2 GB",  risk: "critical" },
+  { ip: "10.2.8.14",    metric: "dns_queries",  deviation: 412, normal_range: "100 = 500/hr",    observed: "2,062/hr",risk: "high" },
+  { ip: "10.5.12.100",  metric: "connections",  deviation: 310, normal_range: "10 = 50/min",     observed: "205/min", risk: "high" },
+  { ip: "192.168.1.44", metric: "bytes_sent",   deviation: 193, normal_range: "1 GB = 2 GB/day", observed: "5.9 GB",  risk: "high" },
+  { ip: "10.3.15.88",   metric: "tcp_sessions", deviation: 88,  normal_range: "20 = 80/hr",      observed: "151/hr",  risk: "medium" },
+  { ip: "10.6.0.44",    metric: "icmp_packets", deviation: 44,  normal_range: "0 = 10/hr",       observed: "14/hr",   risk: "low" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function AlertTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -164,7 +164,7 @@ function fmtBytes(b: number): string {
 
 const MAX_BYTES = TOP_TALKERS[0].bytes_sent;
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function NDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -247,7 +247,7 @@ export default function NDRDashboard() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-[11px] h-8 w-4"></TableHead>
                   <TableHead className="text-[11px] h-8">Type</TableHead>
-                  <TableHead className="text-[11px] h-8">Source → Destination</TableHead>
+                  <TableHead className="text-[11px] h-8">Source = Destination</TableHead>
                   <TableHead className="text-[11px] h-8 max-w-[220px]">Description</TableHead>
                   <TableHead className="text-[11px] h-8">MITRE</TableHead>
                   <TableHead className="text-[11px] h-8">Time</TableHead>
@@ -261,7 +261,7 @@ export default function NDRDashboard() {
                     <TableCell className="py-2"><SevDot sev={a.severity} /></TableCell>
                     <TableCell className="py-2"><AlertTypeBadge type={a.alert_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                      {a.src_ip} <span className="text-muted-foreground/50">→</span> {a.dst_ip}
+                      {a.src_ip} <span className="text-muted-foreground/50">=</span> {a.dst_ip}
                     </TableCell>
                     <TableCell className="py-2 text-xs max-w-[220px] truncate text-muted-foreground">{a.description}</TableCell>
                     <TableCell className="py-2">
@@ -389,7 +389,7 @@ export default function NDRDashboard() {
               <Eye className="h-4 w-4 text-purple-400" />
               Anomaly Detection
             </CardTitle>
-            <CardDescription className="text-xs">Baseline deviation alerts — normal range vs observed</CardDescription>
+            <CardDescription className="text-xs">Baseline deviation alerts = normal range vs observed</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {ANOMALIES.length === 0 ? (

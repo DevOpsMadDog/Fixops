@@ -40,7 +40,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ──────────────────────────────────────────────────────────────
+// == API helpers ==============================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const apiKey =
   (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
@@ -55,7 +55,7 @@ const apiFetch = (path: string) =>
     return r.json();
   });
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// == Types ====================================================================
 interface Tactic {
   tactic_id: string;
   tactic_name: string;
@@ -89,7 +89,7 @@ interface StatsData {
   techniques_covered: number;
 }
 
-// ── Mock data ────────────────────────────────────────────────────────────────
+// == Mock data ================================================================
 const MOCK_COVERAGE: CoverageData = {
   coverage_pct: 42,
   total_techniques: 185,
@@ -131,7 +131,7 @@ const MOCK_STATS: StatsData = {
   techniques_covered: 78,
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// == Helpers ==================================================================
 function coverageColor(pct: number): string {
   if (pct >= 70) return "bg-emerald-500";
   if (pct >= 40) return "bg-amber-500";
@@ -154,7 +154,7 @@ function severityLabel(sev: string): string {
   return sev.charAt(0).toUpperCase() + sev.slice(1);
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// == Component ================================================================
 export default function MITREAttackDashboard() {
   const [coverage, setCoverage]     = useState<CoverageData>(MOCK_COVERAGE);
   const [gaps, setGaps]             = useState<Gap[]>(MOCK_GAPS.gaps);
@@ -373,7 +373,7 @@ export default function MITREAttackDashboard() {
                     </TableCell>
                     <TableCell className="max-w-sm text-sm text-muted-foreground">
                       {gap.recommendation.length > 80
-                        ? `${gap.recommendation.slice(0, 80)}…`
+                        ? `${gap.recommendation.slice(0, 80)}=`
                         : gap.recommendation}
                     </TableCell>
                   </TableRow>
@@ -397,8 +397,7 @@ export default function MITREAttackDashboard() {
               <span className="text-xs text-muted-foreground">{item.label}</span>
             </CardContent>
           </Card>
-        ))
-        )}
+        ))}
       </div>
     </div>
   );

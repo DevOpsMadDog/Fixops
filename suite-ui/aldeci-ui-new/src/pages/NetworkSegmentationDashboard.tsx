@@ -1,7 +1,7 @@
 /**
  * Network Segmentation Dashboard
  *
- * Network micro-segmentation — segments, flow policies, lateral movement risk.
+ * Network micro-segmentation = segments, flow policies, lateral movement risk.
  *   1. KPIs: Segments, Flow Policies, Segmentation Score, Lateral Movement Risks
  *   2. Segments table (name, type, CIDR, trust level)
  *
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SEGMENTS = [
   { id: "SEG-001", name: "production-web",    type: "application", cidr: "10.1.0.0/24",   trust_level: "medium"    },
@@ -57,7 +57,7 @@ const MOCK_STATS = {
   lateral_movement_risks: 5,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function TrustBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -122,7 +122,7 @@ function SegmentationScoreGauge({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function NetworkSegmentationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -182,9 +182,9 @@ export default function NetworkSegmentationDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={() => loadData()} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={() => loadData()} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -198,7 +198,7 @@ export default function NetworkSegmentationDashboard() {
 
       {/* Segments table + score gauge */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Table — 2/3 width */}
+        {/* Table = 2/3 width */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -241,7 +241,7 @@ export default function NetworkSegmentationDashboard() {
           </CardContent>
         </Card>
 
-        {/* Score gauge — 1/3 width */}
+        {/* Score gauge = 1/3 width */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">

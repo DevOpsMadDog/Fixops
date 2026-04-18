@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_JOBS = [
   { id: "job-001", framework: "SOC 2",       automation_type: "evidence_collection", status: "completed", started_at: "2026-04-16T08:00:00Z", completed_at: "2026-04-16T08:14:00Z" },
@@ -54,7 +54,7 @@ const MOCK_JOBS = [
 
 const MOCK_STATS = { total_jobs: 142, completed_jobs: 117, controls_tested: 892, pass_rate: 94.3 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -77,11 +77,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatTs(ts: string | null) {
-  if (!ts) return "—";
+  if (!ts) return "=";
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ComplianceAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -176,10 +176,10 @@ export default function ComplianceAutomationDashboard() {
                   jobs.map((job: any, i: number) => (
                   <TableRow key={job.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-indigo-300">
-                      {job.framework ?? "—"}
+                      {job.framework ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(job.automation_type ?? "—").replace(/_/g, " ")}
+                      {(job.automation_type ?? "=").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={job.status ?? "queued"} />

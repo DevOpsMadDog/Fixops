@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GraduationCap, Users, AlertTriangle, Award, RefreshCw, Shield, CheckCircle } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const TIER_BANDS = [
   { tier: "Champion",   color: "bg-green-500",  textColor: "text-green-400",  count: 47,  pct: 14 },
@@ -101,7 +101,7 @@ const TRAINING_COMPLETIONS = [
   { employee: "Lisa Zhang",      training_type: "DevSecOps Basics",    score: 86, passed: true,  completed_at: "2026-04-14 11:00" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TierBadge({ tier }: { tier: string }) {
   const map: Record<string, string> = {
@@ -150,7 +150,7 @@ function ScoreBar({ score, small }: { score: number; small?: boolean }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AwarenessScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -337,7 +337,7 @@ export default function AwarenessScoreDashboard() {
                     <TableCell className="py-2">
                       {t.reported
                         ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">Reported</Badge>
-                        : <span className="text-[10px] text-muted-foreground">—</span>
+                        : <span className="text-[10px] text-muted-foreground">=</span>
                       }
                     </TableCell>
                   </TableRow>
@@ -418,8 +418,7 @@ export default function AwarenessScoreDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

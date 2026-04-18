@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { ShieldAlert, BarChart2, SlidersHorizontal, RefreshCw, AlertTriangle } from "lucide-react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// == Types =====================================================================
 
 type Priority = "P1" | "P2" | "P3" | "P4";
 
@@ -46,7 +46,7 @@ interface AssetRisk {
   critical_count: number;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_VULNS: VulnEntry[] = [
   { id: "v001", cve: "CVE-2025-3109", title: "Cisco IOS XE Auth Bypass",            priority: "P1", composite_score: 97, cvss: 9.8, epss: 0.94, kev: true,  exposure: 92, assets_affected: 14, status: "open" },
@@ -62,10 +62,10 @@ const MOCK_VULNS: VulnEntry[] = [
 ];
 
 const MOCK_OVERRIDES: Override[] = [
-  { id: "ov-001", cve: "CVE-2025-3109", original_score: 87, override_score: 97, reason: "Asset is externally reachable — bumped to P1",             overridden_by: "Alice Chen",   date: "2026-04-14" },
-  { id: "ov-002", cve: "CVE-2024-9971", original_score: 83, override_score: 78, reason: "Internal-only GitLab instance — exposure reduced",          overridden_by: "Bob Smith",    date: "2026-04-10" },
-  { id: "ov-003", cve: "CVE-2024-7654", original_score: 55, override_score: 68, reason: "Load balancer affects 9 production services — re-scored",   overridden_by: "Carol Wu",     date: "2026-04-08" },
-  { id: "ov-004", cve: "CVE-2024-3311", original_score: 35, override_score: 27, reason: "Mitigating WAF rule deployed — score lowered",              overridden_by: "Dan Lee",      date: "2026-04-12" },
+  { id: "ov-001", cve: "CVE-2025-3109", original_score: 87, override_score: 97, reason: "Asset is externally reachable = bumped to P1",             overridden_by: "Alice Chen",   date: "2026-04-14" },
+  { id: "ov-002", cve: "CVE-2024-9971", original_score: 83, override_score: 78, reason: "Internal-only GitLab instance = exposure reduced",          overridden_by: "Bob Smith",    date: "2026-04-10" },
+  { id: "ov-003", cve: "CVE-2024-7654", original_score: 55, override_score: 68, reason: "Load balancer affects 9 production services = re-scored",   overridden_by: "Carol Wu",     date: "2026-04-08" },
+  { id: "ov-004", cve: "CVE-2024-3311", original_score: 35, override_score: 27, reason: "Mitigating WAF rule deployed = score lowered",              overridden_by: "Dan Lee",      date: "2026-04-12" },
 ];
 
 const MOCK_ASSET_RISKS: AssetRisk[] = [
@@ -85,7 +85,7 @@ const MODEL_WEIGHTS = [
   { component: "Exposure Score", weight: 20 },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function priorityColor(p: Priority): { bg: string; text: string; border: string } {
   return p === "P1"
@@ -117,7 +117,7 @@ const distribution = [
   { label: "P4 Low",      count: MOCK_VULNS.filter(v => v.priority === "P4").length, color: "#6b7280" },
 ];
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function VulnScoringDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("v001");
@@ -151,12 +151,12 @@ export default function VulnScoringDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -168,7 +168,7 @@ export default function VulnScoringDashboard() {
             <ShieldAlert className="w-6 h-6 text-orange-400" />
             Vulnerability Scoring
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Composite risk prioritization — CVSS + EPSS + KEV + Exposure</p>
+          <p className="text-gray-400 text-sm mt-1">Composite risk prioritization = CVSS + EPSS + KEV + Exposure</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -210,7 +210,7 @@ export default function VulnScoringDashboard() {
             <h2 className="font-semibold text-white">Priority Queue</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
                   <th className="text-left p-3">Priority</th>
@@ -250,7 +250,7 @@ export default function VulnScoringDashboard() {
                         </div>
                       </td>
                       <td className="p-3 hidden md:table-cell">
-                        {v.kev ? <span className="bg-red-500/20 text-red-300 text-xs px-2 py-0.5 rounded-full font-medium">KEV</span> : <span className="text-gray-600 text-xs">—</span>}
+                        {v.kev ? <span className="bg-red-500/20 text-red-300 text-xs px-2 py-0.5 rounded-full font-medium">KEV</span> : <span className="text-gray-600 text-xs">=</span>}
                       </td>
                       <td className="p-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${statusBadge(v.status)}`}>{v.status}</span>
@@ -287,8 +287,7 @@ export default function VulnScoringDashboard() {
                       <div className={`h-2 rounded-full ${scoreBarColor(c.value)}`} style={{ width: `${c.value}%` }} />
                     </div>
                   </div>
-                ))
-                )}
+                ))}
               </div>
               <div className="mt-3 text-xs text-gray-400">
                 Assets affected: <span className="text-white font-semibold">{selected.assets_affected}</span>
@@ -371,10 +370,10 @@ export default function VulnScoringDashboard() {
               <div key={ov.id} className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs text-gray-300">{ov.cve}</span>
-                  <span className="text-gray-500 text-xs">{ov.original_score} → <span className="text-white font-semibold">{ov.override_score}</span></span>
+                  <span className="text-gray-500 text-xs">{ov.original_score} = <span className="text-white font-semibold">{ov.override_score}</span></span>
                 </div>
                 <p className="text-gray-400 text-xs">{ov.reason}</p>
-                <div className="text-gray-500 text-xs mt-1">{ov.overridden_by} · {ov.date}</div>
+                <div className="text-gray-500 text-xs mt-1">{ov.overridden_by} = {ov.date}</div>
               </div>
             )))}
           </div>
@@ -386,7 +385,7 @@ export default function VulnScoringDashboard() {
             <h2 className="font-semibold text-white text-sm">Asset Risk Scores</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
                   <th className="text-left p-3">Asset</th>

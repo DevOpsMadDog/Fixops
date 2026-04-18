@@ -1,7 +1,7 @@
 /**
  * Security Tool Inventory Dashboard
  *
- * Security tool portfolio management — coverage, cost, and effectiveness tracking.
+ * Security tool portfolio management = coverage, cost, and effectiveness tracking.
  *   1. KPI cards: Total Tools, Active Tools, Annual Cost, Avg Coverage
  *   2. Tools table
  *   3. Recent Assessments table
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_tools: 47,
@@ -70,7 +70,7 @@ const MOCK_ASSESSMENTS = [
   { tool_id: "qualys-was",         coverage_score: 61, effectiveness_score: 70, utilization_pct: 43 },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function ToolStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -132,11 +132,11 @@ function scoreBar(value: number): JSX.Element {
 }
 
 function fmtCost(cost: number): string {
-  if (cost === 0) return "—";
+  if (cost === 0) return "=";
   return `$${cost.toLocaleString()}`;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityToolInventoryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -193,7 +193,7 @@ export default function SecurityToolInventoryDashboard() {
       {/* Header */}
       <PageHeader
         title="Security Tool Inventory"
-        description="Security tool portfolio — coverage, cost, effectiveness, and utilization tracking"
+        description="Security tool portfolio = coverage, cost, effectiveness, and utilization tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />

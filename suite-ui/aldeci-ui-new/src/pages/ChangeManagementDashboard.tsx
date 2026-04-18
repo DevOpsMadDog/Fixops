@@ -37,24 +37,24 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_CHANGES = [
-  { id: "chg-001", title: "Firewall rule update — DMZ egress",     change_type: "standard",  priority: "high",   risk_level: "high",   status: "pending_review", requested_by: "ops-team"    },
+  { id: "chg-001", title: "Firewall rule update = DMZ egress",     change_type: "standard",  priority: "high",   risk_level: "high",   status: "pending_review", requested_by: "ops-team"    },
   { id: "chg-002", title: "Patch CVE-2026-1234 on prod servers",   change_type: "emergency", priority: "urgent", risk_level: "high",   status: "approved",       requested_by: "security"    },
-  { id: "chg-003", title: "MFA rollout — finance department",      change_type: "normal",    priority: "medium", risk_level: "medium", status: "approved",       requested_by: "it-admin"    },
+  { id: "chg-003", title: "MFA rollout = finance department",      change_type: "normal",    priority: "medium", risk_level: "medium", status: "approved",       requested_by: "it-admin"    },
   { id: "chg-004", title: "VPN gateway migration",                 change_type: "major",     priority: "high",   risk_level: "high",   status: "pending_review", requested_by: "network-eng" },
   { id: "chg-005", title: "TLS 1.0 deprecation",                  change_type: "standard",  priority: "medium", risk_level: "low",    status: "completed",      requested_by: "sec-arch"    },
-  { id: "chg-006", title: "SIEM rule tuning — false positive fix", change_type: "normal",    priority: "low",    risk_level: "low",    status: "approved",       requested_by: "soc-analyst" },
-  { id: "chg-007", title: "Certificate renewal — wildcard cert",   change_type: "standard",  priority: "urgent", risk_level: "medium", status: "emergency",      requested_by: "devops"      },
+  { id: "chg-006", title: "SIEM rule tuning = false positive fix", change_type: "normal",    priority: "low",    risk_level: "low",    status: "approved",       requested_by: "soc-analyst" },
+  { id: "chg-007", title: "Certificate renewal = wildcard cert",   change_type: "standard",  priority: "urgent", risk_level: "medium", status: "emergency",      requested_by: "devops"      },
   { id: "chg-008", title: "IDS signature update",                  change_type: "normal",    priority: "low",    risk_level: "low",    status: "completed",      requested_by: "noc-team"    },
-  { id: "chg-009", title: "Zero-day patch — kernel vulnerability", change_type: "emergency", priority: "urgent", risk_level: "high",   status: "emergency",      requested_by: "security"    },
+  { id: "chg-009", title: "Zero-day patch = kernel vulnerability", change_type: "emergency", priority: "urgent", risk_level: "high",   status: "emergency",      requested_by: "security"    },
   { id: "chg-010", title: "Backup configuration change",           change_type: "standard",  priority: "low",    risk_level: "low",    status: "pending_review", requested_by: "it-admin"    },
 ];
 
 const MOCK_STATS = { total_changes: 83, pending_review: 12, approved: 31, emergency_changes: 4 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -105,7 +105,7 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ChangeManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -201,10 +201,10 @@ export default function ChangeManagementDashboard() {
                   changes.map((chg: any, i: number) => (
                   <TableRow key={chg.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-purple-300 max-w-[220px] truncate">
-                      {chg.title ?? "—"}
+                      {chg.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {chg.change_type ?? "—"}
+                      {chg.change_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <PriorityBadge priority={chg.priority ?? "low"} />
@@ -213,7 +213,7 @@ export default function ChangeManagementDashboard() {
                       <RiskBadge level={chg.risk_level ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-violet-300">
-                      {chg.requested_by ?? "—"}
+                      {chg.requested_by ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <StatusBadge status={chg.status ?? "pending_review"} />

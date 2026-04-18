@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_APPS = [
   { name: "payments-api",        app_type: "REST API",      environment: "production",  risk_score: 94, risk_level: "critical", owner_team: "Payments" },
@@ -52,7 +52,7 @@ const MOCK_APPS = [
 
 const MOCK_STATS = { total_apps: 138, critical_risk_apps: 12, total_findings: 847, open_findings: 293 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskLevelBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -86,7 +86,7 @@ function RiskScore({ score }: { score: number }) {
   return <span className={cn("font-mono font-bold text-[12px]", color)}>{score}</span>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ApplicationRiskDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -156,7 +156,7 @@ export default function ApplicationRiskDashboard() {
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Risk-scored application inventory — SAST/DAST findings, environment exposure, and owner mapping
+            Risk-scored application inventory = SAST/DAST findings, environment exposure, and owner mapping
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -182,10 +182,10 @@ export default function ApplicationRiskDashboard() {
                   apps.map((app: any, i: number) => (
                   <TableRow key={app.name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-semibold">
-                      {app.name ?? "—"}
+                      {app.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {app.app_type ?? "—"}
+                      {app.app_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <EnvBadge env={app.environment ?? "production"} />
@@ -197,7 +197,7 @@ export default function ApplicationRiskDashboard() {
                       <RiskLevelBadge level={app.risk_level ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {app.owner_team ?? "—"}
+                      {app.owner_team ?? "="}
                     </TableCell>
                   </TableRow>
                 )))}

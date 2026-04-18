@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type TagCategory = "environment" | "criticality" | "compliance" | "team" | "location" | "classification" | "lifecycle" | "custom";
 
@@ -44,17 +44,17 @@ interface CategoryInfo {
   tag_count: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CATEGORY_INFO: CategoryInfo[] = [
-  { category: "environment",    label: "Environment",    description: "prod, staging, dev, test",       icon: "🌐", color: "border-blue-500/40 bg-blue-500/5",     tag_count: 6  },
-  { category: "criticality",   label: "Criticality",    description: "critical, high, medium, low",    icon: "⚡", color: "border-red-500/40 bg-red-500/5",       tag_count: 4  },
-  { category: "compliance",    label: "Compliance",     description: "pci-scope, hipaa, sox, gdpr",    icon: "📋", color: "border-purple-500/40 bg-purple-500/5", tag_count: 8  },
-  { category: "team",          label: "Team",           description: "platform, security, devops, sre", icon: "👥", color: "border-green-500/40 bg-green-500/5",   tag_count: 12 },
-  { category: "location",      label: "Location",       description: "us-east, eu-west, on-prem, dc1",  icon: "📍", color: "border-yellow-500/40 bg-yellow-500/5", tag_count: 9  },
-  { category: "classification",label: "Classification", description: "public, internal, confidential", icon: "🔒", color: "border-orange-500/40 bg-orange-500/5", tag_count: 5  },
-  { category: "lifecycle",     label: "Lifecycle",      description: "active, eol, decommission, new",  icon: "♻️", color: "border-cyan-500/40 bg-cyan-500/5",     tag_count: 7  },
-  { category: "custom",        label: "Custom",         description: "user-defined tags",              icon: "✏️", color: "border-gray-500/40 bg-gray-500/5",     tag_count: 23 },
+  { category: "environment",    label: "Environment",    description: "prod, staging, dev, test",       icon: "=", color: "border-blue-500/40 bg-blue-500/5",     tag_count: 6  },
+  { category: "criticality",   label: "Criticality",    description: "critical, high, medium, low",    icon: "=", color: "border-red-500/40 bg-red-500/5",       tag_count: 4  },
+  { category: "compliance",    label: "Compliance",     description: "pci-scope, hipaa, sox, gdpr",    icon: "=", color: "border-purple-500/40 bg-purple-500/5", tag_count: 8  },
+  { category: "team",          label: "Team",           description: "platform, security, devops, sre", icon: "=", color: "border-green-500/40 bg-green-500/5",   tag_count: 12 },
+  { category: "location",      label: "Location",       description: "us-east, eu-west, on-prem, dc1",  icon: "=", color: "border-yellow-500/40 bg-yellow-500/5", tag_count: 9  },
+  { category: "classification",label: "Classification", description: "public, internal, confidential", icon: "=", color: "border-orange-500/40 bg-orange-500/5", tag_count: 5  },
+  { category: "lifecycle",     label: "Lifecycle",      description: "active, eol, decommission, new",  icon: "==", color: "border-cyan-500/40 bg-cyan-500/5",     tag_count: 7  },
+  { category: "custom",        label: "Custom",         description: "user-defined tags",              icon: "==", color: "border-gray-500/40 bg-gray-500/5",     tag_count: 23 },
 ];
 
 const MOCK_TAGS: TagEntry[] = [
@@ -87,7 +87,7 @@ const MATRIX_ASSETS = [
 
 const MATRIX_TAG_COLS = ["production", "staging", "development", "critical", "high", "pci-scope", "soc2-scope", "confidential"];
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function AssetTagsDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<TagCategory | null>(null);
@@ -182,7 +182,7 @@ export default function AssetTagsDashboard() {
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-semibold">
-              Tag List {selectedCategory && <span className="text-gray-400 font-normal ml-1">— {selectedCategory}</span>}
+              Tag List {selectedCategory && <span className="text-gray-400 font-normal ml-1">= {selectedCategory}</span>}
             </CardTitle>
             {selectedCategory && (
               <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setSelectedCategory(null)}>
@@ -255,7 +255,7 @@ export default function AssetTagsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table role="table" className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-700/50">
                   <th className="text-left py-2 px-3 text-gray-400 font-medium">Asset</th>
@@ -283,16 +283,14 @@ export default function AssetTagsDashboard() {
                     {MATRIX_TAG_COLS.map((col) => (
                       <td key={col} className="py-2 px-2 text-center">
                         {asset.tags.includes(col) ? (
-                          <span className="inline-block w-4 h-4 bg-blue-500/30 border border-blue-500/50 rounded text-blue-400 text-center leading-4">✓</span>
+                          <span className="inline-block w-4 h-4 bg-blue-500/30 border border-blue-500/50 rounded text-blue-400 text-center leading-4">=</span>
                         ) : (
-                          <span className="inline-block w-4 h-4 text-gray-700">—</span>
+                          <span className="inline-block w-4 h-4 text-gray-700">=</span>
                         )}
                       </td>
-                    ))
-                    )}
+                    ))}
                   </tr>
-                ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

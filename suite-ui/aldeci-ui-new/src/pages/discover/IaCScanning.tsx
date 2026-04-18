@@ -377,8 +377,7 @@ export default function IaCScanning() {
                     </div>
                     <SeverityBadge severity={alert.severity} />
                   </div>
-                ))
-                )}
+                ))}
               </CardContent>
             </Card>
           )}

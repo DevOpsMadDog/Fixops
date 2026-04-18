@@ -538,8 +538,7 @@ export default function Playbooks() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
             </Table>
             </div>

@@ -1,13 +1,13 @@
 /**
- * Vulnerability Heatmap — Risk concentration across assets
+ * Vulnerability Heatmap = Risk concentration across assets
  *
  * Sections:
- *   1. KPI row — total vulns, critical assets exposed, avg risk score, patched this week
- *   2. Heatmap grid — 10×8 colored asset cells (green/yellow/amber/red by risk score)
- *   3. Top 10 Most Vulnerable Assets — ranked table
- *   4. Vulnerability by Category — CSS horizontal bar chart
- *   5. 7-day trend — added vs patched sparkline using div heights
- *   6. Risk by Network Zone — card grid
+ *   1. KPI row = total vulns, critical assets exposed, avg risk score, patched this week
+ *   2. Heatmap grid = 10=8 colored asset cells (green/yellow/amber/red by risk score)
+ *   3. Top 10 Most Vulnerable Assets = ranked table
+ *   4. Vulnerability by Category = CSS horizontal bar chart
+ *   5. 7-day trend = added vs patched sparkline using div heights
+ *   6. Risk by Network Zone = card grid
  *
  * API: GET /api/v1/vuln-heatmap/assets
  * Fallback: mock data when API unavailable
@@ -44,9 +44,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type AssetType = "server" | "container" | "endpoint" | "cloud";
 
@@ -54,7 +54,7 @@ interface HeatmapAsset {
   id: string;
   name: string;
   type: AssetType;
-  risk_score: number; // 0–10
+  risk_score: number; // 0=10
   critical_count: number;
   high_count: number;
   top_cve: string;
@@ -89,9 +89,9 @@ interface VulnHeatmapData {
   zones: NetworkZone[];
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 // Deterministic pseudo-random to keep grid stable across renders
 function seededRisk(seed: number): number {
@@ -172,9 +172,9 @@ const MOCK_DATA: VulnHeatmapData = {
   ],
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function getRiskCellColor(score: number): string {
   if (score >= 9) return "bg-red-500 hover:bg-red-400";
@@ -213,9 +213,9 @@ const ASSET_TYPE_ICON: Record<AssetType, React.ComponentType<{ className?: strin
   cloud: Cloud,
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Sub-components
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const HeatmapCell = ({ asset }: { asset: HeatmapAsset }) => {
   const [hovered, setHovered] = useState(false);
@@ -231,7 +231,7 @@ const HeatmapCell = ({ asset }: { asset: HeatmapAsset }) => {
           "w-full aspect-square rounded cursor-pointer transition-all duration-150",
           getRiskCellColor(asset.risk_score)
         )}
-        title={`${asset.name} — Risk: ${asset.risk_score}`}
+        title={`${asset.name} = Risk: ${asset.risk_score}`}
       />
       {hovered && (
         <div className="absolute z-20 bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 bg-slate-900 border border-slate-600 rounded-lg p-2 shadow-xl pointer-events-none">
@@ -278,9 +278,9 @@ const SparkBar = ({
   />
 );
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function VulnHeatmap() {
   const queryClient = useQueryClient();
@@ -330,7 +330,7 @@ export default function VulnHeatmap() {
         }
       />
 
-      {/* ── KPI Row ── */}
+      {/* == KPI Row == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -347,7 +347,7 @@ export default function VulnHeatmap() {
           <KpiCard
             title="Critical Assets Exposed"
             value={d.critical_assets_exposed}
-            subtitle="Risk score ≥ 9.0"
+            subtitle="Risk score = 9.0"
             icon={Shield}
             trend={{ value: -3, label: "vs last week" }}
           />
@@ -368,7 +368,7 @@ export default function VulnHeatmap() {
         </div>
       </motion.div>
 
-      {/* ── Heatmap Legend + Grid ── */}
+      {/* == Heatmap Legend + Grid == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -384,19 +384,19 @@ export default function VulnHeatmap() {
               <div className="flex items-center gap-3 text-xs">
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-3 h-3 rounded bg-green-600" />
-                  <span className="text-gray-400">Low (0–3)</span>
+                  <span className="text-gray-400">Low (0=3)</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-3 h-3 rounded bg-yellow-500" />
-                  <span className="text-gray-400">Medium (4–6)</span>
+                  <span className="text-gray-400">Medium (4=6)</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-3 h-3 rounded bg-amber-500" />
-                  <span className="text-gray-400">High (7–8)</span>
+                  <span className="text-gray-400">High (7=8)</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-3 h-3 rounded bg-red-500" />
-                  <span className="text-gray-400">Critical (9–10)</span>
+                  <span className="text-gray-400">Critical (9=10)</span>
                 </span>
               </div>
             </div>
@@ -414,7 +414,7 @@ export default function VulnHeatmap() {
         </Card>
       </motion.div>
 
-      {/* ── Top 10 Most Vulnerable Assets ── */}
+      {/* == Top 10 Most Vulnerable Assets == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -475,7 +475,7 @@ export default function VulnHeatmap() {
                               {asset.critical_count}
                             </Badge>
                           ) : (
-                            <span className="text-gray-500 text-sm">—</span>
+                            <span className="text-gray-500 text-sm">=</span>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -484,7 +484,7 @@ export default function VulnHeatmap() {
                               {asset.high_count}
                             </Badge>
                           ) : (
-                            <span className="text-gray-500 text-sm">—</span>
+                            <span className="text-gray-500 text-sm">=</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -533,7 +533,7 @@ export default function VulnHeatmap() {
         </Card>
       </motion.div>
 
-      {/* ── Category Chart + Trend ── */}
+      {/* == Category Chart + Trend == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -556,8 +556,7 @@ export default function VulnHeatmap() {
                 count={cat.count}
                 max={maxCategoryCount}
               />
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -566,7 +565,7 @@ export default function VulnHeatmap() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Activity className="w-4 h-4 text-purple-400" />
-              7-Day Trend — Added vs Patched
+              7-Day Trend = Added vs Patched
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -579,8 +578,7 @@ export default function VulnHeatmap() {
                   </div>
                   <span className="text-gray-500 text-xs">{day.label}</span>
                 </div>
-              ))
-              )}
+              ))}
             </div>
             <div className="flex items-center gap-4 mt-4 text-xs">
               <span className="flex items-center gap-1.5">
@@ -614,7 +612,7 @@ export default function VulnHeatmap() {
         </Card>
       </motion.div>
 
-      {/* ── Risk by Network Zone ── */}
+      {/* == Risk by Network Zone == */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

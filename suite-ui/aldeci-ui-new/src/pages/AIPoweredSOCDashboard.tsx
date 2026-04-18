@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Interfaces ─────────────────────────────────────────────────
+// == Interfaces =================================================
 
 interface SOCStats {
   total_detections: number;
@@ -65,7 +65,7 @@ interface SOCModel {
   status: string;
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS: SOCStats = {
   total_detections:   1843,
@@ -96,7 +96,7 @@ const MOCK_MODELS: SOCModel[] = [
   { model_name: "DNS Tunnel Detector v2",    model_type: "sequence",   accuracy_score: 87.6, false_positive_rate: 6.3, version: "v2.0.0-beta", status: "training" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -160,7 +160,7 @@ function accuracyColor(score: number): string {
   return "text-red-400";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AIPoweredSOCDashboard() {
   const [refreshing, setRefreshing] = useState(false);

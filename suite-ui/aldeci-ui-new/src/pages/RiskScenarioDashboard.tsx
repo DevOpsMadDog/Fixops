@@ -17,7 +17,7 @@ import {
   ShieldAlert, TrendingDown, BarChart2, Target, ChevronDown, ChevronUp, Activity
 } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface RiskScenario {
   id: string;
@@ -40,7 +40,7 @@ interface Mitigation {
   implemented: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const SCENARIOS: RiskScenario[] = [
   {
@@ -123,7 +123,7 @@ const SCENARIOS: RiskScenario[] = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const riskColor: Record<RiskScenario["risk_level"], string> = {
   critical: "bg-red-600 text-white",
@@ -153,7 +153,7 @@ function cellColor(l: number, i: number): string {
   return "bg-green-700/40";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function RiskScenarioDashboard() {
   const [selectedScenario, setSelectedScenario] = useState<RiskScenario | null>(SCENARIOS[0]);
@@ -190,12 +190,12 @@ export default function RiskScenarioDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -226,9 +226,9 @@ export default function RiskScenarioDashboard() {
         {/* Risk matrix */}
         <div className="bg-gray-800 rounded-lg p-5">
           <div className="font-semibold mb-4 flex items-center gap-2">
-            <Target className="w-4 h-4 text-orange-400" /> Risk Matrix (Likelihood × Impact)
+            <Target className="w-4 h-4 text-orange-400" /> Risk Matrix (Likelihood = Impact)
           </div>
-          <div className="text-xs text-gray-400 mb-2 text-center">Impact →</div>
+          <div className="text-xs text-gray-400 mb-2 text-center">Impact =</div>
           <div className="flex gap-1 items-end">
             <div className="flex flex-col gap-1 items-end mr-1">
               {[10,8,6,4,2].map(l => (
@@ -254,7 +254,7 @@ export default function RiskScenarioDashboard() {
           </div>
           <div className="flex gap-3 mt-4 flex-wrap">
             {[
-              { label: "Critical (≥64)", color: "bg-red-700" },
+              { label: "Critical (=64)", color: "bg-red-700" },
               { label: "High (36-63)", color: "bg-orange-700" },
               { label: "Medium (16-35)", color: "bg-yellow-700" },
               { label: "Low (<16)", color: "bg-green-700" },
@@ -365,7 +365,7 @@ export default function RiskScenarioDashboard() {
             <ShieldAlert className="w-4 h-4 text-orange-400" /> Scenario List
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead className="bg-gray-700/50">
                 <tr>
                   {["Scenario","Category","Inherent","Residual","Reduction","Level"].map(h => (

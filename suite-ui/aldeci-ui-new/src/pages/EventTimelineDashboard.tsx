@@ -1,9 +1,9 @@
 /**
  * Event Timeline Dashboard
  *
- * Security incident timeline reconstruction — events, correlations, actor drill-down.
+ * Security incident timeline reconstruction = events, correlations, actor drill-down.
  *   1. Incident selector + create form
- *   2. Timeline event list (actor → target, outcome badge)
+ *   2. Timeline event list (actor = target, outcome badge)
  *   3. Correlation view
  *   4. Stats (event_count, duration, status)
  *   5. Add event form
@@ -42,10 +42,10 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_INCIDENTS = [
-  { id: "INC-2026-0041", title: "Ransomware Lateral Movement — Finance VLAN", status: "open",   event_count: 14, duration_mins: 187, start_time: "2026-04-14T02:11:00Z", end_time: "2026-04-14T05:18:00Z" },
+  { id: "INC-2026-0041", title: "Ransomware Lateral Movement = Finance VLAN", status: "open",   event_count: 14, duration_mins: 187, start_time: "2026-04-14T02:11:00Z", end_time: "2026-04-14T05:18:00Z" },
   { id: "INC-2026-0039", title: "Credential Stuffing on VPN Portal",           status: "closed", event_count: 8,  duration_mins: 42,  start_time: "2026-04-11T14:03:00Z", end_time: "2026-04-11T14:45:00Z" },
   { id: "INC-2026-0037", title: "Data Exfil via Compromised Service Account",  status: "open",   event_count: 11, duration_mins: 310, start_time: "2026-04-09T22:50:00Z", end_time: "2026-04-10T04:00:00Z" },
 ];
@@ -81,7 +81,7 @@ const MOCK_CORRELATIONS = [
   { primary_id: "e3", correlated_id: "e6", correlation_type: "behavioral",confidence: 0.78 },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function EventTypeBadge({ t }: { t: string }) {
   const map: Record<string, string> = {
@@ -139,7 +139,7 @@ function ConfBar({ val }: { val: number }) {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function EventTimelineDashboard() {
   const [selectedIncident, setSelectedIncident] = useState<string>(MOCK_INCIDENTS[0].id);
@@ -170,15 +170,15 @@ export default function EventTimelineDashboard() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <PageHeader
         title="Security Event Timeline"
-        description="Incident timeline reconstruction — event sequences, correlations, and actor activity"
+        description="Incident timeline reconstruction = event sequences, correlations, and actor activity"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
@@ -219,7 +219,7 @@ export default function EventTimelineDashboard() {
                   </Badge>
                 </div>
                 <div className="text-[11px] font-medium max-w-[260px] truncate">{inc.title}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">{inc.event_count} events · {inc.duration_mins}m</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">{inc.event_count} events = {inc.duration_mins}m</div>
               </button>
             ))}
           </div>

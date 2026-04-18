@@ -33,7 +33,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_HEATMAP = [
   { country: "Russia",       country_code: "RU", event_count: 4821, risk_score: 94, blocked: true  },
@@ -64,7 +64,7 @@ const MOCK_STATS = {
 
 const MAX_EVENTS = MOCK_HEATMAP[0].event_count;
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function riskColor(score: number) {
   if (score >= 80) return { bar: "bg-red-500",    text: "text-red-400"    };
@@ -73,7 +73,7 @@ function riskColor(score: number) {
   return               { bar: "bg-green-500",   text: "text-green-400"  };
 }
 
-// ── Component ────────────────────────────────────────────────
+// == Component ================================================
 
 export default function ThreatGeolocationDashboard() {
   const [refreshing, setRefreshing] = useState(false);

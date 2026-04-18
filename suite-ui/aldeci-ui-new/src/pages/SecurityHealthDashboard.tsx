@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, RefreshCw, Activity, CheckCircle, XCircle, BarChart3, Clock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const OVERALL_SCORE = 82;
 
@@ -70,10 +70,10 @@ const CHECKS = [
 ];
 
 const INCIDENTS = [
-  { id: "INC-081", sev: "High",   title: "S3 bucket ACL check failing — public read detected",   check: "S3 Bucket ACL Hygiene",    detected: "18m ago" },
-  { id: "INC-082", sev: "High",   title: "DAST scan not run in 72h — coverage gap",             check: "DAST Last Run Age",         detected: "2h ago" },
+  { id: "INC-081", sev: "High",   title: "S3 bucket ACL check failing = public read detected",   check: "S3 Bucket ACL Hygiene",    detected: "18m ago" },
+  { id: "INC-082", sev: "High",   title: "DAST scan not run in 72h = coverage gap",             check: "DAST Last Run Age",         detected: "2h ago" },
   { id: "INC-083", sev: "Medium", title: "EDR agent offline on 12 endpoints",                   check: "EDR Agent Coverage",        detected: "34m ago" },
-  { id: "INC-084", sev: "Medium", title: "Cloud config drift detected — 4 resources",           check: "Cloud Config Drift",        detected: "1h ago" },
+  { id: "INC-084", sev: "Medium", title: "Cloud config drift detected = 4 resources",           check: "Cloud Config Drift",        detected: "1h ago" },
   { id: "INC-085", sev: "Medium", title: "API abuse rate threshold breached on /v1/auth",       check: "API Rate Limit Violations", detected: "45m ago" },
   { id: "INC-086", sev: "Low",    title: "SAST coverage dropped below 70% threshold",           check: "SAST Scan Coverage",        detected: "3h ago" },
 ];
@@ -89,7 +89,7 @@ const TREND = [
 
 const TREND_MAX = 100;
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function DomainStatus({ s }: { s: string }) {
   const map: Record<string, string> = {
@@ -134,7 +134,7 @@ function domainScoreColor(score: number) {
   return { bar: "bg-red-500", text: "text-red-400" };
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityHealthDashboard() {
   const [refreshing, setRefreshing] = useState(false);

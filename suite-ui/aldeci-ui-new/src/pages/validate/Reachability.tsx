@@ -144,8 +144,7 @@ function NetworkPathDialog({
                       {!!path.protocol && <span>Protocol: {String(path.protocol)}</span>}
                     </div>
                   </div>
-                ))
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -441,8 +440,7 @@ export default function Reachability() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
           </Table>
           </div>

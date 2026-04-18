@@ -18,7 +18,7 @@ import {
   ChevronRight, AlertCircle, Eye,
 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -41,29 +41,29 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const INCIDENTS = [
-  { id: "INC-2024-001", title: "Ransomware outbreak — Finance subnet",    type: "ransomware", severity: "Critical", status: "Containment",  started: "2026-04-14 02:11", systems: 7,  events: 23 },
+  { id: "INC-2024-001", title: "Ransomware outbreak = Finance subnet",    type: "ransomware", severity: "Critical", status: "Containment",  started: "2026-04-14 02:11", systems: 7,  events: 23 },
   { id: "INC-2024-002", title: "Data exfiltration via compromised account", type: "breach",     severity: "Critical", status: "Eradication", started: "2026-04-14 08:44", systems: 3,  events: 17 },
-  { id: "INC-2024-003", title: "Phishing campaign — HR department",        type: "phishing",   severity: "High",     status: "Recovery",    started: "2026-04-14 10:05", systems: 2,  events: 11 },
-  { id: "INC-2024-004", title: "Insider threat — privileged data access",  type: "insider",    severity: "High",     status: "Detection",   started: "2026-04-15 06:30", systems: 1,  events: 6  },
+  { id: "INC-2024-003", title: "Phishing campaign = HR department",        type: "phishing",   severity: "High",     status: "Recovery",    started: "2026-04-14 10:05", systems: 2,  events: 11 },
+  { id: "INC-2024-004", title: "Insider threat = privileged data access",  type: "insider",    severity: "High",     status: "Detection",   started: "2026-04-15 06:30", systems: 1,  events: 6  },
   { id: "INC-2024-005", title: "DDoS against public API gateway",          type: "ddos",       severity: "Medium",   status: "Mitigation",  started: "2026-04-15 13:20", systems: 2,  events: 9  },
   { id: "INC-2024-006", title: "Malware on developer workstation",         type: "breach",     severity: "High",     status: "Containment", started: "2026-04-15 15:00", systems: 1,  events: 8  },
-  { id: "INC-2024-007", title: "BEC — wire fraud attempt",                 type: "phishing",   severity: "Critical", status: "Detection",   started: "2026-04-16 07:11", systems: 0,  events: 4  },
+  { id: "INC-2024-007", title: "BEC = wire fraud attempt",                 type: "phishing",   severity: "Critical", status: "Detection",   started: "2026-04-16 07:11", systems: 0,  events: 4  },
   { id: "INC-2024-008", title: "Lateral movement from contractor VPN",     type: "insider",    severity: "High",     status: "Analysis",    started: "2026-04-16 09:45", systems: 2,  events: 5  },
 ];
 
 const EVENTS: Record<string, { type: string; actor: string; ts: string; desc: string; evidence: number }[]> = {
   "INC-2024-001": [
     { type: "detection",    actor: "EDR Agent",         ts: "2026-04-14 02:11", desc: "Anomalous file encryption activity detected on FIN-WS-04",            evidence: 3 },
-    { type: "escalation",   actor: "SOC Tier 1",        ts: "2026-04-14 02:18", desc: "Alert escalated to Incident Response team — ransomware pattern confirmed", evidence: 1 },
+    { type: "escalation",   actor: "SOC Tier 1",        ts: "2026-04-14 02:18", desc: "Alert escalated to Incident Response team = ransomware pattern confirmed", evidence: 1 },
     { type: "action",       actor: "IR Lead",           ts: "2026-04-14 02:31", desc: "Network segment isolated via VLAN policy push on core switch",        evidence: 2 },
     { type: "containment",  actor: "NetSec",            ts: "2026-04-14 02:45", desc: "7 affected endpoints quarantined; backup jobs suspended",             evidence: 4 },
     { type: "action",       actor: "Forensics",         ts: "2026-04-14 03:10", desc: "Memory images captured from FIN-WS-04 and FIN-SRV-02",               evidence: 6 },
-    { type: "escalation",   actor: "CISO",              ts: "2026-04-14 04:00", desc: "Executive escalation — legal and insurance notified",                 evidence: 0 },
+    { type: "escalation",   actor: "CISO",              ts: "2026-04-14 04:00", desc: "Executive escalation = legal and insurance notified",                 evidence: 0 },
     { type: "eradication",  actor: "IR Lead",           ts: "2026-04-14 06:00", desc: "Malware family identified: LockBit 3.0. IOCs extracted and blocked",  evidence: 5 },
-    { type: "action",       actor: "SOC Tier 2",        ts: "2026-04-14 08:30", desc: "Threat hunting sweep across all subnets — no further lateral movement", evidence: 2 },
+    { type: "action",       actor: "SOC Tier 2",        ts: "2026-04-14 08:30", desc: "Threat hunting sweep across all subnets = no further lateral movement", evidence: 2 },
   ],
   "INC-2024-002": [
     { type: "detection",   actor: "SIEM",       ts: "2026-04-14 08:44", desc: "Unusual S3 data transfer volume from svc-reporting account", evidence: 2 },
@@ -82,7 +82,7 @@ const SYSTEMS = [
   { host: "FIN-DC-01",    ip: "10.20.4.1",   type: "domain_ctrl",  affected: "2026-04-14 02:22", restored: null },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const TYPE_COLORS: Record<string, string> = {
   breach:     "border-red-500/30 text-red-400 bg-red-500/10",
@@ -122,7 +122,7 @@ const METRIC_CIRCLES = [
   { label: "MTTC", value: "1.3", unit: "hrs",  color: "text-purple-400", ring: "border-purple-500/40" },
 ];
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IncidentTimelineDashboard() {
   const [selected, setSelected] = useState<string>("INC-2024-001");
@@ -146,7 +146,7 @@ export default function IncidentTimelineDashboard() {
         ? Object.values(
             events.reduce((acc: any, ev: any) => {
               const id = ev.timeline_id ?? ev.incident_id ?? ev.id ?? "TL-unknown";
-              if (!acc[id]) acc[id] = { id, title: ev.title ?? ev.description ?? "Incident", type: ev.incident_type ?? "breach", severity: ev.severity ?? "Medium", status: ev.status ?? "Detection", started: ev.event_time ?? ev.created_at ?? "—", systems: 0, events: 0 };
+              if (!acc[id]) acc[id] = { id, title: ev.title ?? ev.description ?? "Incident", type: ev.incident_type ?? "breach", severity: ev.severity ?? "Medium", status: ev.status ?? "Detection", started: ev.event_time ?? ev.created_at ?? "=", systems: 0, events: 0 };
               acc[id].events++;
               return acc;
             }, {})
@@ -185,7 +185,7 @@ export default function IncidentTimelineDashboard() {
         type: tl.incident_type ?? "breach",
         severity: tl.severity ?? "medium",
         status: tl.status ?? "open",
-        started: tl.started_at ?? tl.created_at ?? "—",
+        started: tl.started_at ?? tl.created_at ?? "=",
         systems: tl.affected_system_count ?? 0,
         events: tl.event_count ?? 0,
       }));
@@ -197,7 +197,7 @@ export default function IncidentTimelineDashboard() {
     ? liveEvents.map((ev: any) => ({
         type: ev.event_type ?? "action",
         actor: ev.actor ?? "System",
-        ts: ev.event_time ?? ev.created_at ?? "—",
+        ts: ev.event_time ?? ev.created_at ?? "=",
         desc: ev.description ?? ev.title ?? "",
         evidence: Array.isArray(ev.evidence_refs) ? ev.evidence_refs.length : 0,
       }))
@@ -206,9 +206,9 @@ export default function IncidentTimelineDashboard() {
   const displaySystems = liveSystems.length > 0
     ? liveSystems.map((s: any) => ({
         host: s.hostname ?? s.host ?? "Unknown",
-        ip: s.ip_address ?? s.ip ?? "—",
+        ip: s.ip_address ?? s.ip ?? "=",
         type: s.system_type ?? s.type ?? "server",
-        affected: s.affected_at ?? "—",
+        affected: s.affected_at ?? "=",
         restored: s.restored_at ?? null,
       }))
     : SYSTEMS;
@@ -333,7 +333,7 @@ export default function IncidentTimelineDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-400" />
-              Event Timeline — {selected}
+              Event Timeline = {selected}
             </CardTitle>
             <CardDescription className="text-xs">NIST IR phase events, actors, and evidence</CardDescription>
           </CardHeader>
@@ -376,7 +376,7 @@ export default function IncidentTimelineDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Server className="h-4 w-4 text-orange-400" />
-                Affected Systems — {selected}
+                Affected Systems = {selected}
               </CardTitle>
               <CardDescription className="text-xs">Hosts impacted and restoration status</CardDescription>
             </CardHeader>
@@ -406,8 +406,7 @@ export default function IncidentTimelineDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -434,8 +433,7 @@ export default function IncidentTimelineDashboard() {
                     </div>
                     <span className="text-xs font-semibold text-muted-foreground">{m.label}</span>
                   </div>
-                ))
-                )}
+                ))}
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="text-[10px] text-muted-foreground">Mean Time<br />To Detect</div>

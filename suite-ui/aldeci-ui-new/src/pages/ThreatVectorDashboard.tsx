@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_VECTORS = [
   { id: "vec-001", name: "Phishing Campaign",          vector_type: "Social Engineering", severity: "high",     risk_score: 82, indicator_count: 47,  mitigation_count: 3 },
@@ -54,7 +54,7 @@ const MOCK_VECTORS = [
 
 const MOCK_STATS = { total_vectors: 87, active_vectors: 62, critical_vectors: 14, open_mitigations: 39 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -88,7 +88,7 @@ function exportCsv(vectors: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatVectorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -129,7 +129,7 @@ export default function ThreatVectorDashboard() {
     >
       <PageHeader
         title="Threat Vectors"
-        description="Active threat vector monitoring — risk scoring, indicator tracking, and mitigation status across all attack surfaces"
+        description="Active threat vector monitoring = risk scoring, indicator tracking, and mitigation status across all attack surfaces"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -189,10 +189,10 @@ export default function ThreatVectorDashboard() {
                   vectors.map((vec: any, i: number) => (
                   <TableRow key={vec.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300 max-w-[200px] truncate">
-                      {vec.name ?? "—"}
+                      {vec.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {vec.vector_type ?? "—"}
+                      {vec.vector_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={vec.severity ?? "low"} />

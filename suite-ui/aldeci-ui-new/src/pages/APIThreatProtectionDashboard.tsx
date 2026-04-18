@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_EVENTS = [
   { id: "evt-001", threat_type: "SQL Injection",        source_ip: "185.220.101.47", endpoint: "/api/v1/users",       action_taken: "blocked",  severity: "critical", detected_at: "2026-04-16 10:23:11" },
@@ -52,7 +52,7 @@ const MOCK_EVENTS = [
 
 const MOCK_STATS = { active_rules: 34, total_events: 847, blocked_events: 623, top_threat_type: "Rate Limit Abuse" };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -82,7 +82,7 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function APIThreatProtectionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -178,13 +178,13 @@ export default function APIThreatProtectionDashboard() {
                   events.map((evt: any, i: number) => (
                   <TableRow key={evt.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300">
-                      {evt.threat_type ?? "—"}
+                      {evt.threat_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {evt.source_ip ?? "—"}
+                      {evt.source_ip ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-300 max-w-[180px] truncate">
-                      {evt.endpoint ?? "—"}
+                      {evt.endpoint ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <ActionBadge action={evt.action_taken ?? "logged"} />
@@ -193,7 +193,7 @@ export default function APIThreatProtectionDashboard() {
                       <SeverityBadge severity={evt.severity ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {evt.detected_at ?? "—"}
+                      {evt.detected_at ?? "="}
                     </TableCell>
                   </TableRow>
                 )))}

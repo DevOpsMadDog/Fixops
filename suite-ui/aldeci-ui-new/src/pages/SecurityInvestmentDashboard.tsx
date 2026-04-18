@@ -13,7 +13,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { DollarSign, TrendingUp, CheckCircle2, Clock, Plus, Trophy } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type InvestStatus = "active" | "completed" | "planned" | "on_hold";
 type Category = "detection" | "prevention" | "response" | "governance" | "training" | "infrastructure" | "tooling";
@@ -45,7 +45,7 @@ interface Outcome {
   verified: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const INVESTMENTS: Investment[] = [
   { id: "inv01", investment_name: "Crowdstrike EDR Enterprise", category: "detection", vendor: "CrowdStrike", amount: 180000, status: "active", roi_score: 167, start_date: "2025-01-01" },
@@ -76,7 +76,7 @@ const OUTCOMES: Outcome[] = [
   { id: "o05", investment_name: "Cyber Insurance Renegotiation", outcome_type: "insurance_reduction", quantified_value: 42000, verified: false },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -117,7 +117,7 @@ const OUTCOME_COLOR: Record<OutcomeType, string> = {
   insurance_reduction: "bg-yellow-500/20 text-yellow-300",
 };
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityInvestmentDashboard() {
   const [investments, setInvestments] = useState(INVESTMENTS);
@@ -158,12 +158,12 @@ export default function SecurityInvestmentDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -237,7 +237,7 @@ export default function SecurityInvestmentDashboard() {
           <TrendingUp size={18} className="text-emerald-400" /> Investment Portfolio
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="text-gray-400 border-b border-gray-700">
                 <th className="text-left py-2">Investment</th>
@@ -305,7 +305,7 @@ export default function SecurityInvestmentDashboard() {
                   <div className="flex justify-between text-xs mb-1">
                     <span className={`font-medium ${over ? "text-red-400" : "text-gray-300"}`}>{b.category}</span>
                     <span className={over ? "text-red-400 font-medium" : "text-gray-400"}>
-                      {fmt(b.spent)} / {fmt(b.allocated)} {over ? "⚠ OVER" : ""}
+                      {fmt(b.spent)} / {fmt(b.allocated)} {over ? "= OVER" : ""}
                     </span>
                   </div>
                   <div className="bg-gray-700 rounded-full h-3 flex overflow-hidden">
@@ -313,7 +313,7 @@ export default function SecurityInvestmentDashboard() {
                       className={`h-3 rounded-l-full ${over ? "bg-red-500" : "bg-emerald-500"}`}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
-                    {over && <div className="bg-red-700 h-3 rounded-r-full" style={{ width: `${pct - 100}%` }} />}
+                    {over && <div className="bg-red-700 h-3 rounded-r-full" style={{ width: `${pct - 100}%` }} / role="status" aria-live="polite">}
                   </div>
                   <div className="text-right text-xs text-gray-500 mt-0.5">{pct}% utilized</div>
                 </div>

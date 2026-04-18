@@ -1,7 +1,7 @@
 /**
  * Identity Risk Dashboard
  *
- * Identity risk monitoring — high-risk users, MFA gaps, risky login events.
+ * Identity risk monitoring = high-risk users, MFA gaps, risky login events.
  *   1. KPIs: Identities Monitored, High Risk Users, MFA Gaps, Risky Logins Today
  *   2. Identity risk events table (user, risk_score, risk_factors, last_seen, status)
  *
@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_IDENTITIES = [
   { id: "IDR-001", user: "j.morrison@acme.com",    risk_score: 94, risk_factors: ["impossible_travel", "admin_escalation"], last_seen: "3 min ago",  status: "critical" },
@@ -52,7 +52,7 @@ const MOCK_IDENTITIES = [
 
 const MOCK_STATS = { identities_monitored: 1284, high_risk_users: 12, mfa_gaps: 34, risky_logins_today: 7 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskLevelBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -82,7 +82,7 @@ function RiskScoreBar({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IdentityRiskDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
@@ -174,7 +174,7 @@ export default function IdentityRiskDashboard() {
                   return (
                     <TableRow key={id.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{id.id}</TableCell>
-                      <TableCell className="py-2 font-mono text-[11px]">{id.user ?? id.username ?? id.email ?? "—"}</TableCell>
+                      <TableCell className="py-2 font-mono text-[11px]">{id.user ?? id.username ?? id.email ?? "="}</TableCell>
                       <TableCell className="py-2 min-w-[120px]">
                         <RiskScoreBar score={id.risk_score ?? id.score ?? 0} />
                       </TableCell>
@@ -193,7 +193,7 @@ export default function IdentityRiskDashboard() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-2 text-[11px] text-muted-foreground">{id.last_seen ?? "—"}</TableCell>
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">{id.last_seen ?? "="}</TableCell>
                       <TableCell className="py-2 text-right">
                         <RiskLevelBadge status={id.status ?? id.risk_level ?? "low"} />
                       </TableCell>

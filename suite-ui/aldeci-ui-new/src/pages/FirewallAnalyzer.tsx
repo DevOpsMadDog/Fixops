@@ -45,7 +45,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API config ─────────────────────────────────────────────
+// == API config =============================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -60,9 +60,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type FindingType = "Unused" | "Overly Permissive" | "Shadow" | "Any-Any" | "Expired";
 type Severity = "critical" | "high" | "medium" | "low";
@@ -88,9 +88,9 @@ interface FirewallDevice {
   health: HealthStatus;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_FINDINGS: FirewallFinding[] = [
   {
@@ -107,7 +107,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Unused",
     severity: "high",
     firewall_name: "FW-EDGE-01",
-    recommendation: "Remove — no hits in 180 days, VPN decommissioned",
+    recommendation: "Remove = no hits in 180 days, VPN decommissioned",
   },
   {
     rule_id: "#156",
@@ -123,7 +123,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Shadow",
     severity: "medium",
     firewall_name: "FW-PROD-01",
-    recommendation: "Remove — rule is masked by #201 and never evaluated",
+    recommendation: "Remove = rule is masked by #201 and never evaluated",
   },
   {
     rule_id: "#089",
@@ -131,7 +131,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Expired",
     severity: "high",
     firewall_name: "FW-DMZ-01",
-    recommendation: "Remove — expired 2025-11-01, mail relay replaced",
+    recommendation: "Remove = expired 2025-11-01, mail relay replaced",
   },
   {
     rule_id: "#723",
@@ -147,7 +147,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Unused",
     severity: "medium",
     firewall_name: "FW-EDGE-01",
-    recommendation: "Remove — contractor engagement ended, no traffic in 90d",
+    recommendation: "Remove = contractor engagement ended, no traffic in 90d",
   },
   {
     rule_id: "#290",
@@ -163,7 +163,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Shadow",
     severity: "low",
     firewall_name: "FW-DMZ-01",
-    recommendation: "Remove shadow duplicate — identical rule #610 takes precedence",
+    recommendation: "Remove shadow duplicate = identical rule #610 takes precedence",
   },
   {
     rule_id: "#038",
@@ -171,7 +171,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Expired",
     severity: "medium",
     firewall_name: "FW-INTERNAL-01",
-    recommendation: "Remove — test lab decommissioned 2025-09-15",
+    recommendation: "Remove = test lab decommissioned 2025-09-15",
   },
 ];
 
@@ -214,7 +214,7 @@ const MOCK_FIREWALLS: FirewallDevice[] = [
   },
 ];
 
-// 12-month rule count trend (Jan–Dec 2025 → Apr 2026)
+// 12-month rule count trend (Jan=Dec 2025 = Apr 2026)
 const TREND_DATA = [
   { month: "May", count: 1089 },
   { month: "Jun", count: 1112 },
@@ -230,9 +230,9 @@ const TREND_DATA = [
   { month: "Apr", count: 1247 },
 ];
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Styling helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const SEV_COLORS: Record<Severity, string> = {
   critical: "bg-red-500/10 text-red-400 border-red-500/30",
@@ -262,9 +262,9 @@ const VENDOR_COLORS: Record<Vendor, string> = {
   "Check Point": "text-green-400",
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const ORG_ID = "default";
 
@@ -363,7 +363,7 @@ export default function FirewallAnalyzer() {
           <CardHeader className="border-b border-slate-700">
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-400" />
-              Risk Findings — Top Priority
+              Risk Findings = Top Priority
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -513,7 +513,7 @@ export default function FirewallAnalyzer() {
             <CardHeader className="border-b border-slate-700">
               <CardTitle className="flex items-center gap-2 text-base">
                 <TrendingUp className="w-5 h-5 text-blue-400" />
-                Rule Count Growth — 12 Months
+                Rule Count Growth = 12 Months
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">

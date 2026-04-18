@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_exercises: 24,
@@ -66,7 +66,7 @@ const MOCK_FINDINGS = [
   { title: "Cloud creds not rotated post-sim",   finding_type: "remediation",      severity: "medium",   status: "resolved", exercise_id: "ex-006" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function ExerciseStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -132,7 +132,7 @@ function scoreColor(score: number): string {
   return "text-red-400";
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityTabletopDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -244,7 +244,7 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2"><ScenarioTypeBadge type={ex.scenario_type ?? "unknown"} /></TableCell>
                     <TableCell className="py-2"><ExerciseStatusBadge status={ex.status ?? "scheduled"} /></TableCell>
                     <TableCell className={cn("py-2 text-right font-mono text-[11px] font-semibold", scoreColor(ex.overall_score ?? 0))}>
-                      {ex.overall_score > 0 ? `${ex.overall_score}%` : "—"}
+                      {ex.overall_score > 0 ? `${ex.overall_score}%` : "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ex.scheduled_at}</TableCell>
                   </TableRow>

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SIMULATIONS = [
   { id: "sim-001", twin_id: "twin-prod-network-a1b2c3d4e5f6",     simulation_type: "Lateral Movement",    status: "completed", findings_count: 14, risk_score: 87.3, completed_at: "2026-04-16T08:00:00Z" },
@@ -59,7 +59,7 @@ const MOCK_STATS = {
   critical_findings: 89,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -76,21 +76,21 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function RiskScore({ score }: { score: number }) {
-  if (score === 0) return <span className="font-mono text-[11px] text-muted-foreground">—</span>;
+  if (score === 0) return <span className="font-mono text-[11px] text-muted-foreground">=</span>;
   const color = score >= 90 ? "text-red-400" : score >= 70 ? "text-orange-400" : score >= 50 ? "text-yellow-400" : "text-green-400";
   return <span className={cn("font-mono text-[11px] font-semibold", color)}>{score.toFixed(1)}</span>;
 }
 
 function truncateId(id: string) {
-  return id.length > 22 ? `${id.slice(0, 20)}…` : id;
+  return id.length > 22 ? `${id.slice(0, 20)}=` : id;
 }
 
 function formatTs(ts: string | null) {
-  if (!ts) return "—";
+  if (!ts) return "=";
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DigitalTwinDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -131,7 +131,7 @@ export default function DigitalTwinDashboard() {
     >
       <PageHeader
         title="Digital Twin"
-        description="Security simulation on digital twins — attack path modeling, risk scoring, and finding discovery across virtual replicas"
+        description="Security simulation on digital twins = attack path modeling, risk scoring, and finding discovery across virtual replicas"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -186,10 +186,10 @@ export default function DigitalTwinDashboard() {
                   simulations.map((sim: any, i: number) => (
                   <TableRow key={sim.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-cyan-300">
-                      {truncateId(sim.twin_id ?? "—")}
+                      {truncateId(sim.twin_id ?? "=")}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-teal-300 font-semibold">
-                      {sim.simulation_type ?? "—"}
+                      {sim.simulation_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={sim.status ?? "queued"} />

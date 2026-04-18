@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ANOMALIES = [
   { id: "anm-001", user_id: "u.chen@corp",     behavior_type: "impossible_travel",    severity: "critical", deviation_score: 9.8, status: "confirmed_threat", detected_at: "2026-04-16T02:14:00Z" },
@@ -54,7 +54,7 @@ const MOCK_ANOMALIES = [
 
 const MOCK_STATS = { users_monitored: 2847, total_anomalies: 341, open_anomalies: 78, confirmed_threats: 23 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -94,7 +94,7 @@ function formatTs(ts: string) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function BehavioralAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -190,22 +190,22 @@ export default function BehavioralAnalyticsDashboard() {
                   anomalies.map((anm: any, i: number) => (
                   <TableRow key={anm.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-violet-300">
-                      {anm.user_id ?? "—"}
+                      {anm.user_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(anm.behavior_type ?? "—").replace(/_/g, " ")}
+                      {(anm.behavior_type ?? "=").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={anm.severity ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-purple-300">
-                      {anm.deviation_score?.toFixed(1) ?? "—"}
+                      {anm.deviation_score?.toFixed(1) ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={anm.status ?? "open"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {anm.detected_at ? formatTs(anm.detected_at) : "—"}
+                      {anm.detected_at ? formatTs(anm.detected_at) : "="}
                     </TableCell>
                   </TableRow>
                 )))}

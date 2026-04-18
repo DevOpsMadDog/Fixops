@@ -19,14 +19,14 @@ import { motion } from "framer-motion";
 import { Swords, Clock, CheckCircle, XCircle, AlertTriangle, Play, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_INCIDENTS = [
   { id: "inc-001", incident_name: "Ransomware Activity on HR-Server-02",   threat_type: "Ransomware",      severity: "critical", started_at: "2026-04-16T08:12:00Z", triggered_by: "EDR Alert #8821",  actions_completed: 6,  actions_total: 12 },
-  { id: "inc-002", incident_name: "Credential Stuffing — Auth API",         threat_type: "Brute Force",     severity: "high",     started_at: "2026-04-16T09:05:00Z", triggered_by: "WAF Rule #4412",   actions_completed: 4,  actions_total: 8  },
+  { id: "inc-002", incident_name: "Credential Stuffing = Auth API",         threat_type: "Brute Force",     severity: "high",     started_at: "2026-04-16T09:05:00Z", triggered_by: "WAF Rule #4412",   actions_completed: 4,  actions_total: 8  },
   { id: "inc-003", incident_name: "APT Lateral Movement Detected",          threat_type: "APT",             severity: "critical", started_at: "2026-04-16T07:44:00Z", triggered_by: "NDR Anomaly",      actions_completed: 9,  actions_total: 15 },
-  { id: "inc-004", incident_name: "Phishing Campaign — Finance Dept",       threat_type: "Phishing",        severity: "high",     started_at: "2026-04-16T09:33:00Z", triggered_by: "Email Filter",     actions_completed: 3,  actions_total: 6  },
-  { id: "inc-005", incident_name: "Suspicious Cloud Egress — S3 Bucket",    threat_type: "Data Exfiltration",severity: "high",    started_at: "2026-04-16T08:57:00Z", triggered_by: "CSPM Alert",       actions_completed: 2,  actions_total: 7  },
+  { id: "inc-004", incident_name: "Phishing Campaign = Finance Dept",       threat_type: "Phishing",        severity: "high",     started_at: "2026-04-16T09:33:00Z", triggered_by: "Email Filter",     actions_completed: 3,  actions_total: 6  },
+  { id: "inc-005", incident_name: "Suspicious Cloud Egress = S3 Bucket",    threat_type: "Data Exfiltration",severity: "high",    started_at: "2026-04-16T08:57:00Z", triggered_by: "CSPM Alert",       actions_completed: 2,  actions_total: 7  },
 ];
 
 type ActionStatus = "pending" | "in_progress" | "completed" | "failed";
@@ -61,7 +61,7 @@ const MOCK_PLAYBOOKS = [
   { id: "pb-006", playbook_name: "DDoS Mitigation",            threat_type: "DDoS",             execution_count: 22, avg_resolution_mins:  23, step_count:  5 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function age(iso: string) {
   const mins = Math.floor((new Date("2026-04-16T10:00:00Z").getTime() - new Date(iso).getTime()) / 60000);
@@ -112,12 +112,12 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
   return (
     <div className="bg-gray-800 rounded-lg p-6 flex items-start gap-4">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -132,7 +132,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function ThreatResponseDashboard() {
   const [selectedIncident, setSelectedIncident] = useState(MOCK_INCIDENTS[0]);
@@ -233,7 +233,7 @@ export default function ThreatResponseDashboard() {
               <BarChart2 className="w-4 h-4 text-blue-400" /> Playbook Performance
             </h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead>
                   <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                     <th className="text-left pb-2 pr-4">Playbook</th>

@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Interfaces ─────────────────────────────────────────────────
+// == Interfaces =================================================
 
 interface SupplyChainStats {
   total_packages: number;
@@ -62,7 +62,7 @@ interface SupplyChainDetection {
   package_id: string;
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS: SupplyChainStats = {
   total_packages:      4821,
@@ -90,7 +90,7 @@ const MOCK_DETECTIONS: SupplyChainDetection[] = [
   { detection_type: "Log4Shell RCE vector",     severity: "critical", confidence_score: 99, status: "confirmed", package_id: "log4j-core@2.14.1"    },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function EcosystemBadge({ ecosystem }: { ecosystem: string }) {
   const map: Record<string, string> = {
@@ -148,7 +148,7 @@ function DetectionStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SupplyChainAttackDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -196,7 +196,7 @@ export default function SupplyChainAttackDashboard() {
       {/* Header */}
       <PageHeader
         title="Supply Chain Attacks"
-        description="Package ecosystem attack detection — typosquatting, dependency confusion, malicious code"
+        description="Package ecosystem attack detection = typosquatting, dependency confusion, malicious code"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -245,7 +245,7 @@ export default function SupplyChainAttackDashboard() {
                     <TableCell className="py-2 font-mono text-[11px]">{p.package_name}</TableCell>
                     <TableCell className="py-2"><EcosystemBadge ecosystem={p.ecosystem ?? "npm"} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{p.version}</TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{p.attack_type === "none" ? "—" : p.attack_type.replace(/_/g, " ")}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{p.attack_type === "none" ? "=" : p.attack_type.replace(/_/g, " ")}</TableCell>
                     <TableCell className="py-2"><PackageStatusBadge status={p.status ?? "clean"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-right">
                       <span className={p.risk_score >= 80 ? "text-red-400" : p.risk_score >= 50 ? "text-amber-400" : "text-green-400"}>

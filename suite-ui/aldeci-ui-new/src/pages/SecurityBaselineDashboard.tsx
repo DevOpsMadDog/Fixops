@@ -20,7 +20,7 @@ import { motion } from "framer-motion";
 import { Target, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, Play, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_BASELINES = [
   { id: "bl-001", baseline_name: "Linux Server Hardening",   target_type: "OS",         framework: "CIS",       control_count: 248, status: "active",      published_at: "2026-03-01T10:00:00Z" },
@@ -64,7 +64,7 @@ const MOCK_DRIFT = [
   { control_id: "K8S-1.1.1", direction: "degraded",  label: "Audit log rotation not set (missing --audit-log-maxage)" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function fmt(iso: string) {
   if (!iso) return "Not published";
@@ -109,7 +109,7 @@ function SeverityBadge({ s }: { s: string }) {
   return <span className={cn("text-xs capitalize", cls[s] ?? "text-gray-400")}>{s}</span>;
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function SecurityBaselineDashboard() {
   const [selectedBaseline, setSelectedBaseline] = useState(MOCK_BASELINES[0]);
@@ -130,8 +130,8 @@ export default function SecurityBaselineDashboard() {
 
   function runAssessment() {
     if (!targetName.trim()) return;
-    setAssessMsg(`Assessment started for "${targetName}" using baseline "${selectedBaseline.baseline_name}"…`);
-    setTimeout(() => setAssessMsg(`Assessment complete — ${controls.length} controls evaluated`), 1800);
+    setAssessMsg(`Assessment started for "${targetName}" using baseline "${selectedBaseline.baseline_name}"=`);
+    setTimeout(() => setAssessMsg(`Assessment complete = ${controls.length} controls evaluated`), 1800);
   }
 
   function publishBaseline() {
@@ -153,12 +153,12 @@ export default function SecurityBaselineDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -203,7 +203,7 @@ export default function SecurityBaselineDashboard() {
                 <TargetBadge t={bl.target_type} />
                 <FrameworkBadge f={bl.framework} />
               </div>
-              <p className="text-gray-500 text-[10px] mt-1">{bl.control_count} controls · {fmt(bl.published_at)}</p>
+              <p className="text-gray-500 text-[10px] mt-1">{bl.control_count} controls = {fmt(bl.published_at)}</p>
             </button>
           )))}
         </div>
@@ -212,11 +212,11 @@ export default function SecurityBaselineDashboard() {
           {/* Controls Table */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
-              Controls — <span className="text-emerald-400">{selectedBaseline.baseline_name}</span>
+              Controls = <span className="text-emerald-400">{selectedBaseline.baseline_name}</span>
             </h2>
             {controls.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table role="table" className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                       <th className="text-left pb-2 pr-4">Control ID</th>

@@ -44,9 +44,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 interface GraphNode {
   id: string;
@@ -88,9 +88,9 @@ interface AttackPathsStats {
   paths: AttackPath[];
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_GRAPH_NODES: GraphNode[] = [
   { id: "entry-1", name: "Web Server (exposed)", type: "entry_point", risk_score: 92 },
@@ -149,9 +149,9 @@ const MOCK_CROWN_JEWELS: CrownJewel[] = [
   },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Node Visualization Component
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] }) {
   // Calculate positions in a circle layout
@@ -291,9 +291,9 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Entry Point Card
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function EntryPointCard({ node, index }: { node: GraphNode; index: number }) {
   const getRiskColor = (score: number) => {
@@ -329,9 +329,9 @@ function EntryPointCard({ node, index }: { node: GraphNode; index: number }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Attack Path Row
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function AttackPathRow({
   path,
@@ -359,7 +359,7 @@ function AttackPathRow({
         </span>
       </td>
       <td className="py-2.5 px-3 text-xs">
-        {startNode?.name || "Unknown"} → {endNode?.name || "Unknown"}
+        {startNode?.name || "Unknown"} = {endNode?.name || "Unknown"}
       </td>
       <td className="py-2.5 px-3 text-xs text-muted-foreground">{path.cves_required.length} CVEs</td>
       <td className="py-2.5 px-3 text-xs text-right">
@@ -371,9 +371,9 @@ function AttackPathRow({
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Crown Jewel Row
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function CrownJewelRow({ jewel, index }: { jewel: CrownJewel; index: number }) {
   const riskColor =
@@ -415,9 +415,9 @@ function CrownJewelRow({ jewel, index }: { jewel: CrownJewel; index: number }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Page
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function AttackPathAnalysis() {
   const [liveData, setLiveData] = useState<any>(null);
@@ -595,7 +595,7 @@ export default function AttackPathAnalysis() {
             <Separator />
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-[220px]">
-                <table className="w-full text-sm">
+                <table role="table" className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground sticky top-0 bg-background">
                       <th className="py-2 px-3 text-left font-medium text-xs">ID</th>
@@ -638,7 +638,7 @@ export default function AttackPathAnalysis() {
             <Separator />
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-[220px]">
-                <table className="w-full text-sm">
+                <table role="table" className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground sticky top-0 bg-background">
                       <th className="py-2 px-3 text-left font-medium text-xs">Asset</th>

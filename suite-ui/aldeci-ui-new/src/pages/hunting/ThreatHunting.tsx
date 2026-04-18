@@ -843,8 +843,7 @@ function PredefinedQueryCard({ query, onRun }: { query: PredefinedQuery; onRun: 
               <span key={tag} className="rounded bg-muted/40 border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono">
                 {tag}
               </span>
-            ))
-            )}
+            ))}
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-border mt-1">
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -1274,7 +1273,7 @@ export default function ThreatHunting() {
                     </CardHeader>
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table role="table" className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-border bg-muted/20">
                               <th className="py-2.5 px-3 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Severity</th>
@@ -1290,8 +1289,7 @@ export default function ThreatHunting() {
                           <tbody>
                             {findings.map((finding) => (
                               <FindingRow key={finding.id} finding={finding} />
-                            ))
-                            )}
+                            ))}
                           </tbody>
                         </table>
                       </div>
@@ -1321,8 +1319,7 @@ export default function ThreatHunting() {
                         <div className="space-y-0">
                           {timeline.map((event) => (
                             <TimelineEventItem key={event.id} event={event} />
-                          ))
-                          )}
+                          ))}
                         </div>
                       </ScrollArea>
                     </CardContent>

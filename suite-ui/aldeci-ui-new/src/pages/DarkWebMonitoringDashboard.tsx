@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_mentions: 147,
@@ -68,7 +68,7 @@ const MOCK_EXPOSURES = [
   { id: "e-007", affected_system: "devops-pipeline",  exposure_type: "env_secrets",      severity: "high",     status: "open"     },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskScoreBadge({ score }: { score: number }) {
   const cls =
@@ -111,7 +111,7 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DarkWebMonitoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);

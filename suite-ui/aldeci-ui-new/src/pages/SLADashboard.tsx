@@ -3,10 +3,10 @@
  *
  * Remediation SLAs, breach tracking, and MTTR analytics.
  *   1. KPIs: SLA Compliance, Active Breaches, At Risk, Avg MTTR
- *   2. SLA Compliance by Severity — horizontal bars
+ *   2. SLA Compliance by Severity = horizontal bars
  *   3. Active Breaches table (8 rows)
  *   4. At-Risk items table (10 rows, sorted by time remaining)
- *   5. MTTR Trend chart — 6-month div-based bars by severity
+ *   5. MTTR Trend chart = 6-month div-based bars by severity
  *   6. Team Performance table
  *   7. Policy Configuration card
  *
@@ -17,7 +17,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, AlertTriangle, Shield, Users, Settings, RefreshCw, BarChart3 } from "lucide-react";
 
-// ── API ────────────────────────────────────────────────────────
+// == API ========================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "aldeci-demo";
 
@@ -41,7 +41,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const SEVERITY_BARS = [
   { label: "Critical", sla: "24h SLA", pct: 65, color: "bg-red-500", text: "text-red-400" },
@@ -98,7 +98,7 @@ const SLA_POLICY = [
   { severity: "Low",      response: "72h", contain: "7d",  resolve: "30d" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -109,9 +109,9 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-const MTTR_MAX = 10; // days — for bar scaling
+const MTTR_MAX = 10; // days = for bar scaling
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SLADashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -145,7 +145,7 @@ export default function SLADashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derived KPI values — prefer live, fall back to mock
+  // Derived KPI values = prefer live, fall back to mock
   const complianceRate = liveData?.compliance?.compliance_rate != null
     ? `${Math.round(liveData.compliance.compliance_rate)}%`
     : liveData?.dashboard?.compliance_rate != null
@@ -170,27 +170,27 @@ export default function SLADashboard() {
       ? `${liveData.dashboard.avg_mttr_days.toFixed(1)}d`
       : "4.2d";
 
-  // Live breach rows — map SLARecord fields to display shape
+  // Live breach rows = map SLARecord fields to display shape
   const liveBreaches = Array.isArray(liveData?.breached) && liveData.breached.length > 0
     ? liveData.breached.slice(0, 8).map((r: any, i: number) => ({
         id:      r.finding_id ?? `FND-${i}`,
-        title:   r.title     ?? r.finding_id ?? "—",
+        title:   r.title     ?? r.finding_id ?? "=",
         severity: r.severity ?? "High",
         type:    "Resolve",
-        owner:   r.assigned_to ?? "—",
-        due:     r.deadline   ?? "—",
-        overdue: r.hours_overdue != null ? `${Math.round(r.hours_overdue)}h` : "—",
+        owner:   r.assigned_to ?? "=",
+        due:     r.deadline   ?? "=",
+        overdue: r.hours_overdue != null ? `${Math.round(r.hours_overdue)}h` : "=",
       }))
     : BREACHES;
 
   const liveAtRisk = Array.isArray(liveData?.atRisk) && liveData.atRisk.length > 0
     ? liveData.atRisk.slice(0, 10).map((r: any, i: number) => ({
         id:        r.finding_id ?? `FND-${i}`,
-        title:     r.title ?? r.finding_id ?? "—",
+        title:     r.title ?? r.finding_id ?? "=",
         severity:  r.severity ?? "Medium",
-        deadline:  r.deadline ?? "—",
-        remaining: r.hours_remaining != null ? `${Math.round(r.hours_remaining)}h` : "—",
-        owner:     r.assigned_to ?? "—",
+        deadline:  r.deadline ?? "=",
+        remaining: r.hours_remaining != null ? `${Math.round(r.hours_remaining)}h` : "=",
+        owner:     r.assigned_to ?? "=",
         urgent:    (r.hours_remaining ?? 999) < 2,
       }))
     : AT_RISK;
@@ -225,7 +225,7 @@ export default function SLADashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="SLA Compliance"   value={complianceRate} icon={Shield}        trend="down" className="border-amber-500/20" />
         <KpiCard title="Active Breaches"  value={activeBreaches} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="At Risk (≤20%)"   value={atRiskCount}    icon={Clock}         trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="At Risk (=20%)"   value={atRiskCount}    icon={Clock}         trend="up"   className="border-yellow-500/20" />
         <KpiCard title="Avg MTTR"         value={avgMttr}        icon={BarChart3}     trend="down" />
       </div>
 
@@ -269,7 +269,7 @@ export default function SLADashboard() {
           </CardContent>
         </Card>
 
-        {/* MTTR trend — div-based bars */}
+        {/* MTTR trend = div-based bars */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -293,7 +293,7 @@ export default function SLADashboard() {
                       className="flex-1 rounded-t bg-red-500/70 transition-all"
                       style={{ height: `${(m.critical / MTTR_MAX) * 100}%` }}
                       title={`Critical: ${m.critical}d`}
-                    />
+                    / role="status" aria-live="polite">
                     <div
                       className="flex-1 rounded-t bg-amber-500/70 transition-all"
                       style={{ height: `${(m.high / MTTR_MAX) * 100}%` }}
@@ -388,7 +388,7 @@ export default function SLADashboard() {
               {liveAtRisk.length} items
             </Badge>
           </div>
-          <CardDescription className="text-xs">Findings within 20% of their SLA deadline — sorted by time remaining</CardDescription>
+          <CardDescription className="text-xs">Findings within 20% of their SLA deadline = sorted by time remaining</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

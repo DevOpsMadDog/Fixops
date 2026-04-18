@@ -3,18 +3,18 @@
  *
  * APT group tracking, campaign analysis, and IOC watchlist management.
  *   1. KPIs: Active Threat Actors, Active Campaigns, IOCs Tracked, Watchlisted Actors
- *   2. Threat actor table — 15 rows sorted by threat_score desc
- *   3. Active campaigns panel — 8 campaign cards
- *   4. IOC section — top 20 IOCs
- *   5. Watchlist — 8 watched actors
- *   6. Stats panel — type donut (text), sophistication bars, top targeted sectors
+ *   2. Threat actor table = 15 rows sorted by threat_score desc
+ *   3. Active campaigns panel = 8 campaign cards
+ *   4. IOC section = top 20 IOCs
+ *   5. Watchlist = 8 watched actors
+ *   6. Stats panel = type donut (text), sophistication bars, top targeted sectors
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Radar, Globe, Shield, Eye, AlertTriangle, RefreshCw, Search, Flag } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const THREAT_ACTORS = [
   { name: "APT29 / Cozy Bear",   type: "nation_state",     country: "Russia",    sophistication: "advanced", motivation: "Espionage",            score: 96, last_observed: "2026-04-15", active: true },
@@ -92,14 +92,14 @@ const IOCS = [
 ];
 
 const WATCHLIST = [
-  { name: "APT29 / Cozy Bear",  priority: "critical", reason: "Active campaign targeting energy sector — new C2 infrastructure detected", alert: true },
+  { name: "APT29 / Cozy Bear",  priority: "critical", reason: "Active campaign targeting energy sector = new C2 infrastructure detected", alert: true },
   { name: "Sandworm",           priority: "critical", reason: "Observed pre-positioning near critical infrastructure OT/ICS networks",    alert: true },
   { name: "APT41",              priority: "high",     reason: "Financial sector attacks correlated with recent credential dump",           alert: true },
   { name: "Lazarus Group",      priority: "high",     reason: "New SWIFT banking targeting TTPs observed in partner ISAC feed",            alert: false },
   { name: "Volt Typhoon",       priority: "high",     reason: "Living-off-the-land activity near defense contractor supply chain",         alert: true },
   { name: "BlackCat / ALPHV",   priority: "medium",   reason: "Healthcare ransomware RaaS affiliate activity escalating",                 alert: false },
   { name: "Charming Kitten",    priority: "medium",   reason: "Spear-phishing targeting energy sector executives",                        alert: false },
-  { name: "Scattered Spider",   priority: "low",      reason: "Social engineering against helpdesk personnel — ongoing monitoring",        alert: false },
+  { name: "Scattered Spider",   priority: "low",      reason: "Social engineering against helpdesk personnel = ongoing monitoring",        alert: false },
 ];
 
 const SECTOR_TARGETS = [
@@ -126,7 +126,7 @@ const BY_SOPHISTICATION = [
   { label: "Low",      count: 1, color: "bg-gray-500" },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────
+// == Helpers ======================================================
 
 function ActorTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -206,7 +206,7 @@ function ThreatScoreBar({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatActorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -288,14 +288,14 @@ export default function ThreatActorDashboard() {
                 <Radar className="h-4 w-4 text-red-400" />
                 Threat Actor Registry
               </CardTitle>
-              <CardDescription className="text-xs">Sorted by threat score — {THREAT_ACTORS.length} tracked groups</CardDescription>
+              <CardDescription className="text-xs">Sorted by threat score = {THREAT_ACTORS.length} tracked groups</CardDescription>
             </div>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search actors…"
+                placeholder="Search actors="
                 className="h-7 pl-6 pr-3 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
@@ -384,8 +384,7 @@ export default function ThreatActorDashboard() {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -433,8 +432,7 @@ export default function ThreatActorDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -469,8 +467,7 @@ export default function ThreatActorDashboard() {
                   }
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 

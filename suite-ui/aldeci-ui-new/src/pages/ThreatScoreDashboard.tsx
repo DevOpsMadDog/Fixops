@@ -2,9 +2,9 @@
  * Threat Score Dashboard
  *
  * Composite threat scoring across all assets.
- *   1. KPI cards: Total Assets Scored, Critical Assets (≥80), Average Score, Scored Today
+ *   1. KPI cards: Total Assets Scored, Critical Assets (=80), Average Score, Scored Today
  *   2. Top Threats table (by score)
- *   3. Score Distribution — count cards for critical/high/medium/low
+ *   3. Score Distribution = count cards for critical/high/medium/low
  *
  * API: GET /api/v1/threat-scores/{stats,top-threats,scores}
  */
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_assets_scored: 1284,
@@ -65,7 +65,7 @@ const MOCK_DISTRIBUTION = {
   low: 642,
 };
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function scoreColor(score: number): string {
   if (score >= 80) return "text-red-400";
@@ -100,7 +100,7 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -249,9 +249,9 @@ export default function ThreatScoreDashboard() {
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: "Critical (≥80)", count: distribution.critical ?? 0, color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20" },
-              { label: "High (60–79)",   count: distribution.high ?? 0,     color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
-              { label: "Medium (40–59)", count: distribution.medium ?? 0,   color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
+              { label: "Critical (=80)", count: distribution.critical ?? 0, color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20" },
+              { label: "High (60=79)",   count: distribution.high ?? 0,     color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+              { label: "Medium (40=59)", count: distribution.medium ?? 0,   color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
               { label: "Low (<40)",      count: distribution.low ?? 0,      color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20" },
             ].map((band) => (
               <motion.div
@@ -271,8 +271,7 @@ export default function ThreatScoreDashboard() {
                   </div>
                 )}
               </motion.div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

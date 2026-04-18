@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_METRICS = [
   { id: "met-001", metric_type: "Phishing Click Rate",       department: "Engineering",    value: 2.1,  period: "Q1-2026", sample_size: 340,  recorded_at: "2026-04-01T00:00:00Z" },
@@ -55,11 +55,11 @@ const MOCK_METRICS = [
 const MOCK_STATS = {
   metrics_tracked: 48,
   departments: 9,
-  best_metric: "MFA Enrollment — Executive: 100%",
-  worst_metric: "Training Completion — Marketing: 62%",
+  best_metric: "MFA Enrollment = Executive: 100%",
+  worst_metric: "Training Completion = Marketing: 62%",
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function MetricTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -80,7 +80,7 @@ function formatTs(ts: string) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AwarenessMetricsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -121,7 +121,7 @@ export default function AwarenessMetricsDashboard() {
     >
       <PageHeader
         title="Awareness Metrics"
-        description="Security awareness program metrics — phishing click rates, training completion, MFA adoption by department"
+        description="Security awareness program metrics = phishing click rates, training completion, MFA adoption by department"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -176,22 +176,22 @@ export default function AwarenessMetricsDashboard() {
                   metrics.map((metric: any, i: number) => (
                   <TableRow key={metric.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
-                      <MetricTypeBadge type={metric.metric_type ?? "—"} />
+                      <MetricTypeBadge type={metric.metric_type ?? "="} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] font-semibold text-green-300">
-                      {metric.department ?? "—"}
+                      {metric.department ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {metric.value != null ? `${metric.value}%` : "—"}
+                      {metric.value != null ? `${metric.value}%` : "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {metric.period ?? "—"}
+                      {metric.period ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {metric.sample_size ?? "—"}
+                      {metric.sample_size ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {metric.recorded_at ? formatTs(metric.recorded_at) : "—"}
+                      {metric.recorded_at ? formatTs(metric.recorded_at) : "="}
                     </TableCell>
                   </TableRow>
                 )))}

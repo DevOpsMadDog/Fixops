@@ -1,5 +1,5 @@
 /**
- * CMDB Dashboard — Configuration Management Database
+ * CMDB Dashboard = Configuration Management Database
  *
  * IT asset inventory and relationship tracking.
  *   1. KPIs: Total CIs, Active, Changes This Week, Critical Assets
@@ -26,7 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-// ── API ────────────────────────────────────────────────────────
+// == API ========================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "aldeci-demo";
 
@@ -49,7 +49,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CI_INVENTORY = [
   { name: "prod-db-primary",     type: "database",       env: "prod",    criticality: "Critical", owner: "DBA Team",    status: "online",  changed: "2026-04-14" },
@@ -93,7 +93,7 @@ const RECENT_CHANGES = [
   { ci: "auth-service",        change: "modify",       desc: "Updated TLS certificate to wildcard",  by: "m.chen",    date: "2026-04-16 09:12", status: "completed" },
   { ci: "scan-worker-01",      change: "add",          desc: "New container deployed for scan jobs", by: "k.devops",  date: "2026-04-16 08:45", status: "completed" },
   { ci: "data-pipeline-svc",   change: "modify",       desc: "Memory limit increased to 8GB",        by: "a.data",    date: "2026-04-16 07:30", status: "in_review" },
-  { ci: "prod-db-primary",     change: "patched",      desc: "PostgreSQL 16.2 → 16.3 patch applied", by: "dba-auto",  date: "2026-04-15 22:00", status: "completed" },
+  { ci: "prod-db-primary",     change: "patched",      desc: "PostgreSQL 16.2 = 16.3 patch applied", by: "dba-auto",  date: "2026-04-15 22:00", status: "completed" },
   { ci: "nginx-lb-01",         change: "modify",       desc: "Added rate limiting rules (500/s)",    by: "n.netops",  date: "2026-04-15 18:14", status: "completed" },
   { ci: "worker-container-07", change: "patched",      desc: "Base image updated to node:22-slim",   by: "ci-pipeline",date: "2026-04-15 15:00", status: "completed" },
   { ci: "dev-k8s-cluster",     change: "modify",       desc: "Namespace quotas adjusted",            by: "j.devops",  date: "2026-04-15 12:33", status: "completed" },
@@ -104,7 +104,7 @@ const RECENT_CHANGES = [
   { ci: "old-batch-worker",    change: "decommission", desc: "Legacy batch worker retired",           by: "j.infra",   date: "2026-04-13 09:00", status: "completed" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const TYPE_COLORS: Record<string, string> = {
   server:         "border-blue-500/30 text-blue-400 bg-blue-500/10",
@@ -145,7 +145,7 @@ const STATUS_DOT: Record<string, string> = {
   offline:  "bg-red-400",
 };
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CMDBDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -177,33 +177,33 @@ export default function CMDBDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derived KPI values — prefer live, fall back to mock
+  // Derived KPI values = prefer live, fall back to mock
   const totalCIs      = liveData?.stats?.total_cis      ?? liveData?.cis?.length ?? "2,847";
   const activeCIs     = liveData?.stats?.active_cis     ?? "2,634";
   const changesWeek   = liveData?.stats?.changes_this_week ?? liveData?.changes?.length ?? 47;
   const criticalAssets = liveData?.stats?.critical_count ?? 183;
 
-  // Live CI rows — map engine fields to display shape
+  // Live CI rows = map engine fields to display shape
   const liveCIs: typeof CI_INVENTORY = Array.isArray(liveData?.cis) && liveData.cis.length > 0
     ? liveData.cis.slice(0, 15).map((ci: any) => ({
-        name:        ci.name        ?? "—",
+        name:        ci.name        ?? "=",
         type:        ci.ci_type     ?? ci.type ?? "server",
         env:         ci.environment ?? "prod",
         criticality: ci.criticality ? (ci.criticality.charAt(0).toUpperCase() + ci.criticality.slice(1)) : "Medium",
-        owner:       ci.owner       ?? "—",
+        owner:       ci.owner       ?? "=",
         status:      ci.status      ?? "online",
-        changed:     ci.updated_at  ?? ci.created_at ?? "—",
+        changed:     ci.updated_at  ?? ci.created_at ?? "=",
       }))
     : CI_INVENTORY;
 
   // Live change rows
   const liveChanges: typeof RECENT_CHANGES = Array.isArray(liveData?.changes) && liveData.changes.length > 0
     ? liveData.changes.slice(0, 12).map((c: any) => ({
-        ci:     c.ci_id       ?? c.ci_name ?? "—",
+        ci:     c.ci_id       ?? c.ci_name ?? "=",
         change: c.change_type ?? "modify",
-        desc:   c.description ?? "—",
-        by:     c.changed_by  ?? "—",
-        date:   c.change_date ?? c.created_at ?? "—",
+        desc:   c.description ?? "=",
+        by:     c.changed_by  ?? "=",
+        date:   c.change_date ?? c.created_at ?? "=",
         status: "completed",
       }))
     : RECENT_CHANGES;
@@ -450,13 +450,13 @@ export default function CMDBDashboard() {
             <GitBranch className="h-4 w-4 text-purple-400" />
             CI Relationship Graph
           </CardTitle>
-          <CardDescription className="text-xs">Example dependency chain — full interactive graph coming soon</CardDescription>
+          <CardDescription className="text-xs">Example dependency chain = full interactive graph coming soon</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center gap-4 py-6">
             {/* Box 1 */}
             <div className="flex flex-col items-center gap-1">
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-center">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-center" role="status" aria-live="polite">
                 <span className="text-xs font-semibold text-red-400">nginx-lb-01</span>
                 <p className="text-[10px] text-muted-foreground mt-0.5">network_device</p>
               </div>
@@ -482,7 +482,7 @@ export default function CMDBDashboard() {
             </div>
           </div>
           <p className="text-center text-[11px] text-muted-foreground">
-            Traffic flows: Load Balancer → API Gateway → Primary Database
+            Traffic flows: Load Balancer = API Gateway = Primary Database
           </p>
         </CardContent>
       </Card>

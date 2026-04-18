@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_WORKFLOWS = [
   { id: "wf-001", title: "Patch Log4Shell on prod-web-01",         workflow_type: "patch",         priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-17", status: "open"       },
@@ -48,13 +48,13 @@ const MOCK_WORKFLOWS = [
   { id: "wf-006", title: "Disable TLS 1.0 on API gateway",         workflow_type: "configuration", priority: "medium",   sla_tier: "P3", sla_due_date: "2026-04-22", status: "closed"     },
   { id: "wf-007", title: "Patch VMware ESXi hypervisors",           workflow_type: "patch",         priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-15", status: "overdue"    },
   { id: "wf-008", title: "Remediate SQLi in legacy API",            workflow_type: "code_fix",      priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-19", status: "in_progress"},
-  { id: "wf-009", title: "Update nginx — CVE-2026-0482",           workflow_type: "patch",         priority: "low",      sla_tier: "P4", sla_due_date: "2026-04-30", status: "open"       },
+  { id: "wf-009", title: "Update nginx = CVE-2026-0482",           workflow_type: "patch",         priority: "low",      sla_tier: "P4", sla_due_date: "2026-04-30", status: "open"       },
   { id: "wf-010", title: "Enforce MFA on admin accounts",           workflow_type: "configuration", priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-16", status: "closed"     },
 ];
 
 const MOCK_STATS = { total_workflows: 218, open_workflows: 87, overdue: 14, closed_today: 9 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function PriorityBadge({ priority }: { priority: string }) {
   const map: Record<string, string> = {
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function VulnWorkflowDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -186,19 +186,19 @@ export default function VulnWorkflowDashboard() {
                   workflows.map((wf: any, i: number) => (
                   <TableRow key={wf.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[240px] truncate">
-                      {wf.title ?? "—"}
+                      {wf.title ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(wf.workflow_type ?? "—").replace(/_/g, " ")}
+                      {(wf.workflow_type ?? "=").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <PriorityBadge priority={wf.priority ?? "medium"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-300">
-                      {wf.sla_tier ?? "—"}
+                      {wf.sla_tier ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {wf.sla_due_date ?? "—"}
+                      {wf.sla_due_date ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <StatusBadge status={wf.status ?? "open"} />

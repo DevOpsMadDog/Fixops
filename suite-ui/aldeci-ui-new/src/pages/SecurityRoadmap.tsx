@@ -3,17 +3,17 @@
  *
  * Strategic initiatives, milestones, and gap remediation.
  *   1. KPIs: Total Initiatives, In Progress, Completion Rate, Total Budget
- *   2. Initiative table — 10 rows with category, priority, status, progress bar
- *   3. Milestones timeline — 8 milestones as vertical timeline
- *   4. Gap analysis — 6 gaps with severity and linked initiative
- *   5. Budget breakdown — 4 category bars showing spend vs allocated
+ *   2. Initiative table = 10 rows with category, priority, status, progress bar
+ *   3. Milestones timeline = 8 milestones as vertical timeline
+ *   4. Gap analysis = 6 gaps with severity and linked initiative
+ *   5. Budget breakdown = 4 category bars showing spend vs allocated
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Map, TrendingUp, CheckCircle, Clock, AlertTriangle, DollarSign, RefreshCw } from "lucide-react";
 
-// ── API ────────────────────────────────────────────────────────
+// == API ========================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "aldeci-demo";
 
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const INITIATIVES = [
   { title: "Zero Trust Architecture",        category: "technology",  priority: "critical", status: "in_progress", owner: "CloudSec",   budget: "$420K", target: "2026-06-30", progress: 62 },
@@ -55,11 +55,11 @@ const INITIATIVES = [
 const MILESTONES = [
   { title: "GDPR Article 30 Records Complete",   date: "2026-03-15", status: "completed",   initiative: "GDPR Compliance Remediation" },
   { title: "SOC Analyst Hire (3 FTE)",            date: "2026-03-31", status: "completed",   initiative: "SOC Maturity Program" },
-  { title: "Security Training Rollout — Wave 1",  date: "2026-04-01", status: "completed",   initiative: "Security Awareness Training" },
-  { title: "Zero Trust Pilot — 3 workloads",      date: "2026-04-30", status: "in_progress", initiative: "Zero Trust Architecture" },
+  { title: "Security Training Rollout = Wave 1",  date: "2026-04-01", status: "completed",   initiative: "Security Awareness Training" },
+  { title: "Zero Trust Pilot = 3 workloads",      date: "2026-04-30", status: "in_progress", initiative: "Zero Trust Architecture" },
   { title: "PCI SAQ-D Submission",                date: "2026-05-15", status: "in_progress", initiative: "PCI-DSS v4.0 Transition" },
   { title: "SIEM Data Source Onboarding",         date: "2026-06-15", status: "pending",     initiative: "SIEM Platform Upgrade" },
-  { title: "Zero Trust — Full Production",        date: "2026-06-30", status: "pending",     initiative: "Zero Trust Architecture" },
+  { title: "Zero Trust = Full Production",        date: "2026-06-30", status: "pending",     initiative: "Zero Trust Architecture" },
   { title: "API Gateway GA Release",              date: "2026-10-31", status: "pending",     initiative: "API Security Gateway" },
 ];
 
@@ -79,7 +79,7 @@ const BUDGET = [
   { category: "Process",    allocated: 120,  spent: 48,  color: "bg-green-500" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function CategoryBadge({ cat }: { cat: string }) {
   const styles: Record<string, string> = {
@@ -131,9 +131,9 @@ function MilestoneIcon({ status }: { status: string }) {
   return <div className="h-4 w-4 rounded-full border-2 border-muted-foreground shrink-0" />;
 }
 
-const BUDGET_MAX = 1200; // K — for bar scaling
+const BUDGET_MAX = 1200; // K = for bar scaling
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityRoadmap() {
   const [refreshing, setRefreshing] = useState(false);
@@ -165,26 +165,26 @@ export default function SecurityRoadmap() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derive display values — prefer live, fall back to mock constants
+  // Derive display values = prefer live, fall back to mock constants
   const liveInitiatives: typeof INITIATIVES = Array.isArray(liveData?.initiatives) && liveData.initiatives.length > 0
     ? liveData.initiatives.map((i: any) => ({
-        title:    i.title    ?? "—",
+        title:    i.title    ?? "=",
         category: i.category ?? "technology",
         priority: i.priority ?? "medium",
         status:   i.status   ?? "planned",
-        owner:    i.owner    ?? "—",
-        budget:   i.budget_usd ? `$${Math.round(i.budget_usd / 1000)}K` : "—",
-        target:   i.target_date ?? "—",
+        owner:    i.owner    ?? "=",
+        budget:   i.budget_usd ? `$${Math.round(i.budget_usd / 1000)}K` : "=",
+        target:   i.target_date ?? "=",
         progress: i.progress ?? 0,
       }))
     : INITIATIVES;
 
   const liveGaps: typeof GAPS = Array.isArray(liveData?.gaps) && liveData.gaps.length > 0
     ? liveData.gaps.map((g: any) => ({
-        title:      g.title       ?? "—",
+        title:      g.title       ?? "=",
         severity:   g.severity    ?? "medium",
-        type:       g.gap_type    ?? "—",
-        initiative: g.linked_initiative_id ?? "—",
+        type:       g.gap_type    ?? "=",
+        initiative: g.linked_initiative_id ?? "=",
       }))
     : GAPS;
 
@@ -351,7 +351,7 @@ export default function SecurityRoadmap() {
                       <Badge className="text-[10px] border border-border text-muted-foreground">{g.type}</Badge>
                     </div>
                     <div className="text-xs font-medium mt-1 truncate">{g.title}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">→ {g.initiative}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">= {g.initiative}</div>
                   </div>
                 </div>
               )))}

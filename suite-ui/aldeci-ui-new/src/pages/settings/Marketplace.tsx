@@ -158,7 +158,7 @@ function ConnectorConfigWizard({ connector, onClose }: { connector: any; onClose
               </div>
             </div>
           ) : (
-            <div className="p-4 rounded-lg bg-red-950/30 border border-red-700/40 flex items-center gap-3">
+            <div className="p-4 rounded-lg bg-red-950/30 border border-red-700/40 flex items-center gap-3" role="status" aria-live="polite">
               <AlertCircle className="h-5 w-5 text-red-400" />
               <p className="text-sm text-red-400">Connection failed. Check your credentials.</p>
             </div>
@@ -185,8 +185,7 @@ function StarRating({ rating }: { rating: number }) {
           key={i}
           className={`h-3 w-3 ${i < Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground"}`}
         />
-      ))
-      )}
+      ))}
       <span className="text-xs text-muted-foreground ml-1">{rating.toFixed(1)}</span>
     </div>
   );
@@ -241,8 +240,7 @@ function ConnectorDetailDialog({ connector, isInstalled, onToggle }: {
                     <p className="text-base font-bold">{value}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
                   </div>
-                ))
-                )}
+                ))}
               </div>
             )}
             <Separator />
@@ -254,8 +252,7 @@ function ConnectorDetailDialog({ connector, isInstalled, onToggle }: {
                     <span className="h-5 w-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                     {step}
                   </li>
-                ))
-                )}
+                ))}
               </ol>
             </div>
             <Separator />

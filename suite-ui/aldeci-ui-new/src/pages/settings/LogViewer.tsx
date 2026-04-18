@@ -60,9 +60,7 @@ function JsonViewerDialog({ log }: { log: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="hover:text-primary transition-colors">
-          <Eye className="h-3 w-3" />
-        </button>
+        <button className="hover:text-primary transition-colors" aria-label="View details"><Eye className="h-3 w-3" /></button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -402,8 +400,7 @@ export default function LogViewer() {
                 <p className="text-xl font-bold">{value}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

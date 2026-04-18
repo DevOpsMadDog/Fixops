@@ -25,7 +25,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -41,7 +41,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const COMPONENTS = [
   { name: "Vulnerability Management", score: 68, weight: "25%", low: true },
@@ -85,7 +85,7 @@ const RECOMMENDATIONS = [
   { title: "Integrate SIEM with endpoint telemetry",        area: "Endpoint Protection",      gain: 2, effort: "Medium", impact: "Medium" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const SCORE_MIN = 45;
 const SCORE_MAX = 100;
@@ -110,7 +110,7 @@ function effortBadge(effort: string) {
   return <Badge className={cn("text-[10px] border", cls)}>{effort} effort</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -148,7 +148,7 @@ export default function SecurityPostureDashboard() {
       ? liveData.components.map((c: any) => ({
           name: c.name ?? c.component ?? c.domain,
           score: c.score ?? c.value ?? 0,
-          weight: c.weight ?? "—",
+          weight: c.weight ?? "=",
           low: (c.score ?? c.value ?? 0) < 65,
         }))
       : COMPONENTS;
@@ -230,7 +230,7 @@ export default function SecurityPostureDashboard() {
           </CardContent>
         </Card>
 
-        {/* KPI cards 2×2 */}
+        {/* KPI cards 2=2 */}
         <div className="lg:col-span-4 grid grid-cols-2 gap-3">
           <KpiCard title="Overall Score"       value={`${liveOverallScore}/100`} icon={Shield}        trend="up"   className="border-blue-500/20" />
           <KpiCard title="Industry Percentile" value={livePercentile}            icon={Target}        trend="up"   className="border-purple-500/20" />
@@ -247,7 +247,7 @@ export default function SecurityPostureDashboard() {
             Component Scores
           </CardTitle>
           <CardDescription className="text-xs">
-            8 security domains — weighted contribution to overall score. Lowest 3 highlighted.
+            8 security domains = weighted contribution to overall score. Lowest 3 highlighted.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -368,8 +368,7 @@ export default function SecurityPostureDashboard() {
                 >
                   <span className="text-[9px] text-muted-foreground pr-1 -translate-y-2">{v}</span>
                 </div>
-              ))
-              )}
+              ))}
               {/* Bars */}
               <div className="absolute inset-0 flex items-end gap-1 pt-2">
                 {HISTORY.length === 0 ? (
@@ -396,7 +395,7 @@ export default function SecurityPostureDashboard() {
               </div>
             </div>
             <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span>May 2025 → Apr 2026</span>
+              <span>May 2025 = Apr 2026</span>
               <span className="text-green-400 font-semibold">+16 pts total improvement</span>
             </div>
           </CardContent>
@@ -410,7 +409,7 @@ export default function SecurityPostureDashboard() {
             <Target className="h-4 w-4 text-amber-400" />
             Improvement Recommendations
           </CardTitle>
-          <CardDescription className="text-xs">Ranked by potential score impact — act on these to increase your posture score</CardDescription>
+          <CardDescription className="text-xs">Ranked by potential score impact = act on these to increase your posture score</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {RECOMMENDATIONS.length === 0 ? (

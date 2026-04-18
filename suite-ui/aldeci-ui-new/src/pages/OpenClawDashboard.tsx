@@ -4,7 +4,7 @@
  * Displays autonomous red team campaigns managed by the OpenClaw engine.
  *   1. KPIs: Active Campaigns, Total Findings, Critical Findings, Avg Risk Score
  *   2. Campaign table (10 rows) with status badges and risk scores
- *   3. Campaign details panel — tasks + findings for selected campaign
+ *   3. Campaign details panel = tasks + findings for selected campaign
  *   4. Authorization status bar
  *   5. New campaign creation form
  *
@@ -19,7 +19,7 @@ import {
   Play, Pause, CheckCircle, Lock, Plus, ChevronRight, X,
 } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -44,7 +44,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_CAMPAIGNS = [
   { id: "OC-001", name: "Q2 Network Pentest",         campaign_type: "network_pentest",    phase: "lateral_movement",  status: "active",    operators_count: 3, findings_count: 12, risk_score: 82, authorized_by: "CISO",  started_at: "2026-04-15 09:00", authorization_token: "AUTH-7F2A" },
@@ -92,7 +92,7 @@ const MOCK_FINDINGS: Record<string, any[]> = {
   ],
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -156,12 +156,12 @@ function RiskScore({ score }: { score: number }) {
                   "text-slate-400";
   return (
     <span className={cn("text-xs font-bold tabular-nums", cls)}>
-      {score > 0 ? score : "—"}
+      {score > 0 ? score : "="}
     </span>
   );
 }
 
-// ── New Campaign Form ──────────────────────────────────────────
+// == New Campaign Form ==========================================
 
 function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState({
@@ -196,7 +196,7 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
       onCreated();
       onClose();
     } catch {
-      setError("Failed to create campaign — check API connection.");
+      setError("Failed to create campaign = check API connection.");
     } finally {
       setSubmitting(false);
     }
@@ -271,7 +271,7 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
             <Button type="submit" size="sm" disabled={submitting}>
-              {submitting ? "Creating…" : "Create Campaign"}
+              {submitting ? "Creating=" : "Create Campaign"}
             </Button>
           </div>
         </form>
@@ -280,7 +280,7 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function OpenClawDashboard() {
   const [campaigns, setCampaigns] = useState<any[]>(MOCK_CAMPAIGNS);
@@ -357,7 +357,7 @@ export default function OpenClawDashboard() {
       {/* Header */}
       <PageHeader
         title="OpenClaw Autonomous Pentest"
-        description="AI-driven red team campaigns — autonomous attack simulation across network, web, cloud, and social vectors"
+        description="AI-driven red team campaigns = autonomous attack simulation across network, web, cloud, and social vectors"
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
@@ -375,7 +375,7 @@ export default function OpenClawDashboard() {
       <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/5 px-4 py-2.5">
         <Lock className="h-4 w-4 text-green-400 shrink-0" />
         <span className="text-xs text-green-300 font-medium">
-          {authorizedCount} of {campaigns.length} campaigns carry valid authorization tokens — all pentest activity is pre-approved
+          {authorizedCount} of {campaigns.length} campaigns carry valid authorization tokens = all pentest activity is pre-approved
         </span>
         <Badge className="ml-auto text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">
           Authorized
@@ -397,7 +397,7 @@ export default function OpenClawDashboard() {
             <Target className="h-4 w-4 text-purple-400" />
             Pentest Campaigns
           </CardTitle>
-          <CardDescription className="text-xs">All autonomous red team operations — click a row to view tasks and findings</CardDescription>
+          <CardDescription className="text-xs">All autonomous red team operations = click a row to view tasks and findings</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -462,7 +462,7 @@ export default function OpenClawDashboard() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2 text-purple-400">
                   <Play className="h-4 w-4" />
-                  Tasks — {selectedCampaign.name}
+                  Tasks = {selectedCampaign.name}
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setSelectedCampaign(null)}>
                   <X className="h-3.5 w-3.5" />
@@ -494,7 +494,7 @@ export default function OpenClawDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-400">
                 <AlertTriangle className="h-4 w-4" />
-                Findings — {selectedCampaign.name}
+                Findings = {selectedCampaign.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -535,7 +535,7 @@ export default function OpenClawDashboard() {
       {selectedCampaign && selectedCampaign.status === "active" && (
         <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3">
           <span className="text-xs text-muted-foreground flex-1">
-            Campaign <span className="text-foreground font-medium">{selectedCampaign.name}</span> is active — Phase: <span className="text-amber-400 capitalize">{selectedCampaign.phase?.replace(/_/g, " ")}</span>
+            Campaign <span className="text-foreground font-medium">{selectedCampaign.name}</span> is active = Phase: <span className="text-amber-400 capitalize">{selectedCampaign.phase?.replace(/_/g, " ")}</span>
           </span>
           <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
             <Pause className="h-3.5 w-3.5 mr-1" />

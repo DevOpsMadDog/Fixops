@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_DATASTORES = [
   { id: "ds-001", name: "Customer PII Database",       datastore_type: "PostgreSQL",    risk_level: "critical", record_count: 4820000,  sensitive_record_count: 4820000 },
@@ -54,7 +54,7 @@ const MOCK_DATASTORES = [
 
 const MOCK_STATS = { total_datastores: 214, high_risk_datastores: 38, total_discoveries: 1847, pii_datastores: 62 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -88,7 +88,7 @@ function exportCsv(datastores: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DataDiscoveryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -129,7 +129,7 @@ export default function DataDiscoveryDashboard() {
     >
       <PageHeader
         title="Data Discovery"
-        description="Sensitive data discovery across datastores — PII classification, risk profiling, and exposure quantification"
+        description="Sensitive data discovery across datastores = PII classification, risk profiling, and exposure quantification"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -188,10 +188,10 @@ export default function DataDiscoveryDashboard() {
                   datastores.map((ds: any, i: number) => (
                   <TableRow key={ds.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-indigo-300 max-w-[200px] truncate">
-                      {ds.name ?? "—"}
+                      {ds.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {ds.datastore_type ?? "—"}
+                      {ds.datastore_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskBadge level={ds.risk_level ?? "none"} />
@@ -203,7 +203,7 @@ export default function DataDiscoveryDashboard() {
                       "py-2 font-mono text-[11px] font-bold text-right",
                       (ds.sensitive_record_count ?? 0) > 0 ? "text-red-400" : "text-muted-foreground"
                     )}>
-                      {ds.sensitive_record_count > 0 ? formatRecords(ds.sensitive_record_count) : "—"}
+                      {ds.sensitive_record_count > 0 ? formatRecords(ds.sensitive_record_count) : "="}
                     </TableCell>
                   </TableRow>
                 )))}

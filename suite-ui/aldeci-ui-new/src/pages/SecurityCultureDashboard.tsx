@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { Heart, TrendingUp, TrendingDown, Minus, RefreshCw, Users, ClipboardList, BarChart2 } from "lucide-react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// == Types =====================================================================
 
 type CultureCategory = "phishing-resilience" | "training-completion" | "policy-compliance" | "incident-reporting" | "security-advocacy" | "tool-adoption" | "vulnerability-disclosure";
 type MaturityLevel = "optimized" | "managed" | "defined" | "developing" | "initial";
@@ -56,7 +56,7 @@ interface DeptScore {
   reporting_rate: number;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_METRICS: CultureMetric[] = [
   { category: "phishing-resilience",     label: "Phishing Resilience",     value: 87, target: 90, trend: "up",   trend_delta: 5  },
@@ -109,7 +109,7 @@ const MOCK_DEPT_SCORES: DeptScore[] = [
   { department: "Product",        headcount: 95,  culture_score: 82, training_rate: 95, phishing_pass: 87, reporting_rate: 63 },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function maturityColor(m: MaturityLevel): string {
   return m === "optimized"  ? "bg-purple-500/20 text-purple-300"
@@ -148,12 +148,12 @@ function CircleProgress({ pct }: { pct: number }) {
   return (
     <svg width="52" height="52" className="flex-shrink-0">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -170,7 +170,7 @@ function CircleProgress({ pct }: { pct: number }) {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function SecurityCultureDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<string>("asm-001");
@@ -290,7 +290,7 @@ export default function SecurityCultureDashboard() {
                     <span className={`text-xs px-1.5 py-0.5 rounded-full capitalize ${statusBadge(ini.status)}`}>{ini.status}</span>
                   </div>
                   <div className="text-gray-500 text-xs mt-1">
-                    {ini.participants > 0 ? `${ini.participants.toLocaleString()} participants` : "Not started"} · {ini.quarter}
+                    {ini.participants > 0 ? `${ini.participants.toLocaleString()} participants` : "Not started"} = {ini.quarter}
                   </div>
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function SecurityCultureDashboard() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-white text-sm">{asm.title}</div>
-                      <div className="text-gray-400 text-xs mt-0.5">{asm.date} · {asm.assessor}</div>
+                      <div className="text-gray-400 text-xs mt-0.5">{asm.date} = {asm.assessor}</div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`text-2xl font-bold ${scoreColor(asm.score)}`}>{asm.score}</span>
@@ -339,34 +339,32 @@ export default function SecurityCultureDashboard() {
                         <ul className="space-y-1">
                           {asm.strengths.map(s => (
                             <li key={s} className="text-gray-300 text-xs flex items-start gap-1">
-                              <span className="text-green-400 mt-0.5">✓</span> {s}
+                              <span className="text-green-400 mt-0.5">=</span> {s}
                             </li>
                           ))
                         )}
                         </ul>
                       </div>
                       <div>
-                        <div className="text-xs text-red-400 font-medium mb-1">Weaknesses</div>
+                        <div className="text-xs text-red-400 font-medium mb-1" role="status" aria-live="polite">Weaknesses</div>
                         <ul className="space-y-1">
                           {asm.weaknesses.map(w => (
                             <li key={w} className="text-gray-300 text-xs flex items-start gap-1">
-                              <span className="text-red-400 mt-0.5">✗</span> {w}
+                              <span className="text-red-400 mt-0.5">=</span> {w}
                             </li>
-                          ))
-                        )}
+                          ))}
                         </ul>
                       </div>
                     </div>
                   )}
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
 
           {/* Score trend */}
           <div className="bg-gray-800 rounded-lg p-4">
-            <div className="text-xs text-gray-400 mb-2">Score Trend (Q3 2025 → Q1 2026)</div>
+            <div className="text-xs text-gray-400 mb-2">Score Trend (Q3 2025 = Q1 2026)</div>
             <div className="flex items-end gap-3 h-16">
               {MOCK_ASSESSMENTS.slice().reverse().map((a, i) => {
                 const h = Math.round((a.score / 100) * 64);
@@ -390,7 +388,7 @@ export default function SecurityCultureDashboard() {
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table role="table" className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
                 <th className="text-left p-3">Department</th>

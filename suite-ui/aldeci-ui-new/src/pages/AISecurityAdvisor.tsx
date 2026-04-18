@@ -1,13 +1,13 @@
 /**
  * AI Security Advisor
  *
- * LLM-powered security consultant — proactive recommendations,
+ * LLM-powered security consultant = proactive recommendations,
  * incident analysis, and threat briefings.
  *   1. KPIs: Recommendations Generated, Critical Findings Addressed,
  *            Avg Risk Reduction, Briefings Delivered
- *   2. Ask the Advisor — chat interface with seeded Q&A
- *   3. AI-Generated Recommendations — priority table (12 rows)
- *   4. Quick Analysis Panels — Posture Review, Threat Briefing, Incident Analyzer
+ *   2. Ask the Advisor = chat interface with seeded Q&A
+ *   3. AI-Generated Recommendations = priority table (12 rows)
+ *   4. Quick Analysis Panels = Posture Review, Threat Briefing, Incident Analyzer
  *   5. Session History
  *
  * API stub: GET /api/v1/ai-advisor/recommendations, /api/v1/ai-advisor/sessions
@@ -16,7 +16,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -59,7 +59,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type Priority = "critical" | "high" | "medium" | "low";
 type RecStatus = "pending" | "accepted" | "rejected" | "implemented";
@@ -72,12 +72,12 @@ interface ChatMessage {
   ts?: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const QA_EXCHANGES = [
   {
     q: "What are our top 3 critical remediation priorities?",
-    a: "Based on current posture data, your top priorities are: (1) Patch CVE-2024-3400 in PAN-OS affecting 12 internet-facing devices — CVSS 10.0 with active exploitation; (2) Remediate 847 expired service account credentials across cloud workloads; (3) Enable MFA for 23 privileged admin accounts in Azure AD. Estimated risk reduction: 41%.",
+    a: "Based on current posture data, your top priorities are: (1) Patch CVE-2024-3400 in PAN-OS affecting 12 internet-facing devices = CVSS 10.0 with active exploitation; (2) Remediate 847 expired service account credentials across cloud workloads; (3) Enable MFA for 23 privileged admin accounts in Azure AD. Estimated risk reduction: 41%.",
   },
   {
     q: "Is our SOC2 Type II audit ready?",
@@ -89,11 +89,11 @@ const QA_EXCHANGES = [
   },
   {
     q: "Analyze last week's failed login surge",
-    a: "The 340% spike in failed auth events (Mon–Wed) indicates a credential stuffing attack targeting your customer portal. Source IPs concentrate in 3 ASNs (AS209588, AS60781, AS62240) with 94% matching known proxy networks. Recommend: implement CAPTCHA + rate limiting on /auth/login. No successful compromises detected — attack was unsuccessful.",
+    a: "The 340% spike in failed auth events (Mon=Wed) indicates a credential stuffing attack targeting your customer portal. Source IPs concentrate in 3 ASNs (AS209588, AS60781, AS62240) with 94% matching known proxy networks. Recommend: implement CAPTCHA + rate limiting on /auth/login. No successful compromises detected = attack was unsuccessful.",
   },
   {
     q: "Generate remediation plan for Log4Shell exposure",
-    a: "Found 3 vulnerable Log4j instances: app-server-prod-02 (Log4j 2.14.1), analytics-pipeline-01 (Log4j 2.15.0), legacy-api-gateway (Log4j 2.12.0). Remediation plan: (1) Emergency patch to 2.17.1 — 4h effort; (2) WAF rule deployment — 30min; (3) Network egress blocking for JNDI — 1h; (4) Scan for exploitation artifacts in /var/log — 2h. Total: 7.5h. RCA: log4j-core version in Maven pom.xml not pinned.",
+    a: "Found 3 vulnerable Log4j instances: app-server-prod-02 (Log4j 2.14.1), analytics-pipeline-01 (Log4j 2.15.0), legacy-api-gateway (Log4j 2.12.0). Remediation plan: (1) Emergency patch to 2.17.1 = 4h effort; (2) WAF rule deployment = 30min; (3) Network egress blocking for JNDI = 1h; (4) Scan for exploitation artifacts in /var/log = 2h. Total: 7.5h. RCA: log4j-core version in Maven pom.xml not pinned.",
   },
 ];
 
@@ -112,15 +112,15 @@ const RECOMMENDATIONS: Recommendation[] = [
   { id: "REC-001", priority: "critical", category: "vulnerability",      title: "Emergency patch for actively exploited CVE-2024-3400",                  rationale: "CVSS 10.0, active exploitation in the wild, 12 internet-facing PAN-OS devices exposed.",       effort: "1d",  impact: 10, status: "pending"     },
   { id: "REC-002", priority: "critical", category: "access_control",     title: "Rotate all service account credentials post-breach indicator",            rationale: "Breach indicator detected in SIEM; 847 stale service accounts present lateral movement risk.",  effort: "2d",  impact: 9,  status: "accepted"    },
   { id: "REC-003", priority: "critical", category: "incident_response",  title: "Isolate 3 hosts with confirmed C2 beacon activity",                       rationale: "ThreatGraph correlation confirmed C2 callbacks to 185.220.101.47 from prod segment.",           effort: "4h",  impact: 10, status: "pending"     },
-  { id: "REC-004", priority: "high",     category: "architecture",       title: "Implement network micro-segmentation for crown jewel assets",              rationale: "Lateral movement paths identified from DMZ to internal DB tier — 0 segmentation controls.",      effort: "14d", impact: 8,  status: "pending"     },
+  { id: "REC-004", priority: "high",     category: "architecture",       title: "Implement network micro-segmentation for crown jewel assets",              rationale: "Lateral movement paths identified from DMZ to internal DB tier = 0 segmentation controls.",      effort: "14d", impact: 8,  status: "pending"     },
   { id: "REC-005", priority: "high",     category: "access_control",     title: "Enable MFA for all 23 privileged Azure AD admin accounts",                 rationale: "Admin accounts without MFA represent highest-risk single point of compromise.",                  effort: "3d",  impact: 8,  status: "accepted"    },
   { id: "REC-006", priority: "high",     category: "monitoring",         title: "Deploy UEBA baseline for insider threat detection",                         rationale: "No behavioral baselining active; 3 anomalous after-hours data access events undetected.",         effort: "5d",  impact: 7,  status: "pending"     },
-  { id: "REC-007", priority: "high",     category: "compliance",         title: "Collect missing SOC2 evidence for 6 controls before audit",                rationale: "CC6.1, CC6.3, CC7.2, CC9.1, A1.1, A1.2 have no linked evidence — audit fails without them.",    effort: "7d",  impact: 7,  status: "implemented" },
-  { id: "REC-008", priority: "medium",   category: "vulnerability",      title: "Patch OpenSSL 3.0.x to 3.0.9 across 34 servers",                           rationale: "CVE-2023-0464 (high) present; servers exposed internally — not internet-facing.",               effort: "4d",  impact: 6,  status: "pending"     },
-  { id: "REC-009", priority: "medium",   category: "monitoring",         title: "Integrate CloudTrail logs into SIEM for AWS workloads",                     rationale: "38% of AWS API activity has no SIEM coverage — blind spot for cloud-native attacks.",            effort: "3d",  impact: 6,  status: "accepted"    },
-  { id: "REC-010", priority: "medium",   category: "architecture",       title: "Enforce TLS 1.3 minimum — deprecate TLS 1.0 and 1.1",                      rationale: "4 internal services still negotiating TLS 1.0; BEAST and POODLE attacks remain feasible.",        effort: "5d",  impact: 5,  status: "pending"     },
-  { id: "REC-011", priority: "low",      category: "compliance",         title: "Automate quarterly access reviews for all SaaS applications",               rationale: "Manual review process creates 6–8 week lag; SOX requires timely recertification.",               effort: "10d", impact: 4,  status: "pending"     },
-  { id: "REC-012", priority: "low",      category: "access_control",     title: "Implement just-in-time (JIT) privileged access for cloud console",          rationale: "Standing admin access to AWS/Azure consoles violates least-privilege — JIT reduces blast radius.", effort: "14d", impact: 4,  status: "rejected"    },
+  { id: "REC-007", priority: "high",     category: "compliance",         title: "Collect missing SOC2 evidence for 6 controls before audit",                rationale: "CC6.1, CC6.3, CC7.2, CC9.1, A1.1, A1.2 have no linked evidence = audit fails without them.",    effort: "7d",  impact: 7,  status: "implemented" },
+  { id: "REC-008", priority: "medium",   category: "vulnerability",      title: "Patch OpenSSL 3.0.x to 3.0.9 across 34 servers",                           rationale: "CVE-2023-0464 (high) present; servers exposed internally = not internet-facing.",               effort: "4d",  impact: 6,  status: "pending"     },
+  { id: "REC-009", priority: "medium",   category: "monitoring",         title: "Integrate CloudTrail logs into SIEM for AWS workloads",                     rationale: "38% of AWS API activity has no SIEM coverage = blind spot for cloud-native attacks.",            effort: "3d",  impact: 6,  status: "accepted"    },
+  { id: "REC-010", priority: "medium",   category: "architecture",       title: "Enforce TLS 1.3 minimum = deprecate TLS 1.0 and 1.1",                      rationale: "4 internal services still negotiating TLS 1.0; BEAST and POODLE attacks remain feasible.",        effort: "5d",  impact: 5,  status: "pending"     },
+  { id: "REC-011", priority: "low",      category: "compliance",         title: "Automate quarterly access reviews for all SaaS applications",               rationale: "Manual review process creates 6=8 week lag; SOX requires timely recertification.",               effort: "10d", impact: 4,  status: "pending"     },
+  { id: "REC-012", priority: "low",      category: "access_control",     title: "Implement just-in-time (JIT) privileged access for cloud console",          rationale: "Standing admin access to AWS/Azure consoles violates least-privilege = JIT reduces blast radius.", effort: "14d", impact: 4,  status: "rejected"    },
 ];
 
 interface Session {
@@ -143,7 +143,7 @@ const SESSIONS: Session[] = [
   { id: "SES-0017", type: "remediation_plan",     status: "completed", recsCount: 11, createdAt: "2026-04-14 10:20", duration: "6m 30s" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function PriorityBadge({ p }: { p: Priority }) {
   const cls =
@@ -199,7 +199,7 @@ function ImpactDots({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function AISecurityAdvisor() {
   const [refreshing, setRefreshing] = useState(false);
@@ -299,7 +299,7 @@ export default function AISecurityAdvisor() {
       {/* Header */}
       <PageHeader
         title="AI Security Advisor"
-        description="LLM-powered security intelligence — proactive recommendations, incident analysis, and threat briefings"
+        description="LLM-powered security intelligence = proactive recommendations, incident analysis, and threat briefings"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -309,7 +309,7 @@ export default function AISecurityAdvisor() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Recommendations Generated" value={liveData?.total_recommendations ?? liveData?.recommendations_generated ?? 127} icon={Brain}    trend="up"   trendLabel="↑ 12 this week"           className="border-purple-500/20" />
+        <KpiCard title="Recommendations Generated" value={liveData?.total_recommendations ?? liveData?.recommendations_generated ?? 127} icon={Brain}    trend="up"   trendLabel="= 12 this week"           className="border-purple-500/20" />
         <KpiCard title="Critical Findings Addressed" value={liveData?.critical_addressed ?? liveData?.accepted_recommendations ?? 18}  icon={Shield}   trend="up"   trendLabel="85% acceptance rate"       className="border-green-500/20" />
         <KpiCard title="Avg Risk Reduction"          value={liveData?.avg_risk_reduction != null ? `${liveData.avg_risk_reduction}%` : "34%"} icon={Activity} trend="up"   trendLabel="per recommendation"        className="border-blue-500/20" />
         <KpiCard title="Briefings Delivered"         value={liveData?.total_sessions ?? liveData?.briefings_delivered ?? 24}  icon={FileText} trend="flat" trendLabel="last 30 days"              className="border-indigo-500/20" />
@@ -323,7 +323,7 @@ export default function AISecurityAdvisor() {
             Ask the Advisor
           </CardTitle>
           <CardDescription className="text-xs">
-            Query your AI security consultant — powered by LLM consensus across 4 models
+            Query your AI security consultant = powered by LLM consensus across 4 models
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -377,8 +377,7 @@ export default function AISecurityAdvisor() {
                   {msg.ts && <span className="ml-2 text-[10px] text-muted-foreground">{msg.ts}</span>}
                 </div>
               </div>
-            ))
-            )}
+            ))}
             {chatLoading && (
               <div className="flex items-start gap-2">
                 <div className="shrink-0 w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center">
@@ -500,7 +499,7 @@ export default function AISecurityAdvisor() {
               </div>
               <div className="text-right space-y-1">
                 <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">3 critical findings</Badge>
-                <p className="text-[10px] text-green-400">↑ Trend: improving</p>
+                <p className="text-[10px] text-green-400">= Trend: improving</p>
               </div>
             </div>
             <Button size="sm" className="w-full h-7 text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/20">
@@ -584,12 +583,12 @@ export default function AISecurityAdvisor() {
             </TableHeader>
             <TableBody>
               {(liveSessions ?? SESSIONS).map((s: any) => {
-                const sid      = s.id ?? s.session_id ?? "—";
+                const sid      = s.id ?? s.session_id ?? "=";
                 const stype    = s.type ?? s.session_type ?? "posture_review";
                 const sstatus  = s.status ?? "completed";
                 const recsCount= s.recsCount ?? s.recommendations_count ?? s.rec_count ?? 0;
-                const duration = s.duration ?? s.duration_seconds != null ? `${s.duration_seconds}s` : "—";
-                const created  = s.createdAt ?? s.created_at ?? "—";
+                const duration = s.duration ?? s.duration_seconds != null ? `${s.duration_seconds}s` : "=";
+                const created  = s.createdAt ?? s.created_at ?? "=";
                 return (
                 <TableRow key={sid} className="hover:bg-muted/30">
                   <TableCell className="text-xs font-mono py-2.5">{sid}</TableCell>

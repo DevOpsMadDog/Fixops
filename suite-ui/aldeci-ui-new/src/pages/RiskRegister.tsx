@@ -1,9 +1,9 @@
 /**
- * Risk Register — Enterprise Risk Management Board
+ * Risk Register = Enterprise Risk Management Board
  *
  * 1. Header: title + subtitle
  * 2. KPIs: Total Risks, Critical Risks, Risks Accepted, Avg Risk Score
- * 3. Risk Matrix: 5×5 CSS grid (likelihood vs impact), color zones + dots
+ * 3. Risk Matrix: 5=5 CSS grid (likelihood vs impact), color zones + dots
  * 4. Risk Register table: 12 rows with full risk attributes
  * 5. Risk Trend: 6-month bar chart using div heights
  * 6. Risk by Category: CSS donut-style distribution
@@ -57,9 +57,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type RiskCategory =
   | "Technical"
@@ -83,9 +83,9 @@ interface Risk {
   due_date: string;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_RISKS: Risk[] = [
   {
@@ -101,7 +101,7 @@ const MOCK_RISKS: Risk[] = [
   },
   {
     risk_id: "RSK-002",
-    risk_title: "Key person dependency — CISO",
+    risk_title: "Key person dependency = CISO",
     category: "Strategic",
     likelihood: 4,
     impact: 4,
@@ -134,7 +134,7 @@ const MOCK_RISKS: Risk[] = [
   },
   {
     risk_id: "RSK-005",
-    risk_title: "Insider threat — privileged user",
+    risk_title: "Insider threat = privileged user",
     category: "Technical",
     likelihood: 2,
     impact: 5,
@@ -240,9 +240,9 @@ const CATEGORY_DATA: { name: RiskCategory; count: number; color: string }[] = [
   { name: "Reputational", count: 1, color: "bg-pink-500" },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function scoreColor(score: number): string {
   if (score >= 15) return "text-red-400";
@@ -280,7 +280,7 @@ function categoryBadge(cat: RiskCategory): string {
   return map[cat];
 }
 
-/** Return the CSS background class for a matrix cell given row (impact 5→1) and col (likelihood 1→5) */
+/** Return the CSS background class for a matrix cell given row (impact 5=1) and col (likelihood 1=5) */
 function matrixCellColor(row: number, col: number): string {
   const score = row * col;
   if (score >= 15) return "bg-red-600/60";
@@ -301,12 +301,12 @@ const MATRIX_DOTS: { l: number; i: number; label: string }[] = [
   { l: 3, i: 2, label: "RSK-009" },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // API
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 async function fetchRisks(): Promise<Risk[]> {
-  // GET /api/v1/risks — risk_register_router (prefix /api/v1/risks)
+  // GET /api/v1/risks = risk_register_router (prefix /api/v1/risks)
   const res = await fetch(`${API_BASE}/api/v1/risks?org_id=${ORG_ID}&limit=50`, {
     headers: { "X-API-Key": API_KEY },
   });
@@ -328,9 +328,9 @@ async function fetchRisks(): Promise<Risk[]> {
   }));
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Component
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function RiskRegister() {
   const [showAddPanel, setShowAddPanel] = useState(false);
@@ -419,13 +419,13 @@ export default function RiskRegister() {
 
         {/* Risk Matrix + Category donut */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* 5×5 Risk Matrix */}
+          {/* 5=5 Risk Matrix */}
           <div className="lg:col-span-2">
             <Card className="border-slate-700 bg-slate-800/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ShieldAlert className="h-5 w-5 text-orange-400" />
-                  Risk Matrix — Likelihood vs Impact
+                  Risk Matrix = Likelihood vs Impact
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -436,12 +436,12 @@ export default function RiskRegister() {
                       className="text-xs text-slate-400 tracking-widest"
                       style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
                     >
-                      IMPACT →
+                      IMPACT =
                     </span>
                   </div>
 
                   <div className="flex-1">
-                    {/* Grid: rows = impact 5→1, cols = likelihood 1→5 */}
+                    {/* Grid: rows = impact 5=1, cols = likelihood 1=5 */}
                     <div
                       className="grid"
                       style={{ gridTemplateColumns: "24px repeat(5, 1fr)", gridTemplateRows: "repeat(5, 1fr)" }}
@@ -459,7 +459,7 @@ export default function RiskRegister() {
                               </div>
                             );
                           }
-                          const likelihood = col; // col 1→5
+                          const likelihood = col; // col 1=5
                           const cellColor = matrixCellColor(impact, likelihood);
                           // Find dots for this cell
                           const dots = MATRIX_DOTS.filter(
@@ -507,16 +507,16 @@ export default function RiskRegister() {
                         </div>
                       ))}
                     </div>
-                    <p className="text-center text-xs text-slate-400 mt-1">LIKELIHOOD →</p>
+                    <p className="text-center text-xs text-slate-400 mt-1">LIKELIHOOD =</p>
                   </div>
                 </div>
 
                 {/* Legend */}
                 <div className="mt-4 flex flex-wrap gap-3">
                   {[
-                    { label: "Critical (≥15)", color: "bg-red-600/60" },
-                    { label: "High (10–14)", color: "bg-orange-500/60" },
-                    { label: "Medium (5–9)", color: "bg-amber-400/50" },
+                    { label: "Critical (=15)", color: "bg-red-600/60" },
+                    { label: "High (10=14)", color: "bg-orange-500/60" },
+                    { label: "Medium (5=9)", color: "bg-amber-400/50" },
                     { label: "Low (<5)", color: "bg-emerald-600/40" },
                   ].map((l) => (
                     <div key={l.label} className="flex items-center gap-1.5">
@@ -631,7 +631,7 @@ export default function RiskRegister() {
                 className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/5 p-4"
               >
                 <p className="text-sm font-medium text-blue-300">
-                  Add Risk — coming soon
+                  Add Risk = coming soon
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
                   Risk creation form will POST to /api/v1/risk-register/risks
@@ -704,12 +704,12 @@ export default function RiskRegister() {
           </CardContent>
         </Card>
 
-        {/* Risk Trend — 6-month bar chart */}
+        {/* Risk Trend = 6-month bar chart */}
         <Card className="border-slate-700 bg-slate-800/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="h-5 w-5 text-purple-400" />
-              Risk Trend — Last 6 Months
+              Risk Trend = Last 6 Months
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -727,7 +727,7 @@ export default function RiskRegister() {
                     <div className="w-full flex flex-col-reverse rounded-sm overflow-hidden" style={{ height: `${totalH}px` }}>
                       <div style={{ height: `${medH}px` }} className="bg-amber-400/70 w-full" title={`Medium: ${d.medium}`} />
                       <div style={{ height: `${highH}px` }} className="bg-orange-500/70 w-full" title={`High: ${d.high}`} />
-                      <div style={{ height: `${critH}px` }} className="bg-red-500/80 w-full" title={`Critical: ${d.critical}`} />
+                      <div style={{ height: `${critH}px` }} className="bg-red-500/80 w-full" title={`Critical: ${d.critical}`} / role="status" aria-live="polite">
                     </div>
                     <span className="text-xs text-slate-400">{d.month}</span>
                   </div>

@@ -1,7 +1,7 @@
 /**
- * SCA Dashboard — Software Composition Analysis
+ * SCA Dashboard = Software Composition Analysis
  *
- * Open-source dependency scanning — vulnerable libs, license violations.
+ * Open-source dependency scanning = vulnerable libs, license violations.
  *   1. KPIs: Projects, Scans, Vulnerable Dependencies, License Violations
  *   2. Projects table (language, last scan date, vuln count, risk level)
  *
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_PROJECTS = [
   { id: "PRJ-001", name: "api-gateway",      language: "Go",         last_scan: "2026-04-16", vuln_count: 3,  risk_level: "medium" },
@@ -57,7 +57,7 @@ const MOCK_STATS = {
   license_violations: 9,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -89,7 +89,7 @@ function LangBadge({ lang }: { lang: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -130,7 +130,7 @@ export default function SCADashboard() {
       className="flex flex-col gap-6"
     >
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); handleRefresh(); }}

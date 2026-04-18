@@ -1,7 +1,7 @@
 /**
  * DLP Dashboard
  *
- * Data Loss Prevention — policy management, incident feed, PII detection stats.
+ * Data Loss Prevention = policy management, incident feed, PII detection stats.
  *   1. KPIs: Total Incidents, Blocked Today, Quarantined, False Positives
  *   2. DLP policy table (policy_name, data_types, channels, action, severity, enabled, hit_count)
  *   3. Incident feed (channel, masked user, data_type, action_taken, file_name, timestamp)
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_POLICIES = [
   {
@@ -97,7 +97,7 @@ const PII_STATS = [
 ];
 const MAX_PII = PII_STATS[0].count;
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function ActionBadge({ action }: { action: string }) {
   const map: Record<string, string> = {
@@ -156,7 +156,7 @@ function GaugeMeter({ label, value, color }: { label: string; value: number; col
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DLPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -276,8 +276,7 @@ export default function DLPDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {(p.channels ?? []).slice(0, 2).map((ch: string) => (
                           <ChannelBadge key={ch} channel={ch} />
-                        ))
-                        )}
+                        ))}
                         {(p.channels ?? []).length > 2 && (
                           <Badge className="text-[9px] border border-border text-muted-foreground">+{(p.channels.length - 2)}</Badge>
                         )}
@@ -294,8 +293,7 @@ export default function DLPDashboard() {
                       {(p.hit_count ?? 0).toLocaleString()}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
                 </TableBody>
             </Table>
           </div>

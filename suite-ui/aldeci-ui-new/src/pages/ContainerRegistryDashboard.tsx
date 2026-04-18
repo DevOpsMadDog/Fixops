@@ -1,7 +1,7 @@
 /**
  * Container Registry Dashboard
  *
- * Container image scanning — registries, scan results, policy enforcement.
+ * Container image scanning = registries, scan results, policy enforcement.
  *   1. KPIs: Registries, Total Scans, Critical Images, Policy Violations
  *   2. Recent image scans table (image name, tag, vulnerabilities, scan score, policy result)
  *
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SCANS = [
   { id: "IMG-001", image: "acme/api-gateway",     tag: "v2.4.1",   vulnerabilities: 3,  scan_score: 91, policy: "pass",    scanned_at: "5 min ago" },
@@ -57,7 +57,7 @@ const MOCK_STATS = {
   policy_violations: 12,
 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function PolicyBadge({ result }: { result: string }) {
   const map: Record<string, string> = {
@@ -98,7 +98,7 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ContainerRegistryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -139,10 +139,10 @@ export default function ContainerRegistryDashboard() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />

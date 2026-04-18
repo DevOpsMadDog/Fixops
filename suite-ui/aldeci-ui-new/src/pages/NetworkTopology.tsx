@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const NODES = [
   { hostname: "web-prod-01",    ip: "10.0.1.10",  type: "server",      os: "Ubuntu 22.04", location: "us-east-1a", criticality: "Critical", segment: "DMZ",       status: "online" },
@@ -64,7 +64,7 @@ const SEGMENTS = [
 ];
 
 const EXPOSURES = [
-  { src: "iot-sensor-03 (10.0.5.3)",   dst: "db-primary (10.0.3.10)",    risk: "IoT device has direct route to DB — no firewall rule", proto: "TCP 5432" },
+  { src: "iot-sensor-03 (10.0.5.3)",   dst: "db-primary (10.0.3.10)",    risk: "IoT device has direct route to DB = no firewall rule", proto: "TCP 5432" },
   { src: "web-prod-01 (10.0.1.10)",    dst: "db-replica (10.0.3.11)",    risk: "HTTP server reaches replica DB without WAF interception", proto: "TCP 3306" },
   { src: "workstation-42 (10.0.4.42)", dst: "db-primary (10.0.3.10)",    risk: "Lateral movement: workstation can reach restricted DB", proto: "TCP 5432" },
   { src: "iot-sensor-03 (10.0.5.3)",   dst: "api-gateway-01 (10.0.2.5)", risk: "IoT device bypasses DMZ firewall to internal API", proto: "TCP 443" },
@@ -75,7 +75,7 @@ const EXPOSURES = [
 
 const MOCK_PATH = ["fw-edge-01 (192.168.1.1)", "core-switch-01 (10.0.0.1)", "api-gateway-01 (10.0.2.5)", "db-primary (10.0.3.10)"];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TypeBadge({ type }: { type: string }) {
   const cls =
@@ -112,7 +112,7 @@ function StatusDot({ status }: { status: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full", cls)} title={status} />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function NetworkTopology() {
   const [loading, setLoading] = useState(true);
@@ -285,7 +285,7 @@ export default function NetworkTopology() {
             </div>
           ) : (
             EXPOSURES.map((e, i) => (
-            <div key={i} className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-1.5">
+            <div key={i} className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-1.5" role="status" aria-live="polite">
               <div className="flex items-center gap-2 text-xs">
                 <Shield className="h-3.5 w-3.5 text-red-400 shrink-0" />
                 <span className="font-mono text-red-300">{e.src}</span>
@@ -334,7 +334,7 @@ export default function NetworkTopology() {
               animate={{ opacity: 1, y: 0 }}
               className="rounded-md border border-indigo-500/30 bg-indigo-500/5 p-3"
             >
-              <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Path discovered — {pathResult.length} hops</p>
+              <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Path discovered = {pathResult.length} hops</p>
               <div className="flex items-center gap-1 flex-wrap">
                 {pathResult.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-zinc-500">

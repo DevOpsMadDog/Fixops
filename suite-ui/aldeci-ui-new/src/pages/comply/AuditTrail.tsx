@@ -159,8 +159,7 @@ function AuditDetailDrawer({ log }: { log: any }) {
                     <Link2 className="h-2.5 w-2.5" />
                     {ctrl}
                   </Badge>
-                ))
-              )}
+                ))}
               </div>
             </div>
           )}
@@ -456,7 +455,7 @@ export default function AuditTrail() {
             </CardHeader>
             <CardContent className="space-y-2">
               {logs.filter((l: any) => l.hash_valid === false || l.tampered === true).map((l: any, i: number) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-red-950/30 border border-red-800/40">
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-red-950/30 border border-red-800/40" role="status" aria-live="polite">
                   <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-red-300">

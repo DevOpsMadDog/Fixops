@@ -25,7 +25,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -41,13 +41,13 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_REPORTS = [
   { id: "RPT-001", report_type: "monthly",    title: "April 2026 Security Summary",           period_start: "2026-04-01", period_end: "2026-04-30", status: "draft",     created_by: "CISO",     created_at: "2026-04-16T08:00:00Z" },
   { id: "RPT-002", report_type: "board",      title: "Q1 2026 Board Security Briefing",       period_start: "2026-01-01", period_end: "2026-03-31", status: "published", created_by: "CISO",     created_at: "2026-04-01T10:00:00Z" },
   { id: "RPT-003", report_type: "quarterly",  title: "Q1 2026 Security Operations Report",    period_start: "2026-01-01", period_end: "2026-03-31", status: "published", created_by: "SecOps",   created_at: "2026-04-05T09:00:00Z" },
-  { id: "RPT-004", report_type: "ciso",       title: "CISO Weekly — Week 15",                 period_start: "2026-04-07", period_end: "2026-04-13", status: "published", created_by: "CISO",     created_at: "2026-04-14T07:30:00Z" },
+  { id: "RPT-004", report_type: "ciso",       title: "CISO Weekly = Week 15",                 period_start: "2026-04-07", period_end: "2026-04-13", status: "published", created_by: "CISO",     created_at: "2026-04-14T07:30:00Z" },
   { id: "RPT-005", report_type: "weekly",     title: "Week 14 Security Operations",           period_start: "2026-03-31", period_end: "2026-04-06", status: "archived",  created_by: "SecOps",   created_at: "2026-04-07T08:00:00Z" },
   { id: "RPT-006", report_type: "monthly",    title: "March 2026 Security Summary",           period_start: "2026-03-01", period_end: "2026-03-31", status: "published", created_by: "CISO",     created_at: "2026-04-01T08:00:00Z" },
 ];
@@ -76,7 +76,7 @@ const MOCK_SUMMARY = {
   posture_trend: "stable",
 };
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function ReportTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -139,7 +139,7 @@ function AudienceBadge({ audience }: { audience: string }) {
   );
 }
 
-// ── Interfaces ─────────────────────────────────────────────────
+// == Interfaces =================================================
 
 interface ExecReport {
   id: string;
@@ -179,7 +179,7 @@ interface ExecSummary {
   posture_trend: string;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ExecutiveReportingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -217,7 +217,7 @@ export default function ExecutiveReportingDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Resolved data — live ?? mock
+  // Resolved data = live ?? mock
   const reports = liveData.reports ?? MOCK_REPORTS;
   const kpis    = liveData.kpis    ?? MOCK_KPIS;
   const boards  = liveData.boards  ?? MOCK_BOARD_PRESENTATIONS;
@@ -281,7 +281,7 @@ export default function ExecutiveReportingDashboard() {
               </Badge>
             </div>
           </div>
-          <CardDescription className="text-xs">Security reports for all audiences — board, CISO, audit committee</CardDescription>
+          <CardDescription className="text-xs">Security reports for all audiences = board, CISO, audit committee</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -308,11 +308,11 @@ export default function ExecutiveReportingDashboard() {
                     <TableCell className="py-2 text-xs font-medium max-w-[240px] truncate">{r.title}</TableCell>
                     <TableCell className="py-2"><ReportTypeBadge type={r.report_type ?? "monthly"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground whitespace-nowrap">
-                      {r.period_start} → {r.period_end}
+                      {r.period_start} = {r.period_end}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{r.created_by}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
+                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : "="}
                     </TableCell>
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
@@ -335,9 +335,9 @@ export default function ExecutiveReportingDashboard() {
               </CardTitle>
               <div className="flex items-center gap-1.5 text-[10px]">
                 <span className="text-green-400 font-semibold">{onTrackKpis} on track</span>
-                <span className="text-muted-foreground">·</span>
+                <span className="text-muted-foreground">=</span>
                 <span className="text-amber-400 font-semibold">{atRiskKpis} at risk</span>
-                <span className="text-muted-foreground">·</span>
+                <span className="text-muted-foreground">=</span>
                 <span className="text-red-400 font-semibold">{offTrackKpis} off track</span>
               </div>
             </div>
@@ -431,13 +431,11 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    ))
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -461,8 +459,8 @@ export default function ExecutiveReportingDashboard() {
               <div className="text-2xl font-bold text-amber-400">{atRiskKpis}</div>
               <div className="text-[10px] text-muted-foreground mt-1">KPIs At Risk</div>
             </div>
-            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center">
-              <div className="text-2xl font-bold text-red-400">{offTrackKpis}</div>
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center" role="status" aria-live="polite">
+              <div className="text-2xl font-bold text-red-400" role="status" aria-live="polite">{offTrackKpis}</div>
               <div className="text-[10px] text-muted-foreground mt-1">KPIs Off Track</div>
             </div>
             <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-center">

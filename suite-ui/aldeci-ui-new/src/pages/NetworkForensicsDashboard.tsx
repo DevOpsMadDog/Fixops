@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_CAPTURES = [
   { id: "cap-a1b2c3d4", interface: "eth0",   filter_bpf: "tcp port 443",         duration_sec: 3600, status: "completed", started_at: "2026-04-16 08:00:00" },
@@ -52,7 +52,7 @@ const MOCK_CAPTURES = [
 
 const MOCK_STATS = { active_captures: 3, total_artifacts: 214, suspicious_captures: 2, total_captures: 47 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -67,7 +67,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function NetworkForensicsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -163,22 +163,22 @@ export default function NetworkForensicsDashboard() {
                   captures.map((cap: any, i: number) => (
                   <TableRow key={cap.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-semibold text-indigo-300">
-                      {(cap.id ?? "").slice(0, 12)}…
+                      {(cap.id ?? "").slice(0, 12)}=
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
                       {cap.interface ?? "eth0"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-purple-300 max-w-[200px] truncate">
-                      {cap.filter_bpf ?? "—"}
+                      {cap.filter_bpf ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {cap.duration_sec ?? "—"}
+                      {cap.duration_sec ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={cap.status ?? "completed"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {cap.started_at ?? "—"}
+                      {cap.started_at ?? "="}
                     </TableCell>
                   </TableRow>
                 )))}

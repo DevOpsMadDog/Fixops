@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CAMPAIGNS = [
   { id: "C-001", name: "Q2 CEO Fraud",         type: "spear_phishing", group: "Finance",    launched: "2026-04-01", targets: 45,  clicked: 8,  reported: 19, rate: 17.8, status: "completed" },
@@ -84,7 +84,7 @@ const TRAINING_MODULES = [
   { name: "Incident Reporting Procedures",   completion: 47, enrolled: 2847 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -127,7 +127,7 @@ function DifficultyBadge({ diff }: { diff: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PhishingSimulation() {
   const [refreshing, setRefreshing] = useState(false);
@@ -159,7 +159,7 @@ export default function PhishingSimulation() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derive display values — live data takes precedence over mock
+  // Derive display values = live data takes precedence over mock
   const displayCampaigns = liveData?.campaigns ?? CAMPAIGNS;
   const displayTemplates = liveData?.templates ?? TEMPLATES;
 
@@ -274,7 +274,7 @@ export default function PhishingSimulation() {
               <BarChart3 className="h-4 w-4 text-amber-400" />
               Department Click Rates
             </CardTitle>
-            <CardDescription className="text-xs">Sorted by click rate — red &gt;10%, yellow &gt;7%</CardDescription>
+            <CardDescription className="text-xs">Sorted by click rate = red &gt;10%, yellow &gt;7%</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {DEPT_RATES.length === 0 ? (

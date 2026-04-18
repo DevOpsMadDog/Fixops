@@ -2,12 +2,12 @@
  * Identity Governance (IGA) Dashboard
  *
  * Single-page dashboard for access certification, orphan detection, and privilege management:
- *   1. KPI row — pending certifications, orphaned accounts, SoD violations, campaign progress
- *   2. Active Certification Campaigns — table with progress bars and status
- *   3. Access Review Queue — certify/revoke/escalate per user+role pair
- *   4. Orphaned Accounts — red alert panel with disable CTA
- *   5. SoD Violations — conflict cards with recommended actions
- *   6. Joiner/Mover/Leaver status — 3-column provisioning state grid
+ *   1. KPI row = pending certifications, orphaned accounts, SoD violations, campaign progress
+ *   2. Active Certification Campaigns = table with progress bars and status
+ *   3. Access Review Queue = certify/revoke/escalate per user+role pair
+ *   4. Orphaned Accounts = red alert panel with disable CTA
+ *   5. SoD Violations = conflict cards with recommended actions
+ *   6. Joiner/Mover/Leaver status = 3-column provisioning state grid
  *
  * API stubs: GET /api/v1/iga/reviews, /api/v1/iga/orphaned-accounts, /api/v1/iga/sod-violations
  * Fallback: mock data when API is unavailable
@@ -58,9 +58,9 @@ const _API_KEY =
   "dev-key";
 const ORG_ID = "default";
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Types
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 type RiskLevel = "HIGH" | "MEDIUM" | "LOW";
 type CampaignStatus = "active" | "overdue" | "completed" | "pending";
@@ -102,9 +102,9 @@ interface SoDViolation {
   recommended_action: string;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Mock data
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 const MOCK_CAMPAIGNS: Campaign[] = [
   {
@@ -120,7 +120,7 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: "c2",
     campaign_name: "Production DB Access Certification",
-    scope: "Database admin roles — prod env",
+    scope: "Database admin roles = prod env",
     reviewer: "Bob Chen (DBA Lead)",
     deadline: "2026-04-22",
     certified_count: 6,
@@ -272,7 +272,7 @@ const MOCK_SOD_VIOLATIONS: SoDViolation[] = [
     conflicting_role_1: "audit_log_reader",
     conflicting_role_2: "audit_log_deleter",
     violation_type: "Audit Integrity Conflict",
-    recommended_action: "Revoke audit_log_deleter — assign to auditor only",
+    recommended_action: "Revoke audit_log_deleter = assign to auditor only",
   },
   {
     id: "s3",
@@ -284,9 +284,9 @@ const MOCK_SOD_VIOLATIONS: SoDViolation[] = [
   },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 function riskBadgeClass(level: RiskLevel): string {
   const map: Record<RiskLevel, string> = {
@@ -354,11 +354,11 @@ function apiKey(): string {
   return localStorage.getItem("aldeci_api_key") ?? "";
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // API fetch helpers
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
-// ── Real API helpers (correct endpoints: /api/v1/identity-governance/) ──────
+// == Real API helpers (correct endpoints: /api/v1/identity-governance/) ======
 
 function _igaHeaders() {
   const key = _API_KEY || apiKey();
@@ -404,14 +404,14 @@ async function fetchIgaStats(): Promise<any> {
 }
 
 async function fetchSoDViolations(): Promise<SoDViolation[]> {
-  // No dedicated SoD endpoint yet in the engine — use mock fallback
+  // No dedicated SoD endpoint yet in the engine = use mock fallback
   // TODO: wire when /api/v1/identity-governance/sod-violations is deployed
   return MOCK_SOD_VIOLATIONS;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 // Main Component
-// ═══════════════════════════════════════════════════════════
+// ===========================================================
 
 export default function IdentityGovernance() {
   const [decisions, setDecisions] = useState<Record<string, ReviewDecision>>(
@@ -1026,9 +1026,9 @@ export default function IdentityGovernance() {
               </div>
 
               {/* Leavers */}
-              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4" role="status" aria-live="polite">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="rounded-full bg-red-500/20 p-2">
+                  <div className="rounded-full bg-red-500/20 p-2" role="status" aria-live="polite">
                     <UserMinus className="h-5 w-5 text-red-400" />
                   </div>
                   <div>
@@ -1046,7 +1046,7 @@ export default function IdentityGovernance() {
                     <span className="text-slate-400 font-mono">
                       alex.turner
                     </span>
-                    <span className="text-red-400">Left Apr 10 — URGENT</span>
+                    <span className="text-red-400">Left Apr 10 = URGENT</span>
                   </div>
                 </div>
                 <Button

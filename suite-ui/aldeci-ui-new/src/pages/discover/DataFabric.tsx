@@ -264,8 +264,7 @@ function ModelTreeNode({ node, depth = 0 }: { node: ModelNode; depth?: number })
               >
                 {s === "All" ? "All" : s.split(" ")[0]}
               </span>
-            ))
-            )}
+            ))}
             {node.sources.length > 3 && (
               <span className="text-[9px] text-muted-foreground">+{node.sources.length - 3}</span>
             )}
@@ -277,8 +276,7 @@ function ModelTreeNode({ node, depth = 0 }: { node: ModelNode; depth?: number })
         <div>
           {node.children!.map((child) => (
             <ModelTreeNode key={child.id} node={child} depth={depth + 1} />
-          ))
-          )}
+          ))}
         </div>
       )}
     </div>
@@ -820,7 +818,7 @@ export default function DataFabric() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table role="table" className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border/40">
                   {["Source", "Type", "Status", "Events (24h)", "Records Total", "Latency", "Schema", "Quality"].map(

@@ -51,7 +51,7 @@ export default function CloudIRDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
     .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
     .then(d => {
-    // live data loaded — components read from API response
+    // live data loaded = components read from API response
     void d;
     })
     .catch(err => setError(err.message || 'Failed to load data'));
@@ -82,10 +82,10 @@ export default function CloudIRDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <div className="max-w-7xl mx-auto">
@@ -151,7 +151,7 @@ export default function CloudIRDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Incident", "Provider", "Type", "Severity", "Status", "Containment", "Resolution", "Blast Radius", "Services", "Regions"].map(h => <th key={h} className="text-left px-4 py-2 whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
@@ -169,8 +169,8 @@ export default function CloudIRDashboard() {
                       <td className="px-4 py-3"><span className="bg-purple-700 text-purple-100 text-xs px-2 py-0.5 rounded">{i.incident_type.replace("_", " ")}</span></td>
                       <td className="px-4 py-3">{severityBadge(i.severity)}</td>
                       <td className="px-4 py-3">{statusBadge(i.status)}</td>
-                      <td className="px-4 py-3 text-gray-300">{i.containment_time_mins > 0 ? `${i.containment_time_mins}m` : "—"}</td>
-                      <td className="px-4 py-3 text-gray-300">{i.resolution_time_mins > 0 ? `${i.resolution_time_mins}m` : "—"}</td>
+                      <td className="px-4 py-3 text-gray-300">{i.containment_time_mins > 0 ? `${i.containment_time_mins}m` : "="}</td>
+                      <td className="px-4 py-3 text-gray-300">{i.resolution_time_mins > 0 ? `${i.resolution_time_mins}m` : "="}</td>
                       <td className="px-4 py-3">{blastBadge(i.blast_radius)}</td>
                       <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{i.affected_services.length}</span></td>
                       <td className="px-4 py-3">
@@ -248,7 +248,7 @@ export default function CloudIRDashboard() {
                       </div>
                       <p className="text-sm font-medium">{a.description}</p>
                       <p className="text-xs text-gray-400 font-mono mt-0.5">{a.resource_id}</p>
-                      <p className="text-xs text-gray-400 mt-1">By: {a.executed_by}{a.result && ` — ${a.result}`}</p>
+                      <p className="text-xs text-gray-400 mt-1">By: {a.executed_by}{a.result && ` = ${a.result}`}</p>
                     </div>
                     {a.status === "pending" && <button className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded">Execute</button>}
                     {a.status === "in_progress" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}

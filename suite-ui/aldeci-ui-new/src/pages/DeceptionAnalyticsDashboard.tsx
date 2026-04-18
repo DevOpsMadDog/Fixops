@@ -1,7 +1,7 @@
 /**
  * Deception Analytics Dashboard
  *
- * Advanced deception technology analytics — honeypots, canary tokens, attacker intelligence.
+ * Advanced deception technology analytics = honeypots, canary tokens, attacker intelligence.
  *   1. KPI cards: Total Assets, Active Assets, Total Interactions, Unique Attacker IPs
  *   2. Deception Assets table
  *   3. Attacker Interactions table
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_assets:          48,
@@ -69,7 +69,7 @@ const MOCK_INTERACTIONS = [
   { attacker_technique: "File Exfiltration Attempt",severity: "critical", source_ip: "77.91.78.14",   confidence_score: 0.96, asset_id: "can-hr-xls"   },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function AssetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -125,7 +125,7 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DeceptionAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -182,7 +182,7 @@ export default function DeceptionAnalyticsDashboard() {
       {/* Header */}
       <PageHeader
         title="Deception Analytics"
-        description="Honeypot and canary token telemetry — attacker intelligence and interaction analysis"
+        description="Honeypot and canary token telemetry = attacker intelligence and interaction analysis"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SEGMENTS = [
   { id: "seg-001", name: "prod-web-tier",         segment_type: "application", enforcement_mode: "enforcing",  policy_count: 12, violation_count: 0 },
@@ -54,7 +54,7 @@ const MOCK_SEGMENTS = [
 
 const MOCK_STATS = { total_segments: 87, policies: 342, open_violations: 27, high_violation_segments: 4 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function EnforcementBadge({ mode }: { mode: string }) {
   const map: Record<string, string> = {
@@ -83,7 +83,7 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function MicrosegmentationPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -124,7 +124,7 @@ export default function MicrosegmentationPolicyDashboard() {
     >
       <PageHeader
         title="Microsegmentation Policies"
-        description="Network microsegmentation enforcement — segment isolation, policy coverage, and lateral movement violation tracking"
+        description="Network microsegmentation enforcement = segment isolation, policy coverage, and lateral movement violation tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -183,10 +183,10 @@ export default function MicrosegmentationPolicyDashboard() {
                   segments.map((seg: any, i: number) => (
                   <TableRow key={seg.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-green-300 max-w-[180px] truncate">
-                      {seg.name ?? "—"}
+                      {seg.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-emerald-300">
-                      {seg.segment_type ?? "—"}
+                      {seg.segment_type ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <EnforcementBadge mode={seg.enforcement_mode ?? "monitoring"} />

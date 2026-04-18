@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_VENDORS = [
   { id: "ven-001", name: "CloudMatrix Inc.",      vendor_category: "cloud_provider",  risk_rating: "low",      contract_status: "active",   data_access_level: "none",       risk_score: 18 },
@@ -54,7 +54,7 @@ const MOCK_VENDORS = [
 
 const MOCK_STATS = { total_vendors: 143, high_risk: 22, unassessed: 17, avg_risk_score: 52.3 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskRatingBadge({ rating }: { rating: string }) {
   const map: Record<string, string> = {
@@ -98,7 +98,7 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThirdPartyVendorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -139,7 +139,7 @@ export default function ThirdPartyVendorDashboard() {
     >
       <PageHeader
         title="Third-Party Vendor Risk"
-        description="Vendor risk management — track supplier risk ratings, contract status, data access levels, and risk scores"
+        description="Vendor risk management = track supplier risk ratings, contract status, data access levels, and risk scores"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -199,10 +199,10 @@ export default function ThirdPartyVendorDashboard() {
                   vendors.map((ven: any, i: number) => (
                   <TableRow key={ven.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300 max-w-[180px] truncate">
-                      {ven.name ?? "—"}
+                      {ven.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(ven.vendor_category ?? "—").replace(/_/g, " ")}
+                      {(ven.vendor_category ?? "=").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskRatingBadge rating={ven.risk_rating ?? "medium"} />
@@ -211,7 +211,7 @@ export default function ThirdPartyVendorDashboard() {
                       <ContractBadge status={ven.contract_status ?? "active"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-rose-300">
-                      {ven.data_access_level ?? "—"}
+                      {ven.data_access_level ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <RiskScoreCell score={ven.risk_score ?? 0} />

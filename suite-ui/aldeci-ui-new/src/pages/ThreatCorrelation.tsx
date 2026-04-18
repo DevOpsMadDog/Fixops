@@ -21,7 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
-// ── API config ─────────────────────────────────────────────
+// == API config =============================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const RULES = [
   { name: "Brute Force Login",        events: ["auth_failure", "account_lockout"],           window: "5 min",  threshold: 10, severity: "High",     enabled: true,  hits: 14 },
@@ -69,18 +69,18 @@ const ALERTS = [
 
 const EVENT_STREAM = [
   { type: "auth_failure",    source_ip: "192.168.4.82",   user_id: "jsmith",   asset: "srv-auth-01",  ts: "5s ago",  severity: "high"   },
-  { type: "port_scan",       source_ip: "10.0.2.45",      user_id: "—",        asset: "net-edge",     ts: "12s ago", severity: "medium" },
+  { type: "port_scan",       source_ip: "10.0.2.45",      user_id: "=",        asset: "net-edge",     ts: "12s ago", severity: "medium" },
   { type: "rdp_login",       source_ip: "172.16.8.22",    user_id: "bwilson",  asset: "ws-finance-3", ts: "28s ago", severity: "high"   },
   { type: "large_upload",    source_ip: "10.1.5.14",      user_id: "mlee",     asset: "s3-bucket-01", ts: "45s ago", severity: "critical"},
   { type: "sudo_usage",      source_ip: "10.0.3.99",      user_id: "devops1",  asset: "k8s-node-02",  ts: "1m ago",  severity: "medium" },
-  { type: "dns_query",       source_ip: "192.168.2.11",   user_id: "—",        asset: "workstation",  ts: "1m ago",  severity: "low"    },
+  { type: "dns_query",       source_ip: "192.168.2.11",   user_id: "=",        asset: "workstation",  ts: "1m ago",  severity: "low"    },
   { type: "lsass_access",    source_ip: "10.0.1.7",       user_id: "SYSTEM",   asset: "dc-01",        ts: "2m ago",  severity: "critical"},
   { type: "bulk_download",   source_ip: "10.2.4.55",      user_id: "agarcia",  asset: "nas-01",       ts: "2m ago",  severity: "high"   },
   { type: "geo_login",       source_ip: "185.234.12.66",  user_id: "cthomas",  asset: "vpn-gw",       ts: "3m ago",  severity: "high"   },
   { type: "wmi_exec",        source_ip: "172.16.3.44",    user_id: "ADMIN",    asset: "srv-db-02",    ts: "3m ago",  severity: "critical"},
   { type: "reg_export",      source_ip: "10.0.1.7",       user_id: "SYSTEM",   asset: "dc-01",        ts: "4m ago",  severity: "high"   },
   { type: "smb_access",      source_ip: "172.16.8.22",    user_id: "bwilson",  asset: "srv-files",    ts: "4m ago",  severity: "medium" },
-  { type: "periodic_dns",    source_ip: "10.3.2.88",      user_id: "—",        asset: "workstation",  ts: "5m ago",  severity: "medium" },
+  { type: "periodic_dns",    source_ip: "10.3.2.88",      user_id: "=",        asset: "workstation",  ts: "5m ago",  severity: "medium" },
   { type: "off_hrs_access",  source_ip: "10.0.4.21",      user_id: "rjones",   asset: "crm-app",      ts: "6m ago",  severity: "medium" },
   { type: "unsigned_binary", source_ip: "10.1.1.9",       user_id: "SYSTEM",   asset: "srv-build",    ts: "7m ago",  severity: "high"   },
 ];
@@ -91,13 +91,13 @@ const TIMELINE = Array.from({ length: 24 }, (_, i) => ({
   events: Math.floor(Math.random() * 600 + 100),
   correlated: Math.floor(Math.random() * 8),
 })).map((d, i) => {
-  // deterministic pattern — spikes at certain hours
+  // deterministic pattern = spikes at certain hours
   const spike = [2, 3, 9, 10, 14, 15, 21, 22].includes(i);
   return { ...d, events: spike ? d.events + 400 : d.events, correlated: spike ? d.correlated + 5 : d.correlated };
 });
 const MAX_EVENTS = Math.max(...TIMELINE.map((d) => d.events));
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const s = sev.toLowerCase();
@@ -125,7 +125,7 @@ function SeverityDot({ sev }: { sev: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full flex-shrink-0", cls)} />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatCorrelation() {
   const [refreshing, setRefreshing] = useState(false);
@@ -234,7 +234,7 @@ export default function ThreatCorrelation() {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">
-                      {rule.window ?? (rule.time_window_minutes != null ? `${rule.time_window_minutes} min` : "—")}
+                      {rule.window ?? (rule.time_window_minutes != null ? `${rule.time_window_minutes} min` : "=")}
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5">{rule.threshold}</TableCell>
                     <TableCell className="py-2.5"><SeverityBadge sev={rule.severity} /></TableCell>
@@ -322,7 +322,7 @@ export default function ThreatCorrelation() {
                     {ev.type ?? ev.event_type}
                   </Badge>
                   <span className="text-[10px] font-mono text-muted-foreground w-28 shrink-0 truncate">{ev.source_ip}</span>
-                  <span className="text-[10px] truncate flex-1 text-muted-foreground">{ev.user_id ?? ev.raw_data?.user_id ?? "—"} / {ev.asset ?? ev.asset_id ?? "—"}</span>
+                  <span className="text-[10px] truncate flex-1 text-muted-foreground">{ev.user_id ?? ev.raw_data?.user_id ?? "="} / {ev.asset ?? ev.asset_id ?? "="}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">{ev.ts ?? ev.timestamp}</span>
                 </div>
               ))}
@@ -330,7 +330,7 @@ export default function ThreatCorrelation() {
           </CardContent>
         </Card>
 
-        {/* Detection timeline — 24h bar chart */}
+        {/* Detection timeline = 24h bar chart */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -348,7 +348,7 @@ export default function ThreatCorrelation() {
                 </div>
               ) : (
                 TIMELINE.map((d) => (
-                <div key={d.hour} className="flex-1 flex flex-col items-center gap-0 relative" title={`${d.hour}:00 — ${d.events} events, ${d.correlated} correlated`}>
+                <div key={d.hour} className="flex-1 flex flex-col items-center gap-0 relative" title={`${d.hour}:00 = ${d.events} events, ${d.correlated} correlated`}>
                   <div className="w-full flex items-end gap-[1px] h-28 relative">
                     {/* event bar */}
                     <div
@@ -359,7 +359,7 @@ export default function ThreatCorrelation() {
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t bg-red-500/70 transition-all"
                       style={{ height: `${Math.min((d.correlated / 15) * 100, 100)}%` }}
-                    />
+                    / role="status" aria-live="polite">
                   </div>
                   <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
                 </div>
@@ -416,7 +416,7 @@ export default function ThreatCorrelation() {
                       <TableCell className="py-2">
                         <Badge className="text-[9px] border border-border bg-muted/30 text-muted-foreground">{ind.indicator_type ?? ind.type ?? "ip"}</Badge>
                       </TableCell>
-                      <TableCell className="text-xs font-mono py-2 max-w-[180px] truncate">{ind.value ?? "—"}</TableCell>
+                      <TableCell className="text-xs font-mono py-2 max-w-[180px] truncate">{ind.value ?? "="}</TableCell>
                       <TableCell className="py-2"><SeverityBadge sev={ind.severity ?? "medium"} /></TableCell>
                       <TableCell className="py-2">
                         <Badge className="text-[9px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{ind.tlp_marking ?? ind.tlp ?? "AMBER"}</Badge>
@@ -424,8 +424,7 @@ export default function ThreatCorrelation() {
                       <TableCell className="text-xs tabular-nums py-2">{Math.round((ind.confidence ?? 0.8) * 100)}%</TableCell>
                       <TableCell className="text-[10px] py-2 text-muted-foreground">{ind.source ?? "aldeci"}</TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -434,7 +433,7 @@ export default function ThreatCorrelation() {
               {[
                 { label: "Sharing Groups", value: liveData?.sharingStats?.total_groups ?? liveData?.groups?.length ?? 0 },
                 { label: "Indicators Shared", value: liveData?.sharingStats?.total_indicators ?? 0 },
-                { label: "Auto-share Policy", value: liveData?.sharingStats?.auto_share_enabled ? "Active" : "—" },
+                { label: "Auto-share Policy", value: liveData?.sharingStats?.auto_share_enabled ? "Active" : "=" },
                 { label: "STIX Bundles Exported", value: liveData?.sharingStats?.bundles_exported ?? 0 },
               ].map((item) => (
                 <div key={item.label} className="flex flex-col items-center gap-1 rounded-lg border border-border bg-muted/10 px-4 py-3 min-w-[110px]">
@@ -443,7 +442,7 @@ export default function ThreatCorrelation() {
                 </div>
               ))
             )}
-              <p className="text-[10px] text-muted-foreground ml-2">No indicators shared yet — sharing groups will appear here once configured.</p>
+              <p className="text-[10px] text-muted-foreground ml-2">No indicators shared yet = sharing groups will appear here once configured.</p>
             </div>
           )}
         </CardContent>

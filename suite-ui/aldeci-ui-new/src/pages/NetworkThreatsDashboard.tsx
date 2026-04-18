@@ -13,7 +13,7 @@ const _API_BASE = "/api/v1/network-threats";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 type ThreatType = "intrusion" | "exfiltration" | "c2" | "lateral_movement" | "dos" | "scan" | "malware" | "anomaly";
 type ThreatSeverity = "critical" | "high" | "medium" | "low";
@@ -54,14 +54,14 @@ interface BaselineAnomaly {
   unit: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_THREATS: NetworkThreat[] = [
   { id: "nt-001", threat_name: "Outbound C2 Beacon",          threat_type: "c2",              source_ip: "10.0.4.22",   dest_ip: "185.234.219.11", dest_port: 443,  protocol: "HTTPS", severity: "critical", packet_count: 14821, confidence: 96, detected_at: "2026-04-16 08:12", status: "active" },
   { id: "nt-002", threat_name: "Internal Port Sweep",         threat_type: "scan",            source_ip: "10.0.2.105",  dest_ip: "10.0.0.0/24",    dest_port: 0,    protocol: "TCP",   severity: "high",     packet_count: 3204,  confidence: 88, detected_at: "2026-04-16 09:44", status: "active" },
   { id: "nt-003", threat_name: "Lateral RDP Brute Force",     threat_type: "lateral_movement",source_ip: "10.0.1.78",   dest_ip: "10.0.5.12",      dest_port: 3389, protocol: "RDP",   severity: "critical", packet_count: 8903,  confidence: 91, detected_at: "2026-04-16 10:05", status: "active" },
   { id: "nt-004", threat_name: "DNS Exfiltration Attempt",    threat_type: "exfiltration",    source_ip: "10.0.3.44",   dest_ip: "8.8.4.4",        dest_port: 53,   protocol: "DNS",   severity: "high",     packet_count: 22110, confidence: 84, detected_at: "2026-04-16 07:30", status: "active" },
-  { id: "nt-005", threat_name: "SYN Flood — Ingress",         threat_type: "dos",             source_ip: "203.45.12.7", dest_ip: "192.168.1.1",    dest_port: 80,   protocol: "TCP",   severity: "high",     packet_count: 450200,confidence: 99, detected_at: "2026-04-16 11:02", status: "active" },
+  { id: "nt-005", threat_name: "SYN Flood = Ingress",         threat_type: "dos",             source_ip: "203.45.12.7", dest_ip: "192.168.1.1",    dest_port: 80,   protocol: "TCP",   severity: "high",     packet_count: 450200,confidence: 99, detected_at: "2026-04-16 11:02", status: "active" },
   { id: "nt-006", threat_name: "Malware Download Detected",   threat_type: "malware",         source_ip: "10.0.2.33",   dest_ip: "91.108.4.45",    dest_port: 80,   protocol: "HTTP",  severity: "critical", packet_count: 621,   confidence: 93, detected_at: "2026-04-16 06:55", status: "active" },
   { id: "nt-007", threat_name: "Anomalous SSH Tunnel",        threat_type: "anomaly",         source_ip: "10.0.6.19",   dest_ip: "52.14.88.201",   dest_port: 22,   protocol: "SSH",   severity: "medium",   packet_count: 4412,  confidence: 72, detected_at: "2026-04-16 05:18", status: "resolved" },
   { id: "nt-008", threat_name: "Unauthorized Service Intrusion",threat_type: "intrusion",     source_ip: "172.16.0.55", dest_ip: "10.0.1.200",     dest_port: 8080, protocol: "HTTP",  severity: "high",     packet_count: 1843,  confidence: 87, detected_at: "2026-04-16 12:00", status: "active" },
@@ -83,7 +83,7 @@ const MOCK_BASELINES: BaselineAnomaly[] = [
   { id: "ba-004", metric_name: "New External Connections/min", baseline_value: 40,   current_value: 98,    deviation_pct: 145,  unit: "conns/min" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const threatTypeConfig: Record<ThreatType, { label: string; color: string }> = {
   intrusion:        { label: "Intrusion",         color: "bg-red-700 text-red-100" },
@@ -127,7 +127,7 @@ function topSourceIPs(threats: NetworkThreat[]): { ip: string; count: number }[]
     .slice(0, 5);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function NetworkThreatsDashboard() {
   const [threats] = useState<NetworkThreat[]>(MOCK_THREATS);
@@ -180,9 +180,9 @@ export default function NetworkThreatsDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -203,7 +203,7 @@ export default function NetworkThreatsDashboard() {
 
       {/* Baseline Anomalies Alert */}
       {MOCK_BASELINES.length > 0 && (
-        <div className="bg-red-900/20 border border-red-700 rounded-lg p-5">
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-5" role="status" aria-live="polite">
           <p className="text-red-400 font-semibold text-sm mb-3">Anomalous Baselines Detected ({MOCK_BASELINES.length})</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {MOCK_BASELINES.length === 0 ? (
@@ -213,7 +213,7 @@ export default function NetworkThreatsDashboard() {
               </div>
             ) : (
               MOCK_BASELINES.map(b => (
-              <div key={b.id} className="bg-red-900/30 rounded-lg p-3">
+              <div key={b.id} className="bg-red-900/30 rounded-lg p-3" role="status" aria-live="polite">
                 <p className="text-red-200 text-xs font-semibold">{b.metric_name}</p>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-white font-bold text-lg">{b.current_value.toLocaleString()}</span>
@@ -245,12 +245,11 @@ export default function NetworkThreatsDashboard() {
                 >
                   {f}
                 </button>
-              ))
-              )}
+              ))}
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table role="table" className="w-full text-xs">
               <thead>
                 <tr className="text-gray-500 uppercase border-b border-gray-700">
                   <th className="text-left pb-2 pr-2">Threat</th>
@@ -324,7 +323,7 @@ export default function NetworkThreatsDashboard() {
                     <div
                       className="h-1 rounded-full bg-red-500"
                       style={{ width: `${(ip.count / topIPs[0].count) * 100}%` }}
-                    />
+                    / role="status" aria-live="polite">
                   </div>
                 </div>
                 <span className="text-red-400 text-xs font-bold shrink-0">{ip.count}</span>

@@ -5,7 +5,7 @@
  * API: GET /api/v1/security-automation/stats, /api/v1/security-automation/executions
  *
  * KPIs: Automation Rules, Executions Today, Success Rate, Avg Duration
- * Table: Recent executions — rule name, trigger type, status badge, actions taken, duration
+ * Table: Recent executions = rule name, trigger type, status badge, actions taken, duration
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_STATS = {
   total_rules: 24,
@@ -57,7 +57,7 @@ const MOCK_EXECUTIONS = [
   { id: "EXEC-010", rule_name: "Notify on new admin account",  trigger: "event",      status: "success", actions_taken: 1, duration_ms: 55  },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function TriggerBadge({ trigger }: { trigger: string }) {
   const map: Record<string, string> = {
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SecurityAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);

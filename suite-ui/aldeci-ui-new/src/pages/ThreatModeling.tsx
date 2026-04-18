@@ -1,11 +1,11 @@
 /**
- * Threat Modeling — STRIDE Analysis Workspace
+ * Threat Modeling = STRIDE Analysis Workspace
  *
  * Interactive threat modeling workspace for STRIDE analysis:
- *   1. Models list (left sidebar) — create new threat models
- *   2. Components grid — system components with trust boundaries
- *   3. Threats table — STRIDE categories with severity and mitigation status
- *   4. Mitigation progress — track remediation progress
+ *   1. Models list (left sidebar) = create new threat models
+ *   2. Components grid = system components with trust boundaries
+ *   3. Threats table = STRIDE categories with severity and mitigation status
+ *   4. Mitigation progress = track remediation progress
  *
  * Route: /threat-modeling
  * API: GET /api/v1/threat-modeling/models, /api/v1/threat-modeling/threats
@@ -36,9 +36,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type ComponentType = "API" | "Database" | "Service" | "External";
 type Severity = "critical" | "high" | "medium" | "low";
@@ -75,9 +75,9 @@ interface ThreatModel {
   updated_at: string;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_COMPONENTS: ThreatComponent[] = [
   {
@@ -255,17 +255,17 @@ const MOCK_MODEL: ThreatModel = {
   updated_at: "2026-04-14",
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const STRIDE_ICONS: Record<StrideCategory, { icon: typeof Lock; emoji: string; color: string }> = {
-  Spoofing: { icon: Lock, emoji: "🔒", color: "text-red-500" },
-  Tampering: { icon: AlertTriangle, emoji: "⚠️", color: "text-orange-500" },
-  Repudiation: { icon: Clipboard, emoji: "📋", color: "text-yellow-500" },
-  InformationDisclosure: { icon: Eye, emoji: "👁️", color: "text-blue-500" },
-  DenialOfService: { icon: Zap, emoji: "🚫", color: "text-purple-500" },
-  ElevationOfPrivilege: { icon: AlertTriangle, emoji: "⬆️", color: "text-pink-500" },
+  Spoofing: { icon: Lock, emoji: "=", color: "text-red-500" },
+  Tampering: { icon: AlertTriangle, emoji: "==", color: "text-orange-500" },
+  Repudiation: { icon: Clipboard, emoji: "=", color: "text-yellow-500" },
+  InformationDisclosure: { icon: Eye, emoji: "==", color: "text-blue-500" },
+  DenialOfService: { icon: Zap, emoji: "=", color: "text-purple-500" },
+  ElevationOfPrivilege: { icon: AlertTriangle, emoji: "==", color: "text-pink-500" },
 };
 
 const SEV_COLORS: Record<Severity, string> = {
@@ -303,9 +303,9 @@ const COMPONENT_TYPE_COLORS: Record<ComponentType, string> = {
   External: "text-orange-500",
 };
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Components
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 function ComponentCard({
   component,
@@ -444,9 +444,9 @@ function ModelsList({
   );
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Component
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 export default function ThreatModeling() {
   const [selectedModelId, setSelectedModelId] = useState(MOCK_MODEL.id);
@@ -471,7 +471,7 @@ export default function ThreatModeling() {
 
   return (
     <div className="flex h-full bg-background">
-      {/* Left sidebar — Models list */}
+      {/* Left sidebar = Models list */}
       <ModelsList
         models={models}
         selectedModelId={selectedModelId}

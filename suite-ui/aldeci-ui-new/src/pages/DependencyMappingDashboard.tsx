@@ -108,10 +108,10 @@ export default function DependencyMappingDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <div className="max-w-7xl mx-auto">
@@ -208,7 +208,7 @@ export default function DependencyMappingDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table role="table" className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Service", "Type", "Criticality", "Environment", "Data Class", "Owner", "Deps Out", "Deps In", "Status"].map(h => <th key={h} className="text-left px-4 py-2 whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
@@ -250,7 +250,7 @@ export default function DependencyMappingDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                    <span className="text-blue-400">→</span> Outgoing Dependencies ({outgoing.length})
+                    <span className="text-blue-400">=</span> Outgoing Dependencies ({outgoing.length})
                   </h3>
                   {outgoing.length === 0 ? <p className="text-gray-500 text-sm">No outgoing dependencies.</p> : (
                     <div className="space-y-2">
@@ -274,7 +274,7 @@ export default function DependencyMappingDashboard() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                    <span className="text-orange-400">←</span> Incoming Dependencies ({incoming.length})
+                    <span className="text-orange-400">=</span> Incoming Dependencies ({incoming.length})
                   </h3>
                   {incoming.length === 0 ? <p className="text-gray-500 text-sm">No incoming dependencies.</p> : (
                     <div className="space-y-2">
@@ -335,7 +335,7 @@ export default function DependencyMappingDashboard() {
                 </div>
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Affected Services:</h3>
                 {blastResult.affected.length === 0 ? (
-                  <p className="text-green-400">No affected services — this service has no {analysisType} dependencies.</p>
+                  <p className="text-green-400">No affected services = this service has no {analysisType} dependencies.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {blastResult.affected.map(name => {
@@ -360,7 +360,7 @@ export default function DependencyMappingDashboard() {
         {activeTab === "critical" && (
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700">
-              <h2 className="font-semibold">Critical Service Paths — Most-depended-upon services</h2>
+              <h2 className="font-semibold">Critical Service Paths = Most-depended-upon services</h2>
             </div>
             <div className="divide-y divide-gray-700">
               {criticalPaths.map((s, i) => (
@@ -383,8 +383,7 @@ export default function DependencyMappingDashboard() {
                     <span className={`text-2xl font-bold ${s.dependent_count >= 8 ? "text-red-400" : s.dependent_count >= 5 ? "text-orange-400" : "text-yellow-400"}`}>{s.dependent_count}</span>
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
         )}

@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API config ─────────────────────────────────────────────
+// == API config =============================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "default";
 
@@ -34,7 +34,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const SCENARIOS = [
   { name: "Ransomware Attack",         actor: "cybercriminal", likelihood: 68, min: 420000,  max: 1800000, expected: 847000,  ale: 575960,  treatment: "mitigate" },
@@ -71,7 +71,7 @@ const FINANCIAL_HISTORY = [
   { type: "Supply Chain",       direct: 730000, fines: 125000, remediation: 380000, total: 1235000, fy: "FY2025" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function ActorBadge({ actor }: { actor: string }) {
   const map: Record<string, string> = {
@@ -97,7 +97,7 @@ function fmt(n: number) {
   return `$${n}`;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function RiskQuantification() {
   const [refreshing, setRefreshing] = useState(false);
@@ -182,7 +182,7 @@ export default function RiskQuantification() {
             <AlertTriangle className="h-4 w-4 text-amber-400" />
             Risk Scenarios
           </CardTitle>
-          <CardDescription className="text-xs">{(liveData?.scenarios ?? SCENARIOS).length} scenarios — ALE = likelihood × expected loss</CardDescription>
+          <CardDescription className="text-xs">{(liveData?.scenarios ?? SCENARIOS).length} scenarios = ALE = likelihood = expected loss</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -224,7 +224,7 @@ export default function RiskQuantification() {
                         disabled={runningMC === row.name}
                       >
                         <Dice5 className="h-3 w-3 mr-1" />
-                        {runningMC === row.name ? "Running…" : "MC"}
+                        {runningMC === row.name ? "Running=" : "MC"}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -242,9 +242,9 @@ export default function RiskQuantification() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Dice5 className="h-4 w-4 text-purple-400" />
-              Monte Carlo Result — Ransomware Attack
+              Monte Carlo Result = Ransomware Attack
             </CardTitle>
-            <CardDescription className="text-xs">10,000-iteration simulation — financial loss distribution</CardDescription>
+            <CardDescription className="text-xs">10,000-iteration simulation = financial loss distribution</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
@@ -258,9 +258,9 @@ export default function RiskQuantification() {
                 <div className="text-lg font-bold text-amber-400">{fmt(MONTE_CARLO.p95)}</div>
                 <div className="text-[10px] text-muted-foreground mt-1">95% of outcomes below</div>
               </div>
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-center">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-center" role="status" aria-live="polite">
                 <div className="text-[10px] text-muted-foreground mb-1">p99 Worst-Case</div>
-                <div className="text-lg font-bold text-red-400">{fmt(MONTE_CARLO.p99)}</div>
+                <div className="text-lg font-bold text-red-400" role="status" aria-live="polite">{fmt(MONTE_CARLO.p99)}</div>
                 <div className="text-[10px] text-muted-foreground mt-1">99% of outcomes below</div>
               </div>
             </div>
@@ -286,7 +286,7 @@ export default function RiskQuantification() {
                   <TableHead className="text-[11px] h-8">Treatment</TableHead>
                   <TableHead className="text-[11px] h-8">Type</TableHead>
                   <TableHead className="text-[11px] h-8 text-right">Cost/yr</TableHead>
-                  <TableHead className="text-[11px] h-8 text-right">Risk ↓</TableHead>
+                  <TableHead className="text-[11px] h-8 text-right">Risk =</TableHead>
                   <TableHead className="text-[11px] h-8 text-right">ROI</TableHead>
                 </TableRow>
               </TableHeader>
@@ -295,14 +295,14 @@ export default function RiskQuantification() {
                   <TableRow key={t.name ?? t.treatment_id} className="hover:bg-muted/30">
                     <TableCell className="text-xs py-2.5 max-w-[140px] truncate">{t.name ?? t.description}</TableCell>
                     <TableCell className="py-2.5"><TreatmentBadge type={t.type ?? t.treatment_type ?? "mitigate"} /></TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{(t.cost ?? t.implementation_cost) ? fmt(t.cost ?? t.implementation_cost) : "—"}</TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-right">{(t.reduction ?? t.risk_reduction_pct) ? `${t.reduction ?? t.risk_reduction_pct}%` : "—"}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{(t.cost ?? t.implementation_cost) ? fmt(t.cost ?? t.implementation_cost) : "="}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-right">{(t.reduction ?? t.risk_reduction_pct) ? `${t.reduction ?? t.risk_reduction_pct}%` : "="}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       {(t.roi ?? t.roi_pct ?? 0) > 0 ? (
                         <Badge className={cn("text-[10px] border", (t.roi ?? t.roi_pct) >= 200 ? "border-green-500/30 text-green-400 bg-green-500/10" : "border-border text-muted-foreground")}>
                           {t.roi ?? t.roi_pct}%
                         </Badge>
-                      ) : <span className="text-[11px] text-muted-foreground">—</span>}
+                      ) : <span className="text-[11px] text-muted-foreground">=</span>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -319,7 +319,7 @@ export default function RiskQuantification() {
             <DollarSign className="h-4 w-4 text-green-400" />
             Financial Impact History
           </CardTitle>
-          <CardDescription className="text-xs">Realized losses by incident — direct costs, fines, and remediation</CardDescription>
+          <CardDescription className="text-xs">Realized losses by incident = direct costs, fines, and remediation</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -340,12 +340,12 @@ export default function RiskQuantification() {
                     <TableCell className="text-xs font-medium py-2.5">{row.type ?? row.incident_type}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{fmt(row.direct ?? row.direct_cost ?? 0)}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right">
-                      {(row.fines ?? row.regulatory_fines ?? 0) ? <span className="text-red-400 font-medium">{fmt(row.fines ?? row.regulatory_fines)}</span> : <span className="text-muted-foreground">—</span>}
+                      {(row.fines ?? row.regulatory_fines ?? 0) ? <span className="text-red-400 font-medium">{fmt(row.fines ?? row.regulatory_fines)}</span> : <span className="text-muted-foreground">=</span>}
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{fmt(row.remediation ?? row.remediation_cost ?? 0)}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{fmt(row.total ?? row.total_cost ?? 0)}</TableCell>
                     <TableCell className="py-2.5">
-                      <Badge className="text-[10px] border border-border text-muted-foreground">{row.fy ?? row.fiscal_year ?? "—"}</Badge>
+                      <Badge className="text-[10px] border border-border text-muted-foreground">{row.fy ?? row.fiscal_year ?? "="}</Badge>
                     </TableCell>
                   </TableRow>
                 ))}

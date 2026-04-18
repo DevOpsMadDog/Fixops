@@ -2,10 +2,10 @@
  * System Health Dashboard
  *
  * Monitors health of all backend engines in real time.
- *   1. Large health score gauge (0-100, color-coded: ≥90=green, 70-89=yellow, <70=red)
+ *   1. Large health score gauge (0-100, color-coded: =90=green, 70-89=yellow, <70=red)
  *   2. Overall status badge (Healthy / Degraded / Critical)
  *   3. Summary stat row: Total / Healthy / Degraded / Unavailable
- *   4. Engine health grid — name, status dot, record count
+ *   4. Engine health grid = name, status dot, record count
  *   5. Recently updated engines panel (last check timestamp)
  *
  * API: GET /api/v1/system-health/ and /api/v1/system-health/score
@@ -40,7 +40,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface Engine {
   name: string;
@@ -59,7 +59,7 @@ interface HealthData {
   total_engines: number;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_HEALTH: HealthData = {
   score: 94,
@@ -123,7 +123,7 @@ const MOCK_HEALTH: HealthData = {
   total_engines: 51,
 };
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function scoreColor(score: number): string {
   if (score >= 90) return "text-green-400";
@@ -164,7 +164,7 @@ function formatEngineName(name: string): string {
   return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// ── Gauge SVG ─────────────────────────────────────────────────
+// == Gauge SVG =================================================
 
 function ScoreGauge({ score }: { score: number }) {
   const radius = 72;
@@ -175,12 +175,12 @@ function ScoreGauge({ score }: { score: number }) {
   return (
     <div className="flex flex-col items-center gap-2">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -225,7 +225,7 @@ function ScoreGauge({ score }: { score: number }) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────
+// == Main component =============================================
 
 export default function SystemHealthDashboard() {
   const [health, setHealth] = useState<HealthData>(MOCK_HEALTH);
@@ -255,7 +255,7 @@ export default function SystemHealthDashboard() {
   const recentEngines = [...health.engines]
     .filter((e) => e.last_updated)
     .sort((a, b) => {
-      // Sort by last_updated ascending (most recent first) — rough sort on string
+      // Sort by last_updated ascending (most recent first) = rough sort on string
       return (a.last_updated ?? "").localeCompare(b.last_updated ?? "");
     })
     .slice(0, 8);

@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GitBranch, Shield, AlertTriangle, RefreshCw, Code2, CheckCircle2, XCircle, Clock } from "lucide-react";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const PIPELINES = [
   { name: "api-gateway",        ci: "GitHub Actions", branch: "main",    sast: true,  sca: true,  secrets: true,  status: "passed"  },
@@ -63,33 +63,33 @@ const BUILD_HISTORY = [
 ];
 
 const FINDINGS = [
-  { sev: "Critical", scanner: "SAST",    title: "SQL Injection",              file: "src/db/queries.py",            line: 142, cve: "—",              suppressed: false },
-  { sev: "Critical", scanner: "SAST",    title: "Command Injection",          file: "src/utils/shell.py",           line: 87,  cve: "—",              suppressed: false },
+  { sev: "Critical", scanner: "SAST",    title: "SQL Injection",              file: "src/db/queries.py",            line: 142, cve: "=",              suppressed: false },
+  { sev: "Critical", scanner: "SAST",    title: "Command Injection",          file: "src/utils/shell.py",           line: 87,  cve: "=",              suppressed: false },
   { sev: "Critical", scanner: "SCA",     title: "Log4Shell",                  file: "pom.xml",                      line: 34,  cve: "CVE-2021-44228", suppressed: false },
-  { sev: "Critical", scanner: "Secrets", title: "AWS Key Exposed",            file: ".env.backup",                  line: 12,  cve: "—",              suppressed: false },
+  { sev: "Critical", scanner: "Secrets", title: "AWS Key Exposed",            file: ".env.backup",                  line: 12,  cve: "=",              suppressed: false },
   { sev: "Critical", scanner: "SCA",     title: "Spring4Shell",               file: "pom.xml",                      line: 41,  cve: "CVE-2022-22965", suppressed: false },
-  { sev: "High",     scanner: "SAST",    title: "Path Traversal",             file: "src/files/upload.py",          line: 219, cve: "—",              suppressed: false },
+  { sev: "High",     scanner: "SAST",    title: "Path Traversal",             file: "src/files/upload.py",          line: 219, cve: "=",              suppressed: false },
   { sev: "High",     scanner: "SCA",     title: "Prototype Pollution",        file: "package-lock.json",            line: 890, cve: "CVE-2021-23343", suppressed: false },
-  { sev: "High",     scanner: "SAST",    title: "SSRF via URL param",         file: "src/webhooks/handler.py",      line: 67,  cve: "—",              suppressed: false },
-  { sev: "High",     scanner: "Secrets", title: "GitHub Token in source",     file: "scripts/deploy.sh",            line: 5,   cve: "—",              suppressed: false },
-  { sev: "Medium",   scanner: "SAST",    title: "XSS — unescaped output",     file: "src/templates/report.html",   line: 334, cve: "—",              suppressed: false },
-  { sev: "Medium",   scanner: "SCA",     title: "ReDoS — vulnerable regex",   file: "requirements.txt",            line: 23,  cve: "CVE-2022-25869", suppressed: true  },
-  { sev: "Medium",   scanner: "SAST",    title: "Hardcoded password",         file: "src/config/db.py",             line: 18,  cve: "—",              suppressed: false },
-  { sev: "Low",      scanner: "SAST",    title: "Missing security header",    file: "src/middleware/headers.py",    line: 55,  cve: "—",              suppressed: true  },
+  { sev: "High",     scanner: "SAST",    title: "SSRF via URL param",         file: "src/webhooks/handler.py",      line: 67,  cve: "=",              suppressed: false },
+  { sev: "High",     scanner: "Secrets", title: "GitHub Token in source",     file: "scripts/deploy.sh",            line: 5,   cve: "=",              suppressed: false },
+  { sev: "Medium",   scanner: "SAST",    title: "XSS = unescaped output",     file: "src/templates/report.html",   line: 334, cve: "=",              suppressed: false },
+  { sev: "Medium",   scanner: "SCA",     title: "ReDoS = vulnerable regex",   file: "requirements.txt",            line: 23,  cve: "CVE-2022-25869", suppressed: true  },
+  { sev: "Medium",   scanner: "SAST",    title: "Hardcoded password",         file: "src/config/db.py",             line: 18,  cve: "=",              suppressed: false },
+  { sev: "Low",      scanner: "SAST",    title: "Missing security header",    file: "src/middleware/headers.py",    line: 55,  cve: "=",              suppressed: true  },
   { sev: "Low",      scanner: "SCA",     title: "Outdated lodash",            file: "package.json",                 line: 71,  cve: "CVE-2021-23337", suppressed: false },
-  { sev: "Low",      scanner: "Secrets", title: "Slack webhook URL",          file: "docs/setup.md",                line: 102, cve: "—",              suppressed: true  },
+  { sev: "Low",      scanner: "Secrets", title: "Slack webhook URL",          file: "docs/setup.md",                line: 102, cve: "=",              suppressed: true  },
 ];
 
 const GATE_POLICIES = [
   { name: "Critical Block",     rule: "block_on_critical = true",         threshold: "0 critical",    color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20"     },
-  { name: "High Threshold",     rule: "max_high = 5",                     threshold: "≤5 high",       color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/20" },
+  { name: "High Threshold",     rule: "max_high = 5",                     threshold: "=5 high",       color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/20" },
   { name: "Secrets Gate",       rule: "block_on_secrets = true",          threshold: "0 secrets",     color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
   { name: "SCA OSS Gate",       rule: "block_on_oss_critical = true",     threshold: "0 OSS critical",color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-500/20"   },
-  { name: "Medium Threshold",   rule: "max_medium = 20",                  threshold: "≤20 medium",    color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
-  { name: "Coverage Gate",      rule: "min_sast_coverage = 80",           threshold: "≥80% coverage", color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20" },
+  { name: "Medium Threshold",   rule: "max_medium = 20",                  threshold: "=20 medium",    color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
+  { name: "Coverage Gate",      rule: "min_sast_coverage = 80",           threshold: "=80% coverage", color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const CI_COLORS: Record<string, string> = {
   "GitHub Actions": "border-purple-500/30 text-purple-400 bg-purple-500/10",
@@ -135,7 +135,7 @@ function ScannerBadge({ type }: { type: string }) {
 
 const MAX_DURATION = 7;
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DevSecOpsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -258,7 +258,7 @@ export default function DevSecOpsDashboard() {
             <Clock className="h-4 w-4 text-purple-400" />
             Build History Timeline
           </CardTitle>
-          <CardDescription className="text-xs">8 most recent pipeline runs — bar width proportional to duration</CardDescription>
+          <CardDescription className="text-xs">8 most recent pipeline runs = bar width proportional to duration</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {BUILD_HISTORY.length === 0 ? (
@@ -344,8 +344,7 @@ export default function DevSecOpsDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -359,7 +358,7 @@ export default function DevSecOpsDashboard() {
             <Shield className="h-4 w-4 text-green-400" />
             Gate Policies
           </CardTitle>
-          <CardDescription className="text-xs">Active security gate rules — violations block the pipeline</CardDescription>
+          <CardDescription className="text-xs">Active security gate rules = violations block the pipeline</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">

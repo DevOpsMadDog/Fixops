@@ -33,7 +33,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helper ──────────────────────────────────────────────────────────────
+// == API helper ==============================================================
 const apiFetch = async (path: string) => {
   const key =
     localStorage.getItem("aldeci_api_key") ||
@@ -44,7 +44,7 @@ const apiFetch = async (path: string) => {
   return res.json();
 };
 
-// ── Mock data ───────────────────────────────────────────────────────────────
+// == Mock data ===============================================================
 
 const MOCK_STATS = {
   assessments_run: 12,
@@ -90,7 +90,7 @@ const MOCK_REMEDIATION_PLANS = [
   { id: "r5", control_id: "NIST-AC-2", priority: "p2", assigned_team: "IAM Team",  status: "planned",     estimated_effort: "medium", target_date: "2026-04-22" },
 ];
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// == Helpers =================================================================
 
 const PROVIDER_LABELS: Record<string, string> = {
   aws: "AWS", azure: "Azure", gcp: "GCP", multi: "Multi-Cloud",
@@ -159,7 +159,7 @@ function statusBadge(s: string) {
   return map[s] ?? map.planned;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// == Component ================================================================
 
 export default function CloudComplianceDashboard() {
   const [stats, setStats] = useState<typeof MOCK_STATS | null>(null);
@@ -202,7 +202,7 @@ export default function CloudComplianceDashboard() {
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="Cloud Compliance"
-        description="Multi-cloud compliance posture — AWS, Azure, GCP"
+        description="Multi-cloud compliance posture = AWS, Azure, GCP"
         icon={<Cloud className="h-6 w-6 text-blue-400" />}
         actions={
           <Button
@@ -355,7 +355,7 @@ export default function CloudComplianceDashboard() {
                 Failed Controls
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                {failedControls.length} failures — {liveStats.critical_failures ?? MOCK_STATS.critical_failures} critical
+                {failedControls.length} failures = {liveStats.critical_failures ?? MOCK_STATS.critical_failures} critical
               </CardDescription>
             </CardHeader>
             <CardContent>

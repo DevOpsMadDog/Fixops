@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_APPS = [
   { id: "app-001", app_name: "Salesforce CRM",       app_category: "CRM",           vendor: "Salesforce",  risk_level: "low",      compliance_status: "compliant",     user_count: 842 },
@@ -54,7 +54,7 @@ const MOCK_APPS = [
 
 const MOCK_STATS = { total_apps: 94, high_risk_apps: 18, open_findings: 237, compliance_rate: 71.3 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -97,7 +97,7 @@ function exportCsv(apps: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function SaasSecurityPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -198,13 +198,13 @@ export default function SaasSecurityPostureDashboard() {
                   apps.map((app: any, i: number) => (
                   <TableRow key={app.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-violet-300 max-w-[180px] truncate">
-                      {app.app_name ?? "—"}
+                      {app.app_name ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {app.app_category ?? "—"}
+                      {app.app_category ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {app.vendor ?? "—"}
+                      {app.vendor ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskBadge level={app.risk_level ?? "low"} />

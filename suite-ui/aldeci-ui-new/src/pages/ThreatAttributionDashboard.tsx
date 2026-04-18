@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_ATTRIBUTIONS = [
   { id: "attr-001", incident_id: "INC-2026-0041", actor_id: "APT29",        confidence: "confirmed", status: "closed",      analyst: "j.chen",    attribution_date: "2026-04-14" },
@@ -54,7 +54,7 @@ const MOCK_ATTRIBUTIONS = [
 
 const MOCK_STATS = { threat_actors: 47, active_actors: 12, total_attributions: 183, confirmed_attributions: 74 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function ConfidenceBadge({ confidence }: { confidence: string }) {
   const map: Record<string, string> = {
@@ -88,7 +88,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatAttributionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -184,10 +184,10 @@ export default function ThreatAttributionDashboard() {
                   attributions.map((attr: any, i: number) => (
                   <TableRow key={attr.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-rose-300">
-                      {attr.incident_id ?? "—"}
+                      {attr.incident_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300">
-                      {attr.actor_id ?? "—"}
+                      {attr.actor_id ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <ConfidenceBadge confidence={attr.confidence ?? "possible"} />
@@ -196,10 +196,10 @@ export default function ThreatAttributionDashboard() {
                       <StatusBadge status={attr.status ?? "open"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {attr.analyst ?? "—"}
+                      {attr.analyst ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground text-right">
-                      {attr.attribution_date ?? "—"}
+                      {attr.attribution_date ?? "="}
                     </TableCell>
                   </TableRow>
                 )))}

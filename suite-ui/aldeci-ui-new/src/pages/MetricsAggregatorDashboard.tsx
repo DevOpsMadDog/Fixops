@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SOURCES = [
   { id: "SRC-001", name: "SIEM Event Stream",       type: "siem",       last_collected: "30 sec ago",  metric_count: 14823, status: "active" },
@@ -52,7 +52,7 @@ const MOCK_SOURCES = [
 
 const MOCK_STATS = { total_metrics: 64182, sources_active: 7, aggregations_hr: 2840, alerts_triggered: 23 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SourceTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -77,7 +77,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>{status}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function MetricsAggregatorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -170,7 +170,7 @@ export default function MetricsAggregatorDashboard() {
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{src.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium">{src.name}</TableCell>
                     <TableCell className="py-2"><SourceTypeBadge type={src.type ?? src.source_type ?? "unknown"} /></TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{src.last_collected ?? src.last_seen ?? "—"}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{src.last_collected ?? src.last_seen ?? "="}</TableCell>
                     <TableCell className="py-2 text-right font-mono text-xs tabular-nums">
                       {(src.metric_count ?? src.metrics ?? 0).toLocaleString()}
                     </TableCell>

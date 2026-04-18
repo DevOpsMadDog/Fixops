@@ -569,8 +569,7 @@ function DetailDialog({ record, onClose, onApprove, onReject }: DetailDialogProp
                       </div>
                       <p className="text-sm text-foreground/80">{c.body}</p>
                     </div>
-                  ))
-                  )}
+                  ))}
                 </div>
               </div>
             )}
@@ -1109,7 +1108,7 @@ export default function RiskAcceptance() {
             >
               <Card className="overflow-hidden">
                 <ScrollArea>
-                  <table className="w-full text-sm">
+                  <table role="table" className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
                         {["ID", "Finding / Asset", "Severity", "Status", "Expiration", "Approved By", "Framework"].map((h) => (

@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API config ─────────────────────────────────────────────
+// == API config =============================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "default";
 
@@ -32,7 +32,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const WEEKLY_TREND = [
   { week: "Mar 18", critical: 18, high: 62, medium: 241, low: 489 },
@@ -44,10 +44,10 @@ const WEEKLY_TREND = [
 ];
 
 const TREND_ANALYSIS = [
-  { sev: "Critical", pct: -34.2, dir: "down", label: "↓ 34.2%", cls: "text-green-400" },
-  { sev: "High",     pct: -6.5,  dir: "down", label: "↓ 6.5%",  cls: "text-green-400" },
-  { sev: "Medium",   pct: 0.0,   dir: "flat", label: "→ 0.0%",  cls: "text-yellow-400" },
-  { sev: "Low",      pct: -3.5,  dir: "down", label: "↓ 3.5%",  cls: "text-green-400" },
+  { sev: "Critical", pct: -34.2, dir: "down", label: "= 34.2%", cls: "text-green-400" },
+  { sev: "High",     pct: -6.5,  dir: "down", label: "= 6.5%",  cls: "text-green-400" },
+  { sev: "Medium",   pct: 0.0,   dir: "flat", label: "= 0.0%",  cls: "text-yellow-400" },
+  { sev: "Low",      pct: -3.5,  dir: "down", label: "= 3.5%",  cls: "text-green-400" },
 ];
 
 const OVERALL_TREND = { label: "decreasing", cls: "border-green-500/30 text-green-400 bg-green-500/10" };
@@ -75,7 +75,7 @@ const COHORTS = [
   { name: "SAST / Code-level",       vuln_count: 241, avg_age: 8.4,  avg_cvss: 7.8 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -88,7 +88,7 @@ function SeverityBadge({ sev }: { sev: string }) {
 
 const STACKED_MAX = 550; // scale denominator for bar widths
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function VulnTrendDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -167,12 +167,12 @@ export default function VulnTrendDashboard() {
               <BarChart3 className="h-4 w-4 text-blue-400" />
               30-Day Volume Trend (weekly)
             </CardTitle>
-            <CardDescription className="text-xs">Open vuln counts by severity — stacked bars</CardDescription>
+            <CardDescription className="text-xs">Open vuln counts by severity = stacked bars</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {(liveData?.snapshots?.map((s: any) => ({
-                week: s.taken_at ? s.taken_at.slice(0, 10) : "—",
+                week: s.taken_at ? s.taken_at.slice(0, 10) : "=",
                 critical: s.critical ?? 0,
                 high: s.high ?? 0,
                 medium: s.medium ?? 0,
@@ -256,7 +256,7 @@ export default function VulnTrendDashboard() {
                 <div className="flex items-center gap-2">
                   {t.dir === "down" && <TrendingDown className="h-4 w-4 text-green-400" />}
                   {t.dir === "up"   && <TrendingUp   className="h-4 w-4 text-red-400" />}
-                  {t.dir === "flat" && <span className="h-4 w-4 text-yellow-400 text-sm font-bold leading-4">→</span>}
+                  {t.dir === "flat" && <span className="h-4 w-4 text-yellow-400 text-sm font-bold leading-4">=</span>}
                   <span className={cn("text-sm font-bold tabular-nums", t.cls)}>{t.label}</span>
                 </div>
               </div>
@@ -280,7 +280,7 @@ export default function VulnTrendDashboard() {
               {liveData?.breaches?.length ?? SLA_ROWS.filter(r => r.days_remaining < 0 && !r.resolved).length} breached
             </Badge>
           </div>
-          <CardDescription className="text-xs">Days remaining vs SLA deadline — red bars indicate breach</CardDescription>
+          <CardDescription className="text-xs">Days remaining vs SLA deadline = red bars indicate breach</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -313,7 +313,7 @@ export default function VulnTrendDashboard() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.sla_days}d</TableCell>
                       <TableCell className="py-2.5">
                         {row.resolved ? (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">=</span>
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="h-1.5 w-20 rounded-full bg-muted/30 overflow-hidden">
@@ -375,8 +375,7 @@ export default function VulnTrendDashboard() {
                     {c.avg_cvss ?? 0}
                   </TableCell>
                 </TableRow>
-              ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

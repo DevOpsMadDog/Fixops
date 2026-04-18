@@ -67,10 +67,10 @@ export default function AccessAnomalyDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       <div className="flex items-center justify-between">
@@ -80,7 +80,7 @@ export default function AccessAnomalyDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Impossible travel, off-hours access, and privilege anomalies</p>
         </div>
-        <button onClick={() => { setError(null); fetchData(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+        <button onClick={() => { setError(null); fetchData(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm" aria-label="Refresh data">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>

@@ -33,7 +33,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_BLOCKLIST = [
   { ip: "185.220.101.34", reason: "Tor exit node / C2 relay",    threat_type: "c2",        blocked_at: "2026-04-15" },
@@ -64,7 +64,7 @@ const MOCK_STATS = {
   avg_score: 61,
 };
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function ThreatTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -89,7 +89,7 @@ function scoreColor(score: number) {
   return { bar: "bg-green-500", text: "text-green-400" };
 }
 
-// ── Component ────────────────────────────────────────────────
+// == Component ================================================
 
 export default function IPReputationDashboard() {
   const [refreshing, setRefreshing] = useState(false);

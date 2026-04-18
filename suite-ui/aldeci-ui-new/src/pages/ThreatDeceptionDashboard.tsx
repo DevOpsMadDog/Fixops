@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_DECOYS = [
   { id: "dec-001", name: "FakeSQLServer", decoy_type: "database",    ip_address: "10.0.1.100", port: 1433, interaction_count: 47, active: true  },
@@ -52,7 +52,7 @@ const MOCK_DECOYS = [
 
 const MOCK_STATS = { active_decoys: 6, total_interactions: 231, unique_attackers: 14, active_campaigns: 3 };
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function ActiveBadge({ active }: { active: boolean }) {
   return (
@@ -83,7 +83,7 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatDeceptionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -179,16 +179,16 @@ export default function ThreatDeceptionDashboard() {
                   decoys.map((dec: any, i: number) => (
                   <TableRow key={dec.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-indigo-300">
-                      {dec.name ?? "—"}
+                      {dec.name ?? "="}
                     </TableCell>
                     <TableCell className="py-2">
                       <TypeBadge type={dec.decoy_type ?? "unknown"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {dec.ip_address ?? "—"}
+                      {dec.ip_address ?? "="}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-purple-300">
-                      {dec.port ?? "—"}
+                      {dec.port ?? "="}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
                       {dec.interaction_count ?? 0}

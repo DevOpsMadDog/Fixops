@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_endpoints: 3036,
@@ -61,7 +61,7 @@ const MOCK_ENDPOINTS = [
   { id: "ep-012", path: "/api/v1/alerts",             method: "GET",    risk_score: 30, auth_required: true,  status: "documented",    service: "alert-mgr" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function RiskScoreBadge({ score }: { score: number }) {
   const cls =
@@ -101,7 +101,7 @@ function EndpointStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function APIDiscoveryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -179,10 +179,10 @@ export default function APIDiscoveryDashboard() {
               Discovered API Endpoints
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {endpoints.length} shown · {stats.total_endpoints} total
+              {endpoints.length} shown = {stats.total_endpoints} total
             </Badge>
           </div>
-          <CardDescription className="text-xs">All discovered endpoints ranked by risk score — undocumented and unauthenticated endpoints flagged</CardDescription>
+          <CardDescription className="text-xs">All discovered endpoints ranked by risk score = undocumented and unauthenticated endpoints flagged</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

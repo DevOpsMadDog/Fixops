@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data (fallback) ───────────────────────────────────────
+// == Mock data (fallback) =======================================
 
 const MOCK_STATS = {
   total_incidents: 143,
@@ -59,7 +59,7 @@ const MOCK_INCIDENTS = [
   { incident_type: "http_exfil",       severity: "high",     data_classification: "PII",           detection_method: "SIEM",       status: "blocked"    },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function IncidentTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -123,7 +123,7 @@ function IncidentStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function DataExfiltrationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -176,7 +176,7 @@ export default function DataExfiltrationDashboard() {
       {/* Header */}
       <PageHeader
         title="Data Exfiltration"
-        description="Data loss prevention — exfiltration incident detection, classification, and response"
+        description="Data loss prevention = exfiltration incident detection, classification, and response"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />

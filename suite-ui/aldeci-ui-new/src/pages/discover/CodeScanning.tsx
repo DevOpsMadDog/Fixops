@@ -417,8 +417,7 @@ export default function CodeScanning() {
                                             >
                                               {line}
                                             </span>
-                                          ))
-                                          )}
+                                          ))}
                                         </code>
                                       </pre>
                                     </div>
@@ -585,8 +584,7 @@ export default function CodeScanning() {
                     <p className="text-xs text-muted-foreground mb-1">{label}</p>
                     <div className="text-sm font-medium">{value}</div>
                   </div>
-                ))
-                )}
+                ))}
               </div>
               <Separator />
               <div>

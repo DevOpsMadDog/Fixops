@@ -17,7 +17,7 @@ import { motion } from "framer-motion";
 import { GraduationCap, Users, AlertTriangle, CheckCircle, XCircle, Calendar, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_PROGRAMS = [
   { id: "prg-001", program_name: "Annual Security Awareness",     type: "mandatory",  frequency: "annual",    enrolled: 820, completed: 781, pass_rate: 94, status: "active" },
@@ -69,7 +69,7 @@ const MOCK_EVENTS = [
   { id: "evt-006", event_type: "completion",       description: "IT Dept achieved 97% compliance rate",                    affected_users:  62, department: "IT",           event_date: "2026-04-14T16:00:00Z" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -134,7 +134,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function AwarenessProgramDashboard() {
   const [selectedProgram, setSelectedProgram] = useState(MOCK_PROGRAMS[0]);
@@ -226,10 +226,10 @@ export default function AwarenessProgramDashboard() {
         {/* Enrollment Table */}
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
-            Enrollments — <span className="text-blue-400">{selectedProgram.program_name}</span>
+            Enrollments = <span className="text-blue-400">{selectedProgram.program_name}</span>
           </h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                   <th className="text-left pb-2 pr-4">User</th>

@@ -15,7 +15,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -44,7 +44,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const IOC_TYPES = ["All", "IP", "Domain", "Hash", "URL", "Email"];
 
@@ -83,7 +83,7 @@ const RECENT_ADDITIONS = [
   { value: "dead0ff...",             type: "Hash",   source: "VirusTotal",   ts: "5h ago" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 function TypeIcon({ type }: { type: string }) {
   const props = { className: "h-3.5 w-3.5 shrink-0" };
@@ -122,7 +122,7 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function IOCHunter() {
   const [refreshing, setRefreshing] = useState(false);
@@ -154,18 +154,18 @@ export default function IOCHunter() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derive display values — live data takes precedence over mock
-  // API returns ioc_type (not type) and last_seen (not lastSeen) — normalize here
+  // Derive display values = live data takes precedence over mock
+  // API returns ioc_type (not type) and last_seen (not lastSeen) = normalize here
   const rawIocs = Array.isArray(liveData?.iocs) ? liveData.iocs : null;
   const displayIocs = rawIocs
     ? rawIocs.map((ioc: any) => ({
         ...ioc,
         type: ioc.ioc_type ?? ioc.type ?? "IP",
-        lastSeen: ioc.last_seen ?? ioc.lastSeen ?? "—",
+        lastSeen: ioc.last_seen ?? ioc.lastSeen ?? "=",
         confidence: ioc.confidence ?? 50,
         severity: ioc.severity ? ioc.severity.charAt(0).toUpperCase() + ioc.severity.slice(1) : "Medium",
         verdict: ioc.verdict ?? "unknown",
-        source: ioc.source ?? "—",
+        source: ioc.source ?? "=",
       }))
     : IOCS;
   const firstIoc = displayIocs[0] ?? IOCS[0];
@@ -231,7 +231,7 @@ export default function IOCHunter() {
               )))}
             </div>
             <Input
-              placeholder="Enter IP, domain, hash, URL, or email…"
+              placeholder="Enter IP, domain, hash, URL, or email="
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-8 text-xs flex-1 min-w-[220px]"
@@ -353,8 +353,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["Cobalt Strike", "SUNBURST", "Mimikatz"].map((m) => (
                   <Badge key={m} className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{m}</Badge>
-                ))
-              )}
+                ))}
               </div>
             </div>
           </CardContent>

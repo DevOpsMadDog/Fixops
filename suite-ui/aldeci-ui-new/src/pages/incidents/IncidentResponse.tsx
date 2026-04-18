@@ -752,8 +752,7 @@ function ChecklistPanel({ items, currentState }: { items: ChecklistItem[]; curre
                     )}
                   </div>
                 </button>
-              ))
-              )}
+              ))}
             </div>
           </div>
         );
@@ -788,8 +787,7 @@ function FindingsPanel({ findings }: { findings: LinkedFinding[] }) {
           </div>
           <ExternalLink className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground/70 shrink-0 transition-colors" />
         </div>
-      ))
-      )}
+      ))}
     </div>
   );
 }

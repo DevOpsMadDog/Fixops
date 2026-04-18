@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock Data ──────────────────────────────────────────────────
+// == Mock Data ==================================================
 
 const MOCK_ACCOUNTS = [
   { id: "pa-001", username: "svc-db-prod", account_type: "service", system_name: "prod-db-01", department: "Engineering", risk_level: "critical", mfa_enabled: false, last_used: "2026-04-16T09:10:00Z", password_last_rotated: "2025-10-01T00:00:00Z", status: "active", certified: true },
@@ -48,7 +48,7 @@ const MOCK_SESSIONS = [
   { id: "sess-005", username: "dba-oracle", session_type: "database", target_system: "Oracle DB", started_at: "2026-04-16T06:40:00Z", commands_executed: 312, anomaly_score: 88 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const RISK_COLORS: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/30",
@@ -95,12 +95,12 @@ function AnomalyBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-          >
+           aria-label="Refresh data">
             Retry
           </button>
         </div>
@@ -113,7 +113,7 @@ function AnomalyBar({ score }: { score: number }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// == Main Component =============================================
 
 export default function PrivilegedIdentityDashboard() {
   const [certifyTarget, setCertifyTarget] = useState("");
@@ -179,7 +179,7 @@ export default function PrivilegedIdentityDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table role="table" className="w-full text-xs">
               <thead>
                 <tr className="border-b border-zinc-700">
                   {["Username", "Type", "System", "Department", "Risk", "MFA", "Last Used", "Pwd Rotated", "Certified", "Status", ""].map(h => (
@@ -212,7 +212,7 @@ export default function PrivilegedIdentityDashboard() {
                       <td className="py-2 px-2 whitespace-nowrap">
                         <span className={cn("text-[10px]", (needs && !isRotated) ? "text-orange-400 font-semibold" : "text-zinc-500")}>
                           {isRotated ? "Just now" : `${days}d ago`}
-                          {needs && !isRotated && " ⚠"}
+                          {needs && !isRotated && " ="}
                         </span>
                       </td>
                       <td className="py-2 px-2 text-center">

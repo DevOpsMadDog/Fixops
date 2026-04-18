@@ -19,7 +19,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { FlaskConical, AlertTriangle, CheckCircle2, XCircle, Clock, Calendar, BarChart2, ChevronRight } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────
+// == Types ======================================================
 
 interface Control {
   id: string;
@@ -45,7 +45,7 @@ interface TestRun {
   notes?: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CONTROLS: Control[] = [
   {
@@ -132,7 +132,7 @@ const CONTROLS: Control[] = [
   },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const statusColor: Record<Control["status"], string> = {
   effective: "bg-green-900 text-green-300",
@@ -166,7 +166,7 @@ function isDue(next_test: string): boolean {
   return new Date(next_test) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ControlTestingDashboard() {
   const [controls, setControls] = useState(CONTROLS);
@@ -188,7 +188,7 @@ export default function ControlTestingDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => {
-        // live data loaded — components read from API response
+        // live data loaded = components read from API response
         void d;
       })
       .catch(err => setError(err.message || 'Failed to load data'));
@@ -210,10 +210,10 @@ export default function ControlTestingDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
         </div>
       )}
       {/* Header */}
@@ -232,7 +232,7 @@ export default function ControlTestingDashboard() {
 
       {/* Failing controls alert */}
       {failing.length > 0 && (
-        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 space-y-2">
+        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 space-y-2" role="status" aria-live="polite">
           <div className="flex items-center gap-2">
             <XCircle className="w-5 h-5 text-red-400 shrink-0" />
             <span className="text-red-300 font-medium">{failing.length} failing control{failing.length > 1 ? "s" : ""} require immediate attention</span>
@@ -306,7 +306,7 @@ export default function ControlTestingDashboard() {
             <FlaskConical className="w-4 h-4 text-violet-400" /> Controls
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead className="bg-gray-700/50">
                 <tr>
                   {["Control","Type","Framework","Effectiveness","Status","Last Tested","Next Test"].map(h => (
@@ -346,7 +346,7 @@ export default function ControlTestingDashboard() {
                           <span className="text-xs text-gray-300">{c.effectiveness_score}%</span>
                         </div>
                       ) : (
-                        <span className="text-gray-600 text-xs">—</span>
+                        <span className="text-gray-600 text-xs">=</span>
                       )}
                     </td>
                     <td className="px-3 py-3">
@@ -354,13 +354,12 @@ export default function ControlTestingDashboard() {
                         {c.status.replace(/_/g," ")}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-gray-400 text-xs">{c.last_tested || "—"}</td>
+                    <td className="px-3 py-3 text-gray-400 text-xs">{c.last_tested || "="}</td>
                     <td className={`px-3 py-3 text-xs ${isDue(c.next_test) ? "text-yellow-400 font-medium" : "text-gray-400"}`}>
                       {c.next_test}
                     </td>
                   </tr>
-                ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

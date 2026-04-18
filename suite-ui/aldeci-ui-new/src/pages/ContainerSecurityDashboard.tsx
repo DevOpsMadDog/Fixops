@@ -8,7 +8,7 @@
  *   4. Runtime alerts: anomaly type, container, description, timestamp
  *   5. K8s context panel: namespace, pod, node
  *
- * API: /api/v1/containers (POST endpoints — image analysis, policies, drift, CIS benchmark)
+ * API: /api/v1/containers (POST endpoints = image analysis, policies, drift, CIS benchmark)
  * Inventory uses mock data fallback as API has no GET /containers list endpoint.
  */
 
@@ -48,7 +48,7 @@ async function apiFetch(path: string, method = "GET", body?: unknown) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const CONTAINERS = [
   { id: "cnt-001", name: "api-gateway",       image: "nginx:1.24-alpine",          status: "running", risk_score: 22, vuln_count: 2,  privileged: false, namespace: "prod",     node: "node-01" },
@@ -60,7 +60,7 @@ const CONTAINERS = [
 ];
 
 const VULNERABILITIES = [
-  { id: "CVE-2024-21626", container: "legacy-scanner",  severity: "critical", fix_available: true,  description: "runc container escape — container breakout" },
+  { id: "CVE-2024-21626", container: "legacy-scanner",  severity: "critical", fix_available: true,  description: "runc container escape = container breakout" },
   { id: "CVE-2023-44487", container: "api-gateway",     severity: "high",     fix_available: true,  description: "HTTP/2 rapid reset DDoS vulnerability" },
   { id: "CVE-2024-3094",  container: "legacy-scanner",  severity: "critical", fix_available: true,  description: "XZ utils backdoor in liblzma" },
   { id: "CVE-2023-46234", container: "brain-pipeline",  severity: "high",     fix_available: false, description: "Node.js crypto module timing attack" },
@@ -84,7 +84,7 @@ const K8S_CONTEXTS = [
   { namespace: "ai",       pod_count: 3,  node: "node-03",          status: "degraded" },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────
+// == Helpers ==================================================
 
 function ContainerStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -146,7 +146,7 @@ function RiskBar({ score, idx }: { score: number; idx: number }) {
   );
 }
 
-// ── Component ────────────────────────────────────────────────
+// == Component ================================================
 
 export default function ContainerSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -175,13 +175,13 @@ export default function ContainerSecurityDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
-  // KPI values — live posture with mock fallback
+  // KPI values = live posture with mock fallback
   const totalContainers      = liveData?.posture?.total_checks      ?? CONTAINERS.length;
   const vulnerable           = liveData?.posture?.failed_checks     ?? CONTAINERS.filter((c) => c.vuln_count > 0).length;
   const criticalVulns        = liveData?.posture?.critical_findings  ?? VULNERABILITIES.filter((v) => v.severity === "critical").length;
   const privilegedContainers = liveData?.posture?.high_findings      ?? CONTAINERS.filter((c) => c.privileged).length;
 
-  // Findings — map live findings to display shape, fall back to mock
+  // Findings = map live findings to display shape, fall back to mock
   const displayVulns: typeof VULNERABILITIES = liveData?.findings?.findings?.length
     ? liveData.findings.findings.slice(0, 8).map((f: any) => ({
         id:            f.check_id ?? f.id ?? "FINDING",
@@ -448,7 +448,7 @@ export default function ContainerSecurityDashboard() {
                         : <Badge className="text-[10px] border border-slate-500/30 text-slate-400 bg-slate-500/10">Optional</Badge>
                       }
                     </TableCell>
-                    <TableCell className="py-2 text-center text-xs tabular-nums text-muted-foreground">{p.max_image_size_mb ?? "—"}</TableCell>
+                    <TableCell className="py-2 text-center text-xs tabular-nums text-muted-foreground">{p.max_image_size_mb ?? "="}</TableCell>
                   </TableRow>
                 )))}
               </TableBody>

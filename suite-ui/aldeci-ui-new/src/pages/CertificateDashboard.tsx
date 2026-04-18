@@ -5,7 +5,7 @@
  * API: GET /api/v1/certificates/stats, /api/v1/certificates/expiring
  *
  * KPIs: Total Certs, Active, Expiring (30d), Expired
- * Table: Expiring certs — domain, type, issuer, expiry date, auto-renew badge
+ * Table: Expiring certs = domain, type, issuer, expiry date, auto-renew badge
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_STATS = {
   total: 89,
@@ -55,7 +55,7 @@ const MOCK_EXPIRING = [
   { id: "CERT-007", domain: "ci-deploy-client",        type: "client",       issuer: "Internal CA",     expiry_date: "2026-05-28", auto_renew: false },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function CertTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -85,7 +85,7 @@ function daysUntil(dateStr: string) {
   return diff;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function CertificateDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -147,8 +147,7 @@ export default function CertificateDashboard() {
             <p className="text-2xl font-bold tabular-nums">{count as number}</p>
             <p className="text-[11px] text-muted-foreground mt-1 capitalize">{type.replace(/_/g, " ")}</p>
           </Card>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Expiring Certs Table */}

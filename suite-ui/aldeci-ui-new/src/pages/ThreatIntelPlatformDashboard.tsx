@@ -1,12 +1,12 @@
 /**
  * Threat Intel Platform Dashboard
  *
- * Unified threat intelligence — sources, indicators, reports, check form.
+ * Unified threat intelligence = sources, indicators, reports, check form.
  *   1. KPIs: Total Indicators, Active Sources, Reports Published, Relationships Mapped
  *   2. Source feed table (source_name, type, reliability, last_updated, total_indicators, status)
- *   3. Indicator search → GET /api/v1/tip/indicators?query=VALUE
+ *   3. Indicator search = GET /api/v1/tip/indicators?query=VALUE
  *   4. Indicator table (type, value, severity, threat_category, confidence, TLP, first_seen)
- *   5. Check Indicator form → POST /api/v1/tip/check
+ *   5. Check Indicator form = POST /api/v1/tip/check
  *   6. Intel reports list (report_name, type, TLP, published_date)
  *
  * Route: /threat-intel-platform
@@ -43,7 +43,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_SOURCES = [
   { id: "SRC-001", source_name: "MITRE ATT&CK",     source_type: "framework",   reliability_score: 0.98, last_updated: "10 min ago", total_indicators: 14820, status: "active" },
@@ -67,12 +67,12 @@ const MOCK_INDICATORS = [
 
 const MOCK_REPORTS = [
   { id: "RPT-001", report_name: "APT29 Campaign Analysis Q1 2026", report_type: "strategic",  tlp_level: "RED",   published_date: "2026-04-14" },
-  { id: "RPT-002", report_name: "Ransomware Wave — Healthcare Sector", report_type: "tactical", tlp_level: "AMBER", published_date: "2026-04-12" },
+  { id: "RPT-002", report_name: "Ransomware Wave = Healthcare Sector", report_type: "tactical", tlp_level: "AMBER", published_date: "2026-04-12" },
   { id: "RPT-003", report_name: "Phishing Kit Resurgence 2026",   report_type: "operational", tlp_level: "GREEN", published_date: "2026-04-10" },
   { id: "RPT-004", report_name: "Zero-Day Advisory CVE-2026-1234", report_type: "technical",  tlp_level: "RED",   published_date: "2026-04-09" },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function SourceTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -134,7 +134,7 @@ function ReportTypeBadge({ type }: { type: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[type] ?? "border-border")}>{type}</Badge>;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ThreatIntelPlatformDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
@@ -310,7 +310,7 @@ export default function ThreatIntelPlatformDashboard() {
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="Search indicators… (IP, domain, hash, URL)"
+              placeholder="Search indicators= (IP, domain, hash, URL)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -386,7 +386,7 @@ export default function ThreatIntelPlatformDashboard() {
                 <option value="email">Email</option>
               </select>
               <Input
-                placeholder="Enter value to check…"
+                placeholder="Enter value to check="
                 value={checkValue}
                 onChange={(e) => setCheckValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCheck()}
@@ -409,14 +409,14 @@ export default function ThreatIntelPlatformDashboard() {
               >
                 {checkResult.known_bad ? (
                   <div className="space-y-1">
-                    <div className="font-bold text-red-400">KNOWN BAD — {checkResult.value ?? checkValue}</div>
+                    <div className="font-bold text-red-400" role="status" aria-live="polite">KNOWN BAD = {checkResult.value ?? checkValue}</div>
                     {checkResult.severity    && <div>Severity: <span className="font-semibold">{checkResult.severity}</span></div>}
                     {checkResult.threat_category && <div>Category: {checkResult.threat_category.replace(/_/g, " ")}</div>}
                     {checkResult.confidence  && <div>Confidence: {Math.round(checkResult.confidence * 100)}%</div>}
                     {checkResult.tlp_level   && <div>TLP: {checkResult.tlp_level}</div>}
                   </div>
                 ) : (
-                  <div className="text-green-400 font-medium">Not found in threat intel database — {checkValue}</div>
+                  <div className="text-green-400 font-medium">Not found in threat intel database = {checkValue}</div>
                 )}
               </motion.div>
             )}

@@ -1,5 +1,5 @@
 /**
- * Audit Log Viewer — Immutable audit trail for compliance, forensics, and access review
+ * Audit Log Viewer = Immutable audit trail for compliance, forensics, and access review
  *
  * Design:
  * - Header: "Audit Log" with subtitle
@@ -9,7 +9,7 @@
  * - Audit events table (20 rows, paginated)
  * - Event detail slide-in panel on row click
  *
- * API: GET /api/v1/audit/events?limit=20 — falls back to mock data.
+ * API: GET /api/v1/audit/events?limit=20 = falls back to mock data.
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
@@ -53,9 +53,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Types
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 type Severity = "critical" | "high" | "medium" | "low" | "info";
 type EventType =
@@ -95,9 +95,9 @@ interface AnomalyAlert {
   time: string;
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Mock Data
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const MOCK_EVENTS: AuditEvent[] = [
   {
@@ -240,7 +240,7 @@ const MOCK_EVENTS: AuditEvent[] = [
     request_body: '{"format": "csv", "filters": {"severity": "all"}}',
     response_status: 200,
     geo_location: "US / Austin",
-    new_value: "Exported 50MB — 42,318 findings",
+    new_value: "Exported 50MB = 42,318 findings",
   },
   {
     id: "EVT-009",
@@ -475,7 +475,7 @@ const ANOMALY_ALERTS: AnomalyAlert[] = [
     level: "critical",
     message: "Admin action outside business hours",
     detail:
-      "Role escalation performed by bob@corp.com at 02:47 UTC — outside normal 08:00-18:00 window",
+      "Role escalation performed by bob@corp.com at 02:47 UTC = outside normal 08:00-18:00 window",
     time: "02:47 UTC",
   },
   {
@@ -483,14 +483,14 @@ const ANOMALY_ALERTS: AnomalyAlert[] = [
     level: "warning",
     message: "Abnormal data export volume",
     detail:
-      "carol@corp.com exported 50MB — 10x larger than 30-day baseline of 4.8MB",
+      "carol@corp.com exported 50MB = 10x larger than 30-day baseline of 4.8MB",
     time: "09:05 UTC",
   },
 ];
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Helpers
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const SEVERITY_BADGE: Record<
   Severity,
@@ -531,9 +531,9 @@ function formatTimestamp(ts: string): string {
   });
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Event Detail Panel
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 interface EventDetailPanelProps {
   event: AuditEvent | null;
@@ -577,9 +577,7 @@ function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+               aria-label="Close"><X className="w-5 h-5" /></button>
             </div>
 
             {/* Panel content */}
@@ -664,7 +662,7 @@ function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500">Change Diff</p>
                   {event.previous_value && (
-                    <div className="bg-red-900/20 border border-red-700/30 rounded p-3">
+                    <div className="bg-red-900/20 border border-red-700/30 rounded p-3" role="status" aria-live="polite">
                       <p className="text-[10px] text-red-400 mb-1 uppercase font-semibold">
                         Previous
                       </p>
@@ -701,9 +699,9 @@ function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
   );
 }
 
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 // Main Page
-// ══════════════════════════════════════════════════════════════
+// ==============================================================
 
 const PAGE_SIZE = 20;
 
@@ -821,7 +819,7 @@ export default function AuditLogPage() {
     a.click();
     URL.revokeObjectURL(url);}, [filtered]);
 
-  // KPI derivation — prefer live stats, fall back to mock-derived counts
+  // KPI derivation = prefer live stats, fall back to mock-derived counts
   const kpis = {
     eventsToday: liveStats?.eventsTotal ?? 12847,
     failedAuth: liveStats?.failedAuth ?? (filtered.filter(
@@ -889,8 +887,7 @@ export default function AuditLogPage() {
               </p>
             </div>
           </motion.div>
-        ))
-        )}
+        ))}
       </div>
 
       {/* KPI Cards */}
@@ -1164,7 +1161,7 @@ export default function AuditLogPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700/50">
               <span className="text-xs text-gray-500">
-                Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}=
                 {Math.min(currentPage * PAGE_SIZE, filtered.length)} of{" "}
                 {filtered.length}
               </span>

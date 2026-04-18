@@ -19,7 +19,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// == Types =====================================================================
 
 type IncidentType = "ransomware" | "data-breach" | "insider-threat" | "ddos" | "supply-chain" | "phishing" | "account-compromise";
 type Severity = "critical" | "high" | "medium" | "low";
@@ -44,7 +44,7 @@ interface CategoryBreakdown {
   color: string;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// == Mock data =================================================================
 
 const MOCK_INCIDENTS: IncidentCost[] = [
   {
@@ -102,7 +102,7 @@ const BENCHMARKS: Record<IncidentType, { industry_avg: number; status: Benchmark
   "account-compromise": { industry_avg: 74000,   status: "below" },
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// == Helpers ===================================================================
 
 function fmt(n: number): string {
   if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
@@ -155,7 +155,7 @@ function buildCategoryBreakdown(): CategoryBreakdown[] {
 const CATEGORY_BREAKDOWN = buildCategoryBreakdown();
 const MAX_CAT = CATEGORY_BREAKDOWN[0]?.total ?? 1;
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// == Component =================================================================
 
 export default function IncidentCostsDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("ic-001");
@@ -201,7 +201,7 @@ export default function IncidentCostsDashboard() {
             <DollarSign className="w-6 h-6 text-green-400" />
             Incident Costs
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Financial impact tracking — YTD 2026</p>
+          <p className="text-gray-400 text-sm mt-1">Financial impact tracking = YTD 2026</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -210,9 +210,9 @@ export default function IncidentCostsDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
         </div>
       )}
 
@@ -232,14 +232,14 @@ export default function IncidentCostsDashboard() {
       </div>
 
       {/* Most expensive highlight */}
-      <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4 flex items-center gap-4">
+      <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4 flex items-center gap-4" role="status" aria-live="polite">
         <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-red-300 font-semibold text-sm">{mostExpensive.incident_name}</div>
+          <div className="text-red-300 font-semibold text-sm" role="status" aria-live="polite">{mostExpensive.incident_name}</div>
           <div className="text-gray-400 text-xs mt-0.5">Most expensive incident YTD</div>
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="text-red-400 font-bold text-lg">{fmt(mostExpensive.actual_cost ?? mostExpensive.estimated_cost)}</div>
+          <div className="text-red-400 font-bold text-lg" role="status" aria-live="polite">{fmt(mostExpensive.actual_cost ?? mostExpensive.estimated_cost)}</div>
           <div className="text-gray-500 text-xs">{mostExpensive.duration_hours}h duration</div>
         </div>
       </div>
@@ -251,7 +251,7 @@ export default function IncidentCostsDashboard() {
             <h2 className="font-semibold text-white">Cost Tracker</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table role="table" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
                   <th className="text-left p-3">Incident</th>

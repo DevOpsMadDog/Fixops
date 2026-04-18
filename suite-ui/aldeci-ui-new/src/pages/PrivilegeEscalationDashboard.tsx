@@ -5,7 +5,7 @@
  * API: GET /api/v1/privilege-escalation/stats, /api/v1/privilege-escalation/events
  *
  * KPIs: Total Events, Anomalies Detected, Blocked Attempts, Alert Rate
- * Table: Recent events — user, from_role → to_role, method, anomaly score, timestamp
+ * Table: Recent events = user, from_role = to_role, method, anomaly score, timestamp
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const MOCK_STATS = {
   total_events: 342,
@@ -56,7 +56,7 @@ const MOCK_EVENTS = [
   { id: "EVT-010", user: "backup-runner", from_role: "backup",      to_role: "storage-admin",  method: "iam_assume",  anomaly_score: 0.18, timestamp: "12:30:44", anomaly: false },
 ];
 
-// ── Badge helpers ──────────────────────────────────────────────
+// == Badge helpers ==============================================
 
 function MethodBadge({ method }: { method: string }) {
   const map: Record<string, string> = {
@@ -83,7 +83,7 @@ function AnomalyScore({ score, isAnomaly }: { score: number; isAnomaly: boolean 
   );
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function PrivilegeEscalationDashboard() {
   const [refreshing, setRefreshing] = useState(false);

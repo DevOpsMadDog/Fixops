@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ── API helpers ────────────────────────────────────────────────
+// == API helpers ================================================
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ── Mock data ──────────────────────────────────────────────────
+// == Mock data ==================================================
 
 const PROFILES = [
   { name: "CIS Ubuntu 22.04 L2",     standard: "CIS",          target: "Linux",      version: "2.0.0", last_assessed: "2026-04-15", score: 72 },
@@ -123,7 +123,7 @@ const SCORE_BY_STANDARD = [
   { standard: "Custom",      score: 61.0, count: 0 },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────
+// == Helpers ====================================================
 
 const STANDARD_COLORS: Record<string, string> = {
   "CIS":          "border-blue-500/30 text-blue-400 bg-blue-500/10",
@@ -186,7 +186,7 @@ function StatusIcon({ status }: { status: string }) {
   return <Minus className="h-4 w-4 text-muted-foreground" />;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// == Component ==================================================
 
 export default function ConfigBenchmarkDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -286,7 +286,7 @@ export default function ConfigBenchmarkDashboard() {
                       <Badge className={cn("text-[10px] border", TARGET_COLORS[p.target ?? p.target_type] ?? "border-border text-muted-foreground")}>{p.target ?? p.target_type}</Badge>
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground font-mono">{p.version}</TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{p.last_assessed ?? p.created_at ?? "—"}</TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{p.last_assessed ?? p.created_at ?? "="}</TableCell>
                     <TableCell className="py-2.5"><ScoreBar score={p.score ?? 0} /></TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Assess Now</Button>
@@ -301,7 +301,7 @@ export default function ConfigBenchmarkDashboard() {
 
       {/* Latest Assessment Results + Score by Standard */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Check Results — spans 2 cols */}
+        {/* Check Results = spans 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -315,7 +315,7 @@ export default function ConfigBenchmarkDashboard() {
                 <AlertTriangle className="h-3 w-3 text-amber-400" /> Warn
               </div>
             </div>
-            <CardDescription className="text-xs">CIS Ubuntu 22.04 L2 — Apr 15 2026</CardDescription>
+            <CardDescription className="text-xs">CIS Ubuntu 22.04 L2 = Apr 15 2026</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -401,7 +401,7 @@ export default function ConfigBenchmarkDashboard() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-400">
               <XCircle className="h-4 w-4" />
-              Failed Checks — Remediation Guide
+              Failed Checks = Remediation Guide
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{FAILED_CHECKS.length} failed</Badge>
           </div>
