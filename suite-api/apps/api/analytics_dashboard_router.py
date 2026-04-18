@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from core.cache_layer import cache_endpoint, TTL_STATS
 
 from core.vulnerability_analytics import (
     ScannerEffectiveness,
@@ -169,6 +170,7 @@ async def get_top_recurring(
 
 
 @router.get("/executive-summary")
+@cache_endpoint(ttl=TTL_STATS)
 async def get_executive_summary(
     org_id: str = Query("default", description="Organisation identifier"),
 ) -> Dict[str, Any]:

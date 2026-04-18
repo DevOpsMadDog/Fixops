@@ -1063,4 +1063,27 @@ async def db_stats() -> Dict[str, Any]:
     }
 
 
+@router.get("/logs/recent", summary="Recent structured request logs")
+async def system_logs_recent(limit: int = 100) -> Dict[str, Any]:
+    """Return the last N structured request/response log entries from the in-memory ring buffer.
+
+    Fields per entry: request_id, correlation_id, org_id, method, path,
+    status_code, duration_ms, req_size, resp_size, level, ts.
+
+    Args:
+        limit: Number of entries to return (1-500, default 100).
+
+    Returns:
+        JSON with ``logs`` list and ``count``.
+    """
+    limit = max(1, min(limit, 500))
+    try:
+        from apps.api.detailed_logging import _log_ring, _ring_lock
+
+        with _ring_lock:
+            entries = list(_log_ring)[:limit]
+        return {"logs": entries, "count": len(entries)}
+    except ImportError:
+        return {"logs": [], "count": 0, "note": "detailed_logging not available"}
+
 __all__ = ["router"]

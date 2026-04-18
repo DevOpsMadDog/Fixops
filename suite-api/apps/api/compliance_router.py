@@ -31,6 +31,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from apps.api.auth_deps import api_key_auth
+from core.cache_layer import cache_endpoint, TTL_COMPLIANCE
 
 _logger = logging.getLogger(__name__)
 
@@ -105,7 +106,8 @@ class POAMStatusUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/status", dependencies=[Depends(api_key_auth)])
-def get_overall_status():
+@cache_endpoint(ttl=TTL_COMPLIANCE)
+async def get_overall_status():
     """Return compliance status across all 7 frameworks."""
     return _get_engine().get_overall_status()
 

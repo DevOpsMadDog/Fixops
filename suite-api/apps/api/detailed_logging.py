@@ -399,6 +399,8 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
                 "client_ip": client_ip,
                 "user_agent": user_agent,
                 "correlation_id": corr_id,
+                "request_id": request_id,
+                "org_id": org_id,
                 "req_headers": req_headers,
                 "req_body": req_body_raw,
                 "resp_headers": resp_headers,
@@ -410,6 +412,23 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
                 "level": level,
             }
             store.insert(record)
+
+            # Structured observability log — always emitted via structlog
+            _log_fn = _slog.warning if duration_ms > SLOW_REQUEST_MS else _slog.info
+            _log_fn(
+                "request.completed",
+                request_id=request_id,
+                correlation_id=corr_id,
+                org_id=org_id,
+                method=method,
+                path=path,
+                status_code=status_code,
+                duration_ms=duration_ms,
+                req_size=req_size,
+                resp_size=resp_size,
+                slow=duration_ms > SLOW_REQUEST_MS,
+            )
+
             return new_response
 
         except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
@@ -427,6 +446,8 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
                 "client_ip": client_ip,
                 "user_agent": user_agent,
                 "correlation_id": corr_id,
+                "request_id": request_id,
+                "org_id": org_id,
                 "req_headers": req_headers,
                 "req_body": req_body_raw,
                 "resp_headers": {},
@@ -441,6 +462,17 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
                 store.insert(record)
             except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
+            _slog.error(
+                "request.error",
+                request_id=request_id,
+                correlation_id=corr_id,
+                org_id=org_id,
+                method=method,
+                path=path,
+                duration_ms=duration_ms,
+                error_type=error_type,
+                error=error_msg,
+            )
             raise
 
 

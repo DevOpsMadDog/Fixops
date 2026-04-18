@@ -572,3 +572,115 @@ try:
 
 except ImportError:
     pass  # core.audit_log or core.rbac not yet on path
+
+
+# ---------------------------------------------------------------------------
+# Write-operation audit trail  (SOC2 CC7.2)
+# ---------------------------------------------------------------------------
+
+try:
+    from core.write_audit_middleware import get_audit_trail_db as _get_trail_db
+
+    _trail_db = _get_trail_db()
+
+    class _TrailQueryParams(BaseModel):
+        """Query parameters for the write-audit trail endpoint."""
+
+        method: Optional[str] = Field(None, description="Filter by HTTP method (POST/PUT/PATCH/DELETE)")
+        path_prefix: Optional[str] = Field(None, description="Filter by path prefix, e.g. /api/v1/findings")
+        actor_id: Optional[str] = Field(None, description="Filter by actor identifier")
+        since: Optional[str] = Field(None, description="ISO-8601 start timestamp (inclusive)")
+        until: Optional[str] = Field(None, description="ISO-8601 end timestamp (inclusive)")
+        status_code: Optional[int] = Field(None, description="Filter by HTTP status code")
+        limit: int = Field(100, ge=1, le=1000, description="Max results to return")
+        offset: int = Field(0, ge=0, description="Pagination offset")
+
+    @router.get(
+        "/trail",
+        summary="Query write-operation audit trail (SOC2 CC7.2)",
+        response_model=Dict[str, Any],
+    )
+    async def get_audit_trail(
+        org_id: str = Depends(get_org_id),
+        method: Optional[str] = Query(None, description="HTTP method filter (POST/PUT/PATCH/DELETE)"),
+        path_prefix: Optional[str] = Query(None, description="Path prefix filter"),
+        actor_id: Optional[str] = Query(None, description="Actor identifier filter"),
+        since: Optional[str] = Query(None, description="ISO-8601 start timestamp"),
+        until: Optional[str] = Query(None, description="ISO-8601 end timestamp"),
+        status_code: Optional[int] = Query(None, description="HTTP status code filter"),
+        limit: int = Query(100, ge=1, le=1000),
+        offset: int = Query(0, ge=0),
+    ) -> Dict[str, Any]:
+        """
+        Query the write-operation audit trail.
+
+        Returns all POST/PUT/PATCH/DELETE requests captured by the
+        WriteAuditMiddleware, scoped to the caller's org_id.
+
+        Each entry includes: timestamp, method, path, actor_id, org_id,
+        status_code, body_hash (SHA-256, never raw body), duration_ms,
+        client_ip.
+
+        SOC2 CC7.2: Provides evidence of all state-changing API operations
+        for security monitoring and anomaly detection.
+        """
+        # Validate method filter if provided
+        valid_methods = {"POST", "PUT", "PATCH", "DELETE"}
+        if method and method.upper() not in valid_methods:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid method filter '{method}'. Must be one of: {sorted(valid_methods)}",
+            )
+
+        entries = _trail_db.query(
+            org_id=org_id,
+            method=method.upper() if method else None,
+            path_prefix=path_prefix,
+            actor_id=actor_id,
+            since=since,
+            until=until,
+            status_code=status_code,
+            limit=limit,
+            offset=offset,
+        )
+        total = _trail_db.count(org_id=org_id)
+
+        return {
+            "items": entries,
+            "total": total,
+            "returned": len(entries),
+            "limit": limit,
+            "offset": offset,
+            "filters": {
+                "org_id": org_id,
+                "method": method,
+                "path_prefix": path_prefix,
+                "actor_id": actor_id,
+                "since": since,
+                "until": until,
+                "status_code": status_code,
+            },
+            "compliance": "SOC2 CC7.2",
+        }
+
+    @router.get(
+        "/trail/stats",
+        summary="Write-audit trail statistics",
+        response_model=Dict[str, Any],
+    )
+    async def get_audit_trail_stats(
+        org_id: str = Depends(get_org_id),
+    ) -> Dict[str, Any]:
+        """
+        Return aggregated statistics for the write-operation audit trail.
+
+        Includes: total write count, error rate, method breakdown, top paths.
+        Useful for SOC dashboards and anomaly alerting.
+        """
+        return _trail_db.stats(org_id=org_id)
+
+except ImportError as _wam_err:
+    import logging as _logging
+    _logging.getLogger(__name__).warning(
+        "WriteAuditMiddleware not available — /audit/trail endpoints disabled: %s", _wam_err
+    )

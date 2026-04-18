@@ -368,3 +368,145 @@ class TestRateLimitStats:
         mw.reset_key("key:key-reset-test")
         resp2 = await mw.dispatch(req, call_next)
         assert resp2.status_code == 200
+
+    def test_get_config_exposes_read_write_limits(self):
+        mw = RateLimitMiddleware(
+            app=MagicMock(),
+            requests_per_minute=100,
+            read_requests_per_minute=200,
+            write_requests_per_minute=50,
+            burst=20,
+        )
+        config = mw.get_config()
+        assert config["read_requests_per_minute"] == 200
+        assert config["write_requests_per_minute"] == 50
+        assert config["requests_per_minute"] == 100
+
+
+# ---------------------------------------------------------------------------
+# Per-method rate limiting tests
+# ---------------------------------------------------------------------------
+
+
+def _make_request_with_method(
+    method: str = "GET",
+    path: str = "/api/v1/findings",
+    api_key: Optional[str] = "key-method-test",
+    client_ip: str = "127.0.0.1",
+) -> MagicMock:
+    """Build a mock Request that includes an HTTP method."""
+    req = _make_request(path=path, api_key=api_key, client_ip=client_ip)
+    req.method = method
+    return req
+
+
+def _make_method_middleware(
+    read_rpm: int = 4,
+    write_rpm: int = 2,
+    default_rpm: int = 3,
+    burst: int = 0,
+) -> RateLimitMiddleware:
+    return RateLimitMiddleware(
+        app=MagicMock(),
+        requests_per_minute=default_rpm,
+        read_requests_per_minute=read_rpm,
+        write_requests_per_minute=write_rpm,
+        burst=burst,
+    )
+
+
+class TestPerMethodRateLimiting:
+    """Tests for HTTP-method-based token bucket limits."""
+
+    @pytest.mark.asyncio
+    async def test_get_uses_read_limit(self):
+        """GET requests are capped at read_requests_per_minute."""
+        mw = _make_method_middleware(read_rpm=3, write_rpm=1, burst=0)
+        req = _make_request_with_method("GET", api_key="key-get-read")
+        call_next = AsyncMock(return_value=MagicMock(headers={}, status_code=200))
+        # 3 GETs should pass (read_rpm=3)
+        for _ in range(3):
+            r = await mw.dispatch(req, call_next)
+            assert r.status_code == 200
+        # 4th must 429
+        r = await mw.dispatch(req, call_next)
+        assert r.status_code == 429
+
+    @pytest.mark.asyncio
+    async def test_post_uses_write_limit(self):
+        """POST requests are capped at write_requests_per_minute."""
+        mw = _make_method_middleware(read_rpm=10, write_rpm=2, burst=0)
+        req = _make_request_with_method("POST", api_key="key-post-write")
+        call_next = AsyncMock(return_value=MagicMock(headers={}, status_code=200))
+        for _ in range(2):
+            r = await mw.dispatch(req, call_next)
+            assert r.status_code == 200
+        r = await mw.dispatch(req, call_next)
+        assert r.status_code == 429
+
+    @pytest.mark.asyncio
+    async def test_read_and_write_buckets_are_independent(self):
+        """Exhausting POST bucket must not affect GET bucket for the same key."""
+        mw = _make_method_middleware(read_rpm=5, write_rpm=2, burst=0)
+        get_req = _make_request_with_method("GET", api_key="key-indep")
+        post_req = _make_request_with_method("POST", api_key="key-indep")
+        call_next = AsyncMock(return_value=MagicMock(headers={}, status_code=200))
+
+        # Exhaust POST bucket
+        await mw.dispatch(post_req, call_next)
+        await mw.dispatch(post_req, call_next)
+        r_post = await mw.dispatch(post_req, call_next)
+        assert r_post.status_code == 429
+
+        # GET bucket still has tokens
+        r_get = await mw.dispatch(get_req, call_next)
+        assert r_get.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_delete_uses_write_limit(self):
+        """DELETE is treated as a write method."""
+        mw = _make_method_middleware(read_rpm=10, write_rpm=1, burst=0)
+        req = _make_request_with_method("DELETE", api_key="key-delete")
+        call_next = AsyncMock(return_value=MagicMock(headers={}, status_code=200))
+        r = await mw.dispatch(req, call_next)
+        assert r.status_code == 200
+        r = await mw.dispatch(req, call_next)
+        assert r.status_code == 429
+
+    @pytest.mark.asyncio
+    async def test_x_ratelimit_limit_header_reflects_method_tier(self):
+        """X-RateLimit-Limit header must match the method-tier limit, not a flat value."""
+        mw = _make_method_middleware(read_rpm=200, write_rpm=50, burst=0)
+        get_req = _make_request_with_method("GET", api_key="key-header-get")
+        post_req = _make_request_with_method("POST", api_key="key-header-post")
+        mock_resp = MagicMock(headers={}, status_code=200)
+        call_next = AsyncMock(return_value=mock_resp)
+
+        await mw.dispatch(get_req, call_next)
+        assert mock_resp.headers.get("X-RateLimit-Limit") == "200"
+
+        mock_resp2 = MagicMock(headers={}, status_code=200)
+        call_next2 = AsyncMock(return_value=mock_resp2)
+        await mw.dispatch(post_req, call_next2)
+        assert mock_resp2.headers.get("X-RateLimit-Limit") == "50"
+
+    @pytest.mark.asyncio
+    async def test_put_and_patch_use_write_limit(self):
+        """PUT and PATCH are write methods and share write bucket."""
+        mw = _make_method_middleware(read_rpm=10, write_rpm=1, burst=0)
+        put_req = _make_request_with_method("PUT", api_key="key-put")
+        call_next = AsyncMock(return_value=MagicMock(headers={}, status_code=200))
+        r = await mw.dispatch(put_req, call_next)
+        assert r.status_code == 200
+        r = await mw.dispatch(put_req, call_next)
+        assert r.status_code == 429
+
+    @pytest.mark.asyncio
+    async def test_env_var_defaults_apply(self):
+        """RateLimitMiddleware with no explicit params reads module-level defaults."""
+        import apps.api.rate_limit_middleware as mod
+        mw = RateLimitMiddleware(app=MagicMock())
+        config = mw.get_config()
+        assert config["read_requests_per_minute"] == mod._READ_RPM
+        assert config["write_requests_per_minute"] == mod._WRITE_RPM
+        assert config["requests_per_minute"] == mod._DEFAULT_RPM
