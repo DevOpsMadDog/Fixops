@@ -75,6 +75,9 @@ def get(path: str, params: dict = None, timeout: int = 15) -> Tuple[int, any]:
     time.sleep(DELAY)
     try:
         r = session.get(f"{BASE_URL}{path}", params=params, timeout=timeout)
+        if r.status_code == 429:
+            time.sleep(2)
+            r = session.get(f"{BASE_URL}{path}", params=params, timeout=timeout)
         try:
             body = r.json()
         except Exception:
@@ -88,6 +91,9 @@ def post(path: str, payload: dict = None, timeout: int = 15) -> Tuple[int, any]:
     time.sleep(DELAY)
     try:
         r = session.post(f"{BASE_URL}{path}", json=payload or {}, timeout=timeout)
+        if r.status_code == 429:
+            time.sleep(2)
+            r = session.post(f"{BASE_URL}{path}", json=payload or {}, timeout=timeout)
         try:
             body = r.json()
         except Exception:

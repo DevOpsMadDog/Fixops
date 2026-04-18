@@ -149,6 +149,24 @@ def _api(method: str, path: str, body: dict | None = None, *, timeout: int = 10)
             except json.JSONDecodeError:
                 return resp.status, {"raw": raw.decode(errors="replace")}
     except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            time.sleep(2)
+            req2 = urllib.request.Request(url, data=data, headers=headers, method=method)
+            try:
+                with urllib.request.urlopen(req2, timeout=timeout) as resp:
+                    raw = resp.read()
+                    try:
+                        return resp.status, json.loads(raw)
+                    except json.JSONDecodeError:
+                        return resp.status, {"raw": raw.decode(errors="replace")}
+            except urllib.error.HTTPError as exc2:
+                try:
+                    err_body = json.loads(exc2.read().decode(errors="replace"))
+                except Exception:
+                    err_body = {"detail": str(exc2)}
+                return exc2.code, err_body
+            except Exception as exc2:
+                return 0, {"error": str(exc2)}
         try:
             body_text = exc.read().decode(errors="replace")
             err_body = json.loads(body_text)
