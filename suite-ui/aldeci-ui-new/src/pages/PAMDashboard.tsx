@@ -180,9 +180,9 @@ export default function PAMDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Privileged Accounts" value={liveData?.stats?.total_accounts ?? (liveData?.accounts?.length ?? 347)} icon={Key} />
-        <KpiCard title="Active Sessions"     value={liveData?.stats?.active_sessions ?? (liveData?.sessions?.filter((s: any) => s.approval_status === "approved").length ?? 12)} icon={Shield} trend="up" className="border-blue-500/20" />
-        <KpiCard title="Pending Approvals"   value={liveData?.stats?.pending_approvals ?? (liveData?.sessions?.filter((s: any) => s.approval_status === "pending").length ?? 8)} icon={Clock} trend="up" className="border-yellow-500/20" />
-        <KpiCard title="Overdue Rotation"    value={liveData?.stats?.overdue_rotation ?? (liveData?.accounts?.filter((a: any) => a.status === "overdue").length ?? 23)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Active Sessions"     value={liveData?.stats?.active_sessions ?? (liveData?.sessions?.filter((s: PAMSession) => s.approval_status === "approved").length ?? 12)} icon={Shield} trend="up" className="border-blue-500/20" />
+        <KpiCard title="Pending Approvals"   value={liveData?.stats?.pending_approvals ?? (liveData?.sessions?.filter((s: PAMSession) => s.approval_status === "pending").length ?? 8)} icon={Clock} trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Overdue Rotation"    value={liveData?.stats?.overdue_rotation ?? (liveData?.accounts?.filter((a: PAMAccount) => a.status === "overdue").length ?? 23)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
       </div>
 
       {/* Privileged Accounts Table */}
@@ -194,7 +194,7 @@ export default function PAMDashboard() {
               Privileged Accounts
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {(liveData?.accounts ?? ACCOUNTS).filter((a: any) => a.status === "overdue").length} overdue
+              {(liveData?.accounts ?? ACCOUNTS).filter((a: PAMAccount) => a.status === "overdue").length} overdue
             </Badge>
           </div>
           <CardDescription className="text-xs">Managed credentials across all systems</CardDescription>
@@ -215,7 +215,7 @@ export default function PAMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.accounts ?? ACCOUNTS).map((row: any, i: number) => (
+                {(liveData?.accounts ?? ACCOUNTS).map((row: PAMAccount, i: number) => (
                   <TableRow key={row.id ?? i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs font-mono py-2.5">{row.username}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.account_type ?? row.type} /></TableCell>
@@ -244,7 +244,7 @@ export default function PAMDashboard() {
               Session Requests
             </CardTitle>
             <Badge className="text-[10px] border border-yellow-500/30 text-yellow-400 bg-yellow-500/10">
-              {(liveData?.sessions ?? SESSION_REQUESTS).filter((r: any) => (r.approval_status ?? r.status) === "pending").length} pending
+              {(liveData?.sessions ?? SESSION_REQUESTS).filter((r: PAMSession) => (r.approval_status ?? r.status) === "pending").length} pending
             </Badge>
           </div>
           <CardDescription className="text-xs">Just-in-time access requests awaiting review</CardDescription>
