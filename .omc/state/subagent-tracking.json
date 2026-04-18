@@ -1338,18 +1338,67 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-18T05:53:13.030Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-18T05:58:02.717Z",
+      "duration_ms": 289687
     },
     {
       "agent_id": "a002c53c70e6c9bc0",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-18T05:53:17.993Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-18T05:55:22.901Z",
+      "duration_ms": 124908
+    },
+    {
+      "agent_id": "a020959df5caddc22",
+      "agent_type": "oh-my-claudecode:executor",
+      "started_at": "2026-04-18T05:56:05.547Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-18T06:02:31.076Z",
+      "duration_ms": 385529
+    },
+    {
+      "agent_id": "a4876d90998b0ddfc",
+      "agent_type": "oh-my-claudecode:executor",
+      "started_at": "2026-04-18T05:56:11.301Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-18T06:03:16.700Z",
+      "duration_ms": 425399
+    },
+    {
+      "agent_id": "a156696dde0ee760d",
+      "agent_type": "Explore",
+      "started_at": "2026-04-18T05:56:50.632Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-18T05:58:30.890Z",
+      "duration_ms": 100258
+    },
+    {
+      "agent_id": "a6a613906ad64697e",
+      "agent_type": "Explore",
+      "started_at": "2026-04-18T05:56:56.837Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-18T05:58:59.171Z",
+      "duration_ms": 122334
+    },
+    {
+      "agent_id": "ac16f4892d0628401",
+      "agent_type": "Explore",
+      "started_at": "2026-04-18T05:57:04.044Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-18T05:58:43.886Z",
+      "duration_ms": 99842
     }
   ],
-  "total_spawned": 153,
-  "total_completed": 138,
+  "total_spawned": 158,
+  "total_completed": 145,
   "total_failed": 0,
-  "last_updated": "2026-04-18T05:53:18.094Z"
+  "last_updated": "2026-04-18T06:03:16.803Z"
 }

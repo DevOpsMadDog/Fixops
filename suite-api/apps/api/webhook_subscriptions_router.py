@@ -13,10 +13,18 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/webhook-subscriptions", tags=["webhook-subscriptions"])
+
+_ADMIN_ROLES = ("admin", "org_admin", "super_admin")
+
+router = APIRouter(
+    prefix="/api/v1/webhook-subscriptions",
+    tags=["webhook-subscriptions"],
+    dependencies=[require_role(*_ADMIN_ROLES)],
+)
 
 # -- Constants ----------------------------------------------------------------
 

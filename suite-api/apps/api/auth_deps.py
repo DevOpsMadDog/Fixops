@@ -256,3 +256,43 @@ async def api_key_auth(
 
     # We have a credential but no matching auth backend configured
     raise HTTPException(status_code=401, detail="Authentication not configured on server")
+
+
+# ---------------------------------------------------------------------------
+# Role-based access control dependency
+# ---------------------------------------------------------------------------
+
+def require_role(*roles: str) -> "Depends":
+    """Return a FastAPI dependency that enforces role membership.
+
+    Layers on top of ``api_key_auth`` — the caller still needs a valid
+    credential; this dependency additionally checks that the authenticated
+    user's role is in the *roles* allow-list.
+
+    The string ``"admin"`` is produced by API-key auth and dev-mode and is
+    treated as equivalent to ``super_admin`` (full access).
+
+    Usage (router-level):
+        router = APIRouter(
+            dependencies=[require_role("org_admin", "super_admin")]
+        )
+
+    Usage (per-endpoint):
+        @router.delete("/{id}", dependencies=[require_role("org_admin")])
+
+    Raises:
+        HTTPException(401): No valid credential (from api_key_auth).
+        HTTPException(403): Credential valid but role not in the allow-list.
+    """
+    allowed: frozenset[str] = frozenset(roles)
+
+    async def _check(request: Request, _auth: None = Depends(api_key_auth)) -> None:
+        role: Optional[str] = getattr(request.state, "user_role", None)
+        if role in allowed:
+            return
+        raise HTTPException(
+            status_code=403,
+            detail=f"Role '{role}' is not permitted for this endpoint. Required: {sorted(allowed)}",
+        )
+
+    return Depends(_check)

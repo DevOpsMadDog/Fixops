@@ -542,6 +542,7 @@ class LogEntry(BaseModel):
     level: str = "info"
     message: str
     correlation_id: Optional[str] = None
+    trace_id: Optional[str] = None
     service: str = "fixops"
     extra: Dict[str, Any] = Field(default_factory=dict)
 
@@ -568,6 +569,7 @@ class LogAggregator:
         message: str,
         level: str = "info",
         correlation_id: Optional[str] = None,
+        trace_id: Optional[str] = None,
         service: str = "fixops",
         **kwargs: Any,
     ) -> LogEntry:
@@ -576,6 +578,7 @@ class LogAggregator:
             level=level.lower(),
             message=message,
             correlation_id=correlation_id,
+            trace_id=trace_id,
             service=service,
             extra=kwargs,
         )
@@ -592,6 +595,7 @@ class LogAggregator:
         query: Optional[str] = None,
         level: Optional[str] = None,
         correlation_id: Optional[str] = None,
+        trace_id: Optional[str] = None,
         service: Optional[str] = None,
         limit: int = 100,
     ) -> List[LogEntry]:
@@ -604,6 +608,8 @@ class LogAggregator:
             if level and entry.level != level.lower():
                 continue
             if correlation_id and entry.correlation_id != correlation_id:
+                continue
+            if trace_id and entry.trace_id != trace_id:
                 continue
             if service and entry.service != service:
                 continue
@@ -784,6 +790,10 @@ class TracingContext:
                 continue
             root = next((s for s in spans if s.parent_span_id is None), spans[0])
             total_ms = sum(s.duration_ms or 0.0 for s in spans)
+            # Collect span attributes for enrichment (org_id, engine_name etc.)
+            attrs: Dict[str, Any] = {}
+            for s in spans:
+                attrs.update(s.tags)
             results.append({
                 "trace_id": trace_id,
                 "operation": root.operation,
@@ -792,6 +802,8 @@ class TracingContext:
                 "total_duration_ms": round(total_ms, 3),
                 "status": root.status,
                 "started_at": root.started_at,
+                "org_id": attrs.get("org_id"),
+                "engine_name": attrs.get("engine_name"),
             })
         return results
 

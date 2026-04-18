@@ -501,21 +501,21 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 601,
-      "lastAccessed": 1776491692484,
+      "accessCount": 610,
+      "lastAccessed": 1776491916511,
       "type": "directory"
+    },
+    {
+      "path": "suite-api/apps/api/auth_deps.py",
+      "accessCount": 59,
+      "lastAccessed": 1776492027236,
+      "type": "file"
     },
     {
       "path": "",
       "accessCount": 57,
       "lastAccessed": 1776434944485,
       "type": "directory"
-    },
-    {
-      "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 55,
-      "lastAccessed": 1776491314709,
-      "type": "file"
     },
     {
       "path": "suite-core/core/asset_inventory.py",

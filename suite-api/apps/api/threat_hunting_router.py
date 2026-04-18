@@ -24,15 +24,17 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from apps.api.auth_deps import api_key_auth
+from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 
+_ANALYST_ROLES = ("admin", "super_admin", "org_admin", "security_engineer", "analyst")
+
 router = APIRouter(
     prefix="/api/v1/hunting",
     tags=["threat-hunting"],
-    dependencies=[Depends(api_key_auth)],
+    dependencies=[require_role(*_ANALYST_ROLES)],
 )
 
 

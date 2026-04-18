@@ -20,12 +20,19 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
 from core.event_emitter import EventEmitter, EventType, SecurityEvent, Severity
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/events", tags=["webhook-events"])
+_ADMIN_ROLES = ("admin", "org_admin", "super_admin")
+
+router = APIRouter(
+    prefix="/api/v1/events",
+    tags=["webhook-events"],
+    dependencies=[require_role(*_ADMIN_ROLES)],
+)
 
 _emitter = EventEmitter()
 

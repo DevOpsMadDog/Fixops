@@ -20,13 +20,21 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Query, Request
+
+from apps.api.auth_deps import require_role
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/system", tags=["system"])
+_ADMIN_ROLES = ("admin", "org_admin", "super_admin")
+
+router = APIRouter(
+    prefix="/api/v1/system",
+    tags=["system"],
+    dependencies=[require_role(*_ADMIN_ROLES)],
+)
 
 _START_TIME = time.monotonic()
 _VERSION = os.getenv("FIXOPS_VERSION", "0.1.0")
@@ -1060,6 +1068,26 @@ async def db_stats() -> Dict[str, Any]:
             if total_size_bytes > 500 * 1024 * 1024
             else "SQLite is appropriate for current data volume"
         ),
+    }
+
+
+@router.get("/traces/recent", summary="Recent distributed traces with timing")
+async def system_traces_recent(
+    limit: int = Query(default=50, ge=1, le=500, description="Max traces to return"),
+) -> Dict[str, Any]:
+    """Return summaries of the last N completed distributed traces.
+
+    Each entry includes trace_id, operation, service, span_count,
+    total_duration_ms, status, org_id, and engine_name (when set by engine calls).
+    Useful for diagnosing latency and correlating engine call paths to log entries.
+    """
+    from core.observability import get_tracing_context
+
+    tracer = get_tracing_context()
+    traces: List[Dict[str, Any]] = tracer.recent_traces(limit=limit)
+    return {
+        "count": len(traces),
+        "traces": traces,
     }
 
 

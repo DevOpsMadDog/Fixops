@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_export_router.py -x --tb=short --timeout=10 -q 2>&1\"}",
-  "error": "Exit code 3\ntimeout: 10.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\n\ntests/test_export_router.py::test_export_alerts_csv_status_200 \n-------------------------------- live log setup --------------------------------\n2026-04-18 15:51:27 [ WARNING] apps.api.auth_deps: JWT signing key is only 30 chars (minimum 32) — JWT auth disabled.\n-------------------------------- live log...",
-  "timestamp": "2026-04-18T05:51:29.508Z",
-  "retry_count": 5
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_otel_tracing.py -x --tb=short --timeout=10 -q 2>&1\"}",
+  "error": "Exit code 1\nTransient error HTTPConnectionPool(host='collector', port=4318): Max retries exceeded with url: /v1/metrics (Caused by NameResolutionError(\"HTTPConnection(host='collector', port=4318): Failed to resolve 'collector' ([Errno 8] nodename nor servname provided, or not known)\")) encountered while exporting metrics batch, retrying in 0.84s.\nTransient error HTTPConnectionPool(host='collector', port=4318): Max retries exceeded with url: /v1/metrics (Caused by NameResolutionError(\"HTTPConnect...",
+  "timestamp": "2026-04-18T05:59:44.913Z",
+  "retry_count": 1
 }

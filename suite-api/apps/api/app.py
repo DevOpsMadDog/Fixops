@@ -1024,6 +1024,17 @@ except ImportError as e:
     _logger.warning("Webhook DLQ router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Webhook Notifications router (configurable outbound event notifications)
+# ---------------------------------------------------------------------------
+webhook_notifications_router: Optional[APIRouter] = None
+try:
+    from apps.api.webhook_notifications_router import router as webhook_notifications_router
+
+    _logger.info("Loaded Webhook Notifications router")
+except ImportError as e:
+    _logger.warning("Webhook Notifications router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Webhook Verifier router (incoming webhook signature verification)
 # ---------------------------------------------------------------------------
 webhook_verifier_router: Optional[APIRouter] = None
@@ -2081,34 +2092,37 @@ def create_app() -> FastAPI:
     async def _global_exception_handler(request, exc):
         """Catch unhandled exceptions — never leak internal details."""
         correlation_id = getattr(request.state, "correlation_id", "unknown")
+        trace_id = getattr(request.state, "trace_id", None)
         logger.error(
             "unhandled_exception",
             extra={
                 "error_type": type(exc).__name__,
                 "path": request.url.path,
                 "correlation_id": correlation_id,
+                "trace_id": trace_id,
             },
             exc_info=exc,
         )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "detail": "Internal server error",
-                "correlation_id": correlation_id,
-            },
-        )
+        content: Dict[str, Any] = {
+            "detail": "Internal server error",
+            "correlation_id": correlation_id,
+        }
+        if trace_id:
+            content["trace_id"] = trace_id
+        return JSONResponse(status_code=500, content=content)
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_exception_handler(request, exc):
-        """Re-raise HTTP exceptions with correlation ID for traceability."""
+        """Re-raise HTTP exceptions with correlation ID and trace ID for traceability."""
         correlation_id = getattr(request.state, "correlation_id", "unknown")
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={
-                "detail": exc.detail,
-                "correlation_id": correlation_id,
-            },
-        )
+        trace_id = getattr(request.state, "trace_id", None)
+        content: Dict[str, Any] = {
+            "detail": exc.detail,
+            "correlation_id": correlation_id,
+        }
+        if trace_id:
+            content["trace_id"] = trace_id
+        return JSONResponse(status_code=exc.status_code, content=content)
 
     @app.middleware("http")
     async def add_product_header(request, call_next):
@@ -3090,6 +3104,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
         )
         _logger.info("Mounted Webhook DLQ router")
+
+    # Webhook Notifications — configurable outbound event notifications
+    if webhook_notifications_router:
+        app.include_router(
+            webhook_notifications_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))],
+        )
+        _logger.info("Mounted Webhook Notifications router")
 
     # Webhook Verifier — incoming webhook signature verification
     if webhook_verifier_router:
@@ -5299,6 +5321,16 @@ def create_app() -> FastAPI:
                         span.set_attribute("fixops.correlation_id", str(correlation_id))
                     client_ip = (request.client.host if request.client else "unknown")
                     span.set_attribute("net.peer.ip", client_ip)
+
+                    # Attach OTel trace_id to request.state so error handlers
+                    # can include it in JSON error responses
+                    try:
+                        from opentelemetry import trace as _otel_trace
+                        _ctx = _otel_trace.get_current_span().get_span_context()
+                        if _ctx and _ctx.is_valid:
+                            request.state.trace_id = format(_ctx.trace_id, "032x")
+                    except Exception:  # noqa: BLE001
+                        pass
 
                     response = await call_next(request)
 
