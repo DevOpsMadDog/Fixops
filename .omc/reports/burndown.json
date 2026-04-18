@@ -2,12 +2,162 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-18T12:32:18.848844",
-  "total_scope": 2462,
-  "completed": 2400,
-  "in_progress": 25,
-  "todo": 37,
-  "completion_pct": 97.5,
+  "generated_at": "2026-04-18T12:34:05.547833",
+  "total_scope": 2465,
+  "completed": 2432,
+  "in_progress": 11,
+  "todo": 22,
+  "completion_pct": 98.7,
+  "by_priority": {
+    "high": {
+      "done": 35,
+      "in_progress": 4,
+      "todo": 13
+    },
+    "medium": {
+      "done": 2324,
+      "in_progress": 3,
+      "todo": 7
+    },
+    "low": {
+      "done": 67,
+      "in_progress": 0,
+      "todo": 1
+    },
+    "urgent": {
+      "done": 6,
+      "in_progress": 4,
+      "todo": 1
+    }
+  },
+  "by_subepic": {
+    "ASPM": {
+      "total": 16,
+      "done": 14,
+      "in_progress": 2,
+      "todo": 0
+    },
+    "CTEM": {
+      "total": 5,
+      "done": 4,
+      "in_progress": 1,
+      "todo": 0
+    },
+    "CSPM": {
+      "total": 4,
+      "done": 3,
+      "in_progress": 1,
+      "todo": 0
+    },
+    "SIEM": {
+      "total": 5,
+      "done": 4,
+      "in_progress": 0,
+      "todo": 1
+    },
+    "EDR/XDR": {
+      "total": 3,
+      "done": 3,
+      "in_progress": 0,
+      "todo": 0
+    },
+    "IAM": {
+      "total": 27,
+      "done": 25,
+      "in_progress": 1,
+      "todo": 1
+    },
+    "GRC": {
+      "total": 30,
+      "done": 27,
+      "in_progress": 1,
+      "todo": 2
+    },
+    "VULN": {
+      "total": 26,
+      "done": 26,
+      "in_progress": 0,
+      "todo": 0
+    },
+    "THREAT_INTEL": {
+      "total": 14,
+      "done": 14,
+      "in_progress": 0,
+      "todo": 0
+    },
+    "SOC": {
+      "total": 28,
+      "done": 26,
+      "in_progress": 1,
+      "todo": 1
+    },
+    "CLOUD": {
+      "total": 26,
+      "done": 22,
+      "in_progress": 1,
+      "todo": 3
+    },
+    "FRONTEND": {
+      "total": 8,
+      "done": 7,
+      "in_progress": 1,
+      "todo": 0
+    },
+    "TESTING": {
+      "total": 671,
+      "done": 669,
+      "in_progress": 1,
+      "todo": 1
+    },
+    "ENGINE": {
+      "total": 39,
+      "done": 28,
+      "in_progress": 1,
+      "todo": 10
+    }
+  },
+  "velocity": {
+    "wave40": 47,
+    "wave41": 45,
+    "wave42": 0
+  },
   "velocity_per_day": 135,
-  "eta_days": 0.5
+  "eta_days": 0.2,
+  "daily_burndown": [
+    {
+      "date": "2026-04-18",
+      "remaining": 33,
+      "completed": 2432
+    },
+    {
+      "date": "2026-04-19",
+      "remaining": 0,
+      "completed": 2567
+    },
+    {
+      "date": "2026-04-20",
+      "remaining": 0,
+      "completed": 2702
+    },
+    {
+      "date": "2026-04-21",
+      "remaining": 0,
+      "completed": 2837
+    },
+    {
+      "date": "2026-04-22",
+      "remaining": 0,
+      "completed": 2972
+    },
+    {
+      "date": "2026-04-23",
+      "remaining": 0,
+      "completed": 3107
+    },
+    {
+      "date": "2026-04-24",
+      "remaining": 0,
+      "completed": 3242
+    }
+  ]
 }

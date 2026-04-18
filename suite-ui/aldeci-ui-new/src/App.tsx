@@ -407,6 +407,9 @@ const AccessAnomalyDashboard = lazy(() => import("@/pages/AccessAnomalyDashboard
 const TrainingEffectivenessDashboard = lazy(() => import("@/pages/TrainingEffectivenessDashboard"));
 const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptimizationDashboard"));
 
+// Sales & Marketing
+const CompetitiveComparisonPage = lazy(() => import("@/pages/CompetitiveComparisonPage"));
+
 // Wave 41 domain dashboards (frontend pages for Wave 40 engines)
 const ArchReviewDashboard = lazy(() => import("@/pages/ArchReviewDashboard"));
 const HuntingPlaybookDashboard = lazy(() => import("@/pages/HuntingPlaybookDashboard"));
@@ -882,6 +885,7 @@ export default function App() {
             <Route path="/access-anomaly" element={<AccessAnomalyDashboard />} />
             <Route path="/training-effectiveness" element={<TrainingEffectivenessDashboard />} />
             <Route path="/cost-optimization" element={<CloudCostOptimizationDashboard />} />
+            <Route path="/competitive-comparison" element={<CompetitiveComparisonPage />} />
 
             {/* Wave 41 domain dashboards (pages for Wave 40 engines) */}
             <Route path="/arch-review" element={<ArchReviewDashboard />} />
