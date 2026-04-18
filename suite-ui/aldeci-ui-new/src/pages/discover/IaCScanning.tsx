@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -92,7 +92,7 @@ function ProviderBadge({ provider }: { provider?: string }) {
   return <Badge className={cn("border text-xs", map[p] || "bg-slate-500/10 text-slate-400 border-slate-500/20")}>{provider || "—"}</Badge>;
 }
 
-const CIS_CONTROLS = [
+const DEFAULT_CIS_CONTROLS = [
   { id: "CIS-1", name: "Inventory and Control of Enterprise Assets", pass: 0, total: 0 },
   { id: "CIS-4", name: "Secure Configuration of Enterprise Assets", pass: 0, total: 0 },
   { id: "CIS-12", name: "Network Infrastructure Management", pass: 0, total: 0 },
@@ -106,6 +106,25 @@ export default function IaCScanning() {
   const [severityFilter, setSeverityFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [detailFinding, setDetailFinding] = useState<IaCFinding | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [cspmRules, setCspmRules] = useState<any[]>([]);
+
+  // Fetch CSPM rules/benchmarks to enrich CIS sidebar
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let res = await fetch("/api/v1/cspm/benchmarks");
+        if (!res.ok) res = await fetch("/api/v1/cspm/rules");
+        if (res.ok) {
+          const data = await res.json();
+          const arr = Array.isArray(data) ? data : (data?.items ?? data?.rules ?? data?.benchmarks ?? []);
+          if (!cancelled) setCspmRules(arr);
+        }
+      } catch { /* CSPM API unavailable */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const params = useMemo(() => {
     const p: Record<string, unknown> = { limit: 200, scanner: "iac" };
@@ -160,12 +179,28 @@ export default function IaCScanning() {
     };
   }, [allFindings]);
 
-  // Enrich CIS with real counts from findings
-  const cisControls = useMemo(() => CIS_CONTROLS.map((c) => {
-    const fail = allFindings.filter((f) => f.framework?.includes(c.id)).length;
-    const pass = 0; // Real pass count requires CSPM API
-    return { ...c, pass, total: fail, fail };
-  }), [allFindings]);
+  // Enrich CIS with CSPM benchmark data + findings
+  const cisControls = useMemo(() => {
+    const cspmLookup: Record<string, { pass: number; fail: number; total: number }> = {};
+    for (const rule of cspmRules) {
+      const cid = String(rule.control_id ?? rule.benchmark_id ?? rule.id ?? "");
+      for (const cis of DEFAULT_CIS_CONTROLS) {
+        if (cid.includes(cis.id) || String(rule.framework ?? "").includes(cis.id)) {
+          if (!cspmLookup[cis.id]) cspmLookup[cis.id] = { pass: 0, fail: 0, total: 0 };
+          const st = String(rule.status ?? rule.result ?? "").toLowerCase();
+          if (st === "pass" || st === "compliant") cspmLookup[cis.id].pass++;
+          else cspmLookup[cis.id].fail++;
+          cspmLookup[cis.id].total++;
+        }
+      }
+    }
+    return DEFAULT_CIS_CONTROLS.map((c) => {
+      const ff = allFindings.filter((f) => f.framework?.includes(c.id)).length;
+      const cd = cspmLookup[c.id];
+      if (cd && cd.total > 0) return { ...c, pass: cd.pass, total: cd.total + ff, fail: cd.fail + ff };
+      return { ...c, pass: 0, total: ff, fail: ff };
+    });
+  }, [allFindings, cspmRules]);
 
   const driftAlerts = useMemo(() => allFindings.filter((f) => f.drift), [allFindings]);
 

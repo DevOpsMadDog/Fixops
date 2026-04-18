@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,9 +60,27 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// ─────────────────────────────────────────────
-// Mock data
-// ─────────────────────────────────────────────
+// -----------------------------------------
+// API helpers
+// -----------------------------------------
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY_HEADER =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY_HEADER },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+// -----------------------------------------
+// Mock data (fallback when API unavailable)
+// -----------------------------------------
 
 const MOCK_API_KEYS = [
   { id: "key-1", name: "CI/CD Pipeline", prefix: "sk-ald-ci", created: "2025-11-12", lastUsed: "2h ago", calls: 4821, status: "active" },
@@ -323,11 +341,40 @@ function GeneralTab() {
 function AuthenticationTab() {
   const [showKey, setShowKey] = useState(false);
   const [apiKeys, setApiKeys] = useState(MOCK_API_KEYS);
+  const [apiKeysLoading, setApiKeysLoading] = useState(true);
+  const [apiKeysError, setApiKeysError] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState("");
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState("60");
   const [ssoProvider, setSsoProvider] = useState("okta");
+
+  const loadApiKeys = () => {
+    setApiKeysLoading(true);
+    setApiKeysError(null);
+    apiFetch("/api/v1/apikey/keys")
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setApiKeys(
+            data.map((k: any) => ({
+              id: k.id ?? k.key_id ?? `key-${Date.now()}`,
+              name: k.name ?? k.label ?? "Unnamed Key",
+              prefix: k.prefix ?? k.key_prefix ?? "sk-ald-**",
+              created: k.created_at ?? k.created ?? "-",
+              lastUsed: k.last_used ?? k.last_used_at ?? "Never",
+              calls: k.calls ?? k.usage_count ?? 0,
+              status: k.status ?? (k.active ? "active" : "inactive"),
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        setApiKeysError(err.message);
+      })
+      .finally(() => setApiKeysLoading(false));
+  };
+
+  useEffect(() => { loadApiKeys(); }, []);
 
   const MAIN_KEY = showKey
     ? "sk-aldeci-xK9mN2pQ7rL4wV8tJ1dF3sB6cH0uE5aG"
@@ -360,6 +407,26 @@ function AuthenticationTab() {
       <Card>
         <CardContent className="pt-6">
           <SectionHeader icon={Key} title="API Key Management" description="Manage service API keys for external integrations and automation" />
+
+          {apiKeysLoading && (
+            <div className="mb-4 p-4 rounded-lg border border-border/40 bg-muted/10">
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-muted rounded w-1/3" />
+                <div className="h-3 bg-muted rounded w-2/3" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
+            </div>
+          )}
+
+          {apiKeysError && !apiKeysLoading && (
+            <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-950/20 text-amber-400 text-xs">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Could not load API keys from server. Showing cached data.</span>
+              <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs text-amber-400 hover:text-amber-300" onClick={loadApiKeys}>
+                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            </div>
+          )}
 
           {/* Primary Key */}
           <div className="mb-6 p-4 rounded-lg border border-border/50 bg-muted/20 space-y-4">
@@ -564,6 +631,41 @@ function AuthenticationTab() {
 
 function IntegrationsTab() {
   const [integrations, setIntegrations] = useState(MOCK_INTEGRATIONS);
+  const [intLoading, setIntLoading] = useState(true);
+  const [intError, setIntError] = useState<string | null>(null);
+
+  const ICON_MAP: Record<string, typeof GitBranch> = {
+    GitHub: GitBranch, "AWS Security Hub": Cloud, Jira: Link2, Datadog: BarChart3,
+    Kubernetes: Container, Slack: MessageSquare, Snyk: Shield, "Webhook Endpoint": Webhook,
+  };
+
+  const loadIntegrations = () => {
+    setIntLoading(true);
+    setIntError(null);
+    apiFetch("/api/v1/integrations/status")
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.integrations;
+        if (Array.isArray(items) && items.length > 0) {
+          setIntegrations(
+            items.map((i: any) => ({
+              id: i.id ?? `int-${Date.now()}`,
+              name: i.name ?? "Unknown",
+              icon: ICON_MAP[i.name] ?? PlugZap,
+              category: i.category ?? "Custom",
+              status: i.status ?? "disconnected",
+              lastSync: i.last_sync ?? i.lastSync ?? "-",
+              findings: i.findings ?? i.findings_count ?? 0,
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        setIntError(err.message);
+      })
+      .finally(() => setIntLoading(false));
+  };
+
+  useEffect(() => { loadIntegrations(); }, []);
 
   const toggleConnect = (id: string) => {
     setIntegrations((prev) =>
@@ -580,6 +682,26 @@ function IntegrationsTab() {
 
   return (
     <div className="space-y-6">
+      {intLoading && (
+        <div className="p-6 rounded-lg border border-border/40 bg-muted/10">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-muted rounded w-1/4" />
+            <div className="h-12 bg-muted rounded" />
+            <div className="h-12 bg-muted rounded" />
+          </div>
+        </div>
+      )}
+
+      {intError && !intLoading && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-950/20 text-amber-400 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Could not load integrations from server. Showing cached data.</span>
+          <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs text-amber-400 hover:text-amber-300" onClick={loadIntegrations}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{integrations.filter((i) => i.status === "connected").length} connected</span>
@@ -850,9 +972,39 @@ function NotificationsTab() {
 
 function TeamTab() {
   const [users, setUsers] = useState(MOCK_USERS);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
   const [search, setSearch] = useState("");
+
+  const loadUsers = () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    apiFetch("/api/v1/apikey/keys")
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.users;
+        if (Array.isArray(items) && items.length > 0 && items[0].email) {
+          setUsers(
+            items.map((u: any) => ({
+              id: u.id ?? `u-${Date.now()}`,
+              email: u.email ?? "unknown@unknown.io",
+              name: u.name ?? u.email?.split("@")[0] ?? "Unknown",
+              role: u.role ?? "viewer",
+              lastActive: u.last_active ?? u.lastActive ?? "-",
+              status: u.status ?? "active",
+              avatar: (u.name ?? u.email ?? "U").substring(0, 2).toUpperCase(),
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        setUsersError(err.message);
+      })
+      .finally(() => setUsersLoading(false));
+  };
+
+  useEffect(() => { loadUsers(); }, []);
 
   const filtered = users.filter(
     (u) => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
@@ -926,6 +1078,20 @@ function TeamTab() {
           </div>
         </CardContent>
       </Card>
+
+      {usersLoading && (
+        <Card><CardContent className="pt-6"><div className="animate-pulse space-y-3"><div className="h-4 bg-muted rounded w-1/4" /><div className="h-10 bg-muted rounded" /><div className="h-10 bg-muted rounded" /></div></CardContent></Card>
+      )}
+
+      {usersError && !usersLoading && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-950/20 text-amber-400 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Could not load team members. Showing cached data.</span>
+          <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs text-amber-400 hover:text-amber-300" onClick={loadUsers}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
 
       {/* User table */}
       <Card>
@@ -1023,6 +1189,47 @@ function TeamTab() {
 
 function SystemTab() {
   const [backupRunning, setBackupRunning] = useState(false);
+  const [sysData, setSysData] = useState(MOCK_SYSTEM);
+  const [sysLoading, setSysLoading] = useState(true);
+  const [sysError, setSysError] = useState<string | null>(null);
+
+  const loadSystemHealth = () => {
+    setSysLoading(true);
+    setSysError(null);
+    apiFetch("/api/v1/system/health")
+      .then((data) => {
+        if (data && typeof data === "object") {
+          setSysData((prev) => ({
+            health: {
+              api: data.health?.api ?? data.api_status ?? prev.health.api,
+              brain: data.health?.brain ?? data.brain_status ?? prev.health.brain,
+              scanner: data.health?.scanner ?? data.scanner_status ?? prev.health.scanner,
+              database: data.health?.database ?? data.db_status ?? prev.health.database,
+              cache: data.health?.cache ?? data.cache_status ?? prev.health.cache,
+              queue: data.health?.queue ?? data.queue_status ?? prev.health.queue,
+            },
+            uptime: data.uptime ?? prev.uptime,
+            version: data.version ?? prev.version,
+            region: data.region ?? prev.region,
+            cpu: data.cpu ?? data.cpu_percent ?? prev.cpu,
+            memory: data.memory ?? data.memory_percent ?? prev.memory,
+            disk: data.disk ?? data.disk_percent ?? prev.disk,
+            queueDepth: data.queue_depth ?? data.queueDepth ?? prev.queueDepth,
+            queueProcessed: data.queue_processed ?? data.queueProcessed ?? prev.queueProcessed,
+            cacheHitRate: data.cache_hit_rate ?? data.cacheHitRate ?? prev.cacheHitRate,
+            cacheSize: data.cache_size ?? data.cacheSize ?? prev.cacheSize,
+            lastBackup: data.last_backup ?? data.lastBackup ?? prev.lastBackup,
+            nextBackup: data.next_backup ?? data.nextBackup ?? prev.nextBackup,
+          }));
+        }
+      })
+      .catch((err) => {
+        setSysError(err.message);
+      })
+      .finally(() => setSysLoading(false));
+  };
+
+  useEffect(() => { loadSystemHealth(); }, []);
 
   const handleBackup = async () => {
     setBackupRunning(true);
@@ -1057,9 +1264,22 @@ function SystemTab() {
       <Card>
         <CardContent className="pt-6">
           <SectionHeader icon={Activity} title="System Health" description="Live status of all platform subsystems" />
+
+          {sysLoading && (<div className="mb-4 animate-pulse"><div className="grid grid-cols-3 gap-3"><div className="h-16 bg-muted rounded-lg" /><div className="h-16 bg-muted rounded-lg" /><div className="h-16 bg-muted rounded-lg" /></div></div>)}
+
+          {sysError && !sysLoading && (
+            <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-950/20 text-amber-400 text-xs">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Could not load system health. Showing cached data.</span>
+              <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs text-amber-400 hover:text-amber-300" onClick={loadSystemHealth}>
+                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {SERVICES.map(({ key, label, icon: Icon }) => {
-              const status = MOCK_SYSTEM.health[key as keyof typeof MOCK_SYSTEM.health];
+              const status = sysData.health[key as keyof typeof sysData.health];
               return (
                 <div
                   key={key}
@@ -1101,9 +1321,9 @@ function SystemTab() {
           <CardContent className="pt-6">
             <SectionHeader icon={Cpu} title="Resource Usage" description="Current compute and storage utilization" />
             <div className="space-y-5">
-              <MetricBar label="CPU" value={MOCK_SYSTEM.cpu} />
-              <MetricBar label="Memory" value={MOCK_SYSTEM.memory} />
-              <MetricBar label="Disk" value={MOCK_SYSTEM.disk} />
+              <MetricBar label="CPU" value={sysData.cpu} />
+              <MetricBar label="Memory" value={sysData.memory} />
+              <MetricBar label="Disk" value={sysData.disk} />
             </div>
           </CardContent>
         </Card>
@@ -1114,19 +1334,19 @@ function SystemTab() {
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-border/30">
                 <span className="text-xs text-muted-foreground">Queue Depth</span>
-                <span className="text-xs font-mono font-medium">{MOCK_SYSTEM.queueDepth} jobs pending</span>
+                <span className="text-xs font-mono font-medium">{sysData.queueDepth} jobs pending</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/30">
                 <span className="text-xs text-muted-foreground">Processed Today</span>
-                <span className="text-xs font-mono font-medium">{MOCK_SYSTEM.queueProcessed.toLocaleString()}</span>
+                <span className="text-xs font-mono font-medium">{sysData.queueProcessed.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/30">
                 <span className="text-xs text-muted-foreground">Cache Hit Rate</span>
-                <span className="text-xs font-mono font-medium text-emerald-400">{MOCK_SYSTEM.cacheHitRate}%</span>
+                <span className="text-xs font-mono font-medium text-emerald-400">{sysData.cacheHitRate}%</span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-xs text-muted-foreground">Cache Size</span>
-                <span className="text-xs font-mono font-medium">{MOCK_SYSTEM.cacheSize}</span>
+                <span className="text-xs font-mono font-medium">{sysData.cacheSize}</span>
               </div>
               <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleClearCache}>
                 <Trash2 className="h-3.5 w-3.5" />
@@ -1145,7 +1365,7 @@ function SystemTab() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3.5 rounded-lg border border-border/40 bg-muted/10">
                 <p className="text-xs text-muted-foreground mb-1">Last Backup</p>
-                <p className="text-sm font-mono font-medium">{MOCK_SYSTEM.lastBackup}</p>
+                <p className="text-sm font-mono font-medium">{sysData.lastBackup}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle2 className="h-3 w-3 text-emerald-400" />
                   <span className="text-[11px] text-emerald-400">Completed</span>
@@ -1153,7 +1373,7 @@ function SystemTab() {
               </div>
               <div className="p-3.5 rounded-lg border border-border/40 bg-muted/10">
                 <p className="text-xs text-muted-foreground mb-1">Next Scheduled</p>
-                <p className="text-sm font-mono font-medium">{MOCK_SYSTEM.nextBackup}</p>
+                <p className="text-sm font-mono font-medium">{sysData.nextBackup}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   <span className="text-[11px] text-muted-foreground">Auto (daily 06:00)</span>
@@ -1181,9 +1401,9 @@ function SystemTab() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Environment</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Version", value: MOCK_SYSTEM.version },
-                  { label: "Uptime", value: MOCK_SYSTEM.uptime },
-                  { label: "Region", value: MOCK_SYSTEM.region },
+                  { label: "Version", value: sysData.version },
+                  { label: "Uptime", value: sysData.uptime },
+                  { label: "Region", value: sysData.region },
                   { label: "Environment", value: "Production" },
                 ].map(({ label, value }) => (
                   <div key={label} className="p-3 rounded-lg bg-muted/20 border border-border/30">

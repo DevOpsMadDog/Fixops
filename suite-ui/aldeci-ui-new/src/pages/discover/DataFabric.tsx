@@ -1,5 +1,5 @@
 import { toArray } from "@/lib/api-utils";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Database,
@@ -294,6 +294,24 @@ export default function DataFabric() {
   const integrationsQuery = useIntegrations();
   const ingestQuery = useIngestStats();
   const intStatusQuery = useIntegrationsStatus();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [datastores, setDatastores] = useState<any[]>([]);
+
+  // Fetch data-discovery datastores for supplementary source info
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/v1/data-discovery/datastores?org_id=default");
+        if (res.ok) {
+          const data = await res.json();
+          const arr = Array.isArray(data) ? data : (data?.items ?? data?.datastores ?? []);
+          if (!cancelled) setDatastores(arr);
+        }
+      } catch { /* API unavailable - not critical */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const isLoading = casesQuery.isLoading || overviewQuery.isLoading || integrationsQuery.isLoading;
   const isError = casesQuery.isError;
@@ -302,7 +320,7 @@ export default function DataFabric() {
   const dataSources: DataSource[] = useMemo(() => {
     const items = toArray(integrationsQuery.data?.items ?? integrationsQuery.data);
     const bySource: Record<string, number> = ingestQuery.data?.by_source ?? {};
-    return items.map((int: any, idx: number) => {
+    const fromIntegrations: DataSource[] = items.map((int: any, idx: number) => {
       const iType = (int.integration_type ?? int.type ?? "").toLowerCase();
       const iStatus = (int.status ?? "").toLowerCase();
       const findingsCount = bySource[iType] ?? 0;
@@ -323,7 +341,22 @@ export default function DataFabric() {
         recordsTotal: findingsCount,
       };
     });
-  }, [integrationsQuery.data, ingestQuery.data]);
+    // Merge data-discovery datastores as additional data sources
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fromDatastores: DataSource[] = datastores.map((ds: any, i: number) => {
+      const rl = String(ds.risk_level ?? "none").toLowerCase();
+      return {
+        id: ds.id ?? `dd-${i}`, name: ds.name ?? `Datastore ${i + 1}`, type: "registry" as const,
+        status: (rl === "critical" || rl === "high") ? "degraded" as const : "healthy" as const,
+        eventsIngested: Number(ds.record_count ?? 0),
+        lastSync: ds.created_at ? `${Math.round((Date.now() - new Date(ds.created_at).getTime()) / 60000)} min ago` : "Never",
+        schemaVersion: "v1.0", icon: Database, latencyMs: 0,
+        qualityScore: (rl === "none" || rl === "low") ? 90 : rl === "medium" ? 70 : 40,
+        recordsTotal: Number(ds.record_count ?? 0),
+      };
+    });
+    return [...fromIntegrations, ...fromDatastores];
+  }, [integrationsQuery.data, ingestQuery.data, datastores]);
 
   // Derived KPIs ─────────────────────────────────────────────────────────────
   const totalSources = dataSources.length;
