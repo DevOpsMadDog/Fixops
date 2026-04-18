@@ -349,9 +349,8 @@ export default function CrossDomainAnalytics() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  }
-                </TableBody>
+                    ))}
+                  </TableBody>
               </Table>
             </div>
           )}

@@ -439,9 +439,8 @@ export default function Integrations() {
                       {intg.sync_duration ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              }
-            </TableBody>
+                ))}
+              </TableBody>
           </Table>
           </div>
         </CardContent>

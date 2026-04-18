@@ -392,9 +392,8 @@ export default function FAILEngine() {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          }
-        </TabsContent>
+            ))}
+          </TabsContent>
 
         <TabsContent value="scorecard">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -482,9 +481,8 @@ export default function FAILEngine() {
               ) : (
                 neglectZones.map((zone, i) => (
                   <NeglectZoneCard key={i} zone={zone} />
-                ))
-              }
-            </CardContent>
+                ))}
+              </CardContent>
           </Card>
         </TabsContent>
 
@@ -558,9 +556,8 @@ export default function FAILEngine() {
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    ))
-                  }
-                </TableBody>
+                    ))}
+                  </TableBody>
               </Table>
               </div>
             </CardContent>

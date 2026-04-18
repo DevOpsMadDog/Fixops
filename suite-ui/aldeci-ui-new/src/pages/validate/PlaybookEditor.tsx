@@ -498,9 +498,8 @@ export default function PlaybookEditor() {
                       onMoveUp={() => moveStep(i, "up")}
                       onMoveDown={() => moveStep(i, "down")}
                     />
-                  ))
-                }
-                  <div className="flex justify-center mt-3">
+                  ))}
+                <div className="flex justify-center mt-3">
                     <Button
                       variant="outline"
                       size="sm"

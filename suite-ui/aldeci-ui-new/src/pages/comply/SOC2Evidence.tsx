@@ -320,9 +320,8 @@ export default function SOC2Evidence() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))
-              }
-            </TableBody>
+                ))}
+              </TableBody>
           </Table>
           </div>
         </CardContent>

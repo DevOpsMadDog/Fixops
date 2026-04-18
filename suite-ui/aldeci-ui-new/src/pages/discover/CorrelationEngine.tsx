@@ -722,9 +722,8 @@ export default function CorrelationEngine() {
                       setMergeSplitDialog({ open: true, group: g, mode: "split" })
                     }
                   />
-                ))
-              }
-            </div>
+                ))}
+              </div>
           </ScrollArea>
         </CardContent>
       </Card>

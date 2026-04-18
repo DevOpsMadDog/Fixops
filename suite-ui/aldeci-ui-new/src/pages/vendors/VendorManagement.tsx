@@ -1072,9 +1072,8 @@ export default function VendorManagement() {
                           onSelect={() => setSelectedVendor(prev => prev?.id === vendor.id ? null : vendor)}
                           index={i}
                         />
-                      ))
-                    }
-                  </AnimatePresence>
+                      ))}
+                    </AnimatePresence>
                 </tbody>
               </table>
             </div>

@@ -194,9 +194,8 @@ function ControlTreePanel({ framework, bundles }: { framework: string; bundles: 
                         <Badge className="text-xs py-0 h-3.5 bg-violet-900/40 text-violet-300 border-violet-700">Q</Badge>
                       )}
                     </div>
-                  ))
-                }
-              </div>
+                  ))}
+                </div>
             )}
           </div>
         );
@@ -634,9 +633,8 @@ export default function EvidenceExportCenter() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                }
-              </TableBody>
+                  ))}
+                </TableBody>
             </Table>
             </div>
           </CardContent>

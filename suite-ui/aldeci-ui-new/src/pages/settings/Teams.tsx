@@ -87,8 +87,7 @@ function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[]
                       <UserMinus className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                ))
-              }
+                ))}
               </div>
             )}
           </div>

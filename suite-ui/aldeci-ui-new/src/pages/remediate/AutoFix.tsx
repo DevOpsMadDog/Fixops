@@ -610,9 +610,8 @@ export default function AutoFix() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  }
-                </TableBody>
+                    ))}
+                  </TableBody>
               </Table>
               </div>
             </CardContent>
@@ -675,9 +674,8 @@ export default function AutoFix() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))
-              }
-            </CardContent>
+                  ))}
+              </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

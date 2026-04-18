@@ -341,8 +341,7 @@ export default function AwarenessScoreDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))
-              }
+                ))}
               </TableBody>
             </Table>
           </CardContent>

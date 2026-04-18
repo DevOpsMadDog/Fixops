@@ -525,9 +525,8 @@ export default function MPTEConsole() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  }
-                </TableBody>
+                    ))}
+                  </TableBody>
               </Table>
               </div>
             </CardContent>
@@ -559,8 +558,7 @@ export default function MPTEConsole() {
                       >
                         {pieData.map((entry) => (
                           <Cell key={entry.name} fill={entry.color} />
-                        ))
-                      }
+                        ))}
                       </Pie>
                       <Tooltip
                         contentStyle={{

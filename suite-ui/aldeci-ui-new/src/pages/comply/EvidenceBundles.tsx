@@ -505,9 +505,8 @@ export default function EvidenceBundles() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                }
-              </TableBody>
+                  ))}
+                </TableBody>
             </Table>
             </div>
           </CardContent>

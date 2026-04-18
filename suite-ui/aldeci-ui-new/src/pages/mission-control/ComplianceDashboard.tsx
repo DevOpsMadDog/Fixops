@@ -417,9 +417,8 @@ function EvidenceDrawer({ control, onClose }: { control: Control | null; onClose
                       </div>
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                  ))
-                }
-              </div>
+                  ))}
+                </div>
 
               <Separator />
 
@@ -922,8 +921,7 @@ export default function ComplianceDashboard() {
                       <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </motion.div>
-                ))
-              }
+                ))}
               </div>
             )}
 

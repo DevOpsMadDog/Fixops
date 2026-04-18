@@ -293,9 +293,8 @@ export default function DLPDashboard() {
                       {(p.hit_count ?? 0).toLocaleString()}
                     </TableCell>
                   </TableRow>
-                ))
-                }
-              </TableBody>
+                ))}
+                </TableBody>
             </Table>
           </div>
         </CardContent>
@@ -344,9 +343,8 @@ export default function DLPDashboard() {
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[160px] truncate">{inc.file_name}</TableCell>
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{inc.timestamp}</TableCell>
                   </TableRow>
-                ))
-                }
-              </TableBody>
+                ))}
+                </TableBody>
             </Table>
           </div>
         </CardContent>
@@ -381,9 +379,8 @@ export default function DLPDashboard() {
                   />
                 </div>
               </div>
-            ))
-            }
-          </CardContent>
+            ))}
+            </CardContent>
         </Card>
 
         <Card>

@@ -471,9 +471,8 @@ export default function Playbooks() {
                   setDetailOpen(true);
                 }}
               />
-            ))
-          }
-        </div>
+            ))}
+          </div>
       ) : (
         <Card>
           <CardContent className="p-0">
@@ -538,9 +537,8 @@ export default function Playbooks() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                }
-              </TableBody>
+                  ))}
+                </TableBody>
             </Table>
             </div>
           </CardContent>

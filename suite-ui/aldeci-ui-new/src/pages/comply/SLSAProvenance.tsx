@@ -443,8 +443,7 @@ export default function SLSAProvenance() {
                             <div className="flex flex-wrap gap-1 mt-1">
                               {ctrls.map((c) => (
                                 <Badge key={c} variant="outline" className="text-xs py-0 h-4 font-mono">{c}</Badge>
-                              ))
-                            }
+                              ))}
                             </div>
                           </div>
                         ))
@@ -531,9 +530,8 @@ export default function SLSAProvenance() {
                       <AttestationDialog build={build} />
                     </TableCell>
                   </TableRow>
-                ))
-              }
-            </TableBody>
+                ))}
+              </TableBody>
           </Table>
           </div>
         </CardContent>

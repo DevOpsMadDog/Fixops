@@ -803,9 +803,8 @@ function ControlMappingTable({ controls }: { controls: Control[] }) {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{ctrl.lastReviewed}</TableCell>
                   </TableRow>
-                ))
-              }
-            </TableBody>
+                ))}
+              </TableBody>
           </Table>
         </div>
         <div className="px-4 py-2 border-t border-border/40 text-xs text-muted-foreground">

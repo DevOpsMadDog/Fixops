@@ -411,9 +411,8 @@ export default function PoliciesPage() {
                           <Badge variant="destructive" className="text-xs">Violated</Badge>
                         </TableCell>
                       </TableRow>
-                    ))
-                  }
-                </TableBody>
+                    ))}
+                  </TableBody>
               </Table>
               </div>
             </CardContent>

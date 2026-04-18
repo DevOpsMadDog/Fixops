@@ -415,8 +415,7 @@ export default function Reachability() {
                                     : "hsl(var(--muted))",
                               }}
                             />
-                          ))
-                        }
+                          ))}
                         </div>
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {asset.path_length}
@@ -440,9 +439,8 @@ export default function Reachability() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              }
-            </TableBody>
+                ))}
+              </TableBody>
           </Table>
           </div>
         </CardContent>

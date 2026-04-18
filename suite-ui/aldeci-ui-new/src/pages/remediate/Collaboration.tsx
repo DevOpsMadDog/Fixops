@@ -158,9 +158,8 @@ function RoomSidebar({
               </div>
             </div>
           </button>
-        ))
-      }
-    </div>
+        ))}
+      </div>
   );
 }
 
@@ -677,9 +676,8 @@ export default function Collaboration() {
                                   {item.text}
                                 </span>
                               </div>
-                            ))
-                          }
-                        </div>
+                            ))}
+                          </div>
                       </CardContent>
                     </Card>
 
@@ -709,8 +707,7 @@ export default function Collaboration() {
                                   <p className="text-muted-foreground">{att.size}</p>
                                 </div>
                               </div>
-                            ))
-                          }
+                            ))}
                           </div>
                         )}
                       </CardContent>

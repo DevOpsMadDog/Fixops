@@ -470,9 +470,8 @@ export default function AttackSimulation() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  }
-                </TableBody>
+                    ))}
+                  </TableBody>
               </Table>
               </div>
             </CardContent>
@@ -513,9 +512,8 @@ export default function AttackSimulation() {
                           Target: {(sim.target as string) ?? "—"}
                         </p>
                       </div>
-                    ))
-                }
-              </CardContent>
+                    ))}
+                </CardContent>
             </Card>
             <Card>
               <CardHeader>
