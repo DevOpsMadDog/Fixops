@@ -325,7 +325,8 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
               title={`Day ${i + 1}: ${value}`}
             />
           );
-        })}
+        })
+        )}
       </div>
     </div>
   );
@@ -622,7 +623,7 @@ export default function SecurityKPIDashboard() {
                   className="h-2 bg-slate-900/30"
                 />
               </motion.div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

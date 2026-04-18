@@ -286,7 +286,7 @@ export default function AssetRiskDashboard() {
                     ) : (
                       ASSET_TYPES.map((t) => (
                       <th key={t} className="text-center text-muted-foreground font-medium pb-2 px-1">{t}</th>
-                    ))}
+                    ))
                     )}
                   </tr>
                 </thead>
@@ -309,10 +309,10 @@ export default function AssetRiskDashboard() {
                             </div>
                           </td>
                         );
-                      })}
+                      })
                   )}
                     </tr>
-                  ))}
+                  ))
                   )}
                 </tbody>
               </table>
@@ -358,7 +358,7 @@ export default function AssetRiskDashboard() {
                     />
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -386,7 +386,7 @@ export default function AssetRiskDashboard() {
                   <TypeBadge type={a.type} />
                   <span className="text-[10px] text-muted-foreground shrink-0">{a.added}</span>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -434,7 +434,7 @@ export default function AssetRiskDashboard() {
                     <TableCell className="py-2.5 w-32"><ScoreBar score={row.score} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.top_factor}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

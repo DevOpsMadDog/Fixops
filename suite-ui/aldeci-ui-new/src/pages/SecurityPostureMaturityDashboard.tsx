@@ -188,7 +188,7 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
             <text x={x} y={H - 2} textAnchor="middle" fill="#64748b" fontSize="7">{d.date}</text>
           </g>
         );
-      })}
+      })
       )}
     </svg>
   );
@@ -211,7 +211,7 @@ export default function SecurityPostureMaturityDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
+      ))
       )}
     </div>
   );
@@ -276,7 +276,7 @@ export default function SecurityPostureMaturityDashboard() {
                 {o.days_overdue}d overdue
               </span>
             </div>
-          ))}
+          ))
           )}
         </div>
 
@@ -310,14 +310,14 @@ export default function SecurityPostureMaturityDashboard() {
               <Stars level={d.avg_level} />
               <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
                 <div
-                  className={cn("h-1.5 rounded-full", domainBg(d.avg_level))}
+                  className={cn("h-1.5 rounded-full", domainBg(d.avg_level))
           )}
                   style={{ width: `${((d.avg_level - 1) / 4) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">{d.capability_count} capabilities</p>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>
@@ -376,7 +376,7 @@ export default function SecurityPostureMaturityDashboard() {
                   </td>
                   <td className="py-2.5 text-gray-400 text-xs">{r.owner}</td>
                 </tr>
-              ))}
+              ))
               )}
             </tbody>
           </table>

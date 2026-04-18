@@ -195,7 +195,7 @@ export default function CloudSecurityAnalyticsDashboard() {
                       <FindingStatusBadge status={f.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

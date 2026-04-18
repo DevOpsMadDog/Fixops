@@ -280,7 +280,7 @@ export default function SecurityInvestmentDashboard() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
               )}
             </tbody>
           </table>
@@ -319,7 +319,7 @@ export default function SecurityInvestmentDashboard() {
                   <div className="text-right text-xs text-gray-500 mt-0.5">{pct}% utilized</div>
                 </div>
               );
-            })}
+            })
             )}
           </div>
         </div>
@@ -356,7 +356,7 @@ export default function SecurityInvestmentDashboard() {
                     )}
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>
@@ -379,7 +379,7 @@ export default function SecurityInvestmentDashboard() {
                   <span className="flex-1 text-gray-200 truncate">{inv.investment_name}</span>
                   <span className="text-green-400 font-bold font-mono">{inv.roi_score}%</span>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>

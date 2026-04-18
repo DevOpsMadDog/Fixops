@@ -217,7 +217,7 @@ export default function IncidentMetricsDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(inc.reported_at)}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

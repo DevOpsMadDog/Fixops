@@ -257,7 +257,7 @@ export default function VulnScoringDashboard() {
                       </td>
                     </tr>
                   );
-                })}
+                })
                 )}
               </tbody>
             </table>
@@ -317,7 +317,7 @@ export default function VulnScoringDashboard() {
                     <div className="h-1.5 rounded-full bg-indigo-500" style={{ width: `${w.weight}%` }} />
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function VulnScoringDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>
@@ -377,7 +377,7 @@ export default function VulnScoringDashboard() {
                 <p className="text-gray-400 text-xs">{ov.reason}</p>
                 <div className="text-gray-500 text-xs mt-1">{ov.overridden_by} · {ov.date}</div>
               </div>
-            ))}
+            ))
             )}
           </div>
         </div>
@@ -421,7 +421,7 @@ export default function VulnScoringDashboard() {
                       {a.critical_count > 0 && <span className="text-red-400 text-xs ml-1">({a.critical_count} crit)</span>}
                     </td>
                   </tr>
-                ))}
+                ))
                 )}
               </tbody>
             </table>

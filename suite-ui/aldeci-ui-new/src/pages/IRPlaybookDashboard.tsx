@@ -212,7 +212,7 @@ export default function IRPlaybookDashboard() {
                     <TableCell><MttrCell hours={ex.mttr_hours} /></TableCell>
                     <TableCell><StatusBadge status={ex.status} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

@@ -245,7 +245,7 @@ export default function CrossDomainAnalytics() {
                   <Badge className={cn("text-xs font-bold border", row.badge)}>{displayValue}</Badge>
                 </div>
               );
-            })}
+            })
             )}
           </CardContent>
         </Card>
@@ -283,7 +283,7 @@ export default function CrossDomainAnalytics() {
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </CardContent>

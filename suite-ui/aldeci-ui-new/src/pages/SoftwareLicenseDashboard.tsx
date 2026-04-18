@@ -243,7 +243,7 @@ export default function SoftwareLicenseDashboard() {
                         : <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">✗ Not Approved</Badge>}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -296,7 +296,7 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2"><RiskBadge risk={v.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><ViolationStatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

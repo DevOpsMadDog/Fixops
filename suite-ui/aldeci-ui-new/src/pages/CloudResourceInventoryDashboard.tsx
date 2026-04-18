@@ -215,7 +215,7 @@ export default function CloudResourceInventoryDashboard() {
                       <ScoreCell score={res.security_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

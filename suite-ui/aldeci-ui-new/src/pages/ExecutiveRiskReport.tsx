@@ -422,7 +422,7 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
             </span>
           </div>
         );
-      })}
+      })
       )}
     </div>
   );

@@ -443,7 +443,7 @@ export default function EmailSecurity() {
                     </Button>
                   )}
                 </motion.div>
-              ))}
+              ))
               )}
             </div>
           </CardContent>
@@ -507,7 +507,7 @@ export default function EmailSecurity() {
                     <span className="text-xs text-slate-500 whitespace-nowrap">{bar.date ?? bar.report_date ?? ""}</span>
                   </div>
                 );
-              })}
+              })
               )}
             </div>
           </CardContent>
@@ -654,7 +654,7 @@ export default function EmailSecurity() {
                         <RiskScoreBadge score={d.risk_score} />
                       </TableCell>
                     </motion.tr>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>
@@ -707,7 +707,7 @@ export default function EmailSecurity() {
                     <p className="text-xs text-slate-400 leading-relaxed">{rec.description}</p>
                   </motion.div>
                 );
-              })}
+              })
               )}
             </CardContent>
           </Card>

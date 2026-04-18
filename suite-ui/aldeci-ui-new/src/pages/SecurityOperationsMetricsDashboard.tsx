@@ -167,7 +167,7 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
             <span className="text-orange-400 w-10 text-right">{d.mttr}m</span>
           </div>
         </div>
-      ))}
+      ))
       )}
       <div className="grid grid-cols-[60px_1fr_1fr] gap-3 text-xs text-gray-500 border-t border-gray-700 pt-2">
         <span />
@@ -202,7 +202,7 @@ export default function SecurityOperationsMetricsDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
+      ))
       )}
     </div>
   );
@@ -286,7 +286,7 @@ export default function SecurityOperationsMetricsDashboard() {
                   <td className="py-2.5 pr-4 text-gray-300">{a.avg_resolution_mins} min</td>
                   <td className="py-2.5"><EfficiencyBadge e={a.efficiency} /></td>
                 </tr>
-              ))}
+              ))
               )}
             </tbody>
           </table>
@@ -302,7 +302,7 @@ export default function SecurityOperationsMetricsDashboard() {
               <tr className="border-b border-gray-700">
                 {["Severity", "Category", "Source", "Age", "Status", "Assigned To", "Actions"].map(h => (
                   <th key={h} className="text-left text-gray-400 font-medium py-2 pr-4 whitespace-nowrap">{h}</th>
-                ))}
+                ))
               )}
               </tr>
             </thead>
@@ -332,7 +332,7 @@ export default function SecurityOperationsMetricsDashboard() {
                     )}
                   </td>
                 </tr>
-              ))}
+              ))
               )}
             </tbody>
           </table>

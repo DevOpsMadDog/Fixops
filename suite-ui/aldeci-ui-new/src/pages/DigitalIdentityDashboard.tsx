@@ -189,7 +189,7 @@ export default function DigitalIdentityDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "—"}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

@@ -410,7 +410,7 @@ export default function VendorRiskDashboard() {
                       >
                         {v.name} ({v.overall_score})
                       </Badge>
-                    ))}
+                    ))
                     )}
                   </div>
                 </div>
@@ -530,7 +530,7 @@ export default function VendorRiskDashboard() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
                       )}
                     </TableBody>
                   </Table>
@@ -586,7 +586,7 @@ export default function VendorRiskDashboard() {
                       }
                     />
                   </div>
-                ))}
+                ))
                 )}
               </CardContent>
             </Card>
@@ -640,7 +640,7 @@ export default function VendorRiskDashboard() {
                       </p>
                     </div>
                   </motion.div>
-                ))}
+                ))
                 )}
               </div>
             </ScrollArea>

@@ -387,7 +387,7 @@ function EvidenceTable({ items, onUpload }: EvidenceTableProps) {
                 </TableCell>
               </motion.tr>
             );
-          })}
+          })
           )}
         </TableBody>
       </Table>
@@ -452,7 +452,7 @@ function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
             </p>
           </div>
         </motion.div>
-      ))}
+      ))
       )}
     </div>
   );
@@ -529,7 +529,7 @@ function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
                   </div>
                 </div>
               );
-            })}
+            })
             )}
           </div>
         </div>
@@ -551,7 +551,7 @@ function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Today: {today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          Today: {today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
             )}
         </div>
       </div>
@@ -697,7 +697,7 @@ export default function ComplianceDashboard() {
           ) : (
             fwData.map((fw) => (
             <FrameworkCard key={fw.id} fw={fw} />
-          ))}
+          ))
           )}
         </div>
       </section>

@@ -373,7 +373,7 @@ export default function SecurityScorecardDashboard() {
                     </span>
                   </div>
                 );
-              })}
+              })
               )}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
@@ -440,7 +440,7 @@ export default function SecurityScorecardDashboard() {
                     />
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
             <div className="mt-4 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2.5">

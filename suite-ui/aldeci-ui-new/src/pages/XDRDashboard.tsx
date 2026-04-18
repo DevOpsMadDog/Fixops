@@ -356,7 +356,7 @@ export default function XDRDashboard() {
                     {t.count}
                   </div>
                 </motion.div>
-              ))}
+              ))
               )}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
@@ -395,7 +395,7 @@ export default function XDRDashboard() {
                 <div className="text-[10px] font-mono text-muted-foreground truncate">{rule.conditions}</div>
                 <div className="text-[10px] text-blue-400">{rule.mitre_tactic}</div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

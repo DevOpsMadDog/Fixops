@@ -272,7 +272,7 @@ export default function ThreatHuntingDashboard() {
                 <Play className="h-3 w-3 mr-1" />Run
               </Button>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>
@@ -354,14 +354,14 @@ export default function ThreatHuntingDashboard() {
                 <div className="flex flex-wrap gap-1 mt-1">
                   {pb.techniques.map((t) => (
                     <span key={t} className="text-[9px] font-mono bg-muted/40 rounded px-1.5 py-0.5 text-muted-foreground">{t}</span>
-                  ))}
+                  ))
             )}
                 </div>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] w-full mt-1">
                   <Shield className="h-3 w-3 mr-1" />Run Playbook
                 </Button>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

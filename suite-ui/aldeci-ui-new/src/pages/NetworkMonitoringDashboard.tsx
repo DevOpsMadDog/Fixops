@@ -189,7 +189,7 @@ export default function NetworkMonitoringDashboard() {
                     <TableCell className="py-2 text-[11px] font-medium tabular-nums">{a.value}</TableCell>
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{a.detected_at}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -248,7 +248,7 @@ export default function NetworkMonitoringDashboard() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
               )}
             </TableBody>
           </Table>

@@ -194,7 +194,7 @@ export default function AwarenessMetricsDashboard() {
                       {metric.recorded_at ? formatTs(metric.recorded_at) : "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

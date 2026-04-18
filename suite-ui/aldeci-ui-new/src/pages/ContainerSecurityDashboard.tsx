@@ -285,7 +285,7 @@ export default function ContainerSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground font-mono">{c.namespace}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -333,7 +333,7 @@ export default function ContainerSecurityDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -367,7 +367,7 @@ export default function ContainerSecurityDashboard() {
                   <div className="font-mono text-[11px] text-blue-400">{a.container}</div>
                   <div className="text-[11px] text-muted-foreground">{a.description}</div>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -403,7 +403,7 @@ export default function ContainerSecurityDashboard() {
                       Pods: <span className="text-foreground font-semibold">{ctx.pod_count}</span>
                     </div>
                   </div>
-                ))}
+                ))
                 )}
               </div>
             </CardContent>
@@ -455,7 +455,7 @@ export default function ContainerSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-center text-xs tabular-nums text-muted-foreground">{p.max_image_size_mb ?? "—"}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

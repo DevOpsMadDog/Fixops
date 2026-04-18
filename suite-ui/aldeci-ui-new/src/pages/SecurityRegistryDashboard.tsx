@@ -186,7 +186,7 @@ export default function SecurityRegistryDashboard() {
             <p className="text-lg font-bold text-gray-100">{ts.count}</p>
             <p className="text-xs text-gray-500 capitalize">{ts.type}s</p>
           </motion.div>
-        ))}
+        ))
         )}
       </div>
 
@@ -205,7 +205,7 @@ export default function SecurityRegistryDashboard() {
           >
             {s === "all" ? "All Artifacts" : STATUS_CONFIG[s as ArtifactStatus]?.label ?? s}
           </button>
-        ))}
+        ))
         )}
       </div>
 
@@ -251,7 +251,7 @@ export default function SecurityRegistryDashboard() {
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {artifact.tags.slice(0, 2).map((tag) => (
                         <span key={tag} className="px-1.5 py-0.5 bg-gray-700/50 border border-gray-600/50 rounded text-xs text-gray-400">#{tag}</span>
-                      ))}
+                      ))
               )}
                     </div>
                   </TableCell>
@@ -270,7 +270,7 @@ export default function SecurityRegistryDashboard() {
                   </TableCell>
                   <TableCell className="text-right text-sm text-gray-300">{artifact.review_count}</TableCell>
                 </motion.tr>
-              ))}
+              ))
               )}
             </TableBody>
           </Table>

@@ -294,7 +294,7 @@ export default function IncidentCostsDashboard() {
                       <td className="p-3"><span className={`text-xs px-1.5 py-0.5 rounded-full capitalize ${statusBadge(inc.status)}`}>{inc.status}</span></td>
                     </tr>
                   );
-                })}
+                })
                 )}
               </tbody>
             </table>
@@ -321,7 +321,7 @@ export default function IncidentCostsDashboard() {
                       </div>
                     </div>
                   );
-                })}
+                })
                 )}
               </div>
               {/* Benchmark */}
@@ -385,7 +385,7 @@ export default function IncidentCostsDashboard() {
                 <div className="h-3 rounded-full" style={{ backgroundColor: c.color, width: `${(c.total / MAX_CAT) * 100}%` }} />
               </div>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>

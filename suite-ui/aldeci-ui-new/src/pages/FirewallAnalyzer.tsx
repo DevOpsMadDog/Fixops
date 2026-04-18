@@ -432,7 +432,7 @@ export default function FirewallAnalyzer() {
                         </Button>
                       </TableCell>
                     </motion.tr>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>
@@ -501,7 +501,7 @@ export default function FirewallAnalyzer() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
+          ))
           )}
         </div>
       </motion.div>
@@ -553,7 +553,7 @@ export default function FirewallAnalyzer() {
                       <span className="text-xs text-slate-500">{point.month}</span>
                     </div>
                   );
-                })}
+                })
                 )}
               </div>
               <p className="text-xs text-slate-500 mt-3 text-center">

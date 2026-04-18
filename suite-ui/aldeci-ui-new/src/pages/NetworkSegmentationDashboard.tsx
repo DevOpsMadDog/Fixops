@@ -237,7 +237,7 @@ export default function NetworkSegmentationDashboard() {
                       <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{seg.cidr}</TableCell>
                       <TableCell className="py-2"><TrustBadge level={seg.trust_level} /></TableCell>
                     </TableRow>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>

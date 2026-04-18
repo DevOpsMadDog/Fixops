@@ -352,7 +352,7 @@ export default function EDRDashboard() {
                   <span>Duration: <span className="text-foreground tabular-nums font-medium">{iso.duration}</span></span>
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -402,7 +402,7 @@ export default function EDRDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{pe.hostname}</TableCell>
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{pe.observed_at}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

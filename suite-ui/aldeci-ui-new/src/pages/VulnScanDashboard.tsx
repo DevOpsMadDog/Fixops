@@ -202,7 +202,7 @@ export default function VulnScanDashboard() {
                     </TableCell>
                     <TableCell className="text-xs text-gray-400">{scan.started_at}</TableCell>
                   </motion.tr>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -238,7 +238,7 @@ export default function VulnScanDashboard() {
                     />
                   </div>
                 </div>
-              ))}
+              ))
               )}
               <div className="mt-2 pt-2 border-t border-gray-700/50 flex justify-between text-xs">
                 <span className="text-gray-400">Total</span>

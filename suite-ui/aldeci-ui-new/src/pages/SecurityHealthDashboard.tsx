@@ -291,7 +291,7 @@ export default function SecurityHealthDashboard() {
                 </div>
               </Card>
             );
-          })}
+          })
           )}
         </div>
       </div>
@@ -351,7 +351,7 @@ export default function SecurityHealthDashboard() {
                         <TableCell className="text-xs py-2.5 text-muted-foreground">{row.interval}</TableCell>
                       </TableRow>
                     );
-                  })}
+                  })
                   )}
                 </TableBody>
               </Table>
@@ -391,7 +391,7 @@ export default function SecurityHealthDashboard() {
                     <Button variant="outline" size="sm" className="h-5 px-2 text-[9px]">Resolve</Button>
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -433,7 +433,7 @@ export default function SecurityHealthDashboard() {
                       <span className="text-[9px] text-muted-foreground text-center leading-tight">{w.week}</span>
                     </div>
                   );
-                })}
+                })
                 )}
               </div>
             </CardContent>

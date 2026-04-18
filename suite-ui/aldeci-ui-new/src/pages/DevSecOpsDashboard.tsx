@@ -292,7 +292,7 @@ export default function DevSecOpsDashboard() {
                 <StatusBadge status={run.status} />
               </div>
             );
-          })}
+          })
           )}
           <div className="flex items-center gap-4 pt-2 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500/70 inline-block" />Passed</span>
@@ -374,7 +374,7 @@ export default function DevSecOpsDashboard() {
                 <div className="font-mono text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-1">{p.rule}</div>
                 <Badge className={cn("text-[10px] border mt-1", p.bg, p.color)}>{p.threshold}</Badge>
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>

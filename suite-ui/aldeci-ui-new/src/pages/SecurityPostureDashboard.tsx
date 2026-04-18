@@ -274,12 +274,12 @@ export default function SecurityPostureDashboard() {
                   initial={{ width: 0 }}
                   animate={{ width: `${c.score}%` }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
-                  className={cn("h-full rounded-full", scoreBg(c.score))}
+                  className={cn("h-full rounded-full", scoreBg(c.score))
           )}
                 />
               </div>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>
@@ -345,7 +345,7 @@ export default function SecurityPostureDashboard() {
                   </div>
                 </div>
               );
-            })}
+            })
             )}
           </CardContent>
         </Card>
@@ -370,7 +370,7 @@ export default function SecurityPostureDashboard() {
                 >
                   <span className="text-[9px] text-muted-foreground pr-1 -translate-y-2">{v}</span>
                 </div>
-              ))}
+              ))
             )}
               {/* Bars */}
               <div className="absolute inset-0 flex items-end gap-1 pt-2">
@@ -394,7 +394,7 @@ export default function SecurityPostureDashboard() {
                     />
                     <span className="text-[8px] text-muted-foreground">{h.month.slice(0, 1)}</span>
                   </div>
-                ))}
+                ))
                 )}
               </div>
             </div>
@@ -441,7 +441,7 @@ export default function SecurityPostureDashboard() {
                 </Badge>
               </div>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>

@@ -303,7 +303,7 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
             >
               <span className="text-xs font-bold text-center">{dep.risk_score}</span>
             </motion.div>
-          ))}
+          ))
           )}
         </div>
       </CardContent>
@@ -550,7 +550,7 @@ function TransitiveDependencyTree() {
                   <span className="text-xs ml-1">@{dep.version}</span>
                 </span>
               </motion.div>
-            ))}
+            ))
             )}
           </div>
         </ScrollArea>
@@ -683,7 +683,7 @@ function RecentEvents() {
                   </div>
                 </motion.div>
               );
-            })}
+            })
             )}
           </div>
         </ScrollArea>

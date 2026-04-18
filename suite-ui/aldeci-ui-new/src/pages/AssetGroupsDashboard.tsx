@@ -274,7 +274,7 @@ export default function AssetGroupsDashboard() {
               </div>
               <div className="text-xs text-gray-500 mt-1 truncate">Owner: {g.owner}</div>
             </div>
-          ))}
+          ))
           )}
         </div>
 
@@ -301,7 +301,7 @@ export default function AssetGroupsDashboard() {
                   </div>
                 </div>
               );
-            })}
+            })
           )}
           </div>
           <div>

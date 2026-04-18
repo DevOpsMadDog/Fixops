@@ -270,7 +270,7 @@ export default function ThreatLandscapeDashboard() {
                 <div className="flex flex-wrap gap-1">
                   {actor.target_sectors.map(s => (
                     <span key={s} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded text-xs">{s}</span>
-                  ))}
+                  ))
           )}
                 </div>
               </div>
@@ -279,12 +279,12 @@ export default function ThreatLandscapeDashboard() {
                 <div className="flex flex-wrap gap-1">
                   {actor.known_ttps.map(t => (
                     <span key={t} className="bg-gray-900 text-gray-400 px-2 py-0.5 rounded text-xs border border-gray-700">{t}</span>
-                  ))}
+                  ))
           )}
                 </div>
               </div>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>
@@ -327,7 +327,7 @@ export default function ThreatLandscapeDashboard() {
                 )}
               </div>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>
@@ -367,7 +367,7 @@ export default function ThreatLandscapeDashboard() {
                   <td className="py-2.5 pr-4 text-gray-300">{a.emerging_threats}</td>
                   <td className="py-2.5 text-gray-400">{a.analyst}</td>
                 </tr>
-              ))}
+              ))
               )}
             </tbody>
           </table>

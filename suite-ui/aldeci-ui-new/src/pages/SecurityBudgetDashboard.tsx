@@ -246,7 +246,7 @@ export default function SecurityBudgetDashboard() {
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
                               transition={{ duration: 0.6, delay: i * 0.04 }}
-                              className={cn("h-full rounded-full", utilizationColor(pct))}
+                              className={cn("h-full rounded-full", utilizationColor(pct))
                 )}
                             />
                           </div>
@@ -255,7 +255,7 @@ export default function SecurityBudgetDashboard() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                })
                 )}
               </TableBody>
             </Table>
@@ -306,7 +306,7 @@ export default function SecurityBudgetDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{t.date}</TableCell>
                     <TableCell className="py-2"><TransactionStatusBadge status={t.status ?? "pending"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

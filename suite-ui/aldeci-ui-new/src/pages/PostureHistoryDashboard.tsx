@@ -197,7 +197,7 @@ export default function PostureHistoryDashboard() {
               </div>
             </div>
           );
-        })}
+        })
         )}
       </div>
 
@@ -226,7 +226,7 @@ export default function PostureHistoryDashboard() {
                 <span className="text-xs text-gray-500">W{i + 1}</span>
               </div>
             );
-          })}
+          })
           )}
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function PostureHistoryDashboard() {
                   </td>
                   <td className="py-3 text-gray-400 text-xs">{snap.source}</td>
                 </tr>
-              ))}
+              ))
               )}
             </tbody>
           </table>

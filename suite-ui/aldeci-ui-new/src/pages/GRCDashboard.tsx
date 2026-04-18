@@ -242,7 +242,7 @@ export default function GRCDashboard() {
                     <div className="text-2xl font-bold tabular-nums">{c.count}</div>
                     <div className="text-[10px] font-medium mt-0.5">{c.label}</div>
                   </div>
-                ))}
+                ))
                 )}
               </div>
             </CardContent>
@@ -270,7 +270,7 @@ export default function GRCDashboard() {
                     <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px]">View</Button>
                   </div>
                 </div>
-              ))}
+              ))
                 )}
             </CardContent>
           </Card>

@@ -223,7 +223,7 @@ export default function ComplianceGapDashboard() {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.7, delay: i * 0.06 }}
-                      className={cn("h-full rounded-full", complianceBar(pct))}
+                      className={cn("h-full rounded-full", complianceBar(pct))
             )}
                     />
                   </div>
@@ -232,7 +232,7 @@ export default function ComplianceGapDashboard() {
                   </div>
                 </motion.div>
               );
-            })}
+            })
             )}
           </div>
         </CardContent>
@@ -292,7 +292,7 @@ export default function ComplianceGapDashboard() {
                       {g.description}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

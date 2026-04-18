@@ -196,7 +196,7 @@ export default function APIThreatProtectionDashboard() {
                       {evt.detected_at ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

@@ -276,7 +276,7 @@ export default function NetworkAnomalyDashboard() {
                       <span className="text-[9px] text-zinc-500">T{i + 1}</span>
                     </div>
                   );
-                })}
+                })
                 )}
               </div>
             </CardContent>
@@ -306,7 +306,7 @@ export default function NetworkAnomalyDashboard() {
                       style={{ width: `${(s.count / maxSev) * 100}%` }} />
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -334,7 +334,7 @@ export default function NetworkAnomalyDashboard() {
                   </div>
                   <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date}</p>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>

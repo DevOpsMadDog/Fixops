@@ -856,7 +856,7 @@ export default function IdentityGovernance() {
                           </Button>
                         </motion.div>
                       );
-                    })}
+                    })
                     )}
                   </AnimatePresence>
                 </div>
@@ -931,7 +931,7 @@ export default function IdentityGovernance() {
                       </Button>
                     </div>
                   </motion.div>
-                ))}
+                ))
                 )}
               </div>
             </CardContent>

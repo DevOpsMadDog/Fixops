@@ -204,7 +204,7 @@ export default function DASTDashboard() {
                     <TableCell className="text-white/50 text-sm">{f.scan_date}</TableCell>
                     <TableCell><StatusBadge status={f.status} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

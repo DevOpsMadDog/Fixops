@@ -189,12 +189,12 @@ export default function ThreatExposureDashboard() {
                   initial={{ width: 0 }}
                   animate={{ width: `${a.exposure_score}%` }}
                   transition={{ duration: 0.6, delay: i * 0.08 }}
-                  className={cn("h-full rounded-full", exposureColor(a.exposure_score))}
+                  className={cn("h-full rounded-full", exposureColor(a.exposure_score))
           )}
                 />
               </div>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>
@@ -250,7 +250,7 @@ export default function ThreatExposureDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-mono">{a.threat_count}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_assessed}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

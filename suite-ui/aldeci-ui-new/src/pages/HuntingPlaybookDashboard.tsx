@@ -177,7 +177,7 @@ export default function HuntingPlaybookDashboard() {
                         <button onClick={() => { setShowStartExec(true); setNewExec({ ...newExec, playbook_id: p.id }); setActiveTab("executions"); }} className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Execute</button>
                       </td>
                     </tr>
-                  ))}
+                  ))
                   )}
                 </tbody>
               </table>
@@ -249,7 +249,7 @@ export default function HuntingPlaybookDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function HuntingPlaybookDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>

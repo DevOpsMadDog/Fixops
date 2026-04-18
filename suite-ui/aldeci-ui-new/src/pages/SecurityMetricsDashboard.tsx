@@ -215,7 +215,7 @@ export default function SecurityMetricsDashboard() {
                 </div>
                 <span className="text-[9px] text-muted-foreground">{m.month}</span>
               </div>
-            ))}
+            ))
             )}
           </div>
           <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
@@ -276,7 +276,7 @@ export default function SecurityMetricsDashboard() {
                       <TrendArrow trend={row.trend} meeting={row.meeting} />
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -317,7 +317,7 @@ export default function SecurityMetricsDashboard() {
                   />
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -368,7 +368,7 @@ export default function SecurityMetricsDashboard() {
                   <p className="text-[10px] text-muted-foreground mt-0.5">{t.detail}</p>
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

@@ -230,7 +230,7 @@ export default function IOCHunter() {
                 >
                   {t}
                 </button>
-              ))}
+              ))
               )}
             </div>
             <Input
@@ -308,7 +308,7 @@ export default function IOCHunter() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -387,7 +387,7 @@ export default function IOCHunter() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))
           )}
 
           {/* Recent additions */}
@@ -409,7 +409,7 @@ export default function IOCHunter() {
                   <span className="text-[10px] text-muted-foreground shrink-0">{r.source}</span>
                   <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{r.ts}</span>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>

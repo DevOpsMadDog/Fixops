@@ -183,7 +183,7 @@ export default function NetworkAnalysis() {
                         </Badge>
                       </td>
                     </motion.tr>
-                  ))}
+                  ))
                   )}
                 </tbody>
               </table>
@@ -211,7 +211,7 @@ export default function NetworkAnalysis() {
                     <motion.div initial={{width:0}} animate={{width:`${p.pct}%`}} transition={{delay:i*0.05,duration:0.5}} className={cn("h-full rounded-full",p.color)}/>
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -238,7 +238,7 @@ export default function NetworkAnalysis() {
                     </div>
                     <span className="text-xs text-slate-500 shrink-0">{a.ts}</span>
                   </motion.div>
-                ))}
+                ))
               )}
               </CardContent>
             </Card>
@@ -265,7 +265,7 @@ export default function NetworkAnalysis() {
                     <p className="text-xs font-semibold text-slate-200 leading-tight mb-1">{r.label}</p>
                     <p className={cn("text-xs capitalize font-medium",r.level==="high"?"text-red-300":r.level==="medium"?"text-yellow-300":"text-green-300")}>{r.level}</p>
                   </motion.div>
-                ))}
+                ))
                 )}
               </div>
             </CardContent>
@@ -287,7 +287,7 @@ export default function NetworkAnalysis() {
                   <motion.div key={h} title={`${String(h).padStart(2,"0")}:00 — ${v}${ANOMALY_HOURS.has(h)?" ⚠":""}`}
                     initial={{height:0,opacity:0}} animate={{height:`${(v/MAX_H)*100}%`,opacity:1}} transition={{delay:h*0.02,duration:0.4}}
                     className={cn("flex-1 rounded-t cursor-pointer",ANOMALY_HOURS.has(h)?"bg-gradient-to-t from-red-600 to-red-400":"bg-gradient-to-t from-blue-600 to-blue-400 opacity-60")}/>
-                ))}
+                ))
                 )}
               </div>
               <div className="flex justify-between mt-1">

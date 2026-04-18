@@ -260,7 +260,7 @@ export default function DigitalForensicsDashboard() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Open</Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -310,7 +310,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 font-mono text-muted-foreground">{e.hash}</TableCell>
                     <TableCell className="text-xs py-2 text-muted-foreground">{e.collected_by}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -350,7 +350,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 tabular-nums text-muted-foreground">{entry.ts}</TableCell>
                     <TableCell className="text-xs py-2 max-w-[160px] truncate text-muted-foreground">{entry.notes}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -395,7 +395,7 @@ export default function DigitalForensicsDashboard() {
                   </Button>
                 </div>
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>

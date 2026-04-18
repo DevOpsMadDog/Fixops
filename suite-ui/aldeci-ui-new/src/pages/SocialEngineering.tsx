@@ -280,7 +280,7 @@ export default function SocialEngineering() {
                       <TableCell className="py-2.5"><StatusBadge status={c.status} /></TableCell>
                     </TableRow>
                   );
-                })}
+                })
                 )}
               </TableBody>
             </Table>
@@ -326,7 +326,7 @@ export default function SocialEngineering() {
                   />
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -360,7 +360,7 @@ export default function SocialEngineering() {
                 </div>
                 <Progress value={m.completion} className="h-1.5" />
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -398,7 +398,7 @@ export default function SocialEngineering() {
                 )}
               </CardContent>
             </Card>
-          ))}
+          ))
           )}
         </div>
       </div>

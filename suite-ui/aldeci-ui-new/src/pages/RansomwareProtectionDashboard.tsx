@@ -155,7 +155,7 @@ export default function RansomwareProtectionDashboard() {
                 {p.enabled ? "Enabled" : "Disabled"}
               </span>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>

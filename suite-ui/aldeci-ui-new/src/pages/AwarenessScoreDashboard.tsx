@@ -250,7 +250,7 @@ export default function AwarenessScoreDashboard() {
                 </motion.div>
               </div>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>
@@ -378,7 +378,7 @@ export default function AwarenessScoreDashboard() {
                 </div>
                 <ScoreBar score={d.avg_score} />
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

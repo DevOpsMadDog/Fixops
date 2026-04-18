@@ -341,7 +341,7 @@ export default function ComplianceScannerDashboard() {
                   />
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

@@ -36,43 +36,69 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
+// ── Interfaces ─────────────────────────────────────────────────
+
+interface SupplyChainStats {
+  total_packages: number;
+  suspicious_packages: number;
+  malicious_packages: number;
+  critical_detections: number;
+}
+
+interface SupplyChainPackage {
+  package_name: string;
+  ecosystem: string;
+  version: string;
+  attack_type: string;
+  status: string;
+  risk_score: number;
+}
+
+interface SupplyChainDetection {
+  detection_type: string;
+  severity: string;
+  confidence_score: number;
+  status: string;
+  package_id: string;
+}
+
 // ── Mock data (fallback) ───────────────────────────────────────
 
-const MOCK_STATS = {
-  total_packages: 4821,
+const MOCK_STATS: SupplyChainStats = {
+  total_packages:      4821,
   suspicious_packages: 34,
-  malicious_packages: 7,
+  malicious_packages:  7,
   critical_detections: 3,
 };
 
-const MOCK_PACKAGES = [
-  { package_name: "lodash",          ecosystem: "npm",    version: "4.17.21", attack_type: "none",            status: "clean",      risk_score: 5  },
-  { package_name: "event-stream",    ecosystem: "npm",    version: "3.3.6",   attack_type: "malicious_code",  status: "malicious",  risk_score: 98 },
-  { package_name: "colors",         ecosystem: "npm",    version: "1.4.44",  attack_type: "protestware",     status: "suspicious", risk_score: 72 },
-  { package_name: "PyYAML",          ecosystem: "pypi",   version: "5.3.1",   attack_type: "deserialization", status: "suspicious", risk_score: 55 },
-  { package_name: "ua-parser-js",    ecosystem: "npm",    version: "0.7.29",  attack_type: "malicious_code",  status: "malicious",  risk_score: 95 },
-  { package_name: "requests",        ecosystem: "pypi",   version: "2.31.0",  attack_type: "none",            status: "clean",      risk_score: 8  },
-  { package_name: "log4j-core",      ecosystem: "maven",  version: "2.14.1",  attack_type: "rce",             status: "malicious",  risk_score: 99 },
+const MOCK_PACKAGES: SupplyChainPackage[] = [
+  { package_name: "lodash",       ecosystem: "npm",   version: "4.17.21", attack_type: "none",           status: "clean",      risk_score: 5  },
+  { package_name: "event-stream", ecosystem: "npm",   version: "3.3.6",   attack_type: "malicious_code", status: "malicious",  risk_score: 98 },
+  { package_name: "colors",       ecosystem: "npm",   version: "1.4.44",  attack_type: "protestware",    status: "suspicious", risk_score: 72 },
+  { package_name: "PyYAML",       ecosystem: "pypi",  version: "5.3.1",   attack_type: "deserialization",status: "suspicious", risk_score: 55 },
+  { package_name: "ua-parser-js", ecosystem: "npm",   version: "0.7.29",  attack_type: "malicious_code", status: "malicious",  risk_score: 95 },
+  { package_name: "requests",     ecosystem: "pypi",  version: "2.31.0",  attack_type: "none",           status: "clean",      risk_score: 8  },
+  { package_name: "log4j-core",   ecosystem: "maven", version: "2.14.1",  attack_type: "rce",            status: "malicious",  risk_score: 99 },
 ];
 
-const MOCK_DETECTIONS = [
-  { detection_type: "Malicious code injection",  severity: "critical", confidence_score: 97, status: "confirmed", package_id: "event-stream@3.3.6"  },
-  { detection_type: "Typosquatting",             severity: "high",     confidence_score: 82, status: "open",      package_id: "lod4sh@4.17.21"       },
-  { detection_type: "Dependency confusion",      severity: "critical", confidence_score: 91, status: "confirmed", package_id: "internal-utils@1.0.0" },
-  { detection_type: "Protestware payload",       severity: "high",     confidence_score: 75, status: "open",      package_id: "colors@1.4.44"        },
-  { detection_type: "Obfuscated post-install",   severity: "medium",   confidence_score: 65, status: "reviewing", package_id: "build-helper@2.1.0"   },
-  { detection_type: "Log4Shell RCE vector",      severity: "critical", confidence_score: 99, status: "confirmed", package_id: "log4j-core@2.14.1"    },
+const MOCK_DETECTIONS: SupplyChainDetection[] = [
+  { detection_type: "Malicious code injection", severity: "critical", confidence_score: 97, status: "confirmed", package_id: "event-stream@3.3.6"  },
+  { detection_type: "Typosquatting",            severity: "high",     confidence_score: 82, status: "open",      package_id: "lod4sh@4.17.21"       },
+  { detection_type: "Dependency confusion",     severity: "critical", confidence_score: 91, status: "confirmed", package_id: "internal-utils@1.0.0" },
+  { detection_type: "Protestware payload",      severity: "high",     confidence_score: 75, status: "open",      package_id: "colors@1.4.44"        },
+  { detection_type: "Obfuscated post-install",  severity: "medium",   confidence_score: 65, status: "reviewing", package_id: "build-helper@2.1.0"   },
+  { detection_type: "Log4Shell RCE vector",     severity: "critical", confidence_score: 99, status: "confirmed", package_id: "log4j-core@2.14.1"    },
 ];
 
 // ── Badge helpers ──────────────────────────────────────────────
 
 function EcosystemBadge({ ecosystem }: { ecosystem: string }) {
   const map: Record<string, string> = {
-    npm:    "border-red-500/30 text-red-400 bg-red-500/10",
-    pypi:   "border-blue-500/30 text-blue-400 bg-blue-500/10",
-    maven:  "border-orange-500/30 text-orange-400 bg-orange-500/10",
-    gems:   "border-purple-500/30 text-purple-400 bg-purple-500/10",
-    go:     "border-cyan-500/30 text-cyan-400 bg-cyan-500/10",
+    npm:   "border-red-500/30 text-red-400 bg-red-500/10",
+    pypi:  "border-blue-500/30 text-blue-400 bg-blue-500/10",
+    maven: "border-orange-500/30 text-orange-400 bg-orange-500/10",
+    gems:  "border-purple-500/30 text-purple-400 bg-purple-500/10",
+    go:    "border-cyan-500/30 text-cyan-400 bg-cyan-500/10",
   };
   return (
     <Badge className={cn("text-[10px] border font-mono", map[ecosystem] ?? "border-border text-muted-foreground")}>
@@ -128,10 +154,9 @@ export default function SupplyChainAttackDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
-  const [loading, setLoading] = useState(true);
-    stats: any | null;
-    packages: any[] | null;
-    detections: any[] | null;
+    stats: SupplyChainStats | null;
+    packages: SupplyChainPackage[] | null;
+    detections: SupplyChainDetection[] | null;
   }>({ stats: null, packages: null, detections: null });
 
   const fetchData = () => {
@@ -149,8 +174,7 @@ export default function SupplyChainAttackDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -161,14 +185,6 @@ export default function SupplyChainAttackDashboard() {
   const stats      = liveData.stats      ?? MOCK_STATS;
   const packages   = liveData.packages   ?? MOCK_PACKAGES;
   const detections = liveData.detections ?? MOCK_DETECTIONS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -190,11 +206,10 @@ export default function SupplyChainAttackDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Packages"      value={stats.total_packages
-    setLoading(false);}      icon={Package}      trend="flat" />
+        <KpiCard title="Total Packages"      value={stats.total_packages}      icon={Package}       trend="flat" />
         <KpiCard title="Suspicious"          value={stats.suspicious_packages} icon={AlertTriangle} trend="down" className="border-amber-500/20" />
-        <KpiCard title="Malicious"           value={stats.malicious_packages}  icon={XCircle}      trend="down" className="border-red-500/20" />
-        <KpiCard title="Critical Detections" value={stats.critical_detections} icon={ShieldAlert}  trend="down" className="border-red-500/20" />
+        <KpiCard title="Malicious"           value={stats.malicious_packages}  icon={XCircle}       trend="down" className="border-red-500/20" />
+        <KpiCard title="Critical Detections" value={stats.critical_detections} icon={ShieldAlert}   trend="down" className="border-red-500/20" />
       </div>
 
       {/* Packages Table */}
@@ -225,13 +240,7 @@ export default function SupplyChainAttackDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {packages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  packages.map((p: any, i: number) => (
+                {packages.map((p: SupplyChainPackage, i: number) => (
                   <TableRow key={p.package_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{p.package_name}</TableCell>
                     <TableCell className="py-2"><EcosystemBadge ecosystem={p.ecosystem ?? "npm"} /></TableCell>
@@ -245,7 +254,6 @@ export default function SupplyChainAttackDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -261,7 +269,7 @@ export default function SupplyChainAttackDashboard() {
               Attack Detections
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {detections.filter((d: any) => d.status === "confirmed").length} confirmed
+              {detections.filter((d: SupplyChainDetection) => d.status === "confirmed").length} confirmed
             </Badge>
           </div>
           <CardDescription className="text-xs">Supply chain attack detections with confidence scoring</CardDescription>
@@ -279,13 +287,7 @@ export default function SupplyChainAttackDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {detections.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  detections.map((d: any, i: number) => (
+                {detections.map((d: SupplyChainDetection, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{d.detection_type}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={d.severity ?? "medium"} /></TableCell>
@@ -298,7 +300,6 @@ export default function SupplyChainAttackDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{d.package_id}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

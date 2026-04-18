@@ -231,7 +231,7 @@ export default function ITDRDashboard() {
                     <TableCell className="py-2"><ThreatStatusBadge status={t.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(t.detected_at)}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -286,7 +286,7 @@ export default function ITDRDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.threat_id}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.executed_at)}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

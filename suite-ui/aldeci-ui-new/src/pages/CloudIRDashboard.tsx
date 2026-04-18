@@ -179,7 +179,7 @@ export default function CloudIRDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
                   )}
                 </tbody>
               </table>
@@ -254,7 +254,7 @@ export default function CloudIRDashboard() {
                     {a.status === "in_progress" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function CloudIRDashboard() {
                   </div>
                   <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded">Execute</button>
                 </div>
-              ))}
+              ))
               )}
             </div>
           </div>

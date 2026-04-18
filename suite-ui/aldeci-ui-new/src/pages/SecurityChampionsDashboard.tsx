@@ -393,7 +393,7 @@ export default function SecurityChampionsDashboard() {
                       <TableCell className="text-xs py-2 tabular-nums font-bold text-green-400 text-right">+{a.points}</TableCell>
                       <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{a.completed_at.slice(0, 10)}</TableCell>
                     </TableRow>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>
@@ -437,7 +437,7 @@ export default function SecurityChampionsDashboard() {
                       <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{cert.expires}</TableCell>
                       <TableCell className="py-2"><CertStatusBadge status={cert.status} /></TableCell>
                     </TableRow>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>
@@ -480,7 +480,7 @@ export default function SecurityChampionsDashboard() {
                 </CardContent>
               </Card>
             );
-          })}
+          })
                   )}
         </div>
       </div>
@@ -516,7 +516,7 @@ export default function SecurityChampionsDashboard() {
                   <span className="text-[9px] text-muted-foreground text-center">Top tier</span>
                 )}
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>

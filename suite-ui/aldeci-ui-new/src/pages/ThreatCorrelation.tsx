@@ -366,7 +366,7 @@ export default function ThreatCorrelation() {
                   </div>
                   <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
                 </div>
-              ))}
+              ))
               )}
             </div>
             <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">

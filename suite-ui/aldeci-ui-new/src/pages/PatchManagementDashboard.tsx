@@ -206,7 +206,7 @@ export default function PatchManagementDashboard() {
                       </span>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

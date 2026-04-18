@@ -397,7 +397,7 @@ export default function SystemHealthDashboard() {
                   </p>
                 </div>
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>
@@ -435,7 +435,7 @@ export default function SystemHealthDashboard() {
                 </div>
                 {engineStatusDot(engine.status)}
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>

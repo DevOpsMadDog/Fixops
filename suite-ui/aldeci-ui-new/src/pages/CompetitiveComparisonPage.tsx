@@ -399,7 +399,7 @@ export default function CompetitiveComparisonPage() {
           >
             {v}
           </button>
-        ))}
+        ))
         )}
       </div>
 
@@ -423,7 +423,7 @@ export default function CompetitiveComparisonPage() {
           >
             {cat}
           </button>
-        ))}
+        ))
         )}
       </div>
 
@@ -446,7 +446,7 @@ export default function CompetitiveComparisonPage() {
                     <div className="text-xs font-normal text-gray-400 mt-0.5">$35–99/mo</div>
                   )}
                 </th>
-              ))}
+              ))
               )}
             </tr>
           </thead>
@@ -465,10 +465,10 @@ export default function CompetitiveComparisonPage() {
                 </td>
                 {visibleVendors.map(v => (
                   <Cell key={v} vendor={v} value={row.values[v]} isAldeci={v === "ALDECI"} />
-                ))}
+                ))
             )}
               </tr>
-            ))}
+            ))
             )}
           </tbody>
         </table>
@@ -522,7 +522,7 @@ export default function CompetitiveComparisonPage() {
                       ${row.three_yr.toLocaleString()}
                     </td>
                   </tr>
-                ))}
+                ))
                 )}
               </tbody>
             </table>
@@ -576,7 +576,7 @@ export default function CompetitiveComparisonPage() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>
@@ -607,7 +607,7 @@ export default function CompetitiveComparisonPage() {
               </div>
               <div className="text-xs text-gray-500 mt-0.5">avg</div>
             </div>
-          ))}
+          ))
           )}
         </div>
 
@@ -637,11 +637,11 @@ export default function CompetitiveComparisonPage() {
                       <span className="text-xs text-gray-400 w-4 text-right">{score}</span>
                     </div>
                   );
-                })}
+                })
           )}
               </div>
             </div>
-          ))}
+          ))
           )}
         </div>
 
@@ -669,11 +669,11 @@ export default function CompetitiveComparisonPage() {
                     <span className="text-emerald-500 flex-shrink-0 mt-0.5">›</span>
                     {item}
                   </li>
-                ))}
+                ))
           )}
               </ul>
             </div>
-          ))}
+          ))
           )}
         </div>
       </div>

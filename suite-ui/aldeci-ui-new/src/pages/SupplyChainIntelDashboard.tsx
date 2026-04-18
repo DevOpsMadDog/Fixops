@@ -417,7 +417,7 @@ export default function SupplyChainIntelDashboard() {
                         <RiskBadge r={r.risk} />
                       </div>
                     </div>
-                  ))}
+                  ))
                   )}
                 </>
               )}
@@ -428,7 +428,7 @@ export default function SupplyChainIntelDashboard() {
               <div className="flex flex-wrap gap-1">
                 {["OSV", "NVD", "Snyk Intel", "Socket.dev", "Sonatype", "MalwareBazaar"].map((s) => (
                   <Badge key={s} className="text-[10px] border border-border text-muted-foreground">{s}</Badge>
-                ))}
+                ))
                   )}
               </div>
             </div>

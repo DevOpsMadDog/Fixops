@@ -293,13 +293,13 @@ export default function CapacityPlanningDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {r.skills.map(s => (
                           <Badge key={s} className="text-[9px] border border-border text-muted-foreground">{s}</Badge>
-                        ))}
+                        ))
                 )}
                       </div>
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge s={r.status} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -358,7 +358,7 @@ export default function CapacityPlanningDashboard() {
                     <TableCell className="py-2"><StatusBadge s={d.status} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.timeline}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -393,7 +393,7 @@ export default function CapacityPlanningDashboard() {
                   <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-white">{snap.utilization_rate}%</span>
                 </div>
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>

@@ -304,7 +304,7 @@ export default function VulnIntelFusionDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{c.affected_assets}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -357,7 +357,7 @@ export default function VulnIntelFusionDashboard() {
                         </TableCell>
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
-                    ))}
+                    ))
                     )}
                   </TableBody>
                 </Table>
@@ -409,7 +409,7 @@ export default function VulnIntelFusionDashboard() {
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
                     )}
                   </TableBody>
                 </Table>
@@ -462,7 +462,7 @@ export default function VulnIntelFusionDashboard() {
                 </div>
                 <span className="text-[10px] text-muted-foreground shrink-0">{c.affected_assets} assets</span>
               </div>
-            ))}
+            ))
             )}
           </div>
         </CardContent>

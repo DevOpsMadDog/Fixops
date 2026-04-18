@@ -255,7 +255,7 @@ export default function HuntingAutomationDashboard() {
                           <span className="ml-auto">{timeAgo(q.last_executed)}</span>
                         </div>
                       </div>
-                    ))}
+                    ))
           )}
 
                     {/* Execution History */}
@@ -313,7 +313,7 @@ export default function HuntingAutomationDashboard() {
                     <Play className="h-2.5 w-2.5 mr-1" /> Run Now
                   </Button>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>

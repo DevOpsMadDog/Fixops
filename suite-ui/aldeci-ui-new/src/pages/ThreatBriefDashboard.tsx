@@ -265,7 +265,7 @@ export default function ThreatBriefDashboard() {
                 )}
               </div>
             </motion.div>
-          ))}
+          ))
           )}
         </div>
 

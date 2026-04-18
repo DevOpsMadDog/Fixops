@@ -267,7 +267,7 @@ export default function PostureReportingDashboard() {
               <ScoreBar value={r.overall_score} />
               <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
             </motion.div>
-          ))}
+          ))
           )}
         </div>
 
@@ -300,7 +300,7 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              ))}
+              ))
           )}
             </CardContent>
           </Card>
@@ -364,7 +364,7 @@ export default function PostureReportingDashboard() {
                     </div>
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
-                ))}
+                ))
                 )}
               </div>
             </CardContent>

@@ -314,7 +314,7 @@ export default function SecurityExceptionDashboard() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Review</Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -375,7 +375,7 @@ export default function SecurityExceptionDashboard() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>
@@ -409,7 +409,7 @@ export default function SecurityExceptionDashboard() {
                 </div>
                 <CountdownBar days={item.daysLeft} />
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -446,7 +446,7 @@ export default function SecurityExceptionDashboard() {
                     />
                   </div>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>
@@ -479,7 +479,7 @@ export default function SecurityExceptionDashboard() {
                   </div>
                   <span className="text-xs font-bold tabular-nums w-4 text-right">{r.count}</span>
                 </div>
-              ))}
+              ))
               )}
             </CardContent>
           </Card>

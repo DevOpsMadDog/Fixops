@@ -189,7 +189,7 @@ export default function PAGDashboard() {
                       {acc.last_used ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

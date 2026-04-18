@@ -245,7 +245,7 @@ export default function ZeroDayIntelligenceDashboard() {
                       {(v.cvss_score ?? 0).toFixed(1)}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -294,7 +294,7 @@ export default function ZeroDayIntelligenceDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.vulnerability_id}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

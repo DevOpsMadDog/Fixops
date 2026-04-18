@@ -235,7 +235,7 @@ export default function DataExfiltrationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{inc.detection_method}</TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -260,7 +260,7 @@ export default function DataExfiltrationDashboard() {
               </CardContent>
             </Card>
           );
-        })}
+        })
                 )}
       </div>
     </motion.div>

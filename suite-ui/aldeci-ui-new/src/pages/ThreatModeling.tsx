@@ -437,7 +437,7 @@ function ModelsList({
               <div className="font-medium truncate">{model.name}</div>
               <div className="text-xs opacity-75 truncate mt-0.5">{model.description}</div>
             </button>
-          ))}
+          ))
           )}
         </div>
       </ScrollArea>
@@ -477,7 +477,7 @@ export default function ThreatModeling() {
         models={models}
         selectedModelId={selectedModelId}
         onSelect={setSelectedModelId}
-        onCreateNew={() => toast.info("Create new model", { description: "Model creation will be available in the next release" })}
+        onCreateNew={() => toast.info("Create new model", { description: "Model creation will be available in the next release" })
           )}
       />
 

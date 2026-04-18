@@ -208,7 +208,7 @@ export default function RiskRegisterDashboard() {
                       <StatusBadge status={risk.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

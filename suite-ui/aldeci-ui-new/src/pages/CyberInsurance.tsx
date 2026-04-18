@@ -233,13 +233,13 @@ export default function CyberInsurance() {
               <div className="flex flex-wrap gap-1 mt-1">
                 {p.events.map((e) => (
                   <Badge key={e} className="text-[10px] border border-border text-muted-foreground">{e}</Badge>
-                ))}
+                ))
         )}
               </div>
               <Button variant="outline" size="sm" className="mt-auto h-7 text-xs w-full">View Details</Button>
             </CardContent>
           </Card>
-        ))}
+        ))
         )}
       </div>
 
@@ -286,7 +286,7 @@ export default function CyberInsurance() {
                   />
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -318,7 +318,7 @@ export default function CyberInsurance() {
                   <PlusCircle className="h-3 w-3 mr-1" /> Add Coverage
                 </Button>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -367,7 +367,7 @@ export default function CyberInsurance() {
                     <TableCell className="py-2.5"><ClaimStatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

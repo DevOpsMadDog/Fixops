@@ -181,7 +181,7 @@ export default function NetworkForensicsDashboard() {
                       {cap.started_at ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

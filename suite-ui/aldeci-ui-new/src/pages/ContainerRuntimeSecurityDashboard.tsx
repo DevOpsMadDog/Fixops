@@ -243,7 +243,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><RiskScoreBadge score={c.risk_score ?? 0} /></TableCell>
                     <TableCell className="py-2"><ContainerStatusBadge status={c.status ?? "running"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -294,7 +294,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><ActionBadge action={v.action_taken ?? "logged"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(v.timestamp)}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

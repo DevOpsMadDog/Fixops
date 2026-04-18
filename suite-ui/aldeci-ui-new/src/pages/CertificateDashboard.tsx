@@ -202,7 +202,7 @@ export default function CertificateDashboard() {
                       <TableCell className="py-2"><AutoRenewBadge enabled={cert.auto_renew} /></TableCell>
                     </TableRow>
                   );
-                })}
+                })
                 )}
               </TableBody>
             </Table>

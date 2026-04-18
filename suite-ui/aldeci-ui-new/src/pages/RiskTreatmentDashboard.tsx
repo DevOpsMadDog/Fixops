@@ -229,7 +229,7 @@ export default function RiskTreatmentDashboard() {
                       <ProgressBar pct={t.progress_pct ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

@@ -191,7 +191,7 @@ export default function CloudAccessSecurityDashboard() {
                       <SanctionedBadge sanctioned={!!app.sanctioned} />
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

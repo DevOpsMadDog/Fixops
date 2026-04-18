@@ -378,7 +378,7 @@ export default function CSPMDashboard() {
               </CardContent>
             </Card>
           );
-        })}
+        })
         )}
       </motion.div>
 
@@ -428,7 +428,7 @@ export default function CSPMDashboard() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={cn("border font-mono text-xs", severityColor(f.severity))}
+                          className={cn("border font-mono text-xs", severityColor(f.severity))
                   )}
                         >
                           {f.severity}
@@ -440,7 +440,7 @@ export default function CSPMDashboard() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={cn("border text-xs", providerColor(f.provider))}
+                          className={cn("border text-xs", providerColor(f.provider))
                   )}
                         >
                           {f.provider}
@@ -471,7 +471,7 @@ export default function CSPMDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>
@@ -560,7 +560,7 @@ export default function CSPMDashboard() {
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge
                       variant="outline"
-                      className={cn("border text-xs px-1 py-0", providerColor(item.provider))}
+                      className={cn("border text-xs px-1 py-0", providerColor(item.provider))
             )}
                     >
                       {item.provider}
@@ -576,7 +576,7 @@ export default function CSPMDashboard() {
                   <p className="text-xs text-gray-500">impact</p>
                 </div>
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>

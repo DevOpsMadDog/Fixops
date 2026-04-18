@@ -194,7 +194,7 @@ export default function FirewallPolicyDashboard() {
                       {fw.last_analyzed}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

@@ -241,7 +241,7 @@ export default function DeceptionAnalyticsDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-semibold text-orange-400">{a.interaction_count}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.last_interaction)}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -292,7 +292,7 @@ export default function DeceptionAnalyticsDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ia.asset_id}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

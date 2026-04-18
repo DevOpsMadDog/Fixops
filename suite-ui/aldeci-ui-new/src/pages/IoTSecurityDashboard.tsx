@@ -229,7 +229,7 @@ export default function IoTSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><DeviceStatusBadge status={d.status ?? "online"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -278,7 +278,7 @@ export default function IoTSecurityDashboard() {
                     <TableCell className="py-2"><AnomalyStatusBadge status={a.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.detected_at)}</TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

@@ -249,7 +249,7 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2"><RiskBadge level={w.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2"><ProtectionStatusBadge status={w.protection_status ?? "protected"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>
@@ -298,7 +298,7 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{t.workload_id}</TableCell>
                     <TableCell className="py-2"><ThreatStatusBadge status={t.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))}
+                ))
                 )}
               </TableBody>
             </Table>

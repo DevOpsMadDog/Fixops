@@ -286,7 +286,7 @@ export default function ExecutiveBriefing() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-right text-green-400 font-medium">{r.avoided}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums text-right font-bold text-green-400">{r.roi}%</TableCell>
                     </TableRow>
-                  ))}
+                  ))
                   )}
                 </TableBody>
               </Table>
@@ -328,7 +328,7 @@ export default function ExecutiveBriefing() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{f.pct}%</span>
                 <StatusBadge status={f.status} />
               </div>
-            ))}
+            ))
             )}
           </CardContent>
         </Card>
@@ -422,7 +422,7 @@ export default function ExecutiveBriefing() {
                 <ActionBadge action={r.action} />
               </div>
             </div>
-          ))}
+          ))
           )}
         </CardContent>
       </Card>
@@ -475,7 +475,7 @@ export default function ExecutiveBriefing() {
                 </div>
               </div>
             );
-          })}
+          })
           )}
           <div className="flex items-center gap-4 pt-1 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-sm bg-blue-500 inline-block" />Spent</span>
