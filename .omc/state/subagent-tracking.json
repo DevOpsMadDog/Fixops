@@ -962,11 +962,13 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-17T23:56:51.961Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-18T00:00:48.484Z",
+      "duration_ms": 236523
     }
   ],
   "total_spawned": 110,
-  "total_completed": 97,
+  "total_completed": 98,
   "total_failed": 0,
-  "last_updated": "2026-04-17T23:58:00.570Z"
+  "last_updated": "2026-04-18T00:00:48.586Z"
 }

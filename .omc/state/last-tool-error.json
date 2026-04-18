@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"head -80 /Users/devops.ai/fixops/Fixops/suite-api/apps/app.py\",\"description\":\"Read app.py header to understand import/mount pattern\"}",
-  "error": "Exit code 1\nhead: /Users/devops.ai/fixops/Fixops/suite-api/apps/app.py: No such file or directory",
-  "timestamp": "2026-04-17T23:57:07.144Z",
+  "tool_name": "Grep",
+  "tool_input_preview": "{\"pattern\":\"def _query_alert|def _query_vuln|def _query_asset|def _query_compliance|org_id\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/platform_router.py\",\"output_mode\":\"content\",\"conte...",
+  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
+  "timestamp": "2026-04-18T00:04:01.872Z",
   "retry_count": 1
 }
