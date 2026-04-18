@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sys\\nsys.path.insert(0, 'suite-core')\\nfrom core.alert_triage_engine import AlertTriageEngine\\nengine = AlertTriageEngine()\\nprint('DB path:', engine.db_path)\\nstats ...",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 7, in <module>\nAttributeError: 'AlertTriageEngine' object has no attribute 'get_stats'\nDB path: /Users/devops.ai/fixops/Fixops/.fixops_data/alert_triage.db",
-  "timestamp": "2026-04-18T00:05:58.289Z",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec docker exec multica-postgres-1 psql -U postgres -c \\\"\\\\l\\\" 2>/dev/null\"}",
+  "error": "Exit code 2",
+  "timestamp": "2026-04-18T02:28:03.217Z",
   "retry_count": 4
 }

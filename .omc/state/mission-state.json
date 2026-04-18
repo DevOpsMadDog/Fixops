@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-18T02:27:01.430Z",
+  "updatedAt": "2026-04-18T02:28:05.328Z",
   "missions": [
     {
       "id": "session:cd94a3bb-f4d2-444d-81a3-399864718b47:none",
@@ -3285,14 +3285,14 @@
       "name": "none",
       "objective": "Session mission",
       "createdAt": "2026-04-16T05:52:26.956Z",
-      "updatedAt": "2026-04-18T02:27:01.430Z",
+      "updatedAt": "2026-04-18T02:28:05.328Z",
       "status": "running",
-      "workerCount": 115,
+      "workerCount": 116,
       "taskCounts": {
-        "total": 115,
+        "total": 116,
         "pending": 0,
         "blocked": 0,
-        "inProgress": 15,
+        "inProgress": 16,
         "completed": 100,
         "failed": 0
       },
@@ -4446,17 +4446,19 @@
           "latestUpdate": null,
           "completedSummary": null,
           "updatedAt": "2026-04-18T02:27:01.430Z"
+        },
+        {
+          "name": "executor:a6713ef",
+          "role": "executor",
+          "ownership": "a6713ef107e687747",
+          "status": "running",
+          "currentStep": null,
+          "latestUpdate": null,
+          "completedSummary": null,
+          "updatedAt": "2026-04-18T02:28:05.328Z"
         }
       ],
       "timeline": [
-        {
-          "id": "session-start:a2d1336fcbbb5541a:2026-04-18T02:26:45.992Z",
-          "at": "2026-04-18T02:26:45.992Z",
-          "kind": "update",
-          "agent": "executor:a2d1336",
-          "detail": "started executor:a2d1336",
-          "sourceKey": "session-start:a2d1336fcbbb5541a"
-        },
         {
           "id": "session-start:aa76170d3078e2096:2026-04-18T02:26:55.068Z",
           "at": "2026-04-18T02:26:55.068Z",
@@ -4472,6 +4474,14 @@
           "agent": "executor:ab4fc31",
           "detail": "started executor:ab4fc31",
           "sourceKey": "session-start:ab4fc31d8459af27c"
+        },
+        {
+          "id": "session-start:a6713ef107e687747:2026-04-18T02:28:05.328Z",
+          "at": "2026-04-18T02:28:05.328Z",
+          "kind": "update",
+          "agent": "executor:a6713ef",
+          "detail": "started executor:a6713ef",
+          "sourceKey": "session-start:a6713ef107e687747"
         }
       ]
     }
