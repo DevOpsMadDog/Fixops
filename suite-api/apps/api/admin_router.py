@@ -38,7 +38,14 @@ _audit = create_audit_logger()
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 # Shared DB instance — UserDB manages its own connection pool
-_db = UserDB()
+_db = None  # lazy-initialised on first request
+
+
+def _get_db():
+    global _db
+    if _db is None:
+        _db = UserDB()
+    return _db
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +148,7 @@ async def admin_list_users(
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
     """List all users with pagination. Requires admin scope."""
-    users = _db.list_users(limit=limit, offset=offset)
+    users = _get_db().list_users(limit=limit, offset=offset)
     return {
         "items": [AdminUserResponse(**u.to_dict()) for u in users],
         "total": len(users),
@@ -153,14 +160,14 @@ async def admin_list_users(
 @router.post("/users", response_model=AdminUserResponse, status_code=201, summary="Create user")
 async def admin_create_user(user_data: AdminUserCreate, request: Request) -> AdminUserResponse:
     """Create a new user. Requires admin scope."""
-    existing = _db.get_user_by_email(user_data.email)
+    existing = _get_db().get_user_by_email(user_data.email)
     if existing:
         raise HTTPException(status_code=409, detail="Email already exists")
 
     user = User(
         id="",
         email=user_data.email,
-        password_hash=_db.hash_password(user_data.password),
+        password_hash=_get_db().hash_password(user_data.password),
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         role=user_data.role,
@@ -168,7 +175,7 @@ async def admin_create_user(user_data: AdminUserCreate, request: Request) -> Adm
         department=user_data.department,
     )
     try:
-        created_user = _db.create_user(user)
+        created_user = _get_db().create_user(user)
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=409, detail="Email already exists")
     _audit.log_admin_action(
@@ -186,7 +193,7 @@ async def admin_create_user(user_data: AdminUserCreate, request: Request) -> Adm
 @router.get("/users/{user_id}", response_model=AdminUserResponse, summary="Get user")
 async def admin_get_user(user_id: str) -> AdminUserResponse:
     """Get user details by ID. Requires admin scope."""
-    user = _db.get_user(user_id)
+    user = _get_db().get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return AdminUserResponse(**user.to_dict())
@@ -195,7 +202,7 @@ async def admin_get_user(user_id: str) -> AdminUserResponse:
 @router.put("/users/{user_id}", response_model=AdminUserResponse, summary="Update user")
 async def admin_update_user(user_id: str, user_data: AdminUserUpdate, request: Request) -> AdminUserResponse:
     """Update a user. Requires admin scope."""
-    user = _db.get_user(user_id)
+    user = _get_db().get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -210,7 +217,7 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, request: R
     if user_data.department is not None:
         user.department = user_data.department
 
-    updated_user = _db.update_user(user)
+    updated_user = _get_db().update_user(user)
     _audit.log_admin_action(
         action="update_user",
         user_id=getattr(request.state, "user_id", None),
@@ -226,10 +233,10 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, request: R
 @router.delete("/users/{user_id}", status_code=204, summary="Delete user")
 async def admin_delete_user(user_id: str, request: Request) -> None:
     """Delete a user. Requires admin scope."""
-    user = _db.get_user(user_id)
+    user = _get_db().get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    _db.delete_user(user_id)
+    _get_db().delete_user(user_id)
     _audit.log_admin_action(
         action="delete_user",
         user_id=getattr(request.state, "user_id", None),
@@ -253,7 +260,7 @@ async def admin_list_teams(
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
     """List all teams with pagination. Requires admin scope."""
-    teams = _db.list_teams(limit=limit, offset=offset)
+    teams = _get_db().list_teams(limit=limit, offset=offset)
     return {
         "items": [AdminTeamResponse(**t.to_dict()) for t in teams],
         "total": len(teams),
@@ -271,7 +278,7 @@ async def admin_create_team(team_data: AdminTeamCreate, request: Request) -> Adm
         description=team_data.description,
     )
     try:
-        created_team = _db.create_team(team)
+        created_team = _get_db().create_team(team)
     except sqlite3.IntegrityError:
         raise HTTPException(
             status_code=409,
@@ -292,7 +299,7 @@ async def admin_create_team(team_data: AdminTeamCreate, request: Request) -> Adm
 @router.get("/teams/{team_id}", response_model=AdminTeamResponse, summary="Get team")
 async def admin_get_team(team_id: str) -> AdminTeamResponse:
     """Get team details by ID. Requires admin scope."""
-    team = _db.get_team(team_id)
+    team = _get_db().get_team(team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     return AdminTeamResponse(**team.to_dict())
@@ -301,7 +308,7 @@ async def admin_get_team(team_id: str) -> AdminTeamResponse:
 @router.put("/teams/{team_id}", response_model=AdminTeamResponse, summary="Update team")
 async def admin_update_team(team_id: str, team_data: AdminTeamUpdate, request: Request) -> AdminTeamResponse:
     """Update a team. Requires admin scope."""
-    team = _db.get_team(team_id)
+    team = _get_db().get_team(team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
@@ -311,7 +318,7 @@ async def admin_update_team(team_id: str, team_data: AdminTeamUpdate, request: R
         team.description = team_data.description
 
     try:
-        updated_team = _db.update_team(team)
+        updated_team = _get_db().update_team(team)
     except sqlite3.IntegrityError:
         raise HTTPException(
             status_code=409,
@@ -332,10 +339,10 @@ async def admin_update_team(team_id: str, team_data: AdminTeamUpdate, request: R
 @router.delete("/teams/{team_id}", status_code=204, summary="Delete team")
 async def admin_delete_team(team_id: str, request: Request) -> None:
     """Delete a team. Requires admin scope."""
-    team = _db.get_team(team_id)
+    team = _get_db().get_team(team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-    _db.delete_team(team_id)
+    _get_db().delete_team(team_id)
     _audit.log_admin_action(
         action="delete_team",
         user_id=getattr(request.state, "user_id", None),

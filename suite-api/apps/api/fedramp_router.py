@@ -21,7 +21,14 @@ from core.fedramp_controls import (
 
 router = APIRouter(prefix="/api/v1/fedramp", tags=["fedramp"])
 
-_manager = FedRAMPManager()
+_manager = None  # lazy-initialised on first request
+
+
+def _get_manager():
+    global _manager
+    if _manager is None:
+        _manager = FedRAMPManager()
+    return _manager
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +91,7 @@ async def list_controls(
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
 
-    controls = _manager.list_controls(
+    controls = _get_manager().list_controls(
         family=family_enum, baseline=baseline_enum, status=status_enum
     )
     return [c.model_dump() for c in controls]
@@ -93,7 +100,7 @@ async def list_controls(
 @router.get("/controls/{control_id}", response_model=Dict[str, Any])
 async def get_control(control_id: str):
     """Retrieve a single FedRAMP control by its ID (e.g. AC-1)."""
-    ctrl = _manager.get_control(control_id.upper())
+    ctrl = _get_manager().get_control(control_id.upper())
     if ctrl is None:
         raise HTTPException(status_code=404, detail=f"Control {control_id} not found")
     return ctrl.model_dump()
@@ -112,14 +119,14 @@ async def add_control(body: AddControlRequest):
         evidence_ids=body.evidence_ids,
         implementation_notes=body.implementation_notes,
     )
-    created = _manager.add_control(control)
+    created = _get_manager().add_control(control)
     return created.model_dump()
 
 
 @router.patch("/controls/{control_id}/status", response_model=Dict[str, Any])
 async def update_control_status(control_id: str, body: ControlStatusUpdate):
     """Update the implementation status of a FedRAMP control."""
-    updated = _manager.update_status(
+    updated = _get_manager().update_status(
         control_id=control_id.upper(),
         status=body.status,
         implementation_notes=body.implementation_notes,
@@ -137,7 +144,7 @@ async def get_compliance_score(baseline: str):
         baseline_enum = FedRAMPBaseline(baseline.upper())
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid baseline: {baseline}")
-    score = _manager.get_compliance_score(baseline_enum)
+    score = _get_manager().get_compliance_score(baseline_enum)
     return score.model_dump()
 
 
@@ -148,7 +155,7 @@ async def get_gap_analysis(baseline: str):
         baseline_enum = FedRAMPBaseline(baseline.upper())
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid baseline: {baseline}")
-    gap = _manager.get_gap_analysis(baseline_enum)
+    gap = _get_manager().get_gap_analysis(baseline_enum)
     return gap.model_dump()
 
 
@@ -163,7 +170,7 @@ async def generate_ssp(
         baseline_enum = FedRAMPBaseline(baseline.upper())
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid baseline: {baseline}")
-    ssp = _manager.generate_ssp_data(
+    ssp = _get_manager().generate_ssp_data(
         baseline=baseline_enum,
         system_name=system_name,
         system_owner=system_owner,
@@ -174,13 +181,13 @@ async def generate_ssp(
 @router.get("/feature-mapping", response_model=Dict[str, List[str]])
 async def get_feature_mapping():
     """Return the mapping of ALDECI features to FedRAMP control IDs."""
-    return _manager.map_aldeci_features_to_controls()
+    return _get_manager().map_aldeci_features_to_controls()
 
 
 @router.get("/feature-mapping/{feature_name}", response_model=List[Dict[str, Any]])
 async def get_controls_for_feature(feature_name: str):
     """Return FedRAMP controls associated with a specific ALDECI feature."""
-    controls = _manager.get_controls_for_feature(feature_name)
+    controls = _get_manager().get_controls_for_feature(feature_name)
     if not controls:
         raise HTTPException(
             status_code=404,
@@ -200,12 +207,12 @@ async def get_poam(
             baseline_enum = FedRAMPBaseline(baseline.upper())
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid baseline: {baseline}")
-    items = _manager.get_poam(baseline=baseline_enum)
+    items = _get_manager().get_poam(baseline=baseline_enum)
     return [item.model_dump() for item in items]
 
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_fedramp_stats():
     """Return aggregate FedRAMP compliance statistics across all controls."""
-    stats = _manager.get_fedramp_stats()
+    stats = _get_manager().get_fedramp_stats()
     return stats.model_dump()

@@ -29,7 +29,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/config-benchmark", tags=["config-benchmark"])
 
-_engine = ConfigBenchmarkEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = ConfigBenchmarkEngine()
+    return _engine
 
 
 # ============================================================================
@@ -72,7 +79,7 @@ async def create_profile(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
-        return _engine.create_profile(org_id, body.model_dump())
+        return _get_engine().create_profile(org_id, body.model_dump())
     except Exception as exc:
         logger.error("create_profile failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -83,7 +90,7 @@ async def list_profiles(
     standard: Optional[str] = Query(None),
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_profiles(org_id, standard=standard)
+    return _get_engine().list_profiles(org_id, standard=standard)
 
 
 @router.post("/profiles/{profile_id}/checks", summary="Add a check to a profile")
@@ -93,7 +100,7 @@ async def add_check(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
-        return _engine.add_check(org_id, profile_id, body.model_dump())
+        return _get_engine().add_check(org_id, profile_id, body.model_dump())
     except Exception as exc:
         logger.error("add_check failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -105,7 +112,7 @@ async def list_checks(
     severity: Optional[str] = Query(None),
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_checks(org_id, profile_id, severity=severity)
+    return _get_engine().list_checks(org_id, profile_id, severity=severity)
 
 
 @router.post("/profiles/{profile_id}/assess", summary="Run assessment against a profile")
@@ -114,7 +121,7 @@ async def run_assessment(
     body: AssessRequest,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    result = _engine.run_assessment(org_id, profile_id, body.target_name)
+    result = _get_engine().run_assessment(org_id, profile_id, body.target_name)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
@@ -125,7 +132,7 @@ async def list_assessments(
     profile_id: Optional[str] = Query(None),
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_assessments(org_id, profile_id=profile_id)
+    return _get_engine().list_assessments(org_id, profile_id=profile_id)
 
 
 @router.get("/assessments/{result_id}", summary="Get assessment detail with check results")
@@ -133,7 +140,7 @@ async def get_assessment(
     result_id: str,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    result = _engine.get_assessment(org_id, result_id)
+    result = _get_engine().get_assessment(org_id, result_id)
     if not result:
         raise HTTPException(status_code=404, detail="Assessment not found")
     return result
@@ -144,11 +151,11 @@ async def get_failed_checks(
     result_id: str,
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.get_failed_checks(org_id, result_id)
+    return _get_engine().get_failed_checks(org_id, result_id)
 
 
 @router.get("/stats", summary="Aggregate benchmark statistics")
 async def get_benchmark_stats(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    return _engine.get_benchmark_stats(org_id)
+    return _get_engine().get_benchmark_stats(org_id)

@@ -39,10 +39,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/risk-acceptance", tags=["risk-acceptance"])
 
 # Module-level singleton (in-memory for tests; override db_path in production)
-_manager = RiskAcceptanceManager()
+_manager = None  # lazy-initialised on first request
 
 
 def _get_manager() -> RiskAcceptanceManager:
+    global _manager
+    if _manager is None:
+        _manager = RiskAcceptanceManager()
     return _manager
 
 

@@ -30,7 +30,14 @@ from core.license_compliance import (
 
 router = APIRouter(prefix="/api/v1/licenses", tags=["license-compliance"])
 
-_engine = get_engine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = get_engine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -99,12 +106,12 @@ async def lookup_license(
     Returns full license metadata including category, OSI approval status,
     obligations, and base risk score.
     """
-    info = _engine.lookup_license(spdx_id)
+    info = _get_engine().lookup_license(spdx_id)
     if info is None:
         # Try normalization only when the result is not the generic UNKNOWN fallback
         norm = normalize_license_id(spdx_id)
         if norm != "UNKNOWN":
-            info = _engine.lookup_license(norm)
+            info = _get_engine().lookup_license(norm)
     if info is None:
         raise HTTPException(
             status_code=404,
@@ -134,7 +141,7 @@ async def list_licenses(
                 status_code=400,
                 detail=f"Unknown category '{category}'. Valid values: {[c.value for c in LicenseCategory]}",
             )
-    licenses = _engine.list_licenses(cat)
+    licenses = _get_engine().list_licenses(cat)
     return {
         "status": "ok",
         "total": len(licenses),
@@ -155,7 +162,7 @@ async def check_compatibility(body: CompatibilityRequest) -> CompatibilityRespon
     Uses a 60+ entry compatibility matrix with category-level fallback rules.
     Returns: compatible, incompatible, conditional, or unknown.
     """
-    result, notes = _engine.check_compatibility(
+    result, notes = _get_engine().check_compatibility(
         body.project_license, body.dependency_license
     )
     return CompatibilityResponse(
@@ -174,7 +181,7 @@ async def check_compatibility(body: CompatibilityRequest) -> CompatibilityRespon
 @router.get("/policies", response_model=Dict[str, Any])
 async def list_policies() -> Dict[str, Any]:
     """List all configured license compliance policies."""
-    policies = _engine.list_policies()
+    policies = _get_engine().list_policies()
     return {
         "status": "ok",
         "total": len(policies),
@@ -190,7 +197,7 @@ async def create_policy(body: PolicyCreateRequest) -> Dict[str, Any]:
     Policies define which license categories/IDs are blocked, warned,
     or require approval. Supports max copyleft percentage and OSI-only rules.
     """
-    _engine.add_policy(body.policy)
+    _get_engine().add_policy(body.policy)
     return {
         "status": "ok",
         "policy_id": body.policy.policy_id,
@@ -205,7 +212,7 @@ async def delete_policy(policy_id: str) -> Dict[str, Any]:
         raise HTTPException(
             status_code=400, detail="Cannot delete the built-in default-commercial policy"
         )
-    deleted = _engine.delete_policy(policy_id)
+    deleted = _get_engine().delete_policy(policy_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Policy '{policy_id}' not found")
     return {"status": "ok", "deleted": policy_id}
@@ -230,14 +237,14 @@ async def audit_sbom(body: SBOMAuditRequest) -> Dict[str, Any]:
     if not body.components:
         raise HTTPException(status_code=400, detail="components list must not be empty")
 
-    policy = _engine.get_policy(body.policy_id)
+    policy = _get_engine().get_policy(body.policy_id)
     if policy is None:
         raise HTTPException(
             status_code=404, detail=f"Policy '{body.policy_id}' not found"
         )
 
     report_id = body.report_id or str(uuid.uuid4())
-    report = _engine.audit(body.components, body.policy_id, report_id)
+    report = _get_engine().audit(body.components, body.policy_id, report_id)
 
     return {
         "status": "ok",
@@ -292,7 +299,7 @@ async def compute_risk_scores(body: RiskScoreRequest) -> Dict[str, Any]:
 
     from core.license_compliance import compute_project_risk_score
 
-    scores = [_engine.score_component(comp) for comp in body.components]
+    scores = [_get_engine().score_component(comp) for comp in body.components]
     project_score, project_label = compute_project_risk_score(scores)
 
     return {
@@ -320,7 +327,7 @@ async def detect_dual_licenses(body: DualLicenseRequest) -> Dict[str, Any]:
     if not body.components:
         raise HTTPException(status_code=400, detail="components list must not be empty")
 
-    detections = _engine.detect_dual_licenses(body.components)
+    detections = _get_engine().detect_dual_licenses(body.components)
 
     return {
         "status": "ok",

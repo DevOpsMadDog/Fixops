@@ -29,7 +29,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/vuln-trends", tags=["vuln-trends"])
 
-_engine = VulnTrendEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = VulnTrendEngine()
+    return _engine
 
 
 # ============================================================================
@@ -75,7 +82,7 @@ async def record_snapshot(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
-        return _engine.record_snapshot(org_id, body.model_dump(exclude_none=True))
+        return _get_engine().record_snapshot(org_id, body.model_dump(exclude_none=True))
     except Exception as exc:
         logger.error("record_snapshot failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -86,14 +93,14 @@ async def list_snapshots(
     limit: int = Query(30, ge=1, le=365),
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_snapshots(org_id, limit=limit)
+    return _get_engine().list_snapshots(org_id, limit=limit)
 
 
 @router.get("/analysis", summary="Get trend analysis comparing last 2 snapshots")
 async def get_trend_analysis(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    return _engine.get_trend_analysis(org_id)
+    return _get_engine().get_trend_analysis(org_id)
 
 
 @router.post("/sla", summary="Track a vulnerability SLA")
@@ -102,7 +109,7 @@ async def track_sla(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
-        return _engine.track_sla(org_id, body.model_dump(exclude_none=True))
+        return _get_engine().track_sla(org_id, body.model_dump(exclude_none=True))
     except Exception as exc:
         logger.error("track_sla failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -112,7 +119,7 @@ async def track_sla(
 async def check_sla_breaches(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.check_sla_breaches(org_id)
+    return _get_engine().check_sla_breaches(org_id)
 
 
 @router.post("/sla/{sla_id}/resolve", summary="Resolve an SLA entry")
@@ -120,7 +127,7 @@ async def resolve_sla(
     sla_id: str,
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    ok = _engine.resolve_sla(org_id, sla_id)
+    ok = _get_engine().resolve_sla(org_id, sla_id)
     if not ok:
         raise HTTPException(status_code=404, detail="SLA entry not found")
     return {"sla_id": sla_id, "resolved": True}
@@ -132,7 +139,7 @@ async def create_cohort(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
-        return _engine.create_cohort(org_id, body.model_dump())
+        return _get_engine().create_cohort(org_id, body.model_dump())
     except Exception as exc:
         logger.error("create_cohort failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -142,11 +149,11 @@ async def create_cohort(
 async def list_cohorts(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_cohorts(org_id)
+    return _get_engine().list_cohorts(org_id)
 
 
 @router.get("/stats", summary="Aggregate vulnerability trend statistics")
 async def get_trend_stats(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    return _engine.get_trend_stats(org_id)
+    return _get_engine().get_trend_stats(org_id)

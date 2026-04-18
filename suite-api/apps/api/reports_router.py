@@ -30,13 +30,32 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
-db = ReportDB()
 
 # Report generation directory
 REPORTS_DIR = Path(os.environ.get("FIXOPS_REPORTS_DIR", "/tmp/fixops_reports"))  # nosec B108
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-_analytics_db = AnalyticsDB()
+# Lazy singletons — deferred to first request to avoid DB init at import time
+_db_instance: "ReportDB | None" = None
+_analytics_db_instance: "AnalyticsDB | None" = None
+
+
+class _LazyDB:
+    """Proxy that instantiates the real DB on first attribute access."""
+    def __init__(self, factory):
+        object.__setattr__(self, '_factory', factory)
+        object.__setattr__(self, '_obj', None)
+
+    def __getattr__(self, name):
+        obj = object.__getattribute__(self, '_obj')
+        if obj is None:
+            obj = object.__getattribute__(self, '_factory')()
+            object.__setattr__(self, '_obj', obj)
+        return getattr(obj, name)
+
+
+db = _LazyDB(ReportDB)  # type: ignore[assignment]
+_analytics_db = _LazyDB(AnalyticsDB)  # type: ignore[assignment]
 
 
 def _generate_report_file(report: Report) -> Path:

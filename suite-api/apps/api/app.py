@@ -1680,7 +1680,8 @@ from .normalizers import (
     NormalizedSBOM,
     NormalizedVEX,
 )
-from .pipeline import PipelineOrchestrator
+# PipelineOrchestrator is imported lazily inside create_app() to avoid loading
+# heavy ML dependencies (torch, sklearn, pgmpy) at module import time.
 from .routes.enhanced import router as enhanced_router
 from .upload_manager import ChunkUploadManager
 
@@ -2115,6 +2116,7 @@ def create_app() -> FastAPI:
     )
 
     normalizer = InputNormalizer()
+    from .pipeline import PipelineOrchestrator  # lazy: avoids torch/sklearn at module import
     orchestrator = PipelineOrchestrator()
 
     # API authentication setup

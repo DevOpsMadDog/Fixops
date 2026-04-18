@@ -23,7 +23,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_engine = DataGovernanceEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = DataGovernanceEngine()
+    return _engine
 
 
 # ------------------------------------------------------------------
@@ -91,7 +98,7 @@ def register_asset(
     org_id: str = Query(default="default", description="Organisation ID"),
 ) -> Dict[str, Any]:
     try:
-        return _engine.register_asset(org_id, body.model_dump())
+        return _get_engine().register_asset(org_id, body.model_dump())
     except Exception as exc:
         _logger.error("Failed to register asset: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -103,7 +110,7 @@ def list_assets(
     classification: Optional[str] = Query(default=None),
     asset_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_assets(org_id, classification=classification, asset_type=asset_type)
+    return _get_engine().list_assets(org_id, classification=classification, asset_type=asset_type)
 
 
 @router.get("/assets/{asset_id}", summary="Get a data asset")
@@ -111,7 +118,7 @@ def get_asset(
     asset_id: str,
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    asset = _engine.get_asset(org_id, asset_id)
+    asset = _get_engine().get_asset(org_id, asset_id)
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return asset
@@ -123,7 +130,7 @@ def update_asset_classification(
     body: UpdateClassificationRequest,
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    updated = _engine.update_asset_classification(org_id, asset_id, body.classification)
+    updated = _get_engine().update_asset_classification(org_id, asset_id, body.classification)
     if not updated:
         raise HTTPException(status_code=404, detail="Asset not found or invalid classification")
     return {"updated": True, "asset_id": asset_id, "classification": body.classification}
@@ -140,7 +147,7 @@ def create_policy(
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     try:
-        return _engine.create_policy(org_id, body.model_dump())
+        return _get_engine().create_policy(org_id, body.model_dump())
     except Exception as exc:
         _logger.error("Failed to create policy: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -152,7 +159,7 @@ def list_policies(
     policy_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_policies(org_id, policy_type=policy_type, status=status)
+    return _get_engine().list_policies(org_id, policy_type=policy_type, status=status)
 
 
 # ------------------------------------------------------------------
@@ -166,7 +173,7 @@ def log_violation(
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     try:
-        return _engine.log_violation(org_id, body.model_dump())
+        return _get_engine().log_violation(org_id, body.model_dump())
     except Exception as exc:
         _logger.error("Failed to log violation: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -178,7 +185,7 @@ def list_violations(
     resolved: bool = Query(default=False),
     severity: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_violations(org_id, resolved=resolved, severity=severity)
+    return _get_engine().list_violations(org_id, resolved=resolved, severity=severity)
 
 
 @router.post("/violations/{violation_id}/resolve", summary="Resolve a policy violation")
@@ -187,7 +194,7 @@ def resolve_violation(
     body: ResolveViolationRequest,
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    resolved = _engine.resolve_violation(org_id, violation_id, body.resolved_by)
+    resolved = _get_engine().resolve_violation(org_id, violation_id, body.resolved_by)
     if not resolved:
         raise HTTPException(status_code=404, detail="Violation not found or already resolved")
     return {"resolved": True, "violation_id": violation_id, "resolved_by": body.resolved_by}
@@ -204,7 +211,7 @@ def add_data_flow(
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     try:
-        return _engine.add_data_flow(org_id, body.model_dump())
+        return _get_engine().add_data_flow(org_id, body.model_dump())
     except Exception as exc:
         _logger.error("Failed to add data flow: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -215,7 +222,7 @@ def list_data_flows(
     org_id: str = Query(default="default"),
     flow_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
-    return _engine.list_data_flows(org_id, flow_type=flow_type)
+    return _get_engine().list_data_flows(org_id, flow_type=flow_type)
 
 
 # ------------------------------------------------------------------
@@ -227,4 +234,4 @@ def list_data_flows(
 def get_governance_stats(
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
-    return _engine.get_governance_stats(org_id)
+    return _get_engine().get_governance_stats(org_id)

@@ -15,7 +15,14 @@ from apps.api.dependencies import get_org_id
 from core.ndr_engine import NDREngine
 
 router = APIRouter(prefix="/api/v1/ndr", tags=["ndr"])
-_engine = NDREngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = NDREngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +73,7 @@ def ingest_flow(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingest a network flow, score its risk, and auto-alert if risk > 0.7."""
-    return _engine.ingest_flow(org_id, body.model_dump())
+    return _get_engine().ingest_flow(org_id, body.model_dump())
 
 
 @router.get("/flows", summary="List network flows")
@@ -77,7 +84,7 @@ def list_flows(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List network flows with optional flow_type and min_risk filters."""
-    return _engine.list_flows(org_id, flow_type=flow_type, min_risk=min_risk, limit=limit)
+    return _get_engine().list_flows(org_id, flow_type=flow_type, min_risk=min_risk, limit=limit)
 
 
 # ---------------------------------------------------------------------------
@@ -93,7 +100,7 @@ def list_alerts(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List network alerts with optional filters."""
-    return _engine.list_alerts(org_id, alert_type=alert_type, status=status, severity=severity)
+    return _get_engine().list_alerts(org_id, alert_type=alert_type, status=status, severity=severity)
 
 
 @router.patch("/alerts/{alert_id}/status", summary="Update alert status")
@@ -104,7 +111,7 @@ def update_alert_status(
 ) -> Dict[str, Any]:
     """Update the status of a network alert."""
     try:
-        updated = _engine.update_alert_status(org_id, alert_id, body.status)
+        updated = _get_engine().update_alert_status(org_id, alert_id, body.status)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     if not updated:
@@ -124,7 +131,7 @@ def set_baseline(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Upsert a network behaviour baseline for an asset IP."""
-    return _engine.set_baseline(org_id, asset_ip, body.model_dump())
+    return _get_engine().set_baseline(org_id, asset_ip, body.model_dump())
 
 
 @router.get("/baselines/{asset_ip}", summary="Get baseline for an asset IP")
@@ -133,7 +140,7 @@ def get_baseline(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve the stored baseline for an asset IP."""
-    bl = _engine.get_baseline(org_id, asset_ip)
+    bl = _get_engine().get_baseline(org_id, asset_ip)
     if bl is None:
         raise HTTPException(status_code=404, detail=f"No baseline for IP {asset_ip!r}")
     return bl
@@ -150,7 +157,7 @@ def add_segment(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a network segment (DMZ, internal, cloud, OT, guest)."""
-    return _engine.add_segment(org_id, body.model_dump())
+    return _get_engine().add_segment(org_id, body.model_dump())
 
 
 @router.get("/segments", summary="List network segments")
@@ -158,7 +165,7 @@ def list_segments(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all network segments for the org."""
-    return _engine.list_segments(org_id)
+    return _get_engine().list_segments(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +178,7 @@ def detect_anomalies(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Compare recent 24h flows against stored baselines and return anomalies."""
-    return _engine.detect_anomalies(org_id)
+    return _get_engine().detect_anomalies(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -184,4 +191,4 @@ def get_ndr_stats(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate NDR statistics for the org."""
-    return _engine.get_ndr_stats(org_id)
+    return _get_engine().get_ndr_stats(org_id)

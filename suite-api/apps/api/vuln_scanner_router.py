@@ -29,10 +29,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/vuln-scanner", tags=["vuln-scanner"])
 
 # Module-level singleton
-_engine = VulnScannerEngine()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> VulnScannerEngine:
+    global _engine
+    if _engine is None:
+        _engine = VulnScannerEngine()
     return _engine
 
 

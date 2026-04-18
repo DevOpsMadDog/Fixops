@@ -40,7 +40,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_engine = EvidenceChainEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = EvidenceChainEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +102,7 @@ def list_cases(
 ) -> List[Dict[str, Any]]:
     """List all investigation cases for an org."""
     try:
-        return _engine.list_cases(org_id, status=status)
+        return _get_engine().list_cases(org_id, status=status)
     except Exception as exc:
         logger.exception("list_cases failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -108,7 +115,7 @@ def create_case(
 ) -> Dict[str, Any]:
     """Create a new investigation case."""
     try:
-        return _engine.create_case(org_id, payload.model_dump(exclude_none=True))
+        return _get_engine().create_case(org_id, payload.model_dump(exclude_none=True))
     except Exception as exc:
         logger.exception("create_case failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -121,7 +128,7 @@ def get_case(
 ) -> Dict[str, Any]:
     """Get a single investigation case."""
     try:
-        result = _engine._get_case(org_id, case_id)
+        result = _get_engine()._get_case(org_id, case_id)
         if result is None:
             raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
         return result
@@ -140,7 +147,7 @@ def close_case(
 ) -> Dict[str, Any]:
     """Close a case with outcome."""
     try:
-        result = _engine.close_case(org_id, case_id, payload.closed_by, payload.outcome)
+        result = _get_engine().close_case(org_id, case_id, payload.closed_by, payload.outcome)
         if result is None:
             raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
         return result
@@ -163,7 +170,7 @@ def list_evidence(
 ) -> List[Dict[str, Any]]:
     """List all evidence items for a case."""
     try:
-        return _engine.list_evidence(org_id, case_id)
+        return _get_engine().list_evidence(org_id, case_id)
     except Exception as exc:
         logger.exception("list_evidence failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -177,7 +184,7 @@ def add_evidence(
 ) -> Dict[str, Any]:
     """Add an evidence item to a case."""
     try:
-        return _engine.add_evidence(org_id, case_id, payload.model_dump())
+        return _get_engine().add_evidence(org_id, case_id, payload.model_dump())
     except Exception as exc:
         logger.exception("add_evidence failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -195,7 +202,7 @@ def get_custody_chain(
 ) -> Dict[str, Any]:
     """Get the complete chain of custody for an evidence item."""
     try:
-        result = _engine.get_custody_chain(org_id, evidence_id)
+        result = _get_engine().get_custody_chain(org_id, evidence_id)
         if not result:
             raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
         return result
@@ -214,7 +221,7 @@ def transfer_custody(
 ) -> Dict[str, Any]:
     """Record a custody transfer for an evidence item."""
     try:
-        result = _engine.transfer_custody(org_id, evidence_id, payload.model_dump())
+        result = _get_engine().transfer_custody(org_id, evidence_id, payload.model_dump())
         if result is None:
             raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
         return result
@@ -235,7 +242,7 @@ def seal_evidence(
 ) -> Dict[str, Any]:
     """Seal evidence to prevent further custody transfers."""
     try:
-        result = _engine.seal_evidence(org_id, evidence_id, payload.sealed_by)
+        result = _get_engine().seal_evidence(org_id, evidence_id, payload.sealed_by)
         if result is None:
             raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
         return result
@@ -253,7 +260,7 @@ def verify_integrity(
 ) -> Dict[str, Any]:
     """Verify hash consistency and chain integrity for an evidence item."""
     try:
-        return _engine.verify_integrity(org_id, evidence_id)
+        return _get_engine().verify_integrity(org_id, evidence_id)
     except Exception as exc:
         logger.exception("verify_integrity failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -270,7 +277,7 @@ def get_stats(
 ) -> Dict[str, Any]:
     """Return evidence statistics for an org."""
     try:
-        return _engine.get_evidence_stats(org_id)
+        return _get_engine().get_evidence_stats(org_id)
     except Exception as exc:
         logger.exception("get_evidence_stats failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -26,7 +26,14 @@ from core.data_retention import (
 router = APIRouter(prefix="/api/v1/retention", tags=["retention"])
 
 # Module-level manager — in-memory for tests, real path in production
-_manager = DataRetentionManager()
+_manager = None  # lazy-initialised on first request
+
+
+def _get_manager():
+    global _manager
+    if _manager is None:
+        _manager = DataRetentionManager()
+    return _manager
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +82,7 @@ async def set_policy(
         enabled=body.enabled,
         org_id=org_id,
     )
-    return _manager.set_policy(policy)
+    return _get_manager().set_policy(policy)
 
 
 @router.get("/policies", response_model=List[RetentionPolicy])
@@ -83,13 +90,13 @@ async def list_policies(
     org_id: str = Depends(get_org_id),
 ) -> List[RetentionPolicy]:
     """List all configured retention policies for the org."""
-    return _manager.list_policies(org_id)
+    return _get_manager().list_policies(org_id)
 
 
 @router.delete("/policies/{policy_id}", status_code=204)
 async def delete_policy(policy_id: str) -> None:
     """Delete a retention policy by ID."""
-    _manager.delete_policy(policy_id)
+    _get_manager().delete_policy(policy_id)
     return None
 
 
@@ -101,7 +108,7 @@ async def delete_policy(policy_id: str) -> None:
 @router.get("/defaults", response_model=List[RetentionPolicy])
 async def get_defaults() -> List[RetentionPolicy]:
     """Return the built-in default retention policies for all categories."""
-    return _manager.get_default_policies()
+    return _get_manager().get_default_policies()
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +122,7 @@ async def get_purgeable(
     category: Optional[DataCategory] = Query(default=None),
 ) -> Dict[str, Any]:
     """Identify records that are past their retention period and can be purged."""
-    return _manager.identify_purgeable(org_id, category)
+    return _get_manager().identify_purgeable(org_id, category)
 
 
 # ---------------------------------------------------------------------------
@@ -133,14 +140,14 @@ async def purge_category(
 
     Set export_first=true to export data to JSON before deleting.
     """
-    policy = _manager.get_policy(category, org_id)
+    policy = _get_manager().get_policy(category, org_id)
     if policy is None:
         raise HTTPException(
             status_code=404,
             detail=f"No retention policy configured for category '{category.value}'. "
             "Set a policy first via POST /api/v1/retention/policies.",
         )
-    return _manager.purge_expired(org_id, category, export_first=body.export_first)
+    return _get_manager().purge_expired(org_id, category, export_first=body.export_first)
 
 
 @router.post("/purge-all", response_model=List[PurgeRecord])
@@ -148,7 +155,7 @@ async def purge_all(
     org_id: str = Depends(get_org_id),
 ) -> List[PurgeRecord]:
     """Purge expired records across all configured categories for the org."""
-    return _manager.purge_all_expired(org_id)
+    return _get_manager().purge_all_expired(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -162,14 +169,14 @@ async def create_erasure_request(
     org_id: str = Depends(get_org_id),
 ) -> ErasureRequest:
     """Submit a GDPR right-to-erasure request (Article 17) for a data subject."""
-    return _manager.request_erasure(body.subject_email, org_id)
+    return _get_manager().request_erasure(body.subject_email, org_id)
 
 
 @router.post("/erasure/{request_id}/process", response_model=ErasureRequest)
 async def process_erasure(request_id: str) -> ErasureRequest:
     """Execute a pending GDPR erasure request across all data stores."""
     try:
-        return _manager.process_erasure(request_id)
+        return _get_manager().process_erasure(request_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
@@ -179,7 +186,7 @@ async def list_erasure_requests(
     org_id: str = Depends(get_org_id),
 ) -> List[ErasureRequest]:
     """List all GDPR erasure requests for the org."""
-    return _manager.get_erasure_requests(org_id)
+    return _get_manager().get_erasure_requests(org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +199,7 @@ async def get_dashboard(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retention dashboard: per-category sizes, purgeable counts, and policy status."""
-    return _manager.get_retention_dashboard(org_id)
+    return _get_manager().get_retention_dashboard(org_id)
 
 
 @router.get("/history", response_model=List[PurgeRecord])
@@ -201,5 +208,5 @@ async def get_purge_history(
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> List[PurgeRecord]:
     """Return purge history for the org, newest first."""
-    history = _manager.get_purge_history(org_id)
+    history = _get_manager().get_purge_history(org_id)
     return history[:limit]

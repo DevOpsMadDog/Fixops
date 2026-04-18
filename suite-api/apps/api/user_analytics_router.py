@@ -26,7 +26,14 @@ router = APIRouter(
 )
 
 # Module-level engine instance (shared across requests)
-_engine = UserAnalyticsEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = UserAnalyticsEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +68,7 @@ class CleanupRequest(BaseModel):
 async def record_activity(body: RecordActivityRequest) -> Activity:
     """Record a new user activity event."""
     try:
-        return _engine.record_activity(
+        return _get_engine().record_activity(
             user_email=body.user_email,
             activity_type=body.activity_type,
             endpoint=body.endpoint,
@@ -82,7 +89,7 @@ async def get_user_activities(
     limit: int = Query(default=100, ge=1, le=1000, description="Max records to return"),
 ) -> List[Activity]:
     """Return recent activity events for a specific user."""
-    return _engine.get_user_activities(user_email=user_email, org_id=org_id, limit=limit)
+    return _get_engine().get_user_activities(user_email=user_email, org_id=org_id, limit=limit)
 
 
 @router.get("/sessions", response_model=List[UserSession])
@@ -90,7 +97,7 @@ async def get_active_sessions(
     org_id: str = Query(default="default", description="Organization ID"),
 ) -> List[UserSession]:
     """Return currently active user sessions (activity within last 30 minutes)."""
-    return _engine.get_active_sessions(org_id=org_id)
+    return _get_engine().get_active_sessions(org_id=org_id)
 
 
 @router.get("/most-active", response_model=List[Dict[str, Any]])
@@ -100,7 +107,7 @@ async def get_most_active_users(
     limit: int = Query(default=10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     """Return top users by activity count over the specified period."""
-    return _engine.get_most_active_users(org_id=org_id, days=days, limit=limit)
+    return _get_engine().get_most_active_users(org_id=org_id, days=days, limit=limit)
 
 
 @router.get("/feature-usage", response_model=Dict[str, int])
@@ -109,7 +116,7 @@ async def get_feature_usage(
     days: int = Query(default=30, ge=1, le=365),
 ) -> Dict[str, int]:
     """Return feature usage counts over the specified period."""
-    return _engine.get_feature_usage(org_id=org_id, days=days)
+    return _get_engine().get_feature_usage(org_id=org_id, days=days)
 
 
 @router.get("/endpoint-usage", response_model=List[Dict[str, Any]])
@@ -118,7 +125,7 @@ async def get_endpoint_usage(
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return most-called API endpoints over the specified period."""
-    return _engine.get_endpoint_usage(org_id=org_id, days=days)
+    return _get_engine().get_endpoint_usage(org_id=org_id, days=days)
 
 
 @router.get("/peak-hours", response_model=List[Dict[str, Any]])
@@ -127,7 +134,7 @@ async def get_peak_hours(
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return activity distribution by hour of day (0-23)."""
-    return _engine.get_peak_hours(org_id=org_id, days=days)
+    return _get_engine().get_peak_hours(org_id=org_id, days=days)
 
 
 @router.get("/dau", response_model=List[Dict[str, Any]])
@@ -136,7 +143,7 @@ async def get_daily_active_users(
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return daily active user (DAU) counts over the specified period."""
-    return _engine.get_daily_active_users(org_id=org_id, days=days)
+    return _get_engine().get_daily_active_users(org_id=org_id, days=days)
 
 
 @router.get("/underutilized-features", response_model=List[str])
@@ -144,7 +151,7 @@ async def get_underutilized_features(
     org_id: str = Query(default="default"),
 ) -> List[str]:
     """Return features with fewer than 5 total uses."""
-    return _engine.get_underutilized_features(org_id=org_id)
+    return _get_engine().get_underutilized_features(org_id=org_id)
 
 
 @router.get("/dashboard", response_model=Dict[str, Any])
@@ -152,11 +159,11 @@ async def get_usage_dashboard(
     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     """Return all analytics metrics combined for dashboard display."""
-    return _engine.get_usage_dashboard(org_id=org_id)
+    return _get_engine().get_usage_dashboard(org_id=org_id)
 
 
 @router.post("/cleanup", response_model=Dict[str, Any])
 async def cleanup_old_activities(body: CleanupRequest) -> Dict[str, Any]:
     """Purge activity records older than the specified number of days."""
-    deleted = _engine.cleanup_old_activities(days=body.days)
+    deleted = _get_engine().cleanup_old_activities(days=body.days)
     return {"deleted": deleted, "older_than_days": body.days}

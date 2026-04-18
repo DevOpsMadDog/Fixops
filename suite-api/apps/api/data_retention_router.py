@@ -39,7 +39,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_engine = DataRetentionEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = DataRetentionEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +103,7 @@ def list_policies(
 ) -> List[Dict[str, Any]]:
     """List retention policies for an org."""
     try:
-        return _engine.list_policies(org_id, regulation=regulation)
+        return _get_engine().list_policies(org_id, regulation=regulation)
     except Exception as exc:
         logger.exception("list_policies failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -109,7 +116,7 @@ def create_policy(
 ) -> Dict[str, Any]:
     """Create a new retention policy."""
     try:
-        return _engine.create_policy(org_id, payload.model_dump())
+        return _get_engine().create_policy(org_id, payload.model_dump())
     except Exception as exc:
         logger.exception("create_policy failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -128,7 +135,7 @@ def list_datasets(
 ) -> List[Dict[str, Any]]:
     """List datasets, optionally filtered by policy_id or expiry_status."""
     try:
-        return _engine.list_datasets(
+        return _get_engine().list_datasets(
             org_id, policy_id=policy_id, expiry_status=expiry_status
         )
     except Exception as exc:
@@ -146,7 +153,7 @@ def register_dataset(
         data = payload.model_dump()
         if data.get("created_at") is None:
             data.pop("created_at", None)
-        return _engine.register_dataset(org_id, data)
+        return _get_engine().register_dataset(org_id, data)
     except Exception as exc:
         logger.exception("register_dataset failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -165,7 +172,7 @@ def mark_legal_hold(
 ) -> Dict[str, Any]:
     """Apply a legal hold to a dataset."""
     try:
-        result = _engine.mark_legal_hold(
+        result = _get_engine().mark_legal_hold(
             org_id, dataset_id, payload.held_by, payload.reason
         )
         if result is None:
@@ -186,7 +193,7 @@ def release_legal_hold(
 ) -> Dict[str, Any]:
     """Release a legal hold from a dataset."""
     try:
-        result = _engine.release_legal_hold(org_id, dataset_id, payload.released_by)
+        result = _get_engine().release_legal_hold(org_id, dataset_id, payload.released_by)
         if result is None:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
         return result
@@ -205,7 +212,7 @@ def schedule_deletion(
 ) -> Dict[str, Any]:
     """Schedule a dataset for deletion."""
     try:
-        result = _engine.schedule_deletion(
+        result = _get_engine().schedule_deletion(
             org_id, dataset_id, payload.scheduled_by, payload.notes
         )
         if result is None:
@@ -226,7 +233,7 @@ def complete_deletion(
 ) -> Dict[str, Any]:
     """Complete deletion of a dataset and record audit trail."""
     try:
-        result = _engine.complete_deletion(org_id, dataset_id, payload.deleted_by)
+        result = _get_engine().complete_deletion(org_id, dataset_id, payload.deleted_by)
         if result is None:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
         return result
@@ -248,7 +255,7 @@ def get_deletion_audit(
 ) -> List[Dict[str, Any]]:
     """Return the deletion audit trail for an org."""
     try:
-        return _engine.get_deletion_audit(org_id)
+        return _get_engine().get_deletion_audit(org_id)
     except Exception as exc:
         logger.exception("get_deletion_audit failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -260,7 +267,7 @@ def get_stats(
 ) -> Dict[str, Any]:
     """Return retention compliance statistics for an org."""
     try:
-        return _engine.get_retention_stats(org_id)
+        return _get_engine().get_retention_stats(org_id)
     except Exception as exc:
         logger.exception("get_retention_stats failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

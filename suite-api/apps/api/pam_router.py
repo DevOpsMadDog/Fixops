@@ -28,10 +28,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/pam", tags=["pam"])
 
 # Module-level singleton
-_engine = PAMEngine()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> PAMEngine:
+    global _engine
+    if _engine is None:
+        _engine = PAMEngine()
     return _engine
 
 

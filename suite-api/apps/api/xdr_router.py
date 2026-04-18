@@ -15,7 +15,14 @@ from apps.api.dependencies import get_org_id
 from core.xdr_engine import XDREngine
 
 router = APIRouter(prefix="/api/v1/xdr", tags=["xdr"])
-_engine = XDREngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = XDREngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +80,7 @@ def ingest_signal(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingest a cross-domain security signal and trigger auto-correlation."""
-    return _engine.ingest_signal(org_id, body.model_dump())
+    return _get_engine().ingest_signal(org_id, body.model_dump())
 
 
 @router.get("/signals", summary="List security signals")
@@ -84,7 +91,7 @@ def list_signals(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List ingested signals with optional source_type and severity filters."""
-    return _engine.list_signals(org_id, source_type=source_type, severity=severity, limit=limit)
+    return _get_engine().list_signals(org_id, source_type=source_type, severity=severity, limit=limit)
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +105,7 @@ def create_incident(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Manually create a new XDR incident."""
-    return _engine.create_incident(org_id, body.model_dump())
+    return _get_engine().create_incident(org_id, body.model_dump())
 
 
 @router.get("/incidents", summary="List XDR incidents")
@@ -109,7 +116,7 @@ def list_incidents(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List incidents with optional status, severity, and attack_stage filters."""
-    return _engine.list_incidents(
+    return _get_engine().list_incidents(
         org_id, status=status, severity=severity, attack_stage=attack_stage
     )
 
@@ -120,7 +127,7 @@ def get_incident(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a full incident record including all linked signals."""
-    incident = _engine.get_incident(org_id, incident_id)
+    incident = _get_engine().get_incident(org_id, incident_id)
     if incident is None:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id!r} not found")
     return incident
@@ -134,7 +141,7 @@ def update_incident_status(
 ) -> Dict[str, Any]:
     """Update the status (and optionally assignee) of an XDR incident."""
     try:
-        updated = _engine.update_incident_status(
+        updated = _get_engine().update_incident_status(
             org_id, incident_id, body.status, assigned_to=body.assigned_to
         )
     except ValueError as exc:
@@ -151,7 +158,7 @@ def link_signal_to_incident(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Link an existing signal to an incident (increments signal_count)."""
-    linked = _engine.link_signal_to_incident(org_id, incident_id, body.signal_id)
+    linked = _get_engine().link_signal_to_incident(org_id, incident_id, body.signal_id)
     if not linked:
         raise HTTPException(
             status_code=404,
@@ -171,7 +178,7 @@ def create_rule(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new correlation rule for automated incident detection."""
-    return _engine.create_rule(org_id, body.model_dump())
+    return _get_engine().create_rule(org_id, body.model_dump())
 
 
 @router.get("/rules", summary="List correlation rules")
@@ -180,7 +187,7 @@ def list_rules(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List correlation rules for the org."""
-    return _engine.list_rules(org_id, enabled_only=enabled_only)
+    return _get_engine().list_rules(org_id, enabled_only=enabled_only)
 
 
 # ---------------------------------------------------------------------------
@@ -193,4 +200,4 @@ def get_xdr_stats(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate XDR statistics for the org."""
-    return _engine.get_xdr_stats(org_id)
+    return _get_engine().get_xdr_stats(org_id)

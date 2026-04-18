@@ -31,7 +31,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_engine = KPIEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = KPIEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +83,7 @@ async def record_kpi(body: KPIRecordRequest) -> KPI:
     Stores the value with timestamp, org, and category.
     Unit is resolved automatically from built-in definitions.
     """
-    return _engine.record_kpi(
+    return _get_engine().record_kpi(
         name=body.name,
         value=body.value,
         category=body.category,
@@ -95,7 +102,7 @@ async def get_current_kpis(
 
     Includes target and trend (up/down/stable) derived from historical data.
     """
-    return _engine.get_current_kpis(org_id=org_id)
+    return _get_engine().get_current_kpis(org_id=org_id)
 
 
 @router.get("/trend/{name}", response_model=List[Dict[str, Any]])
@@ -110,7 +117,7 @@ async def get_kpi_trend(
     Useful for trend charts on the CISO dashboard.
     Returns list of {timestamp, value} dicts ordered chronologically.
     """
-    trend = _engine.get_kpi_trend(name=name, org_id=org_id, days=days)
+    trend = _get_engine().get_kpi_trend(name=name, org_id=org_id, days=days)
     if not trend:
         raise HTTPException(
             status_code=404,
@@ -127,7 +134,7 @@ async def set_target(body: KPITargetRequest) -> KPITarget:
     Overwrites any existing target configuration for the named KPI.
     Thresholds determine green/yellow/red health classification.
     """
-    return _engine.set_target(
+    return _get_engine().set_target(
         name=body.name,
         target=body.target,
         yellow=body.yellow,
@@ -146,7 +153,7 @@ async def get_kpi_health(
     Uses configured thresholds to classify each KPI.
     KPIs without recorded data or targets show as 'unknown'.
     """
-    return _engine.get_kpi_health(org_id=org_id)
+    return _get_engine().get_kpi_health(org_id=org_id)
 
 
 @router.get("/executive", response_model=ExecutiveKPISummary)
@@ -162,7 +169,7 @@ async def get_executive_kpis(
 
     Includes overall portfolio health (green/yellow/red) and per-KPI breakdown.
     """
-    return _engine.get_executive_kpis(org_id=org_id)
+    return _get_engine().get_executive_kpis(org_id=org_id)
 
 
 @router.post("/calculate", response_model=List[KPI])
@@ -175,7 +182,7 @@ async def auto_calculate_kpis(
     Queries analytics engine, findings database, and connector status
     to populate KPI values automatically.  Returns newly recorded KPIs.
     """
-    return _engine.auto_calculate_kpis(org_id=org_id)
+    return _get_engine().auto_calculate_kpis(org_id=org_id)
 
 
 @router.get("/definitions", response_model=List[Dict[str, Any]])
@@ -187,4 +194,4 @@ async def list_kpi_definitions() -> List[Dict[str, Any]]:
     higher_is_better flag, and default target value.
     Use this to discover available KPI names before recording data.
     """
-    return _engine.list_kpi_definitions()
+    return _get_engine().list_kpi_definitions()

@@ -1,0 +1,1917 @@
+{
+  "info": {
+    "name": "ALDECI Enterprise Security API",
+    "_postman_id": "aldeci-enterprise-security-api-v1",
+    "description": "Complete API collection for ALDECI — AI-native ASPM + CTEM + CSPM platform. Covers all 10 security domains: ASPM, CSPM, CTEM, SOC, GRC, Identity, Network, AI/Threat Intel, Executive, and Platform.\n\nSetup:\n1. Set environment variables: base_url and api_key\n2. All requests require X-API-Key header (auto-populated via {{api_key}} variable)\n3. Base URL: http://localhost:8000 (local) or your deployed instance\n\nDocs: /docs (Swagger UI) | /redoc (ReDoc) | /openapi.json",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "ALDECI API base URL (no trailing slash)"
+    },
+    {
+      "key": "api_key",
+      "value": "your-api-key-here",
+      "type": "string",
+      "description": "ALDECI API key — obtain from /api/v1/admin or your admin panel"
+    },
+    {
+      "key": "org_id",
+      "value": "acme-corp",
+      "type": "string",
+      "description": "Your organization identifier for multi-tenant isolation"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - ASPM (Application Security Posture Management)",
+      "description": "Application security posture: SBOM generation, supply chain risk, SAST/DAST scanning, and SCA. Covers software composition analysis across CycloneDX and SPDX formats.",
+      "item": [
+        {
+          "name": "Generate SBOM (CycloneDX)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sbom-export/generate/cyclonedx",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sbom-export", "generate", "cyclonedx"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_name\": \"aldeci-backend\",\n  \"version\": \"2.1.0\",\n  \"org_id\": \"{{org_id}}\",\n  \"include_licenses\": true,\n  \"include_vulnerabilities\": true\n}"
+            },
+            "description": "Generate a CycloneDX 1.4 SBOM for a project. Returns a complete bill of materials with component licenses and known vulnerabilities."
+          }
+        },
+        {
+          "name": "Generate SBOM (SPDX)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sbom-export/generate/spdx",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sbom-export", "generate", "spdx"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_name\": \"aldeci-backend\",\n  \"version\": \"2.1.0\",\n  \"org_id\": \"{{org_id}}\",\n  \"include_licenses\": true\n}"
+            },
+            "description": "Generate an SPDX 2.3 SBOM for a project."
+          }
+        },
+        {
+          "name": "List SBOM Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sbom-export/projects?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sbom-export", "projects"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all projects with SBOM export history."
+          }
+        },
+        {
+          "name": "Supply Chain Risk — List Vendors",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/supply-chain?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "supply-chain"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all supply chain vendors and their risk scores."
+          }
+        },
+        {
+          "name": "Trigger SAST Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sast/scan",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sast", "scan"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repository_url\": \"https://github.com/DevOpsMadDog/Fixops\",\n  \"branch\": \"features/intermediate-stage\",\n  \"org_id\": \"{{org_id}}\",\n  \"languages\": [\"python\", \"javascript\"],\n  \"severity_threshold\": \"medium\"\n}"
+            },
+            "description": "Trigger a SAST (Static Application Security Testing) scan on a repository."
+          }
+        },
+        {
+          "name": "SAST Findings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sast/findings?org_id={{org_id}}&severity=high",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sast", "findings"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "severity", "value": "high" }
+              ]
+            },
+            "description": "Retrieve SAST findings, optionally filtered by severity."
+          }
+        },
+        {
+          "name": "Trigger DAST Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dast/scan",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dast", "scan"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_url\": \"https://app.example.com\",\n  \"org_id\": \"{{org_id}}\",\n  \"scan_profile\": \"full\",\n  \"authenticated\": false\n}"
+            },
+            "description": "Trigger a DAST (Dynamic Application Security Testing) scan against a live target URL."
+          }
+        },
+        {
+          "name": "DAST Findings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dast/findings?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dast", "findings"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all DAST findings for the organization."
+          }
+        },
+        {
+          "name": "SCA — Vulnerability Exposure",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sbom/vuln-exposure?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sbom", "vuln-exposure"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Software Composition Analysis: cross-reference all SBOM components against known CVEs. Returns exposure summary with KEV and EPSS scores."
+          }
+        },
+        {
+          "name": "SCA — License Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sbom/license-summary?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sbom", "license-summary"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Aggregate license risk across all tracked software components."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - CSPM (Cloud Security Posture Management)",
+      "description": "Cloud security posture management: misconfigurations, CIS benchmarks, drift detection, Kubernetes security, and cloud-native workload protection.",
+      "item": [
+        {
+          "name": "Cloud Posture Score",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cspm/posture?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cspm", "posture"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Overall cloud security posture score across all monitored accounts and providers."
+          }
+        },
+        {
+          "name": "Trigger Cloud Posture Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cspm/scan",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cspm", "scan"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"provider\": \"aws\",\n  \"account_id\": \"123456789012\",\n  \"regions\": [\"us-east-1\", \"us-west-2\"]\n}"
+            },
+            "description": "Trigger a full cloud posture scan against AWS, Azure, or GCP account."
+          }
+        },
+        {
+          "name": "CSPM Findings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cspm/findings?org_id={{org_id}}&severity=critical",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cspm", "findings"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "severity", "value": "critical" }
+              ]
+            },
+            "description": "List cloud misconfigurations, filterable by severity (critical, high, medium, low)."
+          }
+        },
+        {
+          "name": "CIS Benchmark Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cspm/benchmarks?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cspm", "benchmarks"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "CIS benchmark compliance status across all monitored cloud accounts."
+          }
+        },
+        {
+          "name": "Cloud Drift Detection",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cspm/drift?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cspm", "drift"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Configuration drift detection: changes from the last saved baseline."
+          }
+        },
+        {
+          "name": "Kubernetes Security — List Clusters",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/kubernetes-security/clusters?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "kubernetes-security", "clusters"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all registered Kubernetes clusters and their security posture."
+          }
+        },
+        {
+          "name": "Kubernetes — Run CIS Benchmark",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/kubernetes-security/clusters/:cluster_id/cis-benchmark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "kubernetes-security", "clusters", ":cluster_id", "cis-benchmark"],
+              "variable": [{ "key": "cluster_id", "value": "k8s-prod-01" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"benchmark_version\": \"1.8\"\n}"
+            },
+            "description": "Run CIS Kubernetes Benchmark against a cluster."
+          }
+        },
+        {
+          "name": "Cloud Compliance — Create Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cloud-compliance/assessments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cloud-compliance", "assessments"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"framework\": \"CIS_AWS_v1.5\",\n  \"cloud_provider\": \"aws\",\n  \"account_id\": \"123456789012\",\n  \"region\": \"us-east-1\"\n}"
+            },
+            "description": "Create a cloud compliance assessment for CIS, NIST, SOC2, or PCI-DSS."
+          }
+        },
+        {
+          "name": "Cloud Native — Account Posture Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cloud-native/accounts/:account_id/posture-check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cloud-native", "accounts", ":account_id", "posture-check"],
+              "variable": [{ "key": "account_id", "value": "aws-prod-account" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\"\n}"
+            },
+            "description": "Run a posture check on a cloud-native account to identify misconfigurations."
+          }
+        },
+        {
+          "name": "Cloud Native Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cloud-native/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cloud-native", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Aggregate cloud-native security statistics across all monitored accounts."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - CTEM (Continuous Threat Exposure Management)",
+      "description": "Continuous threat exposure: attack path analysis, threat hunting, vulnerability discovery, and pentest management. Aligns with Gartner CTEM framework.",
+      "item": [
+        {
+          "name": "Attack Paths — Crown Jewels at Risk",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attack-paths/crown-jewels-at-risk?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attack-paths", "crown-jewels-at-risk"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "BFS lateral movement analysis: identifies which crown jewel assets are reachable from external entry points."
+          }
+        },
+        {
+          "name": "Attack Paths — Add Node",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attack-paths/nodes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attack-paths", "nodes"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"node_id\": \"web-server-01\",\n  \"node_type\": \"server\",\n  \"ip\": \"10.0.1.5\",\n  \"is_entry_point\": true,\n  \"is_crown_jewel\": false,\n  \"tags\": [\"dmz\", \"production\"]\n}"
+            },
+            "description": "Add a network node to the attack graph for lateral movement analysis."
+          }
+        },
+        {
+          "name": "Threat Hunting — Create Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/hunting/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "hunting", "sessions"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"Lateral Movement Hunt Q2-2026\",\n  \"hypothesis\": \"Adversary using Pass-the-Hash to move laterally from DMZ to core network\",\n  \"tactic\": \"TA0008\",\n  \"analyst\": \"hunter@acme.com\"\n}"
+            },
+            "description": "Create a new threat hunting session with a hypothesis and MITRE ATT&CK tactic."
+          }
+        },
+        {
+          "name": "Threat Hunting — Run Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/hunting/sessions/:session_id/run",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "hunting", "sessions", ":session_id", "run"],
+              "variable": [{ "key": "session_id", "value": "session-uuid-here" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"query_id\": \"query-uuid-here\"\n}"
+            },
+            "description": "Execute a hunting session query against collected telemetry."
+          }
+        },
+        {
+          "name": "Vulnerability Discovery — List Discovered",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vulns/discovered?org_id={{org_id}}&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vulns", "discovered"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "List AI-discovered vulnerabilities not yet in public CVE databases."
+          }
+        },
+        {
+          "name": "Pentest — Create Engagement",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pentest-mgmt/engagements",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pentest-mgmt", "engagements"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"Q2 2026 External Pentest\",\n  \"scope\": \"external\",\n  \"methodology\": \"PTES\",\n  \"start_date\": \"2026-05-01\",\n  \"end_date\": \"2026-05-15\",\n  \"team\": [\"pentester@acme.com\"]\n}"
+            },
+            "description": "Create a new pentest engagement with scope, methodology, and timeline."
+          }
+        },
+        {
+          "name": "Pentest — Add Finding",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pentest-mgmt/engagements/:engagement_id/findings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pentest-mgmt", "engagements", ":engagement_id", "findings"],
+              "variable": [{ "key": "engagement_id", "value": "engagement-uuid-here" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"title\": \"SQL Injection in Login Endpoint\",\n  \"severity\": \"critical\",\n  \"cvss_score\": 9.8,\n  \"description\": \"Login endpoint vulnerable to blind SQL injection via username parameter\",\n  \"remediation\": \"Parameterize all database queries\",\n  \"cve\": null\n}"
+            },
+            "description": "Record a finding from a pentest engagement."
+          }
+        },
+        {
+          "name": "Pentest Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pentest-mgmt/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pentest-mgmt", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Pentest program statistics: engagement counts, finding severity distribution, remediation rates."
+          }
+        },
+        {
+          "name": "Attack Paths — Graph Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attack-paths/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attack-paths", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Attack graph statistics: node count, edge count, reachable crown jewels."
+          }
+        },
+        {
+          "name": "Vulnerability — Contribute Discovery",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vulns/contribute",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vulns", "contribute"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"title\": \"Zero-Day in OpenSSL 3.2\",\n  \"description\": \"Memory corruption in TLS handshake processing\",\n  \"affected_component\": \"openssl\",\n  \"affected_version\": \"3.2.0\",\n  \"cvss_vector\": \"AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\",\n  \"proof_of_concept\": \"PoC code or steps\"\n}"
+            },
+            "description": "Contribute a newly discovered vulnerability to the internal knowledge base for coordinated disclosure."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - SOC (Security Operations Center)",
+      "description": "SOC operations: alert triage, incident lifecycle management, SOC workflows, and SIEM event ingestion. Supports MTTD/MTTR tracking.",
+      "item": [
+        {
+          "name": "Alert Triage — Ingest Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/alert-triage/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "alert-triage", "alerts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"title\": \"Brute Force Attack Detected\",\n  \"source\": \"crowdstrike\",\n  \"severity\": \"high\",\n  \"raw_event\": {\n    \"src_ip\": \"192.168.1.100\",\n    \"failed_logins\": 150,\n    \"timeframe_minutes\": 5\n  }\n}"
+            },
+            "description": "Ingest a raw alert from any source. ALDECI auto-assigns priority (p1-p4) based on severity and context."
+          }
+        },
+        {
+          "name": "Alert Triage — Priority Queue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/alert-triage/queue?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "alert-triage", "queue"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Get the prioritized alert queue (p1 first) for SOC analysts."
+          }
+        },
+        {
+          "name": "Alert Triage — Bulk Triage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/alert-triage/bulk-triage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "alert-triage", "bulk-triage"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"alert_ids\": [\"alert-001\", \"alert-002\", \"alert-003\"],\n  \"action\": \"suppress\",\n  \"reason\": \"Known false positive — internal scanner\"\n}"
+            },
+            "description": "Bulk triage multiple alerts in one operation: suppress, escalate, or close."
+          }
+        },
+        {
+          "name": "Incident — Create Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incident-orchestration/incidents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "incident-orchestration", "incidents"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"title\": \"Ransomware Infection — Finance Server\",\n  \"severity\": \"critical\",\n  \"description\": \"CryptoLocker variant detected on FINANCE-SRV-01\",\n  \"affected_assets\": [\"FINANCE-SRV-01\", \"FINANCE-SRV-02\"],\n  \"reporter\": \"soc-analyst@acme.com\"\n}"
+            },
+            "description": "Create a security incident. Triggers the 5-state lifecycle: detected → contained → eradicated → recovered → closed."
+          }
+        },
+        {
+          "name": "Incident — Timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incident-orchestration/incidents/:incident_id/timeline",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "incident-orchestration", "incidents", ":incident_id", "timeline"],
+              "variable": [{ "key": "incident_id", "value": "incident-uuid-here" }]
+            },
+            "description": "Get the complete chronological timeline of events for an incident."
+          }
+        },
+        {
+          "name": "Incident — MTTR Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incident-orchestration/metrics?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "incident-orchestration", "metrics"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "MTTD and MTTR metrics aggregated across all incidents."
+          }
+        },
+        {
+          "name": "SOC Workflow — Create Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/soc-workflow/workflows",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "soc-workflow", "workflows"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"Ransomware IR Playbook\",\n  \"trigger_condition\": \"alert.type == 'ransomware'\",\n  \"steps\": [\n    {\"order\": 1, \"action\": \"isolate_host\", \"sla_minutes\": 5},\n    {\"order\": 2, \"action\": \"notify_ciso\", \"sla_minutes\": 10},\n    {\"order\": 3, \"action\": \"snapshot_forensics\", \"sla_minutes\": 30}\n  ]\n}"
+            },
+            "description": "Create a SOC workflow (IR playbook) with ordered steps and SLA timers."
+          }
+        },
+        {
+          "name": "SOC Workflow Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/soc-workflow/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "soc-workflow", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "SOC workflow execution statistics: completion rates, SLA adherence, bottlenecks."
+          }
+        },
+        {
+          "name": "Alert Triage Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/alert-triage/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "alert-triage", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Alert triage statistics: queue depth, MTTR by priority, false positive rate."
+          }
+        },
+        {
+          "name": "Incident — Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incident-orchestration/incidents/:incident_id/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "incident-orchestration", "incidents", ":incident_id", "status"],
+              "variable": [{ "key": "incident_id", "value": "incident-uuid-here" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"status\": \"contained\",\n  \"notes\": \"Affected hosts isolated from network at 14:32 UTC\"\n}"
+            },
+            "description": "Advance incident through the lifecycle: detected → contained → eradicated → recovered → closed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - GRC (Governance, Risk & Compliance)",
+      "description": "GRC management: compliance status across 6+ frameworks (SOC2, PCI-DSS, ISO 27001, NIST CSF, HIPAA, GDPR), evidence collection, audit management, and regulatory tracking.",
+      "item": [
+        {
+          "name": "Compliance Status — All Frameworks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/compliance/status?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "compliance", "status"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Compliance posture across all frameworks: SOC2, PCI-DSS, ISO 27001, NIST CSF, HIPAA, GDPR."
+          }
+        },
+        {
+          "name": "Compliance Status — Single Framework",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/compliance/status/:framework",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "compliance", "status", ":framework"],
+              "variable": [{ "key": "framework", "value": "soc2" }]
+            },
+            "description": "Detailed compliance status for a single framework (soc2, pci-dss, iso27001, nist-csf, hipaa, gdpr)."
+          }
+        },
+        {
+          "name": "Compliance Evidence — Collect All",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auto-evidence/collect/all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auto-evidence", "collect", "all"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"framework\": \"soc2\",\n  \"period_start\": \"2026-01-01\",\n  \"period_end\": \"2026-03-31\"\n}"
+            },
+            "description": "Auto-collect all evidence types (audit logs, scan results, access matrices, encryption status) for a compliance period."
+          }
+        },
+        {
+          "name": "Compliance Evidence — Coverage",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auto-evidence/coverage?org_id={{org_id}}&framework=soc2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auto-evidence", "coverage"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "framework", "value": "soc2" }
+              ]
+            },
+            "description": "Evidence coverage percentage by control domain for a compliance framework."
+          }
+        },
+        {
+          "name": "Audit Logs — Paginated",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/logs?org_id={{org_id}}&page=1&per_page=100",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "logs"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "100" }
+              ]
+            },
+            "description": "Paginated audit log retrieval with tamper-evident chain verification support."
+          }
+        },
+        {
+          "name": "Audit — Compliance Framework Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/compliance/frameworks/:id/report",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "compliance", "frameworks", ":id", "report"],
+              "variable": [{ "key": "id", "value": "soc2" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"period\": \"Q1-2026\",\n  \"format\": \"pdf\"\n}"
+            },
+            "description": "Generate a compliance report for a specific framework and audit period."
+          }
+        },
+        {
+          "name": "Audit Management — Create Audit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-management/audits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-management", "audits"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"SOC 2 Type II Audit 2026\",\n  \"framework\": \"soc2\",\n  \"auditor\": \"Deloitte\",\n  \"start_date\": \"2026-05-01\",\n  \"end_date\": \"2026-06-30\"\n}"
+            },
+            "description": "Schedule and track an external audit engagement."
+          }
+        },
+        {
+          "name": "Compliance Gaps",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/compliance/gaps?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "compliance", "gaps"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all compliance control gaps with remediation priority ordering."
+          }
+        },
+        {
+          "name": "Compliance — Cross Framework Mapping",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/compliance/cross-map?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "compliance", "cross-map"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Cross-framework control mapping: shows how controls satisfy multiple frameworks simultaneously."
+          }
+        },
+        {
+          "name": "Audit Logs — Export",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/logs/export?org_id={{org_id}}&format=csv&from=2026-01-01&to=2026-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "logs", "export"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "format", "value": "csv" },
+                { "key": "from", "value": "2026-01-01" },
+                { "key": "to", "value": "2026-03-31" }
+              ]
+            },
+            "description": "Export audit logs in CSV or JSON format for a date range (audit evidence artifact)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Identity & Access Management",
+      "description": "Identity lifecycle, access control, MFA management, privilege escalation detection, and access request workflows. Supports NIST 800-63 IAL1/2/3.",
+      "item": [
+        {
+          "name": "Access Control — Check Access",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/access-control/check?org_id={{org_id}}&user_id=user-123&resource=finance-db&action=read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "access-control", "check"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "user_id", "value": "user-123" },
+                { "key": "resource", "value": "finance-db" },
+                { "key": "action", "value": "read" }
+              ]
+            },
+            "description": "Real-time RBAC access check: does this user have permission to perform this action on this resource?"
+          }
+        },
+        {
+          "name": "Access Control — Create Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/access-control/policies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "access-control", "policies"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"Finance Read-Only\",\n  \"role\": \"finance-analyst\",\n  \"resources\": [\"finance-db\", \"reports-bucket\"],\n  \"actions\": [\"read\", \"list\"],\n  \"conditions\": {\"mfa_required\": true, \"ip_allowlist\": [\"10.0.0.0/8\"]}\n}"
+            },
+            "description": "Create an RBAC access control policy with MFA and IP allowlist conditions."
+          }
+        },
+        {
+          "name": "MFA — Enroll User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mfa/enrollments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mfa", "enrollments"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"user_id\": \"user-123\",\n  \"method\": \"totp\",\n  \"device_name\": \"iPhone 16 Pro\"\n}"
+            },
+            "description": "Enroll a user in MFA. Methods: totp, sms, email, hardware_key, push."
+          }
+        },
+        {
+          "name": "MFA Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mfa/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mfa", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "MFA enrollment rate, method distribution, and authentication event statistics."
+          }
+        },
+        {
+          "name": "Identity Lifecycle — Provision Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/identity-lifecycle/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identity-lifecycle", "accounts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"username\": \"jane.smith\",\n  \"email\": \"jane.smith@acme.com\",\n  \"department\": \"engineering\",\n  \"role\": \"developer\",\n  \"manager\": \"john.doe@acme.com\"\n}"
+            },
+            "description": "Provision a new identity account with role, department, and manager assignment."
+          }
+        },
+        {
+          "name": "Identity Lifecycle — Orphaned Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/identity-lifecycle/orphans?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identity-lifecycle", "orphans"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Find orphaned accounts (accounts with no manager or inactive owner) for access review."
+          }
+        },
+        {
+          "name": "Privilege Escalation — Detection Heatmap",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/privilege-escalation/heatmap?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "privilege-escalation", "heatmap"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Privilege escalation activity heatmap by user, time, and system for anomaly visualization."
+          }
+        },
+        {
+          "name": "Access Request — Submit Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/access-requests/requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "access-requests", "requests"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"requester_id\": \"user-123\",\n  \"resource\": \"production-database\",\n  \"access_type\": \"read\",\n  \"justification\": \"Required for Q2 audit data extraction\",\n  \"duration_days\": 7\n}"
+            },
+            "description": "Submit an access request with justification. Routes to manager for approval."
+          }
+        },
+        {
+          "name": "Access Request — Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/access-requests/requests/:request_id/approve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "access-requests", "requests", ":request_id", "approve"],
+              "variable": [{ "key": "request_id", "value": "request-uuid-here" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"approver_id\": \"manager-456\",\n  \"comments\": \"Approved for audit period only\"\n}"
+            },
+            "description": "Approve an access request. Sets expires_at based on requested duration."
+          }
+        },
+        {
+          "name": "Privilege Escalation Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/privilege-escalation/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "privilege-escalation", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Privilege escalation detection statistics: event counts, anomaly rates, top offenders."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Network Security",
+      "description": "Network security: firewall policy management, network monitoring, NDR (Network Detection & Response), WAF rules, and NAC device compliance.",
+      "item": [
+        {
+          "name": "Firewall — List Firewalls",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/firewall-policy/firewalls?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "firewall-policy", "firewalls"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all managed firewalls with their policy rule counts and last audit timestamp."
+          }
+        },
+        {
+          "name": "Firewall — Rule Conflicts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/firewall-policy/firewalls/:firewall_id/conflicts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "firewall-policy", "firewalls", ":firewall_id", "conflicts"],
+              "variable": [{ "key": "firewall_id", "value": "fw-prod-01" }]
+            },
+            "description": "Detect conflicting and shadowed firewall rules that may create security gaps."
+          }
+        },
+        {
+          "name": "Network Monitor — Ingest Traffic Sample",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/network-monitoring/interfaces/:interface_id/samples",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "network-monitoring", "interfaces", ":interface_id", "samples"],
+              "variable": [{ "key": "interface_id", "value": "eth0-core-switch" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"timestamp\": \"2026-04-17T14:00:00Z\",\n  \"bytes_in\": 1073741824,\n  \"bytes_out\": 536870912,\n  \"packets_in\": 750000,\n  \"packets_out\": 380000\n}"
+            },
+            "description": "Ingest a network traffic sample for bandwidth analysis and anomaly detection."
+          }
+        },
+        {
+          "name": "NDR — Ingest Network Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ndr/flows",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ndr", "flows"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"src_ip\": \"10.0.1.5\",\n  \"dst_ip\": \"203.0.113.42\",\n  \"src_port\": 54321,\n  \"dst_port\": 443,\n  \"protocol\": \"TCP\",\n  \"bytes\": 15728640,\n  \"duration_ms\": 45000,\n  \"flags\": \"SYN,ACK\"\n}"
+            },
+            "description": "Ingest a network flow for NDR analysis. ALDECI correlates flows against baselines to detect lateral movement."
+          }
+        },
+        {
+          "name": "NDR — Anomaly Detection",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ndr/anomalies/detect",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ndr", "anomalies", "detect"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"asset_ip\": \"10.0.1.5\",\n  \"lookback_hours\": 24\n}"
+            },
+            "description": "Run anomaly detection against baseline for a specific asset IP address."
+          }
+        },
+        {
+          "name": "NDR Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ndr/alerts?org_id={{org_id}}&status=open",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ndr", "alerts"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "status", "value": "open" }
+              ]
+            },
+            "description": "List open NDR alerts sorted by severity."
+          }
+        },
+        {
+          "name": "NAC — Device Posture Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nac/devices/:device_id/posture-check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "nac", "devices", ":device_id", "posture-check"],
+              "variable": [{ "key": "device_id", "value": "device-uuid-here" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"checks\": {\n    \"antivirus\": true,\n    \"disk_encryption\": true,\n    \"os_patched\": true,\n    \"firewall_enabled\": true,\n    \"mdr_agent\": true\n  }\n}"
+            },
+            "description": "Run a 5-check device posture evaluation for NAC enforcement decisions."
+          }
+        },
+        {
+          "name": "NAC Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nac/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "nac", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "NAC statistics: device compliance rate, quarantine count, policy violations."
+          }
+        },
+        {
+          "name": "Network Monitor — Active Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/network-monitoring/alerts?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "network-monitoring", "alerts"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all active network monitoring alerts triggered by threshold rules."
+          }
+        },
+        {
+          "name": "Firewall Policy Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/firewall-policy/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "firewall-policy", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Firewall policy statistics: total rules, conflicts, shadow rules, unused rules."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - AI & Threat Intelligence",
+      "description": "AI-powered threat intelligence: TIP (Threat Intelligence Platform), IOC enrichment, threat actor tracking, ML anomaly detection, and TrustGraph knowledge queries.",
+      "item": [
+        {
+          "name": "TIP — Check IOC",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tip/check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tip", "check"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"indicator\": \"203.0.113.42\",\n  \"indicator_type\": \"ip\"\n}"
+            },
+            "description": "Check an IOC (IP, domain, hash, URL) against the Threat Intelligence Platform. Returns TLP rating, confidence score, and associated campaigns."
+          }
+        },
+        {
+          "name": "TIP — Bulk IOC Ingest",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tip/indicators/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tip", "indicators", "bulk"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"indicators\": [\n    {\"value\": \"203.0.113.1\", \"type\": \"ip\", \"confidence\": 0.95, \"tlp\": \"amber\"},\n    {\"value\": \"evil.example.com\", \"type\": \"domain\", \"confidence\": 0.88, \"tlp\": \"red\"},\n    {\"value\": \"44d88612fea8a8f36de82e1278abb02f\", \"type\": \"md5\", \"confidence\": 0.99, \"tlp\": \"red\"}\n  ],\n  \"source\": \"internal-hunt\"\n}"
+            },
+            "description": "Bulk ingest IOCs with deduplication. Existing IOCs are updated with new confidence scores."
+          }
+        },
+        {
+          "name": "TIP — Threat Intel Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tip/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tip", "reports"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"title\": \"APT29 Campaign Targeting Finance Sector\",\n  \"tlp\": \"amber\",\n  \"summary\": \"Nation-state actor targeting SWIFT infrastructure\",\n  \"ioc_ids\": [\"ioc-001\", \"ioc-002\"],\n  \"mitre_techniques\": [\"T1566.001\", \"T1059.001\"]\n}"
+            },
+            "description": "Create a structured threat intelligence report with TLP classification and MITRE ATT&CK mapping."
+          }
+        },
+        {
+          "name": "Threat Actors — List Active Actors",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/threat-actors/actors?org_id={{org_id}}&active=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threat-actors", "actors"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "active", "value": "true" }
+              ]
+            },
+            "description": "List threat actors active in the last 90 days with TTP frequency analysis."
+          }
+        },
+        {
+          "name": "IOC Enrichment — Enrich IOC",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ioc-enrichment/iocs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ioc-enrichment", "iocs"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"value\": \"198.51.100.23\",\n  \"type\": \"ip\",\n  \"sources\": [\"virustotal\", \"shodan\", \"greynoise\"],\n  \"auto_enrich\": true\n}"
+            },
+            "description": "Submit an IOC for enrichment across multiple threat intel sources."
+          }
+        },
+        {
+          "name": "IOC Enrichment — Get Enrichment",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ioc-enrichment/iocs/:ioc_id/enrichment",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ioc-enrichment", "iocs", ":ioc_id", "enrichment"],
+              "variable": [{ "key": "ioc_id", "value": "ioc-uuid-here" }]
+            },
+            "description": "Retrieve aggregated enrichment data for an IOC across all configured sources."
+          }
+        },
+        {
+          "name": "Threat Actors — Watchlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/threat-actors/watchlist?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threat-actors", "watchlist"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Active threat actor watchlist — actors with confirmed targeting of your industry or org."
+          }
+        },
+        {
+          "name": "TIP Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tip/stats?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tip", "stats"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "TIP statistics: IOC count by type, TLP distribution, source coverage."
+          }
+        },
+        {
+          "name": "Copilot Agent — Threat Intel Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/copilot/agents/analyst/threat-intel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "copilot", "agents", "analyst", "threat-intel"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"query\": \"What are the current threats targeting healthcare organizations using ransomware?\",\n  \"context\": {\n    \"industry\": \"healthcare\",\n    \"region\": \"us\"\n  }\n}"
+            },
+            "description": "AI-powered threat intelligence analysis via the ALDECI Copilot analyst agent. Uses GraphRAG over the TrustGraph knowledge base."
+          }
+        },
+        {
+          "name": "Copilot Agent — Risk Score Asset",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/copilot/agents/analyst/risk-score/:asset_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "copilot", "agents", "analyst", "risk-score", ":asset_id"],
+              "variable": [{ "key": "asset_id", "value": "asset-uuid-here" }]
+            },
+            "description": "Get AI-computed risk score for an asset, incorporating CVE exposure, network position, and threat actor targeting."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Executive & Analytics",
+      "description": "Executive reporting, KPI tracking, risk aggregation, security posture analytics, and board-ready presentations. For CISOs and executive stakeholders.",
+      "item": [
+        {
+          "name": "Analytics — Executive Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/executive-summary?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "executive-summary"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "One-page executive security summary: MTTD, MTTR, open criticals, compliance score, and top risks."
+          }
+        },
+        {
+          "name": "Analytics — MTTD / MTTR",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/mttr?org_id={{org_id}}&period=30d",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "mttr"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "period", "value": "30d" }
+              ]
+            },
+            "description": "Mean Time to Detect and Mean Time to Respond metrics for the specified period."
+          }
+        },
+        {
+          "name": "KPI — Create KPI",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/kpi-tracking/kpis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "kpi-tracking", "kpis"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"Patch Compliance Rate\",\n  \"unit\": \"percent\",\n  \"target\": 95.0,\n  \"direction\": \"higher\",\n  \"category\": \"vulnerability-management\",\n  \"owner\": \"vm-team@acme.com\"\n}"
+            },
+            "description": "Define a security KPI with target and direction (higher/lower is better)."
+          }
+        },
+        {
+          "name": "KPI Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/kpi-tracking/kpis/:kpi_id/performance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "kpi-tracking", "kpis", ":kpi_id", "performance"],
+              "variable": [{ "key": "kpi_id", "value": "kpi-uuid-here" }]
+            },
+            "description": "KPI performance trend: achievement percentage, trend direction, and target gap."
+          }
+        },
+        {
+          "name": "Risk Aggregator — Org Risk Score",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/risk-aggregator/org-score?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "risk-aggregator", "org-score"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Organization-level composite risk score (A-F grade) aggregated across all domains."
+          }
+        },
+        {
+          "name": "Risk Aggregator — Risk Heatmap",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/risk-aggregator/heatmap?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "risk-aggregator", "heatmap"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Risk heatmap: entity-level risk scores visualized by likelihood × impact."
+          }
+        },
+        {
+          "name": "Executive Report — Create Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/exec-reporting/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "exec-reporting", "reports"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"title\": \"Q1 2026 Security Executive Report\",\n  \"period\": \"Q1-2026\",\n  \"audience\": \"board\",\n  \"sections\": [\"posture\", \"incidents\", \"compliance\", \"risk\", \"roadmap\"]\n}"
+            },
+            "description": "Generate an executive security report for board or CISO audience."
+          }
+        },
+        {
+          "name": "Executive Report — Export PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/exec-reporting/reports/:report_id/export/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "exec-reporting", "reports", ":report_id", "export", "pdf"],
+              "variable": [{ "key": "report_id", "value": "report-uuid-here" }]
+            },
+            "description": "Export an executive report as PDF for board distribution."
+          }
+        },
+        {
+          "name": "Analytics — Risk Trajectory",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/risk-trajectory?org_id={{org_id}}&weeks=12",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "risk-trajectory"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "weeks", "value": "12" }
+              ]
+            },
+            "description": "12-week risk trajectory: are we improving or regressing? Trend line with velocity."
+          }
+        },
+        {
+          "name": "Executive Report — Board Presentations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/exec-reporting/board-presentations?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "exec-reporting", "board-presentations"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all board-ready security presentations with slides and talking points."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Platform & System",
+      "description": "Platform health, system status, brain pipeline execution, OpenClaw red team automation, and scheduled reports. Core operational endpoints.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Basic health check. Returns 200 OK when the API is running. No auth required. Used by load balancers and Kubernetes liveness probes."
+          }
+        },
+        {
+          "name": "Health Check — Deep",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health/deep",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health", "deep"]
+            },
+            "description": "Deep health check: verifies database connectivity, Redis queue, TrustGraph, and all engine subsystems."
+          }
+        },
+        {
+          "name": "API Version",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/version",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "version"]
+            },
+            "description": "Returns current API version, build info, and feature flags."
+          }
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/status?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "status"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Full system status including engine health, queue depth, active incidents, and resource utilization."
+          }
+        },
+        {
+          "name": "Brain Pipeline — Run",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/brain/pipeline/run",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "brain", "pipeline", "run"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"pipeline_type\": \"full\",\n  \"connectors\": [\"aws\", \"crowdstrike\", \"jira\"],\n  \"dry_run\": false\n}"
+            },
+            "description": "Trigger the ALDECI brain pipeline: data collection → normalization → correlation → evidence generation → risk scoring."
+          }
+        },
+        {
+          "name": "Brain Pipeline — Run History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/brain/pipeline/runs?org_id={{org_id}}&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "brain", "pipeline", "runs"],
+              "query": [
+                { "key": "org_id", "value": "{{org_id}}" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Recent brain pipeline run history with status, duration, and error details."
+          }
+        },
+        {
+          "name": "OpenClaw — Trigger Red Team Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/openclaw/scan",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "openclaw", "scan"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"targets\": [\"https://app.example.com\", \"10.0.0.0/24\"],\n  \"campaign_id\": \"campaign-uuid-here\",\n  \"mode\": \"stealth\"\n}"
+            },
+            "description": "Trigger an OpenClaw autonomous red team scan. Runs attack simulation across specified targets."
+          }
+        },
+        {
+          "name": "Scheduled Reports — List Schedules",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-reports/schedules?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-reports", "schedules"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "List all active report delivery schedules (email/Slack/webhook)."
+          }
+        },
+        {
+          "name": "Scheduled Reports — Create Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-reports/schedules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-reports", "schedules"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"name\": \"Weekly CISO Report\",\n  \"template\": \"executive-summary\",\n  \"cron\": \"0 8 * * MON\",\n  \"delivery\": {\n    \"channel\": \"email\",\n    \"recipients\": [\"ciso@acme.com\", \"cto@acme.com\"]\n  },\n  \"format\": \"pdf\"\n}"
+            },
+            "description": "Schedule automated report delivery via email or Slack on a cron schedule."
+          }
+        },
+        {
+          "name": "Platform Health Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/platform?org_id={{org_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "platform"],
+              "query": [{ "key": "org_id", "value": "{{org_id}}" }]
+            },
+            "description": "Comprehensive platform health dashboard: all engine status, active jobs, resource usage, and SLA metrics at a glance."
+          }
+        }
+      ]
+    }
+  ]
+}

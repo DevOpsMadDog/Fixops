@@ -37,10 +37,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/sla", tags=["SLA"])
 
 # Module-level singleton
-_manager = SLAManager()
+_manager = None  # lazy-initialised on first request
 
 
 def _get_manager() -> SLAManager:
+    global _manager
+    if _manager is None:
+        _manager = SLAManager()
     return _manager
 
 

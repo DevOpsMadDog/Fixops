@@ -35,7 +35,14 @@ from core.workflow_engine import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/workflows", tags=["workflow-engine"])
 
-_engine = WorkflowEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = WorkflowEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +94,7 @@ class EvaluateEventRequest(BaseModel):
 @router.get("/templates")
 async def get_templates() -> List[Dict[str, Any]]:
     """Return built-in workflow templates."""
-    templates = _engine.get_templates()
+    templates = _get_engine().get_templates()
     return [t.model_dump(mode="json") for t in templates]
 
 
@@ -98,7 +105,7 @@ async def get_executions(
     limit: int = Query(100, ge=1, le=1000, description="Maximum records to return"),
 ) -> List[Dict[str, Any]]:
     """Return workflow execution history."""
-    executions = _engine.get_execution_history(
+    executions = _get_engine().get_execution_history(
         org_id=org_id, workflow_id=workflow_id, limit=limit
     )
     return [e.model_dump(mode="json") for e in executions]
@@ -109,13 +116,13 @@ async def get_stats(
     org_id: Optional[str] = Query(None, description="Filter by organization ID"),
 ) -> Dict[str, Any]:
     """Return workflow statistics."""
-    return _engine.get_workflow_stats(org_id=org_id)
+    return _get_engine().get_workflow_stats(org_id=org_id)
 
 
 @router.post("/evaluate")
 async def evaluate_event(req: EvaluateEventRequest) -> List[Dict[str, Any]]:
     """Manually trigger workflow evaluation for an event."""
-    executions = _engine.evaluate_event(event=req.event, org_id=req.org_id)
+    executions = _get_engine().evaluate_event(event=req.event, org_id=req.org_id)
     return [e.model_dump(mode="json") for e in executions]
 
 
@@ -154,7 +161,7 @@ async def create_workflow(req: CreateWorkflowRequest) -> Dict[str, Any]:
         created_by=req.created_by,
     )
 
-    created = _engine.create_workflow(workflow)
+    created = _get_engine().create_workflow(workflow)
     return created.model_dump(mode="json")
 
 
@@ -164,14 +171,14 @@ async def list_workflows(
     trigger: Optional[str] = Query(None, description="Filter by trigger type"),
 ) -> List[Dict[str, Any]]:
     """List workflows, optionally filtered by org and trigger type."""
-    workflows = _engine.list_workflows(org_id=org_id, trigger_filter=trigger)
+    workflows = _get_engine().list_workflows(org_id=org_id, trigger_filter=trigger)
     return [w.model_dump(mode="json") for w in workflows]
 
 
 @router.get("/{workflow_id}")
 async def get_workflow(workflow_id: str) -> Dict[str, Any]:
     """Get a specific workflow by ID."""
-    workflow = _engine.get_workflow(workflow_id)
+    workflow = _get_engine().get_workflow(workflow_id)
     if not workflow:
         raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
     return workflow.model_dump(mode="json")
@@ -203,7 +210,7 @@ async def update_workflow(workflow_id: str, req: UpdateWorkflowRequest) -> Dict[
         raise HTTPException(status_code=422, detail="No fields to update")
 
     try:
-        updated = _engine.update_workflow(workflow_id, updates)
+        updated = _get_engine().update_workflow(workflow_id, updates)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
 
@@ -213,7 +220,7 @@ async def update_workflow(workflow_id: str, req: UpdateWorkflowRequest) -> Dict[
 @router.delete("/{workflow_id}")
 async def delete_workflow(workflow_id: str) -> Dict[str, Any]:
     """Delete a workflow by ID."""
-    deleted = _engine.delete_workflow(workflow_id)
+    deleted = _get_engine().delete_workflow(workflow_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
     return {"id": workflow_id, "status": "deleted"}

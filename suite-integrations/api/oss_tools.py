@@ -11,8 +11,24 @@ from pydantic import BaseModel
 logger = structlog.get_logger()
 router = APIRouter(prefix="/oss", tags=["oss-tools"])
 
-# Initialize OSS integration service
-oss_service = OSSIntegrationService()
+# Lazy singleton — deferred to first request to avoid subprocess tool-probing at startup
+_oss_service: Optional[OSSIntegrationService] = None
+
+
+def _get_oss_service() -> OSSIntegrationService:
+    global _oss_service
+    if _oss_service is None:
+        _oss_service = OSSIntegrationService()
+    return _oss_service
+
+
+# Alias for backward-compat within this module; resolved on first use
+class _LazyOSSService:
+    def __getattr__(self, name: str):  # type: ignore[override]
+        return getattr(_get_oss_service(), name)
+
+
+oss_service = _LazyOSSService()  # type: ignore[assignment]
 
 
 class ScanRequest(BaseModel):

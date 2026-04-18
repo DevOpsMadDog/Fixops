@@ -34,7 +34,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/cyber-insurance", tags=["cyber-insurance"])
 
-_engine = CyberInsuranceEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = CyberInsuranceEngine()
+    return _engine
 
 # ---------------------------------------------------------------------------
 # Request models
@@ -89,7 +96,7 @@ def list_policies(
 ) -> List[Dict[str, Any]]:
     """List all cyber insurance policies for an org."""
     try:
-        return _engine.list_policies(org_id)
+        return _get_engine().list_policies(org_id)
     except Exception as exc:
         logger.exception("list_policies failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -102,7 +109,7 @@ def add_policy(
 ) -> Dict[str, Any]:
     """Add a new cyber insurance policy."""
     try:
-        return _engine.add_policy(org_id, payload.model_dump())
+        return _get_engine().add_policy(org_id, payload.model_dump())
     except Exception as exc:
         logger.exception("add_policy failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -119,7 +126,7 @@ def list_assessments(
 ) -> List[Dict[str, Any]]:
     """List all coverage assessments for an org."""
     try:
-        return _engine.list_assessments(org_id)
+        return _get_engine().list_assessments(org_id)
     except Exception as exc:
         logger.exception("list_assessments failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -134,7 +141,7 @@ def create_assessment(
     try:
         data = payload.model_dump()
         policy_id = data.pop("policy_id")
-        return _engine.create_assessment(org_id, policy_id, data)
+        return _get_engine().create_assessment(org_id, policy_id, data)
     except Exception as exc:
         logger.exception("create_assessment failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -152,7 +159,7 @@ def list_claims(
 ) -> List[Dict[str, Any]]:
     """List insurance claims, optionally filtered by status."""
     try:
-        return _engine.list_claims(org_id, status=status)
+        return _get_engine().list_claims(org_id, status=status)
     except Exception as exc:
         logger.exception("list_claims failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -165,7 +172,7 @@ def file_claim(
 ) -> Dict[str, Any]:
     """File a new cyber insurance claim."""
     try:
-        return _engine.file_claim(org_id, payload.model_dump())
+        return _get_engine().file_claim(org_id, payload.model_dump())
     except Exception as exc:
         logger.exception("file_claim failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -179,7 +186,7 @@ def update_claim(
 ) -> Dict[str, Any]:
     """Update claim status and optionally set settlement amount."""
     try:
-        updated = _engine.update_claim(
+        updated = _get_engine().update_claim(
             org_id,
             claim_id,
             payload.status,
@@ -209,7 +216,7 @@ def get_stats(
 ) -> Dict[str, Any]:
     """Return cyber insurance portfolio statistics for an org."""
     try:
-        return _engine.get_insurance_stats(org_id)
+        return _get_engine().get_insurance_stats(org_id)
     except Exception as exc:
         logger.exception("get_insurance_stats failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

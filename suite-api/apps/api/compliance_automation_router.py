@@ -31,7 +31,14 @@ from core.compliance_engine import (
 router = APIRouter(prefix="/api/v1/compliance", tags=["Compliance Automation"])
 
 # Module-level singleton (shared across requests in one process)
-_engine = ComplianceAutomationEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = ComplianceAutomationEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -74,7 +81,7 @@ async def get_overall_status() -> Dict[str, Any]:
     Includes per-framework score, control breakdown, and an aggregate overall score.
     """
     try:
-        return _engine.get_overall_status()
+        return _get_engine().get_overall_status()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -92,7 +99,7 @@ async def get_framework_status(framework: str) -> Dict[str, Any]:
     Includes: score, status breakdown, per-control evidence count and last-checked date.
     """
     try:
-        return _engine.get_framework_status(framework)
+        return _get_engine().get_framework_status(framework)
     except ValueError as exc:
         raise HTTPException(
             status_code=422,
@@ -118,7 +125,7 @@ async def get_gaps(
     recommended actions and estimated remediation effort.
     """
     try:
-        gaps = _engine.get_gaps(framework=framework)
+        gaps = _get_engine().get_gaps(framework=framework)
         return [g.model_dump() for g in gaps]
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -143,7 +150,7 @@ async def get_evidence(
     currently passing, and whether it is stale (older than 30 days).
     """
     try:
-        return _engine.get_evidence(framework=framework, control_id=control_id)
+        return _get_engine().get_evidence(framework=framework, control_id=control_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -166,7 +173,7 @@ async def collect_evidence(body: CollectEvidenceRequest) -> Dict[str, Any]:
     framework.
     """
     try:
-        items = _engine.collect_evidence(
+        items = _get_engine().collect_evidence(
             framework=body.framework,
             control_id=body.control_id,
             org_id=body.org_id,
@@ -207,7 +214,7 @@ async def get_cross_map() -> List[Dict[str, Any]]:
     + HIPAA 164.312(a)(1) + NIST-800-53 AC-3 simultaneously.
     """
     try:
-        entries = _engine.get_cross_map()
+        entries = _get_engine().get_cross_map()
         return [e.model_dump() for e in entries]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -229,7 +236,7 @@ async def get_poam(
     current status, risk level, and whether the risk has been formally accepted.
     """
     try:
-        items = _engine.get_poam_list(framework=framework)
+        items = _get_engine().get_poam_list(framework=framework)
         return [it.model_dump() for it in items]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -241,7 +248,7 @@ async def create_poam(body: CreatePOAMRequest) -> Dict[str, Any]:
     Create a Plan of Action and Milestones item for a failing control.
     """
     try:
-        item = _engine.create_poam(
+        item = _get_engine().create_poam(
             control_id=body.control_id,
             framework=body.framework,
             title=body.title,
@@ -264,7 +271,7 @@ async def update_poam_status(poam_id: str, body: UpdatePOAMStatusRequest) -> Dic
     accept the residual risk without remediation.
     """
     try:
-        item = _engine.update_poam_status(
+        item = _get_engine().update_poam_status(
             poam_id=poam_id,
             status=body.status,
             risk_accepted=body.risk_accepted,
@@ -299,7 +306,7 @@ async def generate_report(
     Output is machine-readable JSON suitable for ingestion by GRC tools.
     """
     try:
-        report = _engine.generate_report(framework=framework, org_id=org_id)
+        report = _get_engine().generate_report(framework=framework, org_id=org_id)
         return report.model_dump()
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -316,7 +323,7 @@ async def generate_report(
 async def record_score(framework: str) -> Dict[str, Any]:
     """Record the current compliance score for a framework (for trend tracking)."""
     try:
-        score = _engine.record_score(framework)
+        score = _get_engine().record_score(framework)
         return score.model_dump()
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -331,7 +338,7 @@ async def get_score_trend(
 ) -> List[Dict[str, Any]]:
     """Return historical compliance score snapshots for trend analysis."""
     try:
-        return _engine.get_score_trend(framework=framework, limit=limit)
+        return _get_engine().get_score_trend(framework=framework, limit=limit)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

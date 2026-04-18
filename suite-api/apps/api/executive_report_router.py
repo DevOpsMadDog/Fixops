@@ -29,7 +29,14 @@ router = APIRouter(
     tags=["executive-reports"],
 )
 
-_engine = ExecutiveReportEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = ExecutiveReportEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +112,7 @@ async def generate_report(body: GenerateReportRequest) -> ExecutiveReport:
     end_dt = _parse_date(body.period_end, "period_end")
 
     try:
-        report = _engine.generate_report(
+        report = _get_engine().generate_report(
             type=body.type,
             org_id=body.org_id,
             period_start=start_dt,
@@ -125,13 +132,13 @@ async def list_reports(
     limit: int = Query(50, ge=1, le=200, description="Maximum results to return"),
 ) -> List[ExecutiveReport]:
     """List executive reports for an organisation, newest first."""
-    return _engine.list_reports(org_id=org_id, type_filter=type, limit=limit)
+    return _get_engine().list_reports(org_id=org_id, type_filter=type, limit=limit)
 
 
 @router.get("/{report_id}", response_model=ExecutiveReport)
 async def get_report(report_id: str) -> ExecutiveReport:
     """Retrieve a single executive report by ID."""
-    report = _engine.get_report(report_id)
+    report = _get_engine().get_report(report_id)
     if not report:
         raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found")
     return report
@@ -140,18 +147,18 @@ async def get_report(report_id: str) -> ExecutiveReport:
 @router.get("/{report_id}/export")
 async def export_report_json(report_id: str) -> Dict[str, Any]:
     """Export a report as a JSON object."""
-    report = _engine.get_report(report_id)
+    report = _get_engine().get_report(report_id)
     if not report:
         raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found")
     import json
-    return json.loads(_engine.export_json(report_id))
+    return json.loads(_get_engine().export_json(report_id))
 
 
 @router.post("/schedules", response_model=ReportSchedule, status_code=201)
 async def create_schedule(body: CreateScheduleRequest) -> ReportSchedule:
     """Create a report schedule for recurring generation."""
     try:
-        schedule = _engine.schedule_report(
+        schedule = _get_engine().schedule_report(
             report_type=body.report_type,
             frequency=body.frequency,
             recipients=body.recipients,
@@ -167,13 +174,13 @@ async def list_schedules(
     org_id: str = Query("default", description="Organisation identifier"),
 ) -> List[ReportSchedule]:
     """List all report schedules for an organisation."""
-    return _engine.list_schedules(org_id=org_id)
+    return _get_engine().list_schedules(org_id=org_id)
 
 
 @router.delete("/schedules/{schedule_id}", status_code=204)
 async def delete_schedule(schedule_id: str) -> None:
     """Delete a report schedule by ID."""
-    deleted = _engine.delete_schedule(schedule_id)
+    deleted = _get_engine().delete_schedule(schedule_id)
     if not deleted:
         raise HTTPException(
             status_code=404, detail=f"Schedule '{schedule_id}' not found"

@@ -13,7 +13,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_queue = RedisQueue()
+_queue: "RedisQueue | None" = None  # lazy-initialised on first request
+
+
+def _get_queue() -> "RedisQueue":
+    global _queue
+    if _queue is None:
+        _queue = RedisQueue()
+    return _queue
 
 
 class EnqueueRequest(BaseModel):
@@ -44,27 +51,29 @@ class ClearResponse(BaseModel):
 
 @router.get("/status", response_model=QueueStatus, summary="Queue depth and backend info")
 async def queue_status() -> QueueStatus:
+    q = _get_queue()
     return QueueStatus(
-        backend=_queue.backend,
-        depth=_queue.depth(),
-        workers=_queue.workers(),
+        backend=q.backend,
+        depth=q.depth(),
+        workers=q.workers(),
     )
 
 
 @router.post("/enqueue", response_model=EnqueueResponse, summary="Add a task to the queue")
 async def enqueue_task(body: EnqueueRequest) -> EnqueueResponse:
     task = {"task_type": body.task_type, **body.payload}
-    task_id = _queue.enqueue(task, priority=body.priority)
-    return EnqueueResponse(task_id=task_id, priority=body.priority, backend=_queue.backend)
+    q = _get_queue()
+    task_id = q.enqueue(task, priority=body.priority)
+    return EnqueueResponse(task_id=task_id, priority=body.priority, backend=q.backend)
 
 
 @router.get("/peek", response_model=PeekResponse, summary="Preview next tasks without removing")
 async def peek_queue(limit: int = 10) -> PeekResponse:
     limit = max(1, min(100, limit))
-    return PeekResponse(tasks=_queue.peek(limit=limit))
+    return PeekResponse(tasks=_get_queue().peek(limit=limit))
 
 
 @router.delete("/clear", response_model=ClearResponse, summary="Clear all queued tasks")
 async def clear_queue() -> ClearResponse:
-    count = _queue.clear()
+    count = _get_queue().clear()
     return ClearResponse(cleared=count)

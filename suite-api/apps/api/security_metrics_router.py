@@ -46,7 +46,14 @@ from core.security_metrics import (
 
 router = APIRouter(prefix="/api/v1/metrics", tags=["security-metrics"])
 
-_engine = SecurityMetricsEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = SecurityMetricsEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -163,7 +170,7 @@ async def get_dora_metrics(
 ) -> Dict[str, Any]:
     since_dt = _parse_datetime_param(since, "since")
     until_dt = _parse_datetime_param(until, "until")
-    metrics = _engine.compute_dora_metrics(days=days, since=since_dt, until=until_dt)
+    metrics = _get_engine().compute_dora_metrics(days=days, since=since_dt, until=until_dt)
     return {
         "mttd_hours": metrics.mttd_hours,
         "mttc_hours": metrics.mttc_hours,
@@ -194,8 +201,8 @@ async def get_benchmarks(
 ) -> List[Dict[str, Any]]:
     since_dt = _parse_datetime_param(since, "since")
     until_dt = _parse_datetime_param(until, "until")
-    dora = _engine.compute_dora_metrics(days=days, since=since_dt, until=until_dt)
-    comparisons = _engine.compare_to_benchmarks(dora, industry=industry)
+    dora = _get_engine().compute_dora_metrics(days=days, since=since_dt, until=until_dt)
+    comparisons = _get_engine().compare_to_benchmarks(dora, industry=industry)
     return [
         {
             "metric_name": c.metric_name,
@@ -227,7 +234,7 @@ async def get_trends(
     until: Optional[str] = Query(None, description="End of last bucket (ISO 8601)"),
 ) -> List[Dict[str, Any]]:
     until_dt = _parse_datetime_param(until, "until")
-    trend = _engine.get_trend_data(period=period, periods=periods, until=until_dt)
+    trend = _get_engine().get_trend_data(period=period, periods=periods, until=until_dt)
     return [
         {
             "period_label": t.period_label,
@@ -261,7 +268,7 @@ async def get_sla_compliance(
 ) -> List[Dict[str, Any]]:
     since_dt = _parse_datetime_param(since, "since")
     until_dt = _parse_datetime_param(until, "until")
-    records = _engine.compute_sla_compliance(days=days, since=since_dt, until=until_dt)
+    records = _get_engine().compute_sla_compliance(days=days, since=since_dt, until=until_dt)
     return [
         {
             "severity": r.severity.value,
@@ -289,7 +296,7 @@ async def get_sla_compliance(
     ),
 )
 async def calculate_roi(body: ROIRequest) -> Dict[str, Any]:
-    roi = _engine.compute_roi(
+    roi = _get_engine().compute_roi(
         program_cost_usd=body.program_cost_usd,
         breaches_prevented=body.breaches_prevented,
         tool_cost_usd=body.tool_cost_usd,
@@ -319,7 +326,7 @@ async def calculate_roi(body: ROIRequest) -> Dict[str, Any]:
     summary="List all OKR objectives",
 )
 async def list_objectives() -> List[Dict[str, Any]]:
-    objs = _engine.list_objectives()
+    objs = _get_engine().list_objectives()
     return [_objective_to_dict(o) for o in objs]
 
 
@@ -330,7 +337,7 @@ async def list_objectives() -> List[Dict[str, Any]]:
     summary="Create an OKR objective",
 )
 async def create_objective(body: ObjectiveCreate) -> Dict[str, Any]:
-    obj = _engine.create_objective(
+    obj = _get_engine().create_objective(
         title=body.title,
         quarter=body.quarter,
         owner=body.owner,
@@ -346,7 +353,7 @@ async def create_objective(body: ObjectiveCreate) -> Dict[str, Any]:
 )
 async def add_key_result(obj_id: str, body: KeyResultAdd) -> Dict[str, Any]:
     try:
-        kr = _engine.add_key_result(
+        kr = _get_engine().add_key_result(
             obj_id=obj_id,
             title=body.title,
             target_value=body.target_value,
@@ -377,7 +384,7 @@ async def update_key_result(
     obj_id: str, kr_id: str, body: KeyResultUpdate
 ) -> Dict[str, Any]:
     try:
-        obj = _engine.update_key_result(
+        obj = _get_engine().update_key_result(
             obj_id=obj_id,
             kr_id=kr_id,
             current_value=body.current_value,
@@ -394,7 +401,7 @@ async def update_key_result(
     summary="Delete an OKR objective",
 )
 async def delete_objective(obj_id: str) -> None:
-    deleted = _engine.delete_objective(obj_id)
+    deleted = _get_engine().delete_objective(obj_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Objective {obj_id!r} not found")
 
@@ -418,7 +425,7 @@ async def ingest_event(body: EventIngest) -> Dict[str, Any]:
         tags=body.tags,
         is_regression=body.is_regression,
     )
-    stored = _engine.ingest_event(ev)
+    stored = _get_engine().ingest_event(ev)
     return {
         "event_id": stored.event_id,
         "severity": stored.severity.value,
@@ -437,7 +444,7 @@ async def ingest_event(body: EventIngest) -> Dict[str, Any]:
     description="Record a deployment event for Change Failure Rate tracking.",
 )
 async def record_deployment(body: DeploymentRecord) -> Dict[str, str]:
-    deploy_id = _engine.record_deployment(
+    deploy_id = _get_engine().record_deployment(
         is_failure=body.is_failure,
         deployed_at=body.deployed_at,
         notes=body.notes,
@@ -455,7 +462,7 @@ async def record_deployment(body: DeploymentRecord) -> Dict[str, str]:
     ),
 )
 async def generate_report(body: ReportRequest) -> Dict[str, Any]:
-    report = _engine.generate_report(
+    report = _get_engine().generate_report(
         report_type=body.report_type,
         industry=body.industry,
         extra_context=body.extra_context,

@@ -19,7 +19,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/threat-modeling", tags=["Threat Modeling"])
 
-_engine = ThreatModelingEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = ThreatModelingEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +69,7 @@ class AddMitigationRequest(BaseModel):
 
 @router.post("/models", summary="Create a threat model")
 def create_model(req: CreateModelRequest) -> Dict[str, Any]:
-    return _engine.create_model(
+    return _get_engine().create_model(
         name=req.name,
         description=req.description,
         scope=req.scope,
@@ -72,12 +79,12 @@ def create_model(req: CreateModelRequest) -> Dict[str, Any]:
 
 @router.get("/models", summary="List threat models")
 def list_models(org_id: str = "default") -> List[Dict[str, Any]]:
-    return _engine.list_models(org_id=org_id)
+    return _get_engine().list_models(org_id=org_id)
 
 
 @router.get("/models/{model_id}", summary="Get a threat model")
 def get_model(model_id: str) -> Dict[str, Any]:
-    model = _engine.get_model(model_id)
+    model = _get_engine().get_model(model_id)
     if model is None:
         raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found")
     return model
@@ -86,7 +93,7 @@ def get_model(model_id: str) -> Dict[str, Any]:
 @router.post("/models/{model_id}/components", summary="Add a component to a model")
 def add_component(model_id: str, req: AddComponentRequest) -> Dict[str, Any]:
     try:
-        return _engine.add_component(
+        return _get_engine().add_component(
             model_id=model_id,
             name=req.name,
             component_type=req.component_type,
@@ -100,7 +107,7 @@ def add_component(model_id: str, req: AddComponentRequest) -> Dict[str, Any]:
 @router.post("/models/{model_id}/flows", summary="Add a data flow to a model")
 def add_data_flow(model_id: str, req: AddFlowRequest) -> Dict[str, Any]:
     try:
-        return _engine.add_data_flow(
+        return _get_engine().add_data_flow(
             model_id=model_id,
             from_component=req.from_component,
             to_component=req.to_component,
@@ -115,7 +122,7 @@ def add_data_flow(model_id: str, req: AddFlowRequest) -> Dict[str, Any]:
 @router.post("/models/{model_id}/analyze", summary="Run STRIDE analysis on a model")
 def analyze_threats(model_id: str) -> Dict[str, Any]:
     try:
-        return _engine.analyze_threats(model_id)
+        return _get_engine().analyze_threats(model_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
@@ -128,7 +135,7 @@ def add_mitigation(
     model_id: str, threat_id: str, req: AddMitigationRequest
 ) -> Dict[str, Any]:
     try:
-        return _engine.add_mitigation(
+        return _get_engine().add_mitigation(
             model_id=model_id,
             threat_id=threat_id,
             mitigation=req.mitigation,
@@ -142,7 +149,7 @@ def add_mitigation(
 @router.get("/models/{model_id}/report", summary="Get full threat model report")
 def get_report(model_id: str) -> Dict[str, Any]:
     try:
-        return _engine.get_model_report(model_id)
+        return _get_engine().get_model_report(model_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
@@ -150,7 +157,7 @@ def get_report(model_id: str) -> Dict[str, Any]:
 @router.get("/models/{model_id}/residual-risk", summary="Get residual risk after mitigations")
 def get_residual_risk(model_id: str) -> Dict[str, Any]:
     try:
-        return _engine.get_residual_risk(model_id)
+        return _get_engine().get_residual_risk(model_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

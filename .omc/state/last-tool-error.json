@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_e2e_intelligence_pipeline.py -v --timeout=20 -q 2>&1\"}",
-  "error": "Exit code 1\ncachedir: .pytest_cache\ntimeout: 20.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 51 items\n\ntests/test_e2e_intelligence_pipeline.py::TestFindingIngestion::test_ingest_finding_to_brain FAILED [  7%]\ntests/test_e2e_intelligence_pipeline.py::TestRiskSync::test_record_risk_score FAILED [ 13%]\ntests/test_e2e_intelligence_pipeline.py::TestRis...",
-  "timestamp": "2026-04-18T03:50:24.751Z",
-  "retry_count": 3
+  "tool_input_preview": "{\"command\":\"for i in 1 2 3; do\\n  PYTHONPATH=\\\"/Users/devops.ai/fixops/Fixops\\\" \\\\\\n  FIXOPS_API_TOKEN=\\\"test\\\" REDIS_URL=\\\"\\\" DATABASE_URL=\\\"sqlite:///./fixops_test.db\\\" \\\\\\n  { time python3 -c \\\"\\nf...",
+  "error": "Exit code 2\n/opt/homebrew/bin/bash: eval: line 7: syntax error near unexpected token `}'\n/opt/homebrew/bin/bash: eval: line 7: `\" 2>/dev/null; } 2>&1 | grep real'",
+  "timestamp": "2026-04-18T03:58:32.784Z",
+  "retry_count": 2
 }

@@ -30,10 +30,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/sla-engine", tags=["SLA Engine"])
 
 # Module-level singleton
-_engine = SLAEngine()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> SLAEngine:
+    global _engine
+    if _engine is None:
+        _engine = SLAEngine()
     return _engine
 
 

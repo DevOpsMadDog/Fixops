@@ -38,7 +38,14 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/runtime", tags=["runtime-protection"])
 
 # Module-level engine instance (in-memory by default; override db_path in prod)
-_engine = HostRuntimeEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = HostRuntimeEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +111,7 @@ async def ingest_event(
         threat_level=body.threat_level,
         org_id=org_id,
     )
-    stored = _engine.ingest_event(event)
+    stored = _get_engine().ingest_event(event)
     return {"event_id": stored.id, "org_id": org_id, "status": "ingested"}
 
 
@@ -127,8 +134,8 @@ async def ingest_and_evaluate(
         threat_level=body.threat_level,
         org_id=org_id,
     )
-    _engine.ingest_event(event)
-    alerts = _engine.evaluate_policies(event, org_id)
+    _get_engine().ingest_event(event)
+    alerts = _get_engine().evaluate_policies(event, org_id)
     return {
         "event_id": event.id,
         "org_id": org_id,
@@ -159,7 +166,7 @@ async def create_policy(
         enabled=body.enabled,
         org_id=org_id,
     )
-    created = _engine.create_policy(policy)
+    created = _get_engine().create_policy(policy)
     return {
         "policy_id": created.id,
         "name": created.name,
@@ -175,7 +182,7 @@ async def list_policies(
     org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """List all runtime policies for an org (includes built-in defaults)."""
-    policies = _engine.list_policies(org_id)
+    policies = _get_engine().list_policies(org_id)
     return {
         "org_id": org_id,
         "total": len(policies),
@@ -198,7 +205,7 @@ async def get_active_alerts(
     org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Get all unacknowledged runtime alerts for an org."""
-    alerts = _engine.get_active_alerts(org_id)
+    alerts = _get_engine().get_active_alerts(org_id)
     return {
         "org_id": org_id,
         "total": len(alerts),
@@ -223,7 +230,7 @@ async def acknowledge_alert(
     org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Acknowledge a runtime alert by ID."""
-    updated = _engine.acknowledge_alert(alert_id)
+    updated = _get_engine().acknowledge_alert(alert_id)
     if not updated:
         raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found")
     return {"alert_id": alert_id, "acknowledged": True, "org_id": org_id}
@@ -239,7 +246,7 @@ async def get_threat_timeline(
 
     Default window: 24 hours. Maximum: 168 hours (7 days).
     """
-    events = _engine.get_threat_timeline(org_id, hours=hours)
+    events = _get_engine().get_threat_timeline(org_id, hours=hours)
     return {
         "org_id": org_id,
         "hours": hours,
@@ -264,7 +271,7 @@ async def get_runtime_stats(
     org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Get aggregate runtime protection statistics for an org."""
-    return _engine.get_runtime_stats(org_id)
+    return _get_engine().get_runtime_stats(org_id)
 
 
 @router.get("/anomalies", response_model=Dict[str, Any])
@@ -272,7 +279,7 @@ async def detect_anomalies(
     org_id: str = Depends(_get_org_id),
 ) -> Dict[str, Any]:
     """Detect unusual patterns in the last hour of runtime event data."""
-    anomalies = _engine.detect_anomalies(org_id)
+    anomalies = _get_engine().detect_anomalies(org_id)
     return {
         "org_id": org_id,
         "total": len(anomalies),
@@ -291,7 +298,7 @@ async def get_process_tree(
     Returns process_exec events with parent-child relationships
     reconstructed via pid/ppid fields in event details.
     """
-    tree = _engine.get_process_tree(host, org_id)
+    tree = _get_engine().get_process_tree(host, org_id)
     return {
         "org_id": org_id,
         "host": host,

@@ -7,35 +7,59 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-try:  # networkx is optional but preferred for rich graph metrics
-    import networkx as nx  # type: ignore[import]
-except ImportError:  # pragma: no cover - optional dependency
-    nx = None  # type: ignore[assignment]
-
 logger = logging.getLogger(__name__)
 
-try:  # pgmpy is declared in requirements and provides Bayesian inference
-    from pgmpy.factors.discrete import TabularCPD
-    from pgmpy.inference import VariableElimination
-    from pgmpy.models import BayesianNetwork
-except Exception as exc:  # pragma: no cover - optional stack may fail at import time (e.g. torch runtime init)
-    logger.warning(
-        "pgmpy unavailable; Bayesian inference will use deterministic fallbacks",
-        extra={"error": repr(exc)},
-    )
-    BayesianNetwork = None  # type: ignore[assignment]
-    VariableElimination = None  # type: ignore[assignment]
-    TabularCPD = None  # type: ignore[assignment]
+# Heavy ML libraries are loaded lazily on first use to avoid adding 5–8 s to
+# server startup time.  The module-level names are set to None until
+# _ensure_ml_libs() is called.
+BayesianNetwork = None  # type: ignore[assignment]
+VariableElimination = None  # type: ignore[assignment]
+TabularCPD = None  # type: ignore[assignment]
+PomegranateBayes = None  # type: ignore[assignment]
+mchmm = None  # type: ignore[assignment]
+nx = None  # type: ignore[assignment]
 
-try:  # optional dependency for probabilistic modelling
-    from pomegranate import BayesianNetwork as PomegranateBayes  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency
-    PomegranateBayes = None  # type: ignore[assignment]
+_ml_libs_loaded: bool = False
 
-try:  # optional dependency for Markov modelling
-    import mchmm  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency
-    mchmm = None  # type: ignore[assignment]
+
+def _ensure_ml_libs() -> None:  # pragma: no cover - deferred heavy imports
+    """Load optional ML/graph libraries on first use."""
+    global BayesianNetwork, VariableElimination, TabularCPD
+    global PomegranateBayes, mchmm, nx, _ml_libs_loaded
+    if _ml_libs_loaded:
+        return
+    _ml_libs_loaded = True
+
+    try:  # networkx is optional but preferred for rich graph metrics
+        import networkx as _nx  # type: ignore[import]
+        nx = _nx
+    except ImportError:
+        pass
+
+    try:  # pgmpy provides Bayesian inference
+        from pgmpy.factors.discrete import TabularCPD as _TabularCPD
+        from pgmpy.inference import VariableElimination as _VE
+        from pgmpy.models import BayesianNetwork as _BN
+        BayesianNetwork = _BN
+        VariableElimination = _VE
+        TabularCPD = _TabularCPD
+    except Exception as exc:
+        logger.warning(
+            "pgmpy unavailable; Bayesian inference will use deterministic fallbacks",
+            extra={"error": repr(exc)},
+        )
+
+    try:  # optional dependency for probabilistic modelling
+        from pomegranate import BayesianNetwork as _PomBayes  # type: ignore
+        PomegranateBayes = _PomBayes
+    except ImportError:
+        pass
+
+    try:  # optional dependency for Markov modelling
+        import mchmm as _mchmm  # type: ignore
+        mchmm = _mchmm
+    except ImportError:
+        pass
 
 
 @dataclass
@@ -62,6 +86,7 @@ class ProcessingLayer:
     """Combine Bayesian inference, Markov projections, and knowledge graph analytics."""
 
     def __init__(self) -> None:
+        _ensure_ml_libs()
         self.pgmpy_available = (
             BayesianNetwork is not None and VariableElimination is not None
         )

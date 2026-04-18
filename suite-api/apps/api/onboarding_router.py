@@ -35,7 +35,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/onboarding", tags=["onboarding"])
 
 # Module-level manager instance (can be replaced in tests)
-_manager = OnboardingManager()
+_manager = None  # lazy-initialised on first request
+
+
+def _get_manager():
+    global _manager
+    if _manager is None:
+        _manager = OnboardingManager()
+    return _manager
 
 
 # ---------------------------------------------------------------------------
@@ -130,7 +137,7 @@ def _parse_step(step_str: str) -> OnboardingStep:
 @router.post("/start", response_model=OnboardingProgressResponse, status_code=201)
 def start_onboarding(body: StartRequest) -> OnboardingProgressResponse:
     """Start or resume onboarding for an organisation."""
-    progress = _manager.start_onboarding(body.org_id)
+    progress = _get_manager().start_onboarding(body.org_id)
     return _progress_to_response(progress)
 
 
@@ -138,7 +145,7 @@ def start_onboarding(body: StartRequest) -> OnboardingProgressResponse:
 def get_progress(org_id: str = Query(..., min_length=1, max_length=255)) -> OnboardingProgressResponse:
     """Get current onboarding progress for an organisation."""
     try:
-        progress = _manager.get_progress(org_id)
+        progress = _get_manager().get_progress(org_id)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"No onboarding found for org_id={org_id!r}")
     return _progress_to_response(progress)
@@ -152,7 +159,7 @@ def complete_step(
     """Mark a step as completed with optional configuration data."""
     step_enum = _parse_step(step)
     try:
-        progress = _manager.complete_step(body.org_id, step_enum, body.config_data)
+        progress = _get_manager().complete_step(body.org_id, step_enum, body.config_data)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
@@ -168,7 +175,7 @@ def skip_step(
     """Mark a step as skipped."""
     step_enum = _parse_step(step)
     try:
-        progress = _manager.skip_step(body.org_id, step_enum)
+        progress = _get_manager().skip_step(body.org_id, step_enum)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return _progress_to_response(progress)
@@ -181,21 +188,21 @@ def get_step_config(
 ) -> StepConfigResponse:
     """Retrieve configuration stored when a step was completed."""
     step_enum = _parse_step(step)
-    config = _manager.get_step_config(org_id, step_enum)
+    config = _get_manager().get_step_config(org_id, step_enum)
     return StepConfigResponse(org_id=org_id, step=step_enum.value, config=config)
 
 
 @router.post("/reset", response_model=OnboardingProgressResponse)
 def reset_onboarding(body: ResetRequest) -> OnboardingProgressResponse:
     """Reset onboarding for an organisation and start over."""
-    progress = _manager.reset_onboarding(body.org_id)
+    progress = _get_manager().reset_onboarding(body.org_id)
     return _progress_to_response(progress)
 
 
 @router.get("/checklist", response_model=ChecklistResponse)
 def get_checklist(org_id: str = Query(..., min_length=1, max_length=255)) -> ChecklistResponse:
     """Pre-flight checklist showing what is configured vs still missing."""
-    data = _manager.get_checklist(org_id)
+    data = _get_manager().get_checklist(org_id)
     current_step = data.get("current_step")
     if current_step and isinstance(current_step, OnboardingStep):
         current_step = current_step.value
@@ -216,7 +223,7 @@ def list_onboardings(
     )
 ) -> ListOnboardingsResponse:
     """Admin endpoint — list all organisation onboardings."""
-    onboardings = _manager.list_onboardings(status_filter=status)
+    onboardings = _get_manager().list_onboardings(status_filter=status)
     return ListOnboardingsResponse(
         onboardings=[_progress_to_response(p) for p in onboardings],
         total=len(onboardings),

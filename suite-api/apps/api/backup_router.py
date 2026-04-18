@@ -15,7 +15,14 @@ from apps.api.dependencies import get_org_id
 from core.backup_engine import BackupEngine, BackupRecord, BackupType, RestoreRecord
 
 router = APIRouter(prefix="/api/v1/backups", tags=["backups"])
-_engine = BackupEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = BackupEngine()
+    return _engine
 
 
 # ------------------------------------------------------------------
@@ -52,7 +59,7 @@ def create_backup(
 ) -> BackupRecord:
     """Create a new backup snapshot."""
     try:
-        return _engine.create_backup(
+        return _get_engine().create_backup(
             org_id=org_id,
             backup_type=body.backup_type,
             databases=body.databases,
@@ -69,25 +76,25 @@ def list_backups(
     org_id: str = Depends(get_org_id),
 ) -> List[BackupRecord]:
     """List all backups for the org."""
-    return _engine.list_backups(org_id=org_id, type_filter=type_filter)
+    return _get_engine().list_backups(org_id=org_id, type_filter=type_filter)
 
 
 @router.get("/schedules", response_model=List[Dict[str, Any]])
 def list_schedules(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all backup schedules for the org."""
-    return _engine.get_schedules(org_id=org_id)
+    return _get_engine().get_schedules(org_id=org_id)
 
 
 @router.get("/stats", response_model=Dict[str, Any])
 def backup_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return backup statistics for the org."""
-    return _engine.get_backup_stats(org_id=org_id)
+    return _get_engine().get_backup_stats(org_id=org_id)
 
 
 @router.get("/{backup_id}", response_model=BackupRecord)
 def get_backup(backup_id: str, org_id: str = Depends(get_org_id)) -> BackupRecord:
     """Get a specific backup record."""
-    record = _engine.get_backup(backup_id)
+    record = _get_engine().get_backup(backup_id)
     if record is None or record.org_id != org_id:
         raise HTTPException(status_code=404, detail="Backup not found")
     return record
@@ -96,11 +103,11 @@ def get_backup(backup_id: str, org_id: str = Depends(get_org_id)) -> BackupRecor
 @router.delete("/{backup_id}", status_code=204)
 def delete_backup(backup_id: str, org_id: str = Depends(get_org_id)) -> None:
     """Delete a backup file and record."""
-    record = _engine.get_backup(backup_id)
+    record = _get_engine().get_backup(backup_id)
     if record is None or record.org_id != org_id:
         raise HTTPException(status_code=404, detail="Backup not found")
     try:
-        _engine.delete_backup(backup_id)
+        _get_engine().delete_backup(backup_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -108,10 +115,10 @@ def delete_backup(backup_id: str, org_id: str = Depends(get_org_id)) -> None:
 @router.post("/{backup_id}/verify", response_model=Dict[str, Any])
 def verify_backup(backup_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Verify backup checksum integrity."""
-    record = _engine.get_backup(backup_id)
+    record = _get_engine().get_backup(backup_id)
     if record is None or record.org_id != org_id:
         raise HTTPException(status_code=404, detail="Backup not found")
-    valid = _engine.verify_backup(backup_id)
+    valid = _get_engine().verify_backup(backup_id)
     return {"backup_id": backup_id, "valid": valid}
 
 
@@ -122,11 +129,11 @@ def restore_backup(
     org_id: str = Depends(get_org_id),
 ) -> RestoreRecord:
     """Restore databases from a backup."""
-    record = _engine.get_backup(backup_id)
+    record = _get_engine().get_backup(backup_id)
     if record is None or record.org_id != org_id:
         raise HTTPException(status_code=404, detail="Backup not found")
     try:
-        return _engine.restore_backup(
+        return _get_engine().restore_backup(
             backup_id=backup_id,
             target_databases=body.target_databases,
         )
@@ -140,7 +147,7 @@ def schedule_backup(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a recurring backup schedule."""
-    return _engine.schedule_backup(
+    return _get_engine().schedule_backup(
         org_id=org_id,
         backup_type=body.backup_type,
         frequency=body.frequency,
@@ -151,5 +158,5 @@ def schedule_backup(
 @router.post("/cleanup", response_model=Dict[str, Any])
 def cleanup_expired(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Remove backups that have exceeded their retention period."""
-    removed = _engine.cleanup_expired(org_id=org_id)
+    removed = _get_engine().cleanup_expired(org_id=org_id)
     return {"org_id": org_id, "removed": removed}

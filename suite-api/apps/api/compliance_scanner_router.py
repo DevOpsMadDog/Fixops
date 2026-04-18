@@ -25,7 +25,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_engine = ComplianceScannerEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = ComplianceScannerEngine()
+    return _engine
 
 
 # ------------------------------------------------------------------
@@ -60,19 +67,19 @@ class UpdateTaskStatusRequest(BaseModel):
 @router.post("/profiles")
 def create_profile(org_id: str, req: CreateProfileRequest) -> dict:
     """Create a new compliance scan profile."""
-    return _engine.create_profile(org_id, req.model_dump())
+    return _get_engine().create_profile(org_id, req.model_dump())
 
 
 @router.get("/profiles")
 def list_profiles(org_id: str) -> list:
     """List all scan profiles for an org."""
-    return _engine.list_profiles(org_id)
+    return _get_engine().list_profiles(org_id)
 
 
 @router.get("/profiles/{profile_id}")
 def get_profile(org_id: str, profile_id: str) -> dict:
     """Get a specific scan profile."""
-    profile = _engine.get_profile(org_id, profile_id)
+    profile = _get_engine().get_profile(org_id, profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
@@ -87,7 +94,7 @@ def get_profile(org_id: str, profile_id: str) -> dict:
 def start_scan(org_id: str, profile_id: str) -> dict:
     """Trigger a compliance scan for a profile."""
     try:
-        return _engine.start_scan(org_id, profile_id)
+        return _get_engine().start_scan(org_id, profile_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -99,13 +106,13 @@ def list_scan_results(
     limit: int = Query(20, ge=1, le=100),
 ) -> list:
     """List scan results for an org, most recent first."""
-    return _engine.list_scan_results(org_id, profile_id=profile_id, limit=limit)
+    return _get_engine().list_scan_results(org_id, profile_id=profile_id, limit=limit)
 
 
 @router.get("/results/{result_id}")
 def get_scan_result(org_id: str, result_id: str) -> dict:
     """Get a specific scan result."""
-    result = _engine.get_scan_result(org_id, result_id)
+    result = _get_engine().get_scan_result(org_id, result_id)
     if not result:
         raise HTTPException(status_code=404, detail="Scan result not found")
     return result
@@ -124,7 +131,7 @@ def list_checks(
     framework: Optional[str] = Query(None),
 ) -> list:
     """List compliance checks for a scan result."""
-    return _engine.list_checks(org_id, result_id, status=status, framework=framework)
+    return _get_engine().list_checks(org_id, result_id, status=status, framework=framework)
 
 
 # ------------------------------------------------------------------
@@ -135,7 +142,7 @@ def list_checks(
 @router.post("/checks/{check_id}/tasks")
 def create_remediation_task(org_id: str, check_id: str, req: CreateTaskRequest) -> dict:
     """Create a remediation task for a failed check."""
-    return _engine.create_remediation_task(org_id, check_id, req.model_dump())
+    return _get_engine().create_remediation_task(org_id, check_id, req.model_dump())
 
 
 @router.get("/tasks")
@@ -145,13 +152,13 @@ def list_remediation_tasks(
     priority: Optional[str] = Query(None),
 ) -> list:
     """List remediation tasks for an org."""
-    return _engine.list_remediation_tasks(org_id, status=status, priority=priority)
+    return _get_engine().list_remediation_tasks(org_id, status=status, priority=priority)
 
 
 @router.patch("/tasks/{task_id}/status")
 def update_task_status(org_id: str, task_id: str, req: UpdateTaskStatusRequest) -> dict:
     """Update the status of a remediation task."""
-    updated = _engine.update_task_status(
+    updated = _get_engine().update_task_status(
         org_id, task_id, req.status, resolved_by=req.resolved_by
     )
     if not updated:
@@ -167,4 +174,4 @@ def update_task_status(org_id: str, task_id: str, req: UpdateTaskStatusRequest) 
 @router.get("/stats")
 def get_compliance_stats(org_id: str) -> dict:
     """Get aggregate compliance statistics for an org."""
-    return _engine.get_compliance_stats(org_id)
+    return _get_engine().get_compliance_stats(org_id)

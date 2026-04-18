@@ -44,10 +44,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/sla-management", tags=["SLA Management"])
 
 # Module-level singleton
-_engine = SLAManagement()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> SLAManagement:
+    global _engine
+    if _engine is None:
+        _engine = SLAManagement()
     return _engine
 
 

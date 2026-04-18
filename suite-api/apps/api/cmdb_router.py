@@ -40,7 +40,14 @@ router = APIRouter(
 )
 
 # Shared engine instance (SQLite-backed, thread-safe)
-_engine = CMDBEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = CMDBEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +130,7 @@ def list_cis(
     environment: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
-        return _engine.list_cis(org_id, ci_type=ci_type, status=status, environment=environment)
+        return _get_engine().list_cis(org_id, ci_type=ci_type, status=status, environment=environment)
     except Exception as exc:
         logger.exception("list_cis error")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -132,7 +139,7 @@ def list_cis(
 @router.post("/cis", summary="Create a configuration item", status_code=201)
 def create_ci(req: CreateCIRequest) -> Dict[str, Any]:
     try:
-        return _engine.add_ci(req.org_id, req.model_dump(exclude={"org_id"}))
+        return _get_engine().add_ci(req.org_id, req.model_dump(exclude={"org_id"}))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -145,7 +152,7 @@ def get_ci(
     ci_id: str,
     org_id: str = Query(...),
 ) -> Dict[str, Any]:
-    result = _engine.get_ci(org_id, ci_id)
+    result = _get_engine().get_ci(org_id, ci_id)
     if result is None:
         raise HTTPException(status_code=404, detail="CI not found")
     return result
@@ -157,7 +164,7 @@ def update_ci(
     req: UpdateCIRequest,
 ) -> Dict[str, Any]:
     try:
-        updated = _engine.update_ci(
+        updated = _get_engine().update_ci(
             req.org_id,
             ci_id,
             req.model_dump(exclude={"org_id"}, exclude_none=True),
@@ -179,7 +186,7 @@ def list_relationships(
     ci_id: Optional[str] = Query(None, description="Filter by src or dst CI"),
 ) -> List[Dict[str, Any]]:
     try:
-        return _engine.list_relationships(org_id, ci_id=ci_id)
+        return _get_engine().list_relationships(org_id, ci_id=ci_id)
     except Exception as exc:
         logger.exception("list_relationships error")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -188,7 +195,7 @@ def list_relationships(
 @router.post("/relationships", summary="Create a CI relationship", status_code=201)
 def create_relationship(req: CreateRelationshipRequest) -> Dict[str, Any]:
     try:
-        return _engine.add_relationship(
+        return _get_engine().add_relationship(
             req.org_id, req.src_ci_id, req.dst_ci_id, req.rel_type
         )
     except ValueError as exc:
@@ -208,7 +215,7 @@ def list_changes(
     ci_id: Optional[str] = Query(None, description="Filter by CI"),
 ) -> List[Dict[str, Any]]:
     try:
-        return _engine.list_changes(org_id, ci_id=ci_id)
+        return _get_engine().list_changes(org_id, ci_id=ci_id)
     except Exception as exc:
         logger.exception("list_changes error")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -217,7 +224,7 @@ def list_changes(
 @router.post("/changes", summary="Record a CI change event", status_code=201)
 def record_change(req: RecordChangeRequest) -> Dict[str, Any]:
     try:
-        return _engine.record_change(
+        return _get_engine().record_change(
             req.org_id,
             req.ci_id,
             req.change_type,
@@ -239,7 +246,7 @@ def record_change(req: RecordChangeRequest) -> Dict[str, Any]:
 @router.get("/stats", summary="CMDB aggregate statistics")
 def get_stats(org_id: str = Query(...)) -> Dict[str, Any]:
     try:
-        return _engine.get_cmdb_stats(org_id)
+        return _get_engine().get_cmdb_stats(org_id)
     except Exception as exc:
         logger.exception("get_cmdb_stats error")
         raise HTTPException(status_code=500, detail=str(exc))

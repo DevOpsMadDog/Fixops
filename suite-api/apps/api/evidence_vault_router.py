@@ -31,7 +31,14 @@ router = APIRouter(
     dependencies=[Depends(api_key_auth)],
 )
 
-_engine = EvidenceVaultEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = EvidenceVaultEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +92,7 @@ class VerifyIn(BaseModel):
 @router.post("/evidence", status_code=201)
 async def store_evidence(body: StoreEvidenceIn) -> Dict[str, Any]:
     """Store a new compliance evidence artifact."""
-    ev = _engine.store_evidence(
+    ev = _get_engine().store_evidence(
         org_id=body.org_id,
         evidence_name=body.evidence_name,
         evidence_type=body.evidence_type,
@@ -104,7 +111,7 @@ async def store_evidence(body: StoreEvidenceIn) -> Dict[str, Any]:
 async def seal_evidence(evidence_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
     """Seal evidence making it immutable."""
     try:
-        ev = _engine.seal_evidence(evidence_id, org_id)
+        ev = _get_engine().seal_evidence(evidence_id, org_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     if ev is None:
@@ -115,7 +122,7 @@ async def seal_evidence(evidence_id: str, org_id: str = Query(...)) -> Dict[str,
 @router.post("/evidence/{evidence_id}/access", status_code=201)
 async def log_access(evidence_id: str, body: AccessLogIn) -> Dict[str, Any]:
     """Log an access event for an evidence item."""
-    return _engine.log_access(
+    return _get_engine().log_access(
         evidence_id=evidence_id,
         org_id=body.org_id,
         accessed_by=body.accessed_by,
@@ -127,7 +134,7 @@ async def log_access(evidence_id: str, body: AccessLogIn) -> Dict[str, Any]:
 @router.post("/collections", status_code=201)
 async def create_collection(body: CreateCollectionIn) -> Dict[str, Any]:
     """Create an evidence collection for an audit."""
-    return _engine.create_collection(
+    return _get_engine().create_collection(
         org_id=body.org_id,
         collection_name=body.collection_name,
         framework=body.framework,
@@ -140,7 +147,7 @@ async def create_collection(body: CreateCollectionIn) -> Dict[str, Any]:
 async def add_to_collection(collection_id: str, body: AddToCollectionIn) -> Dict[str, Any]:
     """Add an evidence item to a collection."""
     try:
-        coll = _engine.add_to_collection(collection_id, body.evidence_id, body.org_id)
+        coll = _get_engine().add_to_collection(collection_id, body.evidence_id, body.org_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return coll
@@ -149,7 +156,7 @@ async def add_to_collection(collection_id: str, body: AddToCollectionIn) -> Dict
 @router.get("/evidence/{evidence_id}")
 async def get_evidence_detail(evidence_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
     """Return evidence details plus last 20 access log entries."""
-    ev = _engine.get_evidence_detail(evidence_id, org_id)
+    ev = _get_engine().get_evidence_detail(evidence_id, org_id)
     if ev is None:
         raise HTTPException(status_code=404, detail="Evidence not found")
     return ev
@@ -163,7 +170,7 @@ async def search_evidence(
     evidence_type: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
     """Search evidence with optional filters."""
-    items = _engine.search_evidence(
+    items = _get_engine().search_evidence(
         org_id=org_id,
         framework=framework,
         control_id=control_id,
@@ -175,10 +182,10 @@ async def search_evidence(
 @router.get("/summary")
 async def get_vault_summary(org_id: str = Query(...)) -> Dict[str, Any]:
     """Return vault statistics."""
-    return _engine.get_vault_summary(org_id)
+    return _get_engine().get_vault_summary(org_id)
 
 
 @router.post("/evidence/{evidence_id}/verify")
 async def verify_integrity(evidence_id: str, body: VerifyIn) -> Dict[str, Any]:
     """Verify content integrity against stored SHA-256 hash."""
-    return _engine.verify_integrity(evidence_id, body.org_id, body.content)
+    return _get_engine().verify_integrity(evidence_id, body.org_id, body.content)

@@ -51,7 +51,7 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/trust", tags=["trust-center"])
 
 # Process-wide manager — ExtendedTrustCenterManager is a drop-in superset
-_manager = ExtendedTrustCenterManager()
+_manager = None  # lazy-initialised on first request
 
 
 def _get_manager() -> ExtendedTrustCenterManager:

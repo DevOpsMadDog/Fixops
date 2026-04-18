@@ -33,7 +33,14 @@ from core.notifications import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
-_engine = NotificationEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = NotificationEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -90,14 +97,14 @@ async def create_rule(req: CreateRuleRequest) -> Dict[str, Any]:
         recipients=req.recipients,
         digest_frequency=req.digest_frequency.value if hasattr(req.digest_frequency, "value") else req.digest_frequency,
     )
-    created = _engine.add_rule(rule)
+    created = _get_engine().add_rule(rule)
     return created.model_dump(mode="json")
 
 
 @router.get("/rules")
 async def list_rules() -> List[Dict[str, Any]]:
     """List all alert rules."""
-    rules = _engine.list_rules()
+    rules = _get_engine().list_rules()
     return [r.model_dump(mode="json") for r in rules]
 
 
@@ -124,7 +131,7 @@ async def update_rule(rule_id: str, req: UpdateRuleRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=422, detail="No fields to update")
 
     try:
-        updated = _engine.update_rule(rule_id, updates)
+        updated = _get_engine().update_rule(rule_id, updates)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
     return updated.model_dump(mode="json")
@@ -133,7 +140,7 @@ async def update_rule(rule_id: str, req: UpdateRuleRequest) -> Dict[str, Any]:
 @router.delete("/rules/{rule_id}")
 async def delete_rule(rule_id: str) -> Dict[str, Any]:
     """Delete an alert rule."""
-    deleted = _engine.delete_rule(rule_id)
+    deleted = _get_engine().delete_rule(rule_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
     return {"id": rule_id, "status": "deleted"}
@@ -147,14 +154,14 @@ async def delete_rule(rule_id: str) -> Dict[str, Any]:
 @router.get("/inbox")
 async def get_inbox(user_email: str = Query(..., description="User email address")) -> List[Dict[str, Any]]:
     """Return unread in-app notifications for a user."""
-    notifications = _engine.get_unread_notifications(user_email)
+    notifications = _get_engine().get_unread_notifications(user_email)
     return [n.model_dump(mode="json") for n in notifications]
 
 
 @router.post("/read")
 async def mark_read(req: MarkReadRequest) -> Dict[str, Any]:
     """Mark one or more notifications as read."""
-    count = _engine.mark_read(req.notification_ids)
+    count = _get_engine().mark_read(req.notification_ids)
     return {"marked_read": count}
 
 
@@ -166,7 +173,7 @@ async def mark_read(req: MarkReadRequest) -> Dict[str, Any]:
 @router.get("/preferences")
 async def get_preferences(user_email: str = Query(..., description="User email address")) -> Dict[str, Any]:
     """Get notification preferences for a user."""
-    pref = _engine.get_preference(user_email)
+    pref = _get_engine().get_preference(user_email)
     if not pref:
         # Return defaults
         default = NotificationPreference(user_email=user_email)
@@ -180,7 +187,7 @@ async def update_preferences(
     req: UpdatePreferenceRequest = ...,
 ) -> Dict[str, Any]:
     """Update notification preferences for a user."""
-    existing = _engine.get_preference(user_email) or NotificationPreference(user_email=user_email)
+    existing = _get_engine().get_preference(user_email) or NotificationPreference(user_email=user_email)
 
     updated_data: Dict[str, Any] = existing.model_dump()
     if req.channels is not None:
@@ -195,5 +202,5 @@ async def update_preferences(
         updated_data["quiet_hours_end"] = req.quiet_hours_end
 
     pref = NotificationPreference(**updated_data)
-    saved = _engine.set_preference(pref)
+    saved = _get_engine().set_preference(pref)
     return saved.model_dump(mode="json")

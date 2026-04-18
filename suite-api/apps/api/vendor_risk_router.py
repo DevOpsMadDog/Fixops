@@ -62,8 +62,24 @@ router = APIRouter(
     dependencies=_AUTH_DEP,
 )
 
-_engine = get_engine()
-_risk_engine = get_vendor_risk_engine()
+_engine = None  # lazy
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        from core.vendor_risk import get_engine as _ge
+        _engine = _ge()
+    return _engine
+_risk_engine = None  # lazy
+
+
+def _get_risk_engine():
+    global _risk_engine
+    if _risk_engine is None:
+        from core.vendor_risk import get_vendor_risk_engine as _gre
+        _risk_engine = _gre()
+    return _risk_engine
 
 
 # ============================================================================
@@ -198,7 +214,7 @@ def _to_vendor_response(vendor: Vendor) -> VendorResponse:
 
 def _require_vendor(vendor_id: str) -> Vendor:
     """Retrieve vendor or raise 404."""
-    vendor = _engine.get_vendor(vendor_id)
+    vendor = _get_engine().get_vendor(vendor_id)
     if not vendor:
         raise HTTPException(status_code=404, detail=f"Vendor '{vendor_id}' not found")
     return vendor
@@ -220,7 +236,7 @@ def _require_vendor(vendor_id: str) -> Vendor:
 )
 def get_tiering_overview() -> TieringOverview:
     """Return vendor tiering breakdown and per-tier assessment requirements."""
-    return _engine.get_tiering_overview()
+    return _get_engine().get_tiering_overview()
 
 
 @router.get(
@@ -234,7 +250,7 @@ def get_tiering_overview() -> TieringOverview:
 )
 def get_fourth_party_map() -> FourthPartyMap:
     """Return the fourth-party dependency and risk map."""
-    return _engine.get_fourth_party_map()
+    return _get_engine().get_fourth_party_map()
 
 
 @router.get(
@@ -248,7 +264,7 @@ def list_vendors(
     category: Optional[ServiceCategory] = Query(None, description="Filter by service category"),
 ) -> VendorListResponse:
     """List all vendors, optionally filtered by tier or service category."""
-    vendors = _engine.list_vendors()
+    vendors = _get_engine().list_vendors()
 
     if tier:
         vendors = [v for v in vendors if v.tier == tier]
@@ -286,7 +302,7 @@ def create_vendor(body: VendorCreateRequest) -> VendorResponse:
         description=body.description,
         fourth_party_vendors=body.fourth_party_vendors,
     )
-    registered = _engine.register_vendor(vendor)
+    registered = _get_engine().register_vendor(vendor)
     return _to_vendor_response(registered)
 
 
@@ -299,7 +315,7 @@ def create_vendor(body: VendorCreateRequest) -> VendorResponse:
 def get_assessment(vendor_id: str) -> AssessmentResponse:
     """Return the latest assessment for a vendor."""
     _require_vendor(vendor_id)
-    assessment = _engine.get_assessment(vendor_id)
+    assessment = _get_engine().get_assessment(vendor_id)
     if not assessment:
         raise HTTPException(
             status_code=404,
@@ -332,7 +348,7 @@ def submit_questionnaire(vendor_id: str, body: QuestionnaireSubmitRequest) -> As
     if not body.responses:
         raise HTTPException(status_code=422, detail="At least one questionnaire response is required.")
 
-    assessment = _engine.submit_questionnaire(
+    assessment = _get_engine().submit_questionnaire(
         vendor_id=vendor_id,
         responses=body.responses,
         assessed_by=body.assessed_by,
@@ -361,7 +377,7 @@ def submit_questionnaire(vendor_id: str, body: QuestionnaireSubmitRequest) -> As
 def get_monitoring(vendor_id: str) -> MonitoringResponse:
     """Return continuous monitoring data for a vendor."""
     _require_vendor(vendor_id)
-    data = _engine.get_monitoring_data(vendor_id)
+    data = _get_engine().get_monitoring_data(vendor_id)
     return MonitoringResponse(**data)
 
 
@@ -387,7 +403,7 @@ def record_signal(vendor_id: str, body: RecordSignalRequest) -> Dict[str, Any]:
         source=body.source,
         metadata=body.metadata,
     )
-    recorded = _engine.record_risk_signal(signal)
+    recorded = _get_engine().record_risk_signal(signal)
     return {"signal_id": recorded.id, "vendor_id": vendor_id, "status": "recorded"}
 
 
@@ -403,7 +419,7 @@ def record_signal(vendor_id: str, body: RecordSignalRequest) -> Dict[str, Any]:
 def get_scorecard(vendor_id: str) -> ScorecardResponse:
     """Compute and return the vendor scorecard."""
     _require_vendor(vendor_id)
-    scorecard = _engine.compute_scorecard(vendor_id)
+    scorecard = _get_engine().compute_scorecard(vendor_id)
     if not scorecard:
         raise HTTPException(status_code=404, detail=f"Could not compute scorecard for vendor '{vendor_id}'")
     return ScorecardResponse(
@@ -435,7 +451,7 @@ def get_scorecard(vendor_id: str) -> ScorecardResponse:
 def get_contract_risks(vendor_id: str) -> List[Dict[str, Any]]:
     """Return contract risk gaps for a vendor."""
     _require_vendor(vendor_id)
-    risks = _engine.get_contract_risks(vendor_id)
+    risks = _get_engine().get_contract_risks(vendor_id)
     return [r.model_dump() for r in risks]
 
 
@@ -553,7 +569,7 @@ def auto_assess_vendor(body: AutoAssessRequest) -> AutoAssessResponse:
     if body.vendor_id:
         vendor_dict["id"] = body.vendor_id
 
-    result = _risk_engine.assess_vendor(vendor_dict)
+    result = _get_risk_engine().assess_vendor(vendor_dict)
     return AutoAssessResponse(
         vendor_id=result.vendor_id,
         name=result.name,
@@ -581,7 +597,7 @@ def list_high_risk_vendors(
     threshold: float = Query(60.0, ge=0.0, le=100.0, description="Risk score threshold (0-100)"),
 ) -> List[Dict[str, Any]]:
     """Return all auto-assessed vendors flagged as high-risk."""
-    return _risk_engine.list_high_risk_vendors(threshold=threshold)
+    return _get_risk_engine().list_high_risk_vendors(threshold=threshold)
 
 
 @router.post(
@@ -602,7 +618,7 @@ def track_questionnaire(
     if not body.questions:
         raise HTTPException(status_code=422, detail="Questionnaire must contain at least one question.")
 
-    qid = _risk_engine.track_questionnaire(vendor_id, body.questions)
+    qid = _get_risk_engine().track_questionnaire(vendor_id, body.questions)
     return QuestionnaireTrackResponse(
         questionnaire_id=qid,
         vendor_id=vendor_id,
@@ -624,7 +640,7 @@ def track_questionnaire(
 def get_engine_scorecard(vendor_id: str) -> EngineScorecardResponse:
     """Generate and return the engine scorecard for an assessed vendor."""
     try:
-        scorecard = _risk_engine.generate_vendor_scorecard(vendor_id)
+        scorecard = _get_risk_engine().generate_vendor_scorecard(vendor_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -657,7 +673,7 @@ def get_engine_scorecard(vendor_id: str) -> EngineScorecardResponse:
 )
 def get_fourth_party_risk(vendor_id: str) -> FourthPartyRiskResponse:
     """Return fourth-party risk score derived from engine assessment data."""
-    score = _risk_engine.calculate_fourth_party_risk(vendor_id)
+    score = _get_risk_engine().calculate_fourth_party_risk(vendor_id)
     if score < 0.3:
         label = "low"
     elif score < 0.6:
@@ -717,7 +733,7 @@ class VRARespondRequest(BaseModel):
 )
 def vra_get_questionnaire() -> List[Dict[str, Any]]:
     """Return the standard 10-question security questionnaire."""
-    return _risk_engine.get_questionnaire_template()
+    return _get_risk_engine().get_questionnaire_template()
 
 
 @vra_router.get(
@@ -727,7 +743,7 @@ def vra_get_questionnaire() -> List[Dict[str, Any]]:
 )
 def vra_get_risk_register(org_id: str = Query("default")) -> List[Dict[str, Any]]:
     """Return all vendors with their latest completed risk scores."""
-    return _risk_engine.get_risk_register(org_id=org_id)
+    return _get_risk_engine().get_risk_register(org_id=org_id)
 
 
 @vra_router.get(
@@ -737,7 +753,7 @@ def vra_get_risk_register(org_id: str = Query("default")) -> List[Dict[str, Any]
 )
 def vra_get_assessment(assessment_id: str) -> Dict[str, Any]:
     """Return a VRA assessment record."""
-    result = _risk_engine.get_assessment_by_id(assessment_id)
+    result = _get_risk_engine().get_assessment_by_id(assessment_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Assessment '{assessment_id}' not found")
     return result
@@ -750,7 +766,7 @@ def vra_get_assessment(assessment_id: str) -> Dict[str, Any]:
 )
 def vra_submit_response(assessment_id: str, body: VRARespondRequest) -> Dict[str, Any]:
     """Submit a yes/no answer to a questionnaire question."""
-    return _risk_engine.submit_response(
+    return _get_risk_engine().submit_response(
         assessment_id=assessment_id,
         question_id=body.question_id,
         answer=body.answer,
@@ -765,7 +781,7 @@ def vra_submit_response(assessment_id: str, body: VRARespondRequest) -> Dict[str
 )
 def vra_complete_assessment(assessment_id: str) -> Dict[str, Any]:
     """Finalize the assessment and calculate the composite risk score."""
-    return _risk_engine.complete_assessment(assessment_id)
+    return _get_risk_engine().complete_assessment(assessment_id)
 
 
 # ---------------------------------------------------------------------------
@@ -783,7 +799,7 @@ def vra_list_vendors(
     tier: _Optional[str] = Query(None, description="Filter by tier: critical | high | medium | low"),
 ) -> List[Dict[str, Any]]:
     """List all registered vendors, optionally filtered by tier."""
-    return _risk_engine.list_vendors(org_id=org_id, tier=tier)
+    return _get_risk_engine().list_vendors(org_id=org_id, tier=tier)
 
 
 @vra_router.post(
@@ -795,7 +811,7 @@ def vra_list_vendors(
 def vra_register_vendor(body: VRARegisterVendorRequest) -> Dict[str, Any]:
     """Register a new vendor for questionnaire-based assessment."""
     try:
-        return _risk_engine.register_vendor(
+        return _get_risk_engine().register_vendor(
             name=body.name,
             tier=body.tier,
             contact_email=body.contact_email,
@@ -813,7 +829,7 @@ def vra_register_vendor(body: VRARegisterVendorRequest) -> Dict[str, Any]:
 )
 def vra_get_vendor(vendor_id: str) -> Dict[str, Any]:
     """Return a registered vendor record."""
-    result = _risk_engine.get_vendor(vendor_id)
+    result = _get_risk_engine().get_vendor(vendor_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Vendor '{vendor_id}' not found")
     return result
@@ -828,6 +844,6 @@ def vra_get_vendor(vendor_id: str) -> Dict[str, Any]:
 def vra_start_assessment(vendor_id: str, assessor: str = Query("system")) -> Dict[str, Any]:
     """Create a new assessment for the vendor and return the questionnaire."""
     try:
-        return _risk_engine.start_assessment(vendor_id=vendor_id, assessor=assessor)
+        return _get_risk_engine().start_assessment(vendor_id=vendor_id, assessor=assessor)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

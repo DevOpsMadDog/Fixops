@@ -28,10 +28,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/security-training", tags=["security-training"])
 
 # Module-level singleton
-_engine = SecurityTrainingEngine()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> SecurityTrainingEngine:
+    global _engine
+    if _engine is None:
+        _engine = SecurityTrainingEngine()
     return _engine
 
 

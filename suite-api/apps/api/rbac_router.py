@@ -25,7 +25,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/rbac", tags=["rbac"])
 
 # Module-level engine instance (SQLite-backed, safe to share)
-_engine = RBACEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = RBACEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -81,7 +88,7 @@ class AuditLogResponse(BaseModel):
 async def assign_role(body: AssignRoleRequest) -> Dict[str, Any]:
     """Assign a role. Returns the assignment record."""
     try:
-        record = _engine.assign_role(
+        record = _get_engine().assign_role(
             user_id=body.user_id,
             role=body.role,
             org_id=body.org_id,
@@ -100,7 +107,7 @@ async def assign_role(body: AssignRoleRequest) -> Dict[str, Any]:
 )
 async def revoke_role(body: RevokeRoleRequest) -> Dict[str, Any]:
     """Revoke a role. Returns status."""
-    revoked = _engine.revoke_role(
+    revoked = _get_engine().revoke_role(
         user_id=body.user_id,
         role=body.role,
         org_id=body.org_id,
@@ -122,7 +129,7 @@ async def get_user_roles(
     user_id: str,
     org_id: str = Query(..., description="Organisation identifier"),
 ) -> Dict[str, Any]:
-    roles = _engine.get_user_roles(user_id=user_id, org_id=org_id)
+    roles = _get_engine().get_user_roles(user_id=user_id, org_id=org_id)
     return {"user_id": user_id, "org_id": org_id, "roles": roles}
 
 
@@ -135,7 +142,7 @@ async def get_user_scopes(
     user_id: str,
     org_id: str = Query(..., description="Organisation identifier"),
 ) -> Dict[str, Any]:
-    scopes = _engine.get_user_scopes(user_id=user_id, org_id=org_id)
+    scopes = _get_engine().get_user_scopes(user_id=user_id, org_id=org_id)
     return {"user_id": user_id, "org_id": org_id, "scopes": scopes}
 
 
@@ -146,7 +153,7 @@ async def get_user_scopes(
     description="Verify whether a user has a given scope in an organisation.",
 )
 async def check_permission(body: CheckPermissionRequest) -> CheckPermissionResponse:
-    allowed = _engine.check_permission(
+    allowed = _get_engine().check_permission(
         user_id=body.user_id,
         org_id=body.org_id,
         required_scope=body.scope,
@@ -165,7 +172,7 @@ async def check_permission(body: CheckPermissionRequest) -> CheckPermissionRespo
     description="Return all user-role assignments for an organisation.",
 )
 async def list_org_users(org_id: str) -> Dict[str, Any]:
-    users = _engine.list_users_in_org(org_id=org_id)
+    users = _get_engine().list_users_in_org(org_id=org_id)
     return {"org_id": org_id, "users": users, "count": len(users)}
 
 
@@ -190,7 +197,7 @@ async def get_audit_log(
     org_id: Optional[str] = Query(default=None, description="Filter by org_id"),
     limit: int = Query(default=100, ge=1, le=1000, description="Max entries to return"),
 ) -> AuditLogResponse:
-    entries = _engine.get_audit_log(user_id=user_id, org_id=org_id, limit=limit)
+    entries = _get_engine().get_audit_log(user_id=user_id, org_id=org_id, limit=limit)
     return AuditLogResponse(entries=entries, count=len(entries))
 
 

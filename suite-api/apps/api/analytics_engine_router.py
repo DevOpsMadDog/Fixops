@@ -20,7 +20,14 @@ router = APIRouter(
     tags=["analytics-engine"],
 )
 
-_engine = AnalyticsEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = AnalyticsEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +48,7 @@ def get_risk_summary(
 ) -> Dict[str, Any]:
     """Return cross-domain risk summary for the given org."""
     try:
-        return _engine.cross_domain_risk_summary(org_id)
+        return _get_engine().cross_domain_risk_summary(org_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -59,7 +66,7 @@ def get_asset_vuln_correlation(
 ) -> List[Dict[str, Any]]:
     """Return asset-vulnerability correlations."""
     try:
-        return _engine.asset_vulnerability_correlation(org_id)
+        return _get_engine().asset_vulnerability_correlation(org_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -80,7 +87,7 @@ def get_threat_ioc_correlation(
     if not ioc or not ioc.strip():
         raise HTTPException(status_code=422, detail="ioc must not be empty")
     try:
-        return _engine.threat_intel_correlation(org_id, ioc.strip())
+        return _get_engine().threat_intel_correlation(org_id, ioc.strip())
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -98,7 +105,7 @@ def get_compliance_trend(
 ) -> List[Dict[str, Any]]:
     """Return compliance posture trend data."""
     try:
-        return _engine.compliance_posture_trend(org_id)
+        return _get_engine().compliance_posture_trend(org_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -116,7 +123,7 @@ def get_executive_dashboard(
 ) -> Dict[str, Any]:
     """Return aggregated CISO executive dashboard data."""
     try:
-        return _engine.executive_dashboard_data(org_id)
+        return _get_engine().executive_dashboard_data(org_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -129,7 +136,7 @@ def get_executive_dashboard(
 def get_available_domains() -> List[Dict[str, Any]]:
     """List all domain databases found in data_dir."""
     try:
-        return _engine.list_available_domains()
+        return _get_engine().list_available_domains()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -150,7 +157,7 @@ def run_custom_query(
 ) -> List[Dict[str, Any]]:
     """Run a custom query against a domain database."""
     try:
-        return _engine.run_custom_query(
+        return _get_engine().run_custom_query(
             db_name=db,
             table_name=table,
             where_clause=where or "",

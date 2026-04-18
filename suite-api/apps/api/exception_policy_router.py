@@ -25,7 +25,14 @@ router = APIRouter(
 )
 
 # Single shared engine instance (SQLite is file-based, thread-safe via RLock)
-_engine = ExceptionPolicyEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = ExceptionPolicyEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +99,7 @@ async def add_rule(
         created_by=body.created_by,
     )
     try:
-        created = _engine.add_rule(rule, org_id=org_id)
+        created = _get_engine().add_rule(rule, org_id=org_id)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return created.model_dump(mode="json")
@@ -104,7 +111,7 @@ async def list_rules(
     enabled_only: bool = Query(False, description="Return only enabled rules"),
 ) -> List[Dict[str, Any]]:
     """List all exception rules for the org."""
-    rules = _engine.list_rules(org_id=org_id, enabled_only=enabled_only)
+    rules = _get_engine().list_rules(org_id=org_id, enabled_only=enabled_only)
     return [r.model_dump(mode="json") for r in rules]
 
 
@@ -119,7 +126,7 @@ async def update_rule(
     if not updates:
         raise HTTPException(status_code=400, detail="No fields provided for update")
     try:
-        updated = _engine.update_rule(rule_id, updates=updates, org_id=org_id)
+        updated = _get_engine().update_rule(rule_id, updates=updates, org_id=org_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
@@ -134,7 +141,7 @@ async def delete_rule(
 ) -> None:
     """Delete an exception rule permanently."""
     try:
-        _engine.delete_rule(rule_id, org_id=org_id)
+        _get_engine().delete_rule(rule_id, org_id=org_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -145,7 +152,7 @@ async def evaluate(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Evaluate one or more findings against current exception rules."""
-    return _engine.evaluate_batch(body.findings, org_id=org_id)
+    return _get_engine().evaluate_batch(body.findings, org_id=org_id)
 
 
 @router.post("/publish", response_model=Dict[str, Any], status_code=201)
@@ -154,7 +161,7 @@ async def publish_version(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Publish a new policy version snapshot."""
-    pv = _engine.publish_version(
+    pv = _get_engine().publish_version(
         org_id=org_id,
         published_by=body.published_by,
         changelog=body.changelog,
@@ -167,7 +174,7 @@ async def get_versions(
     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return version history for the org's exception policy."""
-    history = _engine.get_version_history(org_id=org_id)
+    history = _get_engine().get_version_history(org_id=org_id)
     return [pv.model_dump(mode="json") for pv in history]
 
 
@@ -178,7 +185,7 @@ async def rollback(
 ) -> Dict[str, Any]:
     """Rollback the org's exception rules to a previously published version."""
     try:
-        _engine.rollback_to_version(org_id=org_id, version=body.version)
+        _get_engine().rollback_to_version(org_id=org_id, version=body.version)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {"status": "ok", "rolled_back_to": body.version, "org_id": org_id}
@@ -189,4 +196,4 @@ async def get_stats(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return suppression statistics for the org."""
-    return _engine.get_suppression_stats(org_id=org_id)
+    return _get_engine().get_suppression_stats(org_id=org_id)

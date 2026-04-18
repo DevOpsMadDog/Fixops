@@ -41,7 +41,14 @@ from core.audit_analytics import (
 router = APIRouter(prefix="/api/v1/audit-analytics", tags=["audit-analytics"])
 
 # Module-level engine instance (SQLite path relative to process cwd)
-_engine = AuditAnalyticsEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = AuditAnalyticsEngine()
+    return _engine
 
 
 # ============================================================================
@@ -282,7 +289,7 @@ async def ingest_log(
     """
     effective_org = body.org_id or org_id
     try:
-        entry = _engine.ingest(body.raw, body.format, org_id=effective_org)
+        entry = _get_engine().ingest(body.raw, body.format, org_id=effective_org)
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Parse error: {exc}") from exc
 
@@ -310,7 +317,7 @@ async def ingest_batch(
     """
     effective_org = body.org_id or org_id
     try:
-        entries, anomalies = _engine.ingest_batch(
+        entries, anomalies = _get_engine().ingest_batch(
             lines=body.lines,
             fmt=body.format,
             org_id=effective_org,
@@ -347,7 +354,7 @@ async def search_logs(
     Combines FTS5 full-text search with structured field filters.
     All filters are ANDed together.
     """
-    result: SearchResult = _engine.search(
+    result: SearchResult = _get_engine().search(
         query=q,
         actor=actor,
         action=action,
@@ -379,7 +386,7 @@ async def list_anomalies(
     offset: int = Query(0, ge=0),
 ) -> AnomalyListResponse:
     """List previously detected anomalies."""
-    items, total = _engine.list_anomalies(
+    items, total = _get_engine().list_anomalies(
         kind=kind, severity=severity, limit=limit, offset=offset, org_id=org_id
     )
     return AnomalyListResponse(
@@ -402,7 +409,7 @@ async def detect_anomalies(
     detection rules, persists new anomalies, and returns them.
     """
     effective_org = body.org_id or org_id
-    anomalies = _engine.detect_anomalies(
+    anomalies = _get_engine().detect_anomalies(
         start=body.start, end=body.end, org_id=effective_org
     )
     return DetectAnomaliesResponse(
@@ -427,7 +434,7 @@ async def compliance_trail(
     Returns a time-ordered record of all actions matching the filters,
     suitable for compliance reporting and evidence collection.
     """
-    result: SearchResult = _engine.compliance_trail(
+    result: SearchResult = _get_engine().compliance_trail(
         actor=actor,
         resource_type=resource_type,
         start=_parse_dt(start),
@@ -449,7 +456,7 @@ async def get_retention_policy(
     org_id: str = Depends(get_org_id),
 ) -> RetentionPolicyOut:
     """Get the current retention policy for the authenticated org."""
-    policy = _engine.get_retention_policy(org_id=org_id)
+    policy = _get_engine().get_retention_policy(org_id=org_id)
     return RetentionPolicyOut(
         org_id=policy.org_id,
         archive_after_days=policy.archive_after_days,
@@ -481,7 +488,7 @@ async def upsert_retention_policy(
         delete_after_days=body.delete_after_days,
         legal_hold_actor_ids=body.legal_hold_actor_ids,
     )
-    _engine.set_retention_policy(policy)
+    _get_engine().set_retention_policy(policy)
     return RetentionPolicyOut(
         org_id=policy.org_id,
         archive_after_days=policy.archive_after_days,
@@ -502,7 +509,7 @@ async def apply_retention(
     Entries belonging to legal-hold actors are marked as legal_hold.
     Returns a summary report.
     """
-    report: RetentionReport = _engine.apply_retention(org_id=org_id)
+    report: RetentionReport = _get_engine().apply_retention(org_id=org_id)
     return RetentionReportOut(
         org_id=report.org_id,
         archived=report.archived,
@@ -525,7 +532,7 @@ async def build_forensic_timeline(
     Useful for incident investigation and post-mortem analysis.
     """
     effective_org = body.org_id or org_id
-    timeline: ForensicTimeline = _engine.build_timeline(
+    timeline: ForensicTimeline = _get_engine().build_timeline(
         query=body.query,
         start=body.start,
         end=body.end,

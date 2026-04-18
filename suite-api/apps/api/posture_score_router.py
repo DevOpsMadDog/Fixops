@@ -15,7 +15,14 @@ from core.posture_score_engine import PostureScoreEngine
 
 router = APIRouter(prefix="/api/v1/posture-score", tags=["posture-score"])
 
-_engine = PostureScoreEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = PostureScoreEngine()
+    return _engine
 
 # ---------------------------------------------------------------------------
 # Request / Response models
@@ -52,9 +59,9 @@ class BenchmarkRequest(BaseModel):
 def compute_posture_score(req: ComputeRequest) -> Dict[str, Any]:
     """Calculate weighted posture score from current component values."""
     try:
-        score_data = _engine.compute_posture_score(req.org_id)
+        score_data = _get_engine().compute_posture_score(req.org_id)
         if req.save:
-            saved = _engine.save_score(req.org_id, score_data)
+            saved = _get_engine().save_score(req.org_id, score_data)
             return saved
         return score_data
     except Exception as exc:
@@ -64,7 +71,7 @@ def compute_posture_score(req: ComputeRequest) -> Dict[str, Any]:
 @router.get("/current", summary="Get current posture score")
 def get_current_score(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return the most recently saved posture score for an org."""
-    result = _engine.get_current_score(org_id)
+    result = _get_engine().get_current_score(org_id)
     if not result:
         raise HTTPException(status_code=404, detail="No score found for org")
     return result
@@ -76,7 +83,7 @@ def get_score_history(
     days: int = Query(30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return posture score snapshots for the last N days."""
-    return _engine.get_score_history(org_id, days=days)
+    return _get_engine().get_score_history(org_id, days=days)
 
 
 @router.post("/components/{name}", summary="Update a component score")
@@ -85,7 +92,7 @@ def update_component(
     req: ComponentUpdateRequest,
 ) -> Dict[str, Any]:
     """Upsert a single security domain component score (0-100)."""
-    ok = _engine.update_component(req.org_id, name, req.score, req.source)
+    ok = _get_engine().update_component(req.org_id, name, req.score, req.source)
     if not ok:
         raise HTTPException(status_code=400, detail=f"Unknown component: {name}")
     return {"component": name, "score": req.score, "source": req.source, "updated": True}
@@ -94,23 +101,23 @@ def update_component(
 @router.get("/components", summary="List component scores")
 def list_components(org_id: str = Query("default")) -> List[Dict[str, Any]]:
     """List all component scores and weights for an org."""
-    return _engine.list_components(org_id)
+    return _get_engine().list_components(org_id)
 
 
 @router.get("/benchmarks", summary="List benchmarks")
 def list_benchmarks(org_id: str = Query("default")) -> List[Dict[str, Any]]:
     """List industry benchmarks for an org."""
-    return _engine.list_benchmarks(org_id)
+    return _get_engine().list_benchmarks(org_id)
 
 
 @router.post("/benchmarks", summary="Add a benchmark")
 def add_benchmark(req: BenchmarkRequest) -> Dict[str, Any]:
     """Add an industry benchmark record for comparison."""
     data = req.model_dump(exclude={"org_id"})
-    return _engine.add_benchmark(req.org_id, data)
+    return _get_engine().add_benchmark(req.org_id, data)
 
 
 @router.get("/stats", summary="Get posture stats")
 def get_posture_stats(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return summary statistics: current score, grade, 30d trend, days at risk."""
-    return _engine.get_posture_stats(org_id)
+    return _get_engine().get_posture_stats(org_id)

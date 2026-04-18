@@ -289,20 +289,43 @@ _trained_models: Dict[str, Any] = {}  # sklearn model objects (not serialisable)
 # Counter for internal IDs
 _vuln_counter = 0
 
-# ML library availability
-try:
-    import numpy as np
-    from sklearn.ensemble import (
-        GradientBoostingRegressor,
-        IsolationForest,
-        RandomForestClassifier,
-    )
-    from sklearn.model_selection import cross_val_score
-    from sklearn.preprocessing import LabelEncoder
+# ML libraries are imported lazily on first use (avoids ~1s sklearn startup cost).
+# Use _check_sklearn() inside functions that need sklearn, then access the globals.
+_SKLEARN_AVAILABLE: bool | None = None  # None = not yet probed
 
-    _SKLEARN_AVAILABLE = True
-except ImportError:
-    _SKLEARN_AVAILABLE = False
+np: Any = None
+RandomForestClassifier: Any = None
+GradientBoostingRegressor: Any = None
+IsolationForest: Any = None
+cross_val_score: Any = None
+LabelEncoder: Any = None
+
+
+def _check_sklearn() -> bool:
+    """Lazy-load sklearn and numpy on first call; returns availability."""
+    global _SKLEARN_AVAILABLE, np, RandomForestClassifier
+    global GradientBoostingRegressor, IsolationForest, cross_val_score, LabelEncoder
+    if _SKLEARN_AVAILABLE is not None:
+        return _SKLEARN_AVAILABLE
+    try:
+        import numpy as _np
+        from sklearn.ensemble import (
+            GradientBoostingRegressor as _GBR,
+            IsolationForest as _IF,
+            RandomForestClassifier as _RFC,
+        )
+        from sklearn.model_selection import cross_val_score as _cvs
+        from sklearn.preprocessing import LabelEncoder as _LE
+        np = _np
+        RandomForestClassifier = _RFC
+        GradientBoostingRegressor = _GBR
+        IsolationForest = _IF
+        cross_val_score = _cvs
+        LabelEncoder = _LE
+        _SKLEARN_AVAILABLE = True
+    except ImportError:
+        _SKLEARN_AVAILABLE = False
+    return _SKLEARN_AVAILABLE
 
 
 # =============================================================================
@@ -911,7 +934,7 @@ async def _run_training(job_id: str) -> None:
     job["started_at"] = _now()
     _retrain_jobs.persist(job_id)
 
-    if not _SKLEARN_AVAILABLE:
+    if not _check_sklearn():
         job["status"] = "failed"
         job["completed_at"] = _now()
         job["results"] = {

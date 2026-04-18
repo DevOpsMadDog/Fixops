@@ -41,7 +41,14 @@ router = APIRouter(
 )
 
 # Shared engine instance (SQLite-backed, shared across requests)
-_engine = UBAEngine()
+_engine = None  # lazy-initialised on first request
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = UBAEngine()
+    return _engine
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +102,7 @@ class UpdateAlertStatusRequest(BaseModel):
 @router.post("/users", summary="Register a user profile")
 def register_user(req: RegisterUserRequest) -> Dict[str, Any]:
     try:
-        return _engine.register_user(req.org_id, req.model_dump(exclude={"org_id"}))
+        return _get_engine().register_user(req.org_id, req.model_dump(exclude={"org_id"}))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -110,7 +117,7 @@ def list_users(
     min_risk_score: Optional[int] = Query(None, ge=0, le=100),
 ) -> List[Dict[str, Any]]:
     try:
-        return _engine.list_users(org_id, status=status, min_risk_score=min_risk_score)
+        return _get_engine().list_users(org_id, status=status, min_risk_score=min_risk_score)
     except Exception as exc:
         logger.exception("list_users error")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -121,7 +128,7 @@ def get_user(
     user_id: str,
     org_id: str = Query(...),
 ) -> Dict[str, Any]:
-    result = _engine.get_user(org_id, user_id)
+    result = _get_engine().get_user(org_id, user_id)
     if result is None:
         raise HTTPException(status_code=404, detail="User not found")
     return result
@@ -133,7 +140,7 @@ def analyze_user(
     org_id: str = Query(...),
 ) -> Dict[str, Any]:
     try:
-        return _engine.analyze_user(org_id, user_id)
+        return _get_engine().analyze_user(org_id, user_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
@@ -144,7 +151,7 @@ def analyze_user(
 @router.post("/events", summary="Ingest a user behavior event")
 def ingest_event(req: IngestEventRequest) -> Dict[str, Any]:
     try:
-        return _engine.ingest_event(req.org_id, req.model_dump(exclude={"org_id"}))
+        return _get_engine().ingest_event(req.org_id, req.model_dump(exclude={"org_id"}))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -160,7 +167,7 @@ def list_events(
     is_anomalous: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
-        return _engine.list_events(
+        return _get_engine().list_events(
             org_id,
             user_id=user_id,
             event_type=event_type,
@@ -174,7 +181,7 @@ def list_events(
 @router.post("/alerts", summary="Create a UBA alert")
 def create_alert(req: CreateAlertRequest) -> Dict[str, Any]:
     try:
-        return _engine.create_alert(
+        return _get_engine().create_alert(
             req.org_id,
             req.user_id,
             req.alert_type,
@@ -194,7 +201,7 @@ def list_alerts(
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
-        return _engine.list_alerts(org_id, status=status)
+        return _get_engine().list_alerts(org_id, status=status)
     except Exception as exc:
         logger.exception("list_alerts error")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -206,7 +213,7 @@ def update_alert_status(
     req: UpdateAlertStatusRequest,
 ) -> Dict[str, Any]:
     try:
-        updated = _engine.update_alert_status(req.org_id, alert_id, req.status)
+        updated = _get_engine().update_alert_status(req.org_id, alert_id, req.status)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     if not updated:
@@ -217,7 +224,7 @@ def update_alert_status(
 @router.get("/stats", summary="UBA aggregate statistics")
 def get_uba_stats(org_id: str = Query(...)) -> Dict[str, Any]:
     try:
-        return _engine.get_uba_stats(org_id)
+        return _get_engine().get_uba_stats(org_id)
     except Exception as exc:
         logger.exception("get_uba_stats error")
         raise HTTPException(status_code=500, detail=str(exc))

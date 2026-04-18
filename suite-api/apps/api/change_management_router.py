@@ -30,7 +30,14 @@ from core.change_management import (
 router = APIRouter(prefix="/api/v1/changes", tags=["change-management"])
 
 # Module-level CAB instance (reuses singleton)
-_cab: ChangeAdvisoryBoard = get_cab()
+_cab: "ChangeAdvisoryBoard | None" = None  # lazy
+
+
+def _get_cab() -> ChangeAdvisoryBoard:
+    global _cab
+    if _cab is None:
+        _cab = get_cab()
+    return _cab
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +146,7 @@ async def list_changes(
     offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
     """List change requests with optional filters."""
-    changes = _cab.list_changes(
+    changes = _get_cab().list_changes(
         status=status,
         risk_level=risk_level,
         requestor_id=requestor_id,
@@ -157,7 +164,7 @@ async def list_changes(
 @router.post("", status_code=201)
 async def create_change(body: CreateChangeRequest) -> Dict[str, Any]:
     """Create a new change request in DRAFT status."""
-    change = _cab.create_change_request(
+    change = _get_cab().create_change_request(
         title=body.title,
         description=body.description,
         category=body.category,
@@ -183,7 +190,7 @@ async def create_change(body: CreateChangeRequest) -> Dict[str, Any]:
 @router.get("/{change_id}")
 async def get_change(change_id: str) -> Dict[str, Any]:
     """Get a specific change request by ID."""
-    change = _cab.get_change(change_id)
+    change = _get_cab().get_change(change_id)
     if not change:
         raise HTTPException(status_code=404, detail=f"Change {change_id} not found")
     return change.model_dump(mode="json")
@@ -193,7 +200,7 @@ async def get_change(change_id: str) -> Dict[str, Any]:
 async def submit_change(change_id: str, body: SubmitChangeRequest) -> Dict[str, Any]:
     """Submit a DRAFT change request for CAB review."""
     try:
-        change = _cab.submit_change(change_id, body.actor_id, body.actor_name)
+        change = _get_cab().submit_change(change_id, body.actor_id, body.actor_name)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
@@ -213,7 +220,7 @@ async def add_approval(change_id: str, body: AddApprovalRequest) -> Dict[str, An
         conditions=body.conditions,
     )
     try:
-        change, resolved = _cab.add_approval(change_id, approval)
+        change, resolved = _get_cab().add_approval(change_id, approval)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
@@ -225,7 +232,7 @@ async def add_approval(change_id: str, body: AddApprovalRequest) -> Dict[str, An
 async def reject_change(change_id: str, body: RejectRequest) -> Dict[str, Any]:
     """Directly reject a change request."""
     try:
-        change = _cab.reject_change(change_id, body.actor_id, body.actor_name, body.reason)
+        change = _get_cab().reject_change(change_id, body.actor_id, body.actor_name, body.reason)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
@@ -242,7 +249,7 @@ async def reject_change(change_id: str, body: RejectRequest) -> Dict[str, Any]:
 async def start_implementation(change_id: str, body: ImplementRequest) -> Dict[str, Any]:
     """Start implementing an APPROVED change."""
     try:
-        change = _cab.start_implementation(change_id, body.actor_id, body.actor_name)
+        change = _get_cab().start_implementation(change_id, body.actor_id, body.actor_name)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
@@ -254,7 +261,7 @@ async def start_implementation(change_id: str, body: ImplementRequest) -> Dict[s
 async def complete_change(change_id: str, body: CompleteRequest) -> Dict[str, Any]:
     """Mark an IMPLEMENTING change as COMPLETED."""
     try:
-        change = _cab.complete_change(
+        change = _get_cab().complete_change(
             change_id,
             body.actor_id,
             body.actor_name,
@@ -272,7 +279,7 @@ async def complete_change(change_id: str, body: CompleteRequest) -> Dict[str, An
 async def rollback_change(change_id: str, body: RollbackRequest) -> Dict[str, Any]:
     """Execute rollback for a change that is IMPLEMENTING or COMPLETED."""
     try:
-        change = _cab.rollback_change(change_id, body.actor_id, body.actor_name, body.reason)
+        change = _get_cab().rollback_change(change_id, body.actor_id, body.actor_name, body.reason)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
@@ -289,7 +296,7 @@ async def rollback_change(change_id: str, body: RollbackRequest) -> Dict[str, An
 async def assess_impact(change_id: str, body: ImpactAssessRequest) -> Dict[str, Any]:
     """Attach or update impact analysis for a change request."""
     try:
-        change = _cab.assess_impact(change_id, body.impact, body.actor_id, body.actor_name)
+        change = _get_cab().assess_impact(change_id, body.impact, body.actor_id, body.actor_name)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return change.model_dump(mode="json")
@@ -299,7 +306,7 @@ async def assess_impact(change_id: str, body: ImpactAssessRequest) -> Dict[str, 
 async def override_risk(change_id: str, body: OverrideRiskRequest) -> Dict[str, Any]:
     """Override risk classification for a change request with justification."""
     try:
-        change = _cab.override_risk_level(
+        change = _get_cab().override_risk_level(
             change_id, body.new_risk, body.actor_id, body.actor_name, body.justification
         )
     except KeyError as exc:
@@ -315,10 +322,10 @@ async def override_risk(change_id: str, body: OverrideRiskRequest) -> Dict[str, 
 @router.get("/{change_id}/audit")
 async def get_audit_trail(change_id: str) -> Dict[str, Any]:
     """Get the full audit trail for a change request."""
-    change = _cab.get_change(change_id)
+    change = _get_cab().get_change(change_id)
     if not change:
         raise HTTPException(status_code=404, detail=f"Change {change_id} not found")
-    trail = _cab.get_audit_trail(change_id)
+    trail = _get_cab().get_audit_trail(change_id)
     return {
         "change_id": change_id,
         "entries": [e.model_dump(mode="json") for e in trail],
@@ -334,10 +341,10 @@ async def get_audit_trail(change_id: str) -> Dict[str, Any]:
 @router.get("/{change_id}/conflicts")
 async def check_conflicts(change_id: str) -> Dict[str, Any]:
     """Check a scheduled change for calendar conflicts and freeze periods."""
-    change = _cab.get_change(change_id)
+    change = _get_cab().get_change(change_id)
     if not change:
         raise HTTPException(status_code=404, detail=f"Change {change_id} not found")
-    result = _cab.check_conflicts(change)
+    result = _get_cab().check_conflicts(change)
     return result.model_dump(mode="json")
 
 
@@ -349,7 +356,7 @@ async def check_conflicts(change_id: str) -> Dict[str, Any]:
 @router.get("/calendar/windows")
 async def list_maintenance_windows() -> Dict[str, Any]:
     """List all maintenance windows."""
-    windows = _cab.list_maintenance_windows()
+    windows = _get_cab().list_maintenance_windows()
     return {"items": [w.model_dump(mode="json") for w in windows], "total": len(windows)}
 
 
@@ -368,14 +375,14 @@ async def create_maintenance_window(body: CreateMaintenanceWindowRequest) -> Dic
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    window = _cab.create_maintenance_window(window)
+    window = _get_cab().create_maintenance_window(window)
     return window.model_dump(mode="json")
 
 
 @router.get("/calendar/freezes")
 async def list_freeze_periods() -> Dict[str, Any]:
     """List all change freeze periods."""
-    periods = _cab.list_freeze_periods()
+    periods = _get_cab().list_freeze_periods()
     return {"items": [p.model_dump(mode="json") for p in periods], "total": len(periods)}
 
 
@@ -392,7 +399,7 @@ async def create_freeze_period(body: CreateFreezePeriodRequest) -> Dict[str, Any
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    period = _cab.create_freeze_period(period)
+    period = _get_cab().create_freeze_period(period)
     return period.model_dump(mode="json")
 
 
@@ -406,12 +413,12 @@ async def get_metrics(
     period_days: int = Query(default=30, ge=1, le=365),
 ) -> Dict[str, Any]:
     """Get change management metrics for the specified period."""
-    metrics = _cab.get_metrics(period_days=period_days)
+    metrics = _get_cab().get_metrics(period_days=period_days)
     return metrics.model_dump(mode="json")
 
 
 @router.post("/admin/expire-stale")
 async def expire_stale_changes() -> Dict[str, Any]:
     """Expire change requests that have breached their SLA review deadline."""
-    expired = _cab.expire_stale_changes()
+    expired = _get_cab().expire_stale_changes()
     return {"expired_count": len(expired), "expired_ids": expired}

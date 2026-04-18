@@ -30,10 +30,13 @@ router = APIRouter(
 )
 
 # Module-level singleton
-_engine = SLAEscalationEngine()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> SLAEscalationEngine:
+    global _engine
+    if _engine is None:
+        _engine = SLAEscalationEngine()
     return _engine
 
 

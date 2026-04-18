@@ -40,10 +40,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/grc", tags=["grc"])
 
 # Module-level singleton
-_engine = GRCEngine()
+_engine = None  # lazy-initialised on first request
 
 
 def _get_engine() -> GRCEngine:
+    global _engine
+    if _engine is None:
+        _engine = GRCEngine()
     return _engine
 
 
