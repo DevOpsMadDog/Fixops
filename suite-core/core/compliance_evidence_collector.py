@@ -8,7 +8,6 @@ Compliance: ISO/IEC 27001 A.18.2, SOC 2 CC2.2, NIST CSF ID.GV-1
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading

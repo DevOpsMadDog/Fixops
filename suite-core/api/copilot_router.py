@@ -61,6 +61,25 @@ try:
 except ImportError:
     _HAS_GRAPHRAG = False
 
+# CopilotGraphRAGBridge for security-ops insight queries (graceful degradation)
+try:
+    from core.copilot_graphrag_bridge import CopilotGraphRAGBridge
+
+    _graphrag_bridge: Optional["CopilotGraphRAGBridge"] = None
+
+    def _get_graphrag_bridge() -> "CopilotGraphRAGBridge":
+        global _graphrag_bridge
+        if _graphrag_bridge is None:
+            _graphrag_bridge = CopilotGraphRAGBridge()
+        return _graphrag_bridge
+
+    _HAS_GRAPHRAG_BRIDGE = True
+except ImportError:
+    _HAS_GRAPHRAG_BRIDGE = False
+
+    def _get_graphrag_bridge():  # type: ignore[misc]
+        return None
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/copilot", tags=["copilot"])
