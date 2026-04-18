@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"time python3 -c \\\"\\nimport sys\\nsys.path.insert(0, 'suite-api')\\nsys.path.insert(0, 'suite-core')\\nimport apps.api.app\\n\\\" 2>/dev/null\",\"timeout\":60000,\"description\":\"Measure baseline impo...",
-  "error": "Exit code 1\n2026-04-18 13:47:00 [info     ] change_management_db_initialized db_path=data/change_management.db\n2026-04-18 13:47:00 [info     ] cab_engine_initialized\n\nreal\t0m0.375s\nuser\t0m0.309s\nsys\t0m0.046s",
-  "timestamp": "2026-04-18T03:47:00.263Z",
+  "tool_input_preview": "{\"command\":\"python3 scripts/cspm_kind_test.py --skip-deploy 2>&1\",\"timeout\":60000,\"description\":\"Run live scan against aldeci-lab cluster (skip deploy since workloads not yet applied)\"}",
+  "error": "Exit code 1\n13:48:51  INFO      ALDECI CSPM Kind Cluster Test — LIVE\n13:48:51  INFO      Cluster: kind-aldeci-lab  |  URL: http://localhost:8000  |  Org: cspm-test\n13:48:51  INFO      Kind cluster 'aldeci-lab' already exists.\n13:48:51  INFO      --skip-deploy set, skipping workload deployment.\n13:48:51  INFO      Registering cluster in ALDECI…\n13:48:51  INFO      Cluster registered in ALDECI — id: 4c9a54e6-d260-410b-bb3e-aa51c0986208\n13:48:51  INFO      Running 6 CIS Kubernetes benchmark checks…...",
+  "timestamp": "2026-04-18T03:48:56.324Z",
   "retry_count": 1
 }
