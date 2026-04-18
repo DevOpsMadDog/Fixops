@@ -151,6 +151,7 @@ from apps.api.reports_router import router as reports_router
 # ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
 from apps.api.admin_router import router as admin_router
 from apps.api.system_router import router as system_router
+from apps.api.metrics_router import router as metrics_router
 from apps.api.platform_router import router as platform_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
@@ -2662,6 +2663,8 @@ def create_app() -> FastAPI:
         system_router,
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
     )
+    # Prometheus-compatible metrics endpoint for Grafana/monitoring
+    app.include_router(metrics_router)
     # Platform health dashboard — comprehensive at-a-glance snapshot
     app.include_router(platform_router)
     app.include_router(
@@ -8271,6 +8274,13 @@ def create_app() -> FastAPI:
         from apps.api.slack_notifier_router import router as slack_notifier_router
         app.include_router(slack_notifier_router)
         _logger.info("Mounted Slack Notifier router at /api/v1/integrations/slack")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.export_router import router as export_router
+        app.include_router(export_router)
+        _logger.info("Mounted Data Export router at /api/v1/export")
     except ImportError:
         pass
 

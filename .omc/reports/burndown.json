@@ -2,22 +2,22 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-18T13:48:31.052731",
+  "generated_at": "2026-04-18T15:49:40.971760",
   "total_scope": 2466,
-  "completed": 2440,
-  "in_progress": 8,
-  "todo": 17,
-  "completion_pct": 98.9,
+  "completed": 2449,
+  "in_progress": 9,
+  "todo": 7,
+  "completion_pct": 99.3,
   "by_priority": {
     "medium": {
-      "done": 2329,
-      "in_progress": 2,
-      "todo": 4
+      "done": 2332,
+      "in_progress": 3,
+      "todo": 0
     },
     "high": {
-      "done": 36,
+      "done": 41,
       "in_progress": 3,
-      "todo": 12
+      "todo": 7
     },
     "low": {
       "done": 68,
@@ -25,9 +25,9 @@
       "todo": 0
     },
     "urgent": {
-      "done": 7,
+      "done": 8,
       "in_progress": 3,
-      "todo": 1
+      "todo": 0
     }
   },
   "by_subepic": {
@@ -63,15 +63,15 @@
     },
     "IAM": {
       "total": 27,
-      "done": 26,
+      "done": 27,
       "in_progress": 0,
-      "todo": 1
+      "todo": 0
     },
     "GRC": {
       "total": 30,
-      "done": 28,
+      "done": 29,
       "in_progress": 1,
-      "todo": 1
+      "todo": 0
     },
     "VULN": {
       "total": 26,
@@ -87,15 +87,15 @@
     },
     "SOC": {
       "total": 28,
-      "done": 26,
+      "done": 27,
       "in_progress": 1,
-      "todo": 1
+      "todo": 0
     },
     "CLOUD": {
       "total": 27,
-      "done": 23,
+      "done": 25,
       "in_progress": 1,
-      "todo": 3
+      "todo": 1
     },
     "FRONTEND": {
       "total": 8,
@@ -111,9 +111,9 @@
     },
     "ENGINE": {
       "total": 39,
-      "done": 28,
+      "done": 30,
       "in_progress": 1,
-      "todo": 10
+      "todo": 8
     }
   },
   "velocity": {
@@ -122,42 +122,42 @@
     "wave42": 0
   },
   "velocity_per_day": 135,
-  "eta_days": 0.2,
+  "eta_days": 0.1,
   "daily_burndown": [
     {
       "date": "2026-04-18",
-      "remaining": 26,
-      "completed": 2440
+      "remaining": 17,
+      "completed": 2449
     },
     {
       "date": "2026-04-19",
       "remaining": 0,
-      "completed": 2575
+      "completed": 2584
     },
     {
       "date": "2026-04-20",
       "remaining": 0,
-      "completed": 2710
+      "completed": 2719
     },
     {
       "date": "2026-04-21",
       "remaining": 0,
-      "completed": 2845
+      "completed": 2854
     },
     {
       "date": "2026-04-22",
       "remaining": 0,
-      "completed": 2980
+      "completed": 2989
     },
     {
       "date": "2026-04-23",
       "remaining": 0,
-      "completed": 3115
+      "completed": 3124
     },
     {
       "date": "2026-04-24",
       "remaining": 0,
-      "completed": 3250
+      "completed": 3259
     }
   ]
 }
