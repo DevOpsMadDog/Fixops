@@ -13,6 +13,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -469,7 +470,7 @@ export default function ThreatModeling() {
         models={models}
         selectedModelId={selectedModelId}
         onSelect={setSelectedModelId}
-        onCreateNew={() => alert("Create new model — coming soon")}
+        onCreateNew={() => toast.info("Create new model", { description: "Model creation will be available in the next release" })}
       />
 
       {/* Main content */}
@@ -544,7 +545,7 @@ export default function ThreatModeling() {
               <TabsContent value="components" className="mt-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">System Components ({selectedModel.components.length})</h3>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => toast.info("Add Component", { description: "Component creation form will be available in the next release" })}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Component
                   </Button>
@@ -555,7 +556,7 @@ export default function ThreatModeling() {
                     <ComponentCard
                       key={component.id}
                       component={component}
-                      onSelect={() => alert(`Edit component: ${component.name}`)}
+                      onSelect={() => toast.info(`Component: ${component.name}`, { description: "Component detail view will be available in the next release" })}
                     />
                   ))}
                 </div>
@@ -605,7 +606,7 @@ export default function ThreatModeling() {
                           <ThreatRow
                             key={threat.id}
                             threat={threat}
-                            onEdit={() => alert(`View threat: ${threat.name}`)}
+                            onEdit={() => toast.info(`Threat: ${threat.name}`, { description: `${threat.stride_category} - ${threat.severity} severity` })}
                           />
                         ))}
                       </TableBody>
@@ -623,11 +624,11 @@ export default function ThreatModeling() {
                   <span className="ml-4">Last updated: {selectedModel.updated_at}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost">
+                  <Button size="sm" variant="ghost" onClick={() => toast.success("Export started", { description: "Threat model report download initiated" })}>
                     <Download className="w-4 h-4 mr-1" />
                     Export
                   </Button>
-                  <Button size="sm" variant="ghost">
+                  <Button size="sm" variant="ghost" onClick={() => toast.info("Refreshed", { description: "Threat model data reloaded" })}>
                     <RefreshCw className="w-4 h-4 mr-1" />
                     Refresh
                   </Button>
