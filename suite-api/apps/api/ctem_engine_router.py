@@ -34,11 +34,7 @@ _logger = logging.getLogger(__name__)
 # Auth dependency
 # ---------------------------------------------------------------------------
 
-try:
-    from apps.api.app import _verify_api_key  # type: ignore[import]
-except ImportError:
-    async def _verify_api_key() -> None:  # type: ignore[misc]
-        return None
+from apps.api.auth_deps import api_key_auth as _verify_api_key
 
 # ---------------------------------------------------------------------------
 # Engine singleton

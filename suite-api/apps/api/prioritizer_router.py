@@ -19,12 +19,7 @@ logger = logging.getLogger(__name__)
 # Auth dependency — mirrors pattern used across all ALDECI routers
 # ---------------------------------------------------------------------------
 
-try:
-    from apps.api.app import _verify_api_key  # type: ignore[import]
-except ImportError:
-    # Fallback for standalone testing / import without full app context
-    async def _verify_api_key() -> None:  # type: ignore[misc]
-        return None
+from apps.api.auth_deps import api_key_auth as _verify_api_key
 
 
 # ---------------------------------------------------------------------------
