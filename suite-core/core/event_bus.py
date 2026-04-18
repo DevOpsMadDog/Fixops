@@ -9,6 +9,8 @@ audit log, and team notification — all automatically.
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import logging
 import time
 import uuid
@@ -214,9 +216,17 @@ class EventBus:
         notified = 0
         for handler in handlers:
             try:
-                await handler(event)
+                if inspect.iscoroutinefunction(handler):
+                    # Async handler: pass the full Event object
+                    await handler(event)
+                else:
+                    # Sync handler: pass event.data (dict) — the contract sync
+                    # subscribers were written against.  Run in a thread to avoid
+                    # blocking the event loop if the handler does I/O.
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, handler, event.data)
                 notified += 1
-            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            except (OSError, ValueError, KeyError, RuntimeError, AttributeError) as exc:
                 logger.error(
                     "Event handler %s failed for %s: %s",
                     handler.__name__,
