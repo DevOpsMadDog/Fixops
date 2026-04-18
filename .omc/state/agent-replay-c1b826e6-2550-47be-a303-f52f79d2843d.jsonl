@@ -296,3 +296,7 @@
 {"t":0,"agent":"a8a3e3a","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a83cf98","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a230eeb","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"acdface","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"ad63ea7","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a9efa46","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"aee2479","agent_type":"executor","event":"agent_start","parent_mode":"none"}

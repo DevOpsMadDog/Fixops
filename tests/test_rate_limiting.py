@@ -139,7 +139,6 @@ class TestTokenBucket:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(reason="Middleware dispatch tests need real ASGI app, not mocks")
 class TestRateLimitMiddlewareDispatch:
     def setup_method(self):
         self.middleware = _make_middleware(rpm=5, burst=0)
@@ -165,7 +164,6 @@ class TestRateLimitMiddlewareDispatch:
         assert resp.status_code == 429
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Mock dispatch returns call_next result, not 429")
     async def test_429_response_has_retry_after_header(self):
         req = _make_request(api_key="key-retry")
         call_next = AsyncMock(return_value=MagicMock(headers={}, status_code=200))
@@ -274,7 +272,6 @@ class TestRateLimitMiddlewareDispatch:
         assert "X-RateLimit-Limit" in mock_resp.headers
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Mock dispatch")
     async def test_429_body_contains_retry_after_field(self):
         import json
         req = _make_request(api_key="key-body")
@@ -367,7 +364,6 @@ class TestRateLimitStats:
         assert result is False
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Mock dispatch")
     async def test_reset_key_replenishes_exhausted_bucket(self):
         mw = _make_middleware(rpm=2, burst=0)
         req = _make_request(api_key="key-reset-test")

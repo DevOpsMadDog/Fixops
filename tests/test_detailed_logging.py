@@ -136,9 +136,14 @@ class TestMiddlewareObservability:
         req.client.host = "127.0.0.1"
         req.query_params = {}
 
-        hdr = headers or {}
-        req.headers = {k.lower(): v for k, v in hdr.items()}
-        req.headers.get = lambda k, d="": hdr.get(k, hdr.get(k.lower(), d))
+        # FakeHeaders: dict-like but with case-insensitive .get() so it works
+        # both as dict(request.headers) and request.headers.get(key, default).
+        class FakeHeaders(dict):
+            def get(self, key, default=""):  # type: ignore[override]
+                return super().get(key.lower(), default)
+
+        hdr = FakeHeaders({k.lower(): v for k, v in (headers or {}).items()})
+        req.headers = hdr
 
         # Simulate request.state.org_id set by OrgIdMiddleware
         state = MagicMock()
