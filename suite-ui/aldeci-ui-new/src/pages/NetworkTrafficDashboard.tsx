@@ -252,7 +252,6 @@ export default function NetworkTrafficDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -313,7 +312,6 @@ export default function NetworkTrafficDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -355,7 +353,6 @@ export default function NetworkTrafficDashboard() {
                     <TableCell className="py-2 text-right text-xs tabular-nums text-muted-foreground">{(r.hit_count ?? r.hits ?? 0).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -394,7 +391,6 @@ export default function NetworkTrafficDashboard() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
     </motion.div>

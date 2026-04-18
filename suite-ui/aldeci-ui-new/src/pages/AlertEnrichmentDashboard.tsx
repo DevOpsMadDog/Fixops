@@ -229,7 +229,6 @@ export default function AlertEnrichmentDashboard() {
                 )}
               </div>
             ))}
-            )}
           </div>
         </div>
 
@@ -259,7 +258,6 @@ export default function AlertEnrichmentDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
 
@@ -294,7 +292,6 @@ export default function AlertEnrichmentDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         </div>

@@ -179,7 +179,8 @@ export default function SecurityScorecardDashboard() {
   useEffect(() => {
     apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
       if (d?.overall_score !== undefined) setScorecard(d);
-    }).catch(() => { setError('Failed to load data'); });
+    }).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -187,8 +188,7 @@ export default function SecurityScorecardDashboard() {
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
-  
-    setLoading(false);};
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -374,7 +374,6 @@ export default function SecurityScorecardDashboard() {
                   </div>
                 );
               })}
-              )}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
               <span>{TREND_DATA[0].day}</span>
@@ -441,7 +440,6 @@ export default function SecurityScorecardDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
             <div className="mt-4 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2.5">
               <p className="text-[11px] text-purple-300 font-medium">

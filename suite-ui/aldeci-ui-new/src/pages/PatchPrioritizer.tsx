@@ -606,7 +606,6 @@ export default function PatchPrioritizer() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>

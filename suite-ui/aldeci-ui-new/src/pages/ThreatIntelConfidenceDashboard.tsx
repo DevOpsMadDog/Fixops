@@ -171,7 +171,8 @@ export default function ThreatIntelConfidenceDashboard() {
     apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
       if (Array.isArray(d?.iocs)) setIocs(d.iocs);
       else if (Array.isArray(d)) setIocs(d);
-    }).catch(() => { setError('Failed to load data'); });
+    }).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = search

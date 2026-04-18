@@ -138,7 +138,8 @@ export default function IncidentLessonsDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const overdueActions = MOCK_ACTIONS.filter(a => a.status === "overdue");
   const selectedLesson_obj = MOCK_LESSONS.find(l => l.id === selectedLesson);

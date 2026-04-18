@@ -120,11 +120,11 @@ export default function ChangeManagementDashboard() {
     ]).then(([changesRes, statsRes]) => {
       if (changesRes.status === "fulfilled") setLiveChanges(changesRes.value?.changes ?? changesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const changes = liveChanges ?? MOCK_CHANGES;
   const stats   = liveStats   ?? MOCK_STATS;
@@ -220,7 +220,6 @@ export default function ChangeManagementDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

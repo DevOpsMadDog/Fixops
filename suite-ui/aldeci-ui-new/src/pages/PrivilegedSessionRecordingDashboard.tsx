@@ -94,11 +94,11 @@ export default function PrivilegedSessionRecordingDashboard() {
     ]).then(([sesRes, statsRes]) => {
       if (sesRes.status === "fulfilled") setLiveSessions(sesRes.value?.sessions ?? sesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const sessions = liveSessions ?? MOCK_SESSIONS;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -205,7 +205,6 @@ export default function PrivilegedSessionRecordingDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

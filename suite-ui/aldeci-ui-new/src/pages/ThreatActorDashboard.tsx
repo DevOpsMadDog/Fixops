@@ -342,7 +342,6 @@ export default function ThreatActorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -387,7 +386,6 @@ export default function ThreatActorDashboard() {
               </CardContent>
             </Card>
           ))}
-          )}
         </div>
       </div>
 
@@ -495,7 +493,6 @@ export default function ThreatActorDashboard() {
                   <span className="font-bold tabular-nums">{t.count}</span>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
 
@@ -527,7 +524,6 @@ export default function ThreatActorDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
 
@@ -559,7 +555,6 @@ export default function ThreatActorDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
         </div>

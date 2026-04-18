@@ -124,9 +124,9 @@ export default function VulnScoringDashboard() {
   useEffect(() => {
     fetch("/api/v1/vuln-scoring", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -258,7 +258,6 @@ export default function VulnScoringDashboard() {
                     </tr>
                   );
                 })}
-                )}
               </tbody>
             </table>
           </div>
@@ -318,7 +317,6 @@ export default function VulnScoringDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
 
@@ -348,7 +346,6 @@ export default function VulnScoringDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         </div>
@@ -378,7 +375,6 @@ export default function VulnScoringDashboard() {
                 <div className="text-gray-500 text-xs mt-1">{ov.overridden_by} · {ov.date}</div>
               </div>
             ))}
-            )}
           </div>
         </div>
 
@@ -422,7 +418,6 @@ export default function VulnScoringDashboard() {
                     </td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>

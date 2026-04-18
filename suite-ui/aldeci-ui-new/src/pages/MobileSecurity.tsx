@@ -269,7 +269,6 @@ export default function MobileSecurity() {
                 </div>
               </div>
             ))}
-            )}
             <div className="pt-2 text-[11px] text-muted-foreground border-t border-border/50">
               95.3% enrollment rate · 87.6% compliance rate
             </div>
@@ -310,7 +309,6 @@ export default function MobileSecurity() {
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
               ))}
-              )}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500/70 inline-block" />Compliant</span>
@@ -444,7 +442,6 @@ export default function MobileSecurity() {
               </CardContent>
             </Card>
           ))}
-          )}
         </div>
       </div>
 

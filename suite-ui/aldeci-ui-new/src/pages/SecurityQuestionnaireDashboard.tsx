@@ -114,9 +114,9 @@ export default function SecurityQuestionnaireDashboard() {
   useEffect(() => {
     fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");
@@ -296,7 +296,6 @@ export default function SecurityQuestionnaireDashboard() {
                       </td>
                     </tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -341,7 +340,6 @@ export default function SecurityQuestionnaireDashboard() {
                       </div>
                     </div>
                   ))}
-                  )}
                 </div>
                 <button className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg text-sm font-medium transition-colors">
                   Submit Responses
@@ -393,7 +391,6 @@ export default function SecurityQuestionnaireDashboard() {
                     </td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>

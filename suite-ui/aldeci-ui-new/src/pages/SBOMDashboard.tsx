@@ -185,7 +185,8 @@ export default function SBOMDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const loadComponents = (sbom: any) => {
     setSelectedSbom(sbom);

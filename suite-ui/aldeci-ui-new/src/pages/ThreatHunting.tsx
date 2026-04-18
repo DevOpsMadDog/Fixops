@@ -224,7 +224,6 @@ export default function ThreatHuntingPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -272,7 +271,6 @@ export default function ThreatHuntingPage() {
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               value={dataSource}
               onChange={(e) => setDataSource(e.target.value)}
-              )}
             >
               <option value="">Select Data Source...</option>
               {DATA_SOURCES.length === 0 ? (
@@ -322,7 +320,6 @@ export default function ThreatHuntingPage() {
                 {confidenceBadge(ioc.confidence)}
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -364,7 +361,6 @@ export default function ThreatHuntingPage() {
                   }
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>

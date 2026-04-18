@@ -97,11 +97,11 @@ export default function IdentityRiskDashboard() {
     ]).then(([idRes, statsRes]) => {
       if (idRes.status === "fulfilled") setLiveIdentities(idRes.value?.identities ?? idRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const identities = liveIdentities ?? MOCK_IDENTITIES;
   const stats      = liveStats      ?? MOCK_STATS;

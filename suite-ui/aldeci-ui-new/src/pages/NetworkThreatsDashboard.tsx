@@ -147,7 +147,8 @@ export default function NetworkThreatsDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "resolved">("all");
   const [loading, setLoading] = useState(true);
@@ -227,7 +228,6 @@ export default function NetworkThreatsDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </div>
       )}
@@ -302,7 +302,6 @@ export default function NetworkThreatsDashboard() {
                     </td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>
@@ -333,7 +332,6 @@ export default function NetworkThreatsDashboard() {
                 <span className="text-red-400 text-xs font-bold shrink-0">{ip.count}</span>
               </div>
             ))}
-            )}
           </div>
         </div>
       </div>
@@ -371,7 +369,6 @@ export default function NetworkThreatsDashboard() {
               </div>
             </div>
           ))}
-          )}
         </div>
       </div>
     </div>

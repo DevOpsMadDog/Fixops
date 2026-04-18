@@ -213,7 +213,6 @@ export default function DeceptionEngine() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -302,7 +301,6 @@ export default function DeceptionEngine() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

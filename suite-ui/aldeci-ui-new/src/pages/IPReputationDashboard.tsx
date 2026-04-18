@@ -105,9 +105,9 @@ export default function IPReputationDashboard() {
     ]).then(([statsR, blockR]) => {
       const stats     = statsR.status === "fulfilled" ? statsR.value : null;
       const blocklist = blockR.status === "fulfilled" ? blockR.value : null;
-      if (stats || blocklist) setLiveData({ stats, blocklist 
-    setLoading(false);});
-    }).finally(() => setDataLoading(false));
+      if (stats || blocklist) setLiveData({ stats, blocklist });
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -185,7 +185,6 @@ export default function IPReputationDashboard() {
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{b.blocked_at}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -238,7 +237,6 @@ export default function IPReputationDashboard() {
                     </TableRow>
                   );
                 })}
-                )}
               </TableBody>
             </Table>
           </CardContent>

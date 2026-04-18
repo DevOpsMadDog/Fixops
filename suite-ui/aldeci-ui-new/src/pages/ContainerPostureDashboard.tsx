@@ -108,11 +108,11 @@ export default function ContainerPostureDashboard() {
     ]).then(([findRes, statsRes]) => {
       if (findRes.status === "fulfilled")  setLiveFindings(findRes.value?.findings ?? findRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const findings = liveFindings ?? MOCK_FINDINGS;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -208,7 +208,6 @@ export default function ContainerPostureDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

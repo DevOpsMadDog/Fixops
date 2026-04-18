@@ -229,7 +229,8 @@ export default function AISecurityAdvisor() {
         const sess = sessionsRes.value?.items ?? sessionsRes.value?.sessions ?? sessionsRes.value;
         if (Array.isArray(sess) && sess.length > 0) setLiveSessions(sess);
       }
-    }).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   useEffect(() => {

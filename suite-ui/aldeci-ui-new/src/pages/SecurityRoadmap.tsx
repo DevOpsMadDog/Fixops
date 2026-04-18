@@ -157,7 +157,8 @@ export default function SecurityRoadmap() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -280,7 +281,6 @@ export default function SecurityRoadmap() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -322,7 +322,6 @@ export default function SecurityRoadmap() {
                     </div>
                   </div>
                 ))}
-                )}
               </div>
             </div>
           </CardContent>
@@ -358,7 +357,6 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
 
@@ -403,7 +401,6 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
         </div>

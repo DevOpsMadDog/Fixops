@@ -288,7 +288,6 @@ export default function VulnRiskQueue() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -328,7 +327,6 @@ export default function VulnRiskQueue() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{t.avgResolution}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -404,7 +402,6 @@ export default function VulnRiskQueue() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
     </motion.div>

@@ -4,8 +4,9 @@ Add loading skeleton states to all TSX pages that have useEffect but no lowercas
 
 Strategy per file:
 1. Add `const [loading, setLoading] = useState(true);` after the last existing useState
-2. Add `.finally(() => setLoading(false))` to the first useEffect in the main component
-3. Insert skeleton early-return before the main `return (` of the component
+2. Add `.finally(() => setLoading(false))` to the useEffect promise chain,
+   OR set loading(false) before }, []); close
+3. Insert skeleton early-return before the main `  return (` of the component
 """
 
 import os
@@ -28,6 +29,111 @@ SKELETON = """\
 def needs_fix(content: str) -> bool:
     return "useEffect" in content and "loading" not in content
 
+
+def find_matching_brace(text: str, start: int) -> int:
+    """Given position of '{', return position of matching '}'."""
+    depth = 0
+    i = start
+    while i < len(text):
+        c = text[i]
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+
+def find_matching_paren(text: str, start: int) -> int:
+    """Given position of '(', return position of matching ')'."""
+    depth = 0
+    i = start
+    while i < len(text):
+        c = text[i]
+        if c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+
+def find_use_effect_bounds(content: str, comp_start: int) -> tuple[int, int, int] | None:
+    """
+    Find the first useEffect in the component body.
+    Returns (ue_start, callback_open_brace, callback_close_brace) or None.
+    """
+    comp_body = content[comp_start:]
+    ue_match = re.search(r'\buseEffect\(', comp_body)
+    if not ue_match:
+        return None
+
+    ue_abs = comp_start + ue_match.start()
+    # useEffect( ... ) — find the outer paren
+    outer_paren_start = comp_start + ue_match.end() - 1  # position of '('
+    # Actually ue_match.end() is just after 'useEffect(' — so outer open paren is at ue_match.end()-1 relative to comp_body
+    outer_open = comp_start + ue_match.end() - 1
+
+    # Find the callback: () => { or function() {
+    # Scan for the first '{' inside the outer paren
+    search_start = outer_open + 1
+    brace_pos = content.find('{', search_start)
+    if brace_pos == -1:
+        return None
+
+    close_brace = find_matching_brace(content, brace_pos)
+    if close_brace == -1:
+        return None
+
+    return (ue_abs, brace_pos, close_brace)
+
+
+def add_finally_to_content(content: str, comp_start: int) -> str:
+    """Add .finally(() => setLoading(false)) to first useEffect in component."""
+    bounds = find_use_effect_bounds(content, comp_start)
+    if not bounds:
+        return content
+
+    ue_abs, cb_open, cb_close = bounds
+    callback_body = content[cb_open + 1:cb_close]
+
+    if 'Promise.allSettled' in callback_body:
+        # Find .then( in callback and add .finally after its matching )
+        then_match = re.search(r'\.then\(', callback_body)
+        if then_match:
+            # Find the '(' of .then(
+            paren_start_rel = then_match.end() - 1  # relative to callback_body
+            paren_start_abs = cb_open + 1 + paren_start_rel
+            paren_end_abs = find_matching_paren(content, paren_start_abs)
+            if paren_end_abs != -1:
+                insert_pos = paren_end_abs + 1
+                return content[:insert_pos] + "\n      .finally(() => setLoading(false))" + content[insert_pos:]
+
+    if 'fetchData' in callback_body:
+        # useEffect(() => { fetchData(); }, []);
+        # Add setLoading(false) before the closing } of callback
+        return content[:cb_close] + "\n    setLoading(false);" + content[cb_close:]
+
+    # fetch(...).then(...).catch(...) chains
+    if 'apiFetch' in callback_body or 'fetch(' in callback_body:
+        # Find last .catch( or .then( in callback body, add .finally after its )
+        chain_matches = list(re.finditer(r'\.(then|catch)\(', callback_body))
+        if chain_matches:
+            last_m = chain_matches[-1]
+            paren_start_rel = cb_open + 1 + last_m.end() - 1
+            paren_end_abs = find_matching_paren(content, paren_start_rel)
+            if paren_end_abs != -1:
+                insert_pos = paren_end_abs + 1
+                return content[:insert_pos] + "\n      .finally(() => setLoading(false))" + content[insert_pos:]
+
+    # Generic fallback: add setLoading(false) before closing brace
+    return content[:cb_close] + "\n    setLoading(false);" + content[cb_close:]
+
+
 def fix_file(filepath: str, dry_run: bool = False) -> str | None:
     """Returns error string or None on success."""
     with open(filepath, "r", encoding="utf-8") as f:
@@ -38,155 +144,50 @@ def fix_file(filepath: str, dry_run: bool = False) -> str | None:
 
     original = content
 
-    # ── Step 1: Add `const [loading, setLoading] = useState(true);` ──────────
-    # Find the export default function body (the main component)
-    # Insert after the last useState() call in the component body
-
-    # Find where export default function starts
-    comp_start = re.search(r'^export default function \w+', content, re.MULTILINE)
-    if not comp_start:
+    # ── Find component start ───────────────────────────────────────────────────
+    comp_match = re.search(r'^export default function \w+', content, re.MULTILINE)
+    if not comp_match:
         return "SKIP:no_export_default_function"
 
-    comp_body_start = comp_start.start()
-    comp_body = content[comp_body_start:]
+    comp_start = comp_match.start()
 
-    # Find all useState declarations in component body
+    # ── Step 1: Add loading state after last useState in component ─────────────
+    comp_body_text = content[comp_start:]
     use_state_pattern = re.compile(r'^ {2}const \[[^\]]+\] = useState[^\n]+\n', re.MULTILINE)
-    matches = list(use_state_pattern.finditer(comp_body))
+    matches = list(use_state_pattern.finditer(comp_body_text))
 
     loading_decl = "  const [loading, setLoading] = useState(true);\n"
 
     if matches:
-        # Insert after the last useState in the component
         last = matches[-1]
-        abs_pos = comp_body_start + last.end()
+        abs_pos = comp_start + last.end()
         content = content[:abs_pos] + loading_decl + content[abs_pos:]
-        # Adjust comp_body_start offset for subsequent operations
-        offset_added = len(loading_decl)
+        comp_start_adjusted = comp_start  # comp_start unchanged (insertion is after it)
     else:
-        # No useState found — insert after the opening { of the function
-        brace_match = re.search(r'\{', comp_body)
-        if not brace_match:
+        # Insert after opening { of function
+        brace_pos = content.find('{', comp_start)
+        if brace_pos == -1:
             return "SKIP:no_opening_brace"
-        abs_pos = comp_body_start + brace_match.end()
+        abs_pos = brace_pos + 1
         content = content[:abs_pos] + "\n" + loading_decl + content[abs_pos:]
-        offset_added = len("\n" + loading_decl)
 
-    # ── Step 2: Add .finally(() => setLoading(false)) to first useEffect ──────
-    # Find the first useEffect in the component body (after comp_body_start)
-    # We need to find the matching closing `}, [...]` of the useEffect
+    # Re-find comp_start after insertion (comp_start unchanged since we inserted after it)
+    # But the content grew, so positions after insertion point shifted.
+    # comp_start itself didn't move.
 
-    # Re-locate comp_body_start (unchanged, just content grew)
-    comp_after = content[comp_body_start:]
+    # ── Step 2: Add .finally to first useEffect ────────────────────────────────
+    content = add_finally_to_content(content, comp_start)
 
-    # Find first useEffect
-    ue_match = re.search(r'\buseEffect\(', comp_after)
-    if not ue_match:
-        # Shouldn't happen since we checked useEffect exists
-        pass
-    else:
-        ue_abs = comp_body_start + ue_match.start()
-        # Find the body of useEffect: useEffect(() => { ... }, [...]);
-        # Walk chars to find balanced braces
-        pos = ue_abs + ue_match.end()
-        # Skip past `() => {` or `function() {`
-        # Find the opening { of the callback
-        arrow_end = content.find('{', pos)
-        if arrow_end != -1:
-            # Count braces to find the end of the callback body
-            depth = 1
-            i = arrow_end + 1
-            while i < len(content) and depth > 0:
-                if content[i] == '{':
-                    depth += 1
-                elif content[i] == '}':
-                    depth -= 1
-                i += 1
-            # i now points to char after the closing } of callback
-            callback_end = i - 1  # position of closing }
-
-            # The pattern after callback_end should be `}, [...])`
-            # Check if .finally already present (shouldn't be since 'loading' not in file)
-            # Find what's between callback_end and the end of useEffect statement
-            after_callback = content[callback_end:callback_end + 200]
-
-            # Pattern: look for the fetch/Promise chain inside the useEffect body
-            callback_body = content[arrow_end + 1:callback_end]
-
-            # Add .finally based on what's inside
-            if 'Promise.allSettled' in callback_body:
-                # Pattern: Promise.allSettled([...]).then(...)
-                # Add .finally after the .then(...) block
-                # Find the .then( call and its matching closing paren
-                then_match = re.search(r'\.then\(', callback_body)
-                if then_match:
-                    then_start = then_match.end()
-                    # Find matching ) for .then(
-                    depth2 = 1
-                    j = then_start
-                    while j < len(callback_body) and depth2 > 0:
-                        if callback_body[j] == '(':
-                            depth2 += 1
-                        elif callback_body[j] == ')':
-                            depth2 -= 1
-                        j += 1
-                    then_end = arrow_end + 1 + j  # absolute pos after closing ) of .then(...)
-
-                    # Insert .finally(() => setLoading(false)) after .then(...)
-                    final_insert = "\n      .finally(() => setLoading(false))"
-                    content = content[:then_end] + final_insert + content[then_end:]
-
-            elif 'fetchData' in callback_body:
-                # Pattern: useEffect(() => { fetchData(); }, []);
-                # Add setLoading(true) before fetchData() and setLoading(false) in fetchData or via finally
-                # Simplest: wrap fetchData with setLoading
-                # Actually just add setLoading(false) after fetchData() call
-                # Find fetchData() call in callback body
-                fd_match = re.search(r'fetchData\(\);?', callback_body)
-                if fd_match:
-                    fd_abs = arrow_end + 1 + fd_match.end()
-                    content = content[:fd_abs] + "\n    setLoading(false);" + content[fd_abs:]
-
-            elif 'apiFetch' in callback_body or 'fetch(' in callback_body:
-                # Raw fetch chain — add .finally to the chain
-                # Find .catch( or .then( at top level and add .finally after it
-                # Find the last .catch or .then in the chain
-                chain_match = list(re.finditer(r'\.(then|catch)\(', callback_body))
-                if chain_match:
-                    last_chain = chain_match[-1]
-                    lc_start = last_chain.end()
-                    # Find matching )
-                    depth3 = 1
-                    k = lc_start
-                    while k < len(callback_body) and depth3 > 0:
-                        if callback_body[k] == '(':
-                            depth3 += 1
-                        elif callback_body[k] == ')':
-                            depth3 -= 1
-                        k += 1
-                    chain_end_abs = arrow_end + 1 + k
-                    content = content[:chain_end_abs] + "\n      .finally(() => setLoading(false))" + content[chain_end_abs:]
-                else:
-                    # Just add setLoading(false) at end of callback body
-                    content = content[:callback_end] + "\n    setLoading(false);" + content[callback_end:]
-            else:
-                # Generic: add setLoading(false) at end of callback body
-                content = content[:callback_end] + "\n    setLoading(false);" + content[callback_end:]
-
-    # ── Step 3: Insert skeleton before the main `  return (` ─────────────────
-    # Find the first `  return (` that's at 2-space indent in the component body
-    # (This is the main render return, not sub-component returns)
-
-    comp_after2 = content[comp_body_start:]
-    main_return = re.search(r'^  return \(', comp_after2, re.MULTILINE)
+    # ── Step 3: Insert skeleton before main `  return (` ──────────────────────
+    comp_after = content[comp_start:]
+    main_return = re.search(r'^  return \(', comp_after, re.MULTILINE)
     if main_return:
-        abs_return = comp_body_start + main_return.start()
+        abs_return = comp_start + main_return.start()
         content = content[:abs_return] + SKELETON + content[abs_return:]
     else:
-        # Try without space
-        main_return2 = re.search(r'^  return\(', comp_after2, re.MULTILINE)
+        main_return2 = re.search(r'^  return\(', comp_after, re.MULTILINE)
         if main_return2:
-            abs_return2 = comp_body_start + main_return2.start()
+            abs_return2 = comp_start + main_return2.start()
             content = content[:abs_return2] + SKELETON + content[abs_return2:]
 
     if content == original:
@@ -200,12 +201,22 @@ def fix_file(filepath: str, dry_run: bool = False) -> str | None:
 
 def main():
     dry_run = "--dry-run" in sys.argv
+    target_file = None
+    for arg in sys.argv[1:]:
+        if arg != "--dry-run" and arg.endswith(".tsx"):
+            target_file = arg
 
     files = sorted([
         os.path.join(PAGES_DIR, f)
         for f in os.listdir(PAGES_DIR)
         if f.endswith(".tsx")
     ])
+
+    if target_file:
+        # Single file mode
+        if not target_file.startswith("/"):
+            target_file = os.path.join(PAGES_DIR, target_file)
+        files = [target_file]
 
     fixed = []
     skipped = []
@@ -227,15 +238,16 @@ def main():
                 print(f"  ERROR: {os.path.basename(filepath)}: {result}")
             else:
                 fixed.append(filepath)
-                if dry_run:
-                    print(f"  [DRY] WOULD FIX: {os.path.basename(filepath)}")
-                else:
+                if not dry_run:
                     print(f"  FIXED: {os.path.basename(filepath)}")
         except Exception as e:
             errors.append((filepath, str(e)))
-            print(f"  ERROR: {os.path.basename(filepath)}: {e}")
+            print(f"  ERROR: {os.path.basename(filepath)}: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
 
-    print(f"\n{'[DRY RUN] ' if dry_run else ''}Done: {len(fixed)} fixed, {len(skipped)} skipped, {len(errors)} errors")
+    mode = "[DRY RUN] " if dry_run else ""
+    print(f"\n{mode}Done: {len(fixed)} fixed, {len(skipped)} skipped, {len(errors)} errors")
     if errors:
         for f, e in errors:
             print(f"  ERROR in {os.path.basename(f)}: {e}")

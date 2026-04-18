@@ -150,8 +150,8 @@ export default function SupplyChainIntelDashboard() {
       if (stats || packages || sbom || malicious || vulns) {
         setLiveData({ stats, packages, sbom, malicious, vulns });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleSearch = () => {
@@ -418,7 +418,6 @@ export default function SupplyChainIntelDashboard() {
                       </div>
                     </div>
                   ))}
-                  )}
                 </>
               )}
             </div>

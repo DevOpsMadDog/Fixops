@@ -160,7 +160,8 @@ export default function AIPoweredSOCDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -253,7 +254,6 @@ export default function AIPoweredSOCDashboard() {
                     <TableCell className="py-2"><DetectionStatusBadge status={d.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -304,7 +304,6 @@ export default function AIPoweredSOCDashboard() {
                     <TableCell className="py-2"><ModelStatusBadge status={m.status ?? "active"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

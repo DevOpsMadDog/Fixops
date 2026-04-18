@@ -526,7 +526,6 @@ export default function VulnHeatmap() {
                       </TableRow>
                     );
                   })}
-                  )}
                 </TableBody>
               </Table>
             </div>

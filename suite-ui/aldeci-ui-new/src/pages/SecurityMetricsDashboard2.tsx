@@ -127,7 +127,8 @@ export default function SecurityMetricsDashboard2() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const readings = READINGS[selectedMetric] ?? [];
@@ -137,8 +138,7 @@ export default function SecurityMetricsDashboard2() {
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
-  
-    setLoading(false);};
+  };
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -223,7 +223,6 @@ export default function SecurityMetricsDashboard2() {
               </CardContent>
             </Card>
           ))}
-          )}
         </div>
       </div>
 
@@ -261,7 +260,6 @@ export default function SecurityMetricsDashboard2() {
                   </div>
                 );
               })}
-              )}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>12 readings ago</span>
@@ -319,7 +317,6 @@ export default function SecurityMetricsDashboard2() {
                   )}
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -364,7 +361,6 @@ export default function SecurityMetricsDashboard2() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.monthly_avg}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

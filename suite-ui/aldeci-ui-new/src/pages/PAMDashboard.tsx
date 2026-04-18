@@ -152,8 +152,8 @@ export default function PAMDashboard() {
       if (stats || accounts || sessions) {
         setLiveData({ stats, accounts, sessions });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -399,7 +399,6 @@ export default function PAMDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

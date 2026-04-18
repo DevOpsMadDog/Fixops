@@ -191,7 +191,8 @@ export default function CloudSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -331,7 +332,6 @@ export default function CloudSecurityDashboard() {
                 </div>
               );
             })}
-            )}
           </CardContent>
         </Card>
 

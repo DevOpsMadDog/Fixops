@@ -94,11 +94,11 @@ export default function CryptoKeyDashboard() {
     ]).then(([statsRes, expiringRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (expiringRes.status === "fulfilled" && expiringRes.value) setExpiring(expiringRes.value);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const handleRotate = (id: string) => {
     setRotating(id);
@@ -203,7 +203,6 @@ export default function CryptoKeyDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

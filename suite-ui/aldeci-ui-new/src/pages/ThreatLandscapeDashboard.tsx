@@ -138,9 +138,9 @@ export default function ThreatLandscapeDashboard() {
   useEffect(() => {
     fetch("/api/v1/threat-landscape", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
   const [resolvedMsg, setResolvedMsg] = useState<string | null>(null);
@@ -283,7 +283,6 @@ export default function ThreatLandscapeDashboard() {
               </div>
             </div>
           ))}
-          )}
         </div>
       </div>
 
@@ -326,7 +325,6 @@ export default function ThreatLandscapeDashboard() {
               </div>
             </div>
           ))}
-          )}
         </div>
       </div>
 
@@ -366,7 +364,6 @@ export default function ThreatLandscapeDashboard() {
                   <td className="py-2.5 text-gray-400">{a.analyst}</td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

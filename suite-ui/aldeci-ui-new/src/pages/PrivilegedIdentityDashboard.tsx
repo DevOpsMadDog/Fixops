@@ -125,7 +125,8 @@ export default function PrivilegedIdentityDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const highRisk = MOCK_ACCOUNTS.filter(a => ["critical","high"].includes(a.risk_level)).length;
@@ -231,7 +232,6 @@ export default function PrivilegedIdentityDashboard() {
                     </tr>
                   );
                 })}
-                )}
               </tbody>
             </table>
           </div>
@@ -267,7 +267,6 @@ export default function PrivilegedIdentityDashboard() {
                 </div>
               </motion.div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

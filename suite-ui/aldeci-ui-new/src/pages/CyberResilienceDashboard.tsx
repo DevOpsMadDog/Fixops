@@ -204,7 +204,6 @@ function Sparkline({ data }: { data: Snapshot[] }) {
         data.map((d, i) => (
         <circle key={i} cx={toX(i)} cy={toY(d.score)} r="3" fill="#22c55e" />
       ))}
-      )}
       {data.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
           <p className="text-lg font-medium">No data available</p>
@@ -214,7 +213,6 @@ function Sparkline({ data }: { data: Snapshot[] }) {
         data.map((d, i) => (
         <text key={`l${i}`} x={toX(i)} y={H} fontSize="7" fill="#94a3b8" textAnchor="middle">{d.date}</text>
       ))}
-      )}
     </svg>
   );
 }
@@ -295,7 +293,6 @@ export default function CyberResilienceDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </div>
       </div>
@@ -339,7 +336,6 @@ export default function CyberResilienceDashboard() {
                 <td className="py-2 pl-4 text-gray-400">{ex.scheduled_date}</td>
               </tr>
             ))}
-            )}
           </tbody>
         </table>
       </div>
@@ -366,7 +362,6 @@ export default function CyberResilienceDashboard() {
                 <p className="text-xs text-gray-500 mt-1">Source: {l.exercise}</p>
               </div>
             ))}
-            )}
           </div>
         </div>
 
@@ -416,7 +411,6 @@ export default function CyberResilienceDashboard() {
                 </div>
               );
             })}
-            )}
           </div>
         </div>
       </div>

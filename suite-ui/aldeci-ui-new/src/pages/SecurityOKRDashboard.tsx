@@ -112,9 +112,9 @@ export default function SecurityOKRDashboard() {
   useEffect(() => {
     fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setObjectives(d); 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(d => { if (Array.isArray(d)) setObjectives(d); })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const [period, setPeriod] = useState<Period>("Q2 2026");

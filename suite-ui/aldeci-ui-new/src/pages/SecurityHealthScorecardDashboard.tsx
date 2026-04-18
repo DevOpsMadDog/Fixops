@@ -183,9 +183,9 @@ export default function SecurityHealthScorecardDashboard() {
   useEffect(() => {
     fetch("/api/v1/health-scorecard", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const overallScore = computeOverallScore(DOMAINS);
   const { grade, color, bg } = scoreToGrade(overallScore);

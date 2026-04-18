@@ -118,7 +118,6 @@ export default function CloudCostOptimizationDashboard() {
                 {r.resource_name} ({r.utilization_pct}% util)
               </span>
             ))}
-            )}
           </div>
         </div>
       )}
@@ -184,7 +183,6 @@ export default function CloudCostOptimizationDashboard() {
                   </td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

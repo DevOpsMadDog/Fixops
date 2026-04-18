@@ -205,8 +205,8 @@ export default function RedTeamStatus() {
       if (stats || engagements || findings) {
         setLiveData({ stats, engagements, findings });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -346,7 +346,6 @@ export default function RedTeamStatus() {
                 <FeedStatusBadge status={evt.status} />
               </motion.div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -388,7 +387,6 @@ export default function RedTeamStatus() {
                   </span>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -446,7 +444,6 @@ export default function RedTeamStatus() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
     </motion.div>

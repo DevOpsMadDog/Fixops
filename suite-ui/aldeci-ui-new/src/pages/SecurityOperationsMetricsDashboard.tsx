@@ -168,7 +168,6 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
           </div>
         </div>
       ))}
-      )}
       <div className="grid grid-cols-[60px_1fr_1fr] gap-3 text-xs text-gray-500 border-t border-gray-700 pt-2">
         <span />
         <span className="text-teal-500">MTTD</span>
@@ -187,8 +186,8 @@ export default function SecurityOperationsMetricsDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   function ackAlert(id: string) {
@@ -286,7 +285,6 @@ export default function SecurityOperationsMetricsDashboard() {
                   <td className="py-2.5"><EfficiencyBadge e={a.efficiency} /></td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>
@@ -331,7 +329,6 @@ export default function SecurityOperationsMetricsDashboard() {
                   </td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

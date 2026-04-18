@@ -101,7 +101,8 @@ export default function IntelEnrichmentDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const [selectedRequest, setSelectedRequest] = useState<string>(MOCK_REQUESTS[0].id);
   const [bulkInput, setBulkInput] = useState("");
@@ -205,7 +206,6 @@ export default function IntelEnrichmentDashboard() {
                     <td className="py-3 text-gray-500 text-xs">{req.created_at}</td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>
@@ -314,7 +314,6 @@ export default function IntelEnrichmentDashboard() {
                   <td className="py-3 text-gray-400">{src.total_queries.toLocaleString()}</td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

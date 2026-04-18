@@ -236,7 +236,8 @@ export default function SystemHealthDashboard() {
   useEffect(() => {
     apiFetch(`/api/v1/system-health/?org_id=${ORG_ID}`).then((d) => {
       if (d?.score !== undefined) setHealth(d);
-    }).catch(() => { setError('Failed to load data'); });
+    }).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -256,8 +257,7 @@ export default function SystemHealthDashboard() {
     .sort((a, b) => {
       // Sort by last_updated ascending (most recent first) — rough sort on string
       return (a.last_updated ?? "").localeCompare(b.last_updated ?? "");
-    
-    setLoading(false);})
+    })
     .slice(0, 8);
 
   if (loading) return (
@@ -398,7 +398,6 @@ export default function SystemHealthDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -436,7 +435,6 @@ export default function SystemHealthDashboard() {
                 {engineStatusDot(engine.status)}
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

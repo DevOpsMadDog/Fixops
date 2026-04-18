@@ -111,11 +111,11 @@ export default function CloudResourceInventoryDashboard() {
     ]).then(([resRes, statsRes]) => {
       if (resRes.status === "fulfilled") setLiveResources(resRes.value?.resources ?? resRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const resources = liveResources ?? MOCK_RESOURCES;
   const stats     = liveStats     ?? MOCK_STATS;
@@ -216,7 +216,6 @@ export default function CloudResourceInventoryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

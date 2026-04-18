@@ -161,9 +161,9 @@ export default function ThreatIntelPlatformDashboard() {
       const sources    = sourcesRes.status    === "fulfilled" ? sourcesRes.value    : null;
       const indicators = indicatorsRes.status === "fulfilled" ? indicatorsRes.value : null;
       const reports    = reportsRes.status    === "fulfilled" ? reportsRes.value    : null;
-      if (stats || sources || indicators || reports) setLiveData({ stats, sources, indicators, reports 
-    setLoading(false);});
-    }).finally(() => setDataLoading(false));
+      if (stats || sources || indicators || reports) setLiveData({ stats, sources, indicators, reports });
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -292,7 +292,6 @@ export default function ThreatIntelPlatformDashboard() {
                     <TableCell className="py-2"><SourceStatusBadge status={src.status} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -356,7 +355,6 @@ export default function ThreatIntelPlatformDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground tabular-nums">{ioc.first_seen}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -453,7 +451,6 @@ export default function ThreatIntelPlatformDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

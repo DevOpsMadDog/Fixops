@@ -156,9 +156,9 @@ export default function ThreatBriefDashboard() {
   useEffect(() => {
     fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(
@@ -266,7 +266,6 @@ export default function ThreatBriefDashboard() {
               </div>
             </motion.div>
           ))}
-          )}
         </div>
 
         {/* Brief Detail */}

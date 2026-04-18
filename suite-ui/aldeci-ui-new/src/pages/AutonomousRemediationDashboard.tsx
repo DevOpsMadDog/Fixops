@@ -131,7 +131,8 @@ export default function AutonomousRemediationDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -222,7 +223,6 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{w.success_count ?? 0}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -271,7 +271,6 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(e.started_at)}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

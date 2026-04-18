@@ -105,11 +105,11 @@ export default function SecurityAutomationDashboard() {
     ]).then(([statsRes, execRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (execRes.status === "fulfilled" && execRes.value) setExecutions(execRes.value);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const successRatePct = `${Math.round((stats.success_rate ?? 0) * 100)}%`;
   const avgDuration    = `${stats.avg_duration_ms ?? 0}ms`;
@@ -198,7 +198,6 @@ export default function SecurityAutomationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

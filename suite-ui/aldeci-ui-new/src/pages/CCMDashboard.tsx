@@ -181,8 +181,8 @@ export default function CCMDashboard() {
       if (stats || controls || failures) {
         setLiveData({ stats, controls, failures });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -261,7 +261,6 @@ export default function CCMDashboard() {
                   <TableCell className="py-2.5"><FrameworkStatusBadge status={fw.status} /></TableCell>
                 </TableRow>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -396,7 +395,6 @@ export default function CCMDashboard() {
                 </div>
               );
             })}
-            )}
           </CardContent>
         </Card>
       </div>

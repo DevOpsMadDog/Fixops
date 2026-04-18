@@ -195,7 +195,6 @@ export default function FirewallPolicyDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

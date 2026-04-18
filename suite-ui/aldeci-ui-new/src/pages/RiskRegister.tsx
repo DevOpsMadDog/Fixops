@@ -347,8 +347,8 @@ export default function RiskRegister() {
       if (assessments || vendorStats) {
         setLiveStats({ riskStats: vendorStats, vendorStats, assessments });
       }
-    
-    setLoading(false);});
+    })
+      .finally(() => setLoading(false));
   }, []);
 
   const { data, isLoading, refetch } = useQuery({

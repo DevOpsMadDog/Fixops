@@ -149,7 +149,8 @@ export default function SupplyChainAttackDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -244,7 +245,6 @@ export default function SupplyChainAttackDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -297,7 +297,6 @@ export default function SupplyChainAttackDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{d.package_id}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

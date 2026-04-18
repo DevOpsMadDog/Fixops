@@ -169,7 +169,8 @@ export default function TprmExchangeDashboard() {
   );
 
   useEffect(() => {
-    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -179,8 +180,7 @@ export default function TprmExchangeDashboard() {
   const handleComplete = async (assessId: string) => {
     try { await apiFetch(`/api/v1/tprm-exchange/assessments/${assessId}/complete?org_id=${ORG_ID}`, { method: "POST" }); } catch (_) {}
     setCompletedAssessments(s => new Set([...s, assessId]));
-  
-    setLoading(false);};
+  };
 
   const filteredAssessments = vendorFilter === "all"
     ? MOCK_ASSESSMENTS

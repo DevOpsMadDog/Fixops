@@ -98,11 +98,11 @@ export default function ThreatDeceptionDashboard() {
     ]).then(([decoysRes, statsRes]) => {
       if (decoysRes.status === "fulfilled") setLiveDecoys(decoysRes.value?.decoys ?? decoysRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const decoys = liveDecoys ?? MOCK_DECOYS;
   const stats  = liveStats  ?? MOCK_STATS;
@@ -198,7 +198,6 @@ export default function ThreatDeceptionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

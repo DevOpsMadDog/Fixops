@@ -160,7 +160,8 @@ export default function VulnIntelFusionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [form, setForm] = useState({
   const [loading, setLoading] = useState(true);
@@ -177,8 +178,7 @@ export default function VulnIntelFusionDashboard() {
     } catch (_) {}
     setShowForm(false);
     setForm({ cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "" });
-  
-    setLoading(false);};
+  };
 
   const sources = MOCK_SOURCES[selectedCve] ?? [];
   const assets  = MOCK_ASSETS[selectedCve] ?? [];
@@ -305,7 +305,6 @@ export default function VulnIntelFusionDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{c.affected_assets}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -358,7 +357,6 @@ export default function VulnIntelFusionDashboard() {
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
                     ))}
-                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -410,7 +408,6 @@ export default function VulnIntelFusionDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -463,7 +460,6 @@ export default function VulnIntelFusionDashboard() {
                 <span className="text-[10px] text-muted-foreground shrink-0">{c.affected_assets} assets</span>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

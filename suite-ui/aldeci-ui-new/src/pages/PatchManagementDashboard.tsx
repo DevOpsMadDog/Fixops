@@ -105,11 +105,11 @@ export default function PatchManagementDashboard() {
     ]).then(([patchRes, statsRes]) => {
       if (patchRes.status === "fulfilled")  setLivePatches(patchRes.value?.patches ?? patchRes.value ?? null);
       if (statsRes.status === "fulfilled")  setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const patches = livePatches ?? MOCK_PATCHES;
   const stats   = liveStats   ?? MOCK_STATS;
@@ -207,7 +207,6 @@ export default function PatchManagementDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

@@ -114,7 +114,8 @@ export default function AttackChainDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -184,7 +185,6 @@ export default function AttackChainDashboard() {
                 <div className="text-[10px] mt-1 leading-tight opacity-80">{p.label}</div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -235,7 +235,6 @@ export default function AttackChainDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtDate(c.created_at)}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

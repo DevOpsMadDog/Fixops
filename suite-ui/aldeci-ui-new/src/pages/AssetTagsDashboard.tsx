@@ -174,7 +174,6 @@ export default function AssetTagsDashboard() {
               <p className="text-xs text-gray-500 mt-0.5">{cat.description}</p>
             </motion.div>
           ))}
-          )}
         </div>
       </div>
 
@@ -206,7 +205,6 @@ export default function AssetTagsDashboard() {
                   <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded-full">{tag.asset_count.toLocaleString()}</span>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -239,7 +237,6 @@ export default function AssetTagsDashboard() {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-400">Asset Query (name, IP, or tag)</label>
               <input type="text" value={assetQuery} onChange={(e) => setAssetQuery(e.target.value)}
-                )}
                 placeholder="e.g. env:production"
                 className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
             </div>
@@ -271,7 +268,6 @@ export default function AssetTagsDashboard() {
                     MATRIX_TAG_COLS.map((col) => (
                     <th key={col} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{col}</th>
                   ))}
-                  )}
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +291,6 @@ export default function AssetTagsDashboard() {
                     ))}
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>

@@ -316,7 +316,6 @@ export default function SOARDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -353,7 +352,6 @@ export default function SOARDashboard() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
     </motion.div>

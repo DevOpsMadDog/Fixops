@@ -145,7 +145,8 @@ export default function MobileAppSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -234,7 +235,6 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_scanned}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -283,7 +283,6 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2"><FindingStatusBadge status={f.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

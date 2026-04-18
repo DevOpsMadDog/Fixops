@@ -48,34 +48,61 @@ const MOCK_STATS = {
 };
 
 const MOCK_ASSETS = [
-  { asset_name: "TLS Web Gateway",       asset_type: "tls_endpoint",  current_algorithm: "RSA-2048",   quantum_vulnerable: true,  migration_status: "in_progress", risk_level: "critical" },
-  { asset_name: "SSH Bastion Host",      asset_type: "ssh_endpoint",  current_algorithm: "RSA-4096",   quantum_vulnerable: true,  migration_status: "planned",     risk_level: "high"     },
-  { asset_name: "Code Signing Cert",     asset_type: "certificate",   current_algorithm: "ECDSA-P256", quantum_vulnerable: false, migration_status: "not_required",risk_level: "low"      },
-  { asset_name: "Database Encryption",   asset_type: "storage",       current_algorithm: "AES-256",    quantum_vulnerable: false, migration_status: "not_required",risk_level: "low"      },
-  { asset_name: "JWT Auth Tokens",       asset_type: "auth",          current_algorithm: "RS256",      quantum_vulnerable: true,  migration_status: "planned",     risk_level: "high"     },
-  { asset_name: "VPN Tunnel Keys",       asset_type: "network",       current_algorithm: "DH-2048",    quantum_vulnerable: true,  migration_status: "in_progress", risk_level: "critical" },
-  { asset_name: "PKI Root CA",           asset_type: "pki",           current_algorithm: "RSA-4096",   quantum_vulnerable: true,  migration_status: "planned",     risk_level: "critical" },
-  { asset_name: "S3 Bucket Encryption",  asset_type: "storage",       current_algorithm: "AES-256-GCM",quantum_vulnerable: false, migration_status: "migrated",    risk_level: "none"     },
+  { asset_name: "TLS Web Gateway",       asset_type: "tls_endpoint",  current_algorithm: "RSA-2048",    quantum_vulnerable: true,  migration_status: "in_progress", risk_level: "critical" },
+  { asset_name: "SSH Bastion Host",      asset_type: "ssh_endpoint",  current_algorithm: "RSA-4096",    quantum_vulnerable: true,  migration_status: "planned",     risk_level: "high"     },
+  { asset_name: "Code Signing Cert",     asset_type: "certificate",   current_algorithm: "ECDSA-P256",  quantum_vulnerable: false, migration_status: "not_required",risk_level: "low"      },
+  { asset_name: "Database Encryption",   asset_type: "storage",       current_algorithm: "AES-256",     quantum_vulnerable: false, migration_status: "not_required",risk_level: "low"      },
+  { asset_name: "JWT Auth Tokens",       asset_type: "auth",          current_algorithm: "RS256",       quantum_vulnerable: true,  migration_status: "planned",     risk_level: "high"     },
+  { asset_name: "VPN Tunnel Keys",       asset_type: "network",       current_algorithm: "DH-2048",     quantum_vulnerable: true,  migration_status: "in_progress", risk_level: "critical" },
+  { asset_name: "PKI Root CA",           asset_type: "pki",           current_algorithm: "RSA-4096",    quantum_vulnerable: true,  migration_status: "planned",     risk_level: "critical" },
+  { asset_name: "S3 Bucket Encryption",  asset_type: "storage",       current_algorithm: "AES-256-GCM", quantum_vulnerable: false, migration_status: "migrated",    risk_level: "none"     },
 ];
 
 const MOCK_MIGRATIONS = [
-  { asset_id: "tls-gw-01",  from_algorithm: "RSA-2048",  to_algorithm: "CRYSTALS-Kyber",  priority: "critical", status: "in_progress", planned_date: "2026-06-01" },
-  { asset_id: "vpn-tun-02", from_algorithm: "DH-2048",   to_algorithm: "CRYSTALS-Kyber",  priority: "critical", status: "in_progress", planned_date: "2026-06-15" },
-  { asset_id: "pki-root",   from_algorithm: "RSA-4096",  to_algorithm: "CRYSTALS-Dilithium",priority:"critical",status: "planned",     planned_date: "2026-07-01" },
-  { asset_id: "ssh-bstn",   from_algorithm: "RSA-4096",  to_algorithm: "ML-KEM-768",      priority: "high",     status: "planned",     planned_date: "2026-07-15" },
-  { asset_id: "jwt-auth",   from_algorithm: "RS256",     to_algorithm: "ML-DSA-65",       priority: "high",     status: "planned",     planned_date: "2026-08-01" },
-  { asset_id: "s3-bucket",  from_algorithm: "RSA-2048",  to_algorithm: "AES-256-GCM",     priority: "low",      status: "migrated",    planned_date: "2025-12-01" },
+  { asset_id: "tls-gw-01",  from_algorithm: "RSA-2048", to_algorithm: "CRYSTALS-Kyber",     priority: "critical", status: "in_progress", planned_date: "2026-06-01" },
+  { asset_id: "vpn-tun-02", from_algorithm: "DH-2048",  to_algorithm: "CRYSTALS-Kyber",     priority: "critical", status: "in_progress", planned_date: "2026-06-15" },
+  { asset_id: "pki-root",   from_algorithm: "RSA-4096", to_algorithm: "CRYSTALS-Dilithium", priority: "critical", status: "planned",     planned_date: "2026-07-01" },
+  { asset_id: "ssh-bstn",   from_algorithm: "RSA-4096", to_algorithm: "ML-KEM-768",         priority: "high",     status: "planned",     planned_date: "2026-07-15" },
+  { asset_id: "jwt-auth",   from_algorithm: "RS256",    to_algorithm: "ML-DSA-65",          priority: "high",     status: "planned",     planned_date: "2026-08-01" },
+  { asset_id: "s3-bucket",  from_algorithm: "RSA-2048", to_algorithm: "AES-256-GCM",        priority: "low",      status: "migrated",    planned_date: "2025-12-01" },
 ];
+
+// ── Interfaces ─────────────────────────────────────────────────
+
+interface QuantumStats {
+  total_assets: number;
+  quantum_vulnerable: number;
+  migrated: number;
+  migration_progress_pct: number;
+}
+
+interface QuantumAsset {
+  asset_name: string;
+  asset_type: string;
+  current_algorithm: string;
+  quantum_vulnerable: boolean;
+  migration_status: string;
+  risk_level: string;
+}
+
+interface QuantumMigration {
+  asset_id: string;
+  from_algorithm: string;
+  to_algorithm: string;
+  priority: string;
+  status: string;
+  planned_date: string;
+}
 
 // ── Badge helpers ──────────────────────────────────────────────
 
 function RiskLevelBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
-    critical:     "border-red-500/30 text-red-400 bg-red-500/10",
-    high:         "border-orange-500/30 text-orange-400 bg-orange-500/10",
-    medium:       "border-amber-500/30 text-amber-400 bg-amber-500/10",
-    low:          "border-blue-500/30 text-blue-400 bg-blue-500/10",
-    none:         "border-green-500/30 text-green-400 bg-green-500/10",
+    critical: "border-red-500/30 text-red-400 bg-red-500/10",
+    high:     "border-orange-500/30 text-orange-400 bg-orange-500/10",
+    medium:   "border-amber-500/30 text-amber-400 bg-amber-500/10",
+    low:      "border-blue-500/30 text-blue-400 bg-blue-500/10",
+    none:     "border-green-500/30 text-green-400 bg-green-500/10",
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border text-muted-foreground")}>
@@ -118,10 +145,9 @@ export default function QuantumCryptoDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
-  const [loading, setLoading] = useState(true);
-    stats: any | null;
-    assets: any[] | null;
-    migrations: any[] | null;
+    stats: QuantumStats | null;
+    assets: QuantumAsset[] | null;
+    migrations: QuantumMigration[] | null;
   }>({ stats: null, assets: null, migrations: null });
 
   const fetchData = () => {
@@ -151,14 +177,6 @@ export default function QuantumCryptoDashboard() {
   const assets     = liveData.assets     ?? MOCK_ASSETS;
   const migrations = liveData.migrations ?? MOCK_MIGRATIONS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -179,11 +197,10 @@ export default function QuantumCryptoDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"        value={stats.total_assets
-    setLoading(false);}                           icon={Lock}          trend="flat" />
-        <KpiCard title="Quantum Vulnerable"  value={stats.quantum_vulnerable}                     icon={AlertTriangle} trend="down" className="border-red-500/20" />
-        <KpiCard title="Migrated"            value={stats.migrated}                               icon={CheckCircle}   trend="up"   className="border-green-500/20" />
-        <KpiCard title="Migration Progress"  value={`${stats.migration_progress_pct}%`}           icon={Atom}          trend="up"   className="border-purple-500/20" />
+        <KpiCard title="Total Assets"        value={stats.total_assets}                 icon={Lock}          trend="flat" />
+        <KpiCard title="Quantum Vulnerable"  value={stats.quantum_vulnerable}           icon={AlertTriangle} trend="down" className="border-red-500/20" />
+        <KpiCard title="Migrated"            value={stats.migrated}                     icon={CheckCircle}   trend="up"   className="border-green-500/20" />
+        <KpiCard title="Migration Progress"  value={`${stats.migration_progress_pct}%`} icon={Atom}          trend="up"   className="border-purple-500/20" />
       </div>
 
       {/* Assets Table */}
@@ -195,7 +212,7 @@ export default function QuantumCryptoDashboard() {
               Cryptographic Assets
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {assets.filter((a: any) => a.quantum_vulnerable).length} vulnerable
+              {assets.filter((a: QuantumAsset) => a.quantum_vulnerable).length} vulnerable
             </Badge>
           </div>
           <CardDescription className="text-xs">All cryptographic assets assessed for quantum vulnerability</CardDescription>
@@ -214,13 +231,7 @@ export default function QuantumCryptoDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  assets.map((a: any, i: number) => (
+                {assets.map((a: QuantumAsset, i: number) => (
                   <TableRow key={a.asset_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{a.asset_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.asset_type?.replace(/_/g, " ")}</TableCell>
@@ -234,7 +245,6 @@ export default function QuantumCryptoDashboard() {
                     <TableCell className="py-2"><RiskLevelBadge level={a.risk_level ?? "medium"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -250,7 +260,7 @@ export default function QuantumCryptoDashboard() {
               Migration Plan
             </CardTitle>
             <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
-              {migrations.filter((m: any) => m.status === "in_progress").length} in progress
+              {migrations.filter((m: QuantumMigration) => m.status === "in_progress").length} in progress
             </Badge>
           </div>
           <CardDescription className="text-xs">Post-quantum algorithm migration schedule and status</CardDescription>
@@ -269,13 +279,7 @@ export default function QuantumCryptoDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {migrations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  migrations.map((m: any, i: number) => (
+                {migrations.map((m: QuantumMigration, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{m.asset_id}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-400">{m.from_algorithm}</TableCell>
@@ -285,7 +289,6 @@ export default function QuantumCryptoDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{m.planned_date}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

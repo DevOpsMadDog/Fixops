@@ -82,11 +82,11 @@ export default function NetworkForensicsDashboard() {
     ]).then(([capturesRes, statsRes]) => {
       if (capturesRes.status === "fulfilled") setLiveCaptures(capturesRes.value?.captures ?? capturesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const captures = liveCaptures ?? MOCK_CAPTURES;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -182,7 +182,6 @@ export default function NetworkForensicsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

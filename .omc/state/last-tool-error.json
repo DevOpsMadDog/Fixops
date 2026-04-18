@@ -1,7 +1,7 @@
 {
-  "tool_name": "Grep",
-  "tool_input_preview": "{\"pattern\":\": any\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/PAMDashboard.tsx\",\"output_mode\":\"content\",\"-n\":true}",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-18T10:32:57.003Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"grep -c \\\"No data available\\\" /Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/VulnLifecycle.tsx 2>/dev/null && sed -n '285,305p' /Users/devops.ai/fixops/Fixops/suite-ui/ald...",
+  "error": "Exit code 1\n0",
+  "timestamp": "2026-04-18T10:35:05.589Z",
   "retry_count": 1
 }

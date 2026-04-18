@@ -117,11 +117,11 @@ export default function SecurityGamificationDashboard() {
       if (lbRes.status === "fulfilled") setLiveLB(lbRes.value?.leaderboard ?? lbRes.value ?? null);
       if (challengesRes.status === "fulfilled") setLiveChallenges(challengesRes.value?.challenges ?? challengesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const leaderboard = liveLeaderboard ?? MOCK_LEADERBOARD;
   const challenges  = liveChallenges  ?? MOCK_CHALLENGES;
@@ -200,7 +200,6 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -250,7 +249,6 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>

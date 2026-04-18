@@ -261,7 +261,6 @@ export default function DigitalForensicsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -311,7 +310,6 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 text-muted-foreground">{e.collected_by}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -351,7 +349,6 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 max-w-[160px] truncate text-muted-foreground">{entry.notes}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -396,7 +393,6 @@ export default function DigitalForensicsDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

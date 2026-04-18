@@ -95,11 +95,11 @@ export default function AwarenessMetricsDashboard() {
     ]).then(([metricsRes, statsRes]) => {
       if (metricsRes.status === "fulfilled") setLiveMetrics(metricsRes.value?.metrics ?? metricsRes.value ?? null);
       if (statsRes.status === "fulfilled")   setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const metrics = liveMetrics ?? MOCK_METRICS;
   const stats   = liveStats   ?? MOCK_STATS;
@@ -195,7 +195,6 @@ export default function AwarenessMetricsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

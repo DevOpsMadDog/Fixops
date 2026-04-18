@@ -135,7 +135,8 @@ export default function SupplyChainDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -331,7 +332,6 @@ export default function SupplyChainDashboard() {
                   <span className="text-[11px] text-muted-foreground">{r.label}</span>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>

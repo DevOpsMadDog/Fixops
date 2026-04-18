@@ -326,7 +326,6 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
             />
           );
         })}
-        )}
       </div>
     </div>
   );
@@ -624,7 +623,6 @@ export default function SecurityKPIDashboard() {
                 />
               </motion.div>
             ))}
-            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -663,7 +661,6 @@ export default function SecurityKPIDashboard() {
                 <p className="text-sm text-slate-400 mt-1">{strength.description}</p>
               </motion.div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -715,7 +712,6 @@ export default function SecurityKPIDashboard() {
                 <p className="text-sm text-slate-400 mt-1">{weakness.description}</p>
               </motion.div>
             ))}
-            )}
           </CardContent>
         </Card>
       </motion.div>

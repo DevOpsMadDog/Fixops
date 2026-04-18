@@ -650,7 +650,6 @@ export default function ScheduledReportsDashboard() {
                   </TableCell>
                 </motion.tr>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -719,7 +718,6 @@ export default function ScheduledReportsDashboard() {
                     </TableCell>
                   </motion.tr>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

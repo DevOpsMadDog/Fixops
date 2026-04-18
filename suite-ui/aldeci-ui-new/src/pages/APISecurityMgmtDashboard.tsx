@@ -329,7 +329,6 @@ export default function APISecurityMgmtDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -389,7 +388,6 @@ export default function APISecurityMgmtDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -444,7 +442,6 @@ export default function APISecurityMgmtDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 

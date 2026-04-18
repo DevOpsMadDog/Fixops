@@ -337,8 +337,8 @@ export default function VendorRiskDashboard() {
           : null;
         setLiveData({ vendors: vendors ?? register, register });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const vendors = liveData?.vendors ?? MOCK_VENDORS;
@@ -411,7 +411,6 @@ export default function VendorRiskDashboard() {
                         {v.name} ({v.overall_score})
                       </Badge>
                     ))}
-                    )}
                   </div>
                 </div>
               </div>
@@ -531,7 +530,6 @@ export default function VendorRiskDashboard() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      )}
                     </TableBody>
                   </Table>
                 </ScrollArea>
@@ -587,7 +585,6 @@ export default function VendorRiskDashboard() {
                     />
                   </div>
                 ))}
-                )}
               </CardContent>
             </Card>
           </div>
@@ -641,7 +638,6 @@ export default function VendorRiskDashboard() {
                     </div>
                   </motion.div>
                 ))}
-                )}
               </div>
             </ScrollArea>
           </CardContent>

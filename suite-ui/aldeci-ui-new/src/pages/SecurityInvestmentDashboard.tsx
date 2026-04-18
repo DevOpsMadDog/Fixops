@@ -125,9 +125,9 @@ export default function SecurityInvestmentDashboard() {
   useEffect(() => {
     fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setInvestments(d); 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(d => { if (Array.isArray(d)) setInvestments(d); })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const [showForm, setShowForm] = useState(false);
@@ -281,7 +281,6 @@ export default function SecurityInvestmentDashboard() {
                   </td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>
@@ -320,7 +319,6 @@ export default function SecurityInvestmentDashboard() {
                 </div>
               );
             })}
-            )}
           </div>
         </div>
 
@@ -357,7 +355,6 @@ export default function SecurityInvestmentDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
 
@@ -380,7 +377,6 @@ export default function SecurityInvestmentDashboard() {
                   <span className="text-green-400 font-bold font-mono">{inv.roi_score}%</span>
                 </div>
               ))}
-              )}
             </div>
           </div>
         </div>

@@ -113,11 +113,11 @@ export default function ThirdPartyVendorDashboard() {
     ]).then(([venRes, statsRes]) => {
       if (venRes.status === "fulfilled") setLiveVendors(venRes.value?.vendors ?? venRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const vendors = liveVendors ?? MOCK_VENDORS;
   const stats   = liveStats   ?? MOCK_STATS;
@@ -218,7 +218,6 @@ export default function ThirdPartyVendorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

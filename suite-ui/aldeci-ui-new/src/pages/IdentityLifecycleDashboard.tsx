@@ -72,7 +72,8 @@ export default function IdentityLifecycleDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const [filterAccount, setFilterAccount] = useState("all");
   const [showAddAccount, setShowAddAccount] = useState(false);

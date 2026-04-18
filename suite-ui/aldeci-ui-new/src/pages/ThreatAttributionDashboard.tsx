@@ -103,11 +103,11 @@ export default function ThreatAttributionDashboard() {
     ]).then(([attrRes, statsRes]) => {
       if (attrRes.status === "fulfilled") setLiveAttributions(attrRes.value?.attributions ?? attrRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const attributions = liveAttributions ?? MOCK_ATTRIBUTIONS;
   const stats        = liveStats        ?? MOCK_STATS;
@@ -203,7 +203,6 @@ export default function ThreatAttributionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

@@ -177,7 +177,8 @@ export default function PostureReportingDashboard() {
   const [metricFilter, setMetricFilter] = useState(selectedReport.metrics[0].metric_name);
 
   useEffect(() => {
-    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
@@ -267,7 +268,6 @@ export default function PostureReportingDashboard() {
               <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
             </motion.div>
           ))}
-          )}
         </div>
 
         {/* Right Panel */}
@@ -363,7 +363,6 @@ export default function PostureReportingDashboard() {
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
                 ))}
-                )}
               </div>
             </CardContent>
           </Card>

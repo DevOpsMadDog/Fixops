@@ -160,7 +160,8 @@ export default function CWPPDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -349,7 +350,6 @@ export default function CWPPDashboard() {
                 <span className={cn("text-sm font-bold tabular-nums", f.color)}>{f.count}</span>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -391,7 +391,6 @@ export default function CWPPDashboard() {
                 </p>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

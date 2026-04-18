@@ -275,7 +275,8 @@ export default function CloudIAM() {
       critical: iaStats.high_risk_count ?? iaStats.critical ?? 0,
       high: iaStats.medium_risk_count ?? iaStats.high ?? 0,
     });
-  }, [iaStats]);
+  
+    setLoading(false);}, [iaStats]);
 
   const principals = principalsFromSessions.length > 0 && principalsFromSessions[0].principal_name !== "unknown"
     ? principalsFromSessions
@@ -369,7 +370,6 @@ export default function CloudIAM() {
                       </td>
                     </motion.tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -423,7 +423,6 @@ export default function CloudIAM() {
             ESCALATION_PATHS.map(path => (
             <EscalationPathCard key={path.id} path={path} />
           ))}
-          )}
         </CardContent>
       </Card>
 
@@ -454,7 +453,6 @@ export default function CloudIAM() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -485,7 +483,6 @@ export default function CloudIAM() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -526,7 +523,6 @@ export default function CloudIAM() {
               </div>
             </motion.div>
           ))}
-          )}
         </CardContent>
       </Card>
     </div>

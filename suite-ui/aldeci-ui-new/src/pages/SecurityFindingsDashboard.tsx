@@ -181,7 +181,8 @@ export default function SecurityFindingsDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");
@@ -200,8 +201,7 @@ export default function SecurityFindingsDashboard() {
     high: FINDINGS.filter(f => f.severity === "high").length,
     medium: FINDINGS.filter(f => f.severity === "medium").length,
     low: FINDINGS.filter(f => f.severity === "low").length,
-  
-    setLoading(false);};
+  };
 
   // Top 5 assets by finding count
   const assetCounts: Record<string, number> = {};
@@ -311,7 +311,6 @@ export default function SecurityFindingsDashboard() {
                 <span className="text-xs font-bold text-orange-400">{count}</span>
               </div>
             ))}
-            )}
           </div>
         </div>
 
@@ -395,7 +394,6 @@ export default function SecurityFindingsDashboard() {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            )}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
             {ALL_STATUSES.length === 0 ? (
@@ -412,7 +410,6 @@ export default function SecurityFindingsDashboard() {
           <select
             value={filterTool}
             onChange={e => setFilterTool(e.target.value)}
-            )}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
             {ALL_TOOLS.length === 0 ? (
@@ -436,7 +433,6 @@ export default function SecurityFindingsDashboard() {
                 {["Title","Type","Source","Severity","CVSS","Asset","Status","Count"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
                 ))}
-            )}
               </tr>
             </thead>
             <tbody>
@@ -488,7 +484,6 @@ export default function SecurityFindingsDashboard() {
                   <td className="px-4 py-3 text-gray-400 text-center">{f.occurrence_count}</td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

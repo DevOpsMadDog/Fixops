@@ -100,9 +100,9 @@ export default function VulnScanDashboard() {
   useEffect(() => {
     fetch(`${_API_BASE}/scans`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setScans(d); 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(d => { if (Array.isArray(d)) setScans(d); })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const [scannerType, setScannerType] = useState("Nessus");
@@ -203,7 +203,6 @@ export default function VulnScanDashboard() {
                     <TableCell className="text-xs text-gray-400">{scan.started_at}</TableCell>
                   </motion.tr>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -239,7 +238,6 @@ export default function VulnScanDashboard() {
                   </div>
                 </div>
               ))}
-              )}
               <div className="mt-2 pt-2 border-t border-gray-700/50 flex justify-between text-xs">
                 <span className="text-gray-400">Total</span>
                 <span className="text-gray-200 font-semibold">{SEVERITY_BREAKDOWN.reduce((s, sv) => s + sv.count, 0).toLocaleString()}</span>
@@ -275,7 +273,6 @@ export default function VulnScanDashboard() {
                   type="text"
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
-                  )}
                   placeholder="10.0.0.0/24"
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />

@@ -54,7 +54,8 @@ export default function HuntingPlaybookDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const [filterPlaybook, setFilterPlaybook] = useState("all");
   const [showAddPlaybook, setShowAddPlaybook] = useState(false);
@@ -177,7 +178,6 @@ export default function HuntingPlaybookDashboard() {
                       </td>
                     </tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -249,7 +249,6 @@ export default function HuntingPlaybookDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         )}
@@ -319,7 +318,6 @@ export default function HuntingPlaybookDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         )}

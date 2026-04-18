@@ -97,11 +97,11 @@ export default function APIThreatProtectionDashboard() {
     ]).then(([eventsRes, statsRes]) => {
       if (eventsRes.status === "fulfilled") setLiveEvents(eventsRes.value?.events ?? eventsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const events = liveEvents ?? MOCK_EVENTS;
   const stats  = liveStats  ?? MOCK_STATS;
@@ -197,7 +197,6 @@ export default function APIThreatProtectionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

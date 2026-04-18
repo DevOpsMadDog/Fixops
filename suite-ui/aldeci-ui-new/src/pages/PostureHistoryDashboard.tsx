@@ -108,8 +108,8 @@ export default function PostureHistoryDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const [selectedDomain, setSelectedDomain] = useState<Domain>("network");
@@ -198,7 +198,6 @@ export default function PostureHistoryDashboard() {
             </div>
           );
         })}
-        )}
       </div>
 
       {/* Trend Chart */}
@@ -227,7 +226,6 @@ export default function PostureHistoryDashboard() {
               </div>
             );
           })}
-          )}
         </div>
       </div>
 
@@ -268,7 +266,6 @@ export default function PostureHistoryDashboard() {
                   <td className="py-3 text-gray-400 text-xs">{snap.source}</td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

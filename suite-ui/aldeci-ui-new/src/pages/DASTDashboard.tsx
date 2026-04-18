@@ -205,7 +205,6 @@ export default function DASTDashboard() {
                     <TableCell><StatusBadge status={f.status} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

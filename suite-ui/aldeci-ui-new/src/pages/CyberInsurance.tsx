@@ -239,7 +239,6 @@ export default function CyberInsurance() {
             </CardContent>
           </Card>
         ))}
-        )}
       </div>
 
       {/* Risk Assessment + Claims */}
@@ -286,7 +285,6 @@ export default function CyberInsurance() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -318,7 +316,6 @@ export default function CyberInsurance() {
                 </Button>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -367,7 +364,6 @@ export default function CyberInsurance() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

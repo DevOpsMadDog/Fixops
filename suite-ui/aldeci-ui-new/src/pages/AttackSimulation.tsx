@@ -146,7 +146,8 @@ export default function AttackSimulation() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -174,8 +175,7 @@ export default function AttackSimulation() {
         status:   "completed",
         started:  s.created_at?.slice(0, 10) ?? "—",
         findings: s.objectives?.length ?? 0,
-      
-    setLoading(false);}))
+      }))
     : SIMULATIONS;
 
   if (loading) return (
@@ -264,7 +264,6 @@ export default function AttackSimulation() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -300,7 +299,6 @@ export default function AttackSimulation() {
                 <div className="text-sm font-bold tabular-nums">{t.pct}%</div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -349,7 +347,6 @@ export default function AttackSimulation() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -396,7 +393,6 @@ export default function AttackSimulation() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

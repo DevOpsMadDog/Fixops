@@ -222,7 +222,6 @@ export default function ContainerRegistryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

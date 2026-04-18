@@ -180,8 +180,8 @@ export default function EDRDashboard() {
       if (stats || endpoints || detections) {
         setLiveData({ stats, endpoints, detections });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -353,7 +353,6 @@ export default function EDRDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -403,7 +402,6 @@ export default function EDRDashboard() {
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{pe.observed_at}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

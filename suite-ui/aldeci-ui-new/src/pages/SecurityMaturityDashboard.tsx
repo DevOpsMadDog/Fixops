@@ -167,7 +167,8 @@ export default function SecurityMaturityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const domains = DOMAINS_BY_FRAMEWORK[activeFramework] ?? [];
   const avgScore = Math.round(domains.reduce((s, d) => s + d.score, 0) / domains.length);

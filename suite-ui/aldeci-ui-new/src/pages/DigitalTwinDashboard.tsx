@@ -105,11 +105,11 @@ export default function DigitalTwinDashboard() {
     ]).then(([simsRes, statsRes]) => {
       if (simsRes.status === "fulfilled")  setLiveSims(simsRes.value?.simulations ?? simsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const simulations = liveSims    ?? MOCK_SIMULATIONS;
   const stats       = liveStats   ?? MOCK_STATS;
@@ -205,7 +205,6 @@ export default function DigitalTwinDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

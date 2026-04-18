@@ -252,7 +252,6 @@ export default function EndpointSecurity() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -279,7 +278,6 @@ export default function EndpointSecurity() {
                 <Progress value={p.pct} className="h-1.5" />
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -360,7 +358,6 @@ export default function EndpointSecurity() {
                   <TableCell>{severityBadge(t.severity)}</TableCell>
                 </TableRow>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -408,7 +405,6 @@ export default function EndpointSecurity() {
                   </TableCell>
                 </TableRow>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>

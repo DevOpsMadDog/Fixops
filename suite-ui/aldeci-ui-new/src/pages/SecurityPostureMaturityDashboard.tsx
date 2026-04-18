@@ -189,7 +189,6 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
           </g>
         );
       })}
-      )}
     </svg>
   );
 }
@@ -203,8 +202,8 @@ export default function SecurityPostureMaturityDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return (
@@ -276,7 +275,6 @@ export default function SecurityPostureMaturityDashboard() {
               </span>
             </div>
           ))}
-          )}
         </div>
 
         {/* Sparkline */}
@@ -316,7 +314,6 @@ export default function SecurityPostureMaturityDashboard() {
               <p className="text-xs text-gray-500 mt-1">{d.capability_count} capabilities</p>
             </div>
           ))}
-          )}
         </div>
       </div>
 
@@ -375,7 +372,6 @@ export default function SecurityPostureMaturityDashboard() {
                   <td className="py-2.5 text-gray-400 text-xs">{r.owner}</td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

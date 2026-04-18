@@ -124,11 +124,11 @@ export default function AlertTriageDashboard() {
     ]).then(([alertsRes, statsRes]) => {
       if (alertsRes.status === "fulfilled") setLiveAlerts(alertsRes.value?.alerts ?? alertsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const alerts = liveAlerts ?? MOCK_ALERTS;
   const stats  = liveStats  ?? MOCK_STATS;
@@ -224,7 +224,6 @@ export default function AlertTriageDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

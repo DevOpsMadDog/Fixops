@@ -95,11 +95,11 @@ export default function DataPipelineDashboard() {
     ]).then(([pipeRes, statsRes]) => {
       if (pipeRes.status === "fulfilled") setLivePipelines(pipeRes.value?.pipelines ?? pipeRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const pipelines = livePipelines ?? MOCK_PIPELINES;
   const stats     = liveStats     ?? MOCK_STATS;
@@ -195,7 +195,6 @@ export default function DataPipelineDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

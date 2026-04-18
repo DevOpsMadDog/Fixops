@@ -189,7 +189,6 @@ export default function ComplianceMappingDashboard() {
                 <ProgressBar value={fw.implementation_rate} />
               </motion.div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -240,7 +239,6 @@ export default function ComplianceMappingDashboard() {
                   <TableCell className="text-right text-sm text-gray-300">{ctrl.mappings}</TableCell>
                 </TableRow>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -297,7 +295,6 @@ export default function ComplianceMappingDashboard() {
                     </tr>
                   );
                 })}
-                )}
               </tbody>
             </table>
           </div>

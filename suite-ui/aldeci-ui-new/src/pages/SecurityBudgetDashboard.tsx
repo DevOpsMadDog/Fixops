@@ -124,7 +124,8 @@ export default function SecurityBudgetDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -254,7 +255,6 @@ export default function SecurityBudgetDashboard() {
                     </TableRow>
                   );
                 })}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -305,7 +305,6 @@ export default function SecurityBudgetDashboard() {
                     <TableCell className="py-2"><TransactionStatusBadge status={t.status ?? "pending"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

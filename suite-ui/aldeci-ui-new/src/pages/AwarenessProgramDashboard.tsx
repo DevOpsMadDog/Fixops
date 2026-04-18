@@ -219,7 +219,6 @@ export default function AwarenessProgramDashboard() {
               </div>
             </button>
           ))}
-          )}
         </div>
       </div>
 
@@ -274,7 +273,6 @@ export default function AwarenessProgramDashboard() {
                     <td className="py-2.5 text-gray-400 text-xs">{e.attempts}</td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>
@@ -305,7 +303,6 @@ export default function AwarenessProgramDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
 
@@ -355,7 +352,6 @@ export default function AwarenessProgramDashboard() {
               <span className="text-[10px] text-gray-500 w-16 text-right">{ev.affected_users} user{ev.affected_users > 1 ? "s" : ""}</span>
             </div>
           ))}
-          )}
         </div>
       </div>
     </div>

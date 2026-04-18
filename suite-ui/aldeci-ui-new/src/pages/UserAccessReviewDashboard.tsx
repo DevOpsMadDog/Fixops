@@ -107,9 +107,9 @@ export default function UserAccessReviewDashboard() {
   useEffect(() => {
     fetch("/api/v1/access-reviews", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
   const [loading, setLoading] = useState(true);

@@ -259,7 +259,6 @@ export default function AccessGovernanceDashboard() {
                   </tr>
                 );
               })}
-              )}
             </tbody>
           </table>
         </div>
@@ -306,7 +305,6 @@ export default function AccessGovernanceDashboard() {
               </div>
             </div>
           ))}
-          )}
         </div>
       </div>
 
@@ -341,7 +339,6 @@ export default function AccessGovernanceDashboard() {
               </div>
             </div>
           ))}
-          )}
         </div>
       </div>
     </div>

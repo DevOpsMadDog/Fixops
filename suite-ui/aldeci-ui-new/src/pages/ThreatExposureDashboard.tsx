@@ -108,7 +108,8 @@ export default function ThreatExposureDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -193,7 +194,6 @@ export default function ThreatExposureDashboard() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
 
@@ -249,7 +249,6 @@ export default function ThreatExposureDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_assessed}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

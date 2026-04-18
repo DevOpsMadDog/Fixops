@@ -109,11 +109,11 @@ export default function CloudPostureDashboard() {
     ]).then(([findingsRes, statsRes]) => {
       if (findingsRes.status === "fulfilled") setLiveFindings(findingsRes.value?.findings ?? findingsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const findings = liveFindings ?? MOCK_FINDINGS;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -209,7 +209,6 @@ export default function CloudPostureDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

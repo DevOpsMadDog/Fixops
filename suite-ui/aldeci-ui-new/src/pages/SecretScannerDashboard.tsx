@@ -153,11 +153,11 @@ export default function SecretScannerDashboard() {
       const jobs     = jobsRes.status     === "fulfilled" ? jobsRes.value     : null;
       const findings = findingsRes.status === "fulfilled" ? findingsRes.value : null;
       if (jobs || findings) setLiveData({ jobs, findings });
-    }).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const handleScan = async () => {
     if (!scanForm.target_path.trim()) return;
@@ -261,7 +261,6 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.created_at}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -316,7 +315,6 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2"><FindingStatusBadge status={f.status} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -394,7 +392,6 @@ export default function SecretScannerDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

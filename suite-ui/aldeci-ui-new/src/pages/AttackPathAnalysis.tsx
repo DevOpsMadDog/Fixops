@@ -222,7 +222,6 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
           />
         );
       })}
-      )}
 
       {/* Arrow marker */}
       <defs>
@@ -286,7 +285,6 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
           </g>
         );
       })}
-      )}
     </svg>
   );
 }
@@ -440,7 +438,8 @@ export default function AttackPathAnalysis() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   // Build stats shape from live data or fall back to mock
   const stats: AttackPathsStats = liveData?.stats
@@ -464,8 +463,7 @@ export default function AttackPathAnalysis() {
   const crownJewels: CrownJewel[] = liveData?.crown ?? MOCK_CROWN_JEWELS;
 
   const nodeMap = useMemo(() => {
-    const map: Record<string, GraphNode> = {
-    setLoading(false);};
+    const map: Record<string, GraphNode> = {};
     stats?.graph.nodes.forEach((node) => {
       map[node.id] = node;
     });

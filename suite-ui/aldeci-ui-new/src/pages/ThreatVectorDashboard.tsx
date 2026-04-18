@@ -103,11 +103,11 @@ export default function ThreatVectorDashboard() {
     ]).then(([vecRes, statsRes]) => {
       if (vecRes.status === "fulfilled") setLiveVectors(vecRes.value?.vectors ?? vecRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const vectors = liveVectors ?? MOCK_VECTORS;
   const stats   = liveStats   ?? MOCK_STATS;
@@ -208,7 +208,6 @@ export default function ThreatVectorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

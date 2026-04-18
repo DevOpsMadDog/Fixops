@@ -243,7 +243,6 @@ export default function ExceptionWorkflowDashboard() {
             {s === "all" ? "All" : s}
           </button>
         ))}
-        )}
       </div>
 
       {/* Main layout: table + detail panel */}
@@ -301,7 +300,6 @@ export default function ExceptionWorkflowDashboard() {
                     </tr>
                   );
                 })}
-                )}
               </tbody>
             </table>
           </div>
@@ -398,7 +396,6 @@ export default function ExceptionWorkflowDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         </div>

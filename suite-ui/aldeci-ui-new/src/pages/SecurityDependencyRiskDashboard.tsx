@@ -136,7 +136,8 @@ export default function SecurityDependencyRiskDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setVulns(d); })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredDeps = activeEco === "All"
@@ -279,7 +280,6 @@ export default function SecurityDependencyRiskDashboard() {
                 </div>
               );
             })}
-            )}
           </div>
         </div>
 
@@ -314,7 +314,6 @@ export default function SecurityDependencyRiskDashboard() {
                   <LicenseRiskBadge level={l.risk_level} />
                 </div>
               ))}
-              )}
             </div>
           </div>
 
@@ -344,7 +343,6 @@ export default function SecurityDependencyRiskDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         </div>

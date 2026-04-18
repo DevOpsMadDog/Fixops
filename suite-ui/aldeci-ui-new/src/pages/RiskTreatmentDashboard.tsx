@@ -125,11 +125,11 @@ export default function RiskTreatmentDashboard() {
     ]).then(([treatRes, statsRes]) => {
       if (treatRes.status === "fulfilled") setLiveTreatments(treatRes.value?.treatments ?? treatRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const treatments = liveTreatments ?? MOCK_TREATMENTS;
   const stats      = liveStats      ?? MOCK_STATS;
@@ -230,7 +230,6 @@ export default function RiskTreatmentDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

@@ -213,7 +213,6 @@ export default function IRPlaybookDashboard() {
                     <TableCell><StatusBadge status={ex.status} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

@@ -162,7 +162,8 @@ export default function IncidentTimelineDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   // Fetch events + systems whenever selected timeline changes
   useEffect(() => {

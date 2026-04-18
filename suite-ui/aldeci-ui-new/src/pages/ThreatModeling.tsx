@@ -438,7 +438,6 @@ function ModelsList({
               <div className="text-xs opacity-75 truncate mt-0.5">{model.description}</div>
             </button>
           ))}
-          )}
         </div>
       </ScrollArea>
     </div>

@@ -89,9 +89,9 @@ export default function ThreatGeolocationDashboard() {
     ]).then(([statsR, heatmapR]) => {
       const stats   = statsR.status   === "fulfilled" ? statsR.value   : null;
       const heatmap = heatmapR.status === "fulfilled" ? heatmapR.value : null;
-      if (stats || heatmap) setLiveData({ stats, heatmap 
-    setLoading(false);});
-    }).finally(() => setDataLoading(false));
+      if (stats || heatmap) setLiveData({ stats, heatmap });
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -210,7 +210,6 @@ export default function ThreatGeolocationDashboard() {
                     </TableRow>
                   );
                 })}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -252,7 +251,6 @@ export default function ThreatGeolocationDashboard() {
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{t.detected_at}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

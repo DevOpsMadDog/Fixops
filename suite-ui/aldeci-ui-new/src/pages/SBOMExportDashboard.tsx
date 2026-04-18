@@ -138,9 +138,9 @@ export default function SBOMExportDashboard() {
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setSelectedProject(d); 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);
@@ -226,7 +226,6 @@ export default function SBOMExportDashboard() {
               <p className="text-gray-600 text-[10px] mt-1">Exported {fmt(p.latest_export)}</p>
             </button>
           ))}
-          )}
         </div>
       </div>
 
@@ -312,7 +311,6 @@ export default function SBOMExportDashboard() {
                   )}
                 </>
               ))}
-              )}
             </tbody>
           </table>
         </div>
@@ -348,7 +346,6 @@ export default function SBOMExportDashboard() {
                   <td className="py-2.5 text-gray-400 text-xs">{h.exported_by}</td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

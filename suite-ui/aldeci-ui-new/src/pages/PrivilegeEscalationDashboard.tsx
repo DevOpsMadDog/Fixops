@@ -98,11 +98,11 @@ export default function PrivilegeEscalationDashboard() {
     ]).then(([statsRes, eventsRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (eventsRes.status === "fulfilled" && eventsRes.value) setEvents(eventsRes.value);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const alertRate = stats.total_events > 0
     ? ((stats.anomalies / stats.total_events) * 100).toFixed(1) + "%"
@@ -194,7 +194,6 @@ export default function PrivilegeEscalationDashboard() {
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{evt.timestamp}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

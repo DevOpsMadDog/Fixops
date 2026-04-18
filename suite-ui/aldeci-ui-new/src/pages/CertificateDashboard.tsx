@@ -100,11 +100,11 @@ export default function CertificateDashboard() {
     ]).then(([statsRes, expiringRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (expiringRes.status === "fulfilled" && expiringRes.value) setExpiring(expiringRes.value);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -203,7 +203,6 @@ export default function CertificateDashboard() {
                     </TableRow>
                   );
                 })}
-                )}
               </TableBody>
             </Table>
           </div>

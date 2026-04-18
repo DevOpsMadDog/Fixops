@@ -131,8 +131,8 @@ export default function SecurityPostureDashboard() {
       if (score || components || stats) {
         setLiveData({ score, components, stats });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -279,7 +279,6 @@ export default function SecurityPostureDashboard() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
 
@@ -345,7 +344,6 @@ export default function SecurityPostureDashboard() {
                 </div>
               );
             })}
-            )}
           </CardContent>
         </Card>
 
@@ -393,7 +391,6 @@ export default function SecurityPostureDashboard() {
                     <span className="text-[8px] text-muted-foreground">{h.month.slice(0, 1)}</span>
                   </div>
                 ))}
-                )}
               </div>
             </div>
             <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -440,7 +437,6 @@ export default function SecurityPostureDashboard() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
     </motion.div>

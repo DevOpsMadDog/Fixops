@@ -101,11 +101,11 @@ export default function ApplicationRiskDashboard() {
     ]).then(([appsRes, statsRes]) => {
       if (appsRes.status === "fulfilled") setLiveApps(appsRes.value?.applications ?? appsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const apps  = liveApps  ?? MOCK_APPS;
   const stats = liveStats ?? MOCK_STATS;
@@ -201,7 +201,6 @@ export default function ApplicationRiskDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

@@ -132,9 +132,9 @@ export default function SecurityBenchmarksDashboard() {
   useEffect(() => {
     fetch("/api/v1/security-benchmarks", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ 
-    setLoading(false);})
-      .catch(() => { setError('Failed to load data'); });
+      .then(() => { /* live data available */ })
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = sectorFilter === "all"
@@ -222,7 +222,6 @@ export default function SecurityBenchmarksDashboard() {
             {s === "all" ? "All Sectors" : s}
           </button>
         ))}
-        )}
       </div>
 
       {/* Benchmark cards */}
@@ -281,7 +280,6 @@ export default function SecurityBenchmarksDashboard() {
             </div>
           );
         })}
-        )}
       </div>
     </div>
   );

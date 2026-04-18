@@ -182,7 +182,6 @@ export default function ArchReviewDashboard() {
                       <td className="px-4 py-3">{r.status !== "completed" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}</td>
                     </tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -256,7 +255,6 @@ export default function ArchReviewDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         )}
@@ -306,7 +304,6 @@ export default function ArchReviewDashboard() {
                       <td className="px-4 py-3 text-gray-400 text-xs">{c.gaps || <span className="text-green-500">None</span>}</td>
                     </tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -347,7 +344,6 @@ export default function ArchReviewDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </div>
         )}

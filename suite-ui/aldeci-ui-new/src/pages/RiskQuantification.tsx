@@ -129,7 +129,8 @@ export default function RiskQuantification() {
   useEffect(() => {
     setDataLoading(true);
     fetchAll().finally(() => setDataLoading(false));
-  }, []);
+  
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);

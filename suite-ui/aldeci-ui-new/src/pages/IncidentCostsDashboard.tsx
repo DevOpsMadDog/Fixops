@@ -172,7 +172,8 @@ export default function IncidentCostsDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const selected = MOCK_INCIDENTS.find(i => i.id === selectedId) ?? null;
 
@@ -183,8 +184,7 @@ export default function IncidentCostsDashboard() {
   const byType: Record<string, number> = {};
   MOCK_INCIDENTS.forEach(i => {
     byType[i.incident_type] = (byType[i.incident_type] ?? 0) + (i.actual_cost ?? i.estimated_cost);
-  
-    setLoading(false);});
+  });
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -295,7 +295,6 @@ export default function IncidentCostsDashboard() {
                     </tr>
                   );
                 })}
-                )}
               </tbody>
             </table>
           </div>
@@ -385,7 +384,6 @@ export default function IncidentCostsDashboard() {
               </div>
             </div>
           ))}
-          )}
         </div>
       </div>
     </div>

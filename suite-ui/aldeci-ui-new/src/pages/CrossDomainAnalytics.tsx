@@ -246,7 +246,6 @@ export default function CrossDomainAnalytics() {
                 </div>
               );
             })}
-            )}
           </CardContent>
         </Card>
 
@@ -284,7 +283,6 @@ export default function CrossDomainAnalytics() {
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>

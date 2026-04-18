@@ -379,7 +379,6 @@ export default function MITREAttackDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>

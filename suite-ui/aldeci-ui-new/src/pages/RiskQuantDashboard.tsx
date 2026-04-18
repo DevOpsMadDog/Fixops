@@ -150,7 +150,8 @@ export default function RiskQuantDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [form, setForm] = useState({
   const [loading, setLoading] = useState(true);
@@ -161,8 +162,7 @@ export default function RiskQuantDashboard() {
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
-  
-    setLoading(false);};
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +306,6 @@ export default function RiskQuantDashboard() {
                     <TableCell className="py-2"><RiskBadge level={s.risk_level} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -377,7 +376,6 @@ export default function RiskQuantDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -419,7 +417,6 @@ export default function RiskQuantDashboard() {
                 </div>
               );
             })}
-            )}
           </div>
         </CardContent>
       </Card>

@@ -140,8 +140,8 @@ export default function ThreatResponseDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedIncident(d); })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [resolveMsg, setResolveMsg] = useState("");

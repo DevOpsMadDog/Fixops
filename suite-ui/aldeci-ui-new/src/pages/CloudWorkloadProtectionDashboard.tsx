@@ -158,7 +158,8 @@ export default function CloudWorkloadProtectionDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -249,7 +250,6 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2"><ProtectionStatusBadge status={w.protection_status ?? "protected"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -298,7 +298,6 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2"><ThreatStatusBadge status={t.status ?? "active"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

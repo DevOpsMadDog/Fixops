@@ -169,7 +169,8 @@ export default function BrowserSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -262,7 +263,6 @@ export default function BrowserSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -311,7 +311,6 @@ export default function BrowserSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ext.publisher}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

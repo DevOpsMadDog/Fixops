@@ -146,15 +146,15 @@ export default function ThreatFeedDashboard() {
   const [iocType, setIocType] = useState("All");
 
   useEffect(() => {
-    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const handleSearch = () => {
     if (iocQuery.trim()) setShowResults(true);
-  
-    setLoading(false);};
+  };
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -260,7 +260,6 @@ export default function ThreatFeedDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -299,7 +298,6 @@ export default function ThreatFeedDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -343,7 +341,6 @@ export default function ThreatFeedDashboard() {
                     {t}
                   </button>
                 ))}
-                )}
               </div>
               <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={handleSearch}>
                 <Search className="h-3 w-3" />
@@ -374,7 +371,6 @@ export default function ThreatFeedDashboard() {
                     </div>
                   </div>
                 ))}
-                )}
               </div>
             )}
 
@@ -421,7 +417,6 @@ export default function ThreatFeedDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -462,7 +457,6 @@ export default function ThreatFeedDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

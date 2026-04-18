@@ -155,8 +155,8 @@ export default function SecurityHealthDashboard() {
       if (stats || checks || incidents) {
         setLiveData({ stats, checks, incidents });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -292,7 +292,6 @@ export default function SecurityHealthDashboard() {
               </Card>
             );
           })}
-          )}
         </div>
       </div>
 
@@ -352,7 +351,6 @@ export default function SecurityHealthDashboard() {
                       </TableRow>
                     );
                   })}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -392,7 +390,6 @@ export default function SecurityHealthDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
 
@@ -434,7 +431,6 @@ export default function SecurityHealthDashboard() {
                     </div>
                   );
                 })}
-                )}
               </div>
             </CardContent>
           </Card>

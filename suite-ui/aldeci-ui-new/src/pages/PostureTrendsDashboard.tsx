@@ -167,8 +167,8 @@ export default function PostureTrendsDashboard() {
     fetch(`${_API_BASE}/trends`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setTrends(d); })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
@@ -285,7 +285,6 @@ export default function PostureTrendsDashboard() {
                 {m.metric_name} ({m.current_value} {m.unit})
               </span>
             ))}
-            )}
           </div>
         </div>
       )}
@@ -313,7 +312,6 @@ export default function PostureTrendsDashboard() {
             {categoryLabels[cat]}
           </button>
         ))}
-        )}
       </div>
 
       {/* Metric Trend Cards */}
@@ -374,7 +372,6 @@ export default function PostureTrendsDashboard() {
             </div>
           );
         })}
-        )}
       </div>
 
       {/* Targets Progress Table */}
@@ -413,7 +410,6 @@ export default function PostureTrendsDashboard() {
                   </td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>

@@ -175,8 +175,8 @@ export default function DLPDashboard() {
       const policies  = policiesRes.status  === "fulfilled" ? policiesRes.value  : null;
       const incidents = incidentsRes.status === "fulfilled" ? incidentsRes.value : null;
       if (stats || policies || incidents) setLiveData({ stats, policies, incidents });
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -293,7 +293,6 @@ export default function DLPDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -344,7 +343,6 @@ export default function DLPDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{inc.timestamp}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -381,7 +379,6 @@ export default function DLPDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 

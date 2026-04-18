@@ -147,7 +147,8 @@ export default function MFAManagementDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -234,7 +235,6 @@ export default function MFAManagementDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{e.enrolled_at}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -287,7 +287,6 @@ export default function MFAManagementDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ev.timestamp)}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

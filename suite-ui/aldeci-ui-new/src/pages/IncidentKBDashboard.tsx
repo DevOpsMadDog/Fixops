@@ -192,7 +192,8 @@ export default function IncidentKBDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
   const [executeMsg, setExecuteMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 

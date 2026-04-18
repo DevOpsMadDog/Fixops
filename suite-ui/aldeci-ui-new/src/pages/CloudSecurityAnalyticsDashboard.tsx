@@ -98,11 +98,11 @@ export default function CloudSecurityAnalyticsDashboard() {
     ]).then(([eventsRes, anomaliesRes]) => {
       if (eventsRes.status === "fulfilled") setLiveFindings(eventsRes.value?.events ?? eventsRes.value ?? null);
       if (anomaliesRes.status === "fulfilled") setLiveStats(anomaliesRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const findings = liveFindings ?? MOCK_FINDINGS;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -196,7 +196,6 @@ export default function CloudSecurityAnalyticsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

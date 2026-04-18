@@ -135,7 +135,6 @@ function ChannelBreakdown() {
           <span className="text-xs text-gray-400 w-4 text-right">{count}</span>
         </div>
       ))}
-      )}
     </div>
   );
 }
@@ -158,7 +157,8 @@ export default function IncidentCommsDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -258,7 +258,6 @@ export default function IncidentCommsDashboard() {
                     <TableCell className="text-xs text-gray-400 whitespace-nowrap">{comm.sent_at}</TableCell>
                   </motion.tr>
                 ))}
-                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -288,7 +287,6 @@ export default function IncidentCommsDashboard() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Communication Type</label>
                 <select value={commType} onChange={(e) => setCommType(e.target.value as CommType)}
-                  )}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
                   {COMM_TYPES.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
@@ -302,7 +300,6 @@ export default function IncidentCommsDashboard() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Channel</label>
                 <select value={channel} onChange={(e) => setChannel(e.target.value as Channel)}
-                  )}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
                   {CHANNELS.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
@@ -316,7 +313,6 @@ export default function IncidentCommsDashboard() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Subject</label>
                 <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
-                  )}
                   placeholder="Communication subject..."
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
               </div>

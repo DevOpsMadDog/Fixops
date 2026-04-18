@@ -132,7 +132,8 @@ export default function SocialEngineering() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -175,8 +176,7 @@ export default function SocialEngineering() {
         type:      t.template_type ?? "phishing",
         clickRate: t.click_rate ?? t.avg_click_rate ?? 0,
         lastUsed:  t.last_used ?? t.created_at ?? "—",
-      
-    setLoading(false);}))
+      }))
     : TEMPLATES;
 
   if (loading) return (
@@ -281,7 +281,6 @@ export default function SocialEngineering() {
                     </TableRow>
                   );
                 })}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -327,7 +326,6 @@ export default function SocialEngineering() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -361,7 +359,6 @@ export default function SocialEngineering() {
                 <Progress value={m.completion} className="h-1.5" />
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -399,7 +396,6 @@ export default function SocialEngineering() {
               </CardContent>
             </Card>
           ))}
-          )}
         </div>
       </div>
     </motion.div>

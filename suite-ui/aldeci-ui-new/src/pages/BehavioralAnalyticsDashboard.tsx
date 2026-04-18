@@ -109,11 +109,11 @@ export default function BehavioralAnalyticsDashboard() {
     ]).then(([anomalyRes, statsRes]) => {
       if (anomalyRes.status === "fulfilled") setLiveAnomalies(anomalyRes.value?.anomalies ?? anomalyRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const anomalies = liveAnomalies ?? MOCK_ANOMALIES;
   const stats     = liveStats     ?? MOCK_STATS;
@@ -209,7 +209,6 @@ export default function BehavioralAnalyticsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

@@ -176,7 +176,8 @@ export default function ExecutiveBriefing() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -286,7 +287,6 @@ export default function ExecutiveBriefing() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-right font-bold text-green-400">{r.roi}%</TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -328,7 +328,6 @@ export default function ExecutiveBriefing() {
                 <StatusBadge status={f.status} />
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -422,7 +421,6 @@ export default function ExecutiveBriefing() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
 
@@ -475,7 +473,6 @@ export default function ExecutiveBriefing() {
               </div>
             );
           })}
-          )}
           <div className="flex items-center gap-4 pt-1 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-sm bg-blue-500 inline-block" />Spent</span>
             <span className="flex items-center gap-1"><span className="w-0.5 h-3 bg-white/40 inline-block" />Allocated limit</span>

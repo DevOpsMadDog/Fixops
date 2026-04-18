@@ -174,8 +174,8 @@ export default function CNAPPDashboard() {
       if (stats || findings || workloads) {
         setLiveData({ stats, findings, workloads });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const cspmScore = liveData?.stats?.cspm_score ?? 74;
@@ -329,7 +329,6 @@ export default function CNAPPDashboard() {
                     HEATMAP_SEVS.map((s) => (
                     <th key={s} className="pb-2 px-2 text-[11px] text-center font-medium text-muted-foreground">{s}</th>
                   ))}
-                  )}
                 </tr>
               </thead>
               <tbody>
@@ -351,7 +350,6 @@ export default function CNAPPDashboard() {
                     ))}
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>
@@ -410,7 +408,6 @@ export default function CNAPPDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

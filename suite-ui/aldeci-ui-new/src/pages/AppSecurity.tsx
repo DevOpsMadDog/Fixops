@@ -137,9 +137,9 @@ export default function AppSecurity() {
     ]).then(([statsResult, appsResult]) => {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const apps  = appsResult.status  === "fulfilled" ? appsResult.value  : null;
-      if (stats || apps) setLiveData({ stats, apps 
-    setLoading(false);});
-    }).finally(() => setDataLoading(false));
+      if (stats || apps) setLiveData({ stats, apps });
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -283,7 +283,6 @@ export default function AppSecurity() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -336,7 +335,6 @@ export default function AppSecurity() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{s.time}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -401,7 +399,6 @@ export default function AppSecurity() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

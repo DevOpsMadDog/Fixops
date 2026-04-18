@@ -91,11 +91,11 @@ export default function PostureScoringDashboard() {
     ]).then(([controlsRes, statsRes]) => {
       if (controlsRes.status === "fulfilled") setLiveControls(controlsRes.value?.controls ?? controlsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const controls = liveControls ?? MOCK_CONTROLS;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -187,7 +187,6 @@ export default function PostureScoringDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

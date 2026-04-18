@@ -241,7 +241,6 @@ export default function DataClassificationDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -278,7 +277,6 @@ export default function DataClassificationDashboard() {
                 </span>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -346,7 +344,6 @@ export default function DataClassificationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -403,7 +400,6 @@ export default function DataClassificationDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

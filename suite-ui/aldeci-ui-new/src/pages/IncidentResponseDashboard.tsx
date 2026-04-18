@@ -159,8 +159,8 @@ export default function IncidentResponseDashboard() {
       if (stats || incidents || playbooks) {
         setLiveData({ stats, incidents, playbooks });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -305,7 +305,6 @@ export default function IncidentResponseDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -368,7 +367,6 @@ export default function IncidentResponseDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -418,7 +416,6 @@ export default function IncidentResponseDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -469,7 +466,6 @@ export default function IncidentResponseDashboard() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{a.ts}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

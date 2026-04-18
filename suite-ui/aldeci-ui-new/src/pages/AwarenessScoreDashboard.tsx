@@ -171,8 +171,8 @@ export default function AwarenessScoreDashboard() {
       if (stats || employees || scores) {
         setLiveData({ stats, employees, scores });
       }
-    
-    setLoading(false);}).finally(() => setDataLoading(false));
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -251,7 +251,6 @@ export default function AwarenessScoreDashboard() {
               </div>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
 
@@ -379,7 +378,6 @@ export default function AwarenessScoreDashboard() {
                 <ScoreBar score={d.avg_score} />
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

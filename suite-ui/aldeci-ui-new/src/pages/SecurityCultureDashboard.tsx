@@ -179,8 +179,8 @@ export default function SecurityCultureDashboard() {
     fetch("/api/v1/security-culture", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const selAsmn = MOCK_ASSESSMENTS.find(a => a.id === selectedAssessment)!;
@@ -262,7 +262,6 @@ export default function SecurityCultureDashboard() {
             </div>
           );
         })}
-        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -295,7 +294,6 @@ export default function SecurityCultureDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </div>
         </div>
 
@@ -359,7 +357,6 @@ export default function SecurityCultureDashboard() {
                   )}
                 </div>
               ))}
-              )}
             </div>
           </div>
 

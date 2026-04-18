@@ -423,7 +423,6 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
           </div>
         );
       })}
-      )}
     </div>
   );
 }
@@ -450,8 +449,8 @@ export default function ExecutiveRiskReport() {
       if (riskStats || kpis || posture) {
         setLiveSupplemental({ riskStats, kpis, posture });
       }
-    
-    setLoading(false);});
+    })
+      .finally(() => setLoading(false));
   }, []);
 
   const { data: report, isLoading } = useQuery({

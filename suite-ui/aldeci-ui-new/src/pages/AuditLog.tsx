@@ -745,7 +745,8 @@ export default function AuditLogPage() {
     Promise.allSettled([
       fetch(`${API_BASE}/api/v1/audit/logs?limit=1000`, {
         headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "dev-key" },
-      }).then((r) => (r.ok ? r.json() : null)),
+      }).then((r) => (r.ok ? r.json() : null))
+      .finally(() => setLoading(false)),
     ]).then(([logsRes]) => {
       if (logsRes.status === "fulfilled" && logsRes.value) {
         const data = logsRes.value;

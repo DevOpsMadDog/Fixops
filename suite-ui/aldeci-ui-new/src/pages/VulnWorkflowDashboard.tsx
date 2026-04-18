@@ -105,11 +105,11 @@ export default function VulnWorkflowDashboard() {
     ]).then(([wfRes, statsRes]) => {
       if (wfRes.status === "fulfilled") setLiveWorkflows(wfRes.value?.workflows ?? wfRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const workflows = liveWorkflows ?? MOCK_WORKFLOWS;
   const stats     = liveStats     ?? MOCK_STATS;
@@ -205,7 +205,6 @@ export default function VulnWorkflowDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

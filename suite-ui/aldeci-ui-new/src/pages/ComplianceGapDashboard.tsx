@@ -137,7 +137,8 @@ export default function ComplianceGapDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -231,7 +232,6 @@ export default function ComplianceGapDashboard() {
                 </motion.div>
               );
             })}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -291,7 +291,6 @@ export default function ComplianceGapDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

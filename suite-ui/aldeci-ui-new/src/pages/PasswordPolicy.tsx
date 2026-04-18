@@ -264,7 +264,6 @@ export default function PasswordPolicy() {
               </CardContent>
             </Card>
           ))}
-          )}
         </div>
       </div>
 
@@ -398,7 +397,6 @@ export default function PasswordPolicy() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

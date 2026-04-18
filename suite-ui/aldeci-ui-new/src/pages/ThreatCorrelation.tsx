@@ -158,7 +158,8 @@ export default function ThreatCorrelation() {
   useEffect(() => {
     setDataLoading(true);
     fetchAll().finally(() => setDataLoading(false));
-  }, []);
+  
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -366,7 +367,6 @@ export default function ThreatCorrelation() {
                   <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
                 </div>
               ))}
-              )}
             </div>
             <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/40 inline-block" />Events</span>

@@ -106,9 +106,9 @@ export default function NetworkMonitoringDashboard() {
     ]).then(([statsR, alertsR]) => {
       const stats  = statsR.status  === "fulfilled" ? statsR.value  : null;
       const alerts = alertsR.status === "fulfilled" ? alertsR.value : null;
-      if (stats || alerts) setLiveData({ stats, alerts 
-    setLoading(false);});
-    }).finally(() => setDataLoading(false));
+      if (stats || alerts) setLiveData({ stats, alerts });
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -190,7 +190,6 @@ export default function NetworkMonitoringDashboard() {
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{a.detected_at}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -249,7 +248,6 @@ export default function NetworkMonitoringDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>

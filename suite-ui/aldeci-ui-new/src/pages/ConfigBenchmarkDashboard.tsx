@@ -353,7 +353,6 @@ export default function ConfigBenchmarkDashboard() {
                       <TableCell className="text-[10px] py-2.5 font-mono text-muted-foreground max-w-[100px] truncate">{c.expected}</TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -394,7 +393,6 @@ export default function ConfigBenchmarkDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>
@@ -448,7 +446,6 @@ export default function ConfigBenchmarkDashboard() {
               </div>
             );
           })}
-          )}
         </CardContent>
       </Card>
     </motion.div>

@@ -92,9 +92,9 @@ export default function ServiceAccountAuditDashboard() {
     ]).then(([statsR, accountsR]) => {
       const stats    = statsR.status    === "fulfilled" ? statsR.value    : null;
       const accounts = accountsR.status === "fulfilled" ? accountsR.value : null;
-      if (stats || accounts) setLiveData({ stats, accounts 
-    setLoading(false);});
-    }).finally(() => setDataLoading(false));
+      if (stats || accounts) setLiveData({ stats, accounts });
+    })
+      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -197,7 +197,6 @@ export default function ServiceAccountAuditDashboard() {
                     <TableCell className="py-2"><ActionBadge action={a.action} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

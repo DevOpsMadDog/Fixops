@@ -98,11 +98,11 @@ export default function MicrosegmentationPolicyDashboard() {
     ]).then(([segRes, statsRes]) => {
       if (segRes.status === "fulfilled") setLiveSegments(segRes.value?.segments ?? segRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const segments = liveSegments ?? MOCK_SEGMENTS;
   const stats    = liveStats    ?? MOCK_STATS;
@@ -199,7 +199,6 @@ export default function MicrosegmentationPolicyDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

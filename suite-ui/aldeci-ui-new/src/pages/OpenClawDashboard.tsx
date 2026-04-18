@@ -308,7 +308,8 @@ export default function OpenClawDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const loadCampaignDetail = (campaign: any) => {
     setSelectedCampaign(campaign);

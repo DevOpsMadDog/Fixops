@@ -379,7 +379,6 @@ export default function CSPMDashboard() {
             </Card>
           );
         })}
-        )}
       </motion.div>
 
       {/* ── Findings Table ── */}
@@ -470,7 +469,6 @@ export default function CSPMDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -574,7 +572,6 @@ export default function CSPMDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </motion.div>

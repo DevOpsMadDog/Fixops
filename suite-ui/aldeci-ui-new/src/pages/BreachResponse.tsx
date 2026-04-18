@@ -146,7 +146,8 @@ export default function BreachResponse() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -174,8 +175,7 @@ export default function BreachResponse() {
         records:     c.estimated_records_affected ?? 0,
         notifiable:  c.notifiable ?? false,
         deadline:    c.regulatory_deadline ?? "—",
-      
-    setLoading(false);}))
+      }))
     : BREACH_CASES;
 
   if (loading) return (
@@ -257,7 +257,6 @@ export default function BreachResponse() {
                 )}
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>
@@ -320,7 +319,6 @@ export default function BreachResponse() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -366,7 +364,6 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -415,7 +412,6 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>

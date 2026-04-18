@@ -273,7 +273,6 @@ export default function ThreatHuntingDashboard() {
               </Button>
             </div>
           ))}
-          )}
         </CardContent>
       </Card>
 
@@ -361,7 +360,6 @@ export default function ThreatHuntingDashboard() {
                 </Button>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

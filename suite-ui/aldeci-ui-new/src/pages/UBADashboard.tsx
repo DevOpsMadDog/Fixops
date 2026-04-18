@@ -156,7 +156,8 @@ export default function UBADashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -194,8 +195,7 @@ export default function UBADashboard() {
         type:     e.event_type ?? "failed_login",
         ip:       e.source_ip ?? "—",
         ts:       e.timestamp ?? e.created_at ?? "—",
-      
-    setLoading(false);}))
+      }))
     : ANOMALY_EVENTS;
 
   if (loading) return (
@@ -302,7 +302,6 @@ export default function UBADashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -343,7 +342,6 @@ export default function UBADashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -373,7 +371,6 @@ export default function UBADashboard() {
                   <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10 shrink-0">anomalous</Badge>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -410,7 +407,6 @@ export default function UBADashboard() {
                 <span className="text-[10px] text-muted-foreground">{d.users} users</span>
               </div>
             ))}
-            )}
           </div>
         </CardContent>
       </Card>

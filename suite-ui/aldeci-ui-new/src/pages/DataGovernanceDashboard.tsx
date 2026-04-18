@@ -369,7 +369,6 @@ export default function DataGovernanceDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
       </div>

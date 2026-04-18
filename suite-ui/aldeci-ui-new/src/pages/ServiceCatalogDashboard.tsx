@@ -144,7 +144,8 @@ export default function ServiceCatalogDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const activeServices = MOCK_SERVICES.filter(s => s.status === "active").length;
@@ -160,8 +161,7 @@ export default function ServiceCatalogDashboard() {
     const met = reqs.filter(r => r.sla_met === true).length;
     const total = reqs.filter(r => r.sla_met !== null).length;
     return { ...svc, req_count: reqs.length, sla_met: met, total_measured: total, compliance: total ? Math.round((met / total) * 100) : null };
-  
-    setLoading(false);});
+  });
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -269,7 +269,6 @@ export default function ServiceCatalogDashboard() {
                     </td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>
@@ -313,7 +312,6 @@ export default function ServiceCatalogDashboard() {
                       </td>
                     </tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -367,7 +365,6 @@ export default function ServiceCatalogDashboard() {
                   </div>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
         </div>

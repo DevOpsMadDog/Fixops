@@ -133,7 +133,8 @@ export default function GapAnalysisDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const today = new Date("2026-04-16");
   const overdueGaps = MOCK_GAPS.filter(g => g.status === "open" && new Date(g.due_date) < today);
@@ -218,7 +219,6 @@ export default function GapAnalysisDashboard() {
               </div>
             </button>
           ))}
-          )}
         </div>
       </div>
 
@@ -264,7 +264,6 @@ export default function GapAnalysisDashboard() {
                   <td className="py-2.5"><RiskBadge r={a.risk_level} /></td>
                 </tr>
               ))}
-              )}
             </tbody>
           </table>
         </div>
@@ -296,7 +295,6 @@ export default function GapAnalysisDashboard() {
                 </div>
               );
             })}
-            )}
           </div>
         </div>
 
@@ -326,7 +324,6 @@ export default function GapAnalysisDashboard() {
                 <p className="text-[10px] text-gray-500 mt-2">{r.owner}</p>
               </div>
             ))}
-            )}
           </div>
         </div>
       </div>

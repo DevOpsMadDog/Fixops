@@ -162,8 +162,8 @@ export default function RiskScenarioDashboard() {
     fetch("/api/v1/risk-scenarios", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [sortField, setSortField] = useState<"residual_risk" | "inherent_risk">("residual_risk");
   const [loading, setLoading] = useState(true);
@@ -250,7 +250,6 @@ export default function RiskScenarioDashboard() {
                     </div>
                   );
                 })
-              )}
             </div>
           </div>
           <div className="flex gap-3 mt-4 flex-wrap">
@@ -301,7 +300,6 @@ export default function RiskScenarioDashboard() {
                 <span className={`text-xs font-bold ${riskText[r.risk_level]}`}>{r.residual_risk}</span>
               </div>
             ))}
-            )}
           </div>
         </div>
 
@@ -411,7 +409,6 @@ export default function RiskScenarioDashboard() {
                     </td>
                   </tr>
                 ))}
-                )}
               </tbody>
             </table>
           </div>

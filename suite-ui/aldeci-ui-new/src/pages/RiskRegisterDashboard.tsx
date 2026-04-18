@@ -105,11 +105,11 @@ export default function RiskRegisterDashboard() {
     ]).then(([risksRes, statsRes]) => {
       if (risksRes.status === "fulfilled") setLiveRisks(risksRes.value?.risks ?? risksRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const risks = liveRisks ?? MOCK_RISKS;
   const stats = liveStats ?? MOCK_STATS;
@@ -209,7 +209,6 @@ export default function RiskRegisterDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

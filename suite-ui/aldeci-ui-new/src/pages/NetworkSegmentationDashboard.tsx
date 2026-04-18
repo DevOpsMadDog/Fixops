@@ -144,7 +144,8 @@ export default function NetworkSegmentationDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const stats    = liveData ?? MOCK_STATS;
   const segments = liveData?.segments ?? MOCK_SEGMENTS;
@@ -237,7 +238,6 @@ export default function NetworkSegmentationDashboard() {
                       <TableCell className="py-2"><TrustBadge level={seg.trust_level} /></TableCell>
                     </TableRow>
                   ))}
-                  )}
                 </TableBody>
               </Table>
             </div>

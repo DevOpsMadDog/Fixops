@@ -161,7 +161,8 @@ export default function HuntingAutomationDashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  
+    setLoading(false);}, []);
 
   const totalHypotheses = MOCK_HYPOTHESES.length;
   const validated = MOCK_HYPOTHESES.filter(h => h.validated).length;
@@ -276,7 +277,6 @@ export default function HuntingAutomationDashboard() {
               </div>
             </Card>
           ))}
-          )}
         </div>
 
         {/* High-yield Queries Panel */}
@@ -313,7 +313,6 @@ export default function HuntingAutomationDashboard() {
                   </Button>
                 </div>
               ))}
-              )}
             </CardContent>
           </Card>
         </div>

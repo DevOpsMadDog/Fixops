@@ -388,7 +388,6 @@ function EvidenceTable({ items, onUpload }: EvidenceTableProps) {
               </motion.tr>
             );
           })}
-          )}
         </TableBody>
       </Table>
     </div>
@@ -453,7 +452,6 @@ function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
           </div>
         </motion.div>
       ))}
-      )}
     </div>
   );
 }
@@ -530,7 +528,6 @@ function AuditTimeline({ milestones }: { milestones: AuditMilestone[] }) {
                 </div>
               );
             })}
-            )}
           </div>
         </div>
       </div>
@@ -697,7 +694,6 @@ export default function ComplianceDashboard() {
             fwData.map((fw) => (
             <FrameworkCard key={fw.id} fw={fw} />
           ))}
-          )}
         </div>
       </section>
 

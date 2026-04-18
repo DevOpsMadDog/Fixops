@@ -169,7 +169,8 @@ export default function CMDBDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -205,8 +206,7 @@ export default function CMDBDashboard() {
         by:     c.changed_by  ?? "—",
         date:   c.change_date ?? c.created_at ?? "—",
         status: "completed",
-      
-    setLoading(false);}))
+      }))
     : RECENT_CHANGES;
 
   if (loading) return (
@@ -312,7 +312,6 @@ export default function CMDBDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -353,7 +352,6 @@ export default function CMDBDashboard() {
                 </div>
               </div>
             ))}
-            )}
           </CardContent>
         </Card>
 
@@ -383,7 +381,6 @@ export default function CMDBDashboard() {
                   <span className="text-[10px] text-muted-foreground">{e.pct}% of total</span>
                 </div>
               ))}
-              )}
             </div>
           </CardContent>
         </Card>
@@ -441,7 +438,6 @@ export default function CMDBDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

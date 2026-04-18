@@ -293,8 +293,7 @@ export default function VulnLifecycle() {
     retry: 1,
     staleTime: 30_000,
     initialData: MOCK_VULNS,
-  
-    setLoading(false);});
+  });
 
   const transition = useMutation({
     mutationFn: async ({ id, next }: { id: string; next: VulnState }) => {

@@ -123,8 +123,8 @@ export default function SecurityRegistryDashboard() {
     fetch("/api/v1/security-registry", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); 
-    setLoading(false);});
+      .catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = filterStatus === "all"
@@ -187,7 +187,6 @@ export default function SecurityRegistryDashboard() {
             <p className="text-xs text-gray-500 capitalize">{ts.type}s</p>
           </motion.div>
         ))}
-        )}
       </div>
 
       {/* Filter Tabs */}
@@ -269,7 +268,6 @@ export default function SecurityRegistryDashboard() {
                   <TableCell className="text-right text-sm text-gray-300">{artifact.review_count}</TableCell>
                 </motion.tr>
               ))}
-              )}
             </TableBody>
           </Table>
         </CardContent>

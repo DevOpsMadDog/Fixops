@@ -110,7 +110,8 @@ export default function SoftwareLicenseDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -243,7 +244,6 @@ export default function SoftwareLicenseDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -296,7 +296,6 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2"><ViolationStatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

@@ -140,7 +140,8 @@ export default function ITDRDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); 
+    setLoading(false);}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -231,7 +232,6 @@ export default function ITDRDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(t.detected_at)}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
@@ -286,7 +286,6 @@ export default function ITDRDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.executed_at)}</TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>

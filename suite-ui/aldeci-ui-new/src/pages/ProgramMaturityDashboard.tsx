@@ -50,12 +50,12 @@ export default function ProgramMaturityDashboard() {
   const [showAddDomain, setShowAddDomain] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
+      .finally(() => setLoading(false));
   }, []);
   const [showAddImprovement, setShowAddImprovement] = useState(false);
   const [newDomain, setNewDomain] = useState({ domain_name: "", domain_type: "identity", current_level: 1, target_level: 3 });
-  const [newImprovement, setNewImprovement] = useState({ domain_id: "d-001", improvement_name: "", priority: "medium", target_level: 3, effort_days: 30, due_date: "" 
-    setLoading(false);});
+  const [newImprovement, setNewImprovement] = useState({ domain_id: "d-001", improvement_name: "", priority: "medium", target_level: 3, effort_days: 30, due_date: "" });
   const [loading, setLoading] = useState(true);
 
   const avgCurrentLevel = (domains.reduce((a, d) => a + d.current_level, 0) / domains.length).toFixed(1);
@@ -198,7 +198,6 @@ export default function ProgramMaturityDashboard() {
                   </div>
                 );
               })}
-              )}
             </div>
           </>
         )}
@@ -239,7 +238,6 @@ export default function ProgramMaturityDashboard() {
                       <td className="px-4 py-3 text-gray-400">{a.completed_at || "—"}</td>
                     </tr>
                   ))}
-                  )}
                 </tbody>
               </table>
             </div>
@@ -321,7 +319,6 @@ export default function ProgramMaturityDashboard() {
                   </div>
                 );
               })}
-              )}
             </div>
           </div>
         )}

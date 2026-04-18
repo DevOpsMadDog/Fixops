@@ -101,11 +101,11 @@ export default function VulnPrioritizationDashboard() {
     ]).then(([queueRes, statsRes]) => {
       if (queueRes.status === "fulfilled") setLiveQueue(queueRes.value?.queue ?? queueRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    });
+    })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); 
-    setLoading(false);};
+  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const queue = liveQueue ?? MOCK_QUEUE;
   const stats = liveStats ?? MOCK_STATS;
@@ -205,7 +205,6 @@ export default function VulnPrioritizationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                )}
               </TableBody>
             </Table>
           </div>
