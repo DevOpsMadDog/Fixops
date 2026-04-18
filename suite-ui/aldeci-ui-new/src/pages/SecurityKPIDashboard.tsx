@@ -326,7 +326,6 @@ function Sparkline({ data, label, trend }: { data: number[]; label: string; tren
             />
           );
         })}
-        )}
       </div>
     </div>
   );
