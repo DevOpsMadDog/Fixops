@@ -1,7 +1,7 @@
 {
-  "tool_name": "Glob",
-  "tool_input_preview": "{\"pattern\":\"/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/*.tsx\"}",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-18T02:31:19.593Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec git check-ignore -v scripts/bulk_mark_done.py scripts/bulk_mark_subtasks_done.py 2>&1\"}",
+  "error": "Exit code 1",
+  "timestamp": "2026-04-18T02:34:31.601Z",
   "retry_count": 1
 }
