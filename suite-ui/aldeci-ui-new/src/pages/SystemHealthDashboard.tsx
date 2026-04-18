@@ -174,6 +174,17 @@ function ScoreGauge({ score }: { score: number }) {
 
   return (
     <div className="flex flex-col items-center gap-2">
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <svg width="180" height="100" viewBox="0 0 180 100" className="overflow-visible">
         {/* Track */}
         <path

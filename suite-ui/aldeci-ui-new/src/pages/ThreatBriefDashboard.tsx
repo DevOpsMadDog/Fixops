@@ -179,6 +179,17 @@ export default function ThreatBriefDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <PageHeader
         title="Threat Briefs"
         description="Curated threat intelligence briefs by type with TLP classification and distribution tracking"

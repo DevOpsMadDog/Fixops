@@ -138,6 +138,17 @@ function Sparkline({ data }: { data: Snapshot[] }) {
   const pts = data.map((d, i) => `${toX(i)},${toY(d.score)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} className="w-full h-16">
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <polyline
         points={pts}
         fill="none"
