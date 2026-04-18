@@ -68,6 +68,17 @@ function RiskBadge({ level }: { level: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border")}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {level}
     </Badge>
   );
@@ -93,12 +104,13 @@ function LangBadge({ lang }: { lang: string }) {
 
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
   useEffect(() => {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;
@@ -108,7 +120,7 @@ export default function SCADashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {})
+      .catch(() => { setError('Failed to load data'); })
       .finally(() => setRefreshing(false));
   };
 

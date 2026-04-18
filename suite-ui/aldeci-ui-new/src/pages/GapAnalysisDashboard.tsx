@@ -121,8 +121,17 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 export default function GapAnalysisDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
+    apiFetch(`/api/v1/gap-analysis/assessments?org_id=${ORG_ID}`).catch((err) => {
+      setFetchError(err instanceof Error ? err.message : "Failed to load gap analysis data");
+    });
+  };
+
   useEffect(() => {
-    apiFetch(`/api/v1/gap-analysis/assessments?org_id=${ORG_ID}`).catch(() => {});
+    loadData();
   }, []);
 
   const today = new Date("2026-04-16");
@@ -143,6 +152,14 @@ export default function GapAnalysisDashboard() {
           <p className="text-gray-400 text-sm mt-1">Framework coverage gaps, control status, and remediation tracking</p>
         </div>
       </div>
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* Overdue Banner */}
       {overdueGaps.length > 0 && (

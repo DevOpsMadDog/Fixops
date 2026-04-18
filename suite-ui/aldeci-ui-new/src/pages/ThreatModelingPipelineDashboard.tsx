@@ -129,6 +129,17 @@ function RiskGauge({ score }: { score: 1 | 2 | 3 | 4 }) {
   const cfg = RISK_SCORE_CONFIG[score];
   return (
     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold ${cfg.bg} ${cfg.color}`}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {Array.from({ length: 4 }, (_, i) => (
         <span key={i} className={`w-2 h-2 rounded-sm ${i < score ? "" : "opacity-20"}`}
           style={{ backgroundColor: i < score ? (score === 4 ? "#ef4444" : score === 3 ? "#f97316" : score === 2 ? "#eab308" : "#6b7280") : "#374151" }} />
@@ -154,11 +165,12 @@ function MatrixCell({ likelihood, impact }: { likelihood: number; impact: number
 
 export default function ThreatModelingPipelineDashboard() {
   const [showAddPanel, setShowAddPanel] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);

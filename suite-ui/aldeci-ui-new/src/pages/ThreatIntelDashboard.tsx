@@ -178,6 +178,17 @@ function FeedCard({ feed, index }: { feed: Feed; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
     >
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <Card className="relative overflow-hidden group hover:border-primary/30 transition-colors duration-200">
         {/* status accent strip */}
         <div
@@ -226,7 +237,7 @@ function IocRow({ ioc, index }: { ioc: IOC; index: number }) {
   const TypeIcon = typeCfg.icon;
 
   function handleCopy() {
-    navigator.clipboard.writeText(ioc.value).catch(() => {});
+    navigator.clipboard.writeText(ioc.value).catch(() => { setError('Failed to load data'); });
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -278,6 +289,7 @@ function IocRow({ ioc, index }: { ioc: IOC; index: number }) {
 
 export default function ThreatIntelDashboard() {
   const [search, setSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const { data: feeds, isLoading: feedsLoading, refetch: refetchFeeds } = useQuery<Feed[]>({
     queryKey: ["feeds-status"],

@@ -107,6 +107,17 @@ const TYPE_COLORS: Record<string, string> = {
 function TypeBadge({ type }: { type: string }) {
   return (
     <Badge className={cn("text-[10px] border capitalize", TYPE_COLORS[type] ?? "border-border text-muted-foreground")}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {type.replace("_", " ")}
     </Badge>
   );
@@ -131,11 +142,12 @@ function fmtCount(n: number) {
 
 export default function ThreatFeedDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [iocQuery, setIocQuery] = useState("");
   const [iocType, setIocType] = useState("All");
 
   useEffect(() => {
-    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showResults, setShowResults] = useState(false);
 

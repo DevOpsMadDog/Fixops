@@ -76,6 +76,17 @@ function RiskBar({ score }: { score: number }) {
   const color = riskColor(score);
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex-1 bg-gray-700 rounded-full h-2">
         <div className="h-2 rounded-full" style={{ width: `${(score / 10) * 100}%`, backgroundColor: color }} />
       </div>
@@ -119,12 +130,13 @@ function LicenseRiskBadge({ level }: { level: string }) {
 
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
+  const [error, setError] = useState<string | null>(null);
   const [vulns, setVulns] = useState(MOCK_VULNS);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setVulns(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const filteredDeps = activeEco === "All"

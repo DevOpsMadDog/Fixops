@@ -58,6 +58,17 @@ function ConfidenceBar({ score }: { score: number }) {
   const color = confidenceColor(score);
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       <div className="flex-1 bg-gray-700 rounded-full h-2">
         <div className="h-2 rounded-full transition-all" style={{ width: `${score * 100}%`, backgroundColor: color }} />
       </div>
@@ -152,6 +163,7 @@ function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
 
 export default function ThreatIntelConfidenceDashboard() {
   const [iocs, setIocs] = useState(MOCK_IOCS);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
 
@@ -159,7 +171,7 @@ export default function ThreatIntelConfidenceDashboard() {
     apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
       if (Array.isArray(d?.iocs)) setIocs(d.iocs);
       else if (Array.isArray(d)) setIocs(d);
-    }).catch(() => {});
+    }).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const filtered = search

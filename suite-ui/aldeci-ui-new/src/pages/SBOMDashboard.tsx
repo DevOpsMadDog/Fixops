@@ -110,6 +110,17 @@ function AssetTypeBadge({ type }: { type: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[type] ?? "border-border")}>
+    {error && (
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => { setError(null); window.location.reload(); }}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )}
       {type}
     </Badge>
   );
@@ -140,6 +151,7 @@ function VulnCount({ count }: { count: number }) {
 
 export default function SBOMDashboard() {
   const [sboms, setSboms] = useState<any[]>(MOCK_SBOMS);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState(MOCK_STATS);
   const [selectedSbom, setSelectedSbom] = useState<any | null>(null);
   const [components, setComponents] = useState<any[]>([]);
@@ -183,7 +195,7 @@ export default function SBOMDashboard() {
     apiFetch(`/api/v1/sbom/assets/${sbom.id}/components?org_id=${ORG_ID}`).then((data) => {
       if (Array.isArray(data) && data.length > 0) setComponents(data);
       else if (Array.isArray(data?.components) && data.components.length > 0) setComponents(data.components);
-    }).catch(() => {});
+    }).catch(() => { setError('Failed to load data'); });
   };
 
   const handleExport = async (sbomId: string, format: string) => {
