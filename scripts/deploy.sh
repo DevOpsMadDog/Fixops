@@ -37,7 +37,7 @@ for arg in "$@"; do
         --skip-prereq) DO_PREREQ=false ;;
         --down)        DO_DOWN=true ;;
         --help|-h)
-            sed -n '2,17p' "$0" | sed 's/^# //' | sed 's/^#//'
+            sed -n '2,16p' "$0" | sed 's/^# //' | sed 's/^#//'
             exit 0
             ;;
         *)

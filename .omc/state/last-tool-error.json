@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_aldeci_client.py -v --timeout=10 -q 2>&1\"}",
-  "error": "Exit code 3\ncachedir: .pytest_cache\ntimeout: 10.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 48 items\n\nINTERNALERROR> Traceback (most recent call last):\nINTERNALERROR>   File \"/opt/homebrew/lib/python3.11/site-packages/coverage/sqlitedb.py\", line 122, in _execute\nINTERNALERROR>     return self.con.execute(sql, parameters)  # type: ignore[arg-type]...",
-  "timestamp": "2026-04-18T05:06:37.234Z",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec bash -n /Users/devops.ai/fixops/Fixops/scripts/deploy_local.sh && echo \\\"deploy_local.sh: syntax OK\\\"\"}",
+  "error": "Exit code 2\n/Users/devops.ai/fixops/Fixops/scripts/deploy_local.sh: line 372: syntax error near unexpected token `('\n/Users/devops.ai/fixops/Fixops/scripts/deploy_local.sh: line 372: `        (cd \"${UI_DIR}\" && npm run dev -- --port \"${UI_PORT}\" --host 0.0.0.0) \\'",
+  "timestamp": "2026-04-18T05:08:58.556Z",
   "retry_count": 1
 }
