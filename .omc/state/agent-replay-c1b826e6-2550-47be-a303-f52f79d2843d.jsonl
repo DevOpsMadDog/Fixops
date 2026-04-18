@@ -329,3 +329,8 @@
 {"t":0,"agent":"a6a6139","agent_type":"Explore","event":"agent_stop","success":true}
 {"t":0,"agent":"a020959","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"a4876d9","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"a802230","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a9b1468","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"af31a3d","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a83e25d","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a594822","agent_type":"executor","event":"agent_start","parent_mode":"none"}
