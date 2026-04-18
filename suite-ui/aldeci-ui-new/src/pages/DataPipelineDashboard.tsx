@@ -195,6 +195,7 @@ export default function DataPipelineDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

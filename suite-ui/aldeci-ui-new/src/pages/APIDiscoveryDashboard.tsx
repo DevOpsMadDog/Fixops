@@ -220,6 +220,7 @@ export default function APIDiscoveryDashboard() {
                     <TableCell className="py-2"><EndpointStatusBadge status={ep.status ?? "documented"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

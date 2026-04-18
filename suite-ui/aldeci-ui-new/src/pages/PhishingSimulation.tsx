@@ -261,6 +261,7 @@ export default function PhishingSimulation() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -306,6 +307,7 @@ export default function PhishingSimulation() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -344,6 +346,7 @@ export default function PhishingSimulation() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -392,6 +395,7 @@ export default function PhishingSimulation() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

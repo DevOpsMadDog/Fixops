@@ -200,6 +200,7 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -249,6 +250,7 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

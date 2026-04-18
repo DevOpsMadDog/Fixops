@@ -285,6 +285,7 @@ export default function PostureTrendsDashboard() {
                 {m.metric_name} ({m.current_value} {m.unit})
               </span>
             ))}
+            )}
           </div>
         </div>
       )}
@@ -312,6 +313,7 @@ export default function PostureTrendsDashboard() {
             {categoryLabels[cat]}
           </button>
         ))}
+        )}
       </div>
 
       {/* Metric Trend Cards */}
@@ -372,6 +374,7 @@ export default function PostureTrendsDashboard() {
             </div>
           );
         })}
+        )}
       </div>
 
       {/* Targets Progress Table */}
@@ -410,6 +413,7 @@ export default function PostureTrendsDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -257,6 +257,7 @@ export default function SecurityToolInventoryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -303,6 +304,7 @@ export default function SecurityToolInventoryDashboard() {
                     <TableCell className="py-2">{scoreBar(a.utilization_pct ?? 0)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

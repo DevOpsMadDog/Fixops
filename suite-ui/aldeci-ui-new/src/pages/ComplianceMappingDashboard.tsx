@@ -189,6 +189,7 @@ export default function ComplianceMappingDashboard() {
                 <ProgressBar value={fw.implementation_rate} />
               </motion.div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -239,6 +240,7 @@ export default function ComplianceMappingDashboard() {
                   <TableCell className="text-right text-sm text-gray-300">{ctrl.mappings}</TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -258,6 +260,7 @@ export default function ComplianceMappingDashboard() {
                   {["Access Control","Monitoring","Encryption","Incident Resp","Audit Logging","Risk Mgmt","Vendor Mgmt","Training"].map((h) => (
                     <th key={h} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{h}</th>
                   ))}
+              )}
                 </tr>
               </thead>
               <tbody>
@@ -292,9 +295,11 @@ export default function ComplianceMappingDashboard() {
                           </td>
                         );
                       })}
+                )}
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>

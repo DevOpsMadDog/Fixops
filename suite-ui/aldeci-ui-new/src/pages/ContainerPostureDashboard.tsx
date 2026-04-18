@@ -208,6 +208,7 @@ export default function ContainerPostureDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

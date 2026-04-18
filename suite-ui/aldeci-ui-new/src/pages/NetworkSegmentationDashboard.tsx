@@ -238,6 +238,7 @@ export default function NetworkSegmentationDashboard() {
                       <TableCell className="py-2"><TrustBadge level={seg.trust_level} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

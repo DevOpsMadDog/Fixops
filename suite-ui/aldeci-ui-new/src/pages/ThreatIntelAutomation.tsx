@@ -177,6 +177,7 @@ export default function ThreatIntelAutomation() {
                     <TableCell className="py-2 text-right"><StatusBadge status={rule.status ?? "active"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

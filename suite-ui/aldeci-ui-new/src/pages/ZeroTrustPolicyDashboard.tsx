@@ -386,6 +386,7 @@ export default function ZeroTrustPolicyDashboard() {
                     <span className="text-[10px] text-muted-foreground/60 tabular-nums shrink-0">{v.ts}</span>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>

@@ -207,6 +207,7 @@ export default function DataDiscoveryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

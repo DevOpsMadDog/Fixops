@@ -197,6 +197,7 @@ export default function ServiceAccountAuditDashboard() {
                     <TableCell className="py-2"><ActionBadge action={a.action} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

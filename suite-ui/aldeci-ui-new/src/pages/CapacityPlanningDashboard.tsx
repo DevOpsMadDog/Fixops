@@ -294,11 +294,13 @@ export default function CapacityPlanningDashboard() {
                         {r.skills.map(s => (
                           <Badge key={s} className="text-[9px] border border-border text-muted-foreground">{s}</Badge>
                         ))}
+                )}
                       </div>
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge s={r.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -357,6 +359,7 @@ export default function CapacityPlanningDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.timeline}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -391,6 +394,7 @@ export default function CapacityPlanningDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

@@ -225,10 +225,12 @@ export default function AlertEnrichmentDashboard() {
                         <span className="text-gray-500 ml-auto">{fmt(h.enriched_at)}</span>
                       </div>
                     ))}
+            )}
                   </motion.div>
                 )}
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -258,6 +260,7 @@ export default function AlertEnrichmentDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
 
@@ -292,6 +295,7 @@ export default function AlertEnrichmentDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>

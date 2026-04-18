@@ -222,6 +222,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
           />
         );
       })}
+      )}
 
       {/* Arrow marker */}
       <defs>
@@ -285,6 +286,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
           </g>
         );
       })}
+      )}
     </svg>
   );
 }

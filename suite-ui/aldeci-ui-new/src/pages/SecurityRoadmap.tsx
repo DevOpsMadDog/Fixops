@@ -281,6 +281,7 @@ export default function SecurityRoadmap() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -322,6 +323,7 @@ export default function SecurityRoadmap() {
                     </div>
                   </div>
                 ))}
+                )}
               </div>
             </div>
           </CardContent>
@@ -357,6 +359,7 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -401,6 +404,7 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

@@ -231,6 +231,7 @@ export default function IOCHunter() {
                   {t}
                 </button>
               ))}
+              )}
             </div>
             <Input
               placeholder="Enter IP, domain, hash, URL, or email…"
@@ -308,6 +309,7 @@ export default function IOCHunter() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -386,6 +388,7 @@ export default function IOCHunter() {
               </CardContent>
             </Card>
           ))}
+          )}
 
           {/* Recent additions */}
           <Card>
@@ -407,6 +410,7 @@ export default function IOCHunter() {
                   <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{r.ts}</span>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

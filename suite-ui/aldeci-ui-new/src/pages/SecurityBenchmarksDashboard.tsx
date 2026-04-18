@@ -222,6 +222,7 @@ export default function SecurityBenchmarksDashboard() {
             {s === "all" ? "All Sectors" : s}
           </button>
         ))}
+        )}
       </div>
 
       {/* Benchmark cards */}
@@ -280,6 +281,7 @@ export default function SecurityBenchmarksDashboard() {
             </div>
           );
         })}
+        )}
       </div>
     </div>
   );

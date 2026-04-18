@@ -187,6 +187,7 @@ export default function PostureScoringDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import NotFound from "@/pages/NotFound";
 import { RequireAuth, RequireRole } from "@/lib/auth";
+import { useAppStore } from "@/stores";
 
 // Auth
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
@@ -495,6 +496,17 @@ const MLDashboard = lazy(() => import("@/pages/ai/MLDashboard"));
 const Predictions = lazy(() => import("@/pages/ai/Predictions"));
 
 export default function App() {
+  const theme = useAppStore((s) => s.preferences.theme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("light");
+    } else {
+      root.classList.remove("light");
+    }
+  }, [theme]);
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageSkeleton />}>

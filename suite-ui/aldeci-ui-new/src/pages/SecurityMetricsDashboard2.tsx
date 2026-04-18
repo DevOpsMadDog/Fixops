@@ -223,6 +223,7 @@ export default function SecurityMetricsDashboard2() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -260,6 +261,7 @@ export default function SecurityMetricsDashboard2() {
                   </div>
                 );
               })}
+              )}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>12 readings ago</span>
@@ -309,6 +311,7 @@ export default function SecurityMetricsDashboard2() {
                       size="sm"
                       className="h-6 px-2 text-[10px] shrink-0"
                       onClick={() => setAcked((prev) => new Set([...prev, a.id]))}
+              )}
                     >
                       Ack
                     </Button>
@@ -317,6 +320,7 @@ export default function SecurityMetricsDashboard2() {
                   )}
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -361,6 +365,7 @@ export default function SecurityMetricsDashboard2() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.monthly_avg}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

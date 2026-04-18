@@ -357,6 +357,7 @@ export default function XDRDashboard() {
                   </div>
                 </motion.div>
               ))}
+              )}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-muted/40 inline-block border border-border" />None</span>
@@ -395,6 +396,7 @@ export default function XDRDashboard() {
                 <div className="text-[10px] text-blue-400">{rule.mitre_tactic}</div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

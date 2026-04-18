@@ -329,6 +329,7 @@ export default function CNAPPDashboard() {
                     HEATMAP_SEVS.map((s) => (
                     <th key={s} className="pb-2 px-2 text-[11px] text-center font-medium text-muted-foreground">{s}</th>
                   ))}
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -348,8 +349,10 @@ export default function CNAPPDashboard() {
                         </span>
                       </td>
                     ))}
+                )}
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -408,6 +411,7 @@ export default function CNAPPDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

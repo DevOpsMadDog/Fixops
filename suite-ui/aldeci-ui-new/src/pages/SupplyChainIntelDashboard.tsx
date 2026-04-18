@@ -418,6 +418,7 @@ export default function SupplyChainIntelDashboard() {
                       </div>
                     </div>
                   ))}
+                  )}
                 </>
               )}
             </div>
@@ -428,6 +429,7 @@ export default function SupplyChainIntelDashboard() {
                 {["OSV", "NVD", "Snyk Intel", "Socket.dev", "Sonatype", "MalwareBazaar"].map((s) => (
                   <Badge key={s} className="text-[10px] border border-border text-muted-foreground">{s}</Badge>
                 ))}
+                  )}
               </div>
             </div>
           </CardContent>

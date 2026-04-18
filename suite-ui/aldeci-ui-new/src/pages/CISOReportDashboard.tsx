@@ -332,6 +332,7 @@ export default function CISOReportDashboard() {
                   <span className="text-muted-foreground leading-relaxed">{bullet}</span>
                 </li>
               ))}
+              )}
             </ul>
           </CardContent>
         </Card>
@@ -432,6 +433,7 @@ export default function CISOReportDashboard() {
                       <Badge
                         variant={severityVariant(risk.severity)}
                         className={cn("capitalize", severityClass(risk.severity))}
+                )}
                       >
                         {risk.severity}
                       </Badge>
@@ -453,6 +455,7 @@ export default function CISOReportDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

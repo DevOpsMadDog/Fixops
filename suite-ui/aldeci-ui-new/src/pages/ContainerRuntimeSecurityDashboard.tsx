@@ -244,6 +244,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><ContainerStatusBadge status={c.status ?? "running"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -294,6 +295,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(v.timestamp)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

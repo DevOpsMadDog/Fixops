@@ -244,6 +244,7 @@ export default function CloudIdentityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -290,6 +291,7 @@ export default function CloudIdentityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(rev.reviewed_at)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -195,6 +195,7 @@ function TierDonut({ assets }: { assets: Asset[] }) {
             strokeLinecap="butt"
           />
         ))}
+        )}
         <text x={cx} y={cy + 6} textAnchor="middle" fontSize="22" fontWeight="bold" fill="white">{total}</text>
         <text x={cx} y={cy + 18} textAnchor="middle" fontSize="8" fill="#94a3b8">assets</text>
       </svg>
@@ -212,6 +213,7 @@ function TierDonut({ assets }: { assets: Asset[] }) {
             <span className="text-gray-500">({counts[i]})</span>
           </div>
         ))}
+        )}
       </div>
     </div>
   );
@@ -245,6 +247,7 @@ function CriticalPath({ assets, rootId }: { assets: Asset[]; rootId: string }) {
           {i < chain.length - 1 && <span className="text-gray-500">→</span>}
         </div>
       ))}
+      )}
     </div>
   );
 }
@@ -263,6 +266,7 @@ export default function AssetCriticalityDashboard() {
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
       ))}
+      )}
     </div>
   );
 
@@ -341,6 +345,7 @@ export default function AssetCriticalityDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -409,6 +414,7 @@ export default function AssetCriticalityDashboard() {
                   </div>
                 );
               })}
+              )}
             </div>
           </div>
         </div>

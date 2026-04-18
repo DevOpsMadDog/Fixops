@@ -268,6 +268,7 @@ export default function PostureReportingDashboard() {
               <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
             </motion.div>
           ))}
+          )}
         </div>
 
         {/* Right Panel */}
@@ -300,6 +301,7 @@ export default function PostureReportingDashboard() {
                   )}
                 </div>
               ))}
+          )}
             </CardContent>
           </Card>
 
@@ -363,6 +365,7 @@ export default function PostureReportingDashboard() {
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>

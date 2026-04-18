@@ -433,6 +433,7 @@ export default function FirewallAnalyzer() {
                       </TableCell>
                     </motion.tr>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -501,6 +502,7 @@ export default function FirewallAnalyzer() {
               </Card>
             </motion.div>
           ))}
+          )}
         </div>
       </motion.div>
 
@@ -552,6 +554,7 @@ export default function FirewallAnalyzer() {
                     </div>
                   );
                 })}
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-3 text-center">
                 +158 rules added over 12 months (+14.5% rule bloat)

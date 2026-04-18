@@ -198,6 +198,7 @@ export default function PostureHistoryDashboard() {
             </div>
           );
         })}
+        )}
       </div>
 
       {/* Trend Chart */}
@@ -226,6 +227,7 @@ export default function PostureHistoryDashboard() {
               </div>
             );
           })}
+          )}
         </div>
       </div>
 
@@ -266,6 +268,7 @@ export default function PostureHistoryDashboard() {
                   <td className="py-3 text-gray-400 text-xs">{snap.source}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

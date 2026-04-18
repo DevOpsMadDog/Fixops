@@ -232,6 +232,7 @@ export default function PrivilegedIdentityDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -267,6 +268,7 @@ export default function PrivilegedIdentityDashboard() {
                 </div>
               </motion.div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>

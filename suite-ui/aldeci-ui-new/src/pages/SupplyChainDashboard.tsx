@@ -332,6 +332,7 @@ export default function SupplyChainDashboard() {
                   <span className="text-[11px] text-muted-foreground">{r.label}</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -370,6 +371,7 @@ export default function SupplyChainDashboard() {
                 )}
               </div>
             ))}
+              )}
             <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
               Last SBOM import: 2026-04-15 22:14 UTC &nbsp;·&nbsp; Format: CycloneDX 1.4
             </div>

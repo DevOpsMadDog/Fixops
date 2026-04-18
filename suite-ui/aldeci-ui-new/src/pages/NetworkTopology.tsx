@@ -223,6 +223,7 @@ export default function NetworkTopology() {
                     <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -262,6 +263,7 @@ export default function NetworkTopology() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -298,6 +300,7 @@ export default function NetworkTopology() {
               <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -350,6 +353,7 @@ export default function NetworkTopology() {
                     {i < pathResult.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                   </span>
                 ))}
+                )}
               </div>
             </motion.div>
           )}

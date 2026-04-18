@@ -205,6 +205,7 @@ export default function SecurityTelemetryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

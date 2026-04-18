@@ -244,6 +244,7 @@ export default function SoftwareLicenseDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -296,6 +297,7 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2"><ViolationStatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

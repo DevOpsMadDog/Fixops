@@ -270,6 +270,7 @@ export default function ActorTrackingDashboard() {
             </div>
           </div>
         ))}
+        )}
       </div>
 
       {/* Bottom: Activity feed + Intel panel + TTP bars */}
@@ -302,10 +303,12 @@ export default function ActorTrackingDashboard() {
                   {ev.affected_sectors.map(s => (
                     <span key={s} className="bg-gray-700 text-gray-400 text-xs px-1.5 py-0.5 rounded">{s}</span>
                   ))}
+            )}
                 </div>
                 <div className="text-gray-500 text-xs mt-1">{relativeTime(ev.timestamp)}</div>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -324,6 +327,7 @@ export default function ActorTrackingDashboard() {
                 {selected.ttps.map(t => (
                   <span key={t} className="bg-gray-700 text-gray-300 text-xs px-2 py-0.5 rounded-full">{t}</span>
                 ))}
+            )}
               </div>
             </div>
             {/* Intel entries */}
@@ -373,6 +377,7 @@ export default function ActorTrackingDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
       </div>

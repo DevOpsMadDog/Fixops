@@ -209,6 +209,7 @@ export default function BehavioralAnalyticsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

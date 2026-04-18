@@ -234,11 +234,13 @@ export default function CyberInsurance() {
                 {p.events.map((e) => (
                   <Badge key={e} className="text-[10px] border border-border text-muted-foreground">{e}</Badge>
                 ))}
+        )}
               </div>
               <Button variant="outline" size="sm" className="mt-auto h-7 text-xs w-full">View Details</Button>
             </CardContent>
           </Card>
         ))}
+        )}
       </div>
 
       {/* Risk Assessment + Claims */}
@@ -285,6 +287,7 @@ export default function CyberInsurance() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -316,6 +319,7 @@ export default function CyberInsurance() {
                 </Button>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -364,6 +368,7 @@ export default function CyberInsurance() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

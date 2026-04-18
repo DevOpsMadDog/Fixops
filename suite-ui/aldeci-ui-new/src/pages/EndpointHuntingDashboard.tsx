@@ -179,6 +179,7 @@ export default function EndpointHuntingDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

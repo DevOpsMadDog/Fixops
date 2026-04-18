@@ -156,6 +156,7 @@ export default function RansomwareProtectionDashboard() {
               </span>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

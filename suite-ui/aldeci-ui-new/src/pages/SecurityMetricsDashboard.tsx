@@ -216,6 +216,7 @@ export default function SecurityMetricsDashboard() {
                 <span className="text-[9px] text-muted-foreground">{m.month}</span>
               </div>
             ))}
+            )}
           </div>
           <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -276,6 +277,7 @@ export default function SecurityMetricsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -316,6 +318,7 @@ export default function SecurityMetricsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -366,6 +369,7 @@ export default function SecurityMetricsDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

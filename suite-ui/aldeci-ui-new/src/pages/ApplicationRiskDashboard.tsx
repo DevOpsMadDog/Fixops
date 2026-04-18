@@ -201,6 +201,7 @@ export default function ApplicationRiskDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

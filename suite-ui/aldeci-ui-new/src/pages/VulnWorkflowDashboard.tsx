@@ -205,6 +205,7 @@ export default function VulnWorkflowDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

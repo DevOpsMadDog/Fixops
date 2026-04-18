@@ -225,6 +225,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.last_scanned}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -277,6 +278,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2"><StatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

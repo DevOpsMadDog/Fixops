@@ -196,6 +196,7 @@ export default function CloudSecurityAnalyticsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -202,6 +202,7 @@ function AlertSeverityChart({ data }: { data: { severity: string; count: number 
             data.map((entry) => (
             <Cell key={entry.severity} fill={SEV_COLOUR[entry.severity] ?? "#6b7280"} />
           ))}
+          )}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -467,6 +468,7 @@ export default function MainOverviewDashboard() {
                     </div>
                   </motion.div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -519,6 +521,7 @@ export default function MainOverviewDashboard() {
                   </span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

@@ -224,6 +224,7 @@ export default function ComplianceGapDashboard() {
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.7, delay: i * 0.06 }}
                       className={cn("h-full rounded-full", complianceBar(pct))}
+            )}
                     />
                   </div>
                   <div className="text-[10px] text-muted-foreground">
@@ -232,6 +233,7 @@ export default function ComplianceGapDashboard() {
                 </motion.div>
               );
             })}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -291,6 +293,7 @@ export default function ComplianceGapDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

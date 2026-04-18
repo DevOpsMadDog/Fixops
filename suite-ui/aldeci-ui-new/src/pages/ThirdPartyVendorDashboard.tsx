@@ -218,6 +218,7 @@ export default function ThirdPartyVendorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

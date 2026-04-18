@@ -242,6 +242,7 @@ export default function IdentityAnalyticsDashboard() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -356,6 +357,7 @@ export default function IdentityAnalyticsDashboard() {
                       <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{ev.at}</TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -392,6 +394,7 @@ export default function IdentityAnalyticsDashboard() {
                 </Button>
               </div>
             ))}
+                  )}
           </CardContent>
         </Card>
       </div>
@@ -439,6 +442,7 @@ export default function IdentityAnalyticsDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

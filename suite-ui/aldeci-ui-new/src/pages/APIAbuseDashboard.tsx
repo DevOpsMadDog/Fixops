@@ -240,6 +240,7 @@ export default function APIAbuseDashboard() {
                     <TableCell className="py-2"><EndpointStatusBadge status={e.status ?? "normal"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -294,6 +295,7 @@ export default function APIAbuseDashboard() {
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

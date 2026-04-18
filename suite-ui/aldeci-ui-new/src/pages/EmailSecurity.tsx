@@ -444,6 +444,7 @@ export default function EmailSecurity() {
                   )}
                 </motion.div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -507,6 +508,7 @@ export default function EmailSecurity() {
                   </div>
                 );
               })}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -653,6 +655,7 @@ export default function EmailSecurity() {
                       </TableCell>
                     </motion.tr>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -705,6 +708,7 @@ export default function EmailSecurity() {
                   </motion.div>
                 );
               })}
+              )}
             </CardContent>
           </Card>
         </motion.div>

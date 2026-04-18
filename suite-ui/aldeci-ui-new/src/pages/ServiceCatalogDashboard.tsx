@@ -269,6 +269,7 @@ export default function ServiceCatalogDashboard() {
                     </td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -287,6 +288,7 @@ export default function ServiceCatalogDashboard() {
                     {["Requester", "Dept", "Service", "Priority", "Status", "Response", "Resolution", "SLA"].map(h => (
                       <th key={h} className="text-left py-2 px-1 text-zinc-500 font-medium whitespace-nowrap">{h}</th>
                     ))}
+                )}
                   </tr>
                 </thead>
                 <tbody>
@@ -312,6 +314,7 @@ export default function ServiceCatalogDashboard() {
                       </td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -337,6 +340,7 @@ export default function ServiceCatalogDashboard() {
                   )}
                 </div>
               ))}
+                  )}
             </CardContent>
           </Card>
 
@@ -365,6 +369,7 @@ export default function ServiceCatalogDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

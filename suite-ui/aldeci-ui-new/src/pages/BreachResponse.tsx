@@ -257,6 +257,7 @@ export default function BreachResponse() {
                 )}
               </div>
             ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -319,6 +320,7 @@ export default function BreachResponse() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -364,6 +366,7 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -412,6 +415,7 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

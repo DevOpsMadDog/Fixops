@@ -277,6 +277,7 @@ export default function NetworkAnomalyDashboard() {
                     </div>
                   );
                 })}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -306,6 +307,7 @@ export default function NetworkAnomalyDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
 
@@ -333,6 +335,7 @@ export default function NetworkAnomalyDashboard() {
                   <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date}</p>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

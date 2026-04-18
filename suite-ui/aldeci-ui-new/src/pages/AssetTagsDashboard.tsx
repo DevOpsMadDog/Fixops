@@ -174,6 +174,7 @@ export default function AssetTagsDashboard() {
               <p className="text-xs text-gray-500 mt-0.5">{cat.description}</p>
             </motion.div>
           ))}
+          )}
         </div>
       </div>
 
@@ -205,6 +206,7 @@ export default function AssetTagsDashboard() {
                   <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded-full">{tag.asset_count.toLocaleString()}</span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -268,6 +270,7 @@ export default function AssetTagsDashboard() {
                     MATRIX_TAG_COLS.map((col) => (
                     <th key={col} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{col}</th>
                   ))}
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -289,8 +292,10 @@ export default function AssetTagsDashboard() {
                         )}
                       </td>
                     ))}
+                )}
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>

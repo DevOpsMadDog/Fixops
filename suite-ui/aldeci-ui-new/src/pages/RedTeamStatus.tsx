@@ -346,6 +346,7 @@ export default function RedTeamStatus() {
                 <FeedStatusBadge status={evt.status} />
               </motion.div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -387,6 +388,7 @@ export default function RedTeamStatus() {
                   </span>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -444,6 +446,7 @@ export default function RedTeamStatus() {
               </div>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

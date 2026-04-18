@@ -224,6 +224,7 @@ export default function AlertTriageDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -135,6 +135,7 @@ function ChannelBreakdown() {
           <span className="text-xs text-gray-400 w-4 text-right">{count}</span>
         </div>
       ))}
+      )}
     </div>
   );
 }
@@ -175,6 +176,7 @@ export default function IncidentCommsDashboard() {
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
       ))}
+      )}
     </div>
   );
 
@@ -258,6 +260,7 @@ export default function IncidentCommsDashboard() {
                     <TableCell className="text-xs text-gray-400 whitespace-nowrap">{comm.sent_at}</TableCell>
                   </motion.tr>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

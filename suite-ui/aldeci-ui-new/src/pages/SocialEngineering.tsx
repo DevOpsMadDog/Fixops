@@ -281,6 +281,7 @@ export default function SocialEngineering() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -326,6 +327,7 @@ export default function SocialEngineering() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -359,6 +361,7 @@ export default function SocialEngineering() {
                 <Progress value={m.completion} className="h-1.5" />
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -396,6 +399,7 @@ export default function SocialEngineering() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
     </motion.div>

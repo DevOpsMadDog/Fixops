@@ -243,6 +243,7 @@ export default function GRCDashboard() {
                     <div className="text-[10px] font-medium mt-0.5">{c.label}</div>
                   </div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -270,6 +271,7 @@ export default function GRCDashboard() {
                   </div>
                 </div>
               ))}
+                )}
             </CardContent>
           </Card>
         </div>

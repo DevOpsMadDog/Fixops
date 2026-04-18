@@ -192,6 +192,7 @@ export default function CloudAccessSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

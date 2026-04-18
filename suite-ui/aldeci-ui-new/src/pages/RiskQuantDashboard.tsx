@@ -306,6 +306,7 @@ export default function RiskQuantDashboard() {
                     <TableCell className="py-2"><RiskBadge level={s.risk_level} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -376,6 +377,7 @@ export default function RiskQuantDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -417,6 +419,7 @@ export default function RiskQuantDashboard() {
                 </div>
               );
             })}
+            )}
           </div>
         </CardContent>
       </Card>

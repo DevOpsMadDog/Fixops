@@ -295,6 +295,7 @@ export default function IncidentCostsDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -321,6 +322,7 @@ export default function IncidentCostsDashboard() {
                     </div>
                   );
                 })}
+                )}
               </div>
               {/* Benchmark */}
               {(() => {
@@ -384,6 +386,7 @@ export default function IncidentCostsDashboard() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
     </div>

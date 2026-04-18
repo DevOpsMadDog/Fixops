@@ -203,6 +203,7 @@ export default function VulnScanDashboard() {
                     <TableCell className="text-xs text-gray-400">{scan.started_at}</TableCell>
                   </motion.tr>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -238,6 +239,7 @@ export default function VulnScanDashboard() {
                   </div>
                 </div>
               ))}
+              )}
               <div className="mt-2 pt-2 border-t border-gray-700/50 flex justify-between text-xs">
                 <span className="text-gray-400">Total</span>
                 <span className="text-gray-200 font-semibold">{SEVERITY_BREAKDOWN.reduce((s, sv) => s + sv.count, 0).toLocaleString()}</span>

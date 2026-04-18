@@ -281,6 +281,7 @@ export default function SecurityOperationsCenter() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -330,6 +331,7 @@ export default function SecurityOperationsCenter() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -363,6 +365,7 @@ export default function SecurityOperationsCenter() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{src.count}</span>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -392,6 +395,7 @@ export default function SecurityOperationsCenter() {
               <p className="text-xs text-muted-foreground leading-relaxed">{item.note}</p>
             </div>
           ))}
+          )}
         </CardContent>
       </Card>
     </motion.div>

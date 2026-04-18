@@ -281,6 +281,7 @@ export default function SecurityInvestmentDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -319,6 +320,7 @@ export default function SecurityInvestmentDashboard() {
                 </div>
               );
             })}
+            )}
           </div>
         </div>
 
@@ -355,6 +357,7 @@ export default function SecurityInvestmentDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
 
@@ -377,6 +380,7 @@ export default function SecurityInvestmentDashboard() {
                   <span className="text-green-400 font-bold font-mono">{inv.roi_score}%</span>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>

@@ -230,6 +230,7 @@ export default function RiskTreatmentDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -264,6 +264,7 @@ export default function VulnTrendDashboard() {
                 </div>
               </div>
             ))}
+            )}
             <div className="pt-2 border-t border-border/40 text-xs text-muted-foreground">
               Compared to week of Apr 8. Data from vulnerability scanner aggregation.
             </div>
@@ -340,6 +341,7 @@ export default function VulnTrendDashboard() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </div>

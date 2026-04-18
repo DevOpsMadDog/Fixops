@@ -204,6 +204,7 @@ export default function AccessRequestManagementDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

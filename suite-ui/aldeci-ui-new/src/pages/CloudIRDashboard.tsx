@@ -180,6 +180,7 @@ export default function CloudIRDashboard() {
                       </td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -254,6 +255,7 @@ export default function CloudIRDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}
@@ -297,6 +299,7 @@ export default function CloudIRDashboard() {
                   <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded">Execute</button>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}

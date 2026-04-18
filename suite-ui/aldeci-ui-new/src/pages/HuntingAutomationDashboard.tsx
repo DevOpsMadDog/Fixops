@@ -256,6 +256,7 @@ export default function HuntingAutomationDashboard() {
                         </div>
                       </div>
                     ))}
+          )}
 
                     {/* Execution History */}
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium pl-7 mt-2">Executions</p>
@@ -313,6 +314,7 @@ export default function HuntingAutomationDashboard() {
                   </Button>
                 </div>
               ))}
+              )}
             </CardContent>
           </Card>
         </div>

@@ -118,6 +118,7 @@ export default function CloudCostOptimizationDashboard() {
                 {r.resource_name} ({r.utilization_pct}% util)
               </span>
             ))}
+            )}
           </div>
         </div>
       )}
@@ -135,6 +136,7 @@ export default function CloudCostOptimizationDashboard() {
                 {s}
               </button>
             ))}
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -183,6 +185,7 @@ export default function CloudCostOptimizationDashboard() {
                   </td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -206,6 +206,7 @@ export default function IntelEnrichmentDashboard() {
                     <td className="py-3 text-gray-500 text-xs">{req.created_at}</td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -295,6 +296,7 @@ export default function IntelEnrichmentDashboard() {
                       {src.ioc_types.map(t => (
                         <span key={t} className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${typeColors[t]}`}>{t}</span>
                       ))}
+              )}
                     </div>
                   </td>
                   <td className="py-3 pr-4">
@@ -314,6 +316,7 @@ export default function IntelEnrichmentDashboard() {
                   <td className="py-3 text-gray-400">{src.total_queries.toLocaleString()}</td>
                 </tr>
               ))}
+              )}
             </tbody>
           </table>
         </div>

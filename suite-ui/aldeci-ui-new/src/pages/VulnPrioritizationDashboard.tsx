@@ -205,6 +205,7 @@ export default function VulnPrioritizationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

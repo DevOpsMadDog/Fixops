@@ -222,6 +222,7 @@ export default function ThreatScoreDashboard() {
                             animate={{ width: `${t.score ?? 0}%` }}
                             transition={{ duration: 0.6, delay: i * 0.05 }}
                             className={cn("h-full rounded-full", scoreBg(t.score ?? 0))}
+                )}
                           />
                         </div>
                         <span className={cn("text-xs font-bold tabular-nums w-6 text-right", scoreColor(t.score ?? 0))}>
@@ -233,6 +234,7 @@ export default function ThreatScoreDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(t.calculated_at)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -236,6 +236,7 @@ export default function DataExfiltrationDashboard() {
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -260,6 +261,7 @@ export default function DataExfiltrationDashboard() {
             </Card>
           );
         })}
+                )}
       </div>
     </motion.div>
   );

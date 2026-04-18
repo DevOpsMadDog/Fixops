@@ -182,6 +182,7 @@ export default function NetworkForensicsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

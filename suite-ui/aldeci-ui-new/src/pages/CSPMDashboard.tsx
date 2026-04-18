@@ -379,6 +379,7 @@ export default function CSPMDashboard() {
             </Card>
           );
         })}
+        )}
       </motion.div>
 
       {/* ── Findings Table ── */}
@@ -428,6 +429,7 @@ export default function CSPMDashboard() {
                         <Badge
                           variant="outline"
                           className={cn("border font-mono text-xs", severityColor(f.severity))}
+                  )}
                         >
                           {f.severity}
                         </Badge>
@@ -439,6 +441,7 @@ export default function CSPMDashboard() {
                         <Badge
                           variant="outline"
                           className={cn("border text-xs", providerColor(f.provider))}
+                  )}
                         >
                           {f.provider}
                         </Badge>
@@ -469,6 +472,7 @@ export default function CSPMDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -557,6 +561,7 @@ export default function CSPMDashboard() {
                     <Badge
                       variant="outline"
                       className={cn("border text-xs px-1 py-0", providerColor(item.provider))}
+            )}
                     >
                       {item.provider}
                     </Badge>
@@ -572,6 +577,7 @@ export default function CSPMDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>

@@ -205,6 +205,7 @@ export default function DigitalTwinDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

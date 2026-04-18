@@ -224,6 +224,7 @@ export default function ThreatHuntingPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -320,6 +321,7 @@ export default function ThreatHuntingPage() {
                 {confidenceBadge(ioc.confidence)}
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -361,6 +363,7 @@ export default function ThreatHuntingPage() {
                   }
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>

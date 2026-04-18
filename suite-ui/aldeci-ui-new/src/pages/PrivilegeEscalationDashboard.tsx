@@ -194,6 +194,7 @@ export default function PrivilegeEscalationDashboard() {
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{evt.timestamp}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -370,6 +370,7 @@ export default function CloudIAM() {
                       </td>
                     </motion.tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -423,6 +424,7 @@ export default function CloudIAM() {
             ESCALATION_PATHS.map(path => (
             <EscalationPathCard key={path.id} path={path} />
           ))}
+          )}
         </CardContent>
       </Card>
 
@@ -453,6 +455,7 @@ export default function CloudIAM() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -483,6 +486,7 @@ export default function CloudIAM() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -523,6 +527,7 @@ export default function CloudIAM() {
               </div>
             </motion.div>
           ))}
+          )}
         </CardContent>
       </Card>
     </div>

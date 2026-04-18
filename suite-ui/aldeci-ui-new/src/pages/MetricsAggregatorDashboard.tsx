@@ -177,6 +177,7 @@ export default function MetricsAggregatorDashboard() {
                     <TableCell className="py-2 text-right"><StatusBadge status={src.status ?? "active"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

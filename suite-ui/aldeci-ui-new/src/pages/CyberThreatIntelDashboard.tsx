@@ -209,6 +209,7 @@ export default function CyberThreatIntelDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

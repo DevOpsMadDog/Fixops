@@ -262,6 +262,7 @@ export default function SecurityCultureDashboard() {
             </div>
           );
         })}
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -294,6 +295,7 @@ export default function SecurityCultureDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -341,6 +343,7 @@ export default function SecurityCultureDashboard() {
                               <span className="text-green-400 mt-0.5">✓</span> {s}
                             </li>
                           ))}
+              )}
                         </ul>
                       </div>
                       <div>
@@ -351,12 +354,14 @@ export default function SecurityCultureDashboard() {
                               <span className="text-red-400 mt-0.5">✗</span> {w}
                             </li>
                           ))}
+              )}
                         </ul>
                       </div>
                     </div>
                   )}
                 </div>
               ))}
+              )}
             </div>
           </div>
 

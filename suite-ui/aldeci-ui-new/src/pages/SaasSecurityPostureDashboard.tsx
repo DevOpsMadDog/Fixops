@@ -217,6 +217,7 @@ export default function SaasSecurityPostureDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

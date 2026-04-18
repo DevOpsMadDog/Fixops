@@ -350,6 +350,7 @@ export default function CWPPDashboard() {
                 <span className={cn("text-sm font-bold tabular-nums", f.color)}>{f.count}</span>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -385,12 +386,14 @@ export default function CWPPDashboard() {
                       {r}
                     </li>
                   ))}
+            )}
                 </ul>
                 <p className="text-[11px] text-muted-foreground">
                   Applied to <span className="font-semibold text-foreground">{p.applied.toLocaleString()}</span> workloads
                 </p>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

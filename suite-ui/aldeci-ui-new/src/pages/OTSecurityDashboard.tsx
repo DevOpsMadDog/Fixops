@@ -205,6 +205,7 @@ export default function OTSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

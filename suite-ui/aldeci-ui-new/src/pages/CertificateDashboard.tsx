@@ -203,6 +203,7 @@ export default function CertificateDashboard() {
                     </TableRow>
                   );
                 })}
+                )}
               </TableBody>
             </Table>
           </div>

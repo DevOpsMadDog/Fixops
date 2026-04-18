@@ -400,6 +400,7 @@ export default function CompetitiveComparisonPage() {
             {v}
           </button>
         ))}
+        )}
       </div>
 
       {/* Category filter tabs */}
@@ -423,6 +424,7 @@ export default function CompetitiveComparisonPage() {
             {cat}
           </button>
         ))}
+        )}
       </div>
 
       {/* Feature matrix table */}
@@ -445,6 +447,7 @@ export default function CompetitiveComparisonPage() {
                   )}
                 </th>
               ))}
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700/50">
@@ -463,8 +466,10 @@ export default function CompetitiveComparisonPage() {
                 {visibleVendors.map(v => (
                   <Cell key={v} vendor={v} value={row.values[v]} isAldeci={v === "ALDECI"} />
                 ))}
+            )}
               </tr>
             ))}
+            )}
           </tbody>
         </table>
 
@@ -518,6 +523,7 @@ export default function CompetitiveComparisonPage() {
                     </td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -571,6 +577,7 @@ export default function CompetitiveComparisonPage() {
               </div>
             </div>
           ))}
+          )}
         </div>
       </div>
 
@@ -601,6 +608,7 @@ export default function CompetitiveComparisonPage() {
               <div className="text-xs text-gray-500 mt-0.5">avg</div>
             </div>
           ))}
+          )}
         </div>
 
         {/* Per-dimension bars */}
@@ -630,9 +638,11 @@ export default function CompetitiveComparisonPage() {
                     </div>
                   );
                 })}
+          )}
               </div>
             </div>
           ))}
+          )}
         </div>
 
         <div className="px-4 py-3 bg-gray-700/30 text-xs text-gray-400 border-t border-gray-700">
@@ -660,9 +670,11 @@ export default function CompetitiveComparisonPage() {
                     {item}
                   </li>
                 ))}
+          )}
               </ul>
             </div>
           ))}
+          )}
         </div>
       </div>
 

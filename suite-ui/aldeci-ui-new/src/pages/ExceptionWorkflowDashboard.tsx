@@ -224,6 +224,7 @@ export default function ExceptionWorkflowDashboard() {
             <div className="text-gray-400 text-xs mt-1">{k.label}</div>
           </div>
         ))}
+            )}
       </div>
 
       {/* Status filter tabs */}
@@ -243,6 +244,7 @@ export default function ExceptionWorkflowDashboard() {
             {s === "all" ? "All" : s}
           </button>
         ))}
+        )}
       </div>
 
       {/* Main layout: table + detail panel */}
@@ -300,6 +302,7 @@ export default function ExceptionWorkflowDashboard() {
                     </tr>
                   );
                 })}
+                )}
               </tbody>
             </table>
           </div>
@@ -396,6 +399,7 @@ export default function ExceptionWorkflowDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         </div>
@@ -416,6 +420,7 @@ export default function ExceptionWorkflowDashboard() {
               </div>
             );
           })}
+              )}
         </div>
       </div>
     </div>

@@ -226,6 +226,7 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{m.data_classification}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -276,6 +277,7 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

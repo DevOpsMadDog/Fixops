@@ -337,6 +337,7 @@ export default function RegulatoryTrackerDashboard() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -380,6 +381,7 @@ export default function RegulatoryTrackerDashboard() {
                 <p className="text-[10px] text-muted-foreground">Assessed by: {a.assessor}</p>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -423,6 +425,7 @@ export default function RegulatoryTrackerDashboard() {
                     <TableCell className="text-xs py-2 text-muted-foreground font-mono">{reg.version}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

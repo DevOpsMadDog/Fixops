@@ -192,6 +192,7 @@ export default function ComplianceAutomationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

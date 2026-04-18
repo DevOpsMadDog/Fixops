@@ -300,6 +300,7 @@ export default function RiskScenarioDashboard() {
                 <span className={`text-xs font-bold ${riskText[r.risk_level]}`}>{r.residual_risk}</span>
               </div>
             ))}
+            )}
           </div>
         </div>
 
@@ -409,6 +410,7 @@ export default function RiskScenarioDashboard() {
                     </td>
                   </tr>
                 ))}
+                )}
               </tbody>
             </table>
           </div>

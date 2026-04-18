@@ -199,6 +199,7 @@ export default function MicrosegmentationPolicyDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

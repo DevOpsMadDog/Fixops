@@ -332,6 +332,7 @@ export default function CloudSecurityDashboard() {
                 </div>
               );
             })}
+            )}
           </CardContent>
         </Card>
 

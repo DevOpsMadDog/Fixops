@@ -260,6 +260,7 @@ export default function ThreatFeedDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -298,6 +299,7 @@ export default function ThreatFeedDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -341,6 +343,7 @@ export default function ThreatFeedDashboard() {
                     {t}
                   </button>
                 ))}
+                )}
               </div>
               <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={handleSearch}>
                 <Search className="h-3 w-3" />
@@ -367,10 +370,12 @@ export default function ThreatFeedDashboard() {
                       {r.tags.map((tag) => (
                         <Badge key={tag} className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">{tag}</Badge>
                       ))}
+                )}
                       <span className="text-[9px] text-muted-foreground ml-auto">Seen {r.seen}</span>
                     </div>
                   </div>
                 ))}
+                )}
               </div>
             )}
 
@@ -417,6 +422,7 @@ export default function ThreatFeedDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
 
@@ -457,6 +463,7 @@ export default function ThreatFeedDashboard() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

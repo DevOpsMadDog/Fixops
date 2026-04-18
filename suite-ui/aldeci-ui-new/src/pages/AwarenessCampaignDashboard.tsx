@@ -208,6 +208,7 @@ export default function AwarenessCampaignDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

@@ -235,6 +235,7 @@ export default function MFAManagementDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{e.enrolled_at}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -287,6 +288,7 @@ export default function MFAManagementDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ev.timestamp)}</TableCell>
                   </TableRow>
                 ))}
+                )}
               </TableBody>
             </Table>
           </div>

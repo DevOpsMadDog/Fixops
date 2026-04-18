@@ -300,6 +300,7 @@ export default function SecurityTrainingDashboard() {
               />
             </div>
           ))}
+          )}
         </div>
       )}
     </div>

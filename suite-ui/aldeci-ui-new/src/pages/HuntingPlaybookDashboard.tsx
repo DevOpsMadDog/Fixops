@@ -178,6 +178,7 @@ export default function HuntingPlaybookDashboard() {
                       </td>
                     </tr>
                   ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -249,6 +250,7 @@ export default function HuntingPlaybookDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}
@@ -318,6 +320,7 @@ export default function HuntingPlaybookDashboard() {
                   </div>
                 </div>
               ))}
+              )}
             </div>
           </div>
         )}

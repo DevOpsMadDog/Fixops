@@ -241,6 +241,7 @@ export default function PasswordPolicy() {
                     </span>
                   </div>
                 ))}
+          )}
                 <div className="pt-2 space-y-1 border-t border-border/50">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Compliance</span>
@@ -264,6 +265,7 @@ export default function PasswordPolicy() {
               </CardContent>
             </Card>
           ))}
+          )}
         </div>
       </div>
 
@@ -397,6 +399,7 @@ export default function PasswordPolicy() {
                 </div>
               </div>
             ))}
+            )}
           </CardContent>
         </Card>
       </div>

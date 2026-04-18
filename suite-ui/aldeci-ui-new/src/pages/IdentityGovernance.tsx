@@ -857,6 +857,7 @@ export default function IdentityGovernance() {
                         </motion.div>
                       );
                     })}
+                    )}
                   </AnimatePresence>
                 </div>
               </ScrollArea>
@@ -931,6 +932,7 @@ export default function IdentityGovernance() {
                     </div>
                   </motion.div>
                 ))}
+                )}
               </div>
             </CardContent>
           </Card>
