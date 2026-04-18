@@ -151,6 +151,7 @@ from apps.api.reports_router import router as reports_router
 # ── ADMIN / SYSTEM / USERS ────────────────────────────────────────────────────
 from apps.api.admin_router import router as admin_router
 from apps.api.system_router import router as system_router
+from apps.api.platform_router import router as platform_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
 from apps.api.users_router import public_router as users_public_router
@@ -2584,6 +2585,8 @@ def create_app() -> FastAPI:
         system_router,
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
     )
+    # Platform health dashboard — comprehensive at-a-glance snapshot
+    app.include_router(platform_router)
     app.include_router(
         policies_router,
         dependencies=[
