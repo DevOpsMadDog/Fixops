@@ -320,4 +320,7 @@ async def search_logs(
 )
 async def log_stats() -> Dict[str, Any]:
     """Return log entry counts grouped by level."""
-    return get_log_aggregator().stats()
+    try:
+        return get_log_aggregator().stats()
+    except Exception:
+        return {"by_level": {}, "total": 0, "since": None}

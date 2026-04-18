@@ -517,7 +517,7 @@ def run_all_personas() -> List[PersonaResult]:
         ("GET", "/api/v1/health"),
         ("GET", "/api/v1/system/status"),
         ("GET", "/api/v1/sla/health"),
-        ("GET", "/api/v1/logs/stats"),
+        ("GET", "/api/v1/log-management/stats"),
         ("GET", "/api/v1/system/metrics"),
     ]:
         r = probe(*ep)

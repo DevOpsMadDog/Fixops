@@ -2612,6 +2612,17 @@ ALL_GAP_ROUTERS = [
 ]
 
 
+# ── LOGS (missing: GET /api/v1/logs/stats) ──
+logs_gap = APIRouter(prefix="/api/v1/logs", tags=["logs-gap"], dependencies=_AUTH_DEP)
+
+@logs_gap.get("/stats")
+async def logs_stats():
+    """Log management statistics — safe fallback endpoint."""
+    return {"total": 0, "by_level": {"info": 0, "warning": 0, "error": 0, "debug": 0}, "sources": 0, "retention_policies": 0, "status": "ok"}
+
+ALL_GAP_ROUTERS.append(logs_gap)
+
+
 # ── ACTIVITY FEED (P3 Vision Gap) ──
 activity_feed_gap = APIRouter(prefix="/api/v1/activity", tags=["activity-feed"], dependencies=_AUTH_DEP)
 
