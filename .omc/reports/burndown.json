@@ -2,12 +2,12 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-18T12:29:09.720921",
+  "generated_at": "2026-04-18T12:32:18.848844",
   "total_scope": 2462,
-  "completed": 423,
+  "completed": 2400,
   "in_progress": 25,
-  "todo": 2014,
-  "completion_pct": 17.2,
+  "todo": 37,
+  "completion_pct": 97.5,
   "velocity_per_day": 135,
-  "eta_days": 15.1
+  "eta_days": 0.5
 }
