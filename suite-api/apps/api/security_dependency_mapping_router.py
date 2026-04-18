@@ -189,3 +189,16 @@ def get_summary(
 ) -> Dict[str, Any]:
     """Return aggregate dependency map summary for the org."""
     return _get_engine().get_summary(org_id)
+
+
+@router.get("/source-trace")
+def source_trace(
+    source_file: str = Query(..., description="Relative path to a source file, e.g. suite-core/core/siem_integration_engine.py"),
+    org_id: str = Query(default="default"),
+) -> Dict[str, Any]:
+    """Map a source file to deployed cloud assets via service name-matching.
+
+    Returns matched services and their downstream blast radius — enabling
+    code-to-cloud tracing: which cloud assets are affected when this file changes.
+    """
+    return _get_engine().get_source_trace(org_id, source_file)

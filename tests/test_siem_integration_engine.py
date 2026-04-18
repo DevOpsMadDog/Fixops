@@ -398,3 +398,106 @@ def test_legacy_create_and_resolve_alert(engine):
     assert ok is True
     resolved = engine.list_alerts("org1", status="resolved")
     assert len(resolved) == 1
+
+
+# ---------------------------------------------------------------------------
+# parse_syslog / parse_cef / ingest_raw (new methods)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_syslog_rfc3164(engine):
+    raw = "<134>Apr 17 10:00:00 myhost sshd: Failed password for root"
+    result = engine.parse_syslog(raw)
+    assert result["format"] == "syslog_rfc3164"
+    assert result["hostname"] == "myhost"
+    assert result["app_name"] == "sshd"
+    assert "Failed password" in result["message"]
+    assert result["facility"] == 16
+    assert result["syslog_severity"] == "info"  # priority 134 → sev 6
+
+
+def test_parse_syslog_rfc5424(engine):
+    raw = "<165>1 2026-04-17T10:00:00Z myhost myapp 1234 ID47 - BOM test message"
+    result = engine.parse_syslog(raw)
+    assert result["format"] == "syslog_rfc5424"
+    assert result["hostname"] == "myhost"
+    assert result["app_name"] == "myapp"
+    assert result["process_id"] == "1234"
+
+
+def test_parse_syslog_unknown_fallback(engine):
+    raw = "some plain log line with no pri"
+    result = engine.parse_syslog(raw)
+    assert result["format"] == "syslog"
+    assert result["message"] == raw
+
+
+def test_parse_cef_full(engine):
+    raw = (
+        "CEF:0|ArcSight|Logger|1.0|100|Login Failed|7|"
+        "src=10.0.0.1 dst=192.168.1.1 suser=admin msg=Authentication failure"
+    )
+    result = engine.parse_cef(raw)
+    assert result["format"] == "cef"
+    assert result["device_vendor"] == "ArcSight"
+    assert result["device_product"] == "Logger"
+    assert result["signature_id"] == "100"
+    assert result["severity"] == "high"      # numeric 7 → high
+    assert result["source_ip"] == "10.0.0.1"
+    assert result["destination_ip"] == "192.168.1.1"
+    assert result["user"] == "admin"
+    assert result["message"] == "Authentication failure"
+
+
+def test_parse_cef_severity_mapping_critical(engine):
+    raw = "CEF:0|V|P|1|s|N|9|src=1.1.1.1"
+    result = engine.parse_cef(raw)
+    assert result["severity"] == "critical"
+
+
+def test_parse_cef_no_prefix(engine):
+    """Non-CEF string returns fallback."""
+    raw = "just a plain string"
+    result = engine.parse_cef(raw)
+    assert result["message"] == raw
+
+
+def test_ingest_raw_cef_auto_detect(engine):
+    raw = (
+        "CEF:0|Vendor|Product|1.0|sig1|Auth Failed|7|"
+        "src=10.1.2.3 dst=192.168.0.1 suser=admin msg=Login failure"
+    )
+    event = engine.ingest_raw("org1", raw, fmt="auto")
+    assert event["event_id"]
+    assert event["severity"] == "high"
+    assert event["source_ip"] == "10.1.2.3"
+    assert event["destination_ip"] == "192.168.0.1"
+    assert event["user"] == "admin"
+
+
+def test_ingest_raw_syslog_explicit(engine):
+    raw = "<134>Apr 17 10:00:00 myhost sshd: Failed password for root from 192.168.1.1"
+    event = engine.ingest_raw("org1", raw, fmt="syslog")
+    assert event["event_id"]
+    # syslog severity 6 → info
+    assert event["severity"] == "info"
+
+
+def test_ingest_raw_persists_to_db(engine):
+    """ingest_raw creates an event retrievable via list_events."""
+    raw = "CEF:0|V|P|1|s|N|5|src=1.2.3.4"
+    engine.ingest_raw("org1", raw)
+    events = engine.list_events("org1")
+    assert len(events) >= 1
+
+
+def test_ingest_raw_empty_string(engine):
+    """Empty raw string should not crash."""
+    event = engine.ingest_raw("org1", "")
+    assert event["event_id"]
+
+
+def test_ingest_raw_cef_format_explicit(engine):
+    raw = "CEF:0|Vendor|Product|1.0|s|Name|3|src=5.6.7.8"
+    event = engine.ingest_raw("org1", raw, fmt="cef")
+    assert event["severity"] == "low"   # cef_severity_raw=3 → low

@@ -556,6 +556,190 @@ class SIEMIntegrationEngine:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Syslog / CEF ingestion
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def parse_syslog(raw: str) -> Dict[str, Any]:
+        """Parse a syslog-format line (RFC 3164/5424) into a dict.
+
+        Handles:
+          - RFC 3164: <PRI>Mmm DD HH:MM:SS hostname tag: message
+          - RFC 5424: <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID ...
+          - Plain text fallback
+
+        Returns a dict with keys: priority, severity_level, facility,
+        timestamp, hostname, app_name, process_id, message.
+        """
+        import re as _re
+
+        result: Dict[str, Any] = {"raw": raw, "format": "syslog"}
+
+        # PRI field: <N>
+        pri_match = _re.match(r"^<(\d+)>", raw)
+        priority = 0
+        if pri_match:
+            priority = int(pri_match.group(1))
+            raw = raw[pri_match.end():]
+
+        facility = priority >> 3
+        sev_level = priority & 0x07
+        _sev_map = {0: "critical", 1: "critical", 2: "critical", 3: "high",
+                    4: "high", 5: "medium", 6: "info", 7: "info"}
+        result["priority"] = priority
+        result["facility"] = facility
+        result["severity_level"] = sev_level
+        result["syslog_severity"] = _sev_map.get(sev_level, "info")
+
+        # RFC 5424: VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID ...
+        r5424 = _re.match(
+            r"^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)",
+            raw,
+        )
+        if r5424:
+            result["format"] = "syslog_rfc5424"
+            result["version"] = r5424.group(1)
+            result["timestamp"] = r5424.group(2)
+            result["hostname"] = r5424.group(3)
+            result["app_name"] = r5424.group(4)
+            result["process_id"] = r5424.group(5)
+            result["message_id"] = r5424.group(6)
+            result["message"] = r5424.group(7).lstrip("- ")
+            return result
+
+        # RFC 3164: Mmm DD HH:MM:SS hostname tag: message
+        r3164 = _re.match(
+            r"^(\w{3}\s+\d+\s+[\d:]+)\s+(\S+)\s+([^:]+):\s*(.*)",
+            raw,
+        )
+        if r3164:
+            result["format"] = "syslog_rfc3164"
+            result["timestamp"] = r3164.group(1)
+            result["hostname"] = r3164.group(2)
+            result["app_name"] = r3164.group(3).strip()
+            result["message"] = r3164.group(4)
+            return result
+
+        # Fallback: treat entire string as message
+        result["message"] = raw
+        return result
+
+    @staticmethod
+    def parse_cef(raw: str) -> Dict[str, Any]:
+        """Parse a CEF (Common Event Format) string.
+
+        CEF:Version|Device Vendor|Device Product|Device Version|
+            Signature ID|Name|Severity|Extensions
+
+        Returns a dict with all CEF header fields plus parsed extension
+        key=value pairs.
+        """
+        import re as _re
+
+        result: Dict[str, Any] = {"raw": raw, "format": "cef"}
+
+        # Strip optional syslog prefix before CEF:
+        cef_start = raw.find("CEF:")
+        if cef_start < 0:
+            result["message"] = raw
+            return result
+
+        cef_body = raw[cef_start:]
+        # Split on unescaped pipes (up to 8 parts: CEF:0|v|p|pv|sig|name|sev|ext)
+        parts = _re.split(r"(?<!\\)\|", cef_body)
+
+        if len(parts) < 7:
+            result["message"] = cef_body
+            return result
+
+        # CEF:Version
+        ver_match = _re.match(r"CEF:(\d+)", parts[0])
+        result["cef_version"] = ver_match.group(1) if ver_match else "0"
+        result["device_vendor"] = parts[1]
+        result["device_product"] = parts[2]
+        result["device_version"] = parts[3]
+        result["signature_id"] = parts[4]
+        result["name"] = parts[5]
+
+        raw_sev = parts[6].strip()
+        result["cef_severity_raw"] = raw_sev
+        # Map numeric or text severity to ALDECI levels
+        _num_sev_map = {
+            "0": "info", "1": "info", "2": "info", "3": "low",
+            "4": "low", "5": "medium", "6": "medium", "7": "high",
+            "8": "high", "9": "critical", "10": "critical",
+        }
+        _txt_sev_map = {
+            "low": "low", "medium": "medium", "high": "high",
+            "critical": "critical", "unknown": "info", "very-high": "critical",
+        }
+        result["severity"] = (
+            _num_sev_map.get(raw_sev)
+            or _txt_sev_map.get(raw_sev.lower(), "info")
+        )
+
+        # Parse extensions: key=value (values may contain spaces before next key=)
+        extensions: Dict[str, str] = {}
+        if len(parts) > 7:
+            ext_str = "|".join(parts[7:])
+            # Match key=value pairs where value runs until next key=
+            for m in _re.finditer(r"(\w+)=(.*?)(?=\s+\w+=|$)", ext_str):
+                extensions[m.group(1)] = m.group(2).strip()
+        result["extensions"] = extensions
+
+        # Promote common extension fields
+        result["source_ip"] = extensions.get("src", extensions.get("sourceAddress", ""))
+        result["destination_ip"] = extensions.get("dst", extensions.get("destinationAddress", ""))
+        result["user"] = extensions.get("suser", extensions.get("duser", ""))
+        result["message"] = extensions.get("msg", result["name"])
+
+        return result
+
+    def ingest_raw(self, org_id: str, raw: str, fmt: str = "auto") -> Dict[str, Any]:
+        """Parse a raw syslog or CEF string and ingest it as a SIEM event.
+
+        Args:
+            org_id: Organisation identifier.
+            raw:    Raw log line (syslog RFC 3164/5424 or CEF).
+            fmt:    "syslog" | "cef" | "auto" (default — auto-detected).
+
+        Returns the ingested event record.
+        """
+        raw = (raw or "").strip()
+
+        # Auto-detect format
+        if fmt == "auto":
+            fmt = "cef" if "CEF:" in raw else "syslog"
+
+        if fmt == "cef":
+            parsed = self.parse_cef(raw)
+        else:
+            parsed = self.parse_syslog(raw)
+
+        severity = parsed.get("severity") or parsed.get("syslog_severity", "info")
+        if severity not in _VALID_SEVERITIES:
+            severity = "info"
+
+        # Map parsed fields to ingest_event schema
+        event_data: Dict[str, Any] = {
+            "org_id": org_id,
+            "siem_id": "",
+            "event_type": "application",
+            "severity": severity,
+            "source_ip": parsed.get("source_ip", ""),
+            "destination_ip": parsed.get("destination_ip", ""),
+            "user": parsed.get("user", ""),
+            "timestamp": parsed.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            "raw_event": parsed,
+            "normalized_fields": {
+                "app_name": parsed.get("app_name", parsed.get("device_product", "")),
+                "message": parsed.get("message", ""),
+                "format": parsed.get("format", fmt),
+            },
+        }
+        return self.ingest_event(org_id, event_data)
+
     def _normalize_event(
         self,
         event_type: str,

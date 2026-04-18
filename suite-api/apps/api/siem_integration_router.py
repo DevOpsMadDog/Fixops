@@ -229,6 +229,42 @@ def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Raw syslog / CEF ingestion endpoint
+# ---------------------------------------------------------------------------
+
+
+class RawIngestIn(BaseModel):
+    org_id: str = "default"
+    raw: str = Field(..., description="Raw syslog (RFC 3164/5424) or CEF log line")
+    format: str = Field(
+        default="auto",
+        description="'syslog' | 'cef' | 'auto' (default — auto-detected from content)",
+    )
+
+
+@router.post("/ingest")
+def ingest_raw(body: RawIngestIn) -> Dict[str, Any]:
+    """Parse and ingest a raw syslog or CEF log line as a SIEM event.
+
+    Accepts:
+    - Syslog RFC 3164: ``<PRI>Mmm DD HH:MM:SS hostname tag: message``
+    - Syslog RFC 5424: ``<PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID ...``
+    - CEF: ``CEF:0|Vendor|Product|Version|SigID|Name|Severity|extensions``
+    - format="auto" (default) detects CEF by presence of "CEF:" prefix.
+
+    Returns the normalised, stored event record including parsed fields.
+    """
+    try:
+        event = _get_engine().ingest_raw(body.org_id, body.raw, body.format)
+        return {"status": "ingested", "format": body.format, "event": event}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to ingest raw log line")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Legacy endpoints (backward compat)
 # ---------------------------------------------------------------------------
 

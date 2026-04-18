@@ -475,3 +475,58 @@ def test_summary_org_isolation(engine):
     s2 = engine.get_summary("org2")
     assert s1["total_services"] == 1
     assert s2["total_services"] == 1
+
+
+# ---------------------------------------------------------------------------
+# get_source_trace (new method)
+# ---------------------------------------------------------------------------
+
+
+def test_source_trace_matches_by_name(engine):
+    """Service named 'siem_integration' is found when tracing the SIEM engine file."""
+    engine.register_service("org1", "siem_integration", service_type="api", criticality="high")
+    result = engine.get_source_trace("org1", "suite-core/core/siem_integration_engine.py")
+    assert result["source_file"] == "suite-core/core/siem_integration_engine.py"
+    assert "siem" in result["keywords_used"]
+    names = [s["service_name"] for s in result["matched_services"]]
+    assert "siem_integration" in names
+
+
+def test_source_trace_no_match(engine):
+    """No services → matched_services is empty, total_affected=0."""
+    result = engine.get_source_trace("org1", "suite-core/core/unknown_xyz_engine.py")
+    assert result["matched_services"] == []
+    assert result["total_affected"] == 0
+
+
+def test_source_trace_blast_radius_included(engine):
+    """Matched service with a dependent gets that dependent in blast_radius."""
+    # Register A (matched by name) and B (depends on A)
+    a = engine.register_service("org1", "siem_gateway", service_type="api")
+    b = engine.register_service("org1", "siem_frontend", service_type="application")
+    # B depends on A (B is downstream of A)
+    engine.add_dependency(
+        org_id="org1",
+        source_service_id=b["id"],  # B depends on A
+        target_service_id=a["id"],
+    )
+    result = engine.get_source_trace("org1", "suite-core/core/siem_gateway_engine.py")
+    # Both A and B should be matched (both contain "siem")
+    matched_names = {s["service_name"] for s in result["matched_services"]}
+    assert "siem_gateway" in matched_names
+
+
+def test_source_trace_keywords_strip_suffixes(engine):
+    """Engine/router suffixes are stripped from stem for keyword extraction."""
+    result = engine.get_source_trace("org1", "path/to/risk_aggregator_engine_v2.py")
+    assert "risk" in result["keywords_used"]
+    assert "aggregator" in result["keywords_used"]
+    # Should not contain 'engine' or 'v2'
+    assert "engine" not in result["keywords_used"]
+
+
+def test_source_trace_org_isolation(engine):
+    """Services from org2 are not returned for org1 query."""
+    engine.register_service("org2", "siem_service", service_type="api")
+    result = engine.get_source_trace("org1", "suite-core/core/siem_service_engine.py")
+    assert all(s["org_id"] == "org1" for s in result["matched_services"])

@@ -357,7 +357,7 @@ class SecurityDependencyMappingEngine:
             placeholders = ",".join("?" * len(affected_ids))
             with self._conn() as conn:
                 critical_count = conn.execute(
-                    f"""SELECT COUNT(*) FROM servicesWHERE org_id=? AND id IN ({placeholders}) AND criticality='critical'""",  # nosec B608
+                    f"""SELECT COUNT(*) FROM services WHERE org_id=? AND id IN ({placeholders}) AND criticality='critical'""",  # nosec B608
                     [org_id] + affected_ids,
                 ).fetchone()[0]
 
@@ -452,6 +452,77 @@ class SecurityDependencyMappingEngine:
                 (org_id,),
             ).fetchall()
         return [self._row(r) for r in rows]
+
+    def get_source_trace(
+        self, org_id: str, source_file: str
+    ) -> Dict[str, Any]:
+        """Map a source file path to deployed services via name-matching.
+
+        Heuristic: the service name or owner field is checked against the
+        stem of the source file path.  Returns matching services plus their
+        BFS downstream blast radius so engineers know which cloud assets are
+        affected when a given source file changes.
+
+        Args:
+            org_id:      Organisation identifier.
+            source_file: Relative or absolute path to a source file,
+                         e.g. "suite-core/core/siem_integration_engine.py".
+
+        Returns a dict with:
+            - source_file:  echoed back
+            - matched_services: list of services whose name/owner contains
+                                a keyword derived from the source file stem
+            - blast_radius:  combined downstream blast radius across all
+                             matched services (deduped)
+            - total_affected: count of distinct affected services
+        """
+        import os as _os
+
+        stem = _os.path.splitext(_os.path.basename(source_file))[0]
+        # Derive keywords: strip common suffixes and split on underscores
+        for suffix in ("_engine", "_router", "_v2", "_v3"):
+            stem = stem.replace(suffix, "")
+        keywords = [w for w in stem.split("_") if len(w) > 2]
+
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM services WHERE org_id=?", (org_id,)
+            ).fetchall()
+
+        matched: List[Dict[str, Any]] = []
+        for row in rows:
+            svc = self._row(row)
+            name_lower = svc.get("service_name", "").lower()
+            owner_lower = svc.get("owner", "").lower()
+            if any(kw in name_lower or kw in owner_lower for kw in keywords):
+                matched.append(svc)
+
+        # Collect combined blast radius (downstream).
+        # compute_blast_radius returns affected_services as a list of UUID strings.
+        affected_id_set: set = set()
+        affected_service_details: List[Dict[str, Any]] = []
+        for svc in matched:
+            try:
+                br = self.compute_blast_radius(org_id, svc["id"], "downstream")
+                for sid in br.get("affected_services", []):
+                    if isinstance(sid, dict):
+                        sid = sid.get("id", "")
+                    if sid and sid not in affected_id_set:
+                        affected_id_set.add(sid)
+                        # Fetch full service record
+                        detail = self.get_service(sid, org_id)
+                        if detail:
+                            affected_service_details.append(detail)
+            except (ValueError, KeyError):
+                pass
+
+        return {
+            "source_file": source_file,
+            "keywords_used": keywords,
+            "matched_services": matched,
+            "blast_radius": affected_service_details,
+            "total_affected": len(affected_service_details),
+        }
 
     def get_summary(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate summary for org's dependency map."""
