@@ -191,7 +191,7 @@ export default function ComplianceAutomationDashboard() {
                       {formatTs(job.completed_at)}
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>

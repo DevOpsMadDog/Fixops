@@ -523,8 +523,7 @@ export default function CertificateManagerPage() {
                         {cert.self_signed && " · Self-signed"}
                       </p>
                     </div>
-                  ))
-                )}
+                  )))}
               </ScrollArea>
             </CardContent>
           </Card>

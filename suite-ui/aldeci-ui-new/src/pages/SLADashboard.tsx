@@ -265,7 +265,7 @@ export default function SLADashboard() {
                   />
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 
@@ -307,8 +307,7 @@ export default function SLADashboard() {
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
-              ))
-            )}
+              )))}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/70 inline-block" />Critical</span>
@@ -370,8 +369,7 @@ export default function SLADashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -429,7 +427,7 @@ export default function SLADashboard() {
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -478,8 +476,7 @@ export default function SLADashboard() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{t.open}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </CardContent>
@@ -523,8 +520,7 @@ export default function SLADashboard() {
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.contain}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.resolve}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </CardContent>

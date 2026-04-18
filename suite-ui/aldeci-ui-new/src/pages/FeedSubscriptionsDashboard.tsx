@@ -343,8 +343,7 @@ export default function FeedSubscriptionsDashboard() {
                     <div className={`w-2 h-2 rounded-full ${d.enabled ? "bg-green-400" : "bg-gray-500"}`} title={d.enabled ? "Enabled" : "Disabled"} />
                     <span className={`text-xs ${d.enabled ? "text-green-400" : "text-gray-500"}`}>{d.enabled ? "On" : "Off"}</span>
                   </div>
-                ))
-              )}
+                )))}
             </div>
           )}
         </div>

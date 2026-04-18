@@ -278,8 +278,7 @@ export default function SecurityRoadmap() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -320,8 +319,7 @@ export default function SecurityRoadmap() {
                       <div className="text-[10px] text-muted-foreground">{m.date}</div>
                     </div>
                   </div>
-                ))
-              )}
+                )))}
               </div>
             </div>
           </CardContent>
@@ -356,8 +354,7 @@ export default function SecurityRoadmap() {
                     <div className="text-[10px] text-muted-foreground truncate">→ {g.initiative}</div>
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </CardContent>
           </Card>
 
@@ -401,7 +398,7 @@ export default function SecurityRoadmap() {
                     {Math.round((b.spent / b.allocated) * 100)}% of budget used
                   </div>
                 </div>
-              ))}
+              )))}
             </CardContent>
           </Card>
         </div>

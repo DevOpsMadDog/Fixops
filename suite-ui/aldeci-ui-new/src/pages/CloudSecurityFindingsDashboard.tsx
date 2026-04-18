@@ -241,7 +241,7 @@ export default function CloudSecurityFindingsDashboard() {
                     )}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
@@ -270,8 +270,7 @@ export default function CloudSecurityFindingsDashboard() {
                   <StatusBadge s={r.status} />
                 </div>
               </div>
-            ))
-          )}
+            )))}
           </div>
         </div>
 
@@ -295,8 +294,7 @@ export default function CloudSecurityFindingsDashboard() {
                   <div className="h-2 rounded-full bg-orange-500" style={{ width: `${(r.finding_count / maxBar) * 100}%` }} />
                 </div>
               </div>
-            ))
-          )}
+            )))}
           </div>
         </div>
       </div>

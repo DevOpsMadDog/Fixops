@@ -284,8 +284,7 @@ export default function PostureTrendsDashboard() {
               <span key={m.id} className="bg-amber-800/40 text-amber-200 px-2 py-1 rounded text-xs">
                 {m.metric_name} ({m.current_value} {m.unit})
               </span>
-            ))
-          )}
+            )))}
           </div>
         </div>
       )}
@@ -312,7 +311,7 @@ export default function PostureTrendsDashboard() {
           >
             {categoryLabels[cat]}
           </button>
-        ))}
+        )))}
       </div>
 
       {/* Metric Trend Cards */}
@@ -411,8 +410,7 @@ export default function PostureTrendsDashboard() {
                     </span>
                   </td>
                 </tr>
-              ))
-            )}
+              )))}
             </tbody>
           </table>
         </div>

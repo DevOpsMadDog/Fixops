@@ -207,8 +207,7 @@ export default function ThreatVectorDashboard() {
                       {vec.mitigation_count ?? 0}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

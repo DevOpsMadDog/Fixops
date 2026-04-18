@@ -184,8 +184,7 @@ export default function IPReputationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[160px] truncate">{b.reason}</TableCell>
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{b.blocked_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </CardContent>

@@ -428,7 +428,7 @@ export default function FirewallAnalyzer() {
                         </Button>
                       </TableCell>
                     </motion.tr>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -496,8 +496,7 @@ export default function FirewallAnalyzer() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))
-        )}
+          )))}
         </div>
       </motion.div>
 

@@ -545,7 +545,8 @@ export default function AuditTrail() {
                             <Badge key={ctrl} variant="outline" className="text-xs py-0 h-4 font-mono">
                               {ctrl}
                             </Badge>
-                          ))}
+                          ))
+                        )}
                           {controlBadges.length > 1 && (
                             <Badge variant="outline" className="text-xs py-0 h-4 text-muted-foreground">
                               +{controlBadges.length - 1}

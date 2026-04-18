@@ -658,7 +658,7 @@ export default function PostureAdvisor() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={cn("border", priorityColor(rec.priority))}
+                            )))}
                           >
                             <span className="flex items-center gap-1">
                               {priorityIcon(rec.priority)}
@@ -669,7 +669,7 @@ export default function PostureAdvisor() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={cn("border", effortBadgeColor(rec.effort))}
+                            )))}
                           >
                             {rec.effort}
                           </Badge>
@@ -700,7 +700,7 @@ export default function PostureAdvisor() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )))}
                   </TableBody>
                 </Table>
               </div>
@@ -759,7 +759,7 @@ export default function PostureAdvisor() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )))}
                 </div>
               </div>
             </div>

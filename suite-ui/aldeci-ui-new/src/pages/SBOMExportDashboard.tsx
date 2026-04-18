@@ -224,7 +224,7 @@ export default function SBOMExportDashboard() {
               </div>
               <p className="text-gray-600 text-[10px] mt-1">Exported {fmt(p.latest_export)}</p>
             </button>
-          ))}
+          )))}
         </div>
       </div>
 
@@ -302,15 +302,14 @@ export default function SBOMExportDashboard() {
                                     : <span className="text-red-400 font-semibold">No</span>}
                                 </td>
                               </tr>
-                            ))
-                          )}
+                            )))}
                           </tbody>
                         </table>
                       </td>
                     </tr>
                   )}
                 </>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
@@ -345,8 +344,7 @@ export default function SBOMExportDashboard() {
                   <td className="py-2.5 pr-4 text-gray-400 text-xs">{fmt(h.generated_at)}</td>
                   <td className="py-2.5 text-gray-400 text-xs">{h.exported_by}</td>
                 </tr>
-              ))
-            )}
+              )))}
             </tbody>
           </table>
         </div>

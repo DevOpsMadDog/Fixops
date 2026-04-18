@@ -229,8 +229,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2"><ResilienceScoreBadge score={ex.resilience_score ?? 0} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ex.started_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -278,8 +277,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ob.experiment_id}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-xs truncate">{ob.detail}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

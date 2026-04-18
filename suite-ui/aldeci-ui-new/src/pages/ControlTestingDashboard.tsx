@@ -359,7 +359,7 @@ export default function ControlTestingDashboard() {
                       {c.next_test}
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
@@ -431,7 +431,7 @@ export default function ControlTestingDashboard() {
                           <p className="text-xs text-gray-400 italic">{t.notes}</p>
                         )}
                       </div>
-                    ))}
+                    )))}
                   </div>
                 )}
               </div>

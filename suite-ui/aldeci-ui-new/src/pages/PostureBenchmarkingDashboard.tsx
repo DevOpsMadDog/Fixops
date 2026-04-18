@@ -223,8 +223,7 @@ export default function PostureBenchmarkingDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{b.industry_avg_score?.toFixed(1)}%</TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{b.percentile}th</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -274,8 +273,7 @@ export default function PostureBenchmarkingDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.benchmark_id}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

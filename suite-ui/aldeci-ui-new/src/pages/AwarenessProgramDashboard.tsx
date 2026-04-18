@@ -218,7 +218,7 @@ export default function AwarenessProgramDashboard() {
                 </div>
               </div>
             </button>
-          ))}
+          )))}
         </div>
       </div>
 
@@ -272,7 +272,7 @@ export default function AwarenessProgramDashboard() {
                     </td>
                     <td className="py-2.5 text-gray-400 text-xs">{e.attempts}</td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
@@ -302,8 +302,7 @@ export default function AwarenessProgramDashboard() {
                     <span className="text-gray-500 text-[10px]">enrolled {u.enrolled_at}</span>
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </div>
           </div>
 
@@ -324,7 +323,7 @@ export default function AwarenessProgramDashboard() {
                     {d.compliance_rate}%
                   </span>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </div>
@@ -352,7 +351,7 @@ export default function AwarenessProgramDashboard() {
               </span>
               <span className="text-[10px] text-gray-500 w-16 text-right">{ev.affected_users} user{ev.affected_users > 1 ? "s" : ""}</span>
             </div>
-          ))}
+          )))}
         </div>
       </div>
     </div>

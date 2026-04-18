@@ -227,8 +227,7 @@ export default function DarkWebMonitoringDashboard() {
                     <TableCell className="py-2"><MentionStatusBadge status={m.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(m.detected_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -276,8 +275,7 @@ export default function DarkWebMonitoringDashboard() {
                     <TableCell className="py-2"><SeverityBadge severity={e.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><MentionStatusBadge status={e.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

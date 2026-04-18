@@ -683,7 +683,7 @@ export default function PlaybookLibrary() {
                           </p>
                         </div>
                       </motion.div>
-                    ))}
+                    )))}
                   </div>
                 )}
               </CardContent>

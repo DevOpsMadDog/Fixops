@@ -110,8 +110,7 @@ export default function CertificateDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))
-    )}
+      )))}
     </div>
   );
 
@@ -147,7 +146,7 @@ export default function CertificateDashboard() {
             <p className="text-2xl font-bold tabular-nums">{count as number}</p>
             <p className="text-[11px] text-muted-foreground mt-1 capitalize">{type.replace(/_/g, " ")}</p>
           </Card>
-        ))}
+        )))}
       </div>
 
       {/* Expiring Certs Table */}

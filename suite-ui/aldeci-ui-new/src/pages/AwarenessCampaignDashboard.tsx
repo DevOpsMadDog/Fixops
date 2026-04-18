@@ -207,7 +207,7 @@ export default function AwarenessCampaignDashboard() {
                       {camp.pass_rate > 0 ? `${camp.pass_rate.toFixed(1)}%` : "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>

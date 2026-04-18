@@ -383,8 +383,7 @@ export default function IncidentCostsDashboard() {
                 <div className="h-3 rounded-full" style={{ backgroundColor: c.color, width: `${(c.total / MAX_CAT) * 100}%` }} />
               </div>
             </div>
-          ))
-        )}
+          )))}
         </div>
       </div>
     </div>

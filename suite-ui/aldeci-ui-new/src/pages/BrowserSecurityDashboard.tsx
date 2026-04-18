@@ -260,8 +260,7 @@ export default function BrowserSecurityDashboard() {
                         : <span className="text-[10px] text-muted-foreground">—</span>}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -309,8 +308,7 @@ export default function BrowserSecurityDashboard() {
                     <TableCell className="py-2"><ExtStatusBadge status={ext.status ?? "flagged"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ext.publisher}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

@@ -145,7 +145,7 @@ export default function PrivacyImpactDashboard() {
                   <td className={`py-3 pr-4 font-bold ${riskColor(pia.risk_score)}`}>{pia.risk_score}</td>
                   <td className="py-3 text-gray-400 text-xs">{pia.created_at}</td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

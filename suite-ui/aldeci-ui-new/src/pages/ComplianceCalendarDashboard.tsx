@@ -398,7 +398,7 @@ export default function ComplianceCalendarDashboard() {
                     <span className="text-yellow-200">{ev.event_name}</span>
                     {frameworkBadge(ev.framework)}
                   </div>
-                ))}
+                )))}
               </div>
             )}
           </div>

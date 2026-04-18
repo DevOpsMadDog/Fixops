@@ -391,8 +391,7 @@ export default function SecurityHealthDashboard() {
                     <Button variant="outline" size="sm" className="h-5 px-2 text-[9px]">Resolve</Button>
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </CardContent>
           </Card>
 

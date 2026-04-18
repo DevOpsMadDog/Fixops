@@ -219,8 +219,7 @@ export default function ThreatScoreDashboard() {
                             initial={{ width: 0 }}
                             animate={{ width: `${t.score ?? 0}%` }}
                             transition={{ duration: 0.6, delay: i * 0.05 }}
-                            ))
-                          )}
+                            )))}
                           />
                         </div>
                         <span className={cn("text-xs font-bold tabular-nums w-6 text-right", scoreColor(t.score ?? 0))}>
@@ -231,7 +230,7 @@ export default function ThreatScoreDashboard() {
                     <TableCell className="py-2"><RiskLevelBadge level={t.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(t.calculated_at)}</TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -272,7 +271,7 @@ export default function ThreatScoreDashboard() {
                   </div>
                 )}
               </motion.div>
-            ))}
+            )))}
           </div>
         </CardContent>
       </Card>

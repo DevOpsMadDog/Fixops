@@ -260,8 +260,7 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.duration}</TableCell>
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.created_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -315,7 +314,7 @@ export default function SecretScannerDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><FindingStatusBadge status={f.status} /></TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -392,7 +391,7 @@ export default function SecretScannerDashboard() {
                   />
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
       </div>

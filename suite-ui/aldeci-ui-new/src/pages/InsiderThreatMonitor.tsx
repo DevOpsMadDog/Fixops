@@ -408,7 +408,7 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
                         </div>
                       </td>
                     </motion.tr>
-                  ))}
+                  )))
               </tbody>
             </table>
           </ScrollArea>
@@ -454,7 +454,7 @@ function RecentThreatFeed({ indicators, isLoading }: ThreatFeedProps) {
               >
                 {sev.charAt(0).toUpperCase() + sev.slice(1)}
               </Button>
-            ))}
+            )))}
           </div>
         </div>
       </CardHeader>
@@ -590,7 +590,7 @@ function ActiveInvestigations({ investigations, isLoading }: InvestigationsProps
                   </span>
                 </div>
               </motion.div>
-            ))}
+            )))}
           </div>
         )}
       </CardContent>

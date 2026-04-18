@@ -582,7 +582,8 @@ export default function Collaboration() {
                               {getInitials(p)}
                             </AvatarFallback>
                           </Avatar>
-                        ))}
+                        ))
+                      )}
                         {selectedRoom.participants.length > 4 && (
                           <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] -ml-1 border-2 border-background">
                             +{selectedRoom.participants.length - 4}

@@ -197,8 +197,7 @@ export default function ThreatDeceptionDashboard() {
                       <ActiveBadge active={dec.active ?? false} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

@@ -296,7 +296,7 @@ export default function IdentityLifecycleDashboard() {
                       <button className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">Deprovision</button>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             )}
           </div>

@@ -415,8 +415,7 @@ export default function SecretsRotation() {
                   ) : (
                     filtered.map((secret, i) => (
                       <SecretRow key={secret.id} secret={secret} index={i} />
-                    ))
-                  )}
+                    )))}
                 </tbody>
               </table>
             </ScrollArea>
@@ -463,7 +462,7 @@ export default function SecretsRotation() {
                         <span className="text-green-400">{event.new_expiry}</span>
                       </div>
                     </motion.div>
-                  ))}
+                  )))}
                 </div>
               </ScrollArea>
             </CardContent>

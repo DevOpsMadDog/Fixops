@@ -440,7 +440,7 @@ export default function EmailSecurity() {
                     </Button>
                   )}
                 </motion.div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>
@@ -650,8 +650,7 @@ export default function EmailSecurity() {
                         <RiskScoreBadge score={d.risk_score} />
                       </TableCell>
                     </motion.tr>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             </CardContent>

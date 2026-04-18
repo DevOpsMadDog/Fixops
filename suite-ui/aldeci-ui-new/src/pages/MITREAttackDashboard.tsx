@@ -377,7 +377,7 @@ export default function MITREAttackDashboard() {
                         : gap.recommendation}
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </CardContent>

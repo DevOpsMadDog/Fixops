@@ -428,8 +428,7 @@ export default function CSPMDashboard() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          ))
-                        )}
+                          )))}
                         >
                           {f.severity}
                         </Badge>
@@ -440,7 +439,7 @@ export default function CSPMDashboard() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={cn("border text-xs", providerColor(f.provider))}
+                          )))}
                         >
                           {f.provider}
                         </Badge>
@@ -470,7 +469,7 @@ export default function CSPMDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -558,8 +557,7 @@ export default function CSPMDashboard() {
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge
                       variant="outline"
-                      ))
-                    )}
+                      )))}
                     >
                       {item.provider}
                     </Badge>
@@ -574,7 +572,7 @@ export default function CSPMDashboard() {
                   <p className="text-xs text-gray-500">impact</p>
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
       </motion.div>

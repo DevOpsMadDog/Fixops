@@ -232,8 +232,7 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2"><RiskBadge level={a.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_scanned}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -281,8 +280,7 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{f.owasp_category}</TableCell>
                     <TableCell className="py-2"><FindingStatusBadge status={f.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

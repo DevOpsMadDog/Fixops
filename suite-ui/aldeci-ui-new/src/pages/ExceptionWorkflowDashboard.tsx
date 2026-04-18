@@ -223,7 +223,7 @@ export default function ExceptionWorkflowDashboard() {
             <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
             <div className="text-gray-400 text-xs mt-1">{k.label}</div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Status filter tabs */}
@@ -242,7 +242,7 @@ export default function ExceptionWorkflowDashboard() {
           >
             {s === "all" ? "All" : s}
           </button>
-        ))}
+        )))}
       </div>
 
       {/* Main layout: table + detail panel */}
@@ -396,8 +396,7 @@ export default function ExceptionWorkflowDashboard() {
                     {r.previous_expiry} → <span className="text-green-400">{r.new_expiry}</span>
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </div>
           </div>
         </div>

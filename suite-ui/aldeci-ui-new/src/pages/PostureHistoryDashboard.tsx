@@ -267,8 +267,7 @@ export default function PostureHistoryDashboard() {
                   </td>
                   <td className="py-3 text-gray-400 text-xs">{snap.source}</td>
                 </tr>
-              ))
-            )}
+              )))}
             </tbody>
           </table>
         </div>

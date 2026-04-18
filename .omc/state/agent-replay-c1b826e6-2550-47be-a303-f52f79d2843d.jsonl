@@ -346,3 +346,4 @@
 {"t":0,"agent":"a904932","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"a812cb5","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a41bdd6","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a802230","agent_type":"executor","event":"agent_stop","success":true}

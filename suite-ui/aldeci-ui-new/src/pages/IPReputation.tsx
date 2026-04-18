@@ -378,7 +378,7 @@ export default function IPReputation() {
                         >
                           :{port}
                         </Badge>
-                      ))}
+                      )))}
                     </div>
                   </CardContent>
                 </Card>
@@ -415,7 +415,7 @@ export default function IPReputation() {
                               )}
                             </button>
                           </div>
-                        ))}
+                        )))}
                       </div>
                     </ScrollArea>
                   </CardContent>

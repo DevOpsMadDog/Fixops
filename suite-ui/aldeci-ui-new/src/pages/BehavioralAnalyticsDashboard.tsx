@@ -208,7 +208,7 @@ export default function BehavioralAnalyticsDashboard() {
                       {anm.detected_at ? formatTs(anm.detected_at) : "—"}
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>

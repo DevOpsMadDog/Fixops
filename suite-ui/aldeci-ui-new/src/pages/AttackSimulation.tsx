@@ -262,8 +262,7 @@ export default function AttackSimulation() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -292,14 +291,13 @@ export default function AttackSimulation() {
               MITRE_TACTICS.map((t) => (
               <div
                 key={t.tactic}
-                ))
-              )}
+                )))}
                 title={`${t.tactic}: ${t.pct}% coverage`}
               >
                 <div className="text-[10px] font-semibold leading-tight mb-1">{t.short}</div>
                 <div className="text-sm font-bold tabular-nums">{t.pct}%</div>
               </div>
-            ))}
+            )))}
           </div>
         </CardContent>
       </Card>
@@ -347,8 +345,7 @@ export default function AttackSimulation() {
                     <div className="text-[11px] text-muted-foreground mt-0.5">{event.name}</div>
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </div>
           </CardContent>
         </Card>
@@ -394,8 +391,7 @@ export default function AttackSimulation() {
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </CardContent>

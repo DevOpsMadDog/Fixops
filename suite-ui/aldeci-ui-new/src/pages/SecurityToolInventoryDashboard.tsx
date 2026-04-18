@@ -254,7 +254,7 @@ export default function SecurityToolInventoryDashboard() {
                       {fmtCost(t.cost_annual ?? 0)}
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -300,8 +300,7 @@ export default function SecurityToolInventoryDashboard() {
                     <TableCell className="py-2">{scoreBar(a.effectiveness_score ?? 0)}</TableCell>
                     <TableCell className="py-2">{scoreBar(a.utilization_pct ?? 0)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

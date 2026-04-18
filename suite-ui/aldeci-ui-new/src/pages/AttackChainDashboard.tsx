@@ -181,7 +181,7 @@ export default function AttackChainDashboard() {
                 <div className="text-xl font-bold">{p.count}</div>
                 <div className="text-[10px] mt-1 leading-tight opacity-80">{p.label}</div>
               </div>
-            ))}
+            )))}
           </div>
         </CardContent>
       </Card>
@@ -231,8 +231,7 @@ export default function AttackChainDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-mono">{c.steps}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtDate(c.created_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

@@ -260,8 +260,7 @@ export default function CCMDashboard() {
                   <TableCell className="py-2.5 w-40"><PassRateBar rate={fw.passRate} /></TableCell>
                   <TableCell className="py-2.5"><FrameworkStatusBadge status={fw.status} /></TableCell>
                 </TableRow>
-              ))
-            )}
+              )))}
             </TableBody>
           </Table>
         </CardContent>
@@ -310,7 +309,7 @@ export default function CCMDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -346,7 +345,7 @@ export default function CCMDashboard() {
                   Remediate
                 </Button>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 

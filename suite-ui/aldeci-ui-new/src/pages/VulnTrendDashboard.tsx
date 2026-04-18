@@ -260,8 +260,7 @@ export default function VulnTrendDashboard() {
                   <span className={cn("text-sm font-bold tabular-nums", t.cls)}>{t.label}</span>
                 </div>
               </div>
-            ))
-          )}
+            )))}
             <div className="pt-2 border-t border-border/40 text-xs text-muted-foreground">
               Compared to week of Apr 8. Data from vulnerability scanner aggregation.
             </div>
@@ -376,7 +375,7 @@ export default function VulnTrendDashboard() {
                     {c.avg_cvss ?? 0}
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

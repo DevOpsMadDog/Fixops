@@ -382,8 +382,7 @@ export default function ThreatModelDashboard() {
                       </TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{t.mitigations}</TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             )}
@@ -440,7 +439,7 @@ export default function ThreatModelDashboard() {
                       <Badge className={cn("text-[10px] border capitalize", EFFORT_COLORS[m.effort])}>{m.effort}</Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>

@@ -211,8 +211,7 @@ export default function APIInventoryDashboard() {
                       {api.endpoint_count ?? 0}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

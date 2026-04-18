@@ -285,7 +285,7 @@ export default function VulnRiskQueue() {
                   />
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 
@@ -324,8 +324,7 @@ export default function VulnRiskQueue() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{t.avgResolution}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </CardContent>
@@ -384,8 +383,7 @@ export default function VulnRiskQueue() {
                       variant="outline"
                       size="sm"
                       className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10"
-                      ))
-                    )}
+                      )))}
                     >
                       <CheckCircle2 className="h-3 w-3 mr-1" />Approve
                     </Button>
@@ -393,7 +391,7 @@ export default function VulnRiskQueue() {
                       variant="outline"
                       size="sm"
                       className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10"
-                      onClick={() => setRejected((prev) => new Set([...prev, r.id]))}
+                      )))}
                     >
                       <XCircle className="h-3 w-3 mr-1" />Reject
                     </Button>
@@ -401,7 +399,7 @@ export default function VulnRiskQueue() {
                 )}
               </div>
             </div>
-          ))}
+          )))}
         </CardContent>
       </Card>
     </motion.div>

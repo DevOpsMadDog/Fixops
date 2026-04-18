@@ -364,7 +364,7 @@ export default function IncidentTimelineDashboard() {
                       )}
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             )}
           </CardContent>
@@ -406,7 +406,7 @@ export default function IncidentTimelineDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </CardContent>

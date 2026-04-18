@@ -222,7 +222,7 @@ export default function SecurityMetricsDashboard2() {
                 <div className="mt-1 text-[10px] text-muted-foreground">{m.updated}</div>
               </CardContent>
             </Card>
-          ))}
+          )))}
         </div>
       </div>
 
@@ -317,7 +317,7 @@ export default function SecurityMetricsDashboard2() {
                     <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
                   )}
                 </div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>
@@ -361,8 +361,7 @@ export default function SecurityMetricsDashboard2() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.weekly_avg}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.monthly_avg}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

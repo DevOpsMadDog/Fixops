@@ -328,7 +328,7 @@ export default function APISecurityMgmtDashboard() {
                       <RiskScore score={ep.risk_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -387,8 +387,7 @@ export default function APISecurityMgmtDashboard() {
                         <StatusBadge status={ev.status ?? "detected"} />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -442,7 +441,7 @@ export default function APISecurityMgmtDashboard() {
                   )}
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 

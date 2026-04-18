@@ -318,7 +318,7 @@ export default function GRCAssessment() {
               >
                 {fw}
               </button>
-            ))}
+            )))}
           </div>
           <CardDescription className="text-xs mt-1">
             {implemented} of {controls.length} controls implemented ({passRate}% pass rate)
@@ -367,7 +367,7 @@ export default function GRCAssessment() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Update</Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -404,8 +404,7 @@ export default function GRCAssessment() {
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">{g.desc}</p>
               </div>
-            ))
-          )}
+            )))}
           </CardContent>
         </Card>
 
@@ -436,8 +435,7 @@ export default function GRCAssessment() {
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
                     {item}
                   </p>
-                ))
-              )}
+                )))}
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
@@ -454,8 +452,7 @@ export default function GRCAssessment() {
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
                     {item}
                   </p>
-                ))
-              )}
+                )))}
               </div>
             </div>
           </CardContent>

@@ -265,8 +265,7 @@ export default function DLPDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {(p.data_types ?? []).slice(0, 3).map((dt: string) => (
                           <Badge key={dt} className="text-[9px] border border-purple-500/30 text-purple-400 bg-purple-500/10 font-mono">{dt}</Badge>
-                        ))
-                )}
+                        )))}
                         {(p.data_types ?? []).length > 3 && (
                           <Badge className="text-[9px] border border-border text-muted-foreground">+{p.data_types.length - 3}</Badge>
                         )}
@@ -276,8 +275,7 @@ export default function DLPDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {(p.channels ?? []).slice(0, 2).map((ch: string) => (
                           <ChannelBadge key={ch} channel={ch} />
-                        ))
-                )}
+                        )))}
                         {(p.channels ?? []).length > 2 && (
                           <Badge className="text-[9px] border border-border text-muted-foreground">+{(p.channels.length - 2)}</Badge>
                         )}

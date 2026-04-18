@@ -229,7 +229,7 @@ export default function APISecurityPage() {
                     </TableCell>
                     <TableCell className="py-2.5 text-center"><TrendBadge trend={row.trend} /></TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -283,8 +283,7 @@ export default function APISecurityPage() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Fix</Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -334,8 +333,7 @@ export default function APISecurityPage() {
                       </TableCell>
                       <TableCell className="text-[10px] py-2 tabular-nums text-muted-foreground">{ev.ts}</TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -370,7 +368,7 @@ export default function APISecurityPage() {
                   <span className={cn("text-2xl font-bold tabular-nums", stat.color)}>{stat.value}</span>
                   <span className="text-[11px] text-muted-foreground">{stat.label}</span>
                 </div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>

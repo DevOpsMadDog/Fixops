@@ -310,7 +310,7 @@ export default function CMDBDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -350,7 +350,7 @@ export default function CMDBDashboard() {
                   />
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 
@@ -379,7 +379,7 @@ export default function CMDBDashboard() {
                   </span>
                   <span className="text-[10px] text-muted-foreground">{e.pct}% of total</span>
                 </div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>
@@ -436,8 +436,7 @@ export default function CMDBDashboard() {
                         : <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">completed</Badge>}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

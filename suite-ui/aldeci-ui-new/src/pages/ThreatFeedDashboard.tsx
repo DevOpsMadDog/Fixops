@@ -259,7 +259,7 @@ export default function ThreatFeedDashboard() {
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -297,7 +297,7 @@ export default function ThreatFeedDashboard() {
                     <span className="text-[10px] text-muted-foreground w-12 text-right">{item.time}</span>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>
@@ -340,7 +340,7 @@ export default function ThreatFeedDashboard() {
                   >
                     {t}
                   </button>
-                ))}
+                )))}
               </div>
               <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={handleSearch}>
                 <Search className="h-3 w-3" />
@@ -366,12 +366,11 @@ export default function ThreatFeedDashboard() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {r.tags.map((tag) => (
                         <Badge key={tag} className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">{tag}</Badge>
-                      ))
-                    )}
+                      )))}
                       <span className="text-[9px] text-muted-foreground ml-auto">Seen {r.seen}</span>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             )}
 
@@ -417,7 +416,7 @@ export default function ThreatFeedDashboard() {
                   />
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 
@@ -457,8 +456,7 @@ export default function ThreatFeedDashboard() {
                   <p className="text-[9px] text-muted-foreground">Last: {c.last}</p>
                 </div>
               </div>
-            ))
-          )}
+            )))}
           </CardContent>
         </Card>
       </div>

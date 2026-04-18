@@ -204,7 +204,7 @@ export default function DigitalTwinDashboard() {
                       {formatTs(sim.completed_at)}
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>

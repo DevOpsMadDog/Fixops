@@ -314,8 +314,7 @@ export default function SOARDashboard() {
                   <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px]">Test</Button>
                 </div>
               </div>
-            ))
-          )}
+            )))}
           </CardContent>
         </Card>
       </div>
@@ -351,7 +350,7 @@ export default function SOARDashboard() {
                 />
               </div>
             </div>
-          ))}
+          )))}
         </CardContent>
       </Card>
     </motion.div>

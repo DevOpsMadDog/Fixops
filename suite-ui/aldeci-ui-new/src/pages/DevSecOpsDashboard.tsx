@@ -344,7 +344,7 @@ export default function DevSecOpsDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -374,8 +374,7 @@ export default function DevSecOpsDashboard() {
                 <div className="font-mono text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-1">{p.rule}</div>
                 <Badge className={cn("text-[10px] border mt-1", p.bg, p.color)}>{p.threshold}</Badge>
               </div>
-            ))
-          )}
+            )))}
           </div>
         </CardContent>
       </Card>

@@ -220,8 +220,7 @@ export default function NetworkTopology() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{n.segment}</TableCell>
                     <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -260,8 +259,7 @@ export default function NetworkTopology() {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+          )))}
         </div>
       </div>
 
@@ -297,8 +295,7 @@ export default function NetworkTopology() {
               </div>
               <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
             </div>
-          ))
-        )}
+          )))}
         </CardContent>
       </Card>
 
@@ -350,8 +347,7 @@ export default function NetworkTopology() {
                     <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">{node}</span>
                     {i < pathResult.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                   </span>
-                ))
-              )}
+                )))}
               </div>
             </motion.div>
           )}

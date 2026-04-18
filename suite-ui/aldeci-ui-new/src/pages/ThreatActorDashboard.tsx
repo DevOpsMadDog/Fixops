@@ -339,8 +339,7 @@ export default function ThreatActorDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -376,8 +375,7 @@ export default function ThreatActorDashboard() {
                 <div className="flex flex-wrap gap-1">
                   {c.sectors.map((s) => (
                     <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground border border-border/50">{s}</span>
-                  ))
-                )}
+                  )))}
                 </div>
                 <div className="flex items-center justify-between">
                   <ImpactBadge level={c.impact} />
@@ -385,7 +383,7 @@ export default function ThreatActorDashboard() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )))}
         </div>
       </div>
 
@@ -433,7 +431,7 @@ export default function ThreatActorDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -492,8 +490,7 @@ export default function ThreatActorDashboard() {
                   <span className="flex-1 text-muted-foreground">{t.label}</span>
                   <span className="font-bold tabular-nums">{t.count}</span>
                 </div>
-              ))
-            )}
+              )))}
             </CardContent>
           </Card>
 
@@ -524,7 +521,7 @@ export default function ThreatActorDashboard() {
                     />
                   </div>
                 </div>
-              ))}
+              )))}
             </CardContent>
           </Card>
 
@@ -555,8 +552,7 @@ export default function ThreatActorDashboard() {
                     />
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </CardContent>
           </Card>
         </div>

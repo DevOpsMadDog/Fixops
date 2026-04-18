@@ -294,8 +294,7 @@ export default function SecurityCultureDashboard() {
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            )))}
           </div>
         </div>
 
@@ -342,7 +341,7 @@ export default function SecurityCultureDashboard() {
                             <li key={s} className="text-gray-300 text-xs flex items-start gap-1">
                               <span className="text-green-400 mt-0.5">✓</span> {s}
                             </li>
-                          ))}
+                          )))}
                         </ul>
                       </div>
                       <div>
@@ -352,7 +351,7 @@ export default function SecurityCultureDashboard() {
                             <li key={w} className="text-gray-300 text-xs flex items-start gap-1">
                               <span className="text-red-400 mt-0.5">✗</span> {w}
                             </li>
-                          ))}
+                          )))}
                         </ul>
                       </div>
                     </div>

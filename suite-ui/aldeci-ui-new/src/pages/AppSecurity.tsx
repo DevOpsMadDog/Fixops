@@ -282,7 +282,7 @@ export default function AppSecurity() {
                   />
                 </div>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
       </div>
@@ -334,8 +334,7 @@ export default function AppSecurity() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{s.time}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -399,8 +398,7 @@ export default function AppSecurity() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

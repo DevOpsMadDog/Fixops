@@ -930,8 +930,7 @@ export default function IdentityGovernance() {
                       </Button>
                     </div>
                   </motion.div>
-                ))
-              )}
+                )))}
               </div>
             </CardContent>
           </Card>

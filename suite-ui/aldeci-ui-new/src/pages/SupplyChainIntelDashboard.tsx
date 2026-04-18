@@ -416,7 +416,7 @@ export default function SupplyChainIntelDashboard() {
                         <RiskBadge r={r.risk} />
                       </div>
                     </div>
-                  ))}
+                  )))}
                 </>
               )}
             </div>

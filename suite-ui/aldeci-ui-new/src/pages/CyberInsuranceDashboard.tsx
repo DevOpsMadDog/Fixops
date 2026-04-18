@@ -372,7 +372,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{p.expiry_date}</TableCell>
                     <TableCell className="py-2"><PolicyStatusBadge status={p.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -428,7 +428,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{c.adjuster}</TableCell>
                     <TableCell className="py-2"><ClaimStatusBadge status={c.status ?? "filed"} /></TableCell>
                   </TableRow>
-                ))}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -506,7 +506,7 @@ export default function CyberInsuranceDashboard() {
                     <Clock className="h-3 w-3 shrink-0 text-amber-400 mt-0.5" />
                     <span className="text-xs text-muted-foreground">{rec}</span>
                   </div>
-                ))}
+                )))}
               </div>
             )}
 

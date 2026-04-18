@@ -228,7 +228,7 @@ export default function IOCHunter() {
                 >
                   {t}
                 </button>
-              ))}
+              )))}
             </div>
             <Input
               placeholder="Enter IP, domain, hash, URL, or email…"
@@ -305,8 +305,7 @@ export default function IOCHunter() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -345,7 +344,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["UNC2452", "COZY BEAR", "SolarWinds-APT"].map((c) => (
                   <Badge key={c} className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{c}</Badge>
-                ))}
+                )))}
               </div>
             </div>
             <div className="rounded-md bg-muted/30 p-3 space-y-2">
@@ -353,7 +352,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["Cobalt Strike", "SUNBURST", "Mimikatz"].map((m) => (
                   <Badge key={m} className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{m}</Badge>
-                ))}
+                )))}
               </div>
             </div>
           </CardContent>
@@ -384,8 +383,7 @@ export default function IOCHunter() {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+          )))}
 
           {/* Recent additions */}
           <Card>
@@ -406,8 +404,7 @@ export default function IOCHunter() {
                   <span className="text-[10px] text-muted-foreground shrink-0">{r.source}</span>
                   <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{r.ts}</span>
                 </div>
-              ))
-            )}
+              )))}
             </CardContent>
           </Card>
         </div>

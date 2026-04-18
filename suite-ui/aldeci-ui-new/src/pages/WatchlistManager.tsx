@@ -256,8 +256,7 @@ export default function WatchlistManager() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -312,8 +311,7 @@ export default function WatchlistManager() {
                       <TableCell className="text-xs py-2 tabular-nums text-muted-foreground">{row.time}</TableCell>
                       <TableCell className="py-2"><SeverityBadge sev={row.severity} /></TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -354,8 +352,7 @@ export default function WatchlistManager() {
                 ) : (
                   TYPE_OPTIONS.map((t) => (
                   <option key={t} value={t}>{t}</option>
-                ))
-              )}
+                )))}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -373,8 +370,7 @@ export default function WatchlistManager() {
                 ) : (
                   WATCHLIST_OPTIONS.map((w) => (
                   <option key={w} value={w}>{w}</option>
-                ))
-              )}
+                )))}
               </select>
             </div>
             <Button size="sm" className="h-8 text-xs" onClick={handleAdd}>
@@ -386,7 +382,7 @@ export default function WatchlistManager() {
                 <p className="text-[10px] text-muted-foreground font-medium">Recently added:</p>
                 {added.slice(0, 4).map((entry, idx) => (
                   <div key={idx} className="text-[10px] text-green-400 font-mono truncate">{entry}</div>
-                ))}
+                )))}
               </div>
             )}
           </CardContent>
@@ -425,8 +421,7 @@ export default function WatchlistManager() {
                 <div className="text-[9px] text-muted-foreground">Last: {ip.lastSeen}</div>
               </div>
             </div>
-          ))
-        )}
+          )))}
         </CardContent>
       </Card>
     </motion.div>

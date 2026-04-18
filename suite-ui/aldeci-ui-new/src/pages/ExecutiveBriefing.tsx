@@ -284,8 +284,7 @@ export default function ExecutiveBriefing() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-right text-green-400 font-medium">{r.avoided}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums text-right font-bold text-green-400">{r.roi}%</TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -326,7 +325,7 @@ export default function ExecutiveBriefing() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{f.pct}%</span>
                 <StatusBadge status={f.status} />
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
       </div>
@@ -419,8 +418,7 @@ export default function ExecutiveBriefing() {
                 <ActionBadge action={r.action} />
               </div>
             </div>
-          ))
-        )}
+          )))}
         </CardContent>
       </Card>
 

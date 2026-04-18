@@ -363,8 +363,7 @@ export default function ThreatCorrelation() {
                   </div>
                   <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
                 </div>
-              ))
-            )}
+              )))}
             </div>
             <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/40 inline-block" />Events</span>
@@ -425,7 +424,7 @@ export default function ThreatCorrelation() {
                       <TableCell className="text-xs tabular-nums py-2">{Math.round((ind.confidence ?? 0.8) * 100)}%</TableCell>
                       <TableCell className="text-[10px] py-2 text-muted-foreground">{ind.source ?? "aldeci"}</TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -441,8 +440,7 @@ export default function ThreatCorrelation() {
                   <span className="text-lg font-black tabular-nums">{item.value}</span>
                   <span className="text-[10px] text-muted-foreground text-center">{item.label}</span>
                 </div>
-              ))
-            )}
+              )))}
               <p className="text-[10px] text-muted-foreground ml-2">No indicators shared yet — sharing groups will appear here once configured.</p>
             </div>
           )}

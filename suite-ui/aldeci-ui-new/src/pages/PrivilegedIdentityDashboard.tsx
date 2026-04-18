@@ -265,8 +265,7 @@ export default function PrivilegedIdentityDashboard() {
                   <AnomalyBar score={s.anomaly_score} />
                 </div>
               </motion.div>
-            ))
-          )}
+            )))}
           </div>
         </CardContent>
       </Card>

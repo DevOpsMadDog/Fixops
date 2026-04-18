@@ -313,7 +313,7 @@ export default function IncidentLessonsDashboard() {
                   {action.status.replace("_", " ")}
                 </span>
               </div>
-            ))}
+            )))}
           </div>
         )}
       </div>
@@ -328,7 +328,7 @@ export default function IncidentLessonsDashboard() {
                 <p className="text-green-200 text-sm">{outcome.outcome}</p>
                 <p className="text-green-400 text-xs mt-1">Reviewed by {outcome.reviewed_by} on {outcome.reviewed_date}</p>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       )}

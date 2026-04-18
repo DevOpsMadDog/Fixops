@@ -441,7 +441,7 @@ export default function SOCTriageDashboard() {
                   </div>
                   <p className="text-[10px] text-muted-foreground">{note}</p>
                 </div>
-              ))}
+              )))}
 
               {/* Classification breakdown */}
               <div className="pt-1 border-t border-border space-y-1.5">

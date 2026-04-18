@@ -324,8 +324,7 @@ export default function ComplianceWorkflowDashboard() {
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    )))}
                 </tbody>
               </table>
             </div>
@@ -349,8 +348,7 @@ export default function ComplianceWorkflowDashboard() {
                       {approvalConfig[ap.decision].label}
                     </span>
                   </div>
-                ))
-              )}
+                )))}
               </div>
             )}
           </div>
@@ -372,7 +370,7 @@ export default function ComplianceWorkflowDashboard() {
               </div>
               <p className="text-gray-500 text-xs">{fr.controls_met} / {fr.controls_total} controls met</p>
             </div>
-          ))}
+          )))}
         </div>
       </div>
     </div>

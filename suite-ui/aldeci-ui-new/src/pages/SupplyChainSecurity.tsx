@@ -303,7 +303,7 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
             >
               <span className="text-xs font-bold text-center">{dep.risk_score}</span>
             </motion.div>
-          ))}
+          )))}
         </div>
       </CardContent>
     </Card>
@@ -458,7 +458,7 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
                     </div>
                   </td>
                 </motion.tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </ScrollArea>
@@ -549,8 +549,7 @@ function TransitiveDependencyTree() {
                   <span className="text-xs ml-1">@{dep.version}</span>
                 </span>
               </motion.div>
-            ))
-          )}
+            )))}
           </div>
         </ScrollArea>
       </CardContent>
@@ -899,7 +898,7 @@ export default function SupplyChainSecurity() {
                         <dt className="text-xs text-muted-foreground shrink-0">{label}</dt>
                         <dd className="text-xs text-right font-medium truncate">{value}</dd>
                       </div>
-                    ))}
+                    )))}
                   </dl>
                 </div>
 

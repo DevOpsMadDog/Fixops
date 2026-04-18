@@ -345,8 +345,7 @@ export default function RedTeamStatus() {
                 </div>
                 <FeedStatusBadge status={evt.status} />
               </motion.div>
-            ))
-          )}
+            )))}
           </CardContent>
         </Card>
 
@@ -387,7 +386,7 @@ export default function RedTeamStatus() {
                     {Math.round((s.count / 47) * 100)}% of total
                   </span>
                 </div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>
@@ -444,7 +443,7 @@ export default function RedTeamStatus() {
                 />
               </div>
             </div>
-          ))}
+          )))}
         </CardContent>
       </Card>
     </motion.div>

@@ -253,8 +253,7 @@ export default function PKIManagementDashboard() {
                       {c.expires_at}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -302,8 +301,7 @@ export default function PKIManagementDashboard() {
                     <TableCell className="py-2"><CertStatusBadge status={ca.status ?? "active"} /></TableCell>
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{ca.cert_count}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

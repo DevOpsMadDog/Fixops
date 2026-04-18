@@ -268,8 +268,7 @@ export default function ServiceCatalogDashboard() {
                       <Badge className={cn("text-[9px] border capitalize", s.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10" : "border-red-500/30 text-red-400 bg-red-500/10")}>{s.status}</Badge>
                     </td>
                   </tr>
-                ))
-              )}
+                )))}
               </tbody>
             </table>
           </div>
@@ -287,7 +286,7 @@ export default function ServiceCatalogDashboard() {
                   <tr className="border-b border-zinc-700">
                     {["Requester", "Dept", "Service", "Priority", "Status", "Response", "Resolution", "SLA"].map(h => (
                       <th key={h} className="text-left py-2 px-1 text-zinc-500 font-medium whitespace-nowrap">{h}</th>
-                    ))}
+                    )))}
                   </tr>
                 </thead>
                 <tbody>
@@ -312,8 +311,7 @@ export default function ServiceCatalogDashboard() {
                         {r.sla_met === null && <span className="text-zinc-600">—</span>}
                       </td>
                     </tr>
-                  ))
-                )}
+                  )))}
                 </tbody>
               </table>
             </div>
@@ -338,7 +336,7 @@ export default function ServiceCatalogDashboard() {
                     </div>
                   )}
                 </div>
-              ))}
+              )))}
             </CardContent>
           </Card>
 
@@ -366,8 +364,7 @@ export default function ServiceCatalogDashboard() {
                     <span className="ml-auto">{o.started_at.slice(0, 10)}</span>
                   </div>
                 </div>
-              ))
-            )}
+              )))}
             </CardContent>
           </Card>
         </div>

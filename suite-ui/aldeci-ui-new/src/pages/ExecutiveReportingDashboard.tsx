@@ -316,8 +316,7 @@ export default function ExecutiveReportingDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -381,8 +380,7 @@ export default function ExecutiveReportingDashboard() {
                       </TableCell>
                       <TableCell className="py-2"><KpiStatusBadge status={k.status ?? "on_track"} /></TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -433,7 +431,7 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    ))}
+                    )))}
                   </div>
                 )}
               </div>

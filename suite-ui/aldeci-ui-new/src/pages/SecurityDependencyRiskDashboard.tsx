@@ -312,7 +312,7 @@ export default function SecurityDependencyRiskDashboard() {
                   </div>
                   <LicenseRiskBadge level={l.risk_level} />
                 </div>
-              ))}
+              )))}
             </div>
           </div>
 
@@ -338,11 +338,10 @@ export default function SecurityDependencyRiskDashboard() {
                         <span className="text-gray-600">└─</span>
                         <span className="font-mono text-gray-300">{c}</span>
                       </div>
-                    ))
-                  )}
+                    )))}
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </div>

@@ -224,8 +224,7 @@ export default function NetworkThreatsDashboard() {
                   <span className="text-red-400 font-bold">+{b.deviation_pct.toFixed(0)}%</span>
                 </div>
               </div>
-            ))
-          )}
+            )))}
           </div>
         </div>
       )}
@@ -246,7 +245,7 @@ export default function NetworkThreatsDashboard() {
                 >
                   {f}
                 </button>
-              ))}
+              )))}
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -299,8 +298,7 @@ export default function NetworkThreatsDashboard() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                )))}
               </tbody>
             </table>
           </div>
@@ -330,8 +328,7 @@ export default function NetworkThreatsDashboard() {
                 </div>
                 <span className="text-red-400 text-xs font-bold shrink-0">{ip.count}</span>
               </div>
-            ))
-          )}
+            )))}
           </div>
         </div>
       </div>
@@ -368,8 +365,7 @@ export default function NetworkThreatsDashboard() {
                 </span>
               </div>
             </div>
-          ))
-        )}
+          )))}
         </div>
       </div>
     </div>
