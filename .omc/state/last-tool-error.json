@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\nTOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\n\\n# Quick e2e: walkthrough + investor demo + platform health\\necho...",
-  "error": "Exit code 1\n=== Walkthrough ===\nTOTAL                                                                               150   150     0    100%\n\n=== Investor Demo ===\n  \u001b[1mResults  \u001b[92m10/10 scenarios passed\u001b[0m  \u001b[2mTotal time: 0.7s\u001b[0m\n\n=== Platform Health ===",
-  "timestamp": "2026-04-18T02:41:51.448Z",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec git commit -m \\\"$(cat <<'EOF'\\nbeast-mode(wave42): SIEM syslog/CEF ingest + code-to-cloud tracing + Multica updates\\n\\nNew capabilities:\\n- POST /api/v1/siem/in...",
+  "error": "Exit code 2\nsh: -c: line 0: syntax error near unexpected token `('\nsh: -c: line 0: `git commit -m beast-mode(wave42): SIEM syslog/CEF ingest + code-to-cloud tracing + Multica updates'",
+  "timestamp": "2026-04-18T02:51:03.066Z",
   "retry_count": 1
 }
