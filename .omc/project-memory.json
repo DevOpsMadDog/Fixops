@@ -513,8 +513,8 @@
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 54,
-      "lastAccessed": 1776486259667,
+      "accessCount": 55,
+      "lastAccessed": 1776491314709,
       "type": "file"
     },
     {
@@ -531,8 +531,8 @@
     },
     {
       "path": "suite-api/apps/api/asset_inventory_router.py",
-      "accessCount": 28,
-      "lastAccessed": 1776263835249,
+      "accessCount": 29,
+      "lastAccessed": 1776491309942,
       "type": "file"
     },
     {
