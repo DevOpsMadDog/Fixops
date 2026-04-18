@@ -1,7 +1,7 @@
 {
-  "tool_name": "Glob",
-  "tool_input_preview": "{\"pattern\":\"**/*exec*report*router*.py\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-api\"}",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-18T02:35:37.135Z",
-  "retry_count": 2
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\nTOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\n\\n# Quick e2e: walkthrough + investor demo + platform health\\necho...",
+  "error": "Exit code 1\n=== Walkthrough ===\nTOTAL                                                                               150   150     0    100%\n\n=== Investor Demo ===\n  \u001b[1mResults  \u001b[92m10/10 scenarios passed\u001b[0m  \u001b[2mTotal time: 0.7s\u001b[0m\n\n=== Platform Health ===",
+  "timestamp": "2026-04-18T02:41:51.448Z",
+  "retry_count": 1
 }
