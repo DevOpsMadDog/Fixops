@@ -330,8 +330,9 @@ def _api(
     base_url: str,
     body: Optional[Dict] = None,
     dry_run: bool = False,
+    _retries: int = 4,
 ) -> Optional[Dict[str, Any]]:
-    """Make an authenticated request to the ALDECI API."""
+    """Make an authenticated request to the ALDECI API with exponential-backoff retry."""
     url = f"{base_url}{path}"
     if dry_run:
         log.info("[DRY-RUN] %s %s  body=%s", method, url, json.dumps(body) if body else "none")
@@ -347,16 +348,26 @@ def _api(
         },
         method=method,
     )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as exc:
-        body_text = exc.read().decode(errors="replace")
-        log.error("API %s %s -> HTTP %s: %s", method, url, exc.code, body_text[:200])
-        return None
-    except Exception as exc:
-        log.error("API error %s %s: %s", method, url, exc)
-        return None
+    for attempt in range(_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            body_text = exc.read().decode(errors="replace")
+            if exc.code == 429 and attempt < _retries - 1:
+                wait = 2 ** attempt  # 1, 2, 4 seconds
+                log.warning(
+                    "HTTP 429 on %s %s — retrying in %ds (attempt %d/%d)",
+                    method, url, wait, attempt + 1, _retries,
+                )
+                time.sleep(wait)
+                continue
+            log.error("API %s %s -> HTTP %s: %s", method, url, exc.code, body_text[:200])
+            return None
+        except Exception as exc:
+            log.error("API error %s %s: %s", method, url, exc)
+            return None
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -387,11 +398,19 @@ def detect_no_resource_limits(pods_json: Dict, cluster: str) -> List[Dict]:
     return findings
 
 
+_SYSTEM_NAMESPACES = frozenset(
+    {"kube-system", "kube-public", "kube-node-lease"}
+)
+
+
 def detect_root_containers(pods_json: Dict, cluster: str) -> List[Dict]:
     findings = []
     for item in pods_json.get("items", []):
         ns = item["metadata"]["namespace"]
         name = item["metadata"]["name"]
+        # Skip system namespaces — kube-system components legitimately run as root
+        if ns in _SYSTEM_NAMESPACES:
+            continue
         pod_sc = item["spec"].get("securityContext", {})
         for c in item["spec"].get("containers", []):
             csc = c.get("securityContext", {})
