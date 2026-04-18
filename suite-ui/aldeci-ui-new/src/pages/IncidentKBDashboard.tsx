@@ -191,9 +191,7 @@ export default function IncidentKBDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
   const [executeMsg, setExecuteMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -207,9 +205,7 @@ export default function IncidentKBDashboard() {
   const mostViewed = MOCK_ARTICLES.reduce((best, a) => a.view_count > best.view_count ? a : best, MOCK_ARTICLES[0]);
 
   function handleHelpful(id: string) {
-    setHelpfulMap(prev => ({ ...prev, [id]: !prev[id] }));
-  
-    setLoading(false);}
+    setHelpfulMap(prev => ({ ...prev, [id]: !prev[id] }));}
 
   function handleExecute(rb: Runbook) {
     setExecutedRunbooks(prev => ({ ...prev, [rb.id]: true }));
@@ -323,7 +319,8 @@ export default function IncidentKBDashboard() {
                   <div className="flex flex-wrap gap-1">
                     {article.tags.map(tag => (
                       <span key={tag} className="bg-gray-700/60 text-gray-400 px-1.5 py-0.5 rounded text-xs">#{tag}</span>
-                    ))}
+                    ))
+                  )}
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center gap-3">

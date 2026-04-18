@@ -260,8 +260,7 @@ export default function CyberInsuranceDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -303,9 +302,7 @@ export default function CyberInsuranceDashboard() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
-          </Button>
-        
-    setLoading(false);}
+          </Button>}
       />
 
       {/* KPIs */}
@@ -375,8 +372,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{p.expiry_date}</TableCell>
                     <TableCell className="py-2"><PolicyStatusBadge status={p.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -432,8 +428,7 @@ export default function CyberInsuranceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{c.adjuster}</TableCell>
                     <TableCell className="py-2"><ClaimStatusBadge status={c.status ?? "filed"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

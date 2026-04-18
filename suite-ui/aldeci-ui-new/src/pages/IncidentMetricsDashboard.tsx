@@ -119,8 +119,7 @@ export default function IncidentMetricsDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -157,8 +156,7 @@ export default function IncidentMetricsDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Incidents"   value={stats.total_incidents}  icon={AlertCircle}  trend="up"   />
         <KpiCard title="Open Incidents"    value={stats.open_incidents}   icon={AlertTriangle} trend="up"  className="border-amber-500/20" />
@@ -218,7 +216,7 @@ export default function IncidentMetricsDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(inc.reported_at)}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

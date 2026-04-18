@@ -194,8 +194,7 @@ export default function DataPipelineDashboard() {
                       {pipe.last_run ? formatTs(pipe.last_run) : "—"}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

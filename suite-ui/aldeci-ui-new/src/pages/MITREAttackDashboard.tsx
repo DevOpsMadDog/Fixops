@@ -175,7 +175,6 @@ export default function MITREAttackDashboard() {
     if (statsRes.status === "fulfilled")    setStats(statsRes.value);
 
     setLastRefresh(new Date());
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -378,8 +377,7 @@ export default function MITREAttackDashboard() {
                         : gap.recommendation}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

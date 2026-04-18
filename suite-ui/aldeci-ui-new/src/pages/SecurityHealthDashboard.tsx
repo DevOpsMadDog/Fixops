@@ -392,7 +392,7 @@ export default function SecurityHealthDashboard() {
                   </div>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
 

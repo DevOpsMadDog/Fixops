@@ -557,7 +557,8 @@ export default function Workflows() {
                   onDuplicate={handleDuplicate}
                   onDelete={handleDelete}
                 />
-              ))}
+              ))
+            )}
             </div>
           )}
         </TabsContent>

@@ -168,8 +168,7 @@ export default function ZeroTrustPolicyDashboard() {
       apiFetch(`/api/v1/zero-trust/policies?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/zero-trust/access-log?org_id=${ORG_ID}&limit=15`),
       apiFetch(`/api/v1/zero-trust/trust-scores?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/zero-trust/stats?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/zero-trust/stats?org_id=${ORG_ID}`),
     ]).then(([policiesResult, requestsResult, scoresResult, statsResult]) => {
       const policies = policiesResult.status === "fulfilled" ? policiesResult.value : null;
       const requests = requestsResult.status === "fulfilled" ? requestsResult.value : null;
@@ -386,7 +385,7 @@ export default function ZeroTrustPolicyDashboard() {
                     <span className="text-[10px] text-muted-foreground/60 tabular-nums shrink-0">{v.ts}</span>
                   </div>
                 ))
-                )}
+              )}
               </div>
             </CardContent>
           </Card>

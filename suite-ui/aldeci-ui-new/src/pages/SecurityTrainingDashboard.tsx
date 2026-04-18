@@ -119,8 +119,7 @@ export default function SecurityTrainingDashboard() {
       apiFetch(`/api/v1/security-training/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/security-training/courses?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/security-training/enrollments?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/security-training/campaigns?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/security-training/campaigns?org_id=${ORG_ID}`),
     ]).then(([statsRes, coursesRes, enrollRes, campRes]) => {
       const stats     = statsRes.status     === "fulfilled" ? statsRes.value     : null;
       const courses   = coursesRes.status   === "fulfilled" ? coursesRes.value   : null;
@@ -300,7 +299,7 @@ export default function SecurityTrainingDashboard() {
               />
             </div>
           ))
-          )}
+        )}
         </div>
       )}
     </div>

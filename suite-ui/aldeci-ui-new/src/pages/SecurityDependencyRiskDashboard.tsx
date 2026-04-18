@@ -148,9 +148,7 @@ export default function SecurityDependencyRiskDashboard() {
   const filteredVulns = vulns.filter(v => filteredDepsIds.has(v.dep_id));
 
   function patchVuln(id: string) {
-    setVulns(prev => prev.map(v => v.id === id ? { ...v, patched: true } : v));
-  
-    setLoading(false);}
+    setVulns(prev => prev.map(v => v.id === id ? { ...v, patched: true } : v));}
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -314,8 +312,7 @@ export default function SecurityDependencyRiskDashboard() {
                   </div>
                   <LicenseRiskBadge level={l.risk_level} />
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
 
@@ -342,11 +339,10 @@ export default function SecurityDependencyRiskDashboard() {
                         <span className="font-mono text-gray-300">{c}</span>
                       </div>
                     ))
-              )}
+                  )}
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </div>
         </div>

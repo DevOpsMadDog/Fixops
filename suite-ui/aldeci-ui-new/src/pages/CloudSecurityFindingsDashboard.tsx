@@ -241,8 +241,7 @@ export default function CloudSecurityFindingsDashboard() {
                     )}
                   </td>
                 </tr>
-              ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -272,7 +271,7 @@ export default function CloudSecurityFindingsDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </div>
         </div>
 
@@ -297,7 +296,7 @@ export default function CloudSecurityFindingsDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </div>
         </div>
       </div>

@@ -134,9 +134,7 @@ export default function SecurityOperationsCenter() {
       const soarStats      = soarStatsResult.status      === "fulfilled" ? soarStatsResult.value      : null;
       const soarExecutions = soarExecutionsResult.status === "fulfilled" ? soarExecutionsResult.value : null;
       if (soarStats || soarExecutions) {
-        setLiveData({ soarStats, soarCases: soarExecutions, insiderStats: null });
-      
-    setLoading(false);}
+        setLiveData({ soarStats, soarCases: soarExecutions, insiderStats: null });}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -280,8 +278,7 @@ export default function SecurityOperationsCenter() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -331,7 +328,7 @@ export default function SecurityOperationsCenter() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
 
@@ -365,7 +362,7 @@ export default function SecurityOperationsCenter() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{src.count}</span>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
       </div>
@@ -395,7 +392,7 @@ export default function SecurityOperationsCenter() {
               <p className="text-xs text-muted-foreground leading-relaxed">{item.note}</p>
             </div>
           ))
-          )}
+        )}
         </CardContent>
       </Card>
     </motion.div>

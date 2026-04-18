@@ -216,7 +216,7 @@ export default function CloudResourceInventoryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

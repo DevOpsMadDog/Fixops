@@ -157,9 +157,7 @@ export default function ThreatCorrelation() {
 
   useEffect(() => {
     setDataLoading(true);
-    fetchAll().finally(() => setDataLoading(false));
-  
-    setLoading(false);}, []);
+    fetchAll().finally(() => setDataLoading(false));}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -247,8 +245,7 @@ export default function ThreatCorrelation() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{rule.hits ?? rule.hit_count ?? 0}</TableCell>
                   </TableRow>
-                ))
-    setLoading(false);}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -367,7 +364,7 @@ export default function ThreatCorrelation() {
                   <span className="text-[8px] text-muted-foreground">{d.hour % 6 === 0 ? `${d.hour}h` : ""}</span>
                 </div>
               ))
-              )}
+            )}
             </div>
             <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/40 inline-block" />Events</span>
@@ -444,7 +441,8 @@ export default function ThreatCorrelation() {
                   <span className="text-lg font-black tabular-nums">{item.value}</span>
                   <span className="text-[10px] text-muted-foreground text-center">{item.label}</span>
                 </div>
-              ))}
+              ))
+            )}
               <p className="text-[10px] text-muted-foreground ml-2">No indicators shared yet — sharing groups will appear here once configured.</p>
             </div>
           )}

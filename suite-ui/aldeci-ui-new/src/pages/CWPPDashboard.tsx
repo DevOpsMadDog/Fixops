@@ -160,8 +160,7 @@ export default function CWPPDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -198,8 +197,7 @@ export default function CWPPDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Workloads Protected"  value={liveData?.summary?.total_workloads ?? liveData?.summary?.protected_count ?? 847}    icon={Shield}        trend="up"   />
-        <KpiCard title="Suspicious"           value={liveData?.summary?.threat_count ?? liveData?.summary?.suspicious_count ?? 12
-    setLoading(false);}        icon={AlertTriangle} trend="up"   className="border-red-500/20" />
+        <KpiCard title="Suspicious"           value={liveData?.summary?.threat_count ?? liveData?.summary?.suspicious_count ?? 12}        icon={AlertTriangle} trend="up"   className="border-red-500/20" />
         <KpiCard title="Open Findings"        value={liveData?.summary?.finding_count ?? liveData?.summary?.open_findings ?? 234}         icon={Activity}      trend="down" className="border-amber-500/20" />
         <KpiCard title="Events Blocked Today" value={liveData?.summary?.blocked_events ?? liveData?.summary?.events_blocked ?? "1,847"}   icon={Zap}           trend="up"   className="border-green-500/20" />
       </div>
@@ -350,7 +348,7 @@ export default function CWPPDashboard() {
                 <span className={cn("text-sm font-bold tabular-nums", f.color)}>{f.count}</span>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
 
@@ -386,14 +384,13 @@ export default function CWPPDashboard() {
                       {r}
                     </li>
                   ))
-            )}
+                )}
                 </ul>
                 <p className="text-[11px] text-muted-foreground">
                   Applied to <span className="font-semibold text-foreground">{p.applied.toLocaleString()}</span> workloads
                 </p>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>

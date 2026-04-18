@@ -156,8 +156,7 @@ export default function UBADashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -277,8 +276,8 @@ export default function UBADashboard() {
                       <div className="flex items-center gap-2">
                         <div className="relative h-1.5 flex-1 rounded-full bg-muted/30 overflow-hidden">
                           <div
-                            className={cn("h-full rounded-full", scoreColor(u.score))
-                )}
+                            ))
+                          )}
                             style={{ width: `${u.score}%` }}
                           />
                         </div>
@@ -302,8 +301,7 @@ export default function UBADashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -343,8 +341,7 @@ export default function UBADashboard() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -374,7 +371,7 @@ export default function UBADashboard() {
                   <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10 shrink-0">anomalous</Badge>
                 </div>
               ))
-              )}
+            )}
             </div>
           </CardContent>
         </Card>
@@ -410,8 +407,7 @@ export default function UBADashboard() {
                 <span className="text-[10px] text-muted-foreground">avg score</span>
                 <span className="text-[10px] text-muted-foreground">{d.users} users</span>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

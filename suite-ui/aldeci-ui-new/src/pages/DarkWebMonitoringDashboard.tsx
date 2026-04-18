@@ -138,8 +138,7 @@ export default function DarkWebMonitoringDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -179,8 +178,7 @@ export default function DarkWebMonitoringDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Mentions"      value={stats.total_mentions
-    setLoading(false);}      icon={Globe}       trend="up"   />
+        <KpiCard title="Total Mentions"      value={stats.total_mentions}      icon={Globe}       trend="up"   />
         <KpiCard title="Open Mentions"       value={stats.open_mentions}       icon={Eye}         trend="up"   className="border-amber-500/20" />
         <KpiCard title="Critical Exposures"  value={stats.critical_exposures}  icon={AlertTriangle} trend="up" className="border-red-500/20" />
         <KpiCard title="Keywords Tracked"    value={stats.keywords_tracked}    icon={ShieldAlert} trend="flat" className="border-blue-500/20" />
@@ -230,7 +228,7 @@ export default function DarkWebMonitoringDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(m.detected_at)}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -279,7 +277,7 @@ export default function DarkWebMonitoringDashboard() {
                     <TableCell className="py-2"><MentionStatusBadge status={e.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

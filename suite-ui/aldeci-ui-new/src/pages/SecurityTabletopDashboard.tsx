@@ -159,8 +159,7 @@ export default function SecurityTabletopDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -200,8 +199,7 @@ export default function SecurityTabletopDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Exercises"    value={stats.total_exercises
-    setLoading(false);}    icon={Users}          trend="up"   />
+        <KpiCard title="Total Exercises"    value={stats.total_exercises}    icon={Users}          trend="up"   />
         <KpiCard title="Completed"          value={stats.completed_exercises} icon={CheckCircle}    trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Findings"     value={stats.total_findings}     icon={ClipboardList}  trend="flat" />
         <KpiCard title="Open Findings"      value={stats.open_findings}      icon={FileWarning}    trend="down" className="border-red-500/20" />
@@ -251,7 +249,7 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ex.scheduled_at}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -300,7 +298,7 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{f.exercise_id}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

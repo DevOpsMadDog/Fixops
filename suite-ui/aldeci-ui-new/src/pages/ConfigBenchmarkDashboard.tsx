@@ -206,9 +206,7 @@ export default function ConfigBenchmarkDashboard() {
       const profiles    = profilesResult.status    === "fulfilled" ? profilesResult.value    : null;
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
       if (stats || profiles || assessments) {
-        setLiveData({ stats, profiles, assessments });
-      
-    setLoading(false);}
+        setLiveData({ stats, profiles, assessments });}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -353,7 +351,7 @@ export default function ConfigBenchmarkDashboard() {
                       <TableCell className="text-[10px] py-2.5 font-mono text-muted-foreground max-w-[100px] truncate">{c.expected}</TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -393,8 +391,7 @@ export default function ConfigBenchmarkDashboard() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>

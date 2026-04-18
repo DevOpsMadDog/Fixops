@@ -157,8 +157,7 @@ export default function SecurityRoadmap() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -192,8 +191,7 @@ export default function SecurityRoadmap() {
   const totalInitiatives  = liveData?.stats?.total_initiatives  ?? 24;
   const inProgress        = liveData?.stats?.in_progress        ?? 8;
   const completionRate    = liveData?.stats?.completion_rate != null
-    ? `${Math.round(liveData.stats.completion_rate)
-    setLoading(false);}%`
+    ? `${Math.round(liveData.stats.completion_rate)}%`
     : "67%";
   const totalBudget       = liveData?.stats?.total_budget_usd != null
     ? `$${(liveData.stats.total_budget_usd / 1_000_000).toFixed(1)}M`
@@ -281,7 +279,7 @@ export default function SecurityRoadmap() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -323,7 +321,7 @@ export default function SecurityRoadmap() {
                     </div>
                   </div>
                 ))
-                )}
+              )}
               </div>
             </div>
           </CardContent>
@@ -359,7 +357,7 @@ export default function SecurityRoadmap() {
                   </div>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
 
@@ -403,8 +401,7 @@ export default function SecurityRoadmap() {
                     {Math.round((b.spent / b.allocated) * 100)}% of budget used
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
         </div>

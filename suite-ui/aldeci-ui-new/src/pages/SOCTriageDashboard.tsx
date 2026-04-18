@@ -192,8 +192,7 @@ export default function SOCTriageDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -249,9 +248,7 @@ export default function SOCTriageDashboard() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
-          </Button>
-        
-    setLoading(false);}
+          </Button>}
       />
 
       {/* KPIs */}

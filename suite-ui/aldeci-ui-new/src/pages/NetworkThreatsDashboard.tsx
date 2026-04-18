@@ -146,9 +146,7 @@ export default function NetworkThreatsDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
 
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "resolved">("all");
   const [loading, setLoading] = useState(true);
@@ -172,8 +170,7 @@ export default function NetworkThreatsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {/* Header */
-    setLoading(false);}
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Network Threats</h1>
@@ -228,7 +225,7 @@ export default function NetworkThreatsDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </div>
         </div>
       )}
@@ -249,8 +246,7 @@ export default function NetworkThreatsDashboard() {
                 >
                   {f}
                 </button>
-              ))
-            )}
+              ))}
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -304,7 +300,7 @@ export default function NetworkThreatsDashboard() {
                     </td>
                   </tr>
                 ))
-                )}
+              )}
               </tbody>
             </table>
           </div>
@@ -335,7 +331,7 @@ export default function NetworkThreatsDashboard() {
                 <span className="text-red-400 text-xs font-bold shrink-0">{ip.count}</span>
               </div>
             ))
-            )}
+          )}
           </div>
         </div>
       </div>
@@ -373,7 +369,7 @@ export default function NetworkThreatsDashboard() {
               </div>
             </div>
           ))
-          )}
+        )}
         </div>
       </div>
     </div>

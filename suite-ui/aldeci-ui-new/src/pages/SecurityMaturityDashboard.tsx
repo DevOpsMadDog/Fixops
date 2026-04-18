@@ -167,8 +167,7 @@ export default function SecurityMaturityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const domains = DOMAINS_BY_FRAMEWORK[activeFramework] ?? [];
   const avgScore = Math.round(domains.reduce((s, d) => s + d.score, 0) / domains.length);
@@ -207,8 +206,7 @@ export default function SecurityMaturityDashboard() {
         description="Framework-based maturity assessment, domain scoring, and improvement roadmap"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh
-    setLoading(false);} disabled={refreshing || dataLoading}>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
               <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
             <Button size="sm" className="gap-1.5">

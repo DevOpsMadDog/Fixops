@@ -121,7 +121,6 @@ export default function CloudIdentityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; identities: any[] | null; reviews: any[] | null }>({
-  const [loading, setLoading] = useState(true);
     stats: null, identities: null, reviews: null,
   });
 
@@ -140,8 +139,7 @@ export default function CloudIdentityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -179,8 +177,7 @@ export default function CloudIdentityDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Identities"    value={stats.total_identities}    icon={Users
-    setLoading(false);}       trend="flat" />
+        <KpiCard title="Total Identities"    value={stats.total_identities}    icon={Users}       trend="flat" />
         <KpiCard title="Admin Count"         value={stats.admin_count}         icon={ShieldAlert} trend="flat" className="border-orange-500/20" />
         <KpiCard
           title="MFA Disabled"
@@ -244,7 +241,7 @@ export default function CloudIdentityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -291,7 +288,7 @@ export default function CloudIdentityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(rev.reviewed_at)}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

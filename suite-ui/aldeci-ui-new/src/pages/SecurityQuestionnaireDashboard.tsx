@@ -204,8 +204,7 @@ export default function SecurityQuestionnaireDashboard() {
             <div className="text-3xl font-bold">{k.value}</div>
             <div className="text-gray-500 text-xs mt-1">{k.sub}</div>
           </div>
-        ))
-            )}
+        ))}
       </div>
 
       {/* Vendor risk summary */}
@@ -218,8 +217,7 @@ export default function SecurityQuestionnaireDashboard() {
               <div className="text-gray-500 text-xs">risk vendors</div>
             </div>
           </div>
-        ))
-            )}
+        ))}
       </div>
 
       {/* Tabs */}
@@ -234,8 +232,7 @@ export default function SecurityQuestionnaireDashboard() {
           >
             {tab}
           </button>
-        ))
-            )}
+        ))}
       </div>
 
       {activeTab === "assessments" ? (
@@ -298,8 +295,7 @@ export default function SecurityQuestionnaireDashboard() {
                         {a.due_date}
                       </td>
                     </tr>
-                  ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -335,18 +331,16 @@ export default function SecurityQuestionnaireDashboard() {
                               name={q.id}
                               value={val}
                               checked={responses[q.id] === val}
-                              onChange={() => setResponses(r => ({ ...r, [q.id]: val }))
-                  )}
+                              ))
+                            )}
                               className="accent-blue-500"
                             />
                             <span className="text-xs text-gray-300">{label}</span>
                           </label>
-                        ))
-                  )}
+                        ))}
                       </div>
                     </div>
-                  ))
-                  )}
+                  ))}
                 </div>
                 <button className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg text-sm font-medium transition-colors">
                   Submit Responses
@@ -370,7 +364,7 @@ export default function SecurityQuestionnaireDashboard() {
                   {["Name","Framework","Questions","Type","Created"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
                   ))
-                  )}
+                )}
                   <th className="px-4 py-3 text-left text-gray-400 font-medium">Action</th>
                 </tr>
               </thead>
@@ -399,7 +393,7 @@ export default function SecurityQuestionnaireDashboard() {
                     </td>
                   </tr>
                 ))
-                )}
+              )}
               </tbody>
             </table>
           </div>

@@ -440,8 +440,7 @@ export default function SecurityScorecardDashboard() {
                     />
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
             <div className="mt-4 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2.5">
               <p className="text-[11px] text-purple-300 font-medium">

@@ -209,7 +209,7 @@ export default function CloudPostureDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

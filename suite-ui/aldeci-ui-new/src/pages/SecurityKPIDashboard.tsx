@@ -351,9 +351,7 @@ export default function SecurityKPIDashboard() {
       const executive = execResult.status  === "fulfilled" ? execResult.value  : null;
       const current   = currentResult.status === "fulfilled" ? currentResult.value : null;
       if (executive || current) {
-        setLiveData({ executive, current });
-      
-    setLoading(false);}
+        setLiveData({ executive, current });}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -623,8 +621,7 @@ export default function SecurityKPIDashboard() {
                   className="h-2 bg-slate-900/30"
                 />
               </motion.div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </motion.div>
@@ -663,7 +660,7 @@ export default function SecurityKPIDashboard() {
                 <p className="text-sm text-slate-400 mt-1">{strength.description}</p>
               </motion.div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
 
@@ -714,8 +711,7 @@ export default function SecurityKPIDashboard() {
                 </div>
                 <p className="text-sm text-slate-400 mt-1">{weakness.description}</p>
               </motion.div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </motion.div>

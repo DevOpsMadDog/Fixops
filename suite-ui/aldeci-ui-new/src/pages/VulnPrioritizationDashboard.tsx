@@ -204,8 +204,7 @@ export default function VulnPrioritizationDashboard() {
                       <StatusBadge status={vuln.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

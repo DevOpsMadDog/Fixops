@@ -298,9 +298,7 @@ export default function EmailSecurity() {
             dmarc_pass_rate: feedStats.feed_health_pct ?? null,
             blocked_count:   feedStats.total_items ?? feedStats.total ?? null,
             spoofing_count:  feedStats.by_type?.spoofing ?? null,
-            total_volume:    feedStats.total_items ?? null,
-          
-    setLoading(false);}
+            total_volume:    feedStats.total_items ?? null,}
         : null;
       const items = Array.isArray(feedItems)
         ? feedItems
@@ -329,8 +327,7 @@ export default function EmailSecurity() {
   // Bar chart max for scaling
   const dmarcBars = liveData?.reports ?? MOCK_DMARC_BARS;
   const maxTotal = Math.max(
-    ...dmarcBars.map((b: any) => (b.pass ?? b.pass_count ?? 0) + (b.fail ?? b.fail_count ?? 0) + (b.quarantine ?? b.quarantine_count ?? 0) + (b.reject ?? b.reject_count ?? 0))
-  );
+    ...dmarcBars.map((b: any) => (b.pass ?? b.pass_count ?? 0) + (b.fail ?? b.fail_count ?? 0) + (b.quarantine ?? b.quarantine_count ?? 0) + (b.reject ?? b.reject_count ?? 0));
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -443,8 +440,7 @@ export default function EmailSecurity() {
                     </Button>
                   )}
                 </motion.div>
-              ))
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -655,7 +651,7 @@ export default function EmailSecurity() {
                       </TableCell>
                     </motion.tr>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </CardContent>

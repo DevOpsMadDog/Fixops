@@ -203,7 +203,7 @@ export default function ThreatAttributionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

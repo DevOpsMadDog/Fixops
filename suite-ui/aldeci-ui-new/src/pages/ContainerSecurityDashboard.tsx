@@ -173,8 +173,7 @@ export default function ContainerSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   // KPI values — live posture with mock fallback
   const totalContainers      = liveData?.posture?.total_checks      ?? CONTAINERS.length;
@@ -286,7 +285,7 @@ export default function ContainerSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground font-mono">{c.namespace}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -334,7 +333,7 @@ export default function ContainerSecurityDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>
@@ -368,7 +367,7 @@ export default function ContainerSecurityDashboard() {
                   <div className="text-[11px] text-muted-foreground">{a.description}</div>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
 
@@ -404,7 +403,7 @@ export default function ContainerSecurityDashboard() {
                     </div>
                   </div>
                 ))
-                )}
+              )}
               </div>
             </CardContent>
           </Card>
@@ -456,7 +455,7 @@ export default function ContainerSecurityDashboard() {
                     <TableCell className="py-2 text-center text-xs tabular-nums text-muted-foreground">{p.max_image_size_mb ?? "—"}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>

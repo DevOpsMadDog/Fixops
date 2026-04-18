@@ -147,8 +147,7 @@ export default function DataExfiltrationDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -185,8 +184,7 @@ export default function DataExfiltrationDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Incidents"    value={stats.total_incidents}    icon={ArrowUpFromLine} trend="flat" />
         <KpiCard title="Confirmed"          value={stats.confirmed_incidents} icon={ShieldAlert}    trend="down" className="border-red-500/20" />
@@ -236,7 +234,7 @@ export default function DataExfiltrationDashboard() {
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

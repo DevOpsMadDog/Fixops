@@ -113,8 +113,7 @@ export default function UserAccessReviewDashboard() {
   }, []);
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
   const [loading, setLoading] = useState(true);
-    Object.fromEntries(MOCK_ITEMS.map(i => [i.id, i.decision]))
-  );
+    Object.fromEntries(MOCK_ITEMS.map(i => [i.id, i.decision]));
 
   const overdueCount = MOCK_REVIEWS.filter(r => r.overdue).length;
   const completedCount = MOCK_REVIEWS.filter(r => r.status === "completed").length;

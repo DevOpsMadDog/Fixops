@@ -137,9 +137,7 @@ export default function IncidentLessonsDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
 
   const overdueActions = MOCK_ACTIONS.filter(a => a.status === "overdue");
   const selectedLesson_obj = MOCK_LESSONS.find(l => l.id === selectedLesson);
@@ -162,8 +160,7 @@ export default function IncidentLessonsDashboard() {
         <p className="text-gray-400 mt-1">Post-incident analysis, action items, and implementation tracking</p>
       </div>
 
-      {/* Fetch Error Banner */
-    setLoading(false);}
+      {/* Fetch Error Banner */}
       {fetchError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>

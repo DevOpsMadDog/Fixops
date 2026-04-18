@@ -128,9 +128,7 @@ export default function RiskQuantification() {
 
   useEffect(() => {
     setDataLoading(true);
-    fetchAll().finally(() => setDataLoading(false));
-  
-    setLoading(false);}, []);
+    fetchAll().finally(() => setDataLoading(false));}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -174,8 +172,7 @@ export default function RiskQuantification() {
         <KpiCard title="Total Scenarios"        value={liveData?.stats?.total_scenarios ?? 18}                                    icon={BarChart3}    />
         <KpiCard title="Total ALE"              value={liveData?.stats?.total_ale != null ? `$${(liveData.stats.total_ale/1000000).toFixed(1)}M/yr` : "$2.4M/yr"} icon={DollarSign}   trend="up" className="border-red-500/20" />
         <KpiCard title="Highest Risk Scenario"  value={liveData?.stats?.highest_ale != null ? fmt(liveData.stats.highest_ale) : "$847K"}              icon={AlertTriangle} trend="up" className="border-amber-500/20" />
-        <KpiCard title="Avg ROI of Controls"    value={liveData?.stats?.avg_roi != null ? `${liveData.stats.avg_roi}%` : "340%"
-    setLoading(false);}                      icon={TrendingUp}   trend="up" className="border-green-500/20" />
+        <KpiCard title="Avg ROI of Controls"    value={liveData?.stats?.avg_roi != null ? `${liveData.stats.avg_roi}%` : "340%"}                      icon={TrendingUp}   trend="up" className="border-green-500/20" />
       </div>
 
       {/* Risk Scenarios Table */}

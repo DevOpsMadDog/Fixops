@@ -209,7 +209,7 @@ export default function RiskRegisterDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

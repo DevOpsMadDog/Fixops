@@ -382,8 +382,7 @@ export default function VulnIntelligenceDashboard() {
                       <StatusBadge status={cve.status ?? "new"} />
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -451,8 +450,7 @@ export default function VulnIntelligenceDashboard() {
                   )}
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -510,8 +508,7 @@ export default function VulnIntelligenceDashboard() {
                   )}
                 </div>
               </div>
-            ))
-            )}
+            ))}
 
             <div className="pt-2">
               <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed border-blue-500/30 text-blue-400 hover:bg-blue-500/10">

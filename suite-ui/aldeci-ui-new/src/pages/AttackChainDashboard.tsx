@@ -97,7 +97,6 @@ export default function AttackChainDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; chains: any[] | null }>({
-  const [loading, setLoading] = useState(true);
     stats: null, chains: null,
   });
 
@@ -114,8 +113,7 @@ export default function AttackChainDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -152,8 +150,7 @@ export default function AttackChainDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Chains"    value={stats.total_chains
-    setLoading(false);}    icon={Link2}    trend="flat" />
+        <KpiCard title="Total Chains"    value={stats.total_chains}    icon={Link2}    trend="flat" />
         <KpiCard title="Active Chains"   value={stats.active_chains}   icon={Zap}      trend="down" className="border-red-500/20" />
         <KpiCard title="Contained"       value={stats.contained_chains} icon={Shield}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Avg Steps"       value={stats.avg_steps}       icon={BarChart3} trend="flat" className="border-blue-500/20" />
@@ -184,8 +181,7 @@ export default function AttackChainDashboard() {
                 <div className="text-xl font-bold">{p.count}</div>
                 <div className="text-[10px] mt-1 leading-tight opacity-80">{p.label}</div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -236,7 +232,7 @@ export default function AttackChainDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtDate(c.created_at)}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

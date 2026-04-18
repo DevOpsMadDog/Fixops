@@ -192,9 +192,7 @@ export default function ThreatIntelConfidenceDashboard() {
         return exp && i.status === "active" ? { ...i, status: "expired" } : i;
       }));
       setExpiring(false);
-    }, 1000);
-  
-    setLoading(false);}
+    }, 1000);}
 
   if (loading) return (
     <div className="space-y-4 p-6">

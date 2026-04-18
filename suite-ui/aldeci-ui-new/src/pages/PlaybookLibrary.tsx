@@ -350,9 +350,7 @@ export default function PlaybookLibrary() {
             enabled:          p.enabled ?? true,
           }));
           setPlaybooks(mapped);
-        }
-      
-    setLoading(false);}
+        }}
     });
   }, []);
 
@@ -361,8 +359,7 @@ export default function PlaybookLibrary() {
 
   const togglePlaybook = (id: string) => {
     setPlaybooks((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p))
-    );
+      prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
   };
 
   const execSteps = selectedExec ? (MOCK_STEPS[selectedExec.id] ?? []) : [];

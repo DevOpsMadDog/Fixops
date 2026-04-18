@@ -208,8 +208,7 @@ export default function CyberThreatIntelDashboard() {
                       <StatusBadge status={report.status ?? "draft"} />
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

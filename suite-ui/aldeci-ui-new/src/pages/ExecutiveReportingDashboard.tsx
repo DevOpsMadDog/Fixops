@@ -209,8 +209,7 @@ export default function ExecutiveReportingDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -252,9 +251,7 @@ export default function ExecutiveReportingDashboard() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
-          </Button>
-        
-    setLoading(false);}
+          </Button>}
       />
 
       {/* KPI cards */}
@@ -320,7 +317,7 @@ export default function ExecutiveReportingDashboard() {
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -385,7 +382,7 @@ export default function ExecutiveReportingDashboard() {
                       <TableCell className="py-2"><KpiStatusBadge status={k.status ?? "on_track"} /></TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -436,13 +433,11 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    ))
-            )}
+                    ))}
                   </div>
                 )}
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>

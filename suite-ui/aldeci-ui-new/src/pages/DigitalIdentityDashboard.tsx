@@ -79,7 +79,6 @@ export default function DigitalIdentityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; profiles: any[] | null }>({
-  const [loading, setLoading] = useState(true);
     stats: null, profiles: null,
   });
 
@@ -96,8 +95,7 @@ export default function DigitalIdentityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -134,8 +132,7 @@ export default function DigitalIdentityDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Profiles"       value={stats.total_profiles
-    setLoading(false);}       icon={Fingerprint}  trend="up"   />
+        <KpiCard title="Total Profiles"       value={stats.total_profiles}       icon={Fingerprint}  trend="up"   />
         <KpiCard title="Verified Identities"  value={stats.verified_identities}  icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Suspended"            value={stats.suspended_count}      icon={UserX}        trend="down" className="border-red-500/20" />
         <KpiCard title="Pending Verification" value={stats.pending_verification} icon={Clock}        trend="flat" className="border-yellow-500/20" />
@@ -190,7 +187,7 @@ export default function DigitalIdentityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "—"}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

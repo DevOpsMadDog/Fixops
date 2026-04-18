@@ -375,7 +375,7 @@ export default function DevSecOpsDashboard() {
                 <Badge className={cn("text-[10px] border mt-1", p.bg, p.color)}>{p.threshold}</Badge>
               </div>
             ))
-            )}
+          )}
           </div>
         </CardContent>
       </Card>

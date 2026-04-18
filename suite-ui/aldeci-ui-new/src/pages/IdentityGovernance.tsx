@@ -438,8 +438,7 @@ export default function IdentityGovernance() {
     Promise.allSettled([
       fetchIgaStats(),
       iaFetch(`/identity-analytics/sessions?org_id=${ORG_ID}&limit=20`),
-      iaFetch(`/identity-analytics/stats?org_id=${ORG_ID
-    setLoading(false);}`),
+      iaFetch(`/identity-analytics/stats?org_id=${ORG_ID}`),
     ]).then(([statsRes, sessionsRes, iaStatsRes]) => {
       if (statsRes.status === "fulfilled") setIgaStats(statsRes.value);
       const sessions  = sessionsRes.status  === "fulfilled" ? sessionsRes.value  : null;
@@ -932,7 +931,7 @@ export default function IdentityGovernance() {
                     </div>
                   </motion.div>
                 ))
-                )}
+              )}
               </div>
             </CardContent>
           </Card>

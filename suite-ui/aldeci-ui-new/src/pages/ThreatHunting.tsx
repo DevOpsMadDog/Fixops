@@ -224,7 +224,7 @@ export default function ThreatHuntingPage() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>
@@ -320,8 +320,7 @@ export default function ThreatHuntingPage() {
                 <span className="text-muted-foreground text-xs truncate max-w-[120px]">{ioc.hunt_name}</span>
                 {confidenceBadge(ioc.confidence)}
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </motion.div>
@@ -362,8 +361,7 @@ export default function ThreatHuntingPage() {
                     : <Badge variant="outline" className="text-[10px] px-1 py-0 text-muted-foreground">Uncovered</Badge>
                   }
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>

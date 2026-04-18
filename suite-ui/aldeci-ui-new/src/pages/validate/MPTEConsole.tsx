@@ -559,7 +559,8 @@ export default function MPTEConsole() {
                       >
                         {pieData.map((entry) => (
                           <Cell key={entry.name} fill={entry.color} />
-                        ))}
+                        ))
+                      )}
                       </Pie>
                       <Tooltip
                         contentStyle={{

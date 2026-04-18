@@ -203,8 +203,7 @@ export default function AccessRequestManagementDashboard() {
                       {formatTs(req.expires_at)}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -89,7 +89,6 @@ export default function ThreatExposureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; topExposed: any[] | null; assets: any[] | null }>({
-  const [loading, setLoading] = useState(true);
     stats: null, topExposed: null, assets: null,
   });
 
@@ -108,8 +107,7 @@ export default function ThreatExposureDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -147,8 +145,7 @@ export default function ThreatExposureDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assets"        value={stats.total_assets}        icon={Target
-    setLoading(false);}       trend="flat" />
+        <KpiCard title="Total Assets"        value={stats.total_assets}        icon={Target}       trend="flat" />
         <KpiCard title="Critical Exposure"   value={stats.critical_exposure}   icon={AlertTriangle} trend="down" className="border-red-500/20" />
         <KpiCard title="Average Score"       value={stats.average_score}       icon={BarChart2}    trend="flat" className="border-yellow-500/20" />
         <KpiCard title="Correlations Today"  value={stats.correlations_today}  icon={Activity}     trend="up"   className="border-blue-500/20" />
@@ -189,13 +186,12 @@ export default function ThreatExposureDashboard() {
                   initial={{ width: 0 }}
                   animate={{ width: `${a.exposure_score}%` }}
                   transition={{ duration: 0.6, delay: i * 0.08 }}
-                  className={cn("h-full rounded-full", exposureColor(a.exposure_score))
-          )}
+                  ))
+                )}
                 />
               </div>
             </div>
-          ))
-          )}
+          ))}
         </CardContent>
       </Card>
 
@@ -251,7 +247,7 @@ export default function ThreatExposureDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_assessed}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

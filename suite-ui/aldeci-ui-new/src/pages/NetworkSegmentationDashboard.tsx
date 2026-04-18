@@ -143,9 +143,7 @@ export default function NetworkSegmentationDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
 
   const stats    = liveData ?? MOCK_STATS;
   const segments = liveData?.segments ?? MOCK_SEGMENTS;
@@ -176,8 +174,7 @@ export default function NetworkSegmentationDashboard() {
         title="Network Segmentation"
         description="Micro-segmentation coverage, flow policies, and lateral movement risk"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh
-    setLoading(false);} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
@@ -238,7 +235,7 @@ export default function NetworkSegmentationDashboard() {
                       <TableCell className="py-2"><TrustBadge level={seg.trust_level} /></TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>

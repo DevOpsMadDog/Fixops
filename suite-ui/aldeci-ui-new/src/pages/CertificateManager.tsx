@@ -266,7 +266,6 @@ function DomainCheckPanel() {
         error: "Failed to reach API",
       });
     } finally {
-      setLoading(false);
     }
   }
 

@@ -146,8 +146,7 @@ export default function AttackSimulation() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -264,7 +263,7 @@ export default function AttackSimulation() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -293,15 +292,14 @@ export default function AttackSimulation() {
               MITRE_TACTICS.map((t) => (
               <div
                 key={t.tactic}
-                className={cn("rounded-lg p-2.5 text-center cursor-default transition-opacity hover:opacity-80", coverageColor(t.pct))
-            )}
+                ))
+              )}
                 title={`${t.tactic}: ${t.pct}% coverage`}
               >
                 <div className="text-[10px] font-semibold leading-tight mb-1">{t.short}</div>
                 <div className="text-sm font-bold tabular-nums">{t.pct}%</div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -350,7 +348,7 @@ export default function AttackSimulation() {
                   </div>
                 </div>
               ))
-              )}
+            )}
             </div>
           </CardContent>
         </Card>
@@ -397,7 +395,7 @@ export default function AttackSimulation() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>

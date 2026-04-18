@@ -118,7 +118,7 @@ export default function CloudCostOptimizationDashboard() {
                 {r.resource_name} ({r.utilization_pct}% util)
               </span>
             ))
-            )}
+          )}
           </div>
         </div>
       )}
@@ -135,8 +135,7 @@ export default function CloudCostOptimizationDashboard() {
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${sortBy === s ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>
                 {s}
               </button>
-            ))
-            )}
+            ))}
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -185,7 +184,7 @@ export default function CloudCostOptimizationDashboard() {
                   </td>
                 </tr>
               ))
-              )}
+            )}
             </tbody>
           </table>
         </div>

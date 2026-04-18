@@ -191,8 +191,7 @@ export default function CloudSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -229,8 +228,7 @@ export default function CloudSecurityDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Cloud Accounts"      value={liveData?.stats?.total_accounts    ?? liveData?.accounts?.length ?? 12}    icon={Cloud}         />
-        <KpiCard title="Open Findings"       value={liveData?.stats?.total_findings    ?? liveData?.findings?.length ?? 234}   icon={AlertTriangle
-    setLoading(false);} trend="up" className="border-amber-500/20" />
+        <KpiCard title="Open Findings"       value={liveData?.stats?.total_findings    ?? liveData?.findings?.length ?? 234}   icon={AlertTriangle} trend="up" className="border-amber-500/20" />
         <KpiCard title="Critical Misconfigs" value={liveData?.stats?.critical_findings ?? liveData?.stats?.critical_count ?? 18} icon={Zap}         trend="up" className="border-red-500/20" />
         <KpiCard title="Avg Posture Score"   value={liveData?.stats?.avg_risk_score != null ? `${(100 - liveData.stats.avg_risk_score).toFixed(1)}%` : "73.2%"} icon={Shield} trend="up" className="border-green-500/20" />
       </div>

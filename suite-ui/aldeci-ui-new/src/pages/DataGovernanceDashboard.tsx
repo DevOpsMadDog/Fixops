@@ -153,8 +153,7 @@ export default function DataGovernanceDashboard() {
       apiFetch(`/api/v1/data-governance/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/data-governance/assets?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/data-governance/violations?org_id=${ORG_ID}&resolved=false`),
-      apiFetch(`/api/v1/data-governance/policies?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/data-governance/policies?org_id=${ORG_ID}`),
     ]).then(([statsResult, assetsResult, violationsResult, policiesResult]) => {
       const stats      = statsResult.status      === "fulfilled" ? statsResult.value      : null;
       const assets     = assetsResult.status     === "fulfilled" ? assetsResult.value     : null;
@@ -369,7 +368,7 @@ export default function DataGovernanceDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
       </div>

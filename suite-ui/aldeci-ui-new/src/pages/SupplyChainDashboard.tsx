@@ -135,8 +135,7 @@ export default function SupplyChainDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -170,8 +169,7 @@ export default function SupplyChainDashboard() {
         title="Supply Chain Risk"
         description="Third-party vendor and component risk management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading
-    setLoading(false);}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
           </Button>
         }
@@ -331,8 +329,7 @@ export default function SupplyChainDashboard() {
                   <span className={cn("text-2xl font-bold tabular-nums", r.color)}>{r.count}</span>
                   <span className="text-[11px] text-muted-foreground">{r.label}</span>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -370,8 +367,7 @@ export default function SupplyChainDashboard() {
                   <Progress value={item.pct} className="h-1.5" />
                 )}
               </div>
-            ))
-              )}
+            ))}
             <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
               Last SBOM import: 2026-04-15 22:14 UTC &nbsp;·&nbsp; Format: CycloneDX 1.4
             </div>

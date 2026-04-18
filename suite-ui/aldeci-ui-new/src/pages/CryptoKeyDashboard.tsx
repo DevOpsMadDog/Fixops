@@ -202,8 +202,7 @@ export default function CryptoKeyDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

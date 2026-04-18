@@ -198,7 +198,7 @@ export default function ThreatDeceptionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

@@ -133,8 +133,7 @@ export default function FirmwareSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -174,8 +173,7 @@ export default function FirmwareSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"    value={stats.total_devices}   icon={Cpu
-    setLoading(false);}          trend="flat" />
+        <KpiCard title="Total Devices"    value={stats.total_devices}   icon={Cpu}          trend="flat" />
         <KpiCard title="Active Devices"   value={stats.active_devices}  icon={Shield}       trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Vulns"      value={stats.total_vulns}     icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Unpatched Vulns"  value={stats.unpatched_vulns} icon={ShieldAlert}  trend="down" className="border-red-500/20" />
@@ -225,7 +223,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.last_scanned}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -278,7 +276,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2"><StatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

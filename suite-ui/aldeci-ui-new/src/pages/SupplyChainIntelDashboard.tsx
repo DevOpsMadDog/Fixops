@@ -165,7 +165,6 @@ export default function SupplyChainIntelDashboard() {
         apiFetch(`/api/v1/supply-chain-intel/check?org_id=${ORG_ID}&name=${encodeURIComponent(query.trim())}&ecosystem=pypi`)
           .then((data) => setCheckResult(data))
           .catch(() => setCheckResult(null))
-      )
       .finally(() => setCheckLoading(false));
   };
 
@@ -417,8 +416,7 @@ export default function SupplyChainIntelDashboard() {
                         <RiskBadge r={r.risk} />
                       </div>
                     </div>
-                  ))
-                  )}
+                  ))}
                 </>
               )}
             </div>
@@ -428,8 +426,7 @@ export default function SupplyChainIntelDashboard() {
               <div className="flex flex-wrap gap-1">
                 {["OSV", "NVD", "Snyk Intel", "Socket.dev", "Sonatype", "MalwareBazaar"].map((s) => (
                   <Badge key={s} className="text-[10px] border border-border text-muted-foreground">{s}</Badge>
-                ))
-                  )}
+                ))}
               </div>
             </div>
           </CardContent>

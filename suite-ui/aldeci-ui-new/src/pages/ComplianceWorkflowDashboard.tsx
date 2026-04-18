@@ -349,7 +349,8 @@ export default function ComplianceWorkflowDashboard() {
                       {approvalConfig[ap.decision].label}
                     </span>
                   </div>
-                ))}
+                ))
+              )}
               </div>
             )}
           </div>

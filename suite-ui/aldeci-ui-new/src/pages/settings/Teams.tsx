@@ -516,7 +516,8 @@ export default function TeamsPage() {
                   name: (t.name ?? "Team").slice(0, 12),
                   mttr: t.avg_mttr ?? 0,
                   sla: t.sla_compliance ?? 0,
-                }))}
+                ))
+              )}
                 margin={{ top: 4, right: 12, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />

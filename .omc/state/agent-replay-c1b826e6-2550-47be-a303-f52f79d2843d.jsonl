@@ -340,3 +340,9 @@
 {"t":0,"agent":"a5056ae","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"a27e67c","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"adff4e4","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"afea22c","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a904932","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a750be9","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a904932","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"a812cb5","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a41bdd6","agent_type":"executor","event":"agent_start","parent_mode":"none"}

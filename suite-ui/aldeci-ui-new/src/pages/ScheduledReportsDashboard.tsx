@@ -401,7 +401,6 @@ export default function ScheduledReportsDashboard() {
     } catch {
       // backend offline — mock data shown
     } finally {
-      setLoading(false);
     }
   }
 
@@ -717,8 +716,7 @@ export default function ScheduledReportsDashboard() {
                       <span className="text-[11px] text-muted-foreground">{run.recipients_count}</span>
                     </TableCell>
                   </motion.tr>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

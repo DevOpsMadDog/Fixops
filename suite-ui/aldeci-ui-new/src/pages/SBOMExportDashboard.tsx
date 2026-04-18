@@ -149,8 +149,7 @@ export default function SBOMExportDashboard() {
 
   const filteredComponents = MOCK_COMPONENTS.filter(c =>
     c.component_name.toLowerCase().includes(search.toLowerCase()) ||
-    c.ecosystem.toLowerCase().includes(search.toLowerCase())
-  );
+    c.ecosystem.toLowerCase().includes(search.toLowerCase());
 
   const totalComponents = MOCK_PROJECTS.reduce((s, p) => s + p.component_count, 0);
   const totalVulns      = MOCK_PROJECTS.reduce((s, p) => s + p.vuln_count, 0);
@@ -225,8 +224,7 @@ export default function SBOMExportDashboard() {
               </div>
               <p className="text-gray-600 text-[10px] mt-1">Exported {fmt(p.latest_export)}</p>
             </button>
-          ))
-          )}
+          ))}
         </div>
       </div>
 
@@ -305,15 +303,14 @@ export default function SBOMExportDashboard() {
                                 </td>
                               </tr>
                             ))
-              )}
+                          )}
                           </tbody>
                         </table>
                       </td>
                     </tr>
                   )}
                 </>
-              ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -349,7 +346,7 @@ export default function SBOMExportDashboard() {
                   <td className="py-2.5 text-gray-400 text-xs">{h.exported_by}</td>
                 </tr>
               ))
-              )}
+            )}
             </tbody>
           </table>
         </div>

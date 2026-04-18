@@ -615,8 +615,7 @@ export default function SecurityAwareness() {
     Promise.allSettled([
       apiFetch(`/awareness-score/orgs/${ORG_ID}/stats`),
       apiFetch(`/awareness-score/orgs/${ORG_ID}/employees`),
-      apiFetch(`/awareness-score/orgs/${ORG_ID
-    setLoading(false);}/department-summary`),
+      apiFetch(`/awareness-score/orgs/${ORG_ID}/department-summary`),
       apiFetch(`/awareness-score/orgs/${ORG_ID}/scores`),
     ]).then(([statsRes, employeesRes, deptRes, scoresRes]) => {
       const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;

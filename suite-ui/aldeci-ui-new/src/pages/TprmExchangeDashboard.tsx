@@ -165,8 +165,7 @@ function fmt$(n: number) {
 export default function TprmExchangeDashboard() {
   const [vendorFilter, setVendorFilter] = useState<string>("all");
   const [completedAssessments, setCompletedAssessments] = useState<Set<string>>(
-    new Set(MOCK_ASSESSMENTS.filter(a => a.status === "completed").map(a => a.id))
-  );
+    new Set(MOCK_ASSESSMENTS.filter(a => a.status === "completed").map(a => a.id));
 
   useEffect(() => {
     apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })

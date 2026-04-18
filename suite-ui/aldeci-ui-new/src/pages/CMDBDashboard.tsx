@@ -169,8 +169,7 @@ export default function CMDBDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -311,8 +310,7 @@ export default function CMDBDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -352,8 +350,7 @@ export default function CMDBDashboard() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -382,8 +379,7 @@ export default function CMDBDashboard() {
                   </span>
                   <span className="text-[10px] text-muted-foreground">{e.pct}% of total</span>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -441,7 +437,7 @@ export default function CMDBDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

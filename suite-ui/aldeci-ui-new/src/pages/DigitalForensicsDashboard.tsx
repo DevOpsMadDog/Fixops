@@ -163,9 +163,7 @@ export default function DigitalForensicsDashboard() {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const cases = casesResult.status === "fulfilled" ? casesResult.value : null;
       if (stats || cases) {
-        setLiveData({ stats, cases });
-      
-    setLoading(false);}
+        setLiveData({ stats, cases });}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -260,8 +258,7 @@ export default function DigitalForensicsDashboard() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Open</Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -311,7 +308,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 text-muted-foreground">{e.collected_by}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>
@@ -351,7 +348,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 max-w-[160px] truncate text-muted-foreground">{entry.notes}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>
@@ -396,7 +393,7 @@ export default function DigitalForensicsDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </div>
         </CardContent>
       </Card>

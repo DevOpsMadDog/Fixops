@@ -158,8 +158,7 @@ function RotationCalendar({ secrets }: { secrets: Secret[] }) {
   const dueDates = new Set(
     secrets
       .filter((s) => s.status === "overdue" || s.status === "due_soon")
-      .map((s) => new Date(s.next_rotation).toDateString())
-  );
+      .map((s) => new Date(s.next_rotation).toDateString());
 
   return (
     <Card className="border border-border">

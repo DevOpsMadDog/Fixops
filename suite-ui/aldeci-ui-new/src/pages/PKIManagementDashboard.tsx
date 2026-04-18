@@ -164,8 +164,7 @@ export default function PKIManagementDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -205,8 +204,7 @@ export default function PKIManagementDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Certs"     value={stats.total_certs
-    setLoading(false);}    icon={KeyRound}     trend="flat" />
+        <KpiCard title="Total Certs"     value={stats.total_certs}    icon={KeyRound}     trend="flat" />
         <KpiCard title="Active"          value={stats.active_certs}   icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Expiring (30d)"  value={stats.expiring_30d}   icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Revoked"         value={stats.revoked_certs}  icon={XCircle}      trend="flat" className="border-red-500/20" />
@@ -256,7 +254,7 @@ export default function PKIManagementDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -305,7 +303,7 @@ export default function PKIManagementDashboard() {
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{ca.cert_count}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

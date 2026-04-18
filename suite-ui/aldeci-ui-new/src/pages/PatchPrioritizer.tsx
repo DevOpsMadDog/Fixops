@@ -352,9 +352,7 @@ export default function PatchPrioritizer() {
           high_priority_this_week: stats?.deployments_today  ?? MOCK_PATCH_DATA.high_priority_this_week,
           patches_in_sla:          stats?.total              ?? MOCK_PATCH_DATA.patches_in_sla,
           avg_time_to_patch_days:  stats?.avg_patch_age_days ?? MOCK_PATCH_DATA.avg_time_to_patch_days,
-        });
-      
-    setLoading(false);} else {
+        });} else {
         setPatchData(MOCK_PATCH_DATA);
       }
     }).finally(() => setIsLoading(false));

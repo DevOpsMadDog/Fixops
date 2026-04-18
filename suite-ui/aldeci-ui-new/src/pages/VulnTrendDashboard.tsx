@@ -116,9 +116,7 @@ export default function VulnTrendDashboard() {
 
   useEffect(() => {
     setDataLoading(true);
-    fetchAll().finally(() => setDataLoading(false));
-  
-    setLoading(false);}, []);
+    fetchAll().finally(() => setDataLoading(false));}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -156,8 +154,7 @@ export default function VulnTrendDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Tracked"       value={liveData?.stats?.total_vulns ?? liveData?.stats?.total_tracked ?? "1,847"}             icon={Bug}          trend="up" />
         <KpiCard title="SLA Breach Rate"     value={liveData?.stats?.sla_breach_rate != null ? `${liveData.stats.sla_breach_rate}%` : "8.4%"} icon={AlertTriangle} trend="up"  className="border-red-500/20" />
-        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "12.4d"
-    setLoading(false);} icon={Clock}        trend="down" className="border-amber-500/20" />
+        <KpiCard title="Critical Mean Age"   value={liveData?.stats?.critical_mean_age != null ? `${liveData.stats.critical_mean_age}d` : "12.4d"} icon={Clock}        trend="down" className="border-amber-500/20" />
         <KpiCard title="Resolved This Week"  value={liveData?.stats?.resolved_this_week ?? 47}                                              icon={TrendingDown}  trend="up" />
       </div>
 
@@ -264,7 +261,7 @@ export default function VulnTrendDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
             <div className="pt-2 border-t border-border/40 text-xs text-muted-foreground">
               Compared to week of Apr 8. Data from vulnerability scanner aggregation.
             </div>

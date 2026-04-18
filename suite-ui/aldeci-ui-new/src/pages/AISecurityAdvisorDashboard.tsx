@@ -264,7 +264,6 @@ export default function AISecurityAdvisorDashboard() {
     } catch {
       // backend offline — mock data already shown
     } finally {
-      setLoading(false);
     }
   }
 

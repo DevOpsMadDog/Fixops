@@ -119,8 +119,7 @@ export default function DeceptionEngine() {
     Promise.allSettled([
       apiFetch(`/api/v1/deception/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/deception/canaries?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/deception/alerts?org_id=${ORG_ID
-    setLoading(false);}&hours=168`),
+      apiFetch(`/api/v1/deception/alerts?org_id=${ORG_ID}&hours=168`),
     ]).then(([statsRes, canariesRes, alertsRes]) => {
       const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
       const canaries = canariesRes.status === "fulfilled" ? canariesRes.value : null;
@@ -213,7 +212,7 @@ export default function DeceptionEngine() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </div>
         </CardContent>
       </Card>
@@ -299,11 +298,10 @@ export default function DeceptionEngine() {
                   {a.techniques.map((t) => (
                     <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 border border-slate-600">{t}</span>
                   ))
-            )}
+                )}
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

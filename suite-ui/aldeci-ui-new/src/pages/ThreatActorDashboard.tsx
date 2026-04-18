@@ -221,8 +221,7 @@ export default function ThreatActorDashboard() {
       apiFetch(`/api/v1/threat-actors/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/threat-actors/actors?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/threat-actors/watchlist?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-actors/iocs?org_id=${ORG_ID
-    setLoading(false);}&limit=20`),
+      apiFetch(`/api/v1/threat-actors/iocs?org_id=${ORG_ID}&limit=20`),
     ]).then(([statsResult, actorsResult, watchlistResult, iocsResult]) => {
       const stats     = statsResult.status     === "fulfilled" ? statsResult.value     : null;
       const actors    = actorsResult.status    === "fulfilled" ? actorsResult.value    : null;
@@ -241,8 +240,7 @@ export default function ThreatActorDashboard() {
 
   const actorSource: typeof THREAT_ACTORS = liveData?.actors?.items ?? liveData?.actors ?? THREAT_ACTORS;
   const filteredActors = actorSource.filter((a: any) =>
-    search === "" || a.name.toLowerCase().includes(search.toLowerCase()) || a.country.toLowerCase().includes(search.toLowerCase())
-  );
+    search === "" || a.name.toLowerCase().includes(search.toLowerCase()) || a.country.toLowerCase().includes(search.toLowerCase());
 
   const maxSector = Math.max(...SECTOR_TARGETS.map((s) => s.count));
   const maxSoph = Math.max(...BY_SOPHISTICATION.map((s) => s.count));
@@ -342,7 +340,7 @@ export default function ThreatActorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -379,7 +377,7 @@ export default function ThreatActorDashboard() {
                   {c.sectors.map((s) => (
                     <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground border border-border/50">{s}</span>
                   ))
-          )}
+                )}
                 </div>
                 <div className="flex items-center justify-between">
                   <ImpactBadge level={c.impact} />
@@ -387,8 +385,7 @@ export default function ThreatActorDashboard() {
                 </div>
               </CardContent>
             </Card>
-          ))
-          )}
+          ))}
         </div>
       </div>
 
@@ -496,7 +493,7 @@ export default function ThreatActorDashboard() {
                   <span className="font-bold tabular-nums">{t.count}</span>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
 
@@ -527,8 +524,7 @@ export default function ThreatActorDashboard() {
                     />
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -560,7 +556,7 @@ export default function ThreatActorDashboard() {
                   </div>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
         </div>

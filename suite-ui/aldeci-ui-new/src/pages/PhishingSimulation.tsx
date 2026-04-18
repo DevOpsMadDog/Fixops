@@ -151,8 +151,7 @@ export default function PhishingSimulation() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -193,8 +192,7 @@ export default function PhishingSimulation() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Campaigns Run"     value={liveData?.stats?.total_campaigns ?? 47}    icon={Mail}         />
         <KpiCard title="Employees Tested"  value={liveData?.stats?.total_targets ?? "2,847"} icon={Users}        />
@@ -261,7 +259,7 @@ export default function PhishingSimulation() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -306,8 +304,7 @@ export default function PhishingSimulation() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -346,7 +343,7 @@ export default function PhishingSimulation() {
                   </div>
                 </div>
               ))
-              )}
+            )}
             </div>
           </CardContent>
         </Card>
@@ -394,8 +391,7 @@ export default function PhishingSimulation() {
                 />
               </div>
             </div>
-          ))
-          )}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

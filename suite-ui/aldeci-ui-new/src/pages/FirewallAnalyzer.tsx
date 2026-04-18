@@ -289,9 +289,7 @@ export default function FirewallAnalyzer() {
 
   useEffect(() => {
     setDataLoading(true);
-    fetchAll().finally(() => setDataLoading(false));
-  
-    setLoading(false);}, []);
+    fetchAll().finally(() => setDataLoading(false));}, []);
 
   const findings: FirewallFinding[] =
     (liveData?.violations?.items ?? liveData?.violations?.findings ?? liveData?.violations) ?? MOCK_FINDINGS;
@@ -324,9 +322,7 @@ export default function FirewallAnalyzer() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={dataLoading}>
             <RefreshCw className={cn("h-4 w-4", dataLoading && "animate-spin")} />
-          </Button>
-        
-    setLoading(false);}
+          </Button>}
       />
 
       {/* KPIs */}
@@ -432,8 +428,7 @@ export default function FirewallAnalyzer() {
                         </Button>
                       </TableCell>
                     </motion.tr>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -502,7 +497,7 @@ export default function FirewallAnalyzer() {
               </Card>
             </motion.div>
           ))
-          )}
+        )}
         </div>
       </motion.div>
 

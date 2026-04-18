@@ -176,8 +176,7 @@ export default function ExecutiveBriefing() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   if (loading) return (
     <div className="space-y-4 p-6">
@@ -240,8 +239,7 @@ export default function ExecutiveBriefing() {
               ? `${Math.round(liveData.execKpis.overall_health_score)}%`
               : liveData?.kpis?.compliance_score != null
               ? `${liveData.kpis.compliance_score}%`
-              : "87%"
-    setLoading(false);}
+              : "87%"}
           </span>
           <span className="text-sm font-semibold text-green-300">Compliance Score</span>
           <span className="text-[11px] text-muted-foreground text-center">Across 6 regulatory frameworks</span>
@@ -287,7 +285,7 @@ export default function ExecutiveBriefing() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-right font-bold text-green-400">{r.roi}%</TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -328,8 +326,7 @@ export default function ExecutiveBriefing() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{f.pct}%</span>
                 <StatusBadge status={f.status} />
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -423,7 +420,7 @@ export default function ExecutiveBriefing() {
               </div>
             </div>
           ))
-          )}
+        )}
         </CardContent>
       </Card>
 

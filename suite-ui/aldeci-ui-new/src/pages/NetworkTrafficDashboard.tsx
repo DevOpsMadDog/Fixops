@@ -140,8 +140,7 @@ export default function NetworkTrafficDashboard() {
       apiFetch(`/api/v1/network-traffic/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/network-traffic/anomalies?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/network-traffic/top-talkers?org_id=${ORG_ID}&limit=10`),
-      apiFetch(`/api/v1/network-traffic/rules?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/network-traffic/rules?org_id=${ORG_ID}`),
     ]).then(([statsR, anomR, talkR, rulesR]) => {
       const stats    = statsR.status  === "fulfilled" ? statsR.value  : null;
       const anomalies= anomR.status   === "fulfilled" ? anomR.value   : null;
@@ -251,8 +250,7 @@ export default function NetworkTrafficDashboard() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -312,8 +310,7 @@ export default function NetworkTrafficDashboard() {
                       </span>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -355,7 +352,7 @@ export default function NetworkTrafficDashboard() {
                     <TableCell className="py-2 text-right text-xs tabular-nums text-muted-foreground">{(r.hit_count ?? r.hits ?? 0).toLocaleString()}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>
@@ -393,8 +390,7 @@ export default function NetworkTrafficDashboard() {
                 />
               </div>
             </div>
-          ))
-          )}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

@@ -453,7 +453,7 @@ function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
           </div>
         </motion.div>
       ))
-      )}
+    )}
     </div>
   );
 }
@@ -698,7 +698,7 @@ export default function ComplianceDashboard() {
             fwData.map((fw) => (
             <FrameworkCard key={fw.id} fw={fw} />
           ))
-          )}
+        )}
         </div>
       </section>
 

@@ -119,8 +119,7 @@ export default function PrivilegedIdentityDashboard() {
   const [certifyTarget, setCertifyTarget] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [certifiedSet, setCertifiedSet] = useState<Set<string>>(
-    new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id))
-  );
+    new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id));
   const [rotatedSet, setRotatedSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -152,8 +151,7 @@ export default function PrivilegedIdentityDashboard() {
         description="Privileged account lifecycle, session monitoring, and access certification"
       />
 
-      {/* KPI Cards */
-    setLoading(false);}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard title="Total Accounts" value={MOCK_ACCOUNTS.length} icon={<Users className="h-5 w-5" />} />
         <KpiCard title="High Risk" value={highRisk} icon={<AlertTriangle className="h-5 w-5 text-red-400" />} />
@@ -268,7 +266,7 @@ export default function PrivilegedIdentityDashboard() {
                 </div>
               </motion.div>
             ))
-            )}
+          )}
           </div>
         </CardContent>
       </Card>

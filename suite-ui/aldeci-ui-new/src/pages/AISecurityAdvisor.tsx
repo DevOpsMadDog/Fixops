@@ -234,9 +234,7 @@ export default function AISecurityAdvisor() {
   }, []);
 
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  
-    setLoading(false);}, [chatMessages]);
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });}, [chatMessages]);
 
   const handleSend = async () => {
     const q = question.trim();

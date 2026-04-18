@@ -408,8 +408,7 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
                         </div>
                       </td>
                     </motion.tr>
-                  ))
-                )}
+                  ))}
               </tbody>
             </table>
           </ScrollArea>

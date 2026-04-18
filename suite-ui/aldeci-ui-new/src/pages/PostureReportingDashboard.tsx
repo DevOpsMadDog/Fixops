@@ -207,8 +207,7 @@ export default function PostureReportingDashboard() {
         description="Security posture reports across all frameworks and audiences"
       />
 
-      {/* KPI Cards */
-    setLoading(false);}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Total Reports" value={totalReports} icon={<FileText className="h-5 w-5" />} />
         <KpiCard title="Published" value={published} icon={<Globe className="h-5 w-5" />} />
@@ -268,7 +267,7 @@ export default function PostureReportingDashboard() {
               <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
             </motion.div>
           ))
-          )}
+        )}
         </div>
 
         {/* Right Panel */}
@@ -300,8 +299,7 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              ))
-          )}
+              ))}
             </CardContent>
           </Card>
 
@@ -365,7 +363,7 @@ export default function PostureReportingDashboard() {
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
                 ))
-                )}
+              )}
               </div>
             </CardContent>
           </Card>

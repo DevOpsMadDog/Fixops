@@ -147,8 +147,7 @@ export default function TrainingEffectivenessDashboard() {
                 </div>
               </div>
             </div>
-          ))
-          )}
+          ))}
         </div>
       </div>
     </div>

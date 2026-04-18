@@ -245,8 +245,7 @@ export default function GRCAssessment() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const controls = CONTROLS[framework];
   const implemented = controls.filter((c) => c.status === "implemented").length;
@@ -284,8 +283,7 @@ export default function GRCAssessment() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Assessments"     value={liveStats?.frameworks?.length ?? liveStats?.stats?.total_assessments ?? 12}                                                                                      icon={ClipboardCheck} trend="up"   />
         <KpiCard title="Controls Tested" value={liveStats?.stats?.total_controls ?? 847}                                                                                                                        icon={BarChart3}      trend="up"   className="border-blue-500/20" />
@@ -320,8 +318,7 @@ export default function GRCAssessment() {
               >
                 {fw}
               </button>
-            ))
-            )}
+            ))}
           </div>
           <CardDescription className="text-xs mt-1">
             {implemented} of {controls.length} controls implemented ({passRate}% pass rate)
@@ -370,8 +367,7 @@ export default function GRCAssessment() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Update</Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -409,7 +405,7 @@ export default function GRCAssessment() {
                 <p className="text-[11px] text-muted-foreground leading-relaxed">{g.desc}</p>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
 
@@ -441,7 +437,7 @@ export default function GRCAssessment() {
                     {item}
                   </p>
                 ))
-                )}
+              )}
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
@@ -459,7 +455,7 @@ export default function GRCAssessment() {
                     {item}
                   </p>
                 ))
-                )}
+              )}
               </div>
             </div>
           </CardContent>

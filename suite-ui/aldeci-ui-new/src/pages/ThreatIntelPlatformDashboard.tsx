@@ -291,8 +291,7 @@ export default function ThreatIntelPlatformDashboard() {
                     <TableCell className="py-2 text-right font-mono text-xs tabular-nums">{(src.total_indicators ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="py-2"><SourceStatusBadge status={src.status} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -356,7 +355,7 @@ export default function ThreatIntelPlatformDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground tabular-nums">{ioc.first_seen}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -453,7 +452,7 @@ export default function ThreatIntelPlatformDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
       </div>

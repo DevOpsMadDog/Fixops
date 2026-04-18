@@ -241,7 +241,6 @@ export default function CISOReportDashboard() {
     if (execRes.status === "fulfilled")   setExecSummary(execRes.value);
     if (risksRes.status === "fulfilled")  setTopRisks(risksRes.value.top_risks ?? []);
 
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -332,7 +331,7 @@ export default function CISOReportDashboard() {
                   <span className="text-muted-foreground leading-relaxed">{bullet}</span>
                 </li>
               ))
-              )}
+            )}
             </ul>
           </CardContent>
         </Card>
@@ -432,8 +431,7 @@ export default function CISOReportDashboard() {
                     <TableCell>
                       <Badge
                         variant={severityVariant(risk.severity)}
-                        className={cn("capitalize", severityClass(risk.severity))
-                )}
+                        className={cn("capitalize", severityClass(risk.severity))}
                       >
                         {risk.severity}
                       </Badge>
@@ -454,8 +452,7 @@ export default function CISOReportDashboard() {
                         : risk.recommendation}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

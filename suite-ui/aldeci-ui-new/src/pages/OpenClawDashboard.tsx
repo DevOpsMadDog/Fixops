@@ -308,8 +308,7 @@ export default function OpenClawDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadCampaignDetail = (campaign: any) => {
     setSelectedCampaign(campaign);
@@ -346,8 +345,7 @@ export default function OpenClawDashboard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }
-    setLoading(false);}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"

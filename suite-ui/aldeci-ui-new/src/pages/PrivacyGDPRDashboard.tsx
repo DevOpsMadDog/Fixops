@@ -133,8 +133,7 @@ export default function PrivacyGDPRDashboard() {
       apiFetch(`/api/v1/privacy/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/privacy/dsrs?org_id=${ORG_ID}&limit=20`),
       apiFetch(`/api/v1/privacy/consents?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/privacy/incidents?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/privacy/incidents?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/privacy/processing-activities?org_id=${ORG_ID}`),
     ]).then(([statsR, dsrsR, consentsR, incidentsR, activitiesR]) => {
       const stats      = statsR.status      === "fulfilled" ? statsR.value      : null;

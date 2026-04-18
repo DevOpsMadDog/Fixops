@@ -135,7 +135,7 @@ function ChannelBreakdown() {
           <span className="text-xs text-gray-400 w-4 text-right">{count}</span>
         </div>
       ))
-      )}
+    )}
     </div>
   );
 }
@@ -157,9 +157,7 @@ export default function IncidentCommsDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -175,8 +173,7 @@ export default function IncidentCommsDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))
-      )}
+      ))}
     </div>
   );
 
@@ -190,9 +187,7 @@ export default function IncidentCommsDashboard() {
           <Button size="sm" variant="outline" className="gap-2">
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
-          </Button>
-        
-    setLoading(false);}
+          </Button>}
       />
 
       {/* Fetch Error Banner */}
@@ -260,7 +255,7 @@ export default function IncidentCommsDashboard() {
                     <TableCell className="text-xs text-gray-400 whitespace-nowrap">{comm.sent_at}</TableCell>
                   </motion.tr>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>

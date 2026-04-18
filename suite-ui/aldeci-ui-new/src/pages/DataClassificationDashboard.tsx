@@ -159,9 +159,7 @@ export default function DataClassificationDashboard() {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const assets = assetsResult.status === "fulfilled" ? assetsResult.value : null;
       if (stats || assets) {
-        setLiveData({ stats, assets });
-      
-    setLoading(false);}
+        setLiveData({ stats, assets });}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -240,8 +238,7 @@ export default function DataClassificationDashboard() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -277,8 +274,7 @@ export default function DataClassificationDashboard() {
                   {d.count.toLocaleString()}
                 </span>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -345,8 +341,7 @@ export default function DataClassificationDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -403,7 +398,7 @@ export default function DataClassificationDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </div>
         </CardContent>
       </Card>

@@ -171,9 +171,7 @@ export default function IncidentCostsDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
 
   const selected = MOCK_INCIDENTS.find(i => i.id === selectedId) ?? null;
 
@@ -386,7 +384,7 @@ export default function IncidentCostsDashboard() {
               </div>
             </div>
           ))
-          )}
+        )}
         </div>
       </div>
     </div>

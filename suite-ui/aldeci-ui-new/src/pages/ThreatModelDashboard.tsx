@@ -176,8 +176,7 @@ export default function ThreatModelDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -210,8 +209,7 @@ export default function ThreatModelDashboard() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }
-    setLoading(false);}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >
@@ -384,7 +382,8 @@ export default function ThreatModelDashboard() {
                       </TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{t.mitigations}</TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             )}

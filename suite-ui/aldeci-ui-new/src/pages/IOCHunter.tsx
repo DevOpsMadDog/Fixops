@@ -146,8 +146,7 @@ export default function IOCHunter() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -182,8 +181,7 @@ export default function IOCHunter() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }
-    setLoading(false);}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >
@@ -230,8 +228,7 @@ export default function IOCHunter() {
                 >
                   {t}
                 </button>
-              ))
-              )}
+              ))}
             </div>
             <Input
               placeholder="Enter IP, domain, hash, URL, or email…"
@@ -309,7 +306,7 @@ export default function IOCHunter() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -388,7 +385,7 @@ export default function IOCHunter() {
               </CardContent>
             </Card>
           ))
-          )}
+        )}
 
           {/* Recent additions */}
           <Card>
@@ -410,7 +407,7 @@ export default function IOCHunter() {
                   <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{r.ts}</span>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
         </div>

@@ -145,8 +145,7 @@ export default function MobileAppSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -186,8 +185,7 @@ export default function MobileAppSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Apps"       value={stats.total_apps
-    setLoading(false);}       icon={Smartphone}   trend="flat" />
+        <KpiCard title="Total Apps"       value={stats.total_apps}       icon={Smartphone}   trend="flat" />
         <KpiCard title="Active Apps"      value={stats.active_apps}      icon={CheckCircle}  trend="up"   className="border-green-500/20" />
         <KpiCard title="Total Findings"   value={stats.total_findings}   icon={AlertTriangle} trend="down" className="border-amber-500/20" />
         <KpiCard title="Critical Findings" value={stats.critical_findings} icon={ShieldAlert} trend="down" className="border-red-500/20" />
@@ -235,7 +233,7 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_scanned}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -284,7 +282,7 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2"><FindingStatusBadge status={f.status ?? "open"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

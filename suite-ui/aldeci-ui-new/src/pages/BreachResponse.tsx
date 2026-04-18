@@ -146,8 +146,7 @@ export default function BreachResponse() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -256,8 +255,7 @@ export default function BreachResponse() {
                   )} />
                 )}
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -320,7 +318,7 @@ export default function BreachResponse() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -366,7 +364,7 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -415,7 +413,7 @@ export default function BreachResponse() {
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>

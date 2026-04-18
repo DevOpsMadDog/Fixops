@@ -144,9 +144,7 @@ export default function CrossDomainAnalytics() {
       const trend   = trendRes.status   === "fulfilled" ? trendRes.value   : null;
       const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
       if (exec || assets || trend || domains) {
-        setLiveData({ exec, assets, trend, domains });
-      
-    setLoading(false);}
+        setLiveData({ exec, assets, trend, domains });}
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -283,8 +281,7 @@ export default function CrossDomainAnalytics() {
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
-              ))
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>

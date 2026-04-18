@@ -198,7 +198,7 @@ export default function SecurityAutomationDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

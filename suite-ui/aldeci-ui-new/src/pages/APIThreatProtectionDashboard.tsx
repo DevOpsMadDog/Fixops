@@ -197,7 +197,7 @@ export default function APIThreatProtectionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

@@ -152,7 +152,7 @@ export default function ThreatIndicatorDashboard() {
                   <td className="py-3 text-gray-400 text-xs">{ioc.created_at}</td>
                 </tr>
               ))
-              )}
+            )}
             </tbody>
           </table>
         </div>

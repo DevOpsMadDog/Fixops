@@ -118,8 +118,7 @@ export default function SOARDashboard() {
       apiFetch(`/api/v1/soar/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/soar/playbooks?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/soar/executions?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/soar/mttr?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/soar/mttr?org_id=${ORG_ID}`),
     ]).then(([statsRes, playbooksRes, executionsRes, mttrRes]) => {
       const stats      = statsRes.status      === "fulfilled" ? statsRes.value      : null;
       const playbooks  = playbooksRes.status  === "fulfilled" ? playbooksRes.value  : null;
@@ -316,7 +315,7 @@ export default function SOARDashboard() {
                 </div>
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
       </div>
@@ -352,8 +351,7 @@ export default function SOARDashboard() {
                 />
               </div>
             </div>
-          ))
-          )}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

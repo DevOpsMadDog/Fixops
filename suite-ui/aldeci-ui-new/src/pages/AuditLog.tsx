@@ -819,9 +819,7 @@ export default function AuditLogPage() {
     a.href = url;
     a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
-  
-    setLoading(false);}, [filtered]);
+    URL.revokeObjectURL(url);}, [filtered]);
 
   // KPI derivation — prefer live stats, fall back to mock-derived counts
   const kpis = {

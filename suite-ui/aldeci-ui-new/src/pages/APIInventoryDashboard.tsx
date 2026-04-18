@@ -212,7 +212,7 @@ export default function APIInventoryDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

@@ -402,7 +402,7 @@ export default function AttackSurfaceDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{exp.first_detected}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -437,7 +437,7 @@ export default function AttackSurfaceDashboard() {
               </div>
             </div>
           ))
-          )}
+        )}
         </CardContent>
       </Card>
     </motion.div>

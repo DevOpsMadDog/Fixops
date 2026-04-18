@@ -141,8 +141,7 @@ export default function WatchlistManager() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -186,8 +185,7 @@ export default function WatchlistManager() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Active Watchlists"   value={liveData?.stats?.watchlist_count ?? 12}    icon={List}   trend="up" />
         <KpiCard title="Total Indicators"    value={liveData?.stats?.total ?? "4,782"}         icon={Shield} trend="up" />
-        <KpiCard title="Matches Today"       value={liveData?.stats?.by_severity ? ((liveData.stats.by_severity.critical ?? 0) + (liveData.stats.by_severity.high ?? 0)) : 23} icon={Eye
-    setLoading(false);} trend="up" className="border-amber-500/20" />
+        <KpiCard title="Matches Today"       value={liveData?.stats?.by_severity ? ((liveData.stats.by_severity.critical ?? 0) + (liveData.stats.by_severity.high ?? 0)) : 23} icon={Eye} trend="up" className="border-amber-500/20" />
         <KpiCard title="Auto-Blocked"        value={liveData?.stats?.enriched_count ?? 187}    icon={Zap}    trend="up" className="border-green-500/20" />
       </div>
 
@@ -259,7 +257,7 @@ export default function WatchlistManager() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -315,7 +313,7 @@ export default function WatchlistManager() {
                       <TableCell className="py-2"><SeverityBadge sev={row.severity} /></TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -357,7 +355,7 @@ export default function WatchlistManager() {
                   TYPE_OPTIONS.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))
-                )}
+              )}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -376,7 +374,7 @@ export default function WatchlistManager() {
                   WATCHLIST_OPTIONS.map((w) => (
                   <option key={w} value={w}>{w}</option>
                 ))
-                )}
+              )}
               </select>
             </div>
             <Button size="sm" className="h-8 text-xs" onClick={handleAdd}>
@@ -388,8 +386,7 @@ export default function WatchlistManager() {
                 <p className="text-[10px] text-muted-foreground font-medium">Recently added:</p>
                 {added.slice(0, 4).map((entry, idx) => (
                   <div key={idx} className="text-[10px] text-green-400 font-mono truncate">{entry}</div>
-                ))
-                )}
+                ))}
               </div>
             )}
           </CardContent>
@@ -429,7 +426,7 @@ export default function WatchlistManager() {
               </div>
             </div>
           ))
-          )}
+        )}
         </CardContent>
       </Card>
     </motion.div>

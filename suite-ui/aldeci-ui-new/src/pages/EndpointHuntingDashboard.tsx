@@ -178,8 +178,7 @@ export default function EndpointHuntingDashboard() {
                       <HuntStatusBadge status={hunt.status ?? "active"} />
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -208,7 +208,7 @@ export default function ThreatVectorDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

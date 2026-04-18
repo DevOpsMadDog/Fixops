@@ -164,7 +164,6 @@ export default function VulnIntelFusionDashboard() {
       .finally(() => setLoading(false));
   }, []);
   const [form, setForm] = useState({
-  const [loading, setLoading] = useState(true);
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",
   });
 
@@ -304,8 +303,7 @@ export default function VulnIntelFusionDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{c.affected_assets}</TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -358,7 +356,7 @@ export default function VulnIntelFusionDashboard() {
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
                     ))
-                    )}
+                  )}
                   </TableBody>
                 </Table>
               </div>
@@ -410,7 +408,7 @@ export default function VulnIntelFusionDashboard() {
                         </TableCell>
                       </TableRow>
                     ))
-                    )}
+                  )}
                   </TableBody>
                 </Table>
               </div>
@@ -462,8 +460,7 @@ export default function VulnIntelFusionDashboard() {
                 </div>
                 <span className="text-[10px] text-muted-foreground shrink-0">{c.affected_assets} assets</span>
               </div>
-            ))
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>

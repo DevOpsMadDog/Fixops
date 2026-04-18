@@ -71,9 +71,7 @@ export default function IdentityLifecycleDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
 
   const [filterAccount, setFilterAccount] = useState("all");
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -111,8 +109,7 @@ export default function IdentityLifecycleDashboard() {
           <p className="text-gray-400 text-sm mt-1">Account provisioning, entitlements, orphan detection, and audit trail</p>
         </div>
 
-        {/* Fetch Error Banner */
-    setLoading(false);}
+        {/* Fetch Error Banner */}
         {fetchError && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6">
             <span className="text-sm">Failed to load live data: {fetchError}</span>

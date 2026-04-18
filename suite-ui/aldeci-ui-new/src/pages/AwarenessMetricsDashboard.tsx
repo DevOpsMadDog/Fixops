@@ -195,7 +195,7 @@ export default function AwarenessMetricsDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

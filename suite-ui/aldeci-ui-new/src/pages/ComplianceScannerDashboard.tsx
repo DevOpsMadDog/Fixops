@@ -152,8 +152,7 @@ export default function ComplianceScannerDashboard() {
       apiFetch(`/api/v1/compliance-scanner/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/compliance-scanner/profiles?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/compliance-scanner/results?org_id=${ORG_ID}&limit=20`),
-      apiFetch(`/api/v1/compliance-scanner/tasks?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/compliance-scanner/tasks?org_id=${ORG_ID}`),
     ]).then(([statsRes, profilesRes, resultsRes, tasksRes]) => {
       const stats    = statsRes.status    === "fulfilled" ? statsRes.value    : null;
       const profiles = profilesRes.status === "fulfilled" ? profilesRes.value : null;
@@ -341,8 +340,7 @@ export default function ComplianceScannerDashboard() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>

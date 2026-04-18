@@ -132,8 +132,7 @@ export default function SocialEngineering() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -326,8 +325,7 @@ export default function SocialEngineering() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
 
@@ -361,7 +359,7 @@ export default function SocialEngineering() {
                 <Progress value={m.completion} className="h-1.5" />
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
       </div>
@@ -398,8 +396,7 @@ export default function SocialEngineering() {
                 )}
               </CardContent>
             </Card>
-          ))
-          )}
+          ))}
         </div>
       </div>
     </motion.div>

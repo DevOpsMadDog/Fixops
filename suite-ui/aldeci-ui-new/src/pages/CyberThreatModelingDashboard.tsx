@@ -117,8 +117,7 @@ export default function CyberThreatModelingDashboard() {
   const [selectedModel, setSelectedModel] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
   const [mitigatedTrees, setMitigatedTrees] = useState<Set<string>>(
-    new Set(MOCK_TREES.filter(t => t.mitigated).map(t => t.id))
-  );
+    new Set(MOCK_TREES.filter(t => t.mitigated).map(t => t.id));
   const [showModelForm, setShowModelForm] = useState(false);
   const [showTreeForm, setShowTreeForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

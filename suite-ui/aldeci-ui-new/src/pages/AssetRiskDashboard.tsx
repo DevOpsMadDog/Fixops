@@ -187,8 +187,7 @@ export default function AssetRiskDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -287,7 +286,7 @@ export default function AssetRiskDashboard() {
                       ASSET_TYPES.map((t) => (
                       <th key={t} className="text-center text-muted-foreground font-medium pb-2 px-1">{t}</th>
                     ))
-                    )}
+                  )}
                   </tr>
                 </thead>
                 <tbody>
@@ -312,8 +311,7 @@ export default function AssetRiskDashboard() {
                       })
                   )}
                     </tr>
-                  ))
-                  )}
+                  ))}
                 </tbody>
               </table>
               <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
@@ -358,8 +356,7 @@ export default function AssetRiskDashboard() {
                     />
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -387,7 +384,7 @@ export default function AssetRiskDashboard() {
                   <span className="text-[10px] text-muted-foreground shrink-0">{a.added}</span>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
         </div>
@@ -435,7 +432,7 @@ export default function AssetRiskDashboard() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.top_factor}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

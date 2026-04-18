@@ -123,7 +123,6 @@ export default function IRPlaybookDashboard() {
     } catch {
       // API not available — keep mock data
     } finally {
-      setLoading(false);
     }
   };
 
@@ -213,7 +212,7 @@ export default function IRPlaybookDashboard() {
                     <TableCell><StatusBadge status={ex.status} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </CardContent>

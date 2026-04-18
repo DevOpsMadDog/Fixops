@@ -221,8 +221,7 @@ export default function ContainerRegistryDashboard() {
                       {scan.scanned_at}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

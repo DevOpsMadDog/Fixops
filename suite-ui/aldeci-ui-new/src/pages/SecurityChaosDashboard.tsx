@@ -140,8 +140,7 @@ export default function SecurityChaosDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -181,8 +180,7 @@ export default function SecurityChaosDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Experiments"    value={stats.total_experiments}    icon={FlaskConical
-    setLoading(false);}  trend="up"   />
+        <KpiCard title="Total Experiments"    value={stats.total_experiments}    icon={FlaskConical}  trend="up"   />
         <KpiCard title="Active Experiments"   value={stats.active_experiments}   icon={Activity}      trend="flat" className="border-green-500/20" />
         <KpiCard title="Avg Resilience Score" value={`${stats.avg_resilience_score}`} icon={Zap}      trend="up"   className="border-blue-500/20" />
         <KpiCard title="Open Findings"        value={stats.open_findings}        icon={AlertTriangle} trend="up"   className="border-amber-500/20" />
@@ -232,7 +230,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ex.started_at)}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -281,7 +279,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-xs truncate">{ob.detail}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

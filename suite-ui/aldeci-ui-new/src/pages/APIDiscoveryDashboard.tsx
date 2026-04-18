@@ -125,8 +125,7 @@ export default function APIDiscoveryDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -163,8 +162,7 @@ export default function APIDiscoveryDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Endpoints"       value={stats.total_endpoints}         icon={Code}          trend="up"   />
         <KpiCard title="Undocumented"          value={stats.undocumented_endpoints}  icon={Search}        trend="up"   className="border-amber-500/20" />
@@ -220,7 +218,7 @@ export default function APIDiscoveryDashboard() {
                     <TableCell className="py-2"><EndpointStatusBadge status={ep.status ?? "documented"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

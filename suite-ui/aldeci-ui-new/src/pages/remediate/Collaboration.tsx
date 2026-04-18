@@ -708,7 +708,8 @@ export default function Collaboration() {
                                   <p className="text-muted-foreground">{att.size}</p>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                          )}
                           </div>
                         )}
                       </CardContent>

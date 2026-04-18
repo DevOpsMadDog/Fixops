@@ -114,7 +114,6 @@ export default function AIGovernanceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; models: any[] | null; incidents: any[] | null }>({
-  const [loading, setLoading] = useState(true);
     stats: null, models: null, incidents: null,
   });
 
@@ -133,8 +132,7 @@ export default function AIGovernanceDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData();
-    setLoading(false);}, []);
+  useEffect(() => { fetchData();}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -226,7 +224,7 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{m.data_classification}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -276,8 +274,7 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -91,7 +91,6 @@ export default function SoftwareLicenseDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{ stats: any | null; records: any[] | null; violations: any[] | null }>({
-  const [loading, setLoading] = useState(true);
     stats: null, records: null, violations: null,
   });
 
@@ -110,8 +109,7 @@ export default function SoftwareLicenseDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -151,8 +149,7 @@ export default function SoftwareLicenseDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Packages"    value={stats.total_packages}    icon={Package
-    setLoading(false);}      trend="flat" />
+        <KpiCard title="Total Packages"    value={stats.total_packages}    icon={Package}      trend="flat" />
         <KpiCard title="Unapproved"        value={stats.unapproved_packages} icon={XCircle}   trend="down" className="border-orange-500/20" />
         <KpiCard title="Open Violations"   value={stats.open_violations}   icon={AlertTriangle} trend="down" className="border-red-500/20" />
         <KpiCard title="Critical Violations" value={stats.critical_violations} icon={FileText} trend="down" className="border-red-500/20" />
@@ -244,7 +241,7 @@ export default function SoftwareLicenseDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -296,8 +293,7 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2"><RiskBadge risk={v.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><ViolationStatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

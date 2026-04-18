@@ -161,9 +161,7 @@ export default function IncidentTimelineDashboard() {
   };
 
   useEffect(() => {
-    fetchData();
-  
-    setLoading(false);}, []);
+    fetchData();}, []);
 
   // Fetch events + systems whenever selected timeline changes
   useEffect(() => {
@@ -217,8 +215,7 @@ export default function IncidentTimelineDashboard() {
 
   const stats = liveData?.stats;
   const activeCount    = stats?.active_count ?? stats?.open ?? 3;
-  const avgMttr        = stats?.avg_mttr_hours != null ? `${Number(stats.avg_mttr_hours).toFixed(1)
-    setLoading(false);}h` : "4.2 days";
+  const avgMttr        = stats?.avg_mttr_hours != null ? `${Number(stats.avg_mttr_hours).toFixed(1)}h` : "4.2 days";
   const avgMttd        = stats?.avg_mttd_hours != null ? `${Number(stats.avg_mttd_hours).toFixed(1)}h` : "2.1 hrs";
   const affectedSystems = stats?.total_affected_systems ?? 18;
 

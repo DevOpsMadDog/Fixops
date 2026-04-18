@@ -199,8 +199,7 @@ export default function SecurityGamificationDashboard() {
                         {(entry.total_points ?? 0).toLocaleString()}
                       </TableCell>
                     </TableRow>
-                  ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -250,7 +249,7 @@ export default function SecurityGamificationDashboard() {
                       </TableCell>
                     </TableRow>
                   ))
-                  )}
+                )}
                 </TableBody>
               </Table>
             </div>

@@ -202,8 +202,7 @@ export default function SecurityExceptionDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -241,8 +240,7 @@ export default function SecurityExceptionDashboard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }
-    setLoading(false);}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
@@ -315,7 +313,7 @@ export default function SecurityExceptionDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -376,7 +374,7 @@ export default function SecurityExceptionDashboard() {
               </div>
             </div>
           ))
-          )}
+        )}
         </CardContent>
       </Card>
 
@@ -410,7 +408,7 @@ export default function SecurityExceptionDashboard() {
                 <CountdownBar days={item.daysLeft} />
               </div>
             ))
-            )}
+          )}
           </CardContent>
         </Card>
 
@@ -446,8 +444,7 @@ export default function SecurityExceptionDashboard() {
                     />
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -479,8 +476,7 @@ export default function SecurityExceptionDashboard() {
                   </div>
                   <span className="text-xs font-bold tabular-nums w-4 text-right">{r.count}</span>
                 </div>
-              ))
-              )}
+              ))}
             </CardContent>
           </Card>
         </div>

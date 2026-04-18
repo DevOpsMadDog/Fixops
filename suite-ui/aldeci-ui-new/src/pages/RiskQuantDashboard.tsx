@@ -154,7 +154,6 @@ export default function RiskQuantDashboard() {
       .finally(() => setLoading(false));
   }, []);
   const [form, setForm] = useState({
-  const [loading, setLoading] = useState(true);
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",
     asset_value: "", sle: "", aro: "", risk_level: "high",
   });
@@ -305,8 +304,7 @@ export default function RiskQuantDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-semibold text-red-400">{fmt$(s.ale)}</TableCell>
                     <TableCell className="py-2"><RiskBadge level={s.risk_level} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -377,7 +375,7 @@ export default function RiskQuantDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

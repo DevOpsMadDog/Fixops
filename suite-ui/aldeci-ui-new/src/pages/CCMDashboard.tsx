@@ -261,7 +261,7 @@ export default function CCMDashboard() {
                   <TableCell className="py-2.5"><FrameworkStatusBadge status={fw.status} /></TableCell>
                 </TableRow>
               ))
-              )}
+            )}
             </TableBody>
           </Table>
         </CardContent>

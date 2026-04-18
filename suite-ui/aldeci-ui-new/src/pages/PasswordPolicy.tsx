@@ -141,8 +141,7 @@ export default function PasswordPolicy() {
       apiFetch(`/api/v1/password-policy/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/password-policy/violations?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/password-policy/audits?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/password-policy/policies?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/password-policy/policies?org_id=${ORG_ID}`),
     ]).then(([statsRes, violRes, auditRes, policiesRes]) => {
       const stats      = statsRes.status     === "fulfilled" ? statsRes.value     : null;
       const violations = violRes.status      === "fulfilled" ? violRes.value      : null;
@@ -241,7 +240,7 @@ export default function PasswordPolicy() {
                     </span>
                   </div>
                 ))
-          )}
+              )}
                 <div className="pt-2 space-y-1 border-t border-border/50">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Compliance</span>
@@ -264,8 +263,7 @@ export default function PasswordPolicy() {
                 </div>
               </CardContent>
             </Card>
-          ))
-          )}
+          ))}
         </div>
       </div>
 
@@ -398,8 +396,7 @@ export default function PasswordPolicy() {
                   />
                 </div>
               </div>
-            ))
-            )}
+            ))}
           </CardContent>
         </Card>
       </div>

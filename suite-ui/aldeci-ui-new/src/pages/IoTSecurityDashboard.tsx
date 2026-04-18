@@ -134,8 +134,7 @@ export default function IoTSecurityDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -175,8 +174,7 @@ export default function IoTSecurityDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Devices"       value={stats.total_devices
-    setLoading(false);}       icon={Wifi}         trend="flat" />
+        <KpiCard title="Total Devices"       value={stats.total_devices}       icon={Wifi}         trend="flat" />
         <KpiCard title="Online Devices"      value={stats.online_devices}      icon={Activity}     trend="up"   className="border-green-500/20" />
         <KpiCard title="Quarantined"         value={stats.quarantined_devices} icon={ShieldOff}    trend="down" className="border-red-500/20" />
         <KpiCard title="Open Anomalies"      value={stats.open_anomalies}      icon={AlertTriangle} trend="down" className="border-amber-500/20" />
@@ -230,7 +228,7 @@ export default function IoTSecurityDashboard() {
                     <TableCell className="py-2"><DeviceStatusBadge status={d.status ?? "online"} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -279,7 +277,7 @@ export default function IoTSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.detected_at)}</TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

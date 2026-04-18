@@ -160,9 +160,7 @@ export default function HuntingAutomationDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  
-    setLoading(false);}, []);
+    loadData();}, []);
 
   const totalHypotheses = MOCK_HYPOTHESES.length;
   const validated = MOCK_HYPOTHESES.filter(h => h.validated).length;
@@ -187,8 +185,7 @@ export default function HuntingAutomationDashboard() {
         description="Automated threat hunting hypotheses, queries, and execution management"
       />
 
-      {/* Fetch Error Banner */
-    setLoading(false);}
+      {/* Fetch Error Banner */}
       {fetchError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
@@ -256,7 +253,7 @@ export default function HuntingAutomationDashboard() {
                         </div>
                       </div>
                     ))
-          )}
+                  )}
 
                     {/* Execution History */}
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium pl-7 mt-2">Executions</p>
@@ -314,7 +311,7 @@ export default function HuntingAutomationDashboard() {
                   </Button>
                 </div>
               ))
-              )}
+            )}
             </CardContent>
           </Card>
         </div>

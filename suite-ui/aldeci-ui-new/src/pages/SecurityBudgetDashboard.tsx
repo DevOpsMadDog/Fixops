@@ -124,8 +124,7 @@ export default function SecurityBudgetDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -165,8 +164,7 @@ export default function SecurityBudgetDashboard() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Allocated"  value={fmtMoney(stats.total_allocated)} icon={DollarSign}  trend="flat" />
         <KpiCard title="Total Spent"      value={fmtMoney(stats.total_spent)}     icon={TrendingUp}  trend="up"     className="border-blue-500/20" />
@@ -246,8 +244,8 @@ export default function SecurityBudgetDashboard() {
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
                               transition={{ duration: 0.6, delay: i * 0.04 }}
-                              className={cn("h-full rounded-full", utilizationColor(pct))
-                )}
+                              ))
+                            )}
                             />
                           </div>
                           <span className="text-[11px] tabular-nums text-muted-foreground w-8 text-right">{pct}%</span>
@@ -306,8 +304,7 @@ export default function SecurityBudgetDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{t.date}</TableCell>
                     <TableCell className="py-2"><TransactionStatusBadge status={t.status ?? "pending"} /></TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

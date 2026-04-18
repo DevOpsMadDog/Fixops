@@ -220,7 +220,7 @@ export default function ChangeManagementDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

@@ -127,8 +127,7 @@ export default function GRCDashboard() {
       apiFetch(`/api/v1/grc/stats?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/grc/frameworks?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/grc/risks?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID
-    setLoading(false);}`),
+      apiFetch(`/api/v1/grc/controls?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/grc/assessments?org_id=${ORG_ID}`),
     ]).then(([statsRes, frameworksRes, risksRes, controlsRes, assessmentsRes]) => {
       const stats       = statsRes.status       === "fulfilled" ? statsRes.value       : null;
@@ -243,7 +242,7 @@ export default function GRCDashboard() {
                     <div className="text-[10px] font-medium mt-0.5">{c.label}</div>
                   </div>
                 ))
-                )}
+              )}
               </div>
             </CardContent>
           </Card>
@@ -270,8 +269,7 @@ export default function GRCDashboard() {
                     <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px]">View</Button>
                   </div>
                 </div>
-              ))
-                )}
+              ))}
             </CardContent>
           </Card>
         </div>

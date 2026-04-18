@@ -440,8 +440,7 @@ export default function AttackPathAnalysis() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { loadData(); 
-    setLoading(false);}, []);
+  useEffect(() => { loadData(); }, []);
 
   // Build stats shape from live data or fall back to mock
   const stats: AttackPathsStats = liveData?.stats
@@ -576,8 +575,7 @@ export default function AttackPathAnalysis() {
                 {entryPoints.length > 0 ? (
                   entryPoints.map((node, i) => (
                     <EntryPointCard key={node.id} node={node} index={i} />
-                  ))
-                ) : (
+                  )) : (
                   <div className="text-xs text-muted-foreground text-center py-8">
                     No entry points detected
                   </div>
@@ -616,8 +614,7 @@ export default function AttackPathAnalysis() {
                           nodeMap={nodeMap}
                           index={i}
                         />
-                      ))
-                    ) : (
+                      )) : (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-xs text-muted-foreground">
                           No attack paths found
@@ -654,8 +651,7 @@ export default function AttackPathAnalysis() {
                     {crownJewels && crownJewels.length > 0 ? (
                       crownJewels.map((jewel, i) => (
                         <CrownJewelRow key={jewel.asset} jewel={jewel} index={i} />
-                      ))
-                    ) : (
+                      )) : (
                       <tr>
                         <td colSpan={4} className="py-8 text-center text-xs text-muted-foreground">
                           No crown jewels identified

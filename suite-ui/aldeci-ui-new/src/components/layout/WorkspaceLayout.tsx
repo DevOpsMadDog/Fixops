@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import { ErrorState } from "@/components/shared/ErrorState";
 
@@ -120,7 +120,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
+import { GlobalSearch } from "./GlobalSearch";
 import { useAuth } from "@/lib/auth";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 
 interface NavItem {
   label: string;
@@ -596,12 +599,19 @@ function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname:
 export function WorkspaceLayout() {
   const { preferences, toggleSidebar, toggleCopilot, toggleTheme } = useAppStore();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
   const collapsed = preferences.sidebarCollapsed;
   const copilotOpen = preferences.copilotOpen;
   const userRole = user?.role ?? "viewer";
+
+  const onShowHelp = useCallback(() => {
+    setShortcutsHelpOpen(true);
+  }, []);
+
+  useKeyboardShortcuts({ onShowHelp });
 
   // Filter nav items by role — items without `roles` are visible to all
   const filteredGroups = navGroups
@@ -768,6 +778,7 @@ export function WorkspaceLayout() {
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-6">
             <Breadcrumbs navGroups={filteredGroups} pathname={location.pathname} />
             <div className="flex items-center gap-2">
+              <GlobalSearch />
               <Button
                 variant="ghost"
                 size="icon"
@@ -809,6 +820,12 @@ export function WorkspaceLayout() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Keyboard Shortcuts Help Modal ── */}
+      <KeyboardShortcutsHelp
+        open={shortcutsHelpOpen}
+        onClose={() => setShortcutsHelpOpen(false)}
+      />
     </div>
   );
 }

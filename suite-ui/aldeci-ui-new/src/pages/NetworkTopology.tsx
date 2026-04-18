@@ -133,8 +133,7 @@ export default function NetworkTopology() {
       if (assets || stats) setLiveData({ assets, stats });
     });
 
-  useEffect(() => { fetchAll(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchAll();}, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -171,8 +170,7 @@ export default function NetworkTopology() {
         }
       />
 
-      {/* KPIs */
-    setLoading(false);}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Total Nodes"       value={liveData?.stats?.total_assets ?? liveData?.assets?.length ?? 847}    icon={Server}  />
         <KpiCard title="Network Segments"  value={liveData?.stats?.total_segments ?? 12}     icon={Layers}  />
@@ -223,7 +221,7 @@ export default function NetworkTopology() {
                     <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>
@@ -263,7 +261,7 @@ export default function NetworkTopology() {
               </CardContent>
             </Card>
           ))
-          )}
+        )}
         </div>
       </div>
 
@@ -300,7 +298,7 @@ export default function NetworkTopology() {
               <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
             </div>
           ))
-          )}
+        )}
         </CardContent>
       </Card>
 
@@ -353,7 +351,7 @@ export default function NetworkTopology() {
                     {i < pathResult.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                   </span>
                 ))
-                )}
+              )}
               </div>
             </motion.div>
           )}

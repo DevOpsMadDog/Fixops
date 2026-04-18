@@ -216,8 +216,7 @@ export default function SaasSecurityPostureDashboard() {
                       {(app.user_count ?? 0).toLocaleString()}
                     </TableCell>
                   </TableRow>
-                ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

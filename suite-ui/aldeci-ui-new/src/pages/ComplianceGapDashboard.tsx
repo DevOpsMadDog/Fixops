@@ -137,8 +137,7 @@ export default function ComplianceGapDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -178,8 +177,7 @@ export default function ComplianceGapDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Assessments"      value={stats.total_assessments
-    setLoading(false);}                    icon={FileText}      trend="flat"   />
+        <KpiCard title="Total Assessments"      value={stats.total_assessments}                    icon={FileText}      trend="flat"   />
         <KpiCard title="Open Gaps"              value={stats.open_gaps}                             icon={AlertTriangle} trend="down"   className="border-red-500/20" />
         <KpiCard title="Critical Gaps"          value={stats.critical_gaps}                         icon={Shield}        trend="down"   className="border-orange-500/20" />
         <KpiCard title="Avg Remediation (hrs)"  value={stats.avg_remediation_hours.toFixed(1)}      icon={Clock}         trend="flat"   className="border-blue-500/20" />
@@ -223,8 +221,8 @@ export default function ComplianceGapDashboard() {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.7, delay: i * 0.06 }}
-                      className={cn("h-full rounded-full", complianceBar(pct))
-            )}
+                      ))
+                    )}
                     />
                   </div>
                   <div className="text-[10px] text-muted-foreground">
@@ -293,7 +291,7 @@ export default function ComplianceGapDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
+              )}
               </TableBody>
             </Table>
           </div>

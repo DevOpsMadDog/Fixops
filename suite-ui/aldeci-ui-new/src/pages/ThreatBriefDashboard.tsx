@@ -163,8 +163,7 @@ export default function ThreatBriefDashboard() {
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(
   const [loading, setLoading] = useState(true);
-    new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id))
-  );
+    new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id));
 
   const totalBriefs = MOCK_BRIEFS.length;
   const distributedToday = MOCK_BRIEFS.filter((b) => b.distributed && b.created_at.startsWith("2026-04-16")).length;
@@ -265,8 +264,7 @@ export default function ThreatBriefDashboard() {
                 )}
               </div>
             </motion.div>
-          ))
-          )}
+          ))}
         </div>
 
         {/* Brief Detail */}

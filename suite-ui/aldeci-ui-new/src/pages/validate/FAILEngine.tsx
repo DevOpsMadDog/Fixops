@@ -590,7 +590,8 @@ export default function FAILEngine() {
                       data={Object.entries(industryComparison).map(([key, val]) => ({
                         name: key,
                         value: val,
-                      }))}
+                      ))
+                    )}
                       margin={{ top: 4, right: 4, left: -16, bottom: 4 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
