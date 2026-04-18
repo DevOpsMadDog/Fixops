@@ -1,6 +1,13 @@
 """Detailed Request/Response Logging — full payload capture + SQLite store + REST API.
 
 Phase 17 of ALdeci Transformation Plan.
+
+Observability fields captured per request:
+  - request_id   : unique UUID per request (X-Request-ID header or generated)
+  - correlation_id: caller-supplied trace ID (X-Correlation-ID header)
+  - org_id       : tenant identifier (from request.state.org_id set by OrgIdMiddleware)
+  - method, path, status_code, duration_ms, req_size, resp_size
+  - Slow requests (>500 ms) are emitted at structlog WARNING level
 """
 from __future__ import annotations
 
@@ -17,12 +24,16 @@ from pathlib import Path
 from threading import Lock
 from typing import Callable, Optional
 
+import structlog
 from fastapi import APIRouter
 from fastapi import Query as FQ
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
+_slog = structlog.get_logger(__name__)
+
+SLOW_REQUEST_MS = 500  # requests slower than this emit a structlog WARNING
 
 MAX_BODY = 10_240
 _SENS_HDR = {"x-api-key", "authorization", "cookie", "x-auth-token"}
@@ -92,6 +103,7 @@ class DetailedLogStore:
             "id TEXT PRIMARY KEY, ts TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL,"
             "query_params TEXT, status_code INTEGER, duration_ms REAL,"
             "client_ip TEXT, user_agent TEXT, correlation_id TEXT,"
+            "request_id TEXT, org_id TEXT DEFAULT 'default',"
             "req_headers TEXT, req_body TEXT, resp_headers TEXT, resp_body TEXT,"
             "req_size INTEGER DEFAULT 0, resp_size INTEGER DEFAULT 0,"
             "error TEXT, error_type TEXT, level TEXT DEFAULT 'info');"
@@ -99,7 +111,15 @@ class DetailedLogStore:
             "CREATE INDEX IF NOT EXISTS ix_path ON api_logs(path);"
             "CREATE INDEX IF NOT EXISTS ix_status ON api_logs(status_code);"
             "CREATE INDEX IF NOT EXISTS ix_level ON api_logs(level);"
+            "CREATE INDEX IF NOT EXISTS ix_org ON api_logs(org_id);"
+            "CREATE INDEX IF NOT EXISTS ix_req_id ON api_logs(request_id);"
         )
+        # Migrate existing tables: add new columns if they don't exist yet
+        existing = {row[1] for row in c.execute("PRAGMA table_info(api_logs)").fetchall()}
+        if "request_id" not in existing:
+            c.execute("ALTER TABLE api_logs ADD COLUMN request_id TEXT")
+        if "org_id" not in existing:
+            c.execute("ALTER TABLE api_logs ADD COLUMN org_id TEXT DEFAULT 'default'")
         c.commit()
         c.close()
 
@@ -107,7 +127,12 @@ class DetailedLogStore:
         try:
             c = self._c()
             c.execute(
-                "INSERT INTO api_logs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO api_logs "
+                "(id, ts, method, path, query_params, status_code, duration_ms,"
+                " client_ip, user_agent, correlation_id, request_id, org_id,"
+                " req_headers, req_body, resp_headers, resp_body,"
+                " req_size, resp_size, error, error_type, level)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     r["id"],
                     r["ts"],
@@ -119,6 +144,8 @@ class DetailedLogStore:
                     r.get("client_ip", ""),
                     r.get("user_agent", ""),
                     r.get("correlation_id", ""),
+                    r.get("request_id", ""),
+                    r.get("org_id", "default"),
                     json.dumps(r.get("req_headers", {})),
                     r.get("req_body", ""),
                     json.dumps(r.get("resp_headers", {})),
@@ -287,6 +314,11 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if request.client else ""
         user_agent = request.headers.get("user-agent", "")
         corr_id = request.headers.get("x-correlation-id", "")
+        # request_id: prefer X-Request-ID header, else generate one
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+        # org_id: from OrgIdMiddleware (request.state.org_id) or header fallback
+        org_id = getattr(getattr(request, "state", None), "org_id", None) \
+            or request.headers.get("x-org-id", "default")
         qp = str(dict(request.query_params)) if request.query_params else ""
 
         # Capture request headers (sanitized)

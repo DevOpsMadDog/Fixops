@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from apps.api.dependencies import get_org_id
+from core.cache_layer import cache_endpoint, TTL_HEALTH
 
 router = APIRouter(prefix="/api/v1/feeds", tags=["Threat Intelligence Feeds"])
 
@@ -90,7 +91,8 @@ def _get_feeds_db_stats() -> Dict[str, Any]:
     ),
     response_description="Feed source registry with global health summary",
 )
-def get_feeds_status() -> Dict[str, Any]:
+@cache_endpoint(ttl=TTL_HEALTH)
+async def get_feeds_status() -> Dict[str, Any]:
     """Return configured threat intelligence feed sources and global health summary."""
     stats = _get_feeds_db_stats()
 

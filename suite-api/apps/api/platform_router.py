@@ -24,6 +24,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends
 
 from apps.api.auth_deps import api_key_auth
+from core.cache_layer import cache_endpoint, TTL_HEALTH
 
 _logger = logging.getLogger(__name__)
 
@@ -190,6 +191,7 @@ def _query_feed_counts() -> Dict[str, int]:
     summary="Platform health dashboard — comprehensive at-a-glance snapshot",
     dependencies=[Depends(api_key_auth)],
 )
+@cache_endpoint(ttl=TTL_HEALTH)
 async def platform_health() -> Dict[str, Any]:
     """Return a single comprehensive platform health snapshot.
 

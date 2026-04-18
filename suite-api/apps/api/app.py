@@ -1976,28 +1976,43 @@ def create_app() -> FastAPI:
     # SOC2 CC6.1, PCI-DSS 6.5.9, OWASP A05:2021
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # Rate-limit middleware — token bucket per client IP
+    # Rate-limit middleware — per-method token bucket per API key / client IP
+    # Limits configurable via env vars:
+    #   RATE_LIMIT_READ    — GET/HEAD/OPTIONS (default 200 req/min)
+    #   RATE_LIMIT_WRITE   — POST/PUT/PATCH/DELETE (default 50 req/min)
+    #   RATE_LIMIT_DEFAULT — all other methods (default 100 req/min)
     # Disabled when FIXOPS_DISABLE_RATE_LIMIT=1 (e.g. in CI/test environments)
     if os.getenv("FIXOPS_DISABLE_RATE_LIMIT") != "1":
         try:
-            from apps.api.rate_limiter import RateLimitMiddleware
+            from apps.api.rate_limit_middleware import (
+                RateLimitMiddleware,
+                register_rate_limit_middleware,
+                _READ_RPM,
+                _WRITE_RPM,
+                _DEFAULT_RPM,
+            )
 
+            _rl_instance = RateLimitMiddleware(
+                app,
+                requests_per_minute=_DEFAULT_RPM,
+                read_requests_per_minute=_READ_RPM,
+                write_requests_per_minute=_WRITE_RPM,
+                burst=20,
+            )
             app.add_middleware(
                 RateLimitMiddleware,
-                requests_per_minute=120,
-                burst_size=20,
-                exempt_paths=[
-                    "/health",
-                    "/metrics",
-                    "/api/v1/health",
-                    "/api/v1/health/deep",
-                    "/api/v1/ready",
-                    "/api/v1/version",
-                    "/api/v1/metrics",
-                    "/api/v1/feeds/refresh",
-                ],
+                requests_per_minute=_DEFAULT_RPM,
+                read_requests_per_minute=_READ_RPM,
+                write_requests_per_minute=_WRITE_RPM,
+                burst=20,
             )
-            logger.info("RateLimitMiddleware enabled (120 req/min, burst 20)")
+            register_rate_limit_middleware(_rl_instance)
+            logger.info(
+                "RateLimitMiddleware enabled read=%d write=%d default=%d req/min burst=20",
+                _READ_RPM,
+                _WRITE_RPM,
+                _DEFAULT_RPM,
+            )
         except (OSError, ValueError, KeyError, RuntimeError) as _rl_err:  # narrowed from bare Exception
             logger.warning("RateLimitMiddleware not available: %s", _rl_err)
     else:

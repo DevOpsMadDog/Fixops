@@ -1,9 +1,13 @@
 from pathlib import Path
 from typing import Any
 
+import logging
 from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from apps.api.dependencies import get_org_id
 from services.graph.graph import GraphSources, build_graph_from_sources
+from core.cache_layer import cache_endpoint, TTL_STATS
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/graph", tags=["graph"])
 
@@ -100,6 +104,7 @@ async def version_anomalies(request: Request) -> list[dict[str, Any]]:
 
 
 @router.get("/stats")
+@cache_endpoint(ttl=TTL_STATS)
 async def graph_stats(org_id: str = Depends(get_org_id)):
     """Graph statistics — delegates to KnowledgeBrain if available."""
     try:

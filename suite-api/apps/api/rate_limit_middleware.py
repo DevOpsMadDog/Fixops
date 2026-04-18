@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from typing import Any, Callable, Dict, Optional
@@ -26,9 +27,16 @@ _EXEMPT_PREFIXES: tuple[str, ...] = (
 
 # ---------------------------------------------------------------------------
 # Requests-per-minute limits by key tier
+# Configurable via env vars: RATE_LIMIT_DEFAULT, RATE_LIMIT_READ, RATE_LIMIT_WRITE
 # ---------------------------------------------------------------------------
 _ADMIN_RPM = 1000
-_DEFAULT_RPM = 100
+_DEFAULT_RPM = int(os.environ.get("RATE_LIMIT_DEFAULT", "100"))
+_READ_RPM = int(os.environ.get("RATE_LIMIT_READ", "200"))
+_WRITE_RPM = int(os.environ.get("RATE_LIMIT_WRITE", "50"))
+
+# HTTP methods treated as read (GET/HEAD/OPTIONS) vs write (POST/PUT/PATCH/DELETE)
+_READ_METHODS: frozenset[str] = frozenset({"GET", "HEAD", "OPTIONS"})
+_WRITE_METHODS: frozenset[str] = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
 # ---------------------------------------------------------------------------
@@ -91,9 +99,14 @@ class _TokenBucket:
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Per-API-key token bucket rate limiter.
+    Per-API-key token bucket rate limiter with per-method limits.
 
-    Default: 100 req/min for regular keys, 1000 req/min for admin keys.
+    Limits (req/min):
+      - GET/HEAD/OPTIONS: ``read_requests_per_minute`` (default 200, env: RATE_LIMIT_READ)
+      - POST/PUT/PATCH/DELETE: ``write_requests_per_minute`` (default 50, env: RATE_LIMIT_WRITE)
+      - Other/fallback: ``requests_per_minute`` (default 100, env: RATE_LIMIT_DEFAULT)
+      - Admin role: ``admin_requests_per_minute`` (default 1000)
+
     Burst: ``burst`` extra tokens above the per-minute rate.
     Exempt: /health, /docs, /openapi.json, /api/v1/auth/
     """
@@ -102,14 +115,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self,
         app: Any,
         requests_per_minute: int = _DEFAULT_RPM,
+        read_requests_per_minute: int = _READ_RPM,
+        write_requests_per_minute: int = _WRITE_RPM,
         admin_requests_per_minute: int = _ADMIN_RPM,
         burst: int = 20,
     ) -> None:
         super().__init__(app)
         self._rpm = requests_per_minute
+        self._read_rpm = read_requests_per_minute
+        self._write_rpm = write_requests_per_minute
         self._admin_rpm = admin_requests_per_minute
         self._burst = burst
-        # identifier -> _TokenBucket
+        # identifier:method_tier -> _TokenBucket
         self._buckets: Dict[str, _TokenBucket] = {}
         self._lock = threading.Lock()
 
@@ -131,14 +148,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         role = getattr(getattr(request, "state", None), "user_role", None)
         return role == "admin"
 
-    def _get_bucket(self, identifier: str, is_admin: bool) -> _TokenBucket:
+    def _resolve_rpm(self, method: str, is_admin: bool) -> int:
+        """Return the effective RPM for this HTTP method and role."""
+        if is_admin:
+            return self._admin_rpm
+        if method in _READ_METHODS:
+            return self._read_rpm
+        if method in _WRITE_METHODS:
+            return self._write_rpm
+        return self._rpm
+
+    def _get_bucket(self, identifier: str, method: str, is_admin: bool) -> _TokenBucket:
+        # Bucket key encodes both identity and method tier so read/write limits are independent
+        method_tier = "admin" if is_admin else ("read" if method in _READ_METHODS else "write" if method in _WRITE_METHODS else "default")
+        bucket_key = f"{identifier}:{method_tier}"
         with self._lock:
-            if identifier not in self._buckets:
-                rpm = self._admin_rpm if is_admin else self._rpm
+            if bucket_key not in self._buckets:
+                rpm = self._resolve_rpm(method, is_admin)
                 capacity = float(rpm + self._burst)
                 refill_rate = rpm / 60.0
-                self._buckets[identifier] = _TokenBucket(capacity, refill_rate)
-            return self._buckets[identifier]
+                self._buckets[bucket_key] = _TokenBucket(capacity, refill_rate)
+            return self._buckets[bucket_key]
 
     @staticmethod
     def _is_exempt(path: str) -> bool:
@@ -154,14 +184,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         identifier = self._get_identifier(request)
         is_admin = self._is_admin_key(request)
-        bucket = self._get_bucket(identifier, is_admin)
+        method = request.method.upper()
+        bucket = self._get_bucket(identifier, method, is_admin)
         allowed, retry_after = bucket.consume()
 
         if not allowed:
             retry_int = max(1, int(retry_after) + 1)
             logger.warning(
-                "rate_limit_exceeded path=%s identifier=%s retry_after=%s",
+                "rate_limit_exceeded path=%s method=%s identifier=%s retry_after=%s",
                 request.url.path,
+                method,
                 identifier,
                 retry_int,
             )
@@ -176,7 +208,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         response = await call_next(request)
-        rpm = self._admin_rpm if is_admin else self._rpm
+        rpm = self._resolve_rpm(method, is_admin)
         response.headers["X-RateLimit-Limit"] = str(rpm)
         response.headers["X-RateLimit-Remaining"] = str(int(bucket.tokens))
         return response
@@ -205,6 +237,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         """Return current rate limit configuration."""
         return {
             "requests_per_minute": self._rpm,
+            "read_requests_per_minute": self._read_rpm,
+            "write_requests_per_minute": self._write_rpm,
             "admin_requests_per_minute": self._admin_rpm,
             "burst": self._burst,
             "exempt_prefixes": list(_EXEMPT_PREFIXES),
