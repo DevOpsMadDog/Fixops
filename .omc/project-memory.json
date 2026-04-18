@@ -501,8 +501,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 586,
-      "lastAccessed": 1776488602384,
+      "accessCount": 587,
+      "lastAccessed": 1776491333303,
       "type": "directory"
     },
     {
@@ -519,8 +519,8 @@
     },
     {
       "path": "suite-core/core/asset_inventory.py",
-      "accessCount": 36,
-      "lastAccessed": 1776331768213,
+      "accessCount": 37,
+      "lastAccessed": 1776491353330,
       "type": "file"
     },
     {
