@@ -421,18 +421,18 @@ def check_hardcoded_secrets() -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 _SQL_CONCAT_PATTERNS = [
-    # f-string with SELECT/INSERT/UPDATE/DELETE/WHERE
+    # execute() called with an f-string — most reliable signal
     re.compile(
-        r'(?i)(execute|cursor\.execute|conn\.execute|db\.execute|'
-        r'self\._conn\.execute|self\.conn\.execute)\s*\(\s*f["\']',
+        r'(?i)(?:cursor|conn|self\._conn|self\.conn|db)\.execute\s*\(\s*f["\']',
     ),
-    # "SELECT ... " + variable
+    # execute() called with explicit string concatenation: "SELECT " + var
     re.compile(
-        r'(?i)(SELECT|INSERT|UPDATE|DELETE|WHERE)\b[^"\n]*["\'\s]\s*\+\s*\w',
+        r'(?i)(?:cursor|conn|self\._conn|self\.conn|db)\.execute\s*\([^)]*["\'\s]\s*\+\s*\w',
     ),
-    # % formatting with SQL keywords
+    # SQL keyword immediately followed by %-format inside an execute() call
     re.compile(
-        r'(?i)(SELECT|INSERT|UPDATE|DELETE|WHERE)\b.*%\s*(?:s|d|\(\w)',
+        r'(?i)(?:cursor|conn|self\._conn|self\.conn|db)\.execute\s*\([^)]*'
+        r'(?:SELECT|INSERT|UPDATE|DELETE|WHERE)\b[^)]*%\s*(?!\s*s\b\s*,)',
     ),
 ]
 
