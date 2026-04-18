@@ -131,12 +131,17 @@ function timeAgo(iso: string) {
 
 export default function EvidenceVaultDashboard() {
   const [selectedEvidence, setSelectedEvidence] = useState(MOCK_EVIDENCE[0]);
+  const [error, setError] = useState<string | null>(null);
   const [sealedSet, setSealedSet] = useState<Set<string>>(new Set(MOCK_EVIDENCE.filter(e => e.sealed).map(e => e.id)));
   const [verifyId, setVerifyId] = useState("");
 
-  useEffect(() => {
-    apiFetch(`/api/v1/evidence-vault/evidence?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/evidence-vault/evidence?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
   const [verifyContent, setVerifyContent] = useState("");
   const [verifyResult, setVerifyResult] = useState<"valid" | "invalid" | null>(null);
 
@@ -155,6 +160,13 @@ export default function EvidenceVaultDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <PageHeader
         title="Evidence Vault"
         description="Tamper-evident evidence storage with integrity verification and custody chain"

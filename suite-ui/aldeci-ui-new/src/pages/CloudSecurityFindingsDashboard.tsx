@@ -104,15 +104,20 @@ function dayAge(dateStr: string) {
 
 export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
+  const [error, setError] = useState<string | null>(null);
   const [findings, setFindings] = useState(MOCK_FINDINGS);
   const [ingesting, setIngesting] = useState(false);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     apiFetch(`/api/v1/cloud-findings/findings?org_id=${ORG_ID}`).then((d) => {
-      if (Array.isArray(d?.findings)) setFindings(d.findings);
-      else if (Array.isArray(d)) setFindings(d);
-    }).catch(() => {});
-  }, []);
+    if (Array.isArray(d?.findings)) setFindings(d.findings);
+    else if (Array.isArray(d)) setFindings(d);
+    }).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const displayed = activeProvider === "All" ? findings : findings.filter(f => f.provider === activeProvider);
   const total = findings.length;
@@ -133,6 +138,13 @@ export default function CloudSecurityFindingsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

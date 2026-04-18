@@ -166,11 +166,16 @@ function fmtNum(n: number): string {
 
 export default function FeedSubscriptionsDashboard() {
   const [selectedFeed, setSelectedFeed] = useState<FeedSubscription | null>(FEEDS[0]);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"logs" | "delivery">("logs");
 
-  useEffect(() => {
-    apiFetch(`/api/v1/feed-subscriptions/subscriptions?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/feed-subscriptions/subscriptions?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const errorFeeds = FEEDS.filter(f => f.status === "error");
   const totalIOCs = FEEDS.reduce((s, f) => s + f.ioc_count, 0);
@@ -179,6 +184,13 @@ export default function FeedSubscriptionsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

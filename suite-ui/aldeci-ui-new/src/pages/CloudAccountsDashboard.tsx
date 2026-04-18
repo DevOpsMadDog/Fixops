@@ -101,19 +101,24 @@ const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
+  const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState(MOCK_ACCOUNTS);
   const [events, setEvents] = useState(MOCK_EVENTS);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${_API_BASE}/accounts`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setAccounts(d); })
-      .catch(() => {});
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setAccounts(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
     fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setEvents(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setEvents(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const filtered = providerFilter === "All"
     ? accounts
@@ -135,6 +140,13 @@ export default function CloudAccountsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

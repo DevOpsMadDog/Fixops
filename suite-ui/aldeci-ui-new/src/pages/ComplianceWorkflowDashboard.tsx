@@ -143,23 +143,28 @@ function readinessTextColor(score: number) {
 
 export default function ComplianceWorkflowDashboard() {
   const [workflows, setWorkflows] = useState(MOCK_WORKFLOWS);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${_API_BASE}/workflows`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setWorkflows(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setWorkflows(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(MOCK_WORKFLOWS[0].id);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch(err => setError(err.message || 'Failed to load data'));
   }, []);
 
   const [filterFramework, setFilterFramework] = useState<Framework | "All">("All");
@@ -184,6 +189,13 @@ export default function ComplianceWorkflowDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>

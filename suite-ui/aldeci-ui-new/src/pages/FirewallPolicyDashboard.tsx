@@ -76,13 +76,18 @@ function TypeBadge({ type }: { type: string }) {
 
 export default function FirewallPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
-      .then((d) => setLiveData(d))
-      .catch(() => {});
-  }, []);
+    .then((d) => setLiveData(d))
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const stats     = liveData ?? MOCK_STATS;
   const firewalls = liveData?.firewalls ?? MOCK_FIREWALLS;
@@ -91,7 +96,7 @@ export default function FirewallPolicyDashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {})
+      .catch(err => setError(err.message || 'Failed to load data'))
       .finally(() => setRefreshing(false));
   };
 
@@ -107,6 +112,13 @@ export default function FirewallPolicyDashboard() {
         description="Firewall rule analysis — unused rules, conflicts, and policy coverage"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }

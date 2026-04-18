@@ -51,12 +51,17 @@ const statusBadge = (s: string) => {
 
 export default function DependencyMappingDashboard() {
   const [activeTab, setActiveTab] = useState<"services" | "graph" | "blast" | "critical">("services");
+  const [error, setError] = useState<string | null>(null);
   const [filterService, setFilterService] = useState("svc-001");
   const [analysisType, setAnalysisType] = useState<"downstream" | "upstream">("downstream");
 
-  useEffect(() => {
-    apiFetch(`/api/v1/dependency-mapping/services?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/dependency-mapping/services?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
   const [blastResult, setBlastResult] = useState<null | { affected: string[]; affectedCount: number; criticalCount: number }>(null);
   const [showAddService, setShowAddService] = useState(false);
   const [showAddDep, setShowAddDep] = useState(false);
@@ -102,6 +107,13 @@ export default function DependencyMappingDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Service Dependency Mapping</h1>

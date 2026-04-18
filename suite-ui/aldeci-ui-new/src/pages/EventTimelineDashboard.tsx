@@ -143,12 +143,17 @@ function ConfBar({ val }: { val: number }) {
 
 export default function EventTimelineDashboard() {
   const [selectedIncident, setSelectedIncident] = useState<string>(MOCK_INCIDENTS[0].id);
+  const [error, setError] = useState<string | null>(null);
   const [actorFilter, setActorFilter] = useState<string>("");
   const [showEventForm, setShowEventForm] = useState(false);
 
-  useEffect(() => {
-    apiFetch(`/api/v1/event-timeline/incidents?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/event-timeline/incidents?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [incidentForm, setIncidentForm] = useState({ incident_id: "", title: "" });
@@ -164,6 +169,13 @@ export default function EventTimelineDashboard() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <PageHeader
         title="Security Event Timeline"
         description="Incident timeline reconstruction — event sequences, correlations, and actor activity"

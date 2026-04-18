@@ -115,6 +115,7 @@ function RiskGauge({ score }: { score: number }) {
 
 export default function CyberThreatModelingDashboard() {
   const [selectedModel, setSelectedModel] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
   const [mitigatedTrees, setMitigatedTrees] = useState<Set<string>>(
     new Set(MOCK_TREES.filter(t => t.mitigated).map(t => t.id))
   );
@@ -122,9 +123,13 @@ export default function CyberThreatModelingDashboard() {
   const [showTreeForm, setShowTreeForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    apiFetch(`/api/v1/cyber-threat-models/models?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/cyber-threat-models/models?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
   const [modelForm, setModelForm] = useState({ model_name: "", scope: "application", methodology: "STRIDE", risk_level: "high" });
   const [treeForm, setTreeForm] = useState({ tree_name: "", model_id: "m1", likelihood: "medium", impact: "high", risk_level: "high" });
 
@@ -141,6 +146,13 @@ export default function CyberThreatModelingDashboard() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <PageHeader
         title="Cyber Threat Modeling"
         description="STRIDE, PASTA, and MITRE ATT&CK–based threat models with attack tree analysis"
