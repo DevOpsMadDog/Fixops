@@ -140,8 +140,17 @@ export default function IncidentCommsDashboard() {
   const [commType, setCommType] = useState<CommType>("update");
   const [channel, setChannel] = useState<Channel>("slack");
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
+    apiFetch(`/api/v1/incident-comms/comms?org_id=${ORG_ID}`).catch((err) => {
+      setFetchError(err instanceof Error ? err.message : "Failed to load incident comms data");
+    });
+  };
+
   useEffect(() => {
-    apiFetch(`/api/v1/incident-comms/comms?org_id=${ORG_ID}`).catch(() => {});
+    loadData();
   }, []);
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
@@ -166,6 +175,14 @@ export default function IncidentCommsDashboard() {
           </Button>
         }
       />
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

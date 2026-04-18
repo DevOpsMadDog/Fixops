@@ -181,8 +181,17 @@ export default function IncidentKBDashboard() {
   const [helpfulMap, setHelpfulMap] = useState<Record<string, boolean>>({});
   const [executedRunbooks, setExecutedRunbooks] = useState<Record<string, boolean>>({});
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
+    apiFetch(`/api/v1/incident-kb/articles?org_id=${ORG_ID}`).catch((err) => {
+      setFetchError(err instanceof Error ? err.message : "Failed to load knowledge base data");
+    });
+  };
+
   useEffect(() => {
-    apiFetch(`/api/v1/incident-kb/articles?org_id=${ORG_ID}`).catch(() => {});
+    loadData();
   }, []);
   const [executeMsg, setExecuteMsg] = useState<string | null>(null);
 
@@ -217,6 +226,14 @@ export default function IncidentKBDashboard() {
           <div className="bg-blue-800/40 border border-blue-600 text-blue-300 px-4 py-2 rounded text-sm">{executeMsg}</div>
         )}
       </div>
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* KB Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

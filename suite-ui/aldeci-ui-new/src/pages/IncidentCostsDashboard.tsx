@@ -160,8 +160,17 @@ const MAX_CAT = CATEGORY_BREAKDOWN[0]?.total ?? 1;
 export default function IncidentCostsDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("ic-001");
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
+    apiFetch(`/api/v1/incident-costs/costs?org_id=${ORG_ID}`).catch((err) => {
+      setFetchError(err instanceof Error ? err.message : "Failed to load incident costs data");
+    });
+  };
+
   useEffect(() => {
-    apiFetch(`/api/v1/incident-costs/costs?org_id=${ORG_ID}`).catch(() => {});
+    loadData();
   }, []);
 
   const selected = MOCK_INCIDENTS.find(i => i.id === selectedId) ?? null;
@@ -190,6 +199,14 @@ export default function IncidentCostsDashboard() {
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

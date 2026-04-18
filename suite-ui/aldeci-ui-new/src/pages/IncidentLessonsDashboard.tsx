@@ -126,8 +126,17 @@ const maxTypeCount = Math.max(...Object.values(typeBarCounts));
 export default function IncidentLessonsDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string>(MOCK_LESSONS[0].id);
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
+    apiFetch(`/api/v1/incident-lessons/lessons?org_id=${ORG_ID}`).catch((err) => {
+      setFetchError(err instanceof Error ? err.message : "Failed to load incident lessons data");
+    });
+  };
+
   useEffect(() => {
-    apiFetch(`/api/v1/incident-lessons/lessons?org_id=${ORG_ID}`).catch(() => {});
+    loadData();
   }, []);
 
   const overdueActions = MOCK_ACTIONS.filter(a => a.status === "overdue");
@@ -142,6 +151,14 @@ export default function IncidentLessonsDashboard() {
         <h1 className="text-2xl font-bold text-white">Incident Lessons Learned</h1>
         <p className="text-gray-400 mt-1">Post-incident analysis, action items, and implementation tracking</p>
       </div>
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* Overdue Actions Banner */}
       {overdueActions.length > 0 && (

@@ -149,8 +149,17 @@ export default function HuntingAutomationDashboard() {
   const [selectedHyp, setSelectedHyp] = useState(MOCK_HYPOTHESES[0]);
   const [expandedHyp, setExpandedHyp] = useState<string | null>("hyp-001");
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
+    apiFetch(`/api/v1/hunting-automation/hypotheses?org_id=${ORG_ID}`).catch((err) => {
+      setFetchError(err instanceof Error ? err.message : "Failed to load hunting automation data");
+    });
+  };
+
   useEffect(() => {
-    apiFetch(`/api/v1/hunting-automation/hypotheses?org_id=${ORG_ID}`).catch(() => {});
+    loadData();
   }, []);
 
   const totalHypotheses = MOCK_HYPOTHESES.length;
@@ -167,6 +176,14 @@ export default function HuntingAutomationDashboard() {
         title="Hunting Automation"
         description="Automated threat hunting hypotheses, queries, and execution management"
       />
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -131,14 +131,22 @@ function topSourceIPs(threats: NetworkThreat[]): { ip: string; count: number }[]
 
 export default function NetworkThreatsDashboard() {
   const [threats] = useState<NetworkThreat[]>(MOCK_THREATS);
-  useEffect(() => {
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
     fetch(_API_BASE, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
-        // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch((err) => {
+        setFetchError(err instanceof Error ? err.message : "Failed to load network threats data");
+      });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "resolved">("all");
@@ -161,6 +169,14 @@ export default function NetworkThreatsDashboard() {
           <p className="text-gray-400 mt-1">Active network threats, detection rules, baseline anomalies, and top attackers</p>
         </div>
       </div>
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

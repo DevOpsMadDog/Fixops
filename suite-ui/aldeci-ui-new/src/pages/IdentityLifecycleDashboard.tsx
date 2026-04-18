@@ -56,14 +56,22 @@ function daysSince(dateStr: string): number {
 
 export default function IdentityLifecycleDashboard() {
   const [activeTab, setActiveTab] = useState<"accounts" | "entitlements" | "orphans" | "events">("accounts");
-  useEffect(() => {
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
     fetch(_API_BASE, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
-        // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch((err) => {
+        setFetchError(err instanceof Error ? err.message : "Failed to load identity lifecycle data");
+      });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const [filterAccount, setFilterAccount] = useState("all");
@@ -92,6 +100,14 @@ export default function IdentityLifecycleDashboard() {
           <h1 className="text-2xl font-bold text-white">Identity Lifecycle Management</h1>
           <p className="text-gray-400 text-sm mt-1">Account provisioning, entitlements, orphan detection, and audit trail</p>
         </div>
+
+        {/* Fetch Error Banner */}
+        {fetchError && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6">
+            <span className="text-sm">Failed to load live data: {fetchError}</span>
+            <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

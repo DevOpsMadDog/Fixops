@@ -128,10 +128,21 @@ export default function NetworkSegmentationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
 
-  useEffect(() => {
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = (isRefresh = false) => {
+    setFetchError(null);
+    if (isRefresh) setRefreshing(true);
     apiFetch(`/api/v1/network-segmentation/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {});
+      .catch((err) => {
+        setFetchError(err instanceof Error ? err.message : "Failed to load segmentation data");
+      })
+      .finally(() => { if (isRefresh) setRefreshing(false); });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;
@@ -141,11 +152,7 @@ export default function NetworkSegmentationDashboard() {
   const lateralRisks  = stats.lateral_movement_risks ?? 5;
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    apiFetch(`/api/v1/network-segmentation/stats?org_id=${ORG_ID}`)
-      .then((d) => setLiveData(d))
-      .catch(() => {})
-      .finally(() => setRefreshing(false));
+    loadData(true);
   };
 
   return (
@@ -164,6 +171,14 @@ export default function NetworkSegmentationDashboard() {
           </Button>
         }
       />
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={() => loadData()} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -87,20 +87,23 @@ const statusColors: Record<EnrichmentStatus, string> = {
 export default function IntelEnrichmentDashboard() {
   const [requests, setRequests] = useState(MOCK_REQUESTS);
 
-  useEffect(() => {
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setFetchError(null);
     fetch(`${_API_BASE}/requests`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => { if (Array.isArray(d)) setRequests(d); })
-      .catch(() => {});
+      .catch((err) => {
+        setFetchError(err instanceof Error ? err.message : "Failed to load enrichment data");
+      });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const [selectedRequest, setSelectedRequest] = useState<string>(MOCK_REQUESTS[0].id);
-  useEffect(() => {
-    fetch(`${_API_BASE}/requests`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setRequests(d); })
-      .catch(() => {});
-  }, []);
   const [bulkInput, setBulkInput] = useState("");
   const [bulkSubmitted, setBulkSubmitted] = useState(false);
 
@@ -127,6 +130,14 @@ export default function IntelEnrichmentDashboard() {
         <h1 className="text-2xl font-bold text-white">Intel Enrichment</h1>
         <p className="text-gray-400 mt-1">IOC enrichment requests, source analysis, and reputation scoring</p>
       </div>
+
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {fetchError}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
 
       {/* Stats Panel */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
