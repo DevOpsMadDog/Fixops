@@ -197,7 +197,7 @@ def test_endpoint_returns_pdf(tmp_path, monkeypatch):
         )
 
     client = TestClient(test_app)
-    response = client.get("/api/v1/reports/security-posture-pdf?org_id=default")
+    response = client.get("/api/v1/security-posture-pdf/download?org_id=default")
 
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
     assert response.headers["content-type"] == "application/pdf"

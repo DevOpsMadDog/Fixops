@@ -482,6 +482,9 @@ const CloudAccountsDashboard = lazy(() => import("@/pages/CloudAccountsDashboard
 const IntelEnrichmentDashboard = lazy(() => import("@/pages/IntelEnrichmentDashboard"));
 const SecurityOKRDashboard = lazy(() => import("@/pages/SecurityOKRDashboard"));
 
+// Main Overview Dashboard
+const MainOverviewDashboard = lazy(() => import("@/pages/MainOverviewDashboard"));
+
 // AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
@@ -966,6 +969,9 @@ export default function App() {
             <Route path="/cloud-accounts" element={<CloudAccountsDashboard />} />
             <Route path="/intel-enrichment" element={<IntelEnrichmentDashboard />} />
             <Route path="/security-okrs" element={<SecurityOKRDashboard />} />
+
+            {/* Main Overview Dashboard */}
+            <Route path="/dashboard" element={<MainOverviewDashboard />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
