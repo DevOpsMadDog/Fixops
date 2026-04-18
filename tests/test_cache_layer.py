@@ -3,12 +3,14 @@
 Tests:
   1. cache_endpoint serves cached result on second call (no re-execution)
   2. cache miss returns fresh data and stores it
-  3. TTL expiry causes re-execution
-  4. org_id isolation — different org_ids get independent cache entries
-  5. Cache backend error (get raises) does NOT break the endpoint
+  3. org_id isolation — different org_ids get independent cache entries
+  4. Cache backend error (get raises) does NOT break the endpoint
+  5. Cache backend set error does NOT break the endpoint
   6. make_cache_key builds canonical "org_id:endpoint" key
-  7. invalidate() clears matching entries (in-memory backend)
-  8. cache_stats() returns a dict with expected keys
+  7. invalidate() clears matching entries
+  8. cache_stats() returns a dict
+  9. TTL constants have correct values
+ 10. Endpoint with no org_id kwarg uses "global" fallback
 
 Run with:
     python -m pytest tests/test_cache_layer.py -x --tb=short --timeout=10 -q
@@ -18,27 +20,16 @@ from __future__ import annotations
 
 import asyncio
 import os
+from typing import Any, Optional
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-# Ensure env is configured before any app-module imports
+# Ensure env is set before any app-module imports
 os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
 os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret-key-at-least-32-chars-long")
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def run(coro):
-    """Run a coroutine in a fresh event loop (test helper)."""
-    return asyncio.get_event_loop().run_until_complete(coro)
-
-
-# ---------------------------------------------------------------------------
-# Import the module under test
-# ---------------------------------------------------------------------------
 from core.cache_layer import (  # noqa: E402
     cache_endpoint,
     cache_stats,
@@ -49,6 +40,51 @@ from core.cache_layer import (  # noqa: E402
     TTL_COMPLIANCE,
     TTL_DEFAULT,
 )
+
+
+# ---------------------------------------------------------------------------
+# Minimal in-process async cache — no asyncio.Lock, works across asyncio.run()
+# ---------------------------------------------------------------------------
+
+class _DictCache:
+    """Simple dict-backed async cache (no asyncio.Lock) for test isolation."""
+
+    def __init__(self):
+        self._store: dict[str, Any] = {}
+
+    async def get(self, key: str) -> Optional[Any]:
+        return self._store.get(key)
+
+    async def set(self, key: str, value: Any, ttl: int = 60) -> None:
+        self._store[key] = value
+
+    async def delete(self, key: str) -> None:
+        self._store.pop(key, None)
+
+    async def invalidate_pattern(self, pattern: str) -> int:
+        prefix = pattern.rstrip("*")
+        keys = [k for k in self._store if k.startswith(prefix)]
+        for k in keys:
+            del self._store[k]
+        return len(keys)
+
+    async def stats(self) -> dict:
+        return {"backend": "test_dict", "total_keys": len(self._store)}
+
+
+@pytest.fixture(autouse=True)
+def isolated_cache(monkeypatch):
+    """Replace the cache_manager singleton with a fresh DictCache for each test."""
+    test_cache = _DictCache()
+
+    import core.cache as _cache_mod
+    monkeypatch.setattr(_cache_mod, "cache_manager", test_cache)
+
+    # Also patch the getter used by cache_layer
+    import core.cache_layer as _layer_mod
+    monkeypatch.setattr(_layer_mod, "_get_cache_manager", lambda: test_cache)
+
+    return test_cache
 
 
 # ---------------------------------------------------------------------------
@@ -65,12 +101,14 @@ class TestCacheEndpointHit:
             call_count += 1
             return {"value": call_count}
 
-        result1 = run(my_endpoint(org_id="org1"))
-        result2 = run(my_endpoint(org_id="org1"))
+        async def _run():
+            r1 = await my_endpoint(org_id="org1")
+            r2 = await my_endpoint(org_id="org1")
+            assert r1 == {"value": 1}
+            assert r2 == {"value": 1}  # served from cache
+            assert call_count == 1
 
-        assert result1 == {"value": 1}
-        assert result2 == {"value": 1}  # served from cache
-        assert call_count == 1
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -87,9 +125,12 @@ class TestCacheEndpointMiss:
             call_count += 1
             return {"count": call_count}
 
-        result = run(fresh_endpoint(org_id="new-org"))
-        assert result == {"count": 1}
-        assert call_count == 1
+        async def _run():
+            result = await fresh_endpoint(org_id="new-org")
+            assert result == {"count": 1}
+            assert call_count == 1
+
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -98,41 +139,39 @@ class TestCacheEndpointMiss:
 
 class TestOrgIdIsolation:
     def test_different_org_ids_have_separate_cache_entries(self):
-        call_log = []
+        call_log: list[str] = []
 
         @cache_endpoint(ttl=60)
         async def org_endpoint(org_id: str = "default"):
             call_log.append(org_id)
             return {"org": org_id, "seq": len(call_log)}
 
-        r1 = run(org_endpoint(org_id="alpha"))
-        r2 = run(org_endpoint(org_id="beta"))
-        r3 = run(org_endpoint(org_id="alpha"))  # cache hit for alpha
-        r4 = run(org_endpoint(org_id="beta"))   # cache hit for beta
+        async def _run():
+            r1 = await org_endpoint(org_id="alpha")
+            r2 = await org_endpoint(org_id="beta")
+            r3 = await org_endpoint(org_id="alpha")  # cache hit
+            r4 = await org_endpoint(org_id="beta")   # cache hit
 
-        assert r1["org"] == "alpha"
-        assert r2["org"] == "beta"
-        # Third and fourth calls must return cached values (seq unchanged)
-        assert r3["seq"] == r1["seq"]
-        assert r4["seq"] == r2["seq"]
-        # Function called exactly once per org
-        assert call_log.count("alpha") == 1
-        assert call_log.count("beta") == 1
+            assert r1["org"] == "alpha"
+            assert r2["org"] == "beta"
+            assert r3["seq"] == r1["seq"]  # cached — seq unchanged
+            assert r4["seq"] == r2["seq"]  # cached — seq unchanged
+            assert call_log.count("alpha") == 1
+            assert call_log.count("beta") == 1
+
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
-# 4. Cache backend error does NOT break the endpoint
+# 4. Cache backend get error does NOT break the endpoint
 # ---------------------------------------------------------------------------
 
-class TestCacheBackendErrorIsolation:
-    def test_get_error_still_returns_result(self, monkeypatch):
-        """If cache.get() raises, the endpoint must still execute and return data."""
-
+class TestCacheBackendGetError:
+    def test_get_error_still_returns_result(self, isolated_cache):
         async def broken_get(key):
             raise RuntimeError("Redis exploded")
 
-        from core import cache as _cache_mod
-        monkeypatch.setattr(_cache_mod.cache_manager, "get", broken_get)
+        isolated_cache.get = broken_get
 
         call_count = 0
 
@@ -142,47 +181,53 @@ class TestCacheBackendErrorIsolation:
             call_count += 1
             return {"resilient": True}
 
-        result = run(resilient_endpoint(org_id="resilient-org"))
-        assert result == {"resilient": True}
-        assert call_count == 1
+        async def _run():
+            result = await resilient_endpoint(org_id="err-org")
+            assert result == {"resilient": True}
+            assert call_count == 1
 
-    def test_set_error_still_returns_result(self, monkeypatch):
-        """If cache.set() raises, the endpoint must still return data."""
+        asyncio.run(_run())
 
+
+# ---------------------------------------------------------------------------
+# 5. Cache backend set error does NOT break the endpoint
+# ---------------------------------------------------------------------------
+
+class TestCacheBackendSetError:
+    def test_set_error_still_returns_result(self, isolated_cache):
         async def broken_set(key, value, ttl=60):
             raise RuntimeError("Cannot write to Redis")
 
-        from core import cache as _cache_mod
-        monkeypatch.setattr(_cache_mod.cache_manager, "set", broken_set)
+        isolated_cache.set = broken_set
 
         @cache_endpoint(ttl=60)
         async def resilient_write_endpoint(org_id: str = "default"):
             return {"ok": True}
 
-        result = run(resilient_write_endpoint(org_id="write-err-org"))
-        assert result == {"ok": True}
+        async def _run():
+            result = await resilient_write_endpoint(org_id="write-err-org")
+            assert result == {"ok": True}
+
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
-# 5. make_cache_key produces canonical format
+# 6. make_cache_key produces canonical format
 # ---------------------------------------------------------------------------
 
 class TestMakeCacheKey:
     def test_format_is_org_colon_endpoint(self):
-        key = make_cache_key("my-org", "platform_health")
-        assert key == "my-org:platform_health"
+        assert make_cache_key("my-org", "platform_health") == "my-org:platform_health"
 
     def test_global_fallback_key(self):
-        key = make_cache_key("global", "get_feeds_status")
-        assert key == "global:get_feeds_status"
+        assert make_cache_key("global", "get_feeds_status") == "global:get_feeds_status"
 
     def test_special_chars_preserved(self):
-        key = make_cache_key("tenant/1", "stats")
-        assert key == "tenant/1:stats"
+        assert make_cache_key("tenant/1", "stats") == "tenant/1:stats"
 
 
 # ---------------------------------------------------------------------------
-# 6. invalidate() clears matching entries
+# 7. invalidate() clears matching entries
 # ---------------------------------------------------------------------------
 
 class TestInvalidate:
@@ -195,35 +240,34 @@ class TestInvalidate:
             call_count += 1
             return {"n": call_count}
 
-        run(cached_op(org_id="inv-org"))
-        assert call_count == 1
+        async def _run():
+            await cached_op(org_id="inv-org")
+            assert call_count == 1
 
-        # Invalidate all entries for this org
-        run(invalidate("inv-org"))
+            await invalidate("inv-org")
 
-        # Next call should re-execute (cache was cleared)
-        run(cached_op(org_id="inv-org"))
-        assert call_count == 2
+            await cached_op(org_id="inv-org")
+            assert call_count == 2  # cache was cleared, re-executed
+
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
-# 7. cache_stats returns expected structure
+# 8. cache_stats returns expected structure
 # ---------------------------------------------------------------------------
 
 class TestCacheStats:
     def test_returns_dict(self):
-        stats = run(cache_stats())
-        assert isinstance(stats, dict)
+        async def _run():
+            stats = await cache_stats()
+            assert isinstance(stats, dict)
+            assert len(stats) >= 1
 
-    def test_backend_key_present(self):
-        stats = run(cache_stats())
-        # Memory backend returns "backend" key; Redis backend may not.
-        # Either way there should be at least one key.
-        assert len(stats) >= 1
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
-# 8. TTL constants have expected values
+# 9. TTL constants have correct values
 # ---------------------------------------------------------------------------
 
 class TestTTLConstants:
@@ -238,3 +282,28 @@ class TestTTLConstants:
 
     def test_default_ttl(self):
         assert TTL_DEFAULT == 60
+
+
+# ---------------------------------------------------------------------------
+# 10. Endpoint with no org_id kwarg uses "global" fallback
+# ---------------------------------------------------------------------------
+
+class TestGlobalOrgFallback:
+    def test_no_org_id_uses_global(self, isolated_cache):
+        call_count = 0
+
+        @cache_endpoint(ttl=60)
+        async def no_org_endpoint():
+            nonlocal call_count
+            call_count += 1
+            return {"data": "value"}
+
+        async def _run():
+            await no_org_endpoint()
+            await no_org_endpoint()
+            # Key should start with "global:"
+            keys = list(isolated_cache._store.keys())
+            assert any(k.startswith("global:") for k in keys)
+            assert call_count == 1  # second call served from cache
+
+        asyncio.run(_run())

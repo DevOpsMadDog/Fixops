@@ -1,7 +1,7 @@
 {
-  "tool_name": "Grep",
-  "tool_input_preview": "{\"pattern\":\"DetailedLoggingMiddleware|detailed_logging|logs_router\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/app.py\",\"output_mode\":\"content\"}",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-18T05:01:58.696Z",
-  "retry_count": 2
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -c \\\"\\nimport asyncio\\nimport os\\nos.environ.setdefault('FIXOPS_API_TOKEN', 'test-token')\\nos.environ.setdefault('FIXOPS_JWT_SECRET', 'test-secret-key-at...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 7, in <module>\nModuleNotFoundError: No module named 'core'",
+  "timestamp": "2026-04-18T05:04:39.242Z",
+  "retry_count": 1
 }
