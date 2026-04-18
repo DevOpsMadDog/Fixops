@@ -501,8 +501,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 542,
-      "lastAccessed": 1776484544517,
+      "accessCount": 560,
+      "lastAccessed": 1776485712101,
       "type": "directory"
     },
     {
@@ -513,8 +513,8 @@
     },
     {
       "path": "suite-api/apps/api/auth_deps.py",
-      "accessCount": 50,
-      "lastAccessed": 1776469288794,
+      "accessCount": 51,
+      "lastAccessed": 1776485468832,
       "type": "file"
     },
     {
