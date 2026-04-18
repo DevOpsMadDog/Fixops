@@ -82,24 +82,30 @@ def _query_brain_nodes() -> int:
     return 0
 
 
-def _query_alert_count(org_id: str = "default") -> int:
-    """Return total open alerts from AlertTriageEngine."""
+def _query_alert_count() -> int:
+    """Return total alerts from AlertTriageEngine, summed across all known org_ids."""
     try:
         from core.alert_triage_engine import AlertTriageEngine
         engine = AlertTriageEngine()
-        stats = engine.get_stats(org_id)
-        return stats.get("total_alerts", 0)
+        total = 0
+        for org in ("default", "aldeci-demo"):
+            stats = engine.get_triage_stats(org)
+            total += stats.get("total_alerts", 0)
+        return total
     except Exception:  # noqa: BLE001 — best-effort, never crash health check
         return 0
 
 
-def _query_vulnerability_count(org_id: str = "default") -> int:
-    """Return total tracked vulnerabilities from RiskAggregatorEngine."""
+def _query_vulnerability_count() -> int:
+    """Return total tracked entities from RiskAggregatorEngine across all known org_ids."""
     try:
         from core.risk_aggregator_engine import RiskAggregatorEngine
         engine = RiskAggregatorEngine()
-        dashboard = engine.get_dashboard(org_id)
-        return dashboard.get("entities_tracked", 0)
+        total = 0
+        for org in ("default", "aldeci-demo"):
+            stats = engine.get_aggregator_stats(org)
+            total += stats.get("entities_tracked", 0)
+        return total
     except Exception:  # noqa: BLE001
         return 0
 
