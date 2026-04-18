@@ -457,3 +457,153 @@ class ComplianceEvidenceCollector:
             "manual_count": manual_count,
             "overall_readiness_pct": overall_readiness_pct,
         }
+
+    # ------------------------------------------------------------------
+    # Collect-all from live engines
+    # ------------------------------------------------------------------
+
+    def collect_all(self, org_id: str) -> Dict[str, Any]:
+        """Collect compliance evidence from all wired security engines.
+
+        Gathers evidence from:
+        - AlertTriageEngine    → SOC2 CC7.2 (alert monitoring)
+        - AccessControlEngine  → SOC2 CC6.1 (access controls)
+        - PasswordPolicyEngine → NIST AC-7  (password enforcement)
+        - VulnScanEngine       → PCI-DSS 11.2 (vulnerability scanning)
+        - SecurityTrainingEngine → SOC2 CC1.4 (security training)
+        - IncidentResponseEngine → SOC2 CC7.3 (IR procedures)
+
+        Returns summary with per-source results and total evidence collected.
+        """
+        from core.alert_triage_engine import AlertTriageEngine
+        from core.access_control_engine import AccessControlEngine
+        from core.password_policy_engine import PasswordPolicyEngine
+        from core.vuln_scan_engine import VulnScanEngine
+        from core.security_training_engine import SecurityTrainingEngine
+        from core.incident_response_engine import IncidentResponseEngine
+
+        results: List[Dict[str, Any]] = []
+        now = self._now()
+
+        # Each source: (label, framework, control_id, control_name, evidence_type, stat_fn)
+        sources = [
+            {
+                "source_system": "AlertTriageEngine",
+                "framework": "SOC2",
+                "control_id": "CC7.2",
+                "control_name": "Security Event Monitoring",
+                "evidence_type": "log",
+                "stat_fn": lambda: AlertTriageEngine().get_triage_stats(org_id),
+            },
+            {
+                "source_system": "AccessControlEngine",
+                "framework": "SOC2",
+                "control_id": "CC6.1",
+                "control_name": "Logical Access Controls",
+                "evidence_type": "config",
+                "stat_fn": lambda: AccessControlEngine().get_access_stats(org_id),
+            },
+            {
+                "source_system": "PasswordPolicyEngine",
+                "framework": "SOC2",
+                "control_id": "AC-7",
+                "control_name": "Password Enforcement",
+                "evidence_type": "config",
+                "stat_fn": lambda: PasswordPolicyEngine().get_policy_stats(org_id),
+            },
+            {
+                "source_system": "VulnScanEngine",
+                "framework": "PCI-DSS",
+                "control_id": "Req-11.2",
+                "control_name": "Vulnerability Scanning",
+                "evidence_type": "document",
+                "stat_fn": lambda: VulnScanEngine().get_scan_stats(org_id),
+            },
+            {
+                "source_system": "SecurityTrainingEngine",
+                "framework": "SOC2",
+                "control_id": "CC1.4",
+                "control_name": "Security Awareness Training",
+                "evidence_type": "attestation",
+                "stat_fn": lambda: SecurityTrainingEngine().get_training_stats(org_id),
+            },
+            {
+                "source_system": "IncidentResponseEngine",
+                "framework": "SOC2",
+                "control_id": "CC7.3",
+                "control_name": "Incident Response Procedures",
+                "evidence_type": "log",
+                "stat_fn": lambda: IncidentResponseEngine().get_incident_stats(org_id),
+            },
+        ]
+
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                for src in sources:
+                    request_id = str(uuid.uuid4())
+                    evidence_id = str(uuid.uuid4())
+                    stat_summary: Dict[str, Any] = {}
+                    collection_status = "submitted"
+
+                    try:
+                        stat_summary = src["stat_fn"]()
+                    except Exception as exc:  # noqa: BLE001
+                        _logger.warning(
+                            "collect_all: %s stats failed: %s", src["source_system"], exc
+                        )
+                        collection_status = "pending"
+
+                    filename = (
+                        f"{src['source_system'].lower()}_{src['control_id'].lower()}_evidence.json"
+                    )
+                    content_summary = (
+                        f"Auto-collected from {src['source_system']} for "
+                        f"{src['framework']} {src['control_id']}: {src['control_name']}"
+                    )
+
+                    conn.execute(
+                        """INSERT INTO evidence_requests
+                           (request_id,org_id,framework,control_id,control_name,
+                            description,due_date,assignee,status,created_at,updated_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                        (
+                            request_id, org_id, src["framework"],
+                            src["control_id"], src["control_name"],
+                            content_summary,
+                            "", "system", collection_status, now, now,
+                        ),
+                    )
+                    conn.execute(
+                        """INSERT INTO evidence_items
+                           (evidence_id,request_id,org_id,evidence_type,filename,
+                            content_summary,source_system,collected_at,auto_collected)
+                           VALUES (?,?,?,?,?,?,?,?,?)""",
+                        (
+                            evidence_id, request_id, org_id,
+                            src["evidence_type"], filename,
+                            content_summary, src["source_system"], now, 1,
+                        ),
+                    )
+
+                    results.append({
+                        "source_system": src["source_system"],
+                        "framework": src["framework"],
+                        "control_id": src["control_id"],
+                        "control_name": src["control_name"],
+                        "evidence_type": src["evidence_type"],
+                        "evidence_id": evidence_id,
+                        "request_id": request_id,
+                        "status": collection_status,
+                        "stats_snapshot": stat_summary,
+                    })
+
+        _logger.info(
+            "collect_all: gathered %d evidence items for org %s", len(results), org_id
+        )
+        return {
+            "org_id": org_id,
+            "collected_at": now,
+            "total_collected": len(results),
+            "results": results,
+        }

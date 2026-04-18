@@ -220,3 +220,21 @@ def collection_stats(
     except Exception as exc:
         _logger.exception("collection_stats failed")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/collect-all")
+def collect_all(
+    org_id: str = Query("default"),
+    _auth=Depends(api_key_auth),
+) -> Dict[str, Any]:
+    """Trigger evidence collection from all wired security engines.
+
+    Gathers evidence from AlertTriage, AccessControl, PasswordPolicy,
+    VulnScan, SecurityTraining, and IncidentResponse engines.
+    Maps evidence to SOC2 CC7.2, CC6.1, CC1.4, CC7.3, NIST AC-7, PCI-DSS 11.2.
+    """
+    try:
+        return _get_engine().collect_all(org_id)
+    except Exception as exc:
+        _logger.exception("collect_all failed")
+        raise HTTPException(status_code=500, detail=str(exc))

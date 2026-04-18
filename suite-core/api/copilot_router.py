@@ -1361,6 +1361,193 @@ async def copilot_health() -> Dict[str, Any]:
 
 
 # =============================================================================
+# GraphRAG Security Insight Engine
+# =============================================================================
+# Classifies security-ops questions (top risks, compliance posture, threat
+# landscape, attack surface) and generates structured answers with findings
+# and recommended actions using the CopilotGraphRAGBridge.
+# =============================================================================
+
+# Intent labels for security-ops questions
+_INTENT_TOP_RISKS = "top_risks"
+_INTENT_COMPLIANCE = "compliance"
+_INTENT_THREAT_LANDSCAPE = "threat_landscape"
+_INTENT_ATTACK_SURFACE = "attack_surface"
+
+# Keyword sets that trigger each intent (ordered: most-specific first)
+_INTENT_KEYWORDS: List[tuple] = [
+    (
+        _INTENT_COMPLIANCE,
+        [
+            "complian", "soc2", "soc 2", "pci-dss", "pci dss", "hipaa",
+            "gdpr", "iso 27001", "nist", "compliance gap", "audit",
+            "framework", "control", "regulatory",
+        ],
+    ),
+    (
+        _INTENT_THREAT_LANDSCAPE,
+        [
+            "who is attacking", "threat actor", "attack campaign", "adversary",
+            "threat intel", "ioc", "indicator", "ttp", "mitre", "apt",
+            "nation state", "threat landscape", "attacker",
+        ],
+    ),
+    (
+        _INTENT_ATTACK_SURFACE,
+        [
+            "exposed asset", "attack surface", "open port", "exposed service",
+            "what asset", "vulnerable asset", "unpatched", "exposure",
+            "internet-facing", "internet facing", "reachable",
+        ],
+    ),
+    (
+        _INTENT_TOP_RISKS,
+        [
+            "top risk", "biggest risk", "highest risk", "critical risk",
+            "priority risk", "what risk", "our risk", "risk posture",
+            "risk score", "risk level", "risk",
+        ],
+    ),
+]
+
+# Recommended actions returned per intent
+_INTENT_ACTIONS: Dict[str, List[Dict[str, str]]] = {
+    _INTENT_TOP_RISKS: [
+        {"action": "Review critical findings", "endpoint": "/api/v1/findings?severity=critical"},
+        {"action": "Run risk aggregation", "endpoint": "/api/v1/risk-aggregator/summary"},
+        {"action": "Check vulnerability prioritisation queue", "endpoint": "/api/v1/vuln-prioritization/queue"},
+    ],
+    _INTENT_COMPLIANCE: [
+        {"action": "View compliance gaps", "endpoint": "/api/v1/compliance-gaps/summary"},
+        {"action": "Run compliance automation scan", "endpoint": "/api/v1/compliance-automation/jobs"},
+        {"action": "Download compliance report", "endpoint": "/api/v1/exec-reporting/reports?type=compliance"},
+    ],
+    _INTENT_THREAT_LANDSCAPE: [
+        {"action": "Check threat indicators", "endpoint": "/api/v1/threat-indicators/active"},
+        {"action": "View threat actor tracking", "endpoint": "/api/v1/actor-tracking/summary"},
+        {"action": "Review dark web mentions", "endpoint": "/api/v1/dark-web/mentions"},
+    ],
+    _INTENT_ATTACK_SURFACE: [
+        {"action": "Scan attack surface", "endpoint": "/api/v1/asm/summary"},
+        {"action": "View exposed assets", "endpoint": "/api/v1/assets?exposed=true"},
+        {"action": "Check attack paths", "endpoint": "/api/v1/attack-paths/critical"},
+    ],
+}
+
+# Core IDs to query per intent (maps to TrustGraph Knowledge Cores)
+_INTENT_AGENT_TYPE: Dict[str, str] = {
+    _INTENT_TOP_RISKS: "security_analyst",
+    _INTENT_COMPLIANCE: "compliance",
+    _INTENT_THREAT_LANDSCAPE: "security_analyst",
+    _INTENT_ATTACK_SURFACE: "pentest",
+}
+
+
+def _classify_security_intent(question: str) -> Optional[str]:
+    """Classify a natural-language question as a security-ops intent.
+
+    Returns one of the _INTENT_* constants if the question matches a
+    known security-ops query pattern, or None if it looks like a CWE/
+    developer-level question that the built-in knowledge base should handle.
+    """
+    q = question.lower()
+    for intent, keywords in _INTENT_KEYWORDS:
+        if any(kw in q for kw in keywords):
+            return intent
+    return None
+
+
+def _build_insight_answer(
+    intent: str,
+    question: str,
+    graph_context: str,
+    entities: List[Dict[str, Any]],
+    enriched: bool,
+) -> str:
+    """Construct a structured Markdown answer from GraphRAG context."""
+    intent_labels = {
+        _INTENT_TOP_RISKS: "Top Security Risks",
+        _INTENT_COMPLIANCE: "Compliance Posture",
+        _INTENT_THREAT_LANDSCAPE: "Threat Landscape",
+        _INTENT_ATTACK_SURFACE: "Attack Surface Exposure",
+    }
+    label = intent_labels.get(intent, "Security Insight")
+
+    lines = [f"## {label}\n"]
+
+    if enriched and graph_context:
+        lines.append(graph_context)
+        lines.append("")
+
+    if enriched and entities:
+        lines.append("### Key Findings\n")
+        for e in entities[:8]:
+            name = e.get("name") or e.get("id", "unknown")
+            etype = e.get("type", "entity")
+            score = e.get("score")
+            score_str = f" (relevance: {score:.2f})" if isinstance(score, (int, float)) else ""
+            lines.append(f"- **{etype}**: {name}{score_str}")
+        lines.append("")
+
+    if not enriched:
+        lines.append(
+            f"No specific findings were retrieved from the knowledge graph for "
+            f'"{question}". This may mean no data has been ingested yet or the '
+            "question needs more specific terms.\n"
+        )
+        lines.append(
+            "**Tip:** Ingest security findings, CVE data, and compliance controls "
+            "via the connector framework to get richer answers."
+        )
+
+    actions = _INTENT_ACTIONS.get(intent, [])
+    if actions:
+        lines.append("\n### Recommended Actions\n")
+        for act in actions:
+            lines.append(f"- [{act['action']}]({act['endpoint']})")
+
+    return "\n".join(lines)
+
+
+def _generate_security_insight(question: str, intent: str) -> Optional[Dict[str, Any]]:
+    """Query GraphRAG bridge and return a structured security insight dict.
+
+    Returns None if the bridge is unavailable (caller should fall back to CWE path).
+    Keys returned: answer, findings, recommended_actions, confidence, source, intent.
+    """
+    if not _HAS_GRAPHRAG_BRIDGE:
+        return None
+
+    try:
+        bridge = _get_graphrag_bridge()
+        if bridge is None:
+            return None
+
+        agent_type = _INTENT_AGENT_TYPE.get(intent, "general")
+        enrichment = bridge.enrich_query(question)
+        entities: List[Dict[str, Any]] = enrichment.get("entities", [])
+        graph_context: str = enrichment.get("graph_context", "")
+        enriched: bool = enrichment.get("enriched", False)
+
+        answer = _build_insight_answer(intent, question, graph_context, entities, enriched)
+
+        confidence = min(0.5 + len(entities) * 0.05, 0.95) if enriched else 0.3
+
+        return {
+            "answer": answer,
+            "findings": entities[:10],
+            "recommended_actions": _INTENT_ACTIONS.get(intent, []),
+            "confidence": confidence,
+            "source": "graphrag_security_insight",
+            "intent": intent,
+            "enriched": enriched,
+        }
+    except Exception as exc:  # pragma: no cover — bridge errors should never surface
+        logger.warning("GraphRAG security insight failed for intent=%s: %s", intent, exc)
+        return None
+
+
+# =============================================================================
 # /ask  — Stateless Security Q&A Endpoint  (Rachel Kim / Junior Developer UX)
 # =============================================================================
 # Answers natural-language security questions using a built-in knowledge base
@@ -1408,16 +1595,16 @@ class AskReference(BaseModel):
 class AskResponse(BaseModel):
     """Response from the /ask endpoint."""
 
-    answer: str = Field(..., description="Plain-English explanation of the vulnerability")
+    answer: str = Field(..., description="Plain-English explanation of the vulnerability or security insight")
     references: List[AskReference] = Field(
         default_factory=list,
         description="Authoritative external references",
     )
     suggested_fix: str = Field(
-        ..., description="Concrete remediation guidance or code snippet"
+        default="", description="Concrete remediation guidance or code snippet"
     )
     severity_context: str = Field(
-        ..., description="Typical severity level: critical / high / medium / low"
+        default="medium", description="Typical severity level: critical / high / medium / low"
     )
     related_findings: List[Dict[str, Any]] = Field(
         default_factory=list,
@@ -1428,7 +1615,20 @@ class AskResponse(BaseModel):
     )
     source: str = Field(
         default="builtin_knowledge_base",
-        description="Origin of the answer (builtin_knowledge_base | llm_enhanced)",
+        description="Origin of the answer (builtin_knowledge_base | graphrag_security_insight | llm_enhanced)",
+    )
+    # GraphRAG security-ops fields (populated when intent is detected)
+    intent: Optional[str] = Field(
+        None,
+        description="Detected security-ops intent (top_risks | compliance | threat_landscape | attack_surface)",
+    )
+    recommended_actions: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Recommended follow-up actions with API endpoints",
+    )
+    confidence: float = Field(
+        default=0.0,
+        description="Answer confidence score (0.0-1.0); higher when GraphRAG found relevant entities",
     )
 
 
@@ -1984,6 +2184,57 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
     ctx = request.context or AskContext()
     hint_cwe = ctx.cwe_id
 
+    # ------------------------------------------------------------------
+    # Step 1: Try GraphRAG security-ops path for ops-level questions.
+    # Questions like "What are our top risks?" or "Are we compliant with
+    # SOC2?" are answered with real graph data + structured actions.
+    # CWE-level developer questions fall through to the knowledge base.
+    # ------------------------------------------------------------------
+    intent = _classify_security_intent(request.question)
+    if intent is not None:
+        insight = _generate_security_insight(request.question, intent)
+        if insight is not None:
+            # Log to Knowledge Brain
+            if _HAS_BRAIN:
+                try:
+                    bus = get_event_bus()
+                    await bus.emit(
+                        Event(
+                            event_type=EventType.COPILOT_QUERY,
+                            source="copilot_router.ask.graphrag",
+                            data={
+                                "question": request.question[:300],
+                                "intent": intent,
+                                "enriched": insight.get("enriched", False),
+                            },
+                        )
+                    )
+                except (OSError, ValueError, RuntimeError):
+                    pass
+
+            logger.info(
+                "Copilot /ask: intent=%s source=graphrag_security_insight enriched=%s",
+                intent,
+                insight.get("enriched"),
+            )
+
+            return AskResponse(
+                answer=insight["answer"],
+                references=[],
+                suggested_fix="",
+                severity_context="medium",
+                related_findings=insight.get("findings", []),
+                matched_cwe=None,
+                source=insight["source"],
+                intent=intent,
+                recommended_actions=insight.get("recommended_actions", []),
+                confidence=insight.get("confidence", 0.0),
+            )
+
+    # ------------------------------------------------------------------
+    # Step 2: CWE / developer knowledge base path (original behaviour).
+    # ------------------------------------------------------------------
+
     # Match question to CWE knowledge
     matched_cwe_id, entry = _match_cwe(request.question, hint_cwe)
 
@@ -2058,6 +2309,9 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
         related_findings=[],
         matched_cwe=matched_cwe_id if matched_cwe_id != "GENERAL" else None,
         source=source,
+        intent=None,
+        recommended_actions=[],
+        confidence=0.0,
     )
 
 

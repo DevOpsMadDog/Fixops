@@ -182,6 +182,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("WebSocket Alerts router not available: %s", e)
 
+# WS Events router — unified security event stream at /api/v1/ws/events
+ws_events_router: Optional[APIRouter] = None
+try:
+    from apps.api.ws_events_router import router as ws_events_router
+    logging.getLogger(__name__).info("Loaded WS Events router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("WS Events router not available: %s", e)
+
 # MCP/GraphRAG router for knowledge graph integration
 mcp_router: Optional[APIRouter] = None
 try:
@@ -2697,6 +2705,13 @@ def create_app() -> FastAPI:
     if websocket_alerts_router:
         app.include_router(websocket_alerts_router)
         _logger.info("Mounted WebSocket Alerts router")
+
+    # WS Events router — unified security event stream at /api/v1/ws/events
+    # Auth is handled internally via ?api_key= query param (before accept()).
+    # The REST test-publish endpoint uses its own Depends(api_key_auth).
+    if ws_events_router:
+        app.include_router(ws_events_router)
+        _logger.info("Mounted WS Events router")
 
     # Event Stream router — SSE + WebSocket live dashboards (/api/v1/stream/*)
     if event_stream_router:
@@ -7081,6 +7096,13 @@ def create_app() -> FastAPI:
         pass
 
     try:
+        from apps.api.security_posture_pdf_router import router as security_posture_pdf_router
+        app.include_router(security_posture_pdf_router)
+        _logger.info("Mounted Security Posture PDF router at /api/v1/reports/security-posture-pdf")
+    except ImportError:
+        pass
+
+    try:
         from apps.api.quantum_safe_crypto_router import router as quantum_safe_crypto_router
         app.include_router(quantum_safe_crypto_router)
         _logger.info("Mounted Quantum-Safe Crypto router at /api/v1/quantum-crypto")
@@ -8227,6 +8249,13 @@ def create_app() -> FastAPI:
         from apps.api.vuln_prioritizer_router import router as vuln_prioritizer_router
         app.include_router(vuln_prioritizer_router)
         _logger.info("Mounted Vulnerability Prioritizer router at /api/v1/vulns")
+    except ImportError:
+        pass
+
+    try:
+        from apps.api.slack_notifier_router import router as slack_notifier_router
+        app.include_router(slack_notifier_router)
+        _logger.info("Mounted Slack Notifier router at /api/v1/integrations/slack")
     except ImportError:
         pass
 

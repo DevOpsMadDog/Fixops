@@ -347,3 +347,74 @@ def test_org_isolation_stats(engine):
     stats_org2 = engine.get_collection_stats("org2")
     assert stats_org1["total_requests"] > 0
     assert stats_org2["total_requests"] == 0
+
+
+# ---------------------------------------------------------------------------
+# 11. collect_all — gather evidence from all wired engines
+# ---------------------------------------------------------------------------
+
+def test_collect_all_returns_dict(engine):
+    result = engine.collect_all("org1")
+    assert isinstance(result, dict)
+    assert "total_collected" in result
+    assert "results" in result
+    assert "org_id" in result
+    assert result["org_id"] == "org1"
+
+
+def test_collect_all_collects_six_sources(engine):
+    result = engine.collect_all("org1")
+    assert result["total_collected"] == 6
+
+
+def test_collect_all_sources_have_required_fields(engine):
+    result = engine.collect_all("org1")
+    required = {"source_system", "framework", "control_id", "control_name",
+                "evidence_type", "evidence_id", "request_id", "status"}
+    for item in result["results"]:
+        assert required.issubset(item.keys()), f"Missing fields in {item}"
+
+
+def test_collect_all_creates_evidence_requests_in_db(engine):
+    engine.collect_all("org1")
+    requests = engine.list_evidence_requests("org1")
+    # Should have 6 new requests (one per engine source)
+    assert len(requests) >= 6
+
+
+def test_collect_all_items_are_auto_collected(engine):
+    engine.collect_all("org1")
+    stats = engine.get_collection_stats("org1")
+    assert stats["auto_collected_count"] >= 6
+
+
+def test_collect_all_org_isolation(engine):
+    engine.collect_all("org1")
+    engine.collect_all("org2")
+    r1 = engine.list_evidence_requests("org1")
+    r2 = engine.list_evidence_requests("org2")
+    assert len(r1) == 6
+    assert len(r2) == 6
+    # No overlap in request IDs
+    ids1 = {r["request_id"] for r in r1}
+    ids2 = {r["request_id"] for r in r2}
+    assert ids1.isdisjoint(ids2)
+
+
+def test_collect_all_maps_correct_controls(engine):
+    result = engine.collect_all("org1")
+    control_ids = {item["control_id"] for item in result["results"]}
+    assert "CC7.2" in control_ids   # AlertTriage → SOC2 CC7.2
+    assert "CC6.1" in control_ids   # AccessControl → SOC2 CC6.1
+    assert "CC1.4" in control_ids   # SecurityTraining → SOC2 CC1.4
+    assert "CC7.3" in control_ids   # IncidentResponse → SOC2 CC7.3
+    assert "AC-7" in control_ids    # PasswordPolicy → NIST AC-7
+    assert "Req-11.2" in control_ids  # VulnScan → PCI-DSS 11.2
+
+
+def test_collect_all_has_collected_at_timestamp(engine):
+    result = engine.collect_all("org1")
+    assert result["collected_at"]
+    # Should be a valid ISO timestamp
+    from datetime import datetime
+    datetime.fromisoformat(result["collected_at"].replace("Z", "+00:00"))
