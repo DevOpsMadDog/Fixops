@@ -417,11 +417,11 @@ def _build_security_posture_pdf(
     grade_colour = _grade_colour(grade)
     grade_para = Paragraph(
         f'<font color="{grade_colour}">{grade}</font>',
-        _style("GradeCover", parent=s_grade, textColor=colors.white),
+        ParagraphStyle("GradeCover", parent=s_grade, textColor=colors.white),
     )
     score_para = Paragraph(
         f'<font color="#AACCFF">{score:.1f}/100</font>',
-        _style("ScoreCover", parent=s_cover_sub, fontSize=16),
+        ParagraphStyle("ScoreCover", parent=s_cover_sub, fontSize=16),
     )
     story.append(grade_para)
     story.append(Spacer(1, 0.04 * inch))
