@@ -1410,7 +1410,7 @@ function SystemTab() {
                     <p className="text-[11px] text-muted-foreground">{label}</p>
                     <p className="text-xs font-mono font-medium mt-0.5">{value}</p>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           </div>
@@ -1462,7 +1462,7 @@ export default function Settings() {
               <Icon className="h-3.5 w-3.5" />
               {label}
             </TabsTrigger>
-          ))}
+          )))}
         </TabsList>
 
         <TabsContent value="general">

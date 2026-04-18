@@ -198,7 +198,8 @@ export default function MicrosegmentationPolicyDashboard() {
                       <ViolationCell count={seg.violation_count ?? 0} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

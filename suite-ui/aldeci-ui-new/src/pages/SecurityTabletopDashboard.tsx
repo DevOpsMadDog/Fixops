@@ -137,12 +137,8 @@ function scoreColor(score: number): string {
 export default function SecurityTabletopDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    exercises: any[] | null;
-    findings: any[] | null;
-  }>({ stats: null, exercises: null, findings: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; exercises: any[] | null; findings: any[] | null; }>({ stats: null, exercises: null, findings: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -248,7 +244,8 @@ export default function SecurityTabletopDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ex.scheduled_at}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -296,7 +293,8 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2"><FindingStatusBadge status={f.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{f.exercise_id}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

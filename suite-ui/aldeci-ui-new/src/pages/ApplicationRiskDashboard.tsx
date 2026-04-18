@@ -200,7 +200,8 @@ export default function ApplicationRiskDashboard() {
                       {app.owner_team ?? "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

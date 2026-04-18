@@ -232,7 +232,8 @@ export default function SecurityOKRDashboard() {
                   <span className={`text-xs font-bold ${progressTextColor(obj.overall_progress)}`}>{obj.overall_progress}%</span>
                 </div>
               </div>
-            )))}
+            ))
+          )}
         </div>
 
         {/* Key Results */}

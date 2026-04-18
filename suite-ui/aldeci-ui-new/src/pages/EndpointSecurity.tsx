@@ -251,7 +251,8 @@ export default function EndpointSecurity() {
                   <div className={cn("h-full rounded-full", c.color)} style={{ width: `${c.covered}%` }} />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -277,7 +278,8 @@ export default function EndpointSecurity() {
                 </div>
                 <Progress value={p.pct} className="h-1.5" />
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -357,7 +359,8 @@ export default function EndpointSecurity() {
                   <TableCell>{statusBadge(t.status)}</TableCell>
                   <TableCell>{severityBadge(t.severity)}</TableCell>
                 </TableRow>
-              )))}
+              ))
+            )}
             </TableBody>
           </Table>
         </CardContent>

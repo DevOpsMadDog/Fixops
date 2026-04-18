@@ -213,7 +213,8 @@ export default function SecurityMetricsDashboard() {
                 </div>
                 <span className="text-[9px] text-muted-foreground">{m.month}</span>
               </div>
-            )))}
+            ))
+          )}
           </div>
           <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -273,7 +274,8 @@ export default function SecurityMetricsDashboard() {
                       <TrendArrow trend={row.trend} meeting={row.meeting} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

@@ -206,7 +206,7 @@ function FixPreviewDialog({
                       <span className="text-muted-foreground">{String(result.duration)}</span>
                     )}
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           )}
@@ -445,7 +445,7 @@ export default function AutoFix() {
                       <SelectItem key={s} value={s}>
                         {AUTOFIX_STATUS[s as keyof typeof AUTOFIX_STATUS].label}
                       </SelectItem>
-                    ))}
+                    )))}
                   </SelectContent>
                 </Select>
                 <Select value={fixTypeFilter} onValueChange={setFixTypeFilter}>
@@ -458,7 +458,7 @@ export default function AutoFix() {
                       <SelectItem key={t} value={t}>
                         {FIX_TYPE_CONFIG[t as keyof typeof FIX_TYPE_CONFIG].label}
                       </SelectItem>
-                    ))}
+                    )))}
                   </SelectContent>
                 </Select>
               </div>
@@ -610,7 +610,8 @@ export default function AutoFix() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                  )}
                   </TableBody>
               </Table>
               </div>

@@ -452,7 +452,8 @@ function GapsPanel({ gaps }: { gaps: ComplianceGap[] }) {
             </p>
           </div>
         </motion.div>
-      )))}
+      ))
+    )}
     </div>
   );
 }

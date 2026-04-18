@@ -260,7 +260,8 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.duration}</TableCell>
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.created_at}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -314,7 +315,8 @@ export default function SecretScannerDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><FindingStatusBadge status={f.status} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -338,7 +340,7 @@ export default function SecretScannerDashboard() {
               <select
                 className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 value={scanForm.target_type}
-                onChange={(e) => setScanForm((s) => ({ ...s, target_type: e.target.value }))}
+                onChange={(e) => setScanForm((s) => ({ ...s, target_type: e.target.value })))}
               >
                 <option value="git_repo">Git Repository</option>
                 <option value="directory">Directory</option>
@@ -351,7 +353,7 @@ export default function SecretScannerDashboard() {
               <Input
                 placeholder="e.g. github.com/org/repo or /path/to/dir"
                 value={scanForm.target_path}
-                onChange={(e) => setScanForm((s) => ({ ...s, target_path: e.target.value }))}
+                onChange={(e) => setScanForm((s) => ({ ...s, target_path: e.target.value })))}
                 className="text-xs h-8"
               />
             </div>

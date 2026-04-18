@@ -603,7 +603,8 @@ export default function PatchPrioritizer() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -655,7 +656,7 @@ export default function PatchPrioritizer() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </CardContent>
         </Card>

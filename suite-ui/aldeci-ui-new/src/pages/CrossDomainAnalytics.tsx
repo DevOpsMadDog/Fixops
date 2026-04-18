@@ -281,7 +281,8 @@ export default function CrossDomainAnalytics() {
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </CardContent>
         </Card>
@@ -345,7 +346,7 @@ export default function CrossDomainAnalytics() {
                           <div className="flex flex-wrap gap-1">
                             {r.domains.map((d) => (
                               <Badge key={d} className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{d}</Badge>
-                            ))}
+                            )))}
                           </div>
                         </TableCell>
                       </TableRow>

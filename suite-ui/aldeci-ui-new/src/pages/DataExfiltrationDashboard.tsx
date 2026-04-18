@@ -128,11 +128,8 @@ function IncidentStatusBadge({ status }: { status: string }) {
 export default function DataExfiltrationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    incidents: any[] | null;
-  }>({ stats: null, incidents: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; incidents: any[] | null; }>({ stats: null, incidents: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -233,7 +230,8 @@ export default function DataExfiltrationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{inc.detection_method}</TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

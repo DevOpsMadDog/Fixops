@@ -102,12 +102,8 @@ function TransactionStatusBadge({ status }: { status: string }) {
 export default function SecurityBudgetDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    allocations: any[] | null;
-    transactions: any[] | null;
-  }>({ stats: null, allocations: null, transactions: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; allocations: any[] | null; transactions: any[] | null; }>({ stats: null, allocations: null, transactions: null });
 
   const fetchData = () => {
     setDataLoading(true);

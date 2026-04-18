@@ -141,12 +141,8 @@ function fmtCost(cost: number): string {
 export default function SecurityToolInventoryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    tools: any[] | null;
-    assessments: any[] | null;
-  }>({ stats: null, tools: null, assessments: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; tools: any[] | null; assessments: any[] | null; }>({ stats: null, tools: null, assessments: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -254,7 +250,8 @@ export default function SecurityToolInventoryDashboard() {
                       {fmtCost(t.cost_annual ?? 0)}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -300,7 +297,8 @@ export default function SecurityToolInventoryDashboard() {
                     <TableCell className="py-2">{scoreBar(a.effectiveness_score ?? 0)}</TableCell>
                     <TableCell className="py-2">{scoreBar(a.utilization_pct ?? 0)}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

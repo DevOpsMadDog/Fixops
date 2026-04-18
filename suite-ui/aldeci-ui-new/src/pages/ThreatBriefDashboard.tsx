@@ -309,7 +309,7 @@ export default function ThreatBriefDashboard() {
                   <div className="flex flex-wrap gap-2">
                     {selectedBrief.tags.map((tag) => (
                       <span key={tag} className="px-2 py-0.5 bg-gray-700/50 border border-gray-600/50 rounded text-xs text-gray-300">#{tag}</span>
-                    ))}
+                    )))}
                   </div>
                 </div>
 

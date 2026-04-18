@@ -115,12 +115,8 @@ function GapStatusBadge({ status }: { status: string }) {
 export default function ComplianceGapDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    assessments: any[] | null;
-    gaps: any[] | null;
-  }>({ stats: null, assessments: null, gaps: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; assessments: any[] | null; gaps: any[] | null; }>({ stats: null, assessments: null, gaps: null });
 
   const fetchData = () => {
     setDataLoading(true);

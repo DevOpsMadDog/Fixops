@@ -206,7 +206,8 @@ export default function DataDiscoveryDashboard() {
                       {ds.sensitive_record_count > 0 ? formatRecords(ds.sensitive_record_count) : "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

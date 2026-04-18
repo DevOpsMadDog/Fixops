@@ -377,7 +377,7 @@ export default function IaCScanning() {
                     </div>
                     <SeverityBadge severity={alert.severity} />
                   </div>
-                ))}
+                )))}
               </CardContent>
             </Card>
           )}
@@ -475,7 +475,7 @@ export default function IaCScanning() {
                     <p className="text-xs text-muted-foreground mb-1">{label}</p>
                     <div className="text-sm font-medium">{value}</div>
                   </div>
-                ))}
+                )))}
               </div>
               <Separator />
               {detailFinding.description && (

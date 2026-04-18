@@ -208,7 +208,8 @@ export default function CloudPostureDashboard() {
                       <StatusBadge status={f.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

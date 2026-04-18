@@ -389,7 +389,7 @@ export default function SecurityKPIDashboard() {
     <div className="space-y-4 p-6">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
+      )))}
     </div>
   );
 
@@ -484,7 +484,7 @@ export default function SecurityKPIDashboard() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+        )))}
       </motion.div>
 
       {/* Benchmarks Table */}
@@ -621,7 +621,8 @@ export default function SecurityKPIDashboard() {
                   className="h-2 bg-slate-900/30"
                 />
               </motion.div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </motion.div>
@@ -659,7 +660,8 @@ export default function SecurityKPIDashboard() {
                 <h4 className="font-semibold text-slate-200">{strength.title}</h4>
                 <p className="text-sm text-slate-400 mt-1">{strength.description}</p>
               </motion.div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

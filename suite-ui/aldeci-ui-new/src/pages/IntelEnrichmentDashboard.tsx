@@ -201,7 +201,8 @@ export default function IntelEnrichmentDashboard() {
                     </td>
                     <td className="py-3 text-gray-500 text-xs">{req.created_at}</td>
                   </tr>
-                )))}
+                ))
+              )}
               </tbody>
             </table>
           </div>
@@ -250,8 +251,7 @@ export default function IntelEnrichmentDashboard() {
                     <div className="flex flex-wrap gap-1">
                       {selected.tags.map(tag => (
                         <span key={tag} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded text-xs">{tag}</span>
-                      ))
-                    )}
+                      )))}
                     </div>
                   </div>
                 )}
@@ -291,8 +291,7 @@ export default function IntelEnrichmentDashboard() {
                     <div className="flex flex-wrap gap-1">
                       {src.ioc_types.map(t => (
                         <span key={t} className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${typeColors[t]}`}>{t}</span>
-                      ))
-                    )}
+                      )))}
                     </div>
                   </td>
                   <td className="py-3 pr-4">

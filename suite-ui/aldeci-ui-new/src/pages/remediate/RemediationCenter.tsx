@@ -761,7 +761,7 @@ export default function RemediationCenter() {
                             )}
                           </div>
                         </div>
-                      ))}
+                      )))}
                       {statusTasks.length > 4 && (
                         <p className="text-xs text-muted-foreground text-center">
                           +{statusTasks.length - 4} more

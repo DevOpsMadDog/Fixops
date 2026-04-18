@@ -217,7 +217,8 @@ export default function ThirdPartyVendorDashboard() {
                       <RiskScoreCell score={ven.risk_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

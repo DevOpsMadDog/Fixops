@@ -274,7 +274,8 @@ export default function AssetGroupsDashboard() {
               </div>
               <div className="text-xs text-gray-500 mt-1 truncate">Owner: {g.owner}</div>
             </div>
-          )))}
+          ))
+        )}
         </div>
 
         {/* Stats */}
@@ -346,7 +347,7 @@ export default function AssetGroupsDashboard() {
                   >
                     {tab}
                   </button>
-                ))}
+                )))}
               </div>
             </div>
           </div>
@@ -374,7 +375,7 @@ export default function AssetGroupsDashboard() {
                   <tr>
                     {["Asset ID","Type","Added By","Added At"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    ))}
+                    )))}
                   </tr>
                 </thead>
                 <tbody>
@@ -389,7 +390,7 @@ export default function AssetGroupsDashboard() {
                       <td className="px-4 py-3 text-gray-400 text-xs">{m.added_by}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{m.added_at}</td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
@@ -420,7 +421,7 @@ export default function AssetGroupsDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>

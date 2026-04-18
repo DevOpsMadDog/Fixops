@@ -1027,7 +1027,7 @@ export default function SOCDashboard() {
                   <SelectItem key={s} value={s}>
                     {s === "all" ? "All Sources" : s}
                   </SelectItem>
-                ))}
+                )))}
               </SelectContent>
             </Select>
 

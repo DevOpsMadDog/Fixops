@@ -328,7 +328,8 @@ export default function APISecurityMgmtDashboard() {
                       <RiskScore score={ep.risk_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -387,7 +388,8 @@ export default function APISecurityMgmtDashboard() {
                         <StatusBadge status={ev.status ?? "detected"} />
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -441,7 +443,8 @@ export default function APISecurityMgmtDashboard() {
                   )}
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -468,7 +471,7 @@ export default function APISecurityMgmtDashboard() {
                 <div className={cn("text-2xl font-bold tabular-nums", item.color)}>{item.value}</div>
                 <div className="text-[11px] text-muted-foreground">{item.label}</div>
               </div>
-            ))}
+            )))}
           </div>
         </CardContent>
       </Card>

@@ -109,12 +109,8 @@ function fmtTime(ts: string): string {
 export default function AutonomousRemediationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    workflows: any[] | null;
-    executions: any[] | null;
-  }>({ stats: null, workflows: null, executions: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; workflows: any[] | null; executions: any[] | null; }>({ stats: null, workflows: null, executions: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -220,7 +216,8 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2"><StatusBadge status={w.status ?? "draft"} /></TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{w.success_count ?? 0}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -268,7 +265,8 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2"><StatusBadge status={e.status ?? "running"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(e.started_at)}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

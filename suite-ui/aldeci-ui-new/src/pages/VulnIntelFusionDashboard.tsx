@@ -303,7 +303,8 @@ export default function VulnIntelFusionDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{c.affected_assets}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -355,7 +356,8 @@ export default function VulnIntelFusionDashboard() {
                         </TableCell>
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
-                    )))}
+                    ))
+                  )}
                   </TableBody>
                 </Table>
               </div>

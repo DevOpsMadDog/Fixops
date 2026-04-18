@@ -223,7 +223,8 @@ export default function ThreatHuntingPage() {
                       </span>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </CardContent>

@@ -186,7 +186,8 @@ export default function PostureScoringDashboard() {
                       {ctrl.last_assessed ?? "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

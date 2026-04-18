@@ -340,7 +340,7 @@ export default function PAMDashboard() {
                   End
                 </Button>
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
 
@@ -398,7 +398,8 @@ export default function PAMDashboard() {
                       )}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </CardContent>

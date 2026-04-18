@@ -285,7 +285,8 @@ export default function AssetRiskDashboard() {
                     ) : (
                       ASSET_TYPES.map((t) => (
                       <th key={t} className="text-center text-muted-foreground font-medium pb-2 px-1">{t}</th>
-                    )))}
+                    ))
+                  )}
                   </tr>
                 </thead>
                 <tbody>

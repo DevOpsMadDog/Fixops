@@ -1893,7 +1893,7 @@ export default function FindingsExplorer() {
                         <VerdictBadge verdict={finding.verdict} confidence={finding.verdict_confidence} />
                       </td>
                     </motion.tr>
-                  ))}
+                  )))}
                 </AnimatePresence>
 
                 {paginated.length === 0 && (

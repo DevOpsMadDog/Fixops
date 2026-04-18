@@ -173,7 +173,8 @@ export default function AssetTagsDashboard() {
               <p className="text-sm font-medium text-gray-200">{cat.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">{cat.description}</p>
             </motion.div>
-          )))}
+          ))
+        )}
         </div>
       </div>
 
@@ -204,7 +205,8 @@ export default function AssetTagsDashboard() {
                   <span>{tag.name}</span>
                   <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded-full">{tag.asset_count.toLocaleString()}</span>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </CardContent>
         </Card>
@@ -288,7 +290,7 @@ export default function AssetTagsDashboard() {
                           <span className="inline-block w-4 h-4 text-gray-700">=</span>
                         )}
                       </td>
-                    ))}
+                    )))}
                   </tr>
                 ))}
               </tbody>

@@ -505,7 +505,8 @@ export default function EvidenceBundles() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                )}
                 </TableBody>
             </Table>
             </div>
@@ -538,7 +539,7 @@ export default function EvidenceBundles() {
                   <p className={`text-xl font-bold ${color} mb-1`}>{value}</p>
                   <p className="text-xs text-muted-foreground">{desc}</p>
                 </div>
-              ))}
+              )))}
             </div>
             {expiringSoon > 0 && (
               <div className="mt-4 p-3 rounded-lg bg-yellow-950/30 border border-yellow-800/40 flex items-center gap-3">

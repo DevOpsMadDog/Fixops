@@ -284,7 +284,8 @@ export default function ContainerSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground font-mono">{c.namespace}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -331,7 +332,8 @@ export default function ContainerSecurityDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </CardContent>
@@ -364,7 +366,8 @@ export default function ContainerSecurityDashboard() {
                   <div className="font-mono text-[11px] text-blue-400">{a.container}</div>
                   <div className="text-[11px] text-muted-foreground">{a.description}</div>
                 </div>
-              )))}
+              ))
+            )}
             </CardContent>
           </Card>
 

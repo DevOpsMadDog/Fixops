@@ -304,7 +304,8 @@ export default function RiskQuantDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-semibold text-red-400">{fmt$(s.ale)}</TableCell>
                     <TableCell className="py-2"><RiskBadge level={s.risk_level} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -374,7 +375,8 @@ export default function RiskQuantDashboard() {
                         : <span className="text-[10px] text-muted-foreground">=</span>}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

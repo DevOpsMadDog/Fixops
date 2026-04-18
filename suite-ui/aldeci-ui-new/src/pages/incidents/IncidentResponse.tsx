@@ -752,7 +752,7 @@ function ChecklistPanel({ items, currentState }: { items: ChecklistItem[]; curre
                     )}
                   </div>
                 </button>
-              ))}
+              )))}
             </div>
           </div>
         );

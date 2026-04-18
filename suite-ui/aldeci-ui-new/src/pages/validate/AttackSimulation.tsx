@@ -470,7 +470,8 @@ export default function AttackSimulation() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                  )}
                   </TableBody>
               </Table>
               </div>
@@ -550,7 +551,7 @@ export default function AttackSimulation() {
                       </Badge>
                       <span className="text-xs">{t.name}</span>
                     </div>
-                  ))}
+                  )))}
                 </CardContent>
               </Card>
             ))}

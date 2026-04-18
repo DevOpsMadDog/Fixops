@@ -266,7 +266,8 @@ export default function MobileSecurity() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
             <div className="pt-2 text-[11px] text-muted-foreground border-t border-border/50">
               95.3% enrollment rate = 87.6% compliance rate
             </div>

@@ -319,8 +319,7 @@ export default function IncidentKBDashboard() {
                   <div className="flex flex-wrap gap-1">
                     {article.tags.map(tag => (
                       <span key={tag} className="bg-gray-700/60 text-gray-400 px-1.5 py-0.5 rounded text-xs">#{tag}</span>
-                    ))
-                  )}
+                    )))}
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center gap-3">

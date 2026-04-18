@@ -204,7 +204,8 @@ export default function OTSecurityDashboard() {
                       {asset.last_seen ?? "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

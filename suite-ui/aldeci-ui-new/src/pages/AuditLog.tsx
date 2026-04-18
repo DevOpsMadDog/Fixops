@@ -887,7 +887,7 @@ export default function AuditLogPage() {
               </p>
             </div>
           </motion.div>
-        ))}
+        )))}
       </div>
 
       {/* KPI Cards */}

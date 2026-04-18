@@ -238,7 +238,8 @@ export default function DataClassificationDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -274,7 +275,8 @@ export default function DataClassificationDashboard() {
                   {d.count.toLocaleString()}
                 </span>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>
@@ -341,7 +343,8 @@ export default function DataClassificationDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

@@ -137,7 +137,8 @@ export default function AccessAnomalyDashboard() {
                 </div>
               </div>
             </div>
-          )))}
+          ))
+        )}
         </div>
       </div>
     </div>

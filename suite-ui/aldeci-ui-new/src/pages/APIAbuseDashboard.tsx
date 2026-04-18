@@ -124,12 +124,8 @@ function IncidentStatusBadge({ status }: { status: string }) {
 export default function APIAbuseDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    endpoints: any[] | null;
-    incidents: any[] | null;
-  }>({ stats: null, endpoints: null, incidents: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; endpoints: any[] | null; incidents: any[] | null; }>({ stats: null, endpoints: null, incidents: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -237,7 +233,8 @@ export default function APIAbuseDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><EndpointStatusBadge status={e.status ?? "normal"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -291,7 +288,8 @@ export default function APIAbuseDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

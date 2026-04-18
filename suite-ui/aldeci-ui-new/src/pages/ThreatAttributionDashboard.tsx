@@ -202,7 +202,8 @@ export default function ThreatAttributionDashboard() {
                       {attr.attribution_date ?? "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

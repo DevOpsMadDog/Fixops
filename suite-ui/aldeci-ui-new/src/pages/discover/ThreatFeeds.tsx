@@ -477,7 +477,7 @@ export default function ThreatFeeds() {
                   >
                     {mitreData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
-                    ))}
+                    )))}
                   </Pie>
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
@@ -587,7 +587,7 @@ export default function ThreatFeeds() {
                   </div>
                   <span className={cn("font-mono font-bold", color)}>{count}</span>
                 </div>
-              ))}
+              )))}
               <Separator />
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total</span>

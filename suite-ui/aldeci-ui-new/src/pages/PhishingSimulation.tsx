@@ -258,7 +258,8 @@ export default function PhishingSimulation() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">View</Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -303,7 +304,8 @@ export default function PhishingSimulation() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

@@ -204,7 +204,8 @@ export default function SecurityTelemetryDashboard() {
                       {tel.recorded_at ? formatTs(tel.recorded_at) : "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

@@ -278,7 +278,8 @@ export default function SecurityOperationsCenter() {
                       </div>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -327,7 +328,8 @@ export default function SecurityOperationsCenter() {
                   </div>
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

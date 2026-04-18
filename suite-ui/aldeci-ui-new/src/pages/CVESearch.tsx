@@ -391,7 +391,7 @@ export default function CVESearch() {
                               )}
                             </button>
                           </div>
-                        ))}
+                        )))}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -422,7 +422,7 @@ export default function CVESearch() {
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
                         </a>
-                      ))}
+                      )))}
                     </div>
                   </CardContent>
                 </Card>

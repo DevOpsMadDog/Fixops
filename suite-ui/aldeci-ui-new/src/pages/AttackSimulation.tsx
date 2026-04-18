@@ -262,7 +262,8 @@ export default function AttackSimulation() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

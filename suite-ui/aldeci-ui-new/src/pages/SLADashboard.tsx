@@ -265,7 +265,8 @@ export default function SLADashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

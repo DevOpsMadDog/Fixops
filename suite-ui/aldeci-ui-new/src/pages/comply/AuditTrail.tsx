@@ -116,8 +116,7 @@ function AuditDetailDrawer({ log }: { log: any }) {
                 <p className="text-xs text-muted-foreground">{label}</p>
                 <p className="text-sm font-medium mt-0.5 font-mono truncate">{value}</p>
               </div>
-            ))
-            )}
+            )))}
           </div>
 
           {/* Hash chain verification */}
@@ -159,7 +158,7 @@ function AuditDetailDrawer({ log }: { log: any }) {
                     <Link2 className="h-2.5 w-2.5" />
                     {ctrl}
                   </Badge>
-                ))}
+                )))}
               </div>
             </div>
           )}

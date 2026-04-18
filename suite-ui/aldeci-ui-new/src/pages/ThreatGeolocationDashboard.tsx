@@ -251,7 +251,8 @@ export default function ThreatGeolocationDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-amber-400 font-medium">{t.delta_hours}h</TableCell>
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{t.detected_at}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </CardContent>

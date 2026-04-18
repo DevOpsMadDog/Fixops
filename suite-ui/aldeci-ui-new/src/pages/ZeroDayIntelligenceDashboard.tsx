@@ -132,12 +132,8 @@ function cvssColor(score: number): string {
 export default function ZeroDayIntelligenceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    vulns: any[] | null;
-    actors: any[] | null;
-  }>({ stats: null, vulns: null, actors: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; vulns: any[] | null; actors: any[] | null; }>({ stats: null, vulns: null, actors: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -243,7 +239,8 @@ export default function ZeroDayIntelligenceDashboard() {
                       {(v.cvss_score ?? 0).toFixed(1)}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -291,7 +288,8 @@ export default function ZeroDayIntelligenceDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.vulnerability_id}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

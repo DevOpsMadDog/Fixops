@@ -727,7 +727,7 @@ function ImportSBOMModal({ onClose }: { onClose: () => void }) {
               {f === "CycloneDX" ? <FileJson className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
               {f}
             </button>
-          ))}
+          )))}
         </div>
 
         {/* Metadata */}
@@ -1050,7 +1050,7 @@ export default function SBOMManagement() {
                           </div>
                         </td>
                       </motion.tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -1154,7 +1154,7 @@ export default function SBOMManagement() {
                           <div className="p-4 space-y-0.5">
                             {selectedSBOM.components.map((comp) => (
                               <ComponentNode key={comp.id} comp={comp} searchTerm={componentSearch} />
-                            ))}
+                            )))}
                           </div>
                         </ScrollArea>
                       </CardContent>
@@ -1199,7 +1199,7 @@ export default function SBOMManagement() {
                             </span>
                           </div>
                         </motion.div>
-                      ))}
+                      )))}
                       {selectedSBOM.components.every((c) => c.vulns.length === 0 && (!c.children || c.children.every((ch) => ch.vulns.length === 0))) && (
                         <div className="text-center py-12 space-y-2">
                           <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto" />
@@ -1296,7 +1296,7 @@ export default function SBOMManagement() {
                             <span className="text-[10px] ml-1.5 opacity-60">{formatDateShort(s.importedAt)}</span>
                           </span>
                         </label>
-                      ))}
+                      )))}
                     </div>
                   </div>
 
@@ -1323,7 +1323,7 @@ export default function SBOMManagement() {
                             <span className="text-[10px] ml-1.5 opacity-60">{formatDateShort(s.importedAt)}</span>
                           </span>
                         </label>
-                      ))}
+                      )))}
                     </div>
                   </div>
                 </div>
@@ -1378,7 +1378,7 @@ export default function SBOMManagement() {
                     >
                       {f.charAt(0).toUpperCase() + f.slice(1)}
                     </button>
-                  ))}
+                  )))}
                 </div>
               </div>
 

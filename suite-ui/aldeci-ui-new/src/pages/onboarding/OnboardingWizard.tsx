@@ -307,7 +307,7 @@ function StepReviewResults({ selectedScanners }: { selectedScanners: Set<string>
             <p className="text-2xl font-bold">{count}</p>
             <p className="text-xs font-medium mt-0.5">{label}</p>
           </div>
-        ))}
+        )))}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-muted/30 border border-border/40">
@@ -339,7 +339,7 @@ function StepReviewResults({ selectedScanners }: { selectedScanners: Set<string>
                 <Icon className="h-3 w-3 shrink-0" />
                 {action}
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </div>
@@ -383,7 +383,7 @@ function StepPersonalize({ prefs, onChange }: {
               >
                 {t}
               </div>
-            ))}
+            )))}
           </div>
         </div>
         <div>

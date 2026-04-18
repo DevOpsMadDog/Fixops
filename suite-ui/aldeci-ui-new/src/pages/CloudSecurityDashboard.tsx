@@ -377,7 +377,7 @@ export default function CloudSecurityDashboard() {
                         <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">Fix</Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -404,7 +404,7 @@ export default function CloudSecurityDashboard() {
               </div>
               {REMEDIATION.immediate.map((item) => (
                 <RemediationCard key={item.id} item={item} />
-              ))}
+              )))}
             </div>
 
             {/* This Week */}

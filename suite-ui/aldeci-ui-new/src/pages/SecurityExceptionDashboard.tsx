@@ -312,7 +312,8 @@ export default function SecurityExceptionDashboard() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Review</Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -372,7 +373,8 @@ export default function SecurityExceptionDashboard() {
                 </div>
               </div>
             </div>
-          )))}
+          ))
+        )}
         </CardContent>
       </Card>
 

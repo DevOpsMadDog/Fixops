@@ -266,7 +266,8 @@ export default function PostureReportingDashboard() {
               <ScoreBar value={r.overall_score} />
               <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} = {r.period_end}</p>
             </motion.div>
-          )))}
+          ))
+        )}
         </div>
 
         {/* Right Panel */}
@@ -298,7 +299,7 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              ))}
+              )))}
             </CardContent>
           </Card>
 
@@ -328,7 +329,7 @@ export default function PostureReportingDashboard() {
                         <td className="py-2 flex justify-center"><TrendIcon trend={m.trend} /></td>
                         <td className="py-2 text-right text-zinc-500 font-mono">{m.benchmark_value}{m.unit}</td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -361,7 +362,8 @@ export default function PostureReportingDashboard() {
                     </div>
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
-                )))}
+                ))
+              )}
               </div>
             </CardContent>
           </Card>

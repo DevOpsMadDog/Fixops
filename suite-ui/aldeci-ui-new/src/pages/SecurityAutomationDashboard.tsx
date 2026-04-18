@@ -197,7 +197,8 @@ export default function SecurityAutomationDashboard() {
                       {exec.duration_ms}ms
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

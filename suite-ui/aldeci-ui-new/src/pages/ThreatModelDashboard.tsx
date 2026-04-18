@@ -382,8 +382,7 @@ export default function ThreatModelDashboard() {
                       </TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-right text-muted-foreground">{t.mitigations}</TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )))}
                 </TableBody>
               </Table>
             )}

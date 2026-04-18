@@ -215,7 +215,8 @@ export default function GapAnalysisDashboard() {
                 <span className="text-red-400">{fw.controls.not_implemented}=</span>
               </div>
             </button>
-          )))}
+          ))
+        )}
         </div>
       </div>
 
@@ -260,7 +261,8 @@ export default function GapAnalysisDashboard() {
                   <td className="py-2.5 pr-4 text-red-400 font-semibold">{a.not_implemented}</td>
                   <td className="py-2.5"><RiskBadge r={a.risk_level} /></td>
                 </tr>
-              )))}
+              ))
+            )}
             </tbody>
           </table>
         </div>
@@ -321,7 +323,8 @@ export default function GapAnalysisDashboard() {
                 </div>
                 <p className="text-[10px] text-gray-500 mt-2">{r.owner}</p>
               </div>
-            )))}
+            ))
+          )}
           </div>
         </div>
       </div>

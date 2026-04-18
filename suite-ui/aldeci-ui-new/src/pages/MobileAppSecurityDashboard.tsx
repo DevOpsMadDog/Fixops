@@ -123,12 +123,8 @@ function FindingStatusBadge({ status }: { status: string }) {
 export default function MobileAppSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    apps: any[] | null;
-    findings: any[] | null;
-  }>({ stats: null, apps: null, findings: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; apps: any[] | null; findings: any[] | null; }>({ stats: null, apps: null, findings: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -232,7 +228,8 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2"><RiskBadge level={a.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_scanned}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -280,7 +277,8 @@ export default function MobileAppSecurityDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{f.owasp_category}</TableCell>
                     <TableCell className="py-2"><FindingStatusBadge status={f.status ?? "open"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

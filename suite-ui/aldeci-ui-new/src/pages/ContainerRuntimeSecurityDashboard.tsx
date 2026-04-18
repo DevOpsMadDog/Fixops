@@ -132,12 +132,8 @@ function fmtTime(ts: string): string {
 export default function ContainerRuntimeSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    containers: any[] | null;
-    violations: any[] | null;
-  }>({ stats: null, containers: null, violations: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; containers: any[] | null; violations: any[] | null; }>({ stats: null, containers: null, violations: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -241,7 +237,8 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><RiskScoreBadge score={c.risk_score ?? 0} /></TableCell>
                     <TableCell className="py-2"><ContainerStatusBadge status={c.status ?? "running"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -291,7 +288,8 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><ActionBadge action={v.action_taken ?? "logged"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(v.timestamp)}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

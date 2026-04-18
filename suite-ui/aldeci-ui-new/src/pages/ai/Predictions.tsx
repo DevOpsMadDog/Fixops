@@ -236,8 +236,7 @@ export default function Predictions() {
                           <span key={target} className="text-[10px] px-1.5 py-0.5 rounded bg-muted">
                             → {target}: {((prob as number) * 100).toFixed(0)}%
                           </span>
-                        ))
-                        )}
+                        )))}
                       </div>
                     )}
                   </motion.div>

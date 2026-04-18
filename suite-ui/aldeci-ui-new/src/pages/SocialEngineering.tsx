@@ -325,7 +325,8 @@ export default function SocialEngineering() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -358,7 +359,8 @@ export default function SocialEngineering() {
                 </div>
                 <Progress value={m.completion} className="h-1.5" />
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>

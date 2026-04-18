@@ -399,7 +399,8 @@ export default function CompetitiveComparisonPage() {
           >
             {v}
           </button>
-        )))}
+        ))
+      )}
       </div>
 
       {/* Category filter tabs */}
@@ -422,7 +423,8 @@ export default function CompetitiveComparisonPage() {
           >
             {cat}
           </button>
-        )))}
+        ))
+      )}
       </div>
 
       {/* Feature matrix table */}
@@ -444,7 +446,8 @@ export default function CompetitiveComparisonPage() {
                     <div className="text-xs font-normal text-gray-400 mt-0.5">$35=99/mo</div>
                   )}
                 </th>
-              )))}
+              ))
+            )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700/50">
@@ -462,8 +465,7 @@ export default function CompetitiveComparisonPage() {
                 </td>
                 {visibleVendors.map(v => (
                   <Cell key={v} vendor={v} value={row.values[v]} isAldeci={v === "ALDECI"} />
-                ))
-              )}
+                )))}
               </tr>
             ))}
           </tbody>
@@ -661,7 +663,7 @@ export default function CompetitiveComparisonPage() {
                     <span className="text-emerald-500 flex-shrink-0 mt-0.5">=</span>
                     {item}
                   </li>
-                ))}
+                )))}
               </ul>
             </div>
           ))}

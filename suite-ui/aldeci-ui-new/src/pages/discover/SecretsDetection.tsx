@@ -495,7 +495,7 @@ export default function SecretsDetection() {
                       <p className="text-xs text-muted-foreground mb-1">{label}</p>
                       <div className="text-sm font-medium">{value}</div>
                     </div>
-                  ))}
+                  )))}
                 </div>
 
                 {/* Location */}
@@ -544,7 +544,7 @@ export default function SecretsDetection() {
                           <span className="font-medium">{entry.action}</span>
                           {entry.by && <span className="text-muted-foreground">by {entry.by}</span>}
                         </div>
-                      ))}
+                      )))}
                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground bg-muted/20 rounded-md p-3">

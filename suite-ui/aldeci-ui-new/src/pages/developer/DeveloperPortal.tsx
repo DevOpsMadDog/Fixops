@@ -673,7 +673,7 @@ function ReposTable({ repos }: { repos: Repo[] }) {
                     <TrendIcon trend={repo.trend} delta={repo.trendDelta} />
                   </td>
                 </motion.tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

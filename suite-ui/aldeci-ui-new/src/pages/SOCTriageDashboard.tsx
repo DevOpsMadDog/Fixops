@@ -441,7 +441,7 @@ export default function SOCTriageDashboard() {
                   </div>
                   <p className="text-[10px] text-muted-foreground">{note}</p>
                 </div>
-              ))}
+              )))}
 
               {/* Classification breakdown */}
               <div className="pt-1 border-t border-border space-y-1.5">
@@ -455,7 +455,7 @@ export default function SOCTriageDashboard() {
                     <span className="text-muted-foreground">{label}</span>
                     <span className={cn("font-bold tabular-nums px-2 py-0.5 rounded", cls)}>{count}</span>
                   </div>
-                ))}
+                )))}
               </div>
             </CardContent>
           </Card>

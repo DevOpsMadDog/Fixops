@@ -224,7 +224,7 @@ export default function AlertEnrichmentDashboard() {
                         <ResultTypeBadge r={h.result_type} />
                         <span className="text-gray-500 ml-auto">{fmt(h.enriched_at)}</span>
                       </div>
-                    ))}
+                    )))}
                   </motion.div>
                 )}
               </div>
@@ -257,7 +257,8 @@ export default function AlertEnrichmentDashboard() {
                     <SeverityBadge s={a.severity} />
                   </div>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </div>
 
@@ -291,7 +292,8 @@ export default function AlertEnrichmentDashboard() {
                     <span className="text-red-400">{src.error_count} err</span>
                   </div>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </div>
         </div>

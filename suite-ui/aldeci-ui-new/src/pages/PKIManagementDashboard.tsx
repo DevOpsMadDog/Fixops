@@ -142,12 +142,8 @@ function expiryColor(dateStr: string, status: string): string {
 export default function PKIManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    certs: any[] | null;
-    cas: any[] | null;
-  }>({ stats: null, certs: null, cas: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; certs: any[] | null; cas: any[] | null; }>({ stats: null, certs: null, cas: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -253,7 +249,8 @@ export default function PKIManagementDashboard() {
                       {c.expires_at}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -301,7 +298,8 @@ export default function PKIManagementDashboard() {
                     <TableCell className="py-2"><CertStatusBadge status={ca.status ?? "active"} /></TableCell>
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{ca.cert_count}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

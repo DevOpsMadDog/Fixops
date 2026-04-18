@@ -184,13 +184,8 @@ interface ExecSummary {
 export default function ExecutiveReportingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    reports: ExecReport[] | null;
-    kpis: ExecKpi[] | null;
-    boards: BoardPresentation[] | null;
-    summary: ExecSummary | null;
-  }>({ reports: null, kpis: null, boards: null, summary: null });
+  const [liveData, setLiveData] = useState<{ reports: ExecReport[] | null; kpis: ExecKpi[] | null; boards: BoardPresentation[] | null; summary: ExecSummary | null; }>({ reports: null, kpis: null, boards: null, summary: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -316,7 +311,8 @@ export default function ExecutiveReportingDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -380,7 +376,8 @@ export default function ExecutiveReportingDashboard() {
                       </TableCell>
                       <TableCell className="py-2"><KpiStatusBadge status={k.status ?? "on_track"} /></TableCell>
                     </TableRow>
-                  )))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -431,7 +428,7 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    ))}
+                    )))}
                   </div>
                 )}
               </div>

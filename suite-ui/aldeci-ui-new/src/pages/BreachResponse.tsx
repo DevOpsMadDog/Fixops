@@ -255,7 +255,8 @@ export default function BreachResponse() {
                   )} />
                 )}
               </div>
-            )))}
+            ))
+          )}
           </div>
         </CardContent>
       </Card>
@@ -317,7 +318,8 @@ export default function BreachResponse() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">View</Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -362,7 +364,8 @@ export default function BreachResponse() {
                       <TableCell className="text-xs py-2 tabular-nums text-muted-foreground whitespace-nowrap">{row.sent}</TableCell>
                       <TableCell className="py-2"><StatusBadge status={row.status} /></TableCell>
                     </TableRow>
-                  )))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             </div>

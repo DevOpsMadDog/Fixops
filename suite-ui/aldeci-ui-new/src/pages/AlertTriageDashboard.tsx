@@ -223,7 +223,8 @@ export default function AlertTriageDashboard() {
                       {alert.ingested_at ? formatTs(alert.ingested_at) : "="}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

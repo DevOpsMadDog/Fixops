@@ -204,7 +204,8 @@ export default function PrivilegedSessionRecordingDashboard() {
                       </span>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

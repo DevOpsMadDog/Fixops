@@ -447,7 +447,8 @@ export default function ThreatIntelDashboard() {
                   ) : (
                     filteredIocs.map((ioc, i) => (
                       <IocRow key={`${ioc.type}-${ioc.value}`} ioc={ioc} index={i} />
-                    )))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </ScrollArea>

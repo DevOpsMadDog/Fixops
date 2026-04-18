@@ -252,8 +252,7 @@ export default function CloudPosture() {
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {regionChartData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
-                    ))
-                    )}
+                    )))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -281,7 +280,7 @@ export default function CloudPosture() {
                 </div>
                 <Progress value={fw.pct} className="h-1.5" />
               </div>
-            ))}
+            )))}
           </CardContent>
         </Card>
       </div>
@@ -313,7 +312,7 @@ export default function CloudPosture() {
                   <SelectItem value="all">All Regions</SelectItem>
                   {regions.map((r) => (
                     <SelectItem key={r} value={r!}>{r}</SelectItem>
-                  ))}
+                  )))}
                 </SelectContent>
               </Select>
             )}

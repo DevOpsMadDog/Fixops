@@ -443,7 +443,7 @@ export default function PoliciesPage() {
                     <span className="text-xs text-muted-foreground">days</span>
                   </div>
                 </div>
-              ))}
+              )))}
               <Button
                 size="sm"
                 className="w-full mt-2 gap-2"
@@ -477,7 +477,7 @@ export default function PoliciesPage() {
                     → <span className="text-primary font-medium">{rule.action}</span>
                   </p>
                 </div>
-              ))}
+              )))}
               <Button
                 size="sm"
                 variant="outline"

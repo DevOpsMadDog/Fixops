@@ -220,7 +220,8 @@ export default function NetworkTopology() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{n.segment}</TableCell>
                     <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -259,7 +260,8 @@ export default function NetworkTopology() {
                 </div>
               </CardContent>
             </Card>
-          )))}
+          ))
+        )}
         </div>
       </div>
 
@@ -295,7 +297,8 @@ export default function NetworkTopology() {
               </div>
               <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
             </div>
-          )))}
+          ))
+        )}
         </CardContent>
       </Card>
 

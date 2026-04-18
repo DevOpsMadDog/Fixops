@@ -336,7 +336,8 @@ export default function RegulatoryTrackerDashboard() {
                     <TableCell className="py-2.5"><ObligStatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -379,7 +380,8 @@ export default function RegulatoryTrackerDashboard() {
                 <ComplianceBar pct={a.compliancePct} />
                 <p className="text-[10px] text-muted-foreground">Assessed by: {a.assessor}</p>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

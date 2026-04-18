@@ -112,12 +112,8 @@ function fmtTime(ts: string): string {
 export default function IoTSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    devices: any[] | null;
-    anomalies: any[] | null;
-  }>({ stats: null, devices: null, anomalies: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; devices: any[] | null; anomalies: any[] | null; }>({ stats: null, devices: null, anomalies: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -227,7 +223,8 @@ export default function IoTSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><DeviceStatusBadge status={d.status ?? "online"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -275,7 +272,8 @@ export default function IoTSecurityDashboard() {
                     <TableCell className="py-2"><AnomalyStatusBadge status={a.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.detected_at)}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

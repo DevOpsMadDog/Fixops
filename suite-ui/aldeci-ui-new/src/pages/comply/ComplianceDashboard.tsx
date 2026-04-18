@@ -715,7 +715,7 @@ function ControlMappingTable({ controls }: { controls: Control[] }) {
                 <SelectItem value="all" className="text-xs">All Frameworks</SelectItem>
                 {uniqueFrameworks.filter((f) => f !== "all").map((f) => (
                   <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>
-                ))}
+                )))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -871,7 +871,7 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
                   dot={false}
                   activeDot={{ r: 4, strokeWidth: 0 }}
                 />
-              ))}
+              )))}
             </LineChart>
           </ResponsiveContainer>
         </div>

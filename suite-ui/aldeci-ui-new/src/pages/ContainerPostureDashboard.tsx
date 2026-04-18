@@ -207,7 +207,8 @@ export default function ContainerPostureDashboard() {
                       <StatusBadge status={finding.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

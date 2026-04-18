@@ -382,7 +382,8 @@ export default function VulnIntelligenceDashboard() {
                       <StatusBadge status={cve.status ?? "new"} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -450,7 +451,8 @@ export default function VulnIntelligenceDashboard() {
                   )}
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -541,7 +543,7 @@ export default function VulnIntelligenceDashboard() {
                 <div className={cn("text-2xl font-bold tabular-nums", item.color)}>{item.value}</div>
                 <div className="text-[11px] text-muted-foreground">{item.label}</div>
               </div>
-            ))}
+            )))}
           </div>
         </CardContent>
       </Card>

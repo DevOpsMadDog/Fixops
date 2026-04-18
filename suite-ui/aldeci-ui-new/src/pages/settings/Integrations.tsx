@@ -507,7 +507,7 @@ export default function Integrations() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </CardContent>

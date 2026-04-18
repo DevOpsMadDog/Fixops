@@ -303,7 +303,8 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
             >
               <span className="text-xs font-bold text-center">{dep.risk_score}</span>
             </motion.div>
-          )))}
+          ))
+        )}
         </div>
       </CardContent>
     </Card>
@@ -458,7 +459,8 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
                     </div>
                   </td>
                 </motion.tr>
-              )))}
+              ))
+            )}
             </tbody>
           </table>
         </ScrollArea>
@@ -505,7 +507,7 @@ function SBOMOverview({ summary }: { summary: SupplyChainSummary }) {
               <Badge key={fmt} variant="secondary" className="text-xs">
                 {fmt.trim()}
               </Badge>
-            ))}
+            )))}
           </div>
         </div>
       </CardContent>

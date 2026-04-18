@@ -205,7 +205,8 @@ export default function SecurityBaselineDashboard() {
               </div>
               <p className="text-gray-500 text-[10px] mt-1">{bl.control_count} controls = {fmt(bl.published_at)}</p>
             </button>
-          )))}
+          ))
+        )}
         </div>
 
         <div className="lg:col-span-3 space-y-6">
@@ -247,7 +248,8 @@ export default function SecurityBaselineDashboard() {
                             : <span className="text-gray-600 text-xs">Manual</span>}
                         </td>
                       </tr>
-                    )))}
+                    ))
+                  )}
                   </tbody>
                 </table>
               </div>

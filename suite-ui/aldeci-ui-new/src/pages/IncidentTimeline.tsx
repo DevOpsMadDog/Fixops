@@ -415,7 +415,8 @@ const PhaseProgress = ({ current }: { current: Phase }) => {
             <ChevronRight className="w-3 h-3 text-slate-600" />
           )}
         </div>
-      )))}
+      ))
+    )}
     </div>
   );
 };
@@ -451,7 +452,8 @@ const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_duratio
             style={{ width: `${(p.hours / total) * 100}%` }}
             title={`${p.label}: ${p.hours}h`}
           />
-        )))}
+        ))
+      )}
       </div>
       <div className="flex flex-wrap gap-4">
         {phases.length === 0 ? (
@@ -466,7 +468,8 @@ const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_duratio
             <span className="text-sm text-gray-300">{p.label}</span>
             <span className="text-sm font-semibold text-white">{p.hours}h</span>
           </div>
-        )))}
+        ))
+      )}
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-gray-400">Total MTTR:</span>
           <span className="text-sm font-bold text-blue-400">{total.toFixed(1)}h</span>
@@ -755,7 +758,7 @@ export default function IncidentTimeline() {
                     <Badge key={sys} variant="outline" className="bg-slate-800 text-slate-300 border-slate-600 font-mono text-xs">
                       {sys}
                     </Badge>
-                  ))}
+                  )))}
                 </div>
               </div>
 
@@ -777,7 +780,7 @@ export default function IncidentTimeline() {
                       <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" / role="status" aria-live="polite">
                       <span className="text-xs text-gray-300 font-mono">{t}</span>
                     </div>
-                  ))}
+                  )))}
                 </div>
               </div>
 
@@ -789,7 +792,7 @@ export default function IncidentTimeline() {
                       <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0 mt-0.5" />
                       <span className="text-xs text-gray-300 leading-relaxed">{lesson}</span>
                     </div>
-                  ))}
+                  )))}
                 </div>
               </div>
             </CardContent>

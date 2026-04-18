@@ -366,7 +366,8 @@ export default function CloudIAM() {
                         <Badge className={cn("text-xs border", riskBadge(p.risk_level))}>{p.risk_score}</Badge>
                       </td>
                     </motion.tr>
-                  )))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>
@@ -419,7 +420,8 @@ export default function CloudIAM() {
           ) : (
             ESCALATION_PATHS.map(path => (
             <EscalationPathCard key={path.id} path={path} />
-          )))}
+          ))
+        )}
         </CardContent>
       </Card>
 
@@ -449,7 +451,8 @@ export default function CloudIAM() {
                   <div className={cn("h-2 rounded-full transition-all", svc.color)} style={{ width: `${svc.pct}%` }} />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

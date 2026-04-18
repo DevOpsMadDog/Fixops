@@ -400,7 +400,7 @@ export default function LogViewer() {
                 <p className="text-xl font-bold">{value}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
               </div>
-            ))}
+            )))}
           </div>
         </CardContent>
       </Card>

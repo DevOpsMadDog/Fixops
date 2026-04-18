@@ -205,7 +205,8 @@ export default function APISecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2.5"><RiskBadge r={row.risk} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -245,7 +246,8 @@ export default function APISecurityDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 
@@ -281,7 +283,8 @@ export default function APISecurityDashboard() {
                 </div>
                 <span className="text-[10px] text-muted-foreground font-medium">{ev.type.replace(/_/g, " ")}</span>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>

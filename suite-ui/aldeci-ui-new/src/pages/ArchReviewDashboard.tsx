@@ -181,7 +181,8 @@ export default function ArchReviewDashboard() {
                       <td className="px-4 py-3">{statusBadge(r.status)}</td>
                       <td className="px-4 py-3">{r.status !== "completed" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}</td>
                     </tr>
-                  )))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>

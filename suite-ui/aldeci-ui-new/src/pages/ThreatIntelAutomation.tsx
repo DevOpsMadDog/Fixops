@@ -176,7 +176,8 @@ export default function ThreatIntelAutomation() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{rule.last_run ?? rule.last_triggered ?? "="}</TableCell>
                     <TableCell className="py-2 text-right"><StatusBadge status={rule.status ?? "active"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

@@ -1249,7 +1249,7 @@ function ThreatActorProfiles() {
                   <span key={sector} className="text-[9px] bg-muted/30 rounded px-1.5 py-0.5 text-muted-foreground">
                     {sector}
                   </span>
-                ))}
+                )))}
               </div>
 
               <AnimatePresence>
@@ -1267,7 +1267,7 @@ function ThreatActorProfiles() {
                         <code key={t} className="text-[9px] font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5">
                           {t}
                         </code>
-                      ))}
+                      )))}
                     </div>
                   </motion.div>
                 )}

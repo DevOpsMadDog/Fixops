@@ -310,7 +310,8 @@ export default function SecurityFindingsDashboard() {
                 </div>
                 <span className="text-xs font-bold text-orange-400">{count}</span>
               </div>
-            )))}
+            ))
+          )}
           </div>
         </div>
 
@@ -347,8 +348,7 @@ export default function SecurityFindingsDashboard() {
                 <div className="space-y-1">
                   {selectedFinding.evidence.map(e => (
                     <div key={e} className="text-xs font-mono text-blue-400 truncate">{e}</div>
-                  ))
-                )}
+                  )))}
                 </div>
               </div>
               {selectedFinding.suppressed_by && (

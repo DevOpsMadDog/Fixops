@@ -219,7 +219,8 @@ export default function ChangeManagementDashboard() {
                       <StatusBadge status={chg.status ?? "pending_review"} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

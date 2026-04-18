@@ -280,7 +280,8 @@ export default function SecurityInvestmentDashboard() {
                     </div>
                   </td>
                 </tr>
-              )))}
+              ))
+            )}
             </tbody>
           </table>
         </div>

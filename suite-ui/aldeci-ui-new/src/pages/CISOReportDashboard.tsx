@@ -330,7 +330,8 @@ export default function CISOReportDashboard() {
                   <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
                   <span className="text-muted-foreground leading-relaxed">{bullet}</span>
                 </li>
-              )))}
+              ))
+            )}
             </ul>
           </CardContent>
         </Card>

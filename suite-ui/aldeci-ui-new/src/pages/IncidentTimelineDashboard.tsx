@@ -406,7 +406,7 @@ export default function IncidentTimelineDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -433,7 +433,7 @@ export default function IncidentTimelineDashboard() {
                     </div>
                     <span className="text-xs font-semibold text-muted-foreground">{m.label}</span>
                   </div>
-                ))}
+                )))}
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="text-[10px] text-muted-foreground">Mean Time<br />To Detect</div>

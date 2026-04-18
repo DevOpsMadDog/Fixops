@@ -424,7 +424,7 @@ export default function ThreatCorrelation() {
                       <TableCell className="text-xs tabular-nums py-2">{Math.round((ind.confidence ?? 0.8) * 100)}%</TableCell>
                       <TableCell className="text-[10px] py-2 text-muted-foreground">{ind.source ?? "aldeci"}</TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>

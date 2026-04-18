@@ -106,11 +106,8 @@ function EndpointStatusBadge({ status }: { status: string }) {
 export default function APIDiscoveryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    endpoints: any[] | null;
-  }>({ stats: null, endpoints: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; endpoints: any[] | null; }>({ stats: null, endpoints: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -217,7 +214,8 @@ export default function APIDiscoveryDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><EndpointStatusBadge status={ep.status ?? "documented"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

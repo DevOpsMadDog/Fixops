@@ -298,7 +298,8 @@ export default function SecurityTrainingDashboard() {
                 color={cat.completion >= 80 ? "bg-green-500" : cat.completion >= 60 ? "bg-yellow-500" : "bg-red-500"}
               />
             </div>
-          )))}
+          ))
+        )}
         </div>
       )}
     </div>

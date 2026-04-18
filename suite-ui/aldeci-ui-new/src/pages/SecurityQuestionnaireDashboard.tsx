@@ -204,7 +204,7 @@ export default function SecurityQuestionnaireDashboard() {
             <div className="text-3xl font-bold">{k.value}</div>
             <div className="text-gray-500 text-xs mt-1">{k.sub}</div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Vendor risk summary */}
@@ -217,7 +217,7 @@ export default function SecurityQuestionnaireDashboard() {
               <div className="text-gray-500 text-xs">risk vendors</div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Tabs */}
@@ -232,7 +232,7 @@ export default function SecurityQuestionnaireDashboard() {
           >
             {tab}
           </button>
-        ))}
+        )))}
       </div>
 
       {activeTab === "assessments" ? (
@@ -248,7 +248,7 @@ export default function SecurityQuestionnaireDashboard() {
                   <tr>
                     {["Vendor","Questionnaire","Status","Score","Risk","Due Date"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    ))}
+                    )))}
                   </tr>
                 </thead>
                 <tbody>

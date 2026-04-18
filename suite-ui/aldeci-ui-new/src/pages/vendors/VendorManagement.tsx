@@ -656,7 +656,7 @@ function AssessmentPanel({ vendor }: { vendor: Vendor }) {
                   )}
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       )}

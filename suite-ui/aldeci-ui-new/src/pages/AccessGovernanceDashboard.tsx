@@ -305,7 +305,8 @@ export default function AccessGovernanceDashboard() {
                 )}
               </div>
             </div>
-          )))}
+          ))
+        )}
         </div>
       </div>
 
@@ -339,7 +340,8 @@ export default function AccessGovernanceDashboard() {
                 </span>
               </div>
             </div>
-          )))}
+          ))
+        )}
         </div>
       </div>
     </div>

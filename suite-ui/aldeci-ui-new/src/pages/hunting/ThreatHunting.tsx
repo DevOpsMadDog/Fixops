@@ -843,7 +843,7 @@ function PredefinedQueryCard({ query, onRun }: { query: PredefinedQuery; onRun: 
               <span key={tag} className="rounded bg-muted/40 border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono">
                 {tag}
               </span>
-            ))}
+            )))}
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-border mt-1">
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -940,7 +940,7 @@ function FindingRow({ finding }: { finding: HuntFinding }) {
                     <div className="flex flex-wrap gap-1.5">
                       {finding.iocs.map((ioc) => (
                         <IocHighlight key={ioc} value={ioc} />
-                      ))}
+                      )))}
                     </div>
                   </div>
                   <div>
@@ -1238,8 +1238,7 @@ export default function ThreatHunting() {
                               query={query}
                               onRun={handleRunQuery}
                             />
-                          ))
-                          )}
+                          )))}
                         </div>
                       )}
                     </CardContent>
@@ -1289,7 +1288,7 @@ export default function ThreatHunting() {
                           <tbody>
                             {findings.map((finding) => (
                               <FindingRow key={finding.id} finding={finding} />
-                            ))}
+                            )))}
                           </tbody>
                         </table>
                       </div>

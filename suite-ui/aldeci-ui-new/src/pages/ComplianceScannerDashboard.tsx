@@ -340,7 +340,8 @@ export default function ComplianceScannerDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>
@@ -384,8 +385,7 @@ export default function ComplianceScannerDashboard() {
                       {row.days < 0 ? `${Math.abs(row.days)}d overdue` : `${row.days}d`}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>

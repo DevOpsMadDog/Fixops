@@ -304,7 +304,8 @@ export default function IncidentResponseDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -366,7 +367,8 @@ export default function IncidentResponseDashboard() {
                     )}
                   </div>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </CardContent>
         </Card>
@@ -415,7 +417,8 @@ export default function IncidentResponseDashboard() {
                   </div>
                 </div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>

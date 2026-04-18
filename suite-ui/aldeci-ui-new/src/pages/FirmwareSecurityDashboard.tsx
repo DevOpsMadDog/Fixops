@@ -111,12 +111,8 @@ function StatusBadge({ status }: { status: string }) {
 export default function FirmwareSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    devices: any[] | null;
-    vulns: any[] | null;
-  }>({ stats: null, devices: null, vulns: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; devices: any[] | null; vulns: any[] | null; }>({ stats: null, devices: null, vulns: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -222,7 +218,8 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2"><RiskBadge level={d.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.last_scanned}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -274,7 +271,8 @@ export default function FirmwareSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

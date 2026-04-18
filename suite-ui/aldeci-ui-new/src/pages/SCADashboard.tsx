@@ -217,7 +217,8 @@ export default function SCADashboard() {
                       <RiskBadge level={proj.risk_level} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

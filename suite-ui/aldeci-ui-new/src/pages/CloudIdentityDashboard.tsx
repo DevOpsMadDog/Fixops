@@ -240,7 +240,8 @@ export default function CloudIdentityDashboard() {
                         : <XCircle    className="h-3.5 w-3.5 text-gray-500 inline" />}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -286,7 +287,8 @@ export default function CloudIdentityDashboard() {
                     <TableCell className="py-2"><ReviewOutcomeBadge outcome={rev.outcome ?? "no_action"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(rev.reviewed_at)}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

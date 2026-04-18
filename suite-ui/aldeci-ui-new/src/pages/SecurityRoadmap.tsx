@@ -278,7 +278,8 @@ export default function SecurityRoadmap() {
                       </div>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -319,7 +320,8 @@ export default function SecurityRoadmap() {
                       <div className="text-[10px] text-muted-foreground">{m.date}</div>
                     </div>
                   </div>
-                )))}
+                ))
+              )}
               </div>
             </div>
           </CardContent>

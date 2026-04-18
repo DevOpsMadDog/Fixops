@@ -264,7 +264,7 @@ function ModelTreeNode({ node, depth = 0 }: { node: ModelNode; depth?: number })
               >
                 {s === "All" ? "All" : s.split(" ")[0]}
               </span>
-            ))}
+            )))}
             {node.sources.length > 3 && (
               <span className="text-[9px] text-muted-foreground">+{node.sources.length - 3}</span>
             )}
@@ -276,7 +276,7 @@ function ModelTreeNode({ node, depth = 0 }: { node: ModelNode; depth?: number })
         <div>
           {node.children!.map((child) => (
             <ModelTreeNode key={child.id} node={child} depth={depth + 1} />
-          ))}
+          )))}
         </div>
       )}
     </div>
@@ -783,7 +783,7 @@ export default function DataFabric() {
               <div className="space-y-1">
                 {DATA_MODEL_TREE.map((node) => (
                   <ModelTreeNode key={node.id} node={node} depth={0} />
-                ))}
+                )))}
               </div>
             </ScrollArea>
             <Separator className="my-3" />

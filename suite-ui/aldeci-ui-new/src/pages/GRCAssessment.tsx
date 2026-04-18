@@ -318,7 +318,8 @@ export default function GRCAssessment() {
               >
                 {fw}
               </button>
-            )))}
+            ))
+          )}
           </div>
           <CardDescription className="text-xs mt-1">
             {implemented} of {controls.length} controls implemented ({passRate}% pass rate)
@@ -367,7 +368,8 @@ export default function GRCAssessment() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Update</Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -404,7 +406,8 @@ export default function GRCAssessment() {
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">{g.desc}</p>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
 

@@ -269,7 +269,8 @@ export default function ActorTrackingDashboard() {
               </div>
             </div>
           </div>
-        )))}
+        ))
+      )}
       </div>
 
       {/* Bottom: Activity feed + Intel panel + TTP bars */}
@@ -301,8 +302,7 @@ export default function ActorTrackingDashboard() {
                 <div className="flex flex-wrap gap-1 mt-2">
                   {ev.affected_sectors.map(s => (
                     <span key={s} className="bg-gray-700 text-gray-400 text-xs px-1.5 py-0.5 rounded">{s}</span>
-                  ))
-                )}
+                  )))}
                 </div>
                 <div className="text-gray-500 text-xs mt-1">{relativeTime(ev.timestamp)}</div>
               </div>

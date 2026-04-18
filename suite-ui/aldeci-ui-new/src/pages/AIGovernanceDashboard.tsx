@@ -223,7 +223,8 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2"><RiskBadge level={m.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{m.data_classification}</TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -273,7 +274,8 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

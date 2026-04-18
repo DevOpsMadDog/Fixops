@@ -241,7 +241,8 @@ export default function IdentityAnalyticsDashboard() {
                 />
               </div>
             </div>
-          )))}
+          ))
+        )}
         </CardContent>
       </Card>
 
@@ -304,8 +305,7 @@ export default function IdentityAnalyticsDashboard() {
                     <TableCell className="py-2.5"><TierBadge tier={row.tier} /></TableCell>
                     <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{row.last}</TableCell>
                   </TableRow>
-                ))
-              )}
+                )))}
               </TableBody>
             </Table>
           </div>
@@ -356,7 +356,8 @@ export default function IdentityAnalyticsDashboard() {
                       </TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{ev.at}</TableCell>
                     </TableRow>
-                  )))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -392,8 +393,7 @@ export default function IdentityAnalyticsDashboard() {
                   Resolve
                 </Button>
               </div>
-            ))
-          )}
+            )))}
           </CardContent>
         </Card>
       </div>

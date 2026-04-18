@@ -377,7 +377,8 @@ export default function NDRDashboard() {
                     </Badge>
                   </div>
                 </div>
-              )))}
+              ))
+            )}
             </div>
           </CardContent>
         </Card>
@@ -411,7 +412,8 @@ export default function NDRDashboard() {
                 </div>
                 <div className="text-[10px] text-amber-400 font-medium">+{a.deviation}% above baseline</div>
               </div>
-            )))}
+            ))
+          )}
           </CardContent>
         </Card>
       </div>

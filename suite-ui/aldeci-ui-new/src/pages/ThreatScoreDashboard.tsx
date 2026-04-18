@@ -105,12 +105,8 @@ function fmtTime(ts: string): string {
 export default function ThreatScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    topThreats: any[] | null;
-    distribution: any | null;
-  }>({ stats: null, topThreats: null, distribution: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; topThreats: any[] | null; distribution: any | null; }>({ stats: null, topThreats: null, distribution: null });
 
   const fetchData = () => {
     setDataLoading(true);

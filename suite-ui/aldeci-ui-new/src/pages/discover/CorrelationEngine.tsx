@@ -234,7 +234,7 @@ function MergeSplitDialog({
             <div className="flex gap-2 mt-2">
               {group.scanners.map((s) => (
                 <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
-              ))}
+              )))}
             </div>
           </div>
           <div className="space-y-2">
@@ -403,7 +403,7 @@ export default function CorrelationEngine() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28" />
-          ))}
+          )))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Skeleton className="h-72 col-span-2" />
@@ -798,7 +798,7 @@ function VulnGroupRow({
               <Badge key={s} variant="outline" className="text-[10px] h-4 px-1.5">
                 {s}
               </Badge>
-            ))}
+            )))}
           </div>
         </div>
 
@@ -854,7 +854,7 @@ function VulnGroupRow({
                   <Badge key={c} variant="secondary" className="text-[10px]">
                     {c}
                   </Badge>
-                ))}
+                )))}
               </div>
             </div>
             <div>

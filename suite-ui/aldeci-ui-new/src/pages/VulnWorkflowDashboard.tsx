@@ -204,7 +204,8 @@ export default function VulnWorkflowDashboard() {
                       <StatusBadge status={wf.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>

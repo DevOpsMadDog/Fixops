@@ -540,7 +540,7 @@ function RepoAccordion({ repos }: { repos: Repo[] }) {
                         )}
                         <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </div>
-                    ))}
+                    )))}
                     {repo.findings.length === 0 && (
                       <div className="px-8 py-4 text-sm text-muted-foreground flex items-center gap-2">
                         <Shield className="h-4 w-4 text-green-400" />
@@ -968,7 +968,7 @@ export default function DevSecurityDashboard() {
         <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-24 bg-muted rounded-xl" />
-          ))}
+          )))}
         </div>
         <div className="h-48 bg-muted rounded-xl" />
         <div className="h-48 bg-muted rounded-xl" />

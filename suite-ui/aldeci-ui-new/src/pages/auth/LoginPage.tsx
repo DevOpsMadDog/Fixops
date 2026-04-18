@@ -295,7 +295,7 @@ export default function LoginPage() {
                       </span>
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
-                  ))}
+                  )))}
 
                 <p className="pt-2 text-center text-xs text-muted-foreground">
                   You will be redirected to your identity provider to complete sign-in.

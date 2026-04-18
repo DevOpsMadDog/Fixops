@@ -136,12 +136,8 @@ function ThreatStatusBadge({ status }: { status: string }) {
 export default function CloudWorkloadProtectionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{
   const [loading, setLoading] = useState(true);
-    stats: any | null;
-    workloads: any[] | null;
-    threats: any[] | null;
-  }>({ stats: null, workloads: null, threats: null });
+  const [liveData, setLiveData] = useState<{ stats: any | null; workloads: any[] | null; threats: any[] | null; }>({ stats: null, workloads: null, threats: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -247,7 +243,8 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2"><RiskBadge level={w.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2"><ProtectionStatusBadge status={w.protection_status ?? "protected"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
@@ -295,7 +292,8 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{t.workload_id}</TableCell>
                     <TableCell className="py-2"><ThreatStatusBadge status={t.status ?? "active"} /></TableCell>
                   </TableRow>
-                )))}
+                ))
+              )}
               </TableBody>
             </Table>
           </div>
