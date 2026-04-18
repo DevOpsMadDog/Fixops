@@ -17,7 +17,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, BarChart, Bar, Legend
 } from "recharts";
-import { useDashboardTrends, useDashboardOverview } from "@/hooks/use-api";
+import { useDashboardTrends, useDashboardOverview, useComplianceOverallStatus } from "@/hooks/use-api";
 
 const CHART_THEME = {
   grid: "#1e293b",
@@ -67,20 +67,23 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState("6m");
   const trendsQuery = useDashboardTrends({ range: timeRange });
   const overviewQuery = useDashboardOverview();
+  const complianceQuery = useComplianceOverallStatus();
 
   const refetchAll = useCallback(() => {
     trendsQuery.refetch();
     overviewQuery.refetch();
-  }, [trendsQuery, overviewQuery]);
+    complianceQuery.refetch();
+  }, [trendsQuery, overviewQuery, complianceQuery]);
 
   const isLoading = trendsQuery.isLoading || overviewQuery.isLoading;
-  const isError = trendsQuery.isError;
+  const isError = trendsQuery.isError && complianceQuery.isError;
 
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load analytics data" onRetry={refetchAll} />;
 
   const trends: any = trendsQuery.data?.data ?? trendsQuery.data ?? {};
   const overview: any = overviewQuery.data?.data ?? overviewQuery.data ?? {};
+  const complianceStatus: any = complianceQuery.data?.data ?? complianceQuery.data ?? {};
 
   // Extract trend arrays
   const mttrTrend: any[] = trends.mttr_trend ?? trends.mttr ?? [];
@@ -89,11 +92,11 @@ export default function Analytics() {
   const scannerData: any[] = trends.scanner_effectiveness ?? trends.scanners ?? [];
   const costPerFixTrend: any[] = trends.cost_per_fix ?? [];
 
-  // KPIs
-  const currentMttr = overview.mttr ?? trends.current_mttr ?? "—";
-  const noiseReduction = overview.noise_reduction ?? trends.current_noise_reduction ?? "—";
-  const slaCompliance = overview.sla_compliance ?? trends.current_sla_compliance ?? "—";
-  const scannerRoi = overview.scanner_roi ?? trends.scanner_roi ?? "—";
+  // KPIs — prefer live compliance status, then overview, then trends, then fallback
+  const currentMttr = complianceStatus.mttr ?? overview.mttr ?? trends.current_mttr ?? "—";
+  const noiseReduction = complianceStatus.noise_reduction ?? overview.noise_reduction ?? trends.current_noise_reduction ?? "—";
+  const slaCompliance = complianceStatus.sla_compliance ?? complianceStatus.overall_compliance ?? overview.sla_compliance ?? trends.current_sla_compliance ?? "—";
+  const scannerRoi = complianceStatus.scanner_roi ?? overview.scanner_roi ?? trends.scanner_roi ?? "—";
 
   const handleExportCSV = () => {
     const rows = [

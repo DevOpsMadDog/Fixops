@@ -46,15 +46,19 @@ export default function AccessAnomalyDashboard() {
   const [anomalies, setAnomalies] = useState<Anomaly[]>(MOCK_ANOMALIES);
   const [loading, setLoading] = useState(true);
   const [showResolved, setShowResolved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = () => {
     setLoading(true);
+    setError(null);
     fetch(`${API_BASE}/anomalies`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => { if (Array.isArray(d)) setAnomalies(d); })
-      .catch(() => {})
+      .catch(err => setError(err.message || 'Failed to load data'))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const filtered = showResolved ? anomalies : anomalies.filter(a => !a.resolved);
   const highRisk = anomalies.filter(a => a.risk_score >= 80 && !a.resolved).length;
@@ -62,6 +66,13 @@ export default function AccessAnomalyDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -69,7 +80,7 @@ export default function AccessAnomalyDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Impossible travel, off-hours access, and privilege anomalies</p>
         </div>
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+        <button onClick={() => { setError(null); fetchData(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>

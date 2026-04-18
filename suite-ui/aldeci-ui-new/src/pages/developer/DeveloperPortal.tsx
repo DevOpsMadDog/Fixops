@@ -7,7 +7,7 @@
  * Route: /developer
  */
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GitBranch, ShieldAlert, Clock, Star, TrendingUp, TrendingDown,
@@ -24,6 +24,25 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+
+// ═══════════════════════════════════════════════════════════
+// API helpers
+// ═══════════════════════════════════════════════════════════
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_KEY_VAL =
+  (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
+  import.meta.env.VITE_API_KEY ||
+  "dev-key";
+const ORG_ID = "aldeci-demo";
+
+async function apiFetch(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "X-API-Key": API_KEY_VAL },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -921,24 +940,82 @@ export default function DeveloperPortal() {
   const [repoFilter, setRepoFilter] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Live data state with mock fallback
+  const [repos, setRepos] = useState<Repo[]>(MOCK_REPOS);
+  const [findings, setFindings] = useState<Finding[]>(MOCK_FINDINGS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setLoading(true);
+    setError(null);
+    Promise.allSettled([
+      apiFetch(`/api/v1/developer-portal/repos?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/developer-portal/findings?org_id=${ORG_ID}`),
+    ]).then(([reposResult, findingsResult]) => {
+      if (reposResult.status === "fulfilled") {
+        const items = Array.isArray(reposResult.value) ? reposResult.value : reposResult.value?.repos;
+        if (Array.isArray(items) && items.length > 0) {
+          setRepos(
+            items.map((r: any) => ({
+              id: r.id ?? `r-${Date.now()}`,
+              name: r.name ?? r.repo_name ?? "unknown",
+              language: r.language ?? r.primary_language ?? "Unknown",
+              grade: (r.grade ?? r.security_grade ?? "C") as Grade,
+              findings: r.findings ?? r.finding_count ?? 0,
+              lastScan: r.last_scan ? new Date(r.last_scan) : (r.lastScan ? new Date(r.lastScan) : new Date()),
+              trend: (r.trend ?? "flat") as Trend,
+              trendDelta: r.trend_delta ?? r.trendDelta ?? 0,
+              branch: r.branch ?? r.default_branch ?? "main",
+            }))
+          );
+        }
+      }
+      if (findingsResult.status === "fulfilled") {
+        const items = Array.isArray(findingsResult.value) ? findingsResult.value : findingsResult.value?.findings;
+        if (Array.isArray(items) && items.length > 0) {
+          setFindings(
+            items.map((f: any) => ({
+              id: f.id ?? f.finding_id ?? `FND-${Date.now()}`,
+              severity: (f.severity ?? "medium") as Severity,
+              title: f.title ?? f.description ?? "Untitled finding",
+              repo: f.repo ?? f.repo_name ?? "unknown",
+              type: (f.type ?? f.finding_type ?? "sast") as Finding["type"],
+              fixAvailable: f.fix_available ?? f.fixAvailable ?? false,
+              age: f.age ?? (f.created_at ? Math.round((Date.now() - new Date(f.created_at).getTime()) / 86_400_000) : 0),
+              cve: f.cve ?? f.cve_id ?? undefined,
+              fixSuggestion: f.fix_suggestion ?? f.fixSuggestion ?? undefined,
+            }))
+          );
+        }
+      }
+      if (reposResult.status === "rejected" && findingsResult.status === "rejected") {
+        setError("Could not reach the API server. Showing demo data.");
+      }
+    }).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, []);
+
   // KPI computation
   const totalFixed = 47;
   const avgFixTime = "2.1d";
-  const reposOwned = MOCK_REPOS.length;
+  const reposOwned = repos.length;
   const secScore = Math.round(
-    (MOCK_REPOS.reduce((sum, r) => {
+    (repos.reduce((sum, r) => {
       const scoreMap: Record<Grade, number> = { A: 95, B: 80, C: 60, D: 40, F: 20 };
       return sum + scoreMap[r.grade];
-    }, 0) / MOCK_REPOS.length)
+    }, 0) / Math.max(repos.length, 1))
   );
 
-  const criticalCount = MOCK_FINDINGS.filter((f) => f.severity === "critical").length;
-  const fixableCount  = MOCK_FINDINGS.filter((f) => f.fixAvailable).length;
+  const criticalCount = findings.filter((f) => f.severity === "critical").length;
+  const fixableCount  = findings.filter((f) => f.fixAvailable).length;
 
-  const repoNames = [...new Set(MOCK_FINDINGS.map((f) => f.repo))];
+  const repoNames = [...new Set(findings.map((f) => f.repo))];
 
   function handleRefresh() {
     setIsRefreshing(true);
+    loadData();
     setTimeout(() => setIsRefreshing(false), 1200);
   }
 
@@ -962,7 +1039,34 @@ export default function DeveloperPortal() {
         }
       />
 
-      {/* ── KPI Bar ── */}
+      {/* -- Loading state -- */}
+      {loading && (
+        <div className="p-6 rounded-lg border border-border/40 bg-muted/10">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-muted rounded w-1/4" />
+            <div className="grid grid-cols-4 gap-4">
+              <div className="h-20 bg-muted rounded-lg" />
+              <div className="h-20 bg-muted rounded-lg" />
+              <div className="h-20 bg-muted rounded-lg" />
+              <div className="h-20 bg-muted rounded-lg" />
+            </div>
+            <div className="h-40 bg-muted rounded-lg" />
+          </div>
+        </div>
+      )}
+
+      {/* -- Error state -- */}
+      {error && !loading && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-950/20 text-amber-400 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs text-amber-400 hover:text-amber-300" onClick={loadData}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
+
+      {/* -- KPI Bar -- */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <KpiCard
           title="Findings Fixed"
@@ -1005,13 +1109,24 @@ export default function DeveloperPortal() {
             {criticalCount} critical finding{criticalCount > 1 ? "s" : ""} require immediate attention
           </span>
           <span className="ml-auto text-xs text-muted-foreground">
-            {fixableCount} of {MOCK_FINDINGS.length} total have AI fix suggestions — click to expand
+            {fixableCount} of {findings.length} total have AI fix suggestions — click to expand
           </span>
         </motion.div>
       )}
 
-      {/* ── Repos Table ── */}
-      <ReposTable repos={MOCK_REPOS} />
+      {/* -- Empty state -- */}
+      {!loading && repos.length === 0 && findings.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <GitBranch className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm font-medium text-muted-foreground">No data available</p>
+            <p className="text-xs text-muted-foreground mt-1">No repositories or findings found. Connect your repos to get started.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* -- Repos Table -- */}
+      <ReposTable repos={repos} />
 
       {/* ── Findings + Sidebar ── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_280px]">
@@ -1062,7 +1177,7 @@ export default function DeveloperPortal() {
             {/* Severity summary pills */}
             <div className="flex items-center gap-2 ml-auto">
               {(["critical", "high", "medium", "low"] as Severity[]).map((sev) => {
-                const count = MOCK_FINDINGS.filter((f) => f.severity === sev).length;
+                const count = findings.filter((f) => f.severity === sev).length;
                 return count > 0 ? (
                   <button
                     key={sev}
@@ -1083,7 +1198,7 @@ export default function DeveloperPortal() {
           </div>
 
           <FindingsTable
-            findings={MOCK_FINDINGS}
+            findings={findings}
             repoFilter={repoFilter}
             severityFilter={severityFilter}
           />

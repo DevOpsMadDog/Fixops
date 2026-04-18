@@ -93,6 +93,17 @@ function RiskBadge({ level }: { level: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[level] ?? "border-border text-muted-foreground")}>
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {level}
     </Badge>
   );
@@ -134,11 +145,12 @@ function PctBar({ pct, color = "bg-blue-500" }: { pct: number; color?: string })
 
 export default function RiskQuantDashboard() {
   const [scenarioFilter, setScenarioFilter] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [form, setForm] = useState({
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",

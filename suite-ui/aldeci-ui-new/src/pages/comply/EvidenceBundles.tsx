@@ -21,7 +21,7 @@ import {
   Calendar, CheckCircle, AlertTriangle, Layers, Download, Zap,
   ArrowLeftRight, GitMerge, Eye
 } from "lucide-react";
-import { useEvidenceBundles, useApps, useComplianceFrameworks, useGenerateEvidence } from "@/hooks/use-api";
+import { useEvidenceBundles, useEvidenceList, useApps, useComplianceFrameworks, useGenerateEvidence } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 const FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST"];
@@ -270,23 +270,29 @@ function GenerateBundleDialog({ apps, frameworks, onGenerate }: {
 
 export default function EvidenceBundles() {
   const [selectedApp, setSelectedApp] = useState("all");
-  const bundlesQuery = useEvidenceBundles(selectedApp !== "all" ? { app_id: selectedApp } : {});
+  const listParams = selectedApp !== "all" ? { app_id: selectedApp } : {};
+  const evidenceListQuery = useEvidenceList(listParams);
+  const bundlesQuery = useEvidenceBundles(listParams);
   const appsQuery = useApps();
   const frameworksQuery = useComplianceFrameworks();
   const generateMutation = useGenerateEvidence();
 
   const refetchAll = useCallback(() => {
+    evidenceListQuery.refetch();
     bundlesQuery.refetch();
     appsQuery.refetch();
-  }, [bundlesQuery, appsQuery]);
+  }, [evidenceListQuery, bundlesQuery, appsQuery]);
 
-  const isLoading = bundlesQuery.isLoading || appsQuery.isLoading;
-  const isError = bundlesQuery.isError;
+  const isLoading = (evidenceListQuery.isLoading && bundlesQuery.isLoading) || appsQuery.isLoading;
+  const isError = evidenceListQuery.isError && bundlesQuery.isError;
 
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load evidence bundles" onRetry={refetchAll} />;
 
-  const bundles: any[] = toArray(bundlesQuery.data);
+  // Prefer evidence/list data, fall back to evidence/bundles
+  const bundles: any[] = toArray(evidenceListQuery.data).length > 0
+    ? toArray(evidenceListQuery.data)
+    : toArray(bundlesQuery.data);
   const apps: any[] = toArray(appsQuery.data);
   const frameworks: string[] = toArray(frameworksQuery.data).map((f: any) => {
     if (typeof f === "string") return f;

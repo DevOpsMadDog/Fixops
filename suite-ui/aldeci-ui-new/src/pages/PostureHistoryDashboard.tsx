@@ -100,6 +100,7 @@ function scoreBarColor(score: number) {
 
 export default function PostureHistoryDashboard() {
   const [period, setPeriod] = useState<Period>("weekly");
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -107,7 +108,7 @@ export default function PostureHistoryDashboard() {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const [selectedDomain, setSelectedDomain] = useState<Domain>("network");
@@ -119,6 +120,17 @@ export default function PostureHistoryDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
