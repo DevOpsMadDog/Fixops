@@ -258,6 +258,8 @@ export const remediationApi = {
 
 export const evidenceApi = {
   bundles: (params?: Record<string, unknown>) => api.get("/api/v1/evidence/bundles", { params }),
+  list: (params?: Record<string, unknown>) => api.get("/api/v1/evidence/bundles", { params }),
+  summary: () => api.get("/api/v1/evidence/compliance-status"),
   get: (id: string) => api.get(`/api/v1/evidence/bundles/${id}`),
   generate: (data: unknown) => api.post("/api/v1/evidence/generate", data),
   verify: (id: string) => api.get(`/api/v1/evidence/bundles/${id}/verify`),
@@ -265,8 +267,21 @@ export const evidenceApi = {
   complianceStatus: () => api.get("/api/v1/evidence/compliance-status"),
 };
 
+export const complianceEvidenceApi = {
+  requests: (params?: Record<string, unknown>) => api.get("/api/v1/compliance-evidence/requests", { params }),
+  createRequest: (data: unknown) => api.post("/api/v1/compliance-evidence/requests", data),
+  listEvidence: (requestId: string, params?: Record<string, unknown>) => api.get(`/api/v1/compliance-evidence/requests/${requestId}/evidence`, { params }),
+  submitEvidence: (requestId: string, data: unknown) => api.post(`/api/v1/compliance-evidence/requests/${requestId}/evidence`, data),
+  approve: (requestId: string, data: unknown) => api.post(`/api/v1/compliance-evidence/requests/${requestId}/approve`, data),
+  reject: (requestId: string, data: unknown) => api.post(`/api/v1/compliance-evidence/requests/${requestId}/reject`, data),
+  autoCollect: (data: unknown) => api.post("/api/v1/compliance-evidence/auto-collect", data),
+  auditReadiness: (params?: Record<string, unknown>) => api.get("/api/v1/compliance-evidence/audit-readiness", { params }),
+  stats: (params?: Record<string, unknown>) => api.get("/api/v1/compliance-evidence/stats", { params }),
+};
+
 export const complianceApi = {
   status: () => api.get("/api/v1/compliance-engine/status"),
+  overallStatus: () => api.get("/api/v1/compliance/status"),
   frameworks: () => api.get("/api/v1/compliance-engine/frameworks"),
   gaps: () => api.get("/api/v1/compliance-engine/gaps"),
   assess: (data: unknown) => api.post("/api/v1/compliance-engine/assess", data),
