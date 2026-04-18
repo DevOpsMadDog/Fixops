@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_benchmarks:    18,
@@ -68,7 +68,7 @@ const MOCK_FAILED_CONTROLS = [
   { control_id: "ISO-A.9.4.2","title": "Secure log-on procedures",                       severity: "medium",   result: "fail", benchmark_id: "iso-27001" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -107,13 +107,16 @@ function FrameworkBadge({ framework }: { framework: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PostureBenchmarkingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; benchmarks: any[] | null; controls: any[] | null; }>({ stats: null, benchmarks: null, controls: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    benchmarks: any[] | null;
+    controls: any[] | null;
+  }>({ stats: null, benchmarks: null, controls: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -141,14 +144,6 @@ export default function PostureBenchmarkingDashboard() {
   const stats      = liveData.stats      ?? MOCK_STATS;
   const benchmarks = liveData.benchmarks ?? MOCK_BENCHMARKS;
   const controls   = liveData.controls   ?? MOCK_FAILED_CONTROLS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -204,13 +199,7 @@ export default function PostureBenchmarkingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {benchmarks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  benchmarks.map((b: any, i: number) => (
+                {benchmarks.map((b: any, i: number) => (
                   <TableRow key={b.benchmark_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{b.benchmark_name}</TableCell>
                     <TableCell className="py-2"><FrameworkBadge framework={b.framework ?? "NIST"} /></TableCell>
@@ -219,8 +208,7 @@ export default function PostureBenchmarkingDashboard() {
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{b.industry_avg_score?.toFixed(1)}%</TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{b.percentile}th</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -254,13 +242,7 @@ export default function PostureBenchmarkingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {controls.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  controls.map((c: any, i: number) => (
+                {controls.map((c: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-blue-400">{c.control_id}</TableCell>
                     <TableCell className="py-2 text-[11px]">{c.title}</TableCell>
@@ -270,8 +252,7 @@ export default function PostureBenchmarkingDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.benchmark_id}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

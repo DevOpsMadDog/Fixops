@@ -479,7 +479,7 @@ export default function AttackPaths() {
                         </div>
                         <BlastRadiusBar radius={path.blast_radius} />
                       </div>
-                    )))}
+                    ))}
                   {allPaths.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-2">No paths available</p>
                   )}
@@ -550,7 +550,7 @@ export default function AttackPaths() {
                       <p className="text-xs text-muted-foreground mb-1">{label}</p>
                       <div className="text-sm font-medium">{value}</div>
                     </div>
-                  )))}
+                  ))}
                 </div>
 
                 {detailPath.description && (
@@ -611,7 +611,7 @@ export default function AttackPaths() {
                             <p className="text-xs text-muted-foreground">{step.action}</p>
                           </div>
                         </div>
-                      )))}
+                      ))}
                     </div>
                   )}
                 </div>

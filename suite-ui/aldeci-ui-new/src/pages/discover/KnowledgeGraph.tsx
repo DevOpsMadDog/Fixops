@@ -206,7 +206,7 @@ export default function KnowledgeGraph() {
                 variant="ghost"
                 size="sm"
                 className="w-full text-xs h-7"
-                onClick={() => setActiveNodeTypes(new Set(NODE_TYPES.map((n) => n.key))}
+                onClick={() => setActiveNodeTypes(new Set(NODE_TYPES.map((n) => n.key)))}
               >
                 Select All
               </Button>
@@ -469,7 +469,7 @@ export default function KnowledgeGraph() {
           {nlQueryMutation.isError && (
             <Card className="border-red-500/20">
               <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-red-400" role="status" aria-live="polite">
+                <div className="flex items-center gap-2 text-red-400">
                   <Shield className="h-4 w-4" />
                   <p className="text-sm">Query failed. Please check your connection and try again.</p>
                 </div>

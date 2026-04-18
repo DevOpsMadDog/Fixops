@@ -44,20 +44,15 @@ const blastBadge = (b: string) => {
 
 export default function CloudIRDashboard() {
   const [activeTab, setActiveTab] = useState<"incidents" | "actions" | "playbooks">("incidents");
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => {
-    // live data loaded = components read from API response
-    void d;
-    })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
 
   const [filterIncident, setFilterIncident] = useState("all");
   const [filterProvider, setFilterProvider] = useState("all");
@@ -81,13 +76,6 @@ export default function CloudIRDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Cloud Incident Response</h1>
@@ -151,26 +139,20 @@ export default function CloudIRDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Incident", "Provider", "Type", "Severity", "Status", "Containment", "Resolution", "Blast Radius", "Services", "Regions"].map(h => <th key={h} className="text-left px-4 py-2 whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {incidents.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    incidents.map(i => (
+                  {incidents.map(i => (
                     <tr key={i.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium whitespace-nowrap">{i.incident_name}</td>
                       <td className="px-4 py-3">{providerBadge(i.cloud_provider)}</td>
                       <td className="px-4 py-3"><span className="bg-purple-700 text-purple-100 text-xs px-2 py-0.5 rounded">{i.incident_type.replace("_", " ")}</span></td>
                       <td className="px-4 py-3">{severityBadge(i.severity)}</td>
                       <td className="px-4 py-3">{statusBadge(i.status)}</td>
-                      <td className="px-4 py-3 text-gray-300">{i.containment_time_mins > 0 ? `${i.containment_time_mins}m` : "="}</td>
-                      <td className="px-4 py-3 text-gray-300">{i.resolution_time_mins > 0 ? `${i.resolution_time_mins}m` : "="}</td>
+                      <td className="px-4 py-3 text-gray-300">{i.containment_time_mins > 0 ? `${i.containment_time_mins}m` : "—"}</td>
+                      <td className="px-4 py-3 text-gray-300">{i.resolution_time_mins > 0 ? `${i.resolution_time_mins}m` : "—"}</td>
                       <td className="px-4 py-3">{blastBadge(i.blast_radius)}</td>
                       <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{i.affected_services.length}</span></td>
                       <td className="px-4 py-3">
@@ -179,8 +161,7 @@ export default function CloudIRDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -195,31 +176,17 @@ export default function CloudIRDashboard() {
                 <h2 className="font-semibold">Containment Actions</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterIncident} onChange={e => setFilterIncident(e.target.value)}>
                   <option value="all">All Incidents</option>
-                  {incidents.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
+                  {incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAddAction(!showAddAction)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">+ Add Action</button>
-                  )}
             </div>
             {showAddAction && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newAction.incident_id} onChange={e => setNewAction({ ...newAction, incident_id: e.target.value })}>
-                  {incidents.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
+                  {incidents.map(i => <option key={i.id} value={i.id}>{i.incident_name}</option>)}
                 </select>
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newAction.action_type} onChange={e => setNewAction({ ...newAction, action_type: e.target.value })}>
-                  )}
                   {["isolate","terminate_instance","revoke_credentials","revoke_tokens","snapshot","block_ip"].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Resource ID" value={newAction.resource_id} onChange={e => setNewAction({ ...newAction, resource_id: e.target.value })} />
@@ -231,13 +198,7 @@ export default function CloudIRDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredActions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filteredActions.map(a => (
+              {filteredActions.map(a => (
                 <div key={a.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -248,13 +209,13 @@ export default function CloudIRDashboard() {
                       </div>
                       <p className="text-sm font-medium">{a.description}</p>
                       <p className="text-xs text-gray-400 font-mono mt-0.5">{a.resource_id}</p>
-                      <p className="text-xs text-gray-400 mt-1">By: {a.executed_by}{a.result && ` = ${a.result}`}</p>
+                      <p className="text-xs text-gray-400 mt-1">By: {a.executed_by}{a.result && ` — ${a.result}`}</p>
                     </div>
                     {a.status === "pending" && <button className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded">Execute</button>}
                     {a.status === "in_progress" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         )}
@@ -275,13 +236,7 @@ export default function CloudIRDashboard() {
               </select>
             </div>
             <div className="divide-y divide-gray-700">
-              {filteredPlaybooks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filteredPlaybooks.map(p => (
+              {filteredPlaybooks.map(p => (
                 <div key={p.id} className="p-4 flex items-center gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -297,7 +252,7 @@ export default function CloudIRDashboard() {
                   </div>
                   <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded">Execute</button>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         )}

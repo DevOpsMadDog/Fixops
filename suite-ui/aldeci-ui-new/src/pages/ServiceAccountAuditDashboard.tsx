@@ -32,7 +32,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ACCOUNTS = [
   { id: "SA-001", name: "svc-deploy-prod",    system: "Kubernetes",  risk_score: 92, last_rotation: "182d ago", unused: false, action: "rotate_now"  },
@@ -52,7 +52,7 @@ const MOCK_STATS = {
   overdue_rotations: 15,
 };
 
-// == Helpers ==================================================
+// ── Helpers ──────────────────────────────────────────────────
 
 function ActionBadge({ action }: { action: string }) {
   const map: Record<string, string> = {
@@ -76,13 +76,12 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-// == Component ================================================
+// ── Component ────────────────────────────────────────────────
 
 export default function ServiceAccountAuditDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -93,22 +92,13 @@ export default function ServiceAccountAuditDashboard() {
       const stats    = statsR.status    === "fulfilled" ? statsR.value    : null;
       const accounts = accountsR.status === "fulfilled" ? accountsR.value : null;
       if (stats || accounts) setLiveData({ stats, accounts });
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const stats    = liveData?.stats ?? MOCK_STATS;
   const accounts = liveData?.accounts?.items ?? liveData?.accounts ?? MOCK_ACCOUNTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -158,13 +148,7 @@ export default function ServiceAccountAuditDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  accounts.map((a: any, i: number) => (
+                {accounts.map((a: any, i: number) => (
                   <TableRow key={a.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-medium">{a.name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.system}</TableCell>
@@ -196,8 +180,7 @@ export default function ServiceAccountAuditDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><ActionBadge action={a.action} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

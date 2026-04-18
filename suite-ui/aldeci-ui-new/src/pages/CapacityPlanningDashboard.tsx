@@ -1,7 +1,7 @@
 /**
  * Capacity Planning Dashboard
  *
- * Security team capacity planning = FTE utilization, demand vs supply, skills.
+ * Security team capacity planning — FTE utilization, demand vs supply, skills.
  *   1. KPI cards: total_fte, utilized_fte, demand_fte, gap_fte (red if >0)
  *   2. Resources table (skills chips, utilization bar)
  *   3. Demands table (gap alert)
@@ -41,7 +41,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data =================================================================
+// ── Mock data ─────────────────────────────────────────────────────────────────
 
 const MOCK_RESOURCES = [
   { id: "r1", resource_name: "Alice Chen",       role: "SOC Analyst L2",         team: "SOC",         fte: 1.0, utilization_pct: 92, skills: ["SIEM","Threat Hunting","Python"],       status: "active" },
@@ -74,7 +74,7 @@ const UTILIZED_FTE = parseFloat((TOTAL_FTE * (MOCK_RESOURCES.reduce((s, r) => s 
 const DEMAND_FTE   = MOCK_DEMANDS.reduce((s, d) => s + d.required_fte, 0);
 const GAP_FTE      = parseFloat((DEMAND_FTE - TOTAL_FTE).toFixed(1));
 
-// == Helpers ===================================================================
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function RoleBadge({ role }: { role: string }) {
   return <Badge className="text-[10px] border border-blue-500/30 text-blue-400 bg-blue-500/10">{role}</Badge>;
@@ -124,33 +124,21 @@ function UtilBar({ pct }: { pct: number }) {
   );
 }
 
-// == Component =================================================================
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CapacityPlanningDashboard() {
   const [showResourceForm, setShowResourceForm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showDemandForm, setShowDemandForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-
-  const fetchData = () => {
-    setError(null);
-    apiFetch(`/api/v1/capacity-planning/resources?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    apiFetch(`/api/v1/capacity-planning/resources?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [resourceForm, setResourceForm] = useState({ resource_name: "", role: "", team: "SOC", fte: "1.0", status: "active" });
   const [demandForm, setDemandForm] = useState({ demand_name: "", domain: "cloud", priority: "high", required_fte: "1.0", timeline: "" });
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       <PageHeader
         title="Security Capacity Planning"
         description="Security team FTE utilization, demand vs supply gaps, and skills inventory"
@@ -276,13 +264,7 @@ export default function CapacityPlanningDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_RESOURCES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_RESOURCES.map(r => (
+                {MOCK_RESOURCES.map(r => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{r.resource_name}</TableCell>
                     <TableCell className="py-2"><RoleBadge role={r.role} /></TableCell>
@@ -293,7 +275,7 @@ export default function CapacityPlanningDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {r.skills.map(s => (
                           <Badge key={s} className="text-[9px] border border-border text-muted-foreground">{s}</Badge>
-                        )))}
+                        ))}
                       </div>
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge s={r.status} /></TableCell>
@@ -332,13 +314,7 @@ export default function CapacityPlanningDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_DEMANDS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_DEMANDS.map(d => (
+                {MOCK_DEMANDS.map(d => (
                   <TableRow key={d.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{d.demand_name}</TableCell>
                     <TableCell className="py-2">
@@ -356,8 +332,7 @@ export default function CapacityPlanningDashboard() {
                     <TableCell className="py-2"><StatusBadge s={d.status} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.timeline}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -374,13 +349,7 @@ export default function CapacityPlanningDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {MOCK_SNAPSHOTS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_SNAPSHOTS.map((snap, i) => (
+            {MOCK_SNAPSHOTS.map((snap, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className="text-[11px] text-muted-foreground w-24 shrink-0">{snap.snapshot_date}</span>
                 <div className="flex-1 h-6 bg-muted rounded overflow-hidden relative">
@@ -391,7 +360,7 @@ export default function CapacityPlanningDashboard() {
                   <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-white">{snap.utilization_rate}%</span>
                 </div>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

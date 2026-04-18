@@ -21,7 +21,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// == Mock data ==================================================================
+// ── Mock data ──────────────────────────────────────────────────────────────────
 
 const PROVIDERS = ["AWS", "Azure", "GCP", "Alibaba", "OCI", "IBM"];
 
@@ -58,7 +58,7 @@ const PROVIDER_COUNTS: Record<string, number> = {
   AWS: 3, Azure: 2, GCP: 2, Alibaba: 1, OCI: 1, IBM: 1,
 };
 
-// == Badge helpers ==============================================================
+// ── Badge helpers ──────────────────────────────────────────────────────────────
 
 function SeverityBadge({ s }: { s: string }) {
   const cls: Record<string, string> = {
@@ -100,24 +100,19 @@ function dayAge(dateStr: string) {
   return Math.round((now.getTime() - d.getTime()) / 86400000);
 }
 
-// == Main Component =============================================================
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
-  const [error, setError] = useState<string | null>(null);
   const [findings, setFindings] = useState(MOCK_FINDINGS);
   const [ingesting, setIngesting] = useState(false);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     apiFetch(`/api/v1/cloud-findings/findings?org_id=${ORG_ID}`).then((d) => {
-    if (Array.isArray(d?.findings)) setFindings(d.findings);
-    else if (Array.isArray(d)) setFindings(d);
-    }).catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      if (Array.isArray(d?.findings)) setFindings(d.findings);
+      else if (Array.isArray(d)) setFindings(d);
+    }).catch(() => {});
+  }, []);
 
   const displayed = activeProvider === "All" ? findings : findings.filter(f => f.provider === activeProvider);
   const total = findings.length;
@@ -138,13 +133,6 @@ export default function CloudSecurityFindingsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -207,7 +195,7 @@ export default function CloudSecurityFindingsDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Findings ({displayed.length})</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["Provider", "Account", "Region", "Resource Type", "Severity", "Status", "CVSS", "Age", "Actions"].map(h => (
@@ -216,13 +204,7 @@ export default function CloudSecurityFindingsDashboard() {
               </tr>
             </thead>
             <tbody>
-              {displayed.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                displayed.map(f => (
+              {displayed.map(f => (
                 <tr key={f.id} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4"><ProviderBadge p={f.provider} /></td>
                   <td className="py-2.5 pr-4 text-xs text-gray-300 font-mono">{f.account_id.slice(0, 12)}</td>
@@ -241,8 +223,7 @@ export default function CloudSecurityFindingsDashboard() {
                     )}
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -254,25 +235,18 @@ export default function CloudSecurityFindingsDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Remediation Tracking</h2>
           <div className="space-y-2">
-            {MOCK_REMEDIATIONS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_REMEDIATIONS.map(r => (
+            {MOCK_REMEDIATIONS.map(r => (
               <div key={r.id} className={cn("flex items-center justify-between p-3 rounded-lg", r.overdue ? "bg-red-900/20 border border-red-500/20" : "bg-gray-700/30")}>
                 <div>
                   <p className="text-sm text-white font-medium">{r.finding_id}</p>
-                  <p className="text-xs text-gray-400">{r.assignee} = due {r.due_date}</p>
+                  <p className="text-xs text-gray-400">{r.assignee} · due {r.due_date}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {r.overdue && <span className="text-xs text-red-400 font-bold">OVERDUE</span>}
                   <StatusBadge s={r.status} />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </div>
         </div>
 
@@ -280,13 +254,7 @@ export default function CloudSecurityFindingsDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Top Affected Resources</h2>
           <div className="space-y-3">
-            {MOCK_TOP_RESOURCES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_TOP_RESOURCES.map(r => (
+            {MOCK_TOP_RESOURCES.map(r => (
               <div key={r.resource_id}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-300 font-mono truncate max-w-[200px]" title={r.resource_id}>{r.resource_id}</span>
@@ -296,8 +264,7 @@ export default function CloudSecurityFindingsDashboard() {
                   <div className="h-2 rounded-full bg-orange-500" style={{ width: `${(r.finding_count / maxBar) * 100}%` }} />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </div>
         </div>
       </div>

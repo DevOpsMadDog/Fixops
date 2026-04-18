@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock Data ==================================================
+// ── Mock Data ──────────────────────────────────────────────────
 
 const MOCK_REPORTS = [
   {
@@ -94,7 +94,7 @@ const MOCK_REPORTS = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-green-500/15 text-green-400 border-green-500/30",
@@ -150,12 +150,12 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
   return (
     <div className="flex items-center gap-2 w-full">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -168,7 +168,7 @@ function ScoreBar({ value, max = 100, color = "bg-blue-500" }: { value: number; 
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function PostureReportingDashboard() {
   const [selectedReport, setSelectedReport] = useState(MOCK_REPORTS[0]);
@@ -177,12 +177,10 @@ export default function PostureReportingDashboard() {
   const [metricFilter, setMetricFilter] = useState(selectedReport.metrics[0].metric_name);
 
   useEffect(() => {
-    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/posture-reports/reports?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newReport, setNewReport] = useState({ name: "", type: "monthly", audience: "ciso", period_start: "", period_end: "" });
-  const [loading, setLoading] = useState(true);
 
   const trendData = ((selectedReport.trend_history as unknown) as Record<string, number[]>)[metricFilter] ?? [];
   const maxTrend = Math.max(...trendData, 1);
@@ -191,14 +189,6 @@ export default function PostureReportingDashboard() {
   const published = MOCK_REPORTS.filter(r => r.status === "published").length;
   const avgScore = Math.round(MOCK_REPORTS.reduce((a, r) => a + r.overall_score, 0) / MOCK_REPORTS.length);
   const drafts = MOCK_REPORTS.filter(r => r.status === "draft").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -245,13 +235,7 @@ export default function PostureReportingDashboard() {
             </motion.div>
           )}
 
-          {MOCK_REPORTS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_REPORTS.map(r => (
+          {MOCK_REPORTS.map(r => (
             <motion.div key={r.id} whileHover={{ scale: 1.01 }} onClick={() => { setSelectedReport(r); setMetricFilter(r.metrics[0].metric_name); }}
               className={cn("bg-gray-800 rounded-lg p-4 cursor-pointer border transition-all", selectedReport.id === r.id ? "border-blue-500/50" : "border-zinc-700/50 hover:border-zinc-600")}>
               <div className="flex items-start justify-between mb-2">
@@ -264,10 +248,9 @@ export default function PostureReportingDashboard() {
                 <Badge className={cn("text-[9px] border capitalize", STATUS_COLORS[r.status])}>{r.status}</Badge>
               </div>
               <ScoreBar value={r.overall_score} />
-              <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} = {r.period_end}</p>
+              <p className="text-[10px] text-zinc-500 mt-1">{r.period_start} → {r.period_end}</p>
             </motion.div>
-          ))
-        )}
+          ))}
         </div>
 
         {/* Right Panel */}
@@ -276,7 +259,7 @@ export default function PostureReportingDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm text-zinc-200">Sections = {selectedReport.report_name}</CardTitle>
+                <CardTitle className="text-sm text-zinc-200">Sections — {selectedReport.report_name}</CardTitle>
                 {selectedReport.status === "draft" && (
                   <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs">
                     <Send className="h-3 w-3 mr-1" /> Publish
@@ -299,7 +282,7 @@ export default function PostureReportingDashboard() {
                     <div className="px-4 pb-3 text-xs text-zinc-400 border-t border-zinc-700 pt-2">{s.content}</div>
                   )}
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
@@ -310,7 +293,7 @@ export default function PostureReportingDashboard() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table role="table" className="w-full text-xs">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-700">
                       <th className="text-left py-2 text-zinc-500 font-medium">Metric</th>
@@ -329,7 +312,7 @@ export default function PostureReportingDashboard() {
                         <td className="py-2 flex justify-center"><TrendIcon trend={m.trend} /></td>
                         <td className="py-2 text-right text-zinc-500 font-mono">{m.benchmark_value}{m.unit}</td>
                       </tr>
-                    )))}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -349,21 +332,14 @@ export default function PostureReportingDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2 h-24">
-                {trendData.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  trendData.map((v, i) => (
+                {trendData.map((v, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full bg-blue-500/20 rounded-sm relative" style={{ height: `${(v / maxTrend) * 80}px` }}>
                       <div className="absolute bottom-0 left-0 right-0 bg-blue-500 rounded-sm" style={{ height: `${(v / maxTrend) * 80}px` }} />
                     </div>
                     <span className="text-[9px] text-zinc-500">W{i + 1}</span>
                   </div>
-                ))
-              )}
+                ))}
               </div>
             </CardContent>
           </Card>

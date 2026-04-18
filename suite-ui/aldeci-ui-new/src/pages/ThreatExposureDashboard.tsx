@@ -119,14 +119,6 @@ export default function ThreatExposureDashboard() {
   const topExposed = liveData.topExposed ?? MOCK_TOP_EXPOSED;
   const assets     = liveData.assets     ?? MOCK_ASSETS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -161,13 +153,7 @@ export default function ThreatExposureDashboard() {
           <CardDescription className="text-xs">Highest exposure score assets with threat correlation</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {topExposed.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            topExposed.map((a: any, i: number) => (
+          {topExposed.map((a: any, i: number) => (
             <div key={i} className="space-y-1">
               <div className="flex items-center justify-between text-[12px]">
                 <span className="font-medium">{a.asset_name}</span>
@@ -186,11 +172,11 @@ export default function ThreatExposureDashboard() {
                   initial={{ width: 0 }}
                   animate={{ width: `${a.exposure_score}%` }}
                   transition={{ duration: 0.6, delay: i * 0.08 }}
-                  )))}
+                  className={cn("h-full rounded-full", exposureColor(a.exposure_score))}
                 />
               </div>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
 
@@ -223,13 +209,7 @@ export default function ThreatExposureDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  assets.map((a: any, i: number) => (
+                {assets.map((a: any, i: number) => (
                   <TableRow key={a.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.id}</TableCell>
                     <TableCell className="py-2 text-[12px] font-medium">{a.name}</TableCell>
@@ -245,7 +225,7 @@ export default function ThreatExposureDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-mono">{a.threat_count}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{a.last_assessed}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

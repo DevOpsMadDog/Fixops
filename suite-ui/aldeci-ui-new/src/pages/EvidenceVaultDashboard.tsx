@@ -28,7 +28,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock Data ==================================================
+// ── Mock Data ──────────────────────────────────────────────────
 
 const MOCK_EVIDENCE = [
   {
@@ -42,7 +42,7 @@ const MOCK_EVIDENCE = [
     expires_at: "2026-09-01", status: "valid", collected_at: "2026-03-15T00:00:00Z",
   },
   {
-    id: "ev-003", evidence_name: "HIPAA =164.312 Encryption Cert", type: "certificate", framework: "HIPAA",
+    id: "ev-003", evidence_name: "HIPAA §164.312 Encryption Cert", type: "certificate", framework: "HIPAA",
     control_id: "164.312", collected_by: "auto-collector", file_size: "8 KB", sealed: false,
     expires_at: "2026-06-01", status: "pending_review", collected_at: "2026-04-10T00:00:00Z",
   },
@@ -64,10 +64,10 @@ const MOCK_EVIDENCE = [
 ];
 
 const MOCK_COLLECTIONS = [
-  { id: "col-001", collection_name: "SOC 2 Type II 2026", framework: "SOC2", audit_period: "2025-10-01 = 2026-04-01", evidence_count: 47, complete: true },
-  { id: "col-002", collection_name: "PCI-DSS v4.0 Assessment", framework: "PCI-DSS", audit_period: "2026-01-01 = 2026-06-30", evidence_count: 23, complete: false },
-  { id: "col-003", collection_name: "HIPAA Annual Review", framework: "HIPAA", audit_period: "2025-07-01 = 2026-06-30", evidence_count: 31, complete: false },
-  { id: "col-004", collection_name: "ISO 27001 Recertification", framework: "ISO27001", audit_period: "2026-01-01 = 2026-12-31", evidence_count: 58, complete: false },
+  { id: "col-001", collection_name: "SOC 2 Type II 2026", framework: "SOC2", audit_period: "2025-10-01 → 2026-04-01", evidence_count: 47, complete: true },
+  { id: "col-002", collection_name: "PCI-DSS v4.0 Assessment", framework: "PCI-DSS", audit_period: "2026-01-01 → 2026-06-30", evidence_count: 23, complete: false },
+  { id: "col-003", collection_name: "HIPAA Annual Review", framework: "HIPAA", audit_period: "2025-07-01 → 2026-06-30", evidence_count: 31, complete: false },
+  { id: "col-004", collection_name: "ISO 27001 Recertification", framework: "ISO27001", audit_period: "2026-01-01 → 2026-12-31", evidence_count: 58, complete: false },
 ];
 
 const MOCK_ACCESS_LOG: Record<string, Array<{ accessed_by: string; type: string; reason: string; accessed_at: string }>> = {
@@ -82,7 +82,7 @@ const MOCK_ACCESS_LOG: Record<string, Array<{ accessed_by: string; type: string;
   ],
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
   log_export:      "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -127,21 +127,16 @@ function timeAgo(iso: string) {
   return `${Math.round(mins / 1440)}d ago`;
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function EvidenceVaultDashboard() {
   const [selectedEvidence, setSelectedEvidence] = useState(MOCK_EVIDENCE[0]);
-  const [error, setError] = useState<string | null>(null);
   const [sealedSet, setSealedSet] = useState<Set<string>>(new Set(MOCK_EVIDENCE.filter(e => e.sealed).map(e => e.id)));
   const [verifyId, setVerifyId] = useState("");
 
-
-  const fetchData = () => {
-    setError(null);
-    apiFetch(`/api/v1/evidence-vault/evidence?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    apiFetch(`/api/v1/evidence-vault/evidence?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
   const [verifyContent, setVerifyContent] = useState("");
   const [verifyResult, setVerifyResult] = useState<"valid" | "invalid" | null>(null);
 
@@ -160,13 +155,6 @@ export default function EvidenceVaultDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       <PageHeader
         title="Evidence Vault"
         description="Tamper-evident evidence storage with integrity verification and custody chain"
@@ -187,7 +175,7 @@ export default function EvidenceVaultDashboard() {
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Evidence Items</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table role="table" className="w-full text-xs">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-700">
                       {["Name", "Type", "Framework", "Control", "Collected By", "Size", "Sealed", "Expires", "Status", ""].map(h => (
@@ -215,7 +203,7 @@ export default function EvidenceVaultDashboard() {
                               : <Unlock className="h-3.5 w-3.5 text-zinc-500 inline" />}
                           </td>
                           <td className={cn("py-2 px-2 whitespace-nowrap text-[10px]", daysLeft < 0 ? "text-red-400" : expiringSoonFlag ? "text-yellow-400" : "text-zinc-500")}>
-                            {e.expires_at}{expiringSoonFlag && " ="}
+                            {e.expires_at}{expiringSoonFlag && " ⚠"}
                           </td>
                           <td className="py-2 px-2"><Badge className={cn("text-[9px] border capitalize", STATUS_COLORS[e.status] ?? "border-zinc-600 text-zinc-400")}>{e.status.replace("_"," ")}</Badge></td>
                           <td className="py-2 px-2">
@@ -253,12 +241,12 @@ export default function EvidenceVaultDashboard() {
                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs" onClick={handleVerify}>Verify</Button>
                 {verifyResult === "valid" && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-green-400 text-xs">
-                    <CheckCircle2 className="h-4 w-4" /> Integrity Verified = evidence is untampered
+                    <CheckCircle2 className="h-4 w-4" /> Integrity Verified — evidence is untampered
                   </motion.div>
                 )}
                 {verifyResult === "invalid" && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-red-400 text-xs">
-                    <XCircle className="h-4 w-4" /> Integrity Check Failed = evidence may be tampered
+                    <XCircle className="h-4 w-4" /> Integrity Check Failed — evidence may be tampered
                   </motion.div>
                 )}
               </div>
@@ -271,7 +259,7 @@ export default function EvidenceVaultDashboard() {
           {/* Access Log */}
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-200">Access Log = {selectedEvidence.evidence_name.slice(0, 24)}=</CardTitle>
+              <CardTitle className="text-sm text-zinc-200">Access Log — {selectedEvidence.evidence_name.slice(0, 24)}…</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {accessLog.length === 0 && <p className="text-xs text-zinc-500">No access records for this item.</p>}

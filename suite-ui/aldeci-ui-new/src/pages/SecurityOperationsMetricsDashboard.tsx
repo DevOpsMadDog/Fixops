@@ -14,7 +14,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 import { Activity, Clock, Users, AlertOctagon, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================================
+// ── Mock data ──────────────────────────────────────────────────────────────────
 
 const MOCK_STATS = {
   mttd_minutes: 38,
@@ -52,7 +52,7 @@ const MOCK_QUEUE = [
   { id: "alrt-006", severity: "low",      category: "Port Scan",       source: "IDS",   detected_at: "2026-04-16T07:30:00", status: "resolved",    assigned_to: "Dave Park"   },
 ];
 
-// == Helpers ====================================================================
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function SeverityBadge({ s }: { s: string }) {
   const cls: Record<string, string> = {
@@ -91,7 +91,7 @@ function timeAge(iso: string) {
   return `${Math.floor(mins/60)}h ${mins%60}m ago`;
 }
 
-// == SVG Gauge ==================================================================
+// ── SVG Gauge ──────────────────────────────────────────────────────────────────
 
 function MetricGauge({ label, value, max, unit, color }: {
   label: string; value: number; max: number; unit: string; color: string;
@@ -108,17 +108,6 @@ function MetricGauge({ label, value, max, unit, color }: {
 
   return (
     <div className="flex flex-col items-center">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <svg viewBox="0 0 180 140" className="w-44 h-32">
         <path
           d={`M ${arcX(startAngle)} ${arcY(startAngle)} A ${r} ${r} 0 1 1 ${arcX(trackEnd)} ${arcY(trackEnd)}`}
@@ -138,20 +127,14 @@ function MetricGauge({ label, value, max, unit, color }: {
   );
 }
 
-// == Trend bars ================================================================
+// ── Trend bars ────────────────────────────────────────────────────────────────
 
 function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
   const maxMttd = Math.max(...data.map(d => d.mttd));
   const maxMttr = Math.max(...data.map(d => d.mttr));
   return (
     <div className="space-y-4">
-      {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        data.map(d => (
+      {data.map(d => (
         <div key={d.date} className="grid grid-cols-[60px_1fr_1fr] gap-3 items-center text-xs">
           <span className="text-gray-400">{d.date}</span>
           <div className="flex items-center gap-1">
@@ -167,8 +150,7 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
             <span className="text-orange-400 w-10 text-right">{d.mttr}m</span>
           </div>
         </div>
-      ))
-    )}
+      ))}
       <div className="grid grid-cols-[60px_1fr_1fr] gap-3 text-xs text-gray-500 border-t border-gray-700 pt-2">
         <span />
         <span className="text-teal-500">MTTD</span>
@@ -178,17 +160,15 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
   );
 }
 
-// == Main Component =============================================================
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SecurityOperationsMetricsDashboard() {
   const [queue, setQueue] = useState(MOCK_QUEUE);
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   function ackAlert(id: string) {
@@ -197,14 +177,6 @@ export default function SecurityOperationsMetricsDashboard() {
   function resolveAlert(id: string) {
     setQueue(prev => prev.map(a => a.id === id ? { ...a, status: "resolved" } : a));
   }
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -234,7 +206,7 @@ export default function SecurityOperationsMetricsDashboard() {
               <p className={cn("text-2xl font-bold", c.color)}>{c.value}{c.suffix}</p>
             </div>
           </div>
-        )))}
+        ))}
       </div>
 
       {/* Gauges + trend */}
@@ -256,7 +228,7 @@ export default function SecurityOperationsMetricsDashboard() {
           <h2 className="text-lg font-semibold text-white">Analyst Leaderboard</h2>
         </div>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 <th className="text-left text-gray-400 font-medium py-2 pr-4">Rank</th>
@@ -267,13 +239,7 @@ export default function SecurityOperationsMetricsDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_ANALYSTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_ANALYSTS.map((a, i) => (
+              {MOCK_ANALYSTS.map((a, i) => (
                 <tr key={a.name} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4">
                     <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
@@ -285,7 +251,7 @@ export default function SecurityOperationsMetricsDashboard() {
                   <td className="py-2.5 pr-4 text-gray-300">{a.avg_resolution_mins} min</td>
                   <td className="py-2.5"><EfficiencyBadge e={a.efficiency} /></td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>
@@ -295,22 +261,16 @@ export default function SecurityOperationsMetricsDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Alert Queue</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["Severity", "Category", "Source", "Age", "Status", "Assigned To", "Actions"].map(h => (
                   <th key={h} className="text-left text-gray-400 font-medium py-2 pr-4 whitespace-nowrap">{h}</th>
-                )))}
+                ))}
               </tr>
             </thead>
             <tbody>
-              {queue.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                queue.map(a => (
+              {queue.map(a => (
                 <tr key={a.id} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4"><SeverityBadge s={a.severity} /></td>
                   <td className="py-2.5 pr-4 text-gray-200">{a.category}</td>
@@ -329,7 +289,7 @@ export default function SecurityOperationsMetricsDashboard() {
                     )}
                   </td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

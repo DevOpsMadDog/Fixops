@@ -3,10 +3,10 @@
  *
  * Prioritized remediation backlog with composite risk scoring.
  *   1. KPIs: Critical Queue, High Queue, Avg Risk Score, SLA at Risk
- *   2. Priority queue table (15 rows) = CVE, asset, CVSS, EPSS, KEV, composite, team, status, SLA
- *   3. Risk distribution chart = horizontal bars Critical/High/Medium/Low/Info
- *   4. Team workload table = assigned, overdue, avg resolution time
- *   5. Risk acceptance panel = 8 risks in review with Approve/Reject
+ *   2. Priority queue table (15 rows) — CVE, asset, CVSS, EPSS, KEV, composite, team, status, SLA
+ *   3. Risk distribution chart — horizontal bars Critical/High/Medium/Low/Info
+ *   4. Team workload table — assigned, overdue, avg resolution time
+ *   5. Risk acceptance panel — 8 risks in review with Approve/Reject
  *
  * API stubs: GET /api/v1/vulns/queue, /api/v1/vulns/distribution, /api/v1/vulns/risk-acceptance
  */
@@ -25,7 +25,7 @@ import {
   BarChart3,
 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -48,7 +48,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const QUEUE = [
   { cve: "CVE-2025-29927", asset: "api-gateway-prod",   cvss: 9.8, epss: 0.94, kev: true,  composite: 9.7, team: "AppSec",   status: "open",        sla: "2026-04-16" },
@@ -87,7 +87,7 @@ const TEAMS = [
 const RISK_ACCEPTANCE = [
   { id: "RA-041", cve: "CVE-2024-50603", asset: "jenkins-build-01", risk: "High",   reason: "Isolated network segment, no internet exposure", requestor: "DevSec" },
   { id: "RA-042", cve: "CVE-2025-21333", asset: "hyperv-host-03",   risk: "High",   reason: "Compensating control: IDS/IPS active on segment",  requestor: "InfraSec" },
-  { id: "RA-043", cve: "CVE-2024-12693", asset: "legacy-erp-01",    risk: "Medium", reason: "Vendor EOL = migration planned Q3 2026",           requestor: "CloudOps" },
+  { id: "RA-043", cve: "CVE-2024-12693", asset: "legacy-erp-01",    risk: "Medium", reason: "Vendor EOL — migration planned Q3 2026",           requestor: "CloudOps" },
   { id: "RA-044", cve: "CVE-2025-1974",  asset: "nginx-ingress",    risk: "Medium", reason: "WAF rule active, patch in next maintenance window", requestor: "NetSec" },
   { id: "RA-045", cve: "CVE-2024-47076", asset: "print-server-01",  risk: "Medium", reason: "Air-gapped VLAN, no remote access",                 requestor: "InfraSec" },
   { id: "RA-046", cve: "CVE-2025-24085", asset: "ios-mdm-server",   risk: "Low",    reason: "Not exploitable in current config",                 requestor: "IAM Team" },
@@ -95,7 +95,7 @@ const RISK_ACCEPTANCE = [
   { id: "RA-048", cve: "CVE-2025-0411",  asset: "7-zip-workstations",risk: "Low",   reason: "EDR detects and blocks exploitation attempt",      requestor: "DevSec" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -120,7 +120,7 @@ function CvssScore({ score }: { score: number }) {
   return <span className={cn("font-bold tabular-nums text-xs", color)}>{score.toFixed(1)}</span>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function VulnRiskQueue() {
   const [refreshing, setRefreshing] = useState(false);
@@ -128,7 +128,6 @@ export default function VulnRiskQueue() {
   const [rejected, setRejected] = useState<Set<string>>(new Set());
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -139,7 +138,8 @@ export default function VulnRiskQueue() {
       const scored = scoredResult.status === "fulfilled" ? scoredResult.value : null;
       const stats  = statsResult.status  === "fulfilled" ? statsResult.value  : null;
       if (scored || stats) {
-        setLiveData({ scored, stats });}
+        setLiveData({ scored, stats });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -149,14 +149,6 @@ export default function VulnRiskQueue() {
   };
 
   const distMax = Math.max(...DISTRIBUTION.map((d) => d.count));
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -194,7 +186,7 @@ export default function VulnRiskQueue() {
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">{(liveData?.scored ?? QUEUE).length} items</Badge>
           </div>
-          <CardDescription className="text-xs">Sorted by composite risk score = CVSS = EPSS = KEV weighting</CardDescription>
+          <CardDescription className="text-xs">Sorted by composite risk score — CVSS × EPSS × KEV weighting</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -220,9 +212,9 @@ export default function VulnRiskQueue() {
                   const epss      = row.epss ?? row.epss_score ?? 0;
                   const kev       = row.kev ?? row.kev_listed ?? false;
                   const composite = row.composite ?? row.priority_score ?? 0;
-                  const team      = row.team ?? row.assigned_team ?? "=";
+                  const team      = row.team ?? row.assigned_team ?? "—";
                   const status    = row.status ?? "open";
-                  const sla       = row.sla ?? row.sla_due ?? row.due_date ?? "=";
+                  const sla       = row.sla ?? row.sla_due ?? row.due_date ?? "—";
                   return (
                   <TableRow key={cve ?? row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2 text-blue-400">{cve}</TableCell>
@@ -232,7 +224,7 @@ export default function VulnRiskQueue() {
                     <TableCell className="py-2">
                       {kev
                         ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">KEV</Badge>
-                        : <span className="text-[10px] text-muted-foreground">=</span>
+                        : <span className="text-[10px] text-muted-foreground">—</span>
                       }
                     </TableCell>
                     <TableCell className="py-2">
@@ -264,13 +256,7 @@ export default function VulnRiskQueue() {
             <CardDescription className="text-xs">Vulnerability count by severity tier</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DISTRIBUTION.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              DISTRIBUTION.map((d) => (
+            {DISTRIBUTION.map((d) => (
               <div key={d.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className={cn("font-semibold", d.text)}>{d.label}</span>
@@ -285,8 +271,7 @@ export default function VulnRiskQueue() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -310,13 +295,7 @@ export default function VulnRiskQueue() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TEAMS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  TEAMS.map((t) => (
+                {TEAMS.map((t) => (
                   <TableRow key={t.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{t.name}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-bold">{t.assigned}</TableCell>
@@ -325,8 +304,7 @@ export default function VulnRiskQueue() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{t.avgResolution}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -348,13 +326,7 @@ export default function VulnRiskQueue() {
           <CardDescription className="text-xs">Formal risk acceptance requests awaiting CISO approval</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {RISK_ACCEPTANCE.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            RISK_ACCEPTANCE.map((r) => (
+          {RISK_ACCEPTANCE.map((r) => (
             <div
               key={r.id}
               className={cn(
@@ -369,7 +341,7 @@ export default function VulnRiskQueue() {
                   <span className="text-[10px] font-mono text-muted-foreground">{r.id}</span>
                   <span className="text-xs font-semibold font-mono text-blue-400">{r.cve}</span>
                   <SeverityBadge sev={r.risk} />
-                  <span className="text-[10px] text-muted-foreground">= {r.asset}</span>
+                  <span className="text-[10px] text-muted-foreground">— {r.asset}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1 truncate">{r.reason}</p>
                 <p className="text-[10px] text-muted-foreground">Requested by: <span className="font-medium text-foreground">{r.requestor}</span></p>
@@ -385,7 +357,7 @@ export default function VulnRiskQueue() {
                       variant="outline"
                       size="sm"
                       className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10"
-                      )))}
+                      onClick={() => setAccepted((prev) => new Set([...prev, r.id]))}
                     >
                       <CheckCircle2 className="h-3 w-3 mr-1" />Approve
                     </Button>
@@ -393,7 +365,7 @@ export default function VulnRiskQueue() {
                       variant="outline"
                       size="sm"
                       className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10"
-                      )))}
+                      onClick={() => setRejected((prev) => new Set([...prev, r.id]))}
                     >
                       <XCircle className="h-3 w-3 mr-1" />Reject
                     </Button>
@@ -401,7 +373,7 @@ export default function VulnRiskQueue() {
                 )}
               </div>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

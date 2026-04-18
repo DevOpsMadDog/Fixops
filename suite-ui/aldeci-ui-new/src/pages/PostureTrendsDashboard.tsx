@@ -13,7 +13,7 @@ const _API_BASE = "/api/v1/posture-trends";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type Velocity = "improving" | "declining" | "stable";
 type Category =
@@ -52,7 +52,7 @@ interface TargetProgress {
   on_track: boolean;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_TRENDS: MetricTrend[] = [
   {
@@ -114,7 +114,7 @@ const MOCK_TARGETS: TargetProgress[] = [
   { id: "tp-006", metric_name: "Compliance Score",      current: 76,  target: 90,   unit: "%",   gap: 14,   eta_days: 40,  on_track: true  },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const categoryLabels: Record<Category, string> = {
   vulnerability_management: "Vuln Mgmt",
@@ -128,10 +128,10 @@ const categoryLabels: Record<Category, string> = {
 };
 
 function velocityIndicator(v: Velocity, higherIsBetter: boolean): { symbol: string; color: string } {
-  if (v === "stable") return { symbol: "=", color: "text-gray-400" };
+  if (v === "stable") return { symbol: "→", color: "text-gray-400" };
   const improving = (v === "improving" && higherIsBetter) || (v === "declining" && !higherIsBetter);
-  if (improving) return { symbol: "=", color: "text-green-400" };
-  return { symbol: "=", color: "text-red-400" };
+  if (improving) return { symbol: "↑", color: "text-green-400" };
+  return { symbol: "↓", color: "text-red-400" };
 }
 
 function sparklinePath(points: number[]): string {
@@ -157,7 +157,7 @@ function sparklineColor(velocity: Velocity, higherIsBetter: boolean): string {
   return "#6b7280";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PostureTrendsDashboard() {
   const [trends, setTrends] = useState(MOCK_TRENDS);
@@ -167,17 +167,15 @@ export default function PostureTrendsDashboard() {
     fetch(`${_API_BASE}/trends`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setTrends(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
-        // live data loaded = components read from API response
+        // live data loaded — components read from API response
         void d;
       })
       .catch(() => { setError('Failed to load data'); });
@@ -192,11 +190,11 @@ export default function PostureTrendsDashboard() {
 
   const improving = MOCK_TRENDS.filter(t => {
     const ind = velocityIndicator(t.velocity, t.higher_is_better);
-    return ind.symbol === "=";
+    return ind.symbol === "↑";
   });
   const declining = MOCK_TRENDS.filter(t => {
     const ind = velocityIndicator(t.velocity, t.higher_is_better);
-    return ind.symbol === "=";
+    return ind.symbol === "↓";
   });
 
   const fastestImproving = improving.reduce<MetricTrend | null>((best, t) =>
@@ -206,23 +204,15 @@ export default function PostureTrendsDashboard() {
 
   const categories = [...new Set(MOCK_TRENDS.map(t => t.category))];
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -261,7 +251,7 @@ export default function PostureTrendsDashboard() {
           </div>
         )}
         {fastestDeclining && (
-          <div className="bg-red-900/20 border border-red-700 rounded-lg p-4" role="status" aria-live="polite">
+          <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
             <p className="text-red-400 text-xs font-semibold uppercase tracking-wide mb-1">Fastest Declining</p>
             <p className="text-white font-medium">{fastestDeclining.metric_name}</p>
             <p className="text-red-400 text-sm">{fastestDeclining.change_pct.toFixed(1)}% change</p>
@@ -272,20 +262,13 @@ export default function PostureTrendsDashboard() {
       {/* Stagnating alert */}
       {stagnating.length > 0 && (
         <div className="bg-amber-900/20 border border-amber-700 rounded-lg p-4">
-          <p className="text-amber-400 font-semibold text-sm mb-2">Stagnating Metrics = No meaningful change detected</p>
+          <p className="text-amber-400 font-semibold text-sm mb-2">Stagnating Metrics — No meaningful change detected</p>
           <div className="flex flex-wrap gap-2">
-            {stagnating.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              stagnating.map(m => (
+            {stagnating.map(m => (
               <span key={m.id} className="bg-amber-800/40 text-amber-200 px-2 py-1 rounded text-xs">
                 {m.metric_name} ({m.current_value} {m.unit})
               </span>
-            ))
-          )}
+            ))}
           </div>
         </div>
       )}
@@ -298,13 +281,7 @@ export default function PostureTrendsDashboard() {
         >
           All
         </button>
-        {categories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          categories.map(cat => (
+        {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setFilterCategory(cat)}
@@ -312,19 +289,12 @@ export default function PostureTrendsDashboard() {
           >
             {categoryLabels[cat]}
           </button>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Metric Trend Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredTrends.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          filteredTrends.map(metric => {
+        {filteredTrends.map(metric => {
           const ind = velocityIndicator(metric.velocity, metric.higher_is_better);
           const sColor = sparklineColor(metric.velocity, metric.higher_is_better);
           const path = sparklinePath(metric.datapoints);
@@ -343,8 +313,8 @@ export default function PostureTrendsDashboard() {
                 <span className="text-2xl font-bold text-white">{metric.current_value}</span>
                 <span className="text-gray-400 text-sm">{metric.unit}</span>
                 <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                  ind.symbol === "=" ? "bg-green-900 text-green-300" :
-                  ind.symbol === "=" ? "bg-red-900 text-red-300" :
+                  ind.symbol === "↑" ? "bg-green-900 text-green-300" :
+                  ind.symbol === "↓" ? "bg-red-900 text-red-300" :
                   "bg-gray-700 text-gray-300"
                 }`}>
                   {metric.change_pct > 0 ? "+" : ""}{metric.change_pct.toFixed(1)}%
@@ -373,15 +343,14 @@ export default function PostureTrendsDashboard() {
               </div>
             </div>
           );
-        })
-        )}
+        })}
       </div>
 
       {/* Targets Progress Table */}
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Targets Progress</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Metric</th>
@@ -393,13 +362,7 @@ export default function PostureTrendsDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {MOCK_TARGETS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_TARGETS.map(tp => (
+              {MOCK_TARGETS.map(tp => (
                 <tr key={tp.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-2.5 pr-4 text-gray-200 font-medium">{tp.metric_name}</td>
                   <td className="py-2.5 pr-4 text-white font-semibold">{tp.current} <span className="text-gray-500 text-xs font-normal">{tp.unit}</span></td>
@@ -412,7 +375,7 @@ export default function PostureTrendsDashboard() {
                     </span>
                   </td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

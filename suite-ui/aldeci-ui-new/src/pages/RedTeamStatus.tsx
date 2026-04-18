@@ -3,10 +3,10 @@
  *
  * Offensive security exercise tracking and live attack simulation feed.
  *   1. KPIs: Active Engagements, Findings Total, Critical Findings, Remediated
- *   2. Engagement table (6 rows) = name, type, status, dates, lead, findings
- *   3. Live attack simulation feed (8 events) = tactic, technique, target, status
- *   4. Finding severity breakdown = donut-style div grid
- *   5. Remediation progress = 5 finding cards with progress bars
+ *   2. Engagement table (6 rows) — name, type, status, dates, lead, findings
+ *   3. Live attack simulation feed (8 events) — tactic, technique, target, status
+ *   4. Finding severity breakdown — donut-style div grid
+ *   5. Remediation progress — 5 finding cards with progress bars
  *
  * API stubs: GET /api/v1/red-team/engagements, /api/v1/red-team/feed, /api/v1/red-team/findings
  */
@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const ORG_ID = "default";
 
 function getApiKey(): string {
@@ -52,7 +52,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ENGAGEMENTS = [
   {
@@ -131,13 +131,13 @@ const SEVERITY_BREAKDOWN = [
 
 const REMEDIATION = [
   { id: "RT-F001", title: "Unauthenticated RCE via API param injection",       severity: "Critical", pct: 85, team: "AppSec"   },
-  { id: "RT-F002", title: "Password spray = 12 accounts compromised",           severity: "Critical", pct: 60, team: "IAM Team" },
+  { id: "RT-F002", title: "Password spray — 12 accounts compromised",           severity: "Critical", pct: 60, team: "IAM Team" },
   { id: "RT-F003", title: "Kerberoastable service account (SPN exposure)",      severity: "High",     pct: 40, team: "IAM Team" },
   { id: "RT-F004", title: "Lateral movement via PsExec over SMB",               severity: "High",     pct: 20, team: "InfraSec" },
-  { id: "RT-F005", title: "Data exfil via DNS tunneling = undetected 6 hours",  severity: "Critical", pct: 10, team: "NetSec"   },
+  { id: "RT-F005", title: "Data exfil via DNS tunneling — undetected 6 hours",  severity: "Critical", pct: 10, team: "NetSec"   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const TYPE_LABELS: Record<string, string> = {
   pentest:    "Pentest",
@@ -184,13 +184,12 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function RedTeamStatus() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -205,8 +204,7 @@ export default function RedTeamStatus() {
       if (stats || engagements || findings) {
         setLiveData({ stats, engagements, findings });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -223,14 +221,6 @@ export default function RedTeamStatus() {
       if (stats || engagements || findings) setLiveData({ stats, engagements, findings });
     }).finally(() => { setRefreshing(false); setDataLoading(false); });
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -270,7 +260,7 @@ export default function RedTeamStatus() {
               {(liveData?.engagements?.items ?? liveData?.engagements ?? ENGAGEMENTS).length} engagements
             </Badge>
           </div>
-          <CardDescription className="text-xs">All offensive security exercises = pentest, phishing, purple team, BAS</CardDescription>
+          <CardDescription className="text-xs">All offensive security exercises — pentest, phishing, purple team, BAS</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -298,7 +288,7 @@ export default function RedTeamStatus() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">
                       {eng.findings > 0
                         ? <span className={eng.findings >= 15 ? "text-red-400" : eng.findings >= 5 ? "text-amber-400" : "text-muted-foreground"}>{eng.findings}</span>
-                        : <span className="text-muted-foreground">=</span>
+                        : <span className="text-muted-foreground">—</span>
                       }
                     </TableCell>
                   </TableRow>
@@ -321,13 +311,7 @@ export default function RedTeamStatus() {
             <CardDescription className="text-xs">Real-time MITRE ATT&amp;CK technique execution log</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 p-4">
-            {FEED.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              FEED.map((evt, i) => (
+            {FEED.map((evt, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -8 }}
@@ -345,8 +329,7 @@ export default function RedTeamStatus() {
                 </div>
                 <FeedStatusBadge status={evt.status} />
               </motion.div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -361,13 +344,7 @@ export default function RedTeamStatus() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {SEVERITY_BREAKDOWN.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                SEVERITY_BREAKDOWN.map((s) => (
+              {SEVERITY_BREAKDOWN.map((s) => (
                 <div
                   key={s.label}
                   className={cn(
@@ -387,8 +364,7 @@ export default function RedTeamStatus() {
                     {Math.round((s.count / 47) * 100)}% of total
                   </span>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -406,23 +382,17 @@ export default function RedTeamStatus() {
               31 / 47 resolved
             </Badge>
           </div>
-          <CardDescription className="text-xs">Top findings by severity = remediation status and ownership</CardDescription>
+          <CardDescription className="text-xs">Top findings by severity — remediation status and ownership</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {REMEDIATION.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            REMEDIATION.map((f) => (
+          {REMEDIATION.map((f) => (
             <div key={f.id} className="space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-mono text-muted-foreground">{f.id}</span>
                     <SeverityBadge sev={f.severity} />
-                    <span className="text-[10px] text-muted-foreground">= {f.team}</span>
+                    <span className="text-[10px] text-muted-foreground">— {f.team}</span>
                   </div>
                   <p className="text-xs font-medium mt-0.5 truncate">{f.title}</p>
                 </div>
@@ -445,7 +415,7 @@ export default function RedTeamStatus() {
                 />
               </div>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

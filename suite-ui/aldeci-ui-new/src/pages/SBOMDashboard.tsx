@@ -1,11 +1,11 @@
 /**
  * SBOM Dashboard
  *
- * Software Bill of Materials = CycloneDX / SPDX lifecycle management.
+ * Software Bill of Materials — CycloneDX / SPDX lifecycle management.
  *   1. KPIs: Total Assets, Total Components, Vulnerable Components, High License Risk
  *   2. Assets table (8 rows) with export buttons (CycloneDX | SPDX)
- *   3. Vulnerability exposure panel = by severity breakdown
- *   4. License risk summary = bar chart of risk levels
+ *   3. Vulnerability exposure panel — by severity breakdown
+ *   4. License risk summary — bar chart of risk levels
  *   5. Component list for selected SBOM
  *
  * API: GET /api/v1/sbom, /api/v1/sbom/{id}/components,
@@ -20,7 +20,7 @@ import {
   RefreshCw, Download, ChevronRight, X, BarChart3,
 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -43,7 +43,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SBOMS = [
   { id: "SBOM-001", project_name: "ALDECI API Gateway",       asset_type: "service",       version: "v3.2.1", component_count: 312, vuln_count: 8,  last_scan: "2026-04-16 08:00", format: "cyclonedx" },
@@ -98,7 +98,7 @@ const MOCK_STATS = {
   high_license_risk: 127,
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function AssetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -110,17 +110,6 @@ function AssetTypeBadge({ type }: { type: string }) {
   };
   return (
     <Badge className={cn("text-[10px] border capitalize", map[type] ?? "border-border")}>
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {type}
     </Badge>
   );
@@ -147,7 +136,7 @@ function VulnCount({ count }: { count: number }) {
   return <span className={cn("text-xs font-bold tabular-nums", cls)}>{count}</span>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SBOMDashboard() {
   const [sboms, setSboms] = useState<any[]>(MOCK_SBOMS);
@@ -157,7 +146,6 @@ export default function SBOMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const ORG_ID = "aldeci-demo";
 
@@ -195,7 +183,7 @@ export default function SBOMDashboard() {
     apiFetch(`/api/v1/sbom/assets/${sbom.id}/components?org_id=${ORG_ID}`).then((data) => {
       if (Array.isArray(data) && data.length > 0) setComponents(data);
       else if (Array.isArray(data?.components) && data.components.length > 0) setComponents(data.components);
-    }).catch(() => { setError('Failed to load data'); });
+    }).catch(() => {});
   };
 
   const handleExport = async (sbomId: string, format: string) => {
@@ -212,7 +200,7 @@ export default function SBOMDashboard() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // Silently fail = API may not be connected
+      // Silently fail — API may not be connected
     } finally {
       setExporting(null);
     }
@@ -226,14 +214,6 @@ export default function SBOMDashboard() {
 
   const totalVulns = MOCK_VULN_BREAKDOWN.reduce((sum, v) => sum + v.count, 0);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -244,7 +224,7 @@ export default function SBOMDashboard() {
       {/* Header */}
       <PageHeader
         title="SBOM Dashboard"
-        description="Software Bill of Materials = CycloneDX & SPDX lifecycle tracking, vulnerability exposure, and license compliance"
+        description="Software Bill of Materials — CycloneDX & SPDX lifecycle tracking, vulnerability exposure, and license compliance"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -295,10 +275,10 @@ export default function SBOMDashboard() {
                   >
                     <TableCell className="py-2 text-xs font-medium max-w-[200px] truncate">{s.project_name}</TableCell>
                     <TableCell className="py-2"><AssetTypeBadge type={s.asset_type ?? s.format ?? "service"} /></TableCell>
-                    <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{s.version ?? s.spec_version ?? "="}</TableCell>
+                    <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{s.version ?? s.spec_version ?? "—"}</TableCell>
                     <TableCell className="py-2 text-center text-xs font-medium tabular-nums">{(s.component_count ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="py-2 text-center"><VulnCount count={s.vuln_count ?? 0} /></TableCell>
-                    <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{s.last_scan ?? s.created_at ?? "="}</TableCell>
+                    <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{s.last_scan ?? s.created_at ?? "—"}</TableCell>
                     <TableCell className="py-2">
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button
@@ -372,7 +352,7 @@ export default function SBOMDashboard() {
               <div className="flex items-center gap-3">
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 <div className="text-[11px] text-muted-foreground">
-                  Prioritize <span className="text-red-400 font-semibold">critical</span> and <span className="text-amber-400 font-semibold">high</span> severity vulnerabilities first = {8 + 18} findings require immediate remediation
+                  Prioritize <span className="text-red-400 font-semibold">critical</span> and <span className="text-amber-400 font-semibold">high</span> severity vulnerabilities first — {8 + 18} findings require immediate remediation
                 </div>
               </div>
             </div>
@@ -437,14 +417,14 @@ export default function SBOMDashboard() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2 text-blue-400">
                   <Package className="h-4 w-4" />
-                  Components = {selectedSbom.project_name}
+                  Components — {selectedSbom.project_name}
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setSelectedSbom(null)}>
                   <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
               <CardDescription className="text-xs">
-                {components.length} components listed = showing license type and vulnerability count
+                {components.length} components listed — showing license type and vulnerability count
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -463,7 +443,7 @@ export default function SBOMDashboard() {
                     {components.map((c, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="py-2 font-mono text-xs font-medium">{c.name}</TableCell>
-                        <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.version ?? "="}</TableCell>
+                        <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.version ?? "—"}</TableCell>
                         <TableCell className="py-2 text-[11px] text-muted-foreground">{c.license ?? c.licenses?.[0] ?? "Unknown"}</TableCell>
                         <TableCell className="py-2"><LicenseRiskBadge risk={c.risk ?? "permissive"} /></TableCell>
                         <TableCell className="py-2 text-right"><VulnCount count={c.vuln_count ?? 0} /></TableCell>

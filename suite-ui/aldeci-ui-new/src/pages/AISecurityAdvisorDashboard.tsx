@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -60,7 +60,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   return res.json();
 }
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type Priority = "critical" | "high" | "medium" | "low";
 type RecStatus = "pending" | "accepted" | "rejected" | "implemented";
@@ -88,19 +88,19 @@ interface RiskDataPoint {
   label?: string;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_RECOMMENDATIONS: Recommendation[] = [
   { id: "REC-001", priority: "critical", category: "vulnerability",     title: "Emergency patch for actively exploited CVE-2024-3400",           rationale: "CVSS 10.0, active exploitation, 12 internet-facing PAN-OS devices exposed.",  effort: "1d",  impact: 10, status: "pending"     },
   { id: "REC-002", priority: "critical", category: "access_control",    title: "Rotate all service account credentials post-breach indicator",    rationale: "847 stale service accounts present lateral movement risk.",                   effort: "2d",  impact: 9,  status: "accepted"    },
   { id: "REC-003", priority: "critical", category: "incident_response", title: "Isolate 3 hosts with confirmed C2 beacon activity",              rationale: "ThreatGraph confirmed C2 callbacks to 185.220.101.47 from prod segment.",     effort: "4h",  impact: 10, status: "pending"     },
-  { id: "REC-004", priority: "high",     category: "architecture",      title: "Implement network micro-segmentation for crown jewel assets",     rationale: "Lateral movement paths from DMZ to internal DB tier = 0 segmentation.",      effort: "14d", impact: 8,  status: "pending"     },
+  { id: "REC-004", priority: "high",     category: "architecture",      title: "Implement network micro-segmentation for crown jewel assets",     rationale: "Lateral movement paths from DMZ to internal DB tier — 0 segmentation.",      effort: "14d", impact: 8,  status: "pending"     },
   { id: "REC-005", priority: "high",     category: "access_control",    title: "Enable MFA for all 23 privileged Azure AD admin accounts",        rationale: "Admin accounts without MFA are the highest-risk single point of compromise.", effort: "3d",  impact: 8,  status: "accepted"    },
   { id: "REC-006", priority: "high",     category: "monitoring",        title: "Deploy UEBA baseline for insider threat detection",               rationale: "3 anomalous after-hours data access events went undetected.",                 effort: "5d",  impact: 7,  status: "pending"     },
   { id: "REC-007", priority: "high",     category: "compliance",        title: "Collect missing SOC2 evidence for 6 controls before audit",       rationale: "CC6.1, CC6.3, CC7.2, CC9.1, A1.1, A1.2 have no linked evidence.",           effort: "7d",  impact: 7,  status: "implemented" },
   { id: "REC-008", priority: "medium",   category: "vulnerability",     title: "Patch OpenSSL 3.0.x to 3.0.9 across 34 servers",                 rationale: "CVE-2023-0464 (high) present; servers not internet-facing.",                  effort: "4d",  impact: 6,  status: "pending"     },
-  { id: "REC-009", priority: "medium",   category: "monitoring",        title: "Integrate CloudTrail logs into SIEM for AWS workloads",           rationale: "38% of AWS API activity has no SIEM coverage = blind spot.",                 effort: "3d",  impact: 6,  status: "accepted"    },
-  { id: "REC-010", priority: "medium",   category: "architecture",      title: "Enforce TLS 1.3 minimum = deprecate TLS 1.0 and 1.1",            rationale: "4 internal services still negotiating TLS 1.0; BEAST/POODLE feasible.",       effort: "5d",  impact: 5,  status: "pending"     },
+  { id: "REC-009", priority: "medium",   category: "monitoring",        title: "Integrate CloudTrail logs into SIEM for AWS workloads",           rationale: "38% of AWS API activity has no SIEM coverage — blind spot.",                 effort: "3d",  impact: 6,  status: "accepted"    },
+  { id: "REC-010", priority: "medium",   category: "architecture",      title: "Enforce TLS 1.3 minimum — deprecate TLS 1.0 and 1.1",            rationale: "4 internal services still negotiating TLS 1.0; BEAST/POODLE feasible.",       effort: "5d",  impact: 5,  status: "pending"     },
   { id: "REC-011", priority: "low",      category: "compliance",        title: "Automate quarterly access reviews for all SaaS applications",    rationale: "Manual process creates 6-8 week lag; SOX requires timely recertification.",  effort: "10d", impact: 4,  status: "pending"     },
   { id: "REC-012", priority: "low",      category: "access_control",    title: "Implement JIT privileged access for cloud console",              rationale: "Standing admin access to AWS/Azure violates least-privilege.",               effort: "14d", impact: 4,  status: "rejected"    },
 ];
@@ -122,9 +122,9 @@ const MOCK_THREAT_BRIEFING = {
   ],
   recommended_actions: [
     "Block IPs 185.220.101.0/24 at perimeter firewall immediately",
-    "Enable SWIFT CSP controls = mandatory for financial sector",
+    "Enable SWIFT CSP controls — mandatory for financial sector",
     "Deploy anti-phishing training for finance department (highest click rate: 23%)",
-    "Patch CVE-2024-21762 (Fortinet) = FIN7 known exploitation vector",
+    "Patch CVE-2024-21762 (Fortinet) — FIN7 known exploitation vector",
   ],
   industry: "Financial Services",
   generated_at: "2026-04-16T14:30:00Z",
@@ -149,7 +149,7 @@ const QUICK_QUESTIONS = [
   "Analyze last week's failed login surge",
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function PriorityBadge({ p }: { p: Priority }) {
   const cls =
@@ -225,7 +225,7 @@ function RiskTimeline({ data }: { data: RiskDataPoint[] }) {
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function AISecurityAdvisorDashboard() {
   const [recs, setRecs] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
@@ -262,8 +262,9 @@ export default function AISecurityAdvisorDashboard() {
       if (Array.isArray(recsData)) setRecs(recsData);
       if (statsData && typeof statsData === "object") setStats({ ...MOCK_STATS, ...statsData });
     } catch {
-      // backend offline = mock data already shown
+      // backend offline — mock data already shown
     } finally {
+      setLoading(false);
     }
   }
 
@@ -293,7 +294,7 @@ export default function AISecurityAdvisorDashboard() {
 
   function getMockAnswer(q: string): string {
     const lower = q.toLowerCase();
-    if (lower.includes("critical") || lower.includes("priorit")) return "Top priorities: (1) Patch CVE-2024-3400 in PAN-OS = CVSS 10.0 with active exploitation; (2) Rotate 847 stale service account credentials; (3) Enable MFA for 23 privileged Azure AD admin accounts. Estimated risk reduction: 41%.";
+    if (lower.includes("critical") || lower.includes("priorit")) return "Top priorities: (1) Patch CVE-2024-3400 in PAN-OS — CVSS 10.0 with active exploitation; (2) Rotate 847 stale service account credentials; (3) Enable MFA for 23 privileged Azure AD admin accounts. Estimated risk reduction: 41%.";
     if (lower.includes("soc2") || lower.includes("audit")) return "Current SOC2 readiness: 78%. 6 controls need evidence (CC6.1, CC6.3, CC7.2, CC9.1, A1.1, A1.2). Primary gap: Q1 access review documentation incomplete. Estimated 3 weeks to audit-ready.";
     if (lower.includes("threat") || lower.includes("actor")) return "Your sector (Financial Services) faces active campaigns from Lazarus Group (SWIFT targeting), TA505 (Clop ransomware via phishing), and FIN7 (LOLBins). 14 IOCs matched assets in your environment. Immediate action: block 185.220.101.0/24.";
     if (lower.includes("login") || lower.includes("auth")) return "The 340% spike in failed auth events (Mon-Wed) indicates a credential stuffing attack on your customer portal. Source IPs concentrate in 3 ASNs matching proxy networks. Recommend: CAPTCHA + rate limiting on /auth/login. No successful compromises detected.";
@@ -375,7 +376,7 @@ export default function AISecurityAdvisorDashboard() {
               Risk Score Timeline
             </CardTitle>
             <CardDescription className="text-xs">
-              Composite risk score trend = lower is better. Target: &lt;50
+              Composite risk score trend — lower is better. Target: &lt;50
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -418,7 +419,7 @@ export default function AISecurityAdvisorDashboard() {
               <ul className="space-y-1">
                 {threatBriefing.recommended_actions.slice(0, 3).map((a, i) => (
                   <li key={i} className="text-[11px] text-foreground flex gap-1">
-                    <span className="text-amber-400 mt-0.5 shrink-0">=</span>
+                    <span className="text-amber-400 mt-0.5 shrink-0">•</span>
                     <span>{a}</span>
                   </li>
                 ))}
@@ -525,7 +526,7 @@ export default function AISecurityAdvisorDashboard() {
                 AI-Generated Recommendations
               </CardTitle>
               <CardDescription className="text-xs mt-1">
-                {filteredRecs.length} recommendations = sorted by priority and impact
+                {filteredRecs.length} recommendations — sorted by priority and impact
               </CardDescription>
             </div>
             <div className="flex gap-2">

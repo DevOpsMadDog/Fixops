@@ -1,5 +1,5 @@
 /**
- * DigitalForensicsDashboard = Case management, evidence chain of custody, and analysis
+ * DigitalForensicsDashboard — Case management, evidence chain of custody, and analysis
  *
  * Route: /digital-forensics
  * Sections:
@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FolderOpen, Database, FlaskConical, Clock, RefreshCw, Shield, FileText, ChevronRight } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,13 +37,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CASES = [
   { id: "DF-2024-001", title: "Ransomware deployment on prod-db cluster", type: "ransom",      priority: "Critical", analyst: "K. Torres",   status: "active",    days: 4,  evidence: 12 },
   { id: "DF-2024-002", title: "Insider exfiltration via USB devices",     type: "insider",     priority: "High",     analyst: "M. Patel",    status: "analysis",  days: 7,  evidence: 8  },
   { id: "DF-2024-003", title: "Supply chain compromise in node_modules",  type: "malware",     priority: "Critical", analyst: "S. Kim",      status: "active",    days: 2,  evidence: 6  },
-  { id: "DF-2024-004", title: "Business email compromise = finance dept", type: "fraud",       priority: "High",     analyst: "J. Rivera",   status: "analysis",  days: 9,  evidence: 5  },
+  { id: "DF-2024-004", title: "Business email compromise — finance dept", type: "fraud",       priority: "High",     analyst: "J. Rivera",   status: "analysis",  days: 9,  evidence: 5  },
   { id: "DF-2024-005", title: "Customer PII exfil from API endpoint",     type: "data_breach", priority: "Critical", analyst: "L. Chen",     status: "reporting", days: 14, evidence: 17 },
   { id: "DF-2024-006", title: "Crypto-jacking on Kubernetes workers",     type: "malware",     priority: "Medium",   analyst: "D. Nguyen",   status: "active",    days: 3,  evidence: 4  },
   { id: "DF-2024-007", title: "Credential stuffing campaign against SSO", type: "data_breach", priority: "High",     analyst: "K. Torres",   status: "closed",    days: 22, evidence: 9  },
@@ -80,7 +80,7 @@ const CUSTODY_CHAIN = [
   { action: "analyzed",    actor: "L. Chen",     ts: "2026-04-16 12:45", notes: "Final analysis sign-off; chain of custody integrity confirmed" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function CaseTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -145,14 +145,13 @@ function CustodyActionBadge({ action }: { action: string }) {
   return <Badge className={cn("text-[10px] border", map[action] ?? "border-border text-muted-foreground")}>{action}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DigitalForensicsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCase, setSelectedCase] = useState("DF-2024-001");
   const [liveData, setLiveData] = useState<Record<string, any> | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -163,7 +162,8 @@ export default function DigitalForensicsDashboard() {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const cases = casesResult.status === "fulfilled" ? casesResult.value : null;
       if (stats || cases) {
-        setLiveData({ stats, cases });}
+        setLiveData({ stats, cases });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -173,14 +173,6 @@ export default function DigitalForensicsDashboard() {
   };
 
   const liveCases = liveData?.cases?.items ?? liveData?.cases ?? CASES;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -234,13 +226,7 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveCases.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  liveCases.map((c: any) => (
+                {liveCases.map((c: any) => (
                   <TableRow
                     key={c.id}
                     className={cn("hover:bg-muted/30 cursor-pointer", selectedCase === c.id && "bg-primary/5 border-l-2 border-l-primary")}
@@ -258,8 +244,7 @@ export default function DigitalForensicsDashboard() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Open</Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -274,7 +259,7 @@ export default function DigitalForensicsDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Database className="h-4 w-4 text-purple-400" />
-                Evidence = {selectedCase}
+                Evidence — {selectedCase}
               </CardTitle>
               <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
                 {EVIDENCE.length} items
@@ -294,13 +279,7 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EVIDENCE.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  EVIDENCE.map((e, i) => (
+                {EVIDENCE.map((e, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><EvidenceTypeBadge type={e.type} /></TableCell>
                     <TableCell className="text-xs py-2 max-w-[120px] truncate font-mono text-muted-foreground">{e.filename}</TableCell>
@@ -308,8 +287,7 @@ export default function DigitalForensicsDashboard() {
                     <TableCell className="text-xs py-2 font-mono text-muted-foreground">{e.hash}</TableCell>
                     <TableCell className="text-xs py-2 text-muted-foreground">{e.collected_by}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -335,21 +313,14 @@ export default function DigitalForensicsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CUSTODY_CHAIN.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  CUSTODY_CHAIN.map((entry, i) => (
+                {CUSTODY_CHAIN.map((entry, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><CustodyActionBadge action={entry.action} /></TableCell>
                     <TableCell className="text-xs py-2 text-muted-foreground">{entry.actor}</TableCell>
                     <TableCell className="text-xs py-2 tabular-nums text-muted-foreground">{entry.ts}</TableCell>
                     <TableCell className="text-xs py-2 max-w-[160px] truncate text-muted-foreground">{entry.notes}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -367,13 +338,7 @@ export default function DigitalForensicsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {ANALYSES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ANALYSES.map((a) => (
+            {ANALYSES.map((a) => (
               <div key={a.type} className="rounded-lg border border-border bg-muted/10 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <AnalysisTypeBadge type={a.type} />
@@ -386,14 +351,14 @@ export default function DigitalForensicsDashboard() {
                 <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{a.findings}</p>
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-[11px] text-muted-foreground">
-                    <span className="font-semibold text-foreground">{a.iocs}</span> IOCs = {a.analyst}
+                    <span className="font-semibold text-foreground">{a.iocs}</span> IOCs — {a.analyst}
                   </span>
                   <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] gap-1">
                     View <ChevronRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

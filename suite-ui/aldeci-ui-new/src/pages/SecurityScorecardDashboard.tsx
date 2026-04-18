@@ -5,8 +5,8 @@
  *   1. Overall grade circle (A/B/C/D/F, large, color-coded)
  *   2. 6 domain score progress bars: Identity, Endpoint, Network, Cloud, Data, Application
  *   3. 30-day score trend chart (div-based bar chart)
- *   4. Peer benchmarking panel = percentile rank vs. industry
- *   5. "Generate Scorecard" button = POST /api/v1/security-scorecard/scorecards
+ *   4. Peer benchmarking panel — percentile rank vs. industry
+ *   5. "Generate Scorecard" button → POST /api/v1/security-scorecard/scorecards
  *
  * API: GET /api/v1/security-scorecard/ (mock until router deployed)
  */
@@ -33,7 +33,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface DomainScore {
   domain: string;
@@ -53,7 +53,7 @@ interface ScorecardData {
   domains: DomainScore[];
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SCORECARD: ScorecardData = {
   overall_score: 87,
@@ -97,7 +97,7 @@ const PEER_DATA = [
   { label: "Bottom 25%",  threshold: 65, highlight: false },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function gradeColor(grade: string): { text: string; bg: string; border: string; ring: string } {
   switch (grade) {
@@ -127,23 +127,12 @@ function scoreToPercent(score: number): number {
   return ((score - TREND_MIN) / (TREND_MAX - TREND_MIN)) * 100;
 }
 
-// == Grade Circle ===============================================
+// ── Grade Circle ───────────────────────────────────────────────
 
 function GradeCircle({ grade, score }: { grade: string; score: number }) {
   const colors = gradeColor(grade);
   return (
     <div className="flex flex-col items-center gap-3">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <div
         className={cn(
           "w-36 h-36 rounded-full border-8 flex flex-col items-center justify-center shadow-lg transition-all",
@@ -169,7 +158,7 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
   );
 }
 
-// == Main component =============================================
+// ── Main component ─────────────────────────────────────────────
 
 export default function SecurityScorecardDashboard() {
   const [scorecard, setScorecard] = useState<ScorecardData>(MOCK_SCORECARD);
@@ -179,11 +168,9 @@ export default function SecurityScorecardDashboard() {
   useEffect(() => {
     apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
       if (d?.overall_score !== undefined) setScorecard(d);
-    }).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    }).catch(() => {});
   }, []);
   const [generated, setGenerated] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -199,7 +186,7 @@ export default function SecurityScorecardDashboard() {
         body: JSON.stringify({ org_id: "aldeci-demo", period: "Q2 2026" }),
       });
     } catch {
-      // Mock = API may not be deployed yet
+      // Mock — API may not be deployed yet
     }
     setTimeout(() => {
       setGenerating(false);
@@ -210,14 +197,6 @@ export default function SecurityScorecardDashboard() {
 
   const trendChange = TREND_DATA[TREND_DATA.length - 1].score - TREND_DATA[0].score;
   const trendUp = trendChange >= 0;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -248,7 +227,7 @@ export default function SecurityScorecardDashboard() {
               ) : (
                 <Award className="h-4 w-4" />
               )}
-              {generating ? "Generating=" : generated ? "Generated!" : "Generate Scorecard"}
+              {generating ? "Generating…" : generated ? "Generated!" : "Generate Scorecard"}
             </Button>
           </div>
         }
@@ -340,7 +319,7 @@ export default function SecurityScorecardDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-blue-400" />
-              Score Trend = Last 30 Days
+              Score Trend — Last 30 Days
             </CardTitle>
             <CardDescription className="text-xs">
               {trendUp ? "+" : ""}{trendChange} points over period
@@ -348,13 +327,7 @@ export default function SecurityScorecardDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1.5 h-36">
-              {TREND_DATA.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                TREND_DATA.map((pt, i) => {
+              {TREND_DATA.map((pt, i) => {
                 const pct = scoreToPercent(pt.score);
                 const isLatest = i === TREND_DATA.length - 1;
                 return (
@@ -373,8 +346,7 @@ export default function SecurityScorecardDashboard() {
                     </span>
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
               <span>{TREND_DATA[0].day}</span>
@@ -404,13 +376,7 @@ export default function SecurityScorecardDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2.5">
-              {PEER_DATA.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                PEER_DATA.map((p) => (
+              {PEER_DATA.map((p) => (
                 <div key={p.label} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span
@@ -419,7 +385,7 @@ export default function SecurityScorecardDashboard() {
                         p.highlight ? "text-purple-300" : "text-muted-foreground"
                       )}
                     >
-                      {p.highlight ? "= " : ""}{p.label}
+                      {p.highlight ? "▶ " : ""}{p.label}
                     </span>
                     <span
                       className={cn(
@@ -440,8 +406,7 @@ export default function SecurityScorecardDashboard() {
                     />
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
             <div className="mt-4 rounded-md border border-purple-500/20 bg-purple-500/5 px-3 py-2.5">
               <p className="text-[11px] text-purple-300 font-medium">

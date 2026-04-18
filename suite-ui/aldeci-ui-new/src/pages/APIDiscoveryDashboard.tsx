@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_endpoints: 3036,
@@ -61,7 +61,7 @@ const MOCK_ENDPOINTS = [
   { id: "ep-012", path: "/api/v1/alerts",             method: "GET",    risk_score: 30, auth_required: true,  status: "documented",    service: "alert-mgr" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskScoreBadge({ score }: { score: number }) {
   const cls =
@@ -101,13 +101,15 @@ function EndpointStatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function APIDiscoveryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; endpoints: any[] | null; }>({ stats: null, endpoints: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    endpoints: any[] | null;
+  }>({ stats: null, endpoints: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -132,14 +134,6 @@ export default function APIDiscoveryDashboard() {
 
   const stats     = liveData.stats     ?? MOCK_STATS;
   const endpoints = liveData.endpoints ?? MOCK_ENDPOINTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -176,10 +170,10 @@ export default function APIDiscoveryDashboard() {
               Discovered API Endpoints
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {endpoints.length} shown = {stats.total_endpoints} total
+              {endpoints.length} shown · {stats.total_endpoints} total
             </Badge>
           </div>
-          <CardDescription className="text-xs">All discovered endpoints ranked by risk score = undocumented and unauthenticated endpoints flagged</CardDescription>
+          <CardDescription className="text-xs">All discovered endpoints ranked by risk score — undocumented and unauthenticated endpoints flagged</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -195,13 +189,7 @@ export default function APIDiscoveryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {endpoints.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  endpoints.map((ep: any, i: number) => (
+                {endpoints.map((ep: any, i: number) => (
                   <TableRow key={ep.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><MethodBadge method={ep.method ?? "GET"} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{ep.path}</TableCell>
@@ -214,8 +202,7 @@ export default function APIDiscoveryDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><EndpointStatusBadge status={ep.status ?? "documented"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SEGMENTS = [
   { id: "seg-001", name: "prod-web-tier",         segment_type: "application", enforcement_mode: "enforcing",  policy_count: 12, violation_count: 0 },
@@ -54,7 +54,7 @@ const MOCK_SEGMENTS = [
 
 const MOCK_STATS = { total_segments: 87, policies: 342, open_violations: 27, high_violation_segments: 4 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function EnforcementBadge({ mode }: { mode: string }) {
   const map: Record<string, string> = {
@@ -83,13 +83,12 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function MicrosegmentationPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveSegments, setLiveSegments] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -98,22 +97,13 @@ export default function MicrosegmentationPolicyDashboard() {
     ]).then(([segRes, statsRes]) => {
       if (segRes.status === "fulfilled") setLiveSegments(segRes.value?.segments ?? segRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const segments = liveSegments ?? MOCK_SEGMENTS;
   const stats    = liveStats    ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -124,7 +114,7 @@ export default function MicrosegmentationPolicyDashboard() {
     >
       <PageHeader
         title="Microsegmentation Policies"
-        description="Network microsegmentation enforcement = segment isolation, policy coverage, and lateral movement violation tracking"
+        description="Network microsegmentation enforcement — segment isolation, policy coverage, and lateral movement violation tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -174,19 +164,13 @@ export default function MicrosegmentationPolicyDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {segments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  segments.map((seg: any, i: number) => (
+                {segments.map((seg: any, i: number) => (
                   <TableRow key={seg.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-green-300 max-w-[180px] truncate">
-                      {seg.name ?? "="}
+                      {seg.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-emerald-300">
-                      {seg.segment_type ?? "="}
+                      {seg.segment_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <EnforcementBadge mode={seg.enforcement_mode ?? "monitoring"} />
@@ -198,8 +182,7 @@ export default function MicrosegmentationPolicyDashboard() {
                       <ViolationCell count={seg.violation_count ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

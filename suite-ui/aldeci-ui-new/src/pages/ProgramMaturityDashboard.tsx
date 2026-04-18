@@ -50,13 +50,11 @@ export default function ProgramMaturityDashboard() {
   const [showAddDomain, setShowAddDomain] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/program-maturity/domains?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showAddImprovement, setShowAddImprovement] = useState(false);
   const [newDomain, setNewDomain] = useState({ domain_name: "", domain_type: "identity", current_level: 1, target_level: 3 });
   const [newImprovement, setNewImprovement] = useState({ domain_id: "d-001", improvement_name: "", priority: "medium", target_level: 3, effort_days: 30, due_date: "" });
-  const [loading, setLoading] = useState(true);
 
   const avgCurrentLevel = (domains.reduce((a, d) => a + d.current_level, 0) / domains.length).toFixed(1);
   const avgScore = Math.round(domains.reduce((a, d) => a + d.score, 0) / domains.length);
@@ -66,23 +64,15 @@ export default function ProgramMaturityDashboard() {
   const filteredImprovements = filterDomain === "all" ? improvements : improvements.filter(i => i.domain_id === filterDomain);
   const today = "2026-04-16";
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -158,13 +148,7 @@ export default function ProgramMaturityDashboard() {
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {domains.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                domains.map(d => {
+              {domains.map(d => {
                 const gap = d.current_level - d.target_level;
                 return (
                   <div key={d.id} className="bg-gray-800 rounded-lg p-5">
@@ -185,7 +169,7 @@ export default function ProgramMaturityDashboard() {
                       <div className="flex gap-1">
                         {[1,2,3,4,5].map(lvl => (
                           <div key={lvl} className={`flex-1 h-3 rounded ${lvl <= d.current_level ? levelColor(d.current_level) : "bg-gray-700"} ${lvl === d.target_level ? "ring-2 ring-white ring-opacity-50" : ""}`} />
-                        )))}
+                        ))}
                       </div>
                     </div>
                     <div className="mb-2">
@@ -197,8 +181,7 @@ export default function ProgramMaturityDashboard() {
                     <p className="text-gray-500 text-xs">Last assessed: {d.last_assessed}</p>
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
           </>
         )}
@@ -208,23 +191,17 @@ export default function ProgramMaturityDashboard() {
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700"><h2 className="font-semibold">Assessment History</h2></div>
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Assessment", "Assessor", "Status", "Overall Level", "Score", "Domains", "Completed"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {assessments.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    assessments.map(a => (
+                  {assessments.map(a => (
                     <tr key={a.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{a.assessment_name}</td>
                       <td className="px-4 py-3 text-gray-300">{a.assessor}</td>
                       <td className="px-4 py-3">{statusBadge(a.status)}</td>
-                      <td className="px-4 py-3 text-blue-400 font-bold">{a.overall_level > 0 ? `${a.overall_level}/5` : "="}</td>
+                      <td className="px-4 py-3 text-blue-400 font-bold">{a.overall_level > 0 ? `${a.overall_level}/5` : "—"}</td>
                       <td className="px-4 py-3 min-w-[140px]">
                         {a.overall_score > 0 ? (
                           <div className="flex items-center gap-2">
@@ -233,13 +210,12 @@ export default function ProgramMaturityDashboard() {
                             </div>
                             <span className="text-xs text-gray-400 w-8">{a.overall_score}</span>
                           </div>
-                        ) : <span className="text-gray-500">=</span>}
+                        ) : <span className="text-gray-500">—</span>}
                       </td>
                       <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{a.domains_assessed}</span></td>
-                      <td className="px-4 py-3 text-gray-400">{a.completed_at || "="}</td>
+                      <td className="px-4 py-3 text-gray-400">{a.completed_at || "—"}</td>
                     </tr>
-                  ))
-                )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -254,31 +230,17 @@ export default function ProgramMaturityDashboard() {
                 <h2 className="font-semibold">Improvement Roadmap</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterDomain} onChange={e => setFilterDomain(e.target.value)}>
                   <option value="all">All Domains</option>
-                  {domains.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
+                  {domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAddImprovement(!showAddImprovement)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">+ Add Improvement</button>
-                  )}
             </div>
             {showAddImprovement && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newImprovement.domain_id} onChange={e => setNewImprovement({ ...newImprovement, domain_id: e.target.value })}>
-                  {domains.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
+                  {domains.map(d => <option key={d.id} value={d.id}>{d.domain_name}</option>)}
                 </select>
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newImprovement.priority} onChange={e => setNewImprovement({ ...newImprovement, priority: e.target.value })}>
-                  )}
                   {["critical","high","medium","low"].map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm col-span-2" placeholder="Improvement name" value={newImprovement.improvement_name} onChange={e => setNewImprovement({ ...newImprovement, improvement_name: e.target.value })} />
@@ -291,13 +253,7 @@ export default function ProgramMaturityDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredImprovements.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filteredImprovements.map(i => {
+              {filteredImprovements.map(i => {
                 const domain = domains.find(d => d.id === i.domain_id);
                 const overdue = i.status !== "completed" && i.due_date < today;
                 return (
@@ -320,8 +276,7 @@ export default function ProgramMaturityDashboard() {
                     </div>
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
           </div>
         )}

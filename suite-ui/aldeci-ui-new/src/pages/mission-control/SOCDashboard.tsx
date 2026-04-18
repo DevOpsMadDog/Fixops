@@ -1027,7 +1027,7 @@ export default function SOCDashboard() {
                   <SelectItem key={s} value={s}>
                     {s === "all" ? "All Sources" : s}
                   </SelectItem>
-                )))}
+                ))}
               </SelectContent>
             </Select>
 
@@ -1105,7 +1105,7 @@ export default function SOCDashboard() {
       {/* ── Alert Queue Table ── */}
       <Card>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             {/* Header */}
             <thead>
               <tr className="border-b border-border">
@@ -1120,7 +1120,7 @@ export default function SOCDashboard() {
                   <button
                     onClick={() => toggleSort("severity")}
                     className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                   aria-label="Sort by Severity">
+                  >
                     SEV <SortIcon field="severity" />
                   </button>
                 </th>
@@ -1137,7 +1137,7 @@ export default function SOCDashboard() {
                   <button
                     onClick={() => toggleSort("cvss")}
                     className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                   aria-label="Sort by Cvss">
+                  >
                     CVSS <SortIcon field="cvss" />
                   </button>
                 </th>
@@ -1145,7 +1145,7 @@ export default function SOCDashboard() {
                   <button
                     onClick={() => toggleSort("age")}
                     className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                   aria-label="Sort by Age">
+                  >
                     Age <SortIcon field="age" />
                   </button>
                 </th>

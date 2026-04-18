@@ -715,7 +715,7 @@ function ControlMappingTable({ controls }: { controls: Control[] }) {
                 <SelectItem value="all" className="text-xs">All Frameworks</SelectItem>
                 {uniqueFrameworks.filter((f) => f !== "all").map((f) => (
                   <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>
-                )))}
+                ))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -804,8 +804,8 @@ function ControlMappingTable({ controls }: { controls: Control[] }) {
                     <TableCell className="text-xs text-muted-foreground">{ctrl.lastReviewed}</TableCell>
                   </TableRow>
                 ))
-                )}
-              </TableBody>
+              )}
+            </TableBody>
           </Table>
         </div>
         <div className="px-4 py-2 border-t border-border/40 text-xs text-muted-foreground">
@@ -871,7 +871,7 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
                   dot={false}
                   activeDot={{ r: 4, strokeWidth: 0 }}
                 />
-              )))}
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -1115,14 +1115,14 @@ export default function ComplianceDashboard() {
                     </div>
                     <div className="flex h-2 rounded-full overflow-hidden bg-muted">
                       <div className="bg-green-500 transition-all duration-700" style={{ width: `${passedPct}%` }} />
-                      <div className="bg-red-500/60 transition-all duration-700" style={{ width: `${failedPct}%` }} / role="status" aria-live="polite">
+                      <div className="bg-red-500/60 transition-all duration-700" style={{ width: `${failedPct}%` }} />
                     </div>
                   </div>
                 );
               })}
               <div className="flex items-center gap-4 pt-1 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-green-500" /> Passed</div>
-                <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-500/60" / role="status" aria-live="polite"> Failed</div>
+                <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-500/60" /> Failed</div>
               </div>
             </CardContent>
           </Card>

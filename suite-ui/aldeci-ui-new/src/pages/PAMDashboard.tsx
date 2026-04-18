@@ -1,7 +1,7 @@
 /**
  * PAM Dashboard
  *
- * Privileged Access Management = vault, session control, and just-in-time access.
+ * Privileged Access Management — vault, session control, and just-in-time access.
  *   1. KPIs: Privileged Accounts, Active Sessions, Pending Approvals, Overdue Rotation
  *   2. Privileged accounts table (12 rows)
  *   3. Session requests table (10 rows)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Key, Clock, AlertTriangle, RefreshCw, Video, CheckCircle, XCircle, Lock } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ACCOUNTS = [
   { username: "ro**@prod-db-01",    type: "root",      system: "prod-db-01",    owner: "DBAdmin",   risk: 92, rotated: "45 days ago", status: "overdue" },
@@ -83,7 +83,7 @@ const POLICIES = [
   { name: "Break-Glass Emergency",      mfa: true,  approval: true,  maxDuration: "8h",  recording: true  },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const cls =
@@ -131,13 +131,12 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{status}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PAMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -152,22 +151,13 @@ export default function PAMDashboard() {
       if (stats || accounts || sessions) {
         setLiveData({ stats, accounts, sessions });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -190,9 +180,9 @@ export default function PAMDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="Privileged Accounts" value={liveData?.stats?.total_accounts ?? (liveData?.accounts?.length ?? 347)} icon={Key} />
-        <KpiCard title="Active Sessions"     value={liveData?.stats?.active_sessions ?? (liveData?.sessions?.filter((s: PAMSession) => s.approval_status === "approved").length ?? 12)} icon={Shield} trend="up" className="border-blue-500/20" />
-        <KpiCard title="Pending Approvals"   value={liveData?.stats?.pending_approvals ?? (liveData?.sessions?.filter((s: PAMSession) => s.approval_status === "pending").length ?? 8)} icon={Clock} trend="up" className="border-yellow-500/20" />
-        <KpiCard title="Overdue Rotation"    value={liveData?.stats?.overdue_rotation ?? (liveData?.accounts?.filter((a: PAMAccount) => a.status === "overdue").length ?? 23)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
+        <KpiCard title="Active Sessions"     value={liveData?.stats?.active_sessions ?? (liveData?.sessions?.filter((s: any) => s.approval_status === "approved").length ?? 12)} icon={Shield} trend="up" className="border-blue-500/20" />
+        <KpiCard title="Pending Approvals"   value={liveData?.stats?.pending_approvals ?? (liveData?.sessions?.filter((s: any) => s.approval_status === "pending").length ?? 8)} icon={Clock} trend="up" className="border-yellow-500/20" />
+        <KpiCard title="Overdue Rotation"    value={liveData?.stats?.overdue_rotation ?? (liveData?.accounts?.filter((a: any) => a.status === "overdue").length ?? 23)} icon={AlertTriangle} trend="up" className="border-red-500/20" />
       </div>
 
       {/* Privileged Accounts Table */}
@@ -204,7 +194,7 @@ export default function PAMDashboard() {
               Privileged Accounts
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {(liveData?.accounts ?? ACCOUNTS).filter((a: PAMAccount) => a.status === "overdue").length} overdue
+              {(liveData?.accounts ?? ACCOUNTS).filter((a: any) => a.status === "overdue").length} overdue
             </Badge>
           </div>
           <CardDescription className="text-xs">Managed credentials across all systems</CardDescription>
@@ -225,7 +215,7 @@ export default function PAMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(liveData?.accounts ?? ACCOUNTS).map((row: PAMAccount, i: number) => (
+                {(liveData?.accounts ?? ACCOUNTS).map((row: any, i: number) => (
                   <TableRow key={row.id ?? i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs font-mono py-2.5">{row.username}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.account_type ?? row.type} /></TableCell>
@@ -254,7 +244,7 @@ export default function PAMDashboard() {
               Session Requests
             </CardTitle>
             <Badge className="text-[10px] border border-yellow-500/30 text-yellow-400 bg-yellow-500/10">
-              {(liveData?.sessions ?? SESSION_REQUESTS).filter((r: PAMSession) => (r.approval_status ?? r.status) === "pending").length} pending
+              {(liveData?.sessions ?? SESSION_REQUESTS).filter((r: any) => (r.approval_status ?? r.status) === "pending").length} pending
             </Badge>
           </div>
           <CardDescription className="text-xs">Just-in-time access requests awaiting review</CardDescription>
@@ -295,7 +285,7 @@ export default function PAMDashboard() {
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground">=</span>
+                        <span className="text-[10px] text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -330,17 +320,17 @@ export default function PAMDashboard() {
                       </Badge>
                     )}
                   </div>
-                  <span className="text-xs font-medium truncate">{s.requester} = {s.target_system ?? s.target}</span>
+                  <span className="text-xs font-medium truncate">{s.requester} → {s.target_system ?? s.target}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {s.started_at ? new Date(s.started_at).toLocaleTimeString() : s.started ? `Started ${s.started}` : ""}
-                    {s.elapsed ? ` = Elapsed ${s.elapsed}` : ""}
+                    {s.elapsed ? ` · Elapsed ${s.elapsed}` : ""}
                   </span>
                 </div>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0 ml-2">
                   End
                 </Button>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
 
@@ -370,13 +360,7 @@ export default function PAMDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {POLICIES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  POLICIES.map((p, i) => (
+                {POLICIES.map((p, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs py-2.5 font-medium max-w-[150px] truncate">{p.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -394,12 +378,11 @@ export default function PAMDashboard() {
                       {p.recording ? (
                         <Video className="h-3.5 w-3.5 text-red-400" />
                       ) : (
-                        <span className="text-[10px] text-muted-foreground">=</span>
+                        <span className="text-[10px] text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

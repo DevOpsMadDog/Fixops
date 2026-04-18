@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CAMPAIGNS = [
   { id: "C-001", name: "Q2 CEO Fraud",         type: "spear_phishing", group: "Finance",    launched: "2026-04-01", targets: 45,  clicked: 8,  reported: 19, rate: 17.8, status: "completed" },
@@ -84,7 +84,7 @@ const TRAINING_MODULES = [
   { name: "Incident Reporting Procedures",   completion: 47, enrolled: 2847 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -127,13 +127,12 @@ function DifficultyBadge({ diff }: { diff: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PhishingSimulation() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData]     = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -159,17 +158,9 @@ export default function PhishingSimulation() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derive display values = live data takes precedence over mock
+  // Derive display values — live data takes precedence over mock
   const displayCampaigns = liveData?.campaigns ?? CAMPAIGNS;
   const displayTemplates = liveData?.templates ?? TEMPLATES;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -232,13 +223,7 @@ export default function PhishingSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayCampaigns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  displayCampaigns.map((row: any) => (
+                {displayCampaigns.map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[160px] truncate">{row.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>
@@ -258,8 +243,7 @@ export default function PhishingSimulation() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">View</Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -275,16 +259,10 @@ export default function PhishingSimulation() {
               <BarChart3 className="h-4 w-4 text-amber-400" />
               Department Click Rates
             </CardTitle>
-            <CardDescription className="text-xs">Sorted by click rate = red &gt;10%, yellow &gt;7%</CardDescription>
+            <CardDescription className="text-xs">Sorted by click rate — red &gt;10%, yellow &gt;7%</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DEPT_RATES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              DEPT_RATES.map((d) => (
+            {DEPT_RATES.map((d) => (
               <div key={d.dept} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{d.dept}</span>
@@ -304,8 +282,7 @@ export default function PhishingSimulation() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -320,13 +297,7 @@ export default function PhishingSimulation() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
-              {displayTemplates.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                displayTemplates.map((t: any) => (
+              {displayTemplates.map((t: any) => (
                 <div
                   key={t.id}
                   className="rounded-lg border border-border bg-muted/10 p-3 flex flex-col gap-2 hover:bg-muted/20 transition-colors"
@@ -343,7 +314,7 @@ export default function PhishingSimulation() {
                     <Button variant="outline" size="sm" className="h-5 px-2 text-[9px]">Use</Button>
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -359,13 +330,7 @@ export default function PhishingSimulation() {
           <CardDescription className="text-xs">Security awareness module progress across {(2847).toLocaleString()} enrolled employees</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {TRAINING_MODULES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            TRAINING_MODULES.map((mod, idx) => (
+          {TRAINING_MODULES.map((mod, idx) => (
             <div key={idx} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium">{mod.name}</span>
@@ -391,7 +356,7 @@ export default function PhishingSimulation() {
                 />
               </div>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

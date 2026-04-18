@@ -1,7 +1,7 @@
 /**
  * Privacy & GDPR Dashboard
  *
- * Data privacy compliance = DSRs, consents, incidents, processing activities.
+ * Data privacy compliance — DSRs, consents, incidents, processing activities.
  *   1. KPIs: Open DSRs, Overdue DSRs, Active Consents, Open Incidents
  *   2. DSR table: type, subject (masked), regulation, status, due date, fulfilled
  *   3. Consent management table: purpose, given/withdrawn counts
@@ -44,7 +44,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const DSRS = [
   { id: "DSR-001", type: "access",      email: "j***@example.com",    regulation: "GDPR",  status: "open",      due_date: "2026-04-18", fulfilled_date: null,        overdue: false },
@@ -74,7 +74,7 @@ const PROCESSING_ACTIVITIES = [
   { id: "PA-003", activity: "Marketing Campaigns",          legal_basis: "Consent",     categories: "Email, Preferences, Behavior", retention: "3 years" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function DSRTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -121,12 +121,11 @@ function RegBadge({ reg }: { reg: string }) {
   return <Badge className={cn("text-[10px] border font-mono", map[reg] ?? "border-border text-muted-foreground")}>{reg}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PrivacyGDPRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -153,14 +152,6 @@ export default function PrivacyGDPRDashboard() {
   const openIncidents  = INCIDENTS.filter((i) => i.status !== "closed").length;
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -236,7 +227,7 @@ export default function PrivacyGDPRDashboard() {
                       {d.due_date}
                     </TableCell>
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">
-                      {d.fulfilled_date ?? "="}
+                      {d.fulfilled_date ?? "—"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -323,7 +314,7 @@ export default function PrivacyGDPRDashboard() {
             <Database className="h-4 w-4 text-purple-400" />
             Processing Activities (RoPA)
           </CardTitle>
-          <CardDescription className="text-xs">Record of Processing Activities = legal basis, data categories, retention</CardDescription>
+          <CardDescription className="text-xs">Record of Processing Activities — legal basis, data categories, retention</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -342,7 +333,7 @@ export default function PrivacyGDPRDashboard() {
                     <TableCell className="py-2 text-xs font-medium">{pa.activity ?? pa.activity_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{pa.legal_basis}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[200px] truncate">{pa.categories ?? (Array.isArray(pa.data_categories) ? pa.data_categories.join(", ") : pa.data_categories)}</TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{pa.retention ?? (pa.retention_period_days ? `${pa.retention_period_days} days` : "=")}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{pa.retention ?? (pa.retention_period_days ? `${pa.retention_period_days} days` : "—")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

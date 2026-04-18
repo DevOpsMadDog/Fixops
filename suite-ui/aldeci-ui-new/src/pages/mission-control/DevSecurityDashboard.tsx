@@ -540,7 +540,7 @@ function RepoAccordion({ repos }: { repos: Repo[] }) {
                         )}
                         <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </div>
-                    )))}
+                    ))}
                     {repo.findings.length === 0 && (
                       <div className="px-8 py-4 text-sm text-muted-foreground flex items-center gap-2">
                         <Shield className="h-4 w-4 text-green-400" />
@@ -591,14 +591,14 @@ function SecretExposurePanel({ secrets }: { secrets: SecretFinding[] }) {
             <span>Secret Exposure</span>
             <Badge variant="destructive" className="text-xs font-mono">{secrets.length} detected</Badge>
           </div>
-          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden / role="status" aria-live="polite">
+          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {secrets.map((s) => {
           const isExpanded = expandedId === s.id;
           return (
-            <div key={s.id} className="rounded-md border border-red-500/20 bg-red-500/5 overflow-hidden" role="status" aria-live="polite">
+            <div key={s.id} className="rounded-md border border-red-500/20 bg-red-500/5 overflow-hidden">
               <button
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-red-500/10 transition-colors"
                 onClick={() => setExpandedId(isExpanded ? null : s.id)}
@@ -625,7 +625,7 @@ function SecretExposurePanel({ secrets }: { secrets: SecretFinding[] }) {
                     transition={{ duration: 0.18 }}
                     className="overflow-hidden"
                   >
-                    <div className="px-3 pb-3 space-y-2 border-t border-red-500/20" role="status" aria-live="polite">
+                    <div className="px-3 pb-3 space-y-2 border-t border-red-500/20">
                       <p className="text-xs text-muted-foreground pt-2">Rotation command:</p>
                       <div className="rounded bg-zinc-950 border border-zinc-800 p-2.5 font-mono text-xs text-yellow-300 flex items-center gap-2">
                         <Terminal className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
@@ -718,7 +718,7 @@ function DependencyPanel({ vulns, totalClean }: { vulns: DepVuln[]; totalClean: 
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-red-500" / role="status" aria-live="polite">
+              <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
               <span className="text-muted-foreground">Vulnerable</span>
               <span className="font-mono font-bold text-red-400 ml-auto">{vulns.length}</span>
             </div>
@@ -754,7 +754,7 @@ function DependencyPanel({ vulns, totalClean }: { vulns: DepVuln[]; totalClean: 
 
         {/* Table */}
         <div className="rounded-md border border-border overflow-hidden">
-          <table role="table" className="w-full text-xs">
+          <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Package</th>
@@ -968,7 +968,7 @@ export default function DevSecurityDashboard() {
         <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-24 bg-muted rounded-xl" />
-          )))}
+          ))}
         </div>
         <div className="h-48 bg-muted rounded-xl" />
         <div className="h-48 bg-muted rounded-xl" />

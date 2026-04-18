@@ -1,7 +1,7 @@
 /**
  * TPRM Exchange Dashboard
  *
- * Third-Party Risk Management = vendor profiles, assessments, incidents.
+ * Third-Party Risk Management — vendor profiles, assessments, incidents.
  *   1. KPI cards: total vendors, tier-1 count, active assessments, high_risk alert
  *   2. Vendor profiles table
  *   3. Assessment panel with complete button
@@ -41,7 +41,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data =================================================================
+// ── Mock data ─────────────────────────────────────────────────────────────────
 
 const MOCK_VENDORS = [
   { id: "v1", vendor_name: "CloudStrike Corp",    category: "cloud-provider",  criticality: "critical", risk_tier: "tier-1", compliance_score: 82, contract_value: 480000, status: "active" },
@@ -72,7 +72,7 @@ const TIER1_COUNT   = MOCK_VENDORS.filter(v => v.risk_tier === "tier-1").length;
 const ACTIVE_ASSESS = MOCK_ASSESSMENTS.filter(a => a.status !== "completed").length;
 const HIGH_RISK     = MOCK_VENDORS.filter(v => v.compliance_score < 65).length;
 
-// == Helpers ===================================================================
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function TierBadge({ tier }: { tier: string }) {
   const map: Record<string, string> = {
@@ -131,21 +131,10 @@ function SeverityBadge({ s }: { s: string }) {
 }
 
 function ScoreBar({ score }: { score: number }) {
-  if (score === 0) return <span className="text-[10px] text-muted-foreground">=</span>;
+  if (score === 0) return <span className="text-[10px] text-muted-foreground">—</span>;
   const color = score >= 80 ? "bg-green-500" : score >= 60 ? "bg-yellow-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full", color)} style={{ width: `${score}%` }} />
       </div>
@@ -160,21 +149,20 @@ function fmt$(n: number) {
   return `$${n}`;
 }
 
-// == Component =================================================================
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TprmExchangeDashboard() {
   const [vendorFilter, setVendorFilter] = useState<string>("all");
   const [completedAssessments, setCompletedAssessments] = useState<Set<string>>(
-    new Set(MOCK_ASSESSMENTS.filter(a => a.status === "completed").map(a => a.id));
+    new Set(MOCK_ASSESSMENTS.filter(a => a.status === "completed").map(a => a.id))
+  );
 
   useEffect(() => {
-    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => {});
   }, []);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState({ vendor_name: "", category: "cloud-provider", criticality: "high", contract_value: "" });
-  const [loading, setLoading] = useState(true);
 
   const handleComplete = async (assessId: string) => {
     try { await apiFetch(`/api/v1/tprm-exchange/assessments/${assessId}/complete?org_id=${ORG_ID}`, { method: "POST" }); } catch (_) {}
@@ -191,19 +179,11 @@ export default function TprmExchangeDashboard() {
 
   const vendorName = (vid: string) => MOCK_VENDORS.find(v => v.id === vid)?.vendor_name ?? vid;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       <PageHeader
         title="TPRM Exchange"
-        description="Third-Party Risk Management = vendor profiles, assessments, and incident tracking"
+        description="Third-Party Risk Management — vendor profiles, assessments, and incident tracking"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>

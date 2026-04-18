@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import { ErrorState } from "@/components/shared/ErrorState";
 
@@ -120,10 +120,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
-import { GlobalSearch } from "./GlobalSearch";
 import { useAuth } from "@/lib/auth";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 
 interface NavItem {
   label: string;
@@ -596,32 +593,15 @@ function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname:
   );
 }
 
-// ── Hamburger icon for mobile ──
-import { Menu, X } from "lucide-react";
-
 export function WorkspaceLayout() {
   const { preferences, toggleSidebar, toggleCopilot, toggleTheme } = useAppStore();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-  const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
   const collapsed = preferences.sidebarCollapsed;
   const copilotOpen = preferences.copilotOpen;
   const userRole = user?.role ?? "viewer";
-
-  // Close mobile sidebar on route change
-  const prevPathname = location.pathname;
-  React.useEffect(() => {
-    setMobileOpen(false);
-  }, [prevPathname]);
-
-  const onShowHelp = useCallback(() => {
-    setShortcutsHelpOpen(true);
-  }, []);
-
-  useKeyboardShortcuts({ onShowHelp });
 
   // Filter nav items by role — items without `roles` are visible to all
   const filteredGroups = navGroups
@@ -638,10 +618,16 @@ export function WorkspaceLayout() {
 
   const currentExpanded = expandedGroup ?? activeGroup?.label ?? null;
 
-  // Shared sidebar content (used for both desktop aside and mobile overlay)
-  function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
-    return (
-      <>
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* ── Left Sidebar ── */}
+      <aside
+        className={cn(
+          "flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300",
+          collapsed ? "w-16" : "w-60",
+          "max-md:w-16"
+        )}
+      >
         {/* Logo */}
         <div className="flex h-14 items-center gap-3 border-b border-sidebar-border px-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-sm">
@@ -703,7 +689,6 @@ export function WorkspaceLayout() {
                             key={item.to}
                             to={item.to}
                             end={item.to === "/mission-control" || item.to === "/discover" || item.to === "/remediate" || item.to === "/comply"}
-                            onClick={onNavClick}
                             className={({ isActive: active }) =>
                               cn(
                                 "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs transition-colors",
@@ -733,10 +718,10 @@ export function WorkspaceLayout() {
 
         {/* Bottom Actions */}
         <div className="border-t border-sidebar-border p-2 space-y-1">
+          {/* User identity */}
           <UserBadge collapsed={collapsed} />
           <NavLink
             to="/settings"
-            onClick={onNavClick}
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
@@ -764,7 +749,7 @@ export function WorkspaceLayout() {
 
           <button
             onClick={toggleSidebar}
-            className="hidden md:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4 shrink-0" />
@@ -774,76 +759,15 @@ export function WorkspaceLayout() {
             {!collapsed && <span>Collapse</span>}
           </button>
         </div>
-      </>
-    );
-  }
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* ── Mobile overlay backdrop ── */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
-            onClick={() => setMobileOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── Mobile overlay sidebar ── */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.aside
-            initial={{ x: -280 }}
-            animate={{ x: 0 }}
-            exit={{ x: -280 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar md:hidden"
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-3.5 rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent/50"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <SidebarContent onNavClick={() => setMobileOpen(false)} />
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* ── Desktop Left Sidebar ── */}
-      <aside
-        className={cn(
-          "hidden md:flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300",
-          collapsed ? "w-16" : "w-60"
-        )}
-      >
-        <SidebarContent />
       </aside>
 
       {/* ── Main Content ── */}
       <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="h-full">
           {/* Top Bar with Breadcrumbs */}
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-6">
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="mr-2 rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 md:hidden"
-              aria-label="Open navigation"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <Breadcrumbs navGroups={filteredGroups} pathname={location.pathname} />
-            </div>
-            <div className="flex items-center gap-1 md:gap-2 ml-2">
-              <GlobalSearch />
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-6">
+            <Breadcrumbs navGroups={filteredGroups} pathname={location.pathname} />
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -863,7 +787,7 @@ export function WorkspaceLayout() {
           </header>
 
           {/* Page Content */}
-          <div className="p-4 md:p-6 max-w-[1600px] mx-auto w-full">
+          <div className="p-6 max-w-[1600px] mx-auto w-full">
             <RouteErrorBoundary locationKey={location.pathname}>
               <Outlet />
             </RouteErrorBoundary>
@@ -885,12 +809,6 @@ export function WorkspaceLayout() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── Keyboard Shortcuts Help Modal ── */}
-      <KeyboardShortcutsHelp
-        open={shortcutsHelpOpen}
-        onClose={() => setShortcutsHelpOpen(false)}
-      />
     </div>
   );
 }

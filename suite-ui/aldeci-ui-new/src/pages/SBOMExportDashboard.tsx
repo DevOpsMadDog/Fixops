@@ -20,7 +20,7 @@ import { motion } from "framer-motion";
 import { Package, Shield, Download, Search, FileText, AlertTriangle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_PROJECTS = [
   { id: "proj-001", project_name: "suite-api",      component_count: 142, vuln_count: 23, critical_vulns: 3, latest_export: "2026-04-16T08:00:00Z" },
@@ -74,7 +74,7 @@ const MOCK_HISTORY = [
   { id: "exp-005", format: "CycloneDX", version_tag: "v1.6", component_count:  89, generated_at: "2026-04-15T18:00:00Z", exported_by: "david@aldeci.io" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -108,17 +108,6 @@ function FormatBadge({ fmt: f }: { fmt: string }) {
 function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.ElementType; label: string; value: string | number; sub?: string; color: string }) {
   return (
     <div className="bg-gray-800 rounded-lg p-6 flex items-start gap-4">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <div className={cn("p-3 rounded-lg", color)}>
         <Icon className="w-5 h-5" />
       </div>
@@ -131,7 +120,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function SBOMExportDashboard() {
   const [search, setSearch] = useState("");
@@ -139,34 +128,25 @@ export default function SBOMExportDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const filteredComponents = MOCK_COMPONENTS.filter(c =>
     c.component_name.toLowerCase().includes(search.toLowerCase()) ||
-    c.ecosystem.toLowerCase().includes(search.toLowerCase());
+    c.ecosystem.toLowerCase().includes(search.toLowerCase())
+  );
 
   const totalComponents = MOCK_PROJECTS.reduce((s, p) => s + p.component_count, 0);
   const totalVulns      = MOCK_PROJECTS.reduce((s, p) => s + p.vuln_count, 0);
   const totalCritical   = MOCK_PROJECTS.reduce((s, p) => s + p.critical_vulns, 0);
 
   function handleExport(format: string) {
-    setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"=`);
-    setTimeout(() => setExportMsg(`${format} export ready = ${selectedProject.component_count} components`), 1500);
+    setExportMsg(`Generating ${format} export for "${selectedProject.project_name}"…`);
+    setTimeout(() => setExportMsg(`${format} export ready — ${selectedProject.component_count} components`), 1500);
   }
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -174,7 +154,7 @@ export default function SBOMExportDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="w-6 h-6 text-cyan-400" /> SBOM Export</h1>
-          <p className="text-gray-400 text-sm mt-1">Software Bill of Materials = CycloneDX / SPDX generation</p>
+          <p className="text-gray-400 text-sm mt-1">Software Bill of Materials — CycloneDX / SPDX generation</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => handleExport("CycloneDX")} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -206,13 +186,7 @@ export default function SBOMExportDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Projects</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {MOCK_PROJECTS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_PROJECTS.map(p => (
+          {MOCK_PROJECTS.map(p => (
             <button key={p.id} onClick={() => setSelectedProject(p)}
               className={cn("bg-gray-800 rounded-lg p-4 text-left transition-all border",
                 selectedProject.id === p.id ? "border-cyan-500/60" : "border-transparent hover:border-gray-600")}>
@@ -224,7 +198,7 @@ export default function SBOMExportDashboard() {
               </div>
               <p className="text-gray-600 text-[10px] mt-1">Exported {fmt(p.latest_export)}</p>
             </button>
-          )))}
+          ))}
         </div>
       </div>
 
@@ -232,17 +206,17 @@ export default function SBOMExportDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-            Components = <span className="text-cyan-400">{selectedProject.project_name}</span>
+            Components — <span className="text-cyan-400">{selectedProject.project_name}</span>
           </h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Filter components="
+              placeholder="Filter components…"
               className="bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-1.5 text-sm text-white placeholder-gray-500 w-56 focus:outline-none focus:border-cyan-500" />
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Component</th>
@@ -254,13 +228,7 @@ export default function SBOMExportDashboard() {
               </tr>
             </thead>
             <tbody>
-              {filteredComponents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filteredComponents.map(c => (
+              {filteredComponents.map(c => (
                 <>
                   <tr key={c.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 cursor-pointer"
                     onClick={() => setExpandedComp(expandedComp === c.id ? null : c.id)}>
@@ -279,7 +247,7 @@ export default function SBOMExportDashboard() {
                     <tr key={`${c.id}-vulns`}>
                       <td colSpan={6} className="bg-gray-900/60 px-6 py-3">
                         <p className="text-xs text-gray-400 font-semibold mb-2">Vulnerabilities in {c.component_name}</p>
-                        <table role="table" className="w-full text-xs">
+                        <table className="w-full text-xs">
                           <thead>
                             <tr className="text-gray-600 uppercase">
                               <th className="text-left pb-1 pr-4">CVE ID</th>
@@ -302,8 +270,7 @@ export default function SBOMExportDashboard() {
                                     : <span className="text-red-400 font-semibold">No</span>}
                                 </td>
                               </tr>
-                            ))
-                          )}
+                            ))}
                           </tbody>
                         </table>
                       </td>
@@ -320,7 +287,7 @@ export default function SBOMExportDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Export History</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Format</th>
@@ -331,13 +298,7 @@ export default function SBOMExportDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_HISTORY.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_HISTORY.map(h => (
+              {MOCK_HISTORY.map(h => (
                 <tr key={h.id} className="border-b border-gray-700/50 hover:bg-gray-700/20">
                   <td className="py-2.5 pr-4"><FormatBadge fmt={h.format} /></td>
                   <td className="py-2.5 pr-4 text-gray-300 font-mono text-xs">{h.version_tag}</td>
@@ -345,7 +306,7 @@ export default function SBOMExportDashboard() {
                   <td className="py-2.5 pr-4 text-gray-400 text-xs">{fmt(h.generated_at)}</td>
                   <td className="py-2.5 text-gray-400 text-xs">{h.exported_by}</td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

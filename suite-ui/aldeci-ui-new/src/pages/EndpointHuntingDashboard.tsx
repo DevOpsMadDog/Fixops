@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_HUNTS = [
   { id: "HNT-001", name: "LOLBAS Execution Hunt",          query: "process.name IN ('regsvr32','mshta','wscript')",  endpoints_scanned: 1240, hits: 7,  status: "active" },
@@ -52,7 +52,7 @@ const MOCK_HUNTS = [
 
 const MOCK_STATS = { hunts_active: 6, endpoints_covered: 1240, threats_found: 23, iocs_matched: 47 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function HuntStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -73,11 +73,10 @@ function HitsBadge({ hits }: { hits: number }) {
   return <Badge className={cn("text-[10px] border tabular-nums font-mono", cls)}>{hits} hits</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function EndpointHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveHunts, setLiveHunts]   = useState<any[] | null>(null);
   const [liveStats, setLiveStats]   = useState<any | null>(null);
 
@@ -88,22 +87,13 @@ export default function EndpointHuntingDashboard() {
     ]).then(([huntsRes, statsRes]) => {
       if (huntsRes.status === "fulfilled") setLiveHunts(huntsRes.value?.hunts ?? huntsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const hunts = liveHunts ?? MOCK_HUNTS;
   const stats = liveStats  ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -114,7 +104,7 @@ export default function EndpointHuntingDashboard() {
     >
       <PageHeader
         title="Endpoint Threat Hunting"
-        description="Proactive hunt campaigns across managed endpoints = IOC sweeps and behavioral queries"
+        description="Proactive hunt campaigns across managed endpoints — IOC sweeps and behavioral queries"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -155,18 +145,12 @@ export default function EndpointHuntingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {hunts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  hunts.map((hunt: any, i: number) => (
+                {hunts.map((hunt: any, i: number) => (
                   <TableRow key={hunt.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{hunt.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium max-w-[180px] truncate">{hunt.name}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[240px] truncate">
-                      {hunt.query ?? hunt.hunt_query ?? "="}
+                      {hunt.query ?? hunt.hunt_query ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-right font-mono text-xs tabular-nums">
                       {(hunt.endpoints_scanned ?? hunt.endpoints ?? 0).toLocaleString()}
@@ -178,8 +162,7 @@ export default function EndpointHuntingDashboard() {
                       <HuntStatusBadge status={hunt.status ?? "active"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

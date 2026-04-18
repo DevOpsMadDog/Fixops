@@ -3,13 +3,13 @@
  *
  * Board-level security posture summary for C-suite and board members.
  *   1. Header with Download PDF + Schedule Report buttons
- *   2. Overall Risk Rating = large centered grade card with trend
- *   3. 5 Pillar Scores = SVG circular gauges
- *   4. Top 3 Business Risks = non-technical language with impact
- *   5. Wins This Quarter = green achievement cards
- *   6. Peer Benchmarking = horizontal comparison bars
- *   7. Investment Recommendations = table with cost/risk-reduction/priority
- *   8. 6-Quarter Trend Chart = CSS/div bar chart
+ *   2. Overall Risk Rating — large centered grade card with trend
+ *   3. 5 Pillar Scores — SVG circular gauges
+ *   4. Top 3 Business Risks — non-technical language with impact
+ *   5. Wins This Quarter — green achievement cards
+ *   6. Peer Benchmarking — horizontal comparison bars
+ *   7. Investment Recommendations — table with cost/risk-reduction/priority
+ *   8. 6-Quarter Trend Chart — CSS/div bar chart
  *
  * API: GET /api/v1/executive-report/summary
  * Fallback: mock data on API failure
@@ -57,9 +57,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type GradeLetter = "A" | "B" | "C" | "D" | "F";
 type RiskLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
@@ -114,9 +114,9 @@ interface ExecutiveReportData {
   last_updated: string;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_DATA: ExecutiveReportData = {
   current_month: "April",
@@ -176,13 +176,13 @@ const MOCK_DATA: ExecutiveReportData = {
     {
       title: "Finance Systems Lack Multi-Factor Authentication",
       description:
-        "Finance systems lack MFA = credential theft would give direct access to payment infrastructure",
+        "Finance systems lack MFA — credential theft would give direct access to payment infrastructure",
       level: "HIGH",
       impact: "$800K potential impact",
     },
     {
       title: "PCI-DSS Quarterly Scan Overdue",
-      description: "PCI-DSS quarterly scan overdue by 12 days = audit finding risk",
+      description: "PCI-DSS quarterly scan overdue by 12 days — audit finding risk",
       level: "MEDIUM",
       impact: "Compliance exposure",
     },
@@ -190,7 +190,7 @@ const MOCK_DATA: ExecutiveReportData = {
   quarterly_wins: [
     {
       title: "MFA Deployed to 94% of Workforce",
-      detail: "Up from 61% last quarter = significantly reduces credential-based attack surface",
+      detail: "Up from 61% last quarter — significantly reduces credential-based attack surface",
     },
     {
       title: "Critical CVE Patch Time Cut by 62%",
@@ -198,7 +198,7 @@ const MOCK_DATA: ExecutiveReportData = {
     },
     {
       title: "Zero Confirmed Data Breaches This Quarter",
-      detail: "No confirmed data loss incidents = sustained for 3 consecutive quarters",
+      detail: "No confirmed data loss incidents — sustained for 3 consecutive quarters",
     },
   ],
   investment_recommendations: [
@@ -232,9 +232,9 @@ const MOCK_DATA: ExecutiveReportData = {
   last_updated: "2026-04-16T08:00:00Z",
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 function gradeColorClass(grade: GradeLetter): string {
   const map: Record<GradeLetter, string> = {
@@ -392,13 +392,7 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
 
   return (
     <div className="flex items-end gap-3 h-32 px-2">
-      {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        data.map((d, i) => {
+      {data.map((d, i) => {
         const heightPct = (d.score / max) * 100;
         const isLatest = i === data.length - 1;
         return (
@@ -422,20 +416,18 @@ function QuarterlyBarChart({ data }: { data: QuarterScore[] }) {
             </span>
           </div>
         );
-      })
-      )}
+      })}
     </div>
   );
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 export default function ExecutiveRiskReport() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveSupplemental, setLiveSupplemental] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   // Fetch supplemental data from real endpoints
   useEffect(() => {
@@ -450,15 +442,14 @@ export default function ExecutiveRiskReport() {
       if (riskStats || kpis || posture) {
         setLiveSupplemental({ riskStats, kpis, posture });
       }
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const { data: report, isLoading } = useQuery({
     queryKey: ["executive-report-summary"],
     queryFn: async () => {
       try {
-        // GET /api/v1/reports/executive = returns list sorted newest-first
+        // GET /api/v1/reports/executive — returns list sorted newest-first
         const res = await fetch(
           `${API_BASE}/api/v1/reports/executive?org_id=${ORG_ID}&limit=1`,
           { headers: { "X-API-Key": API_KEY } },
@@ -468,7 +459,7 @@ export default function ExecutiveRiskReport() {
         // Router returns an array; take the first (most recent) report
         const raw = Array.isArray(list) ? list[0] : list;
         if (!raw) return MOCK_DATA;
-        // Map engine fields = UI shape (fall back to mock for any missing fields)
+        // Map engine fields → UI shape (fall back to mock for any missing fields)
         return {
           ...MOCK_DATA,
           current_month: raw.current_month ?? MOCK_DATA.current_month,
@@ -519,21 +510,13 @@ export default function ExecutiveRiskReport() {
   // Overlay live data onto the report where available
   const liveScore: number =
     liveSupplemental?.posture?.total_recommendations != null
-      ? undefined as unknown as number  // posture/stats doesn't have a score = skip
+      ? undefined as unknown as number  // posture/stats doesn't have a score — skip
       : liveSupplemental?.kpis?.overall_score ?? d.overall_score;
   const displayScore = typeof liveScore === "number" && !isNaN(liveScore) ? liveScore : d.overall_score;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
-
   return (
     <div className="space-y-6 p-6">
-      {/* == Header == */}
+      {/* ── Header ── */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -572,7 +555,7 @@ export default function ExecutiveRiskReport() {
         </div>
       </motion.div>
 
-      {/* == Overall Risk Rating == */}
+      {/* ── Overall Risk Rating ── */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -597,7 +580,7 @@ export default function ExecutiveRiskReport() {
               <div className="flex items-center gap-1 bg-emerald-500/20 text-emerald-400 rounded-full px-3 py-1 text-sm font-semibold">
                 <TrendingUp className="w-4 h-4" />
                 <span>
-                  = Improved from {d.previous_grade} (+{d.score_change} pts)
+                  ▲ Improved from {d.previous_grade} (+{d.score_change} pts)
                 </span>
               </div>
             </div>
@@ -607,7 +590,7 @@ export default function ExecutiveRiskReport() {
         </Card>
       </motion.div>
 
-      {/* == 5 Pillar Scores == */}
+      {/* ── 5 Pillar Scores ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -654,7 +637,7 @@ export default function ExecutiveRiskReport() {
         </Card>
       </motion.div>
 
-      {/* == Top 3 Business Risks == */}
+      {/* ── Top 3 Business Risks ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -704,7 +687,7 @@ export default function ExecutiveRiskReport() {
         </Card>
       </motion.div>
 
-      {/* == Wins This Quarter == */}
+      {/* ── Wins This Quarter ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -739,7 +722,7 @@ export default function ExecutiveRiskReport() {
         </Card>
       </motion.div>
 
-      {/* == Peer Benchmarking + Trend Chart (side by side on large screens) == */}
+      {/* ── Peer Benchmarking + Trend Chart (side by side on large screens) ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -796,7 +779,7 @@ export default function ExecutiveRiskReport() {
         </Card>
       </motion.div>
 
-      {/* == Investment Recommendations == */}
+      {/* ── Investment Recommendations ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -849,14 +832,14 @@ export default function ExecutiveRiskReport() {
         </Card>
       </motion.div>
 
-      {/* == Footer == */}
+      {/* ── Footer ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
         className="text-center text-xs text-slate-500 pt-2"
       >
-        Report generated: {new Date(d.last_updated).toLocaleString()} = Data is for illustrative purposes pending live API integration
+        Report generated: {new Date(d.last_updated).toLocaleString()} · Data is for illustrative purposes pending live API integration
       </motion.div>
     </div>
   );

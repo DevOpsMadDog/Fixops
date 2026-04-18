@@ -6,7 +6,7 @@
  *   2. Executive summary panel (5 rows)
  *   3. Asset-vulnerability correlation table (10 rows)
  *   4. IOC search bar with mock results panel
- *   5. Domain health grid (18 tiles, 6=3)
+ *   5. Domain health grid (18 tiles, 6×3)
  *   6. Cross-domain compliance trend (6-month animated bar chart)
  */
 
@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, Activity } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
@@ -34,7 +34,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const EXEC_SUMMARY = [
   { label: "Security Posture",  value: "B+",  color: "text-green-400",  badge: "border-green-500/30 text-green-400 bg-green-500/10" },
@@ -97,7 +97,7 @@ const TREND = [
 
 const TREND_MAX = 100;
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function RiskBadge({ risk }: { risk: string }) {
   const cls =
@@ -119,7 +119,7 @@ function TypeBadge({ type }: { type: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{type}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CrossDomainAnalytics() {
   const [refreshing, setRefreshing] = useState(false);
@@ -129,7 +129,6 @@ export default function CrossDomainAnalytics() {
   const [dataLoading, setDataLoading] = useState(false);
   const [liveIocResults, setLiveIocResults] = useState<any>(null);
   const [iocLoading, setIocLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -144,7 +143,8 @@ export default function CrossDomainAnalytics() {
       const trend   = trendRes.status   === "fulfilled" ? trendRes.value   : null;
       const domains = domainsRes.status === "fulfilled" ? domainsRes.value : null;
       if (exec || assets || trend || domains) {
-        setLiveData({ exec, assets, trend, domains });}
+        setLiveData({ exec, assets, trend, domains });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -175,14 +175,6 @@ export default function CrossDomainAnalytics() {
       }
     }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -222,13 +214,7 @@ export default function CrossDomainAnalytics() {
             <CardDescription className="text-xs">Aggregated posture across all domains</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {EXEC_SUMMARY.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              EXEC_SUMMARY.map((row) => {
+            {EXEC_SUMMARY.map((row) => {
               let displayValue = row.value;
               if (liveData?.exec) {
                 if (row.label === "Security Posture") displayValue = liveData.exec.posture_score ?? row.value;
@@ -243,8 +229,7 @@ export default function CrossDomainAnalytics() {
                   <Badge className={cn("text-xs font-bold border", row.badge)}>{displayValue}</Badge>
                 </div>
               );
-            })
-            )}
+            })}
           </CardContent>
         </Card>
 
@@ -259,13 +244,7 @@ export default function CrossDomainAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-3 h-36">
-              {TREND.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                TREND.map((m) => (
+              {TREND.map((m) => (
                 <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
                   <span className="text-[10px] text-muted-foreground mb-1">{m.score}%</span>
                   <div className="w-full flex items-end h-24">
@@ -281,8 +260,7 @@ export default function CrossDomainAnalytics() {
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -306,7 +284,7 @@ export default function CrossDomainAnalytics() {
               onChange={(e) => setIocQuery(e.target.value)}
             />
             <Button size="sm" onClick={handleIocSearch} disabled={iocLoading} className="h-9 px-4">
-              {iocLoading ? "Searching=" : "Search"}
+              {iocLoading ? "Searching…" : "Search"}
             </Button>
           </div>
           {showResults && (
@@ -346,12 +324,13 @@ export default function CrossDomainAnalytics() {
                           <div className="flex flex-wrap gap-1">
                             {r.domains.map((d) => (
                               <Badge key={d} className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">{d}</Badge>
-                            )))}
+                            ))}
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
+                    ))
+                  }
+                </TableBody>
               </Table>
             </div>
           )}
@@ -368,7 +347,7 @@ export default function CrossDomainAnalytics() {
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">10 assets</Badge>
           </div>
-          <CardDescription className="text-xs">Cross-domain join: CMDB = vulnerability scanner = threat intel</CardDescription>
+          <CardDescription className="text-xs">Cross-domain join: CMDB × vulnerability scanner × threat intel</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -419,7 +398,7 @@ export default function CrossDomainAnalytics() {
             <Database className="h-4 w-4 text-green-400" />
             Domain Health Grid
           </CardTitle>
-          <CardDescription className="text-xs">18 connected data domains = green = healthy, amber = stale (&gt;7 days)</CardDescription>
+          <CardDescription className="text-xs">18 connected data domains — green = healthy, amber = stale (&gt;7 days)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">

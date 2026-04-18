@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_RULES = [
   { id: "TIA-001", name: "Auto-block Malicious IPs",       trigger: "ioc_match",       action: "block_ip",          last_run: "2 min ago",  status: "active" },
@@ -52,7 +52,7 @@ const MOCK_RULES = [
 
 const MOCK_STATS = { total_rules: 8, active_rules: 7, triggers_today: 142, iocs_enriched: 3847 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -79,11 +79,10 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatIntelAutomation() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveRules, setLiveRules]   = useState<any[] | null>(null);
   const [liveStats, setLiveStats]   = useState<any | null>(null);
 
@@ -94,22 +93,13 @@ export default function ThreatIntelAutomation() {
     ]).then(([rulesRes, statsRes]) => {
       if (rulesRes.status === "fulfilled") setLiveRules(rulesRes.value?.automations ?? rulesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const rules = liveRules ?? MOCK_RULES;
   const stats = liveStats ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -144,7 +134,7 @@ export default function ThreatIntelAutomation() {
             Automation Rules
           </CardTitle>
           <CardDescription className="text-xs">
-            Active automation rules = trigger = action pipeline
+            Active automation rules — trigger → action pipeline
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -161,23 +151,16 @@ export default function ThreatIntelAutomation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rules.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  rules.map((rule: any, i: number) => (
+                {rules.map((rule: any, i: number) => (
                   <TableRow key={rule.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{rule.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium">{rule.name}</TableCell>
                     <TableCell className="py-2"><TriggerBadge trigger={rule.trigger ?? rule.trigger_type ?? "unknown"} /></TableCell>
                     <TableCell className="py-2"><ActionBadge action={rule.action ?? rule.action_type ?? "unknown"} /></TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{rule.last_run ?? rule.last_triggered ?? "="}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{rule.last_run ?? rule.last_triggered ?? "—"}</TableCell>
                     <TableCell className="py-2 text-right"><StatusBadge status={rule.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

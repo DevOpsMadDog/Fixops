@@ -13,7 +13,7 @@ import { Users, Activity, Eye, AlertTriangle, CheckCircle, RefreshCw, Shield, Gl
 const API_BASE = "/api/v1/actor-tracking";
 const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
-// == Types =====================================================================
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ActorType = "nation-state" | "cybercriminal" | "hacktivism" | "insider" | "apt";
 type ThreatLevel = "critical" | "high" | "medium" | "low";
@@ -55,7 +55,7 @@ interface IntelEntry {
   source: string;
 }
 
-// == Mock data =================================================================
+// ── Mock data ─────────────────────────────────────────────────────────────────
 
 const MOCK_ACTORS: TrackedActor[] = [
   { id: "act-001", actor_name: "Lazarus Group",    alias: ["Hidden Cobra", "ZINC"],         actor_type: "nation-state",  nation_state: "North Korea", threat_level: "critical", targeting_our_sector: true,  last_activity: "2026-04-14", attribution_confidence: 91, ttps: ["spear-phishing", "supply-chain", "watering-hole", "ransomware", "cryptojacking"], active_campaigns: 3, intel_count: 48 },
@@ -72,13 +72,13 @@ const MOCK_ACTIVITY: ActivityEntry[] = [
   { id: "aev-003", actor_id: "act-005", actor_name: "Volt Typhoon",     activity_type: "Infrastructure Recon",    description: "Living-off-the-land recon detected on critical infra networks",          affected_sectors: ["Energy", "Utilities", "Defense"], verified: true,  timestamp: "2026-04-13T22:10:00Z" },
   { id: "aev-004", actor_id: "act-003", actor_name: "FIN7",             activity_type: "Cobalt Strike Beacon",    description: "CS beacon deployed via macro-enabled Word doc targeting POS systems",   affected_sectors: ["Retail", "Hospitality"],          verified: false, timestamp: "2026-04-10T11:30:00Z" },
   { id: "aev-005", actor_id: "act-004", actor_name: "Scattered Spider", activity_type: "SIM Swap Attack",         description: "Telecom provider targeted to bypass MFA on executive accounts",          affected_sectors: ["Technology", "Telecom"],          verified: true,  timestamp: "2026-04-05T18:44:00Z" },
-  { id: "aev-006", actor_id: "act-001", actor_name: "Lazarus Group",    activity_type: "Supply Chain Compromise", description: "Compromised open-source package with backdoor = 3 versions affected",   affected_sectors: ["Technology", "Financial"],        verified: true,  timestamp: "2026-04-11T06:55:00Z" },
+  { id: "aev-006", actor_id: "act-001", actor_name: "Lazarus Group",    activity_type: "Supply Chain Compromise", description: "Compromised open-source package with backdoor — 3 versions affected",   affected_sectors: ["Technology", "Financial"],        verified: true,  timestamp: "2026-04-11T06:55:00Z" },
 ];
 
 const MOCK_INTEL: Record<string, IntelEntry[]> = {
   "act-001": [
     { id: "int-001", actor_id: "act-001", intel_type: "technical-ioc", summary: "C2 infrastructure using FastFlux DNS on AS15169 subnets", confidence: 88, valid_until: "2026-05-01", source: "CISA Advisory" },
-    { id: "int-002", actor_id: "act-001", intel_type: "tactical",       summary: "Spear-phishing lures mimicking HR policy updates = Q2 2026", confidence: 92, valid_until: "2026-04-30", source: "Internal CTI" },
+    { id: "int-002", actor_id: "act-001", intel_type: "tactical",       summary: "Spear-phishing lures mimicking HR policy updates — Q2 2026", confidence: 92, valid_until: "2026-04-30", source: "Internal CTI" },
   ],
   "act-002": [
     { id: "int-003", actor_id: "act-002", intel_type: "strategic",      summary: "Targeting cloud identity providers ahead of elections",     confidence: 79, valid_until: "2026-06-01", source: "MSTIC" },
@@ -102,7 +102,7 @@ const TOP_TTPS = [
   { ttp: "mfa-bypass",           count: 5 },
 ];
 
-// == Helpers ===================================================================
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -143,28 +143,23 @@ function actorTypeBadge(t: ActorType): string {
 
 const MAX_TTP = TOP_TTPS[0].count;
 
-// == Component =================================================================
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ActorTrackingDashboard() {
   const [selectedId, setSelectedId] = useState<string>("act-001");
-  const [error, setError] = useState<string | null>(null);
   const [actors, setActors] = useState(MOCK_ACTORS);
   const [activity, setActivity] = useState(MOCK_ACTIVITY);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(`${API_BASE}/actors`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setActors(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setActors(d); })
+      .catch(() => {});
     fetch(`${API_BASE}/activity`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setActivity(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setActivity(d); })
+      .catch(() => {});
+  }, []);
 
   const selected = actors.find(a => a.id === selectedId) ?? actors[0];
   const actorIntel = MOCK_INTEL[selectedId] ?? [];
@@ -178,13 +173,6 @@ export default function ActorTrackingDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -192,7 +180,7 @@ export default function ActorTrackingDashboard() {
             <Users className="w-6 h-6 text-red-400" />
             Actor Tracking
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Tracked threat actors = intelligence, TTPs, and activity</p>
+          <p className="text-gray-400 text-sm mt-1">Tracked threat actors — intelligence, TTPs, and activity</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -216,13 +204,7 @@ export default function ActorTrackingDashboard() {
 
       {/* Actor cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {actors.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          actors.map(actor => (
+        {actors.map(actor => (
           <div
             key={actor.id}
             onClick={() => setSelectedId(actor.id)}
@@ -269,8 +251,7 @@ export default function ActorTrackingDashboard() {
               </div>
             </div>
           </div>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Bottom: Activity feed + Intel panel + TTP bars */}
@@ -283,13 +264,7 @@ export default function ActorTrackingDashboard() {
             </h2>
           </div>
           <div className="divide-y divide-gray-700/50">
-            {MOCK_ACTIVITY.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_ACTIVITY.map(ev => (
+            {MOCK_ACTIVITY.map(ev => (
               <div key={ev.id} className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded-full font-medium">{ev.activity_type}</span>
@@ -302,7 +277,7 @@ export default function ActorTrackingDashboard() {
                 <div className="flex flex-wrap gap-1 mt-2">
                   {ev.affected_sectors.map(s => (
                     <span key={s} className="bg-gray-700 text-gray-400 text-xs px-1.5 py-0.5 rounded">{s}</span>
-                  )))}
+                  ))}
                 </div>
                 <div className="text-gray-500 text-xs mt-1">{relativeTime(ev.timestamp)}</div>
               </div>
@@ -354,13 +329,7 @@ export default function ActorTrackingDashboard() {
             </h2>
           </div>
           <div className="p-4 space-y-3">
-            {TOP_TTPS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              TOP_TTPS.map(({ ttp, count }) => (
+            {TOP_TTPS.map(({ ttp, count }) => (
               <div key={ttp}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-300">{ttp}</span>
@@ -373,7 +342,7 @@ export default function ActorTrackingDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))}
           </div>
         </div>
       </div>

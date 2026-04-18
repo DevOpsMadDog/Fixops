@@ -17,7 +17,7 @@ import {
   ShieldAlert, TrendingDown, BarChart2, Target, ChevronDown, ChevronUp, Activity
 } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface RiskScenario {
   id: string;
@@ -40,7 +40,7 @@ interface Mitigation {
   implemented: boolean;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const SCENARIOS: RiskScenario[] = [
   {
@@ -123,7 +123,7 @@ const SCENARIOS: RiskScenario[] = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const riskColor: Record<RiskScenario["risk_level"], string> = {
   critical: "bg-red-600 text-white",
@@ -153,7 +153,7 @@ function cellColor(l: number, i: number): string {
   return "bg-green-700/40";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function RiskScenarioDashboard() {
   const [selectedScenario, setSelectedScenario] = useState<RiskScenario | null>(SCENARIOS[0]);
@@ -162,11 +162,9 @@ export default function RiskScenarioDashboard() {
     fetch("/api/v1/risk-scenarios", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [sortField, setSortField] = useState<"residual_risk" | "inherent_risk">("residual_risk");
-  const [loading, setLoading] = useState(true);
 
   const avgInherent = Math.round(SCENARIOS.reduce((s, r) => s + r.inherent_risk, 0) / SCENARIOS.length);
   const avgResidual = Math.round(SCENARIOS.reduce((s, r) => s + r.residual_risk, 0) / SCENARIOS.length);
@@ -179,23 +177,15 @@ export default function RiskScenarioDashboard() {
 
   const topRisks = [...SCENARIOS].sort((a, b) => b.residual_risk - a.residual_risk).slice(0, 10);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -226,9 +216,9 @@ export default function RiskScenarioDashboard() {
         {/* Risk matrix */}
         <div className="bg-gray-800 rounded-lg p-5">
           <div className="font-semibold mb-4 flex items-center gap-2">
-            <Target className="w-4 h-4 text-orange-400" /> Risk Matrix (Likelihood = Impact)
+            <Target className="w-4 h-4 text-orange-400" /> Risk Matrix (Likelihood × Impact)
           </div>
-          <div className="text-xs text-gray-400 mb-2 text-center">Impact =</div>
+          <div className="text-xs text-gray-400 mb-2 text-center">Impact →</div>
           <div className="flex gap-1 items-end">
             <div className="flex flex-col gap-1 items-end mr-1">
               {[10,8,6,4,2].map(l => (
@@ -250,11 +240,12 @@ export default function RiskScenarioDashboard() {
                     </div>
                   );
                 })
+              )}
             </div>
           </div>
           <div className="flex gap-3 mt-4 flex-wrap">
             {[
-              { label: "Critical (=64)", color: "bg-red-700" },
+              { label: "Critical (≥64)", color: "bg-red-700" },
               { label: "High (36-63)", color: "bg-orange-700" },
               { label: "Medium (16-35)", color: "bg-yellow-700" },
               { label: "Low (<16)", color: "bg-green-700" },
@@ -273,13 +264,7 @@ export default function RiskScenarioDashboard() {
             <Activity className="w-4 h-4 text-red-400" /> Top Risks by Residual Score
           </div>
           <div className="space-y-2">
-            {topRisks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              topRisks.map((r, idx) => (
+            {topRisks.map((r, idx) => (
               <div
                 key={r.id}
                 onClick={() => setSelectedScenario(r)}
@@ -299,7 +284,7 @@ export default function RiskScenarioDashboard() {
                 </div>
                 <span className={`text-xs font-bold ${riskText[r.risk_level]}`}>{r.residual_risk}</span>
               </div>
-            )))}
+            ))}
           </div>
         </div>
 
@@ -365,23 +350,16 @@ export default function RiskScenarioDashboard() {
             <ShieldAlert className="w-4 h-4 text-orange-400" /> Scenario List
           </div>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-sm">
+            <table className="w-full text-sm">
               <thead className="bg-gray-700/50">
                 <tr>
                   {["Scenario","Category","Inherent","Residual","Reduction","Level"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                  ))
-                )}
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {SCENARIOS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  SCENARIOS.map(s => (
+                {SCENARIOS.map(s => (
                   <tr
                     key={s.id}
                     onClick={() => setSelectedScenario(s)}
@@ -409,7 +387,7 @@ export default function RiskScenarioDashboard() {
                       </span>
                     </td>
                   </tr>
-                )))}
+                ))}
               </tbody>
             </table>
           </div>
@@ -447,8 +425,7 @@ export default function RiskScenarioDashboard() {
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Click on a scenario to view its mitigations.</p>

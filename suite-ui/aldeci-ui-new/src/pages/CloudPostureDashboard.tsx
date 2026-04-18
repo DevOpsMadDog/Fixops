@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_FINDINGS = [
   { id: "find-001", resource_id: "s3-prod-data",        provider: "AWS",   resource_type: "S3 Bucket",        severity: "critical", title: "Public read access enabled",     status: "open"     },
@@ -52,7 +52,7 @@ const MOCK_FINDINGS = [
 
 const MOCK_STATS = { cloud_accounts: 12, avg_posture_score: 68, open_findings: 47, critical_findings: 6 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -94,13 +94,12 @@ function ProviderBadge({ provider }: { provider: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CloudPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveFindings, setLiveFindings] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -109,22 +108,13 @@ export default function CloudPostureDashboard() {
     ]).then(([findingsRes, statsRes]) => {
       if (findingsRes.status === "fulfilled") setLiveFindings(findingsRes.value?.findings ?? findingsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const findings = liveFindings ?? MOCK_FINDINGS;
   const stats    = liveStats    ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -181,35 +171,28 @@ export default function CloudPostureDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  findings.map((f: any, i: number) => (
+                {findings.map((f: any, i: number) => (
                   <TableRow key={f.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-sky-300">
-                      {f.resource_id ?? "="}
+                      {f.resource_id ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <ProviderBadge provider={f.provider ?? "Unknown"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {f.resource_type ?? "="}
+                      {f.resource_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={f.severity ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[200px] truncate">
-                      {f.title ?? "="}
+                      {f.title ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <StatusBadge status={f.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

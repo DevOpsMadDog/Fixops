@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_APIS = [
   { id: "api-001", api_name: "User Auth Service",       api_type: "REST",    version: "v2.3", auth_type: "OAuth2",   api_status: "active",     endpoint_count: 24 },
@@ -54,7 +54,7 @@ const MOCK_APIS = [
 
 const MOCK_STATS = { total_apis: 143, active_apis: 98, total_endpoints: 2847, unauthenticated_endpoints: 67 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -92,13 +92,12 @@ function exportCsv(apis: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function APIInventoryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveApis, setLiveApis] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -107,22 +106,13 @@ export default function APIInventoryDashboard() {
     ]).then(([apisRes, statsRes]) => {
       if (apisRes.status === "fulfilled") setLiveApis(apisRes.value?.apis ?? apisRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const apis  = liveApis  ?? MOCK_APIS;
   const stats = liveStats ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -133,7 +123,7 @@ export default function APIInventoryDashboard() {
     >
       <PageHeader
         title="API Inventory"
-        description="Discover and track all APIs across the environment = authentication coverage, version health, and endpoint exposure"
+        description="Discover and track all APIs across the environment — authentication coverage, version health, and endpoint exposure"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -184,22 +174,16 @@ export default function APIInventoryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apis.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  apis.map((api: any, i: number) => (
+                {apis.map((api: any, i: number) => (
                   <TableRow key={api.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-cyan-300 max-w-[200px] truncate">
-                      {api.api_name ?? "="}
+                      {api.api_name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {api.api_type ?? "="}
+                      {api.api_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {api.version ?? "="}
+                      {api.version ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <AuthBadge auth={api.auth_type ?? "None"} />
@@ -211,8 +195,7 @@ export default function APIInventoryDashboard() {
                       {api.endpoint_count ?? 0}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

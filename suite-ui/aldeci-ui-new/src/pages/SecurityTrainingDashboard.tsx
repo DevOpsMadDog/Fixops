@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { GraduationCap, Users, CheckCircle, Star, Clock, ChevronRight, TrendingUp } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
@@ -111,7 +111,6 @@ export default function SecurityTrainingDashboard() {
   const [activeTab, setActiveTab] = useState<"catalog" | "enrollments" | "campaigns" | "categories">("catalog");
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -130,14 +129,6 @@ export default function SecurityTrainingDashboard() {
       }
     }).finally(() => setDataLoading(false));
   }, []);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -205,7 +196,7 @@ export default function SecurityTrainingDashboard() {
       {/* Enrollment Table */}
       {activeTab === "enrollments" && (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">User</th>
@@ -232,7 +223,7 @@ export default function SecurityTrainingDashboard() {
                       <span className="text-[11px] text-muted-foreground w-8 shrink-0">{e.progress}%</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-foreground">{e.score !== null ? e.score : "="}</td>
+                  <td className="px-4 py-3 text-xs text-foreground">{e.score !== null ? e.score : "—"}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${statusColor[e.status]}`}>{e.status}</span>
                   </td>
@@ -281,13 +272,7 @@ export default function SecurityTrainingDashboard() {
             <TrendingUp className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">Completion by Category</span>
           </div>
-          {CATEGORIES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            CATEGORIES.map((cat) => (
+          {CATEGORIES.map((cat) => (
             <div key={cat.name} className="space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-foreground">{cat.name}</span>
@@ -298,8 +283,7 @@ export default function SecurityTrainingDashboard() {
                 color={cat.completion >= 80 ? "bg-green-500" : cat.completion >= 60 ? "bg-yellow-500" : "bg-red-500"}
               />
             </div>
-          ))
-        )}
+          ))}
         </div>
       )}
     </div>

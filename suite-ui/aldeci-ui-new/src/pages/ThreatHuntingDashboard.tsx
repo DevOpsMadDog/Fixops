@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Crosshair, AlertTriangle, Search, Play, RefreshCw, BookOpen, BarChart3, Shield } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CAMPAIGNS = [
   { id: "HNT-001", name: "Lateral Movement via SMB", hunt_type: "lateral_movement", mitre_tactic: "TA0008", analyst: "A. Torres", status: "active",    start: "2026-04-10", findings: 6 },
@@ -80,7 +80,7 @@ const PLAYBOOKS = [
   { id: "PB-04", hunt_type: "ioc_match",        title: "IOC Sweep & Enrich",     steps: 5,  techniques: ["T1566", "T1203", "T1190"] },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function HuntTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -121,13 +121,12 @@ function SevDot({ sev }: { sev: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full shrink-0", cls)} title={sev} />;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -138,7 +137,8 @@ export default function ThreatHuntingDashboard() {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const hunts = huntsResult.status === "fulfilled" ? huntsResult.value : null;
       if (stats || hunts) {
-        setLiveData({ stats, sessions: hunts });}
+        setLiveData({ stats, sessions: hunts });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -146,14 +146,6 @@ export default function ThreatHuntingDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -239,13 +231,7 @@ export default function ThreatHuntingDashboard() {
           <CardDescription className="text-xs">Saved hunt queries across KQL, SPL, EQL, SIGMA, YARA</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {QUERIES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            QUERIES.map((q) => (
+          {QUERIES.map((q) => (
             <div key={q.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
               <QueryTypeBadge type={q.query_type} />
               <div className="flex-1 min-w-0">
@@ -270,14 +256,13 @@ export default function ThreatHuntingDashboard() {
                 <Play className="h-3 w-3 mr-1" />Run
               </Button>
             </div>
-          ))
-        )}
+          ))}
         </CardContent>
       </Card>
 
       {/* Findings table + Playbooks */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Findings = takes 2 cols */}
+        {/* Findings — takes 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -316,10 +301,10 @@ export default function ThreatHuntingDashboard() {
                       <TableCell className="py-2.5">
                         {row.escalated
                           ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Escalated</Badge>
-                          : <span className="text-[10px] text-muted-foreground">=</span>}
+                          : <span className="text-[10px] text-muted-foreground">—</span>}
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -336,13 +321,7 @@ export default function ThreatHuntingDashboard() {
             <CardDescription className="text-xs">Reusable hunting procedures</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {PLAYBOOKS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              PLAYBOOKS.map((pb) => (
+            {PLAYBOOKS.map((pb) => (
               <div key={pb.id} className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-medium leading-tight">{pb.title}</span>
@@ -352,7 +331,7 @@ export default function ThreatHuntingDashboard() {
                 <div className="flex flex-wrap gap-1 mt-1">
                   {pb.techniques.map((t) => (
                     <span key={t} className="text-[9px] font-mono bg-muted/40 rounded px-1.5 py-0.5 text-muted-foreground">{t}</span>
-                  )))}
+                  ))}
                 </div>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] w-full mt-1">
                   <Shield className="h-3 w-3 mr-1" />Run Playbook

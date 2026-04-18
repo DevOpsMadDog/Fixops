@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ACCOUNTS = [
   { name: "prod-aws-us-east",   provider: "AWS",   region: "us-east-1",      findings: 87, critical: 6,  score: 68, scanned: "12m ago"  },
@@ -74,27 +74,27 @@ const MISCONFIGS = [
 
 const REMEDIATION = {
   immediate: [
-    { id: "CF-001", title: "Public S3 bucket = prod billing data",  severity: "Critical" },
+    { id: "CF-001", title: "Public S3 bucket — prod billing data",  severity: "Critical" },
     { id: "CF-002", title: "SSH port 22 open to 0.0.0.0/0",         severity: "Critical" },
     { id: "CF-010", title: "CloudTrail disabled in us-east-1",       severity: "Critical" },
-    { id: "CF-018", title: "Root account active = no MFA",           severity: "Critical" },
+    { id: "CF-018", title: "Root account active — no MFA",           severity: "Critical" },
   ],
   thisWeek: [
-    { id: "CF-004", title: "RDS unencrypted at rest = prod-db-01",  severity: "High" },
-    { id: "CF-007", title: "EBS snapshot public = snap-0a1b2c3d",   severity: "High" },
+    { id: "CF-004", title: "RDS unencrypted at rest — prod-db-01",  severity: "High" },
+    { id: "CF-007", title: "EBS snapshot public — snap-0a1b2c3d",   severity: "High" },
     { id: "CF-011", title: "IAM user keys older than 90 days",      severity: "High" },
     { id: "CF-014", title: "Azure AD guest accounts unrestricted",   severity: "High" },
     { id: "CF-019", title: "GCS bucket ACL: allUsers read",          severity: "High" },
   ],
   nextSprint: [
-    { id: "CF-022", title: "VPC flow logs disabled = staging",      severity: "Medium" },
+    { id: "CF-022", title: "VPC flow logs disabled — staging",      severity: "Medium" },
     { id: "CF-025", title: "Lambda: deprecated runtime (python3.7)  ",severity: "Medium" },
-    { id: "CF-028", title: "Security Hub not enabled = ap-southeast",severity: "Medium" },
+    { id: "CF-028", title: "Security Hub not enabled — ap-southeast",severity: "Medium" },
     { id: "CF-031", title: "Unused IAM roles older than 60 days",   severity: "Low"    },
   ],
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function ProviderBadge({ provider }: { provider: string }) {
   const cls =
@@ -167,13 +167,12 @@ function RemediationCard({ item }: { item: { id: string; title: string; severity
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CloudSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -198,14 +197,6 @@ export default function CloudSecurityDashboard() {
     loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -266,7 +257,7 @@ export default function CloudSecurityDashboard() {
                       findings: acct.finding_count ?? acct.findings ?? 0,
                       critical: acct.critical_count ?? acct.critical ?? 0,
                       score:    acct.risk_score != null ? Math.round(100 - acct.risk_score) : acct.score ?? 75,
-                      scanned:  acct.last_scanned || acct.scanned || "=",
+                      scanned:  acct.last_scanned || acct.scanned || "–",
                     }))
                   : ACCOUNTS
                 ).map((acct: any) => (
@@ -301,13 +292,7 @@ export default function CloudSecurityDashboard() {
             <CardDescription className="text-xs">Pass / fail breakdown across 6 security frameworks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {BENCHMARKS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              BENCHMARKS.map((b) => {
+            {BENCHMARKS.map((b) => {
               const pct = Math.round((b.pass / b.total) * 100);
               return (
                 <div key={b.name} className="space-y-1.5">
@@ -329,8 +314,7 @@ export default function CloudSecurityDashboard() {
                   </div>
                 </div>
               );
-            })
-            )}
+            })}
           </CardContent>
         </Card>
 
@@ -377,7 +361,7 @@ export default function CloudSecurityDashboard() {
                         <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">Fix</Button>
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -397,14 +381,14 @@ export default function CloudSecurityDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {/* Immediate */}
-            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 space-y-2" role="status" aria-live="polite">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 space-y-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-semibold text-red-400">Immediate</span>
                 <Badge className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">{REMEDIATION.immediate.length}</Badge>
               </div>
               {REMEDIATION.immediate.map((item) => (
                 <RemediationCard key={item.id} item={item} />
-              )))}
+              ))}
             </div>
 
             {/* This Week */}

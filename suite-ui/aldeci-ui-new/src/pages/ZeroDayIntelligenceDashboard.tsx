@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_vulns: 38,
@@ -66,7 +66,7 @@ const MOCK_ACTORS = [
   { actor_name: "DarkNexus",   actor_type: "criminal",     confidence_score: 58, vulnerability_id: "CVE-2025-7743" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function DisclosureBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -127,13 +127,16 @@ function cvssColor(score: number): string {
   return "text-green-400";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ZeroDayIntelligenceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; vulns: any[] | null; actors: any[] | null; }>({ stats: null, vulns: null, actors: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    vulns: any[] | null;
+    actors: any[] | null;
+  }>({ stats: null, vulns: null, actors: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -161,14 +164,6 @@ export default function ZeroDayIntelligenceDashboard() {
   const stats  = liveData.stats  ?? MOCK_STATS;
   const vulns  = liveData.vulns  ?? MOCK_VULNS;
   const actors = liveData.actors ?? MOCK_ACTORS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -223,13 +218,7 @@ export default function ZeroDayIntelligenceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vulns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  vulns.map((v: any, i: number) => (
+                {vulns.map((v: any, i: number) => (
                   <TableRow key={v.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{v.cve_id}</TableCell>
                     <TableCell className="py-2"><DisclosureBadge type={v.disclosure_type ?? "n-day"} /></TableCell>
@@ -239,8 +228,7 @@ export default function ZeroDayIntelligenceDashboard() {
                       {(v.cvss_score ?? 0).toFixed(1)}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -273,13 +261,7 @@ export default function ZeroDayIntelligenceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {actors.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  actors.map((a: any, i: number) => (
+                {actors.map((a: any, i: number) => (
                   <TableRow key={a.actor_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-semibold">{a.actor_name}</TableCell>
                     <TableCell className="py-2"><ActorTypeBadge type={a.actor_type ?? "unknown"} /></TableCell>
@@ -288,8 +270,7 @@ export default function ZeroDayIntelligenceDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.vulnerability_id}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

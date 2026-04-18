@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,24 +38,24 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ===================================================
+// ── Mock data ───────────────────────────────────────────────────
 
 const ALERTS = [
   { id: "ALT-8821", priority: "P1", type: "Ransomware C2 Beacon",          source: "EDR",   asset: "WIN-PROD-04",    analyst: "J. Rivera",   open: "0h 12m", status: "investigating" },
   { id: "ALT-8822", priority: "P1", type: "Lateral Movement Detected",      source: "NDR",   asset: "10.0.1.45",      analyst: "A. Patel",    open: "0h 31m", status: "investigating" },
-  { id: "ALT-8823", priority: "P1", type: "Privilege Escalation = root",    source: "SIEM",  asset: "linux-api-02",   analyst: "T. Chen",     open: "1h 05m", status: "acknowledged" },
-  { id: "ALT-8824", priority: "P2", type: "Brute Force = SSH (500+ tries)", source: "SIEM",  asset: "bastion-01",     analyst: "M. Kim",      open: "1h 22m", status: "acknowledged" },
-  { id: "ALT-8825", priority: "P2", type: "Data Exfil = 8GB outbound",      source: "NDR",   asset: "192.168.2.110",  analyst: "J. Rivera",   open: "2h 10m", status: "investigating" },
+  { id: "ALT-8823", priority: "P1", type: "Privilege Escalation — root",    source: "SIEM",  asset: "linux-api-02",   analyst: "T. Chen",     open: "1h 05m", status: "acknowledged" },
+  { id: "ALT-8824", priority: "P2", type: "Brute Force — SSH (500+ tries)", source: "SIEM",  asset: "bastion-01",     analyst: "M. Kim",      open: "1h 22m", status: "acknowledged" },
+  { id: "ALT-8825", priority: "P2", type: "Data Exfil — 8GB outbound",      source: "NDR",   asset: "192.168.2.110",  analyst: "J. Rivera",   open: "2h 10m", status: "investigating" },
   { id: "ALT-8826", priority: "P2", type: "Malicious PowerShell Exec",      source: "EDR",   asset: "WIN-DEV-12",     analyst: "Unassigned",  open: "2h 45m", status: "new" },
-  { id: "ALT-8827", priority: "P2", type: "WAF = SQLi Burst (1k reqs)",     source: "WAF",   asset: "api.aldeci.io",  analyst: "A. Patel",    open: "3h 01m", status: "acknowledged" },
-  { id: "ALT-8828", priority: "P3", type: "Suspicious Login = New Country", source: "IAM",   asset: "ceo@aldeci.io",  analyst: "S. Okafor",   open: "3h 18m", status: "investigating" },
-  { id: "ALT-8829", priority: "P3", type: "CSPM = Public RDS Instance",     source: "CSPM",  asset: "rds-prod-main",  analyst: "T. Chen",     open: "4h 02m", status: "acknowledged" },
+  { id: "ALT-8827", priority: "P2", type: "WAF — SQLi Burst (1k reqs)",     source: "WAF",   asset: "api.aldeci.io",  analyst: "A. Patel",    open: "3h 01m", status: "acknowledged" },
+  { id: "ALT-8828", priority: "P3", type: "Suspicious Login — New Country", source: "IAM",   asset: "ceo@aldeci.io",  analyst: "S. Okafor",   open: "3h 18m", status: "investigating" },
+  { id: "ALT-8829", priority: "P3", type: "CSPM — Public RDS Instance",     source: "CSPM",  asset: "rds-prod-main",  analyst: "T. Chen",     open: "4h 02m", status: "acknowledged" },
   { id: "ALT-8830", priority: "P3", type: "Phishing Email Cluster (23)",    source: "Email", asset: "Exchange",       analyst: "M. Kim",      open: "4h 55m", status: "acknowledged" },
   { id: "ALT-8831", priority: "P3", type: "CVE-2025-1234 Exploit Attempt",  source: "WAF",   asset: "web-prod-01",    analyst: "Unassigned",  open: "5h 10m", status: "new" },
   { id: "ALT-8832", priority: "P3", type: "Anomalous API Key Usage",        source: "IAM",   asset: "svc-data-export",analyst: "S. Okafor",   open: "5h 40m", status: "investigating" },
   { id: "ALT-8833", priority: "P4", type: "Port Scan from Internal Host",   source: "NDR",   asset: "10.0.3.22",      analyst: "Unassigned",  open: "6h 15m", status: "new" },
-  { id: "ALT-8834", priority: "P4", type: "Failed MFA = Admin Account",     source: "IAM",   asset: "admin@aldeci.io",analyst: "Unassigned",  open: "7h 00m", status: "new" },
-  { id: "ALT-8835", priority: "P4", type: "Log Forwarding Gap = 15min",     source: "SIEM",  asset: "dc-01",          analyst: "T. Chen",     open: "8h 22m", status: "resolved" },
+  { id: "ALT-8834", priority: "P4", type: "Failed MFA — Admin Account",     source: "IAM",   asset: "admin@aldeci.io",analyst: "Unassigned",  open: "7h 00m", status: "new" },
+  { id: "ALT-8835", priority: "P4", type: "Log Forwarding Gap — 15min",     source: "SIEM",  asset: "dc-01",          analyst: "T. Chen",     open: "8h 22m", status: "resolved" },
 ];
 
 const ANALYSTS = [
@@ -64,7 +64,7 @@ const ANALYSTS = [
   { name: "T. Chen",   open: 15, closedToday: 6,  avgResponse: "31m", status: "online" },
   { name: "M. Kim",    open: 7,  closedToday: 14, avgResponse: "15m", status: "away"   },
   { name: "S. Okafor", open: 10, closedToday: 9,  avgResponse: "27m", status: "online" },
-  { name: "R. Hassan", open: 0,  closedToday: 3,  avgResponse: "=",   status: "offline" },
+  { name: "R. Hassan", open: 0,  closedToday: 3,  avgResponse: "—",   status: "offline" },
 ];
 
 const SOURCES = [
@@ -79,14 +79,14 @@ const SOURCES = [
 ];
 
 const HANDOFF_ITEMS = [
-  { priority: "P1", note: "ALT-8821: Ransomware beacon on WIN-PROD-04 = containment in progress, do NOT reimage yet, forensics pending." },
+  { priority: "P1", note: "ALT-8821: Ransomware beacon on WIN-PROD-04 — containment in progress, do NOT reimage yet, forensics pending." },
   { priority: "P1", note: "ALT-8822: Lateral movement from 10.0.1.45 traced to compromised svc account 'svc-jenkins'. Password reset initiated." },
-  { priority: "P2", note: "ALT-8825: 8GB exfil to 185.220.x.x (known TOR exit). Blocking rule deployed on perimeter = confirm no re-egress at 06:00." },
+  { priority: "P2", note: "ALT-8825: 8GB exfil to 185.220.x.x (known TOR exit). Blocking rule deployed on perimeter — confirm no re-egress at 06:00." },
 ];
 
 const SOURCE_MAX = Math.max(...SOURCES.map(s => s.count));
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function PriorityBadge({ p }: { p: string }) {
   const map: Record<string, string> = {
@@ -117,13 +117,12 @@ function StatusDot({ status }: { status: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full", map[status] ?? "bg-muted-foreground")} />;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityOperationsCenter() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -134,7 +133,8 @@ export default function SecurityOperationsCenter() {
       const soarStats      = soarStatsResult.status      === "fulfilled" ? soarStatsResult.value      : null;
       const soarExecutions = soarExecutionsResult.status === "fulfilled" ? soarExecutionsResult.value : null;
       if (soarStats || soarExecutions) {
-        setLiveData({ soarStats, soarCases: soarExecutions, insiderStats: null });}
+        setLiveData({ soarStats, soarCases: soarExecutions, insiderStats: null });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -157,9 +157,9 @@ export default function SecurityOperationsCenter() {
           priority: c.priority ?? c.severity ?? "P3",
           type: c.title ?? c.type ?? c.name ?? "Unknown alert",
           source: c.source ?? c.detection_source ?? "SIEM",
-          asset: c.asset ?? c.target ?? "=",
+          asset: c.asset ?? c.target ?? "—",
           analyst: c.assigned_to ?? c.analyst ?? "Unassigned",
-          open: c.age ?? c.open_duration ?? "=",
+          open: c.age ?? c.open_duration ?? "—",
           status: c.status ?? "new",
         }))
       : Array.isArray(liveData?.soarCases?.items)
@@ -168,20 +168,12 @@ export default function SecurityOperationsCenter() {
             priority: c.priority ?? "P3",
             type: c.title ?? "Unknown alert",
             source: c.source ?? "SIEM",
-            asset: c.asset ?? "=",
+            asset: c.asset ?? "—",
             analyst: c.assigned_to ?? "Unassigned",
-            open: c.age ?? "=",
+            open: c.age ?? "—",
             status: c.status ?? "new",
           }))
         : ALERTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -201,7 +193,7 @@ export default function SecurityOperationsCenter() {
         }
       />
 
-      {/* KPIs = 2 rows of 3 */}
+      {/* KPIs — 2 rows of 3 */}
       <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
         <KpiCard title="Open Alerts"  value={liveOpenAlerts} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
         <KpiCard title="Critical"     value={liveCritical}   icon={Zap}           trend="up"   className="border-red-500/20" />
@@ -242,13 +234,7 @@ export default function SecurityOperationsCenter() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveAlerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  liveAlerts.map((row) => (
+                {liveAlerts.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(
@@ -278,8 +264,7 @@ export default function SecurityOperationsCenter() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -295,16 +280,10 @@ export default function SecurityOperationsCenter() {
               <Users className="h-4 w-4 text-indigo-400" />
               Analyst Workload
             </CardTitle>
-            <CardDescription className="text-xs">Current shift = open tickets, closed today, avg response time</CardDescription>
+            <CardDescription className="text-xs">Current shift — open tickets, closed today, avg response time</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
-            {ANALYSTS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ANALYSTS.map((a) => (
+            {ANALYSTS.map((a) => (
               <div
                 key={a.name}
                 className="rounded-lg border border-border bg-muted/10 p-3 flex flex-col gap-2"
@@ -328,8 +307,7 @@ export default function SecurityOperationsCenter() {
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -340,16 +318,10 @@ export default function SecurityOperationsCenter() {
               <Activity className="h-4 w-4 text-cyan-400" />
               Alert Source Breakdown
             </CardTitle>
-            <CardDescription className="text-xs">Alert volume by detection source = last 24 hours</CardDescription>
+            <CardDescription className="text-xs">Alert volume by detection source — last 24 hours</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {SOURCES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              SOURCES.map((src) => (
+            {SOURCES.map((src) => (
               <div key={src.name} className="flex items-center gap-3">
                 <span className="text-xs font-medium w-12 shrink-0">{src.name}</span>
                 <div className="flex-1 h-4 rounded bg-muted/30 overflow-hidden relative">
@@ -362,7 +334,7 @@ export default function SecurityOperationsCenter() {
                 </div>
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{src.count}</span>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -372,18 +344,12 @@ export default function SecurityOperationsCenter() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-amber-400">
             <ArrowRightLeft className="h-4 w-4" />
-            Shift Handoff = Critical Items
+            Shift Handoff — Critical Items
           </CardTitle>
-          <CardDescription className="text-xs">Items flagged for incoming shift = requires immediate attention</CardDescription>
+          <CardDescription className="text-xs">Items flagged for incoming shift — requires immediate attention</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {HANDOFF_ITEMS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            HANDOFF_ITEMS.map((item, idx) => (
+          {HANDOFF_ITEMS.map((item, idx) => (
             <div
               key={idx}
               className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3"
@@ -391,7 +357,7 @@ export default function SecurityOperationsCenter() {
               <PriorityBadge p={item.priority} />
               <p className="text-xs text-muted-foreground leading-relaxed">{item.note}</p>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

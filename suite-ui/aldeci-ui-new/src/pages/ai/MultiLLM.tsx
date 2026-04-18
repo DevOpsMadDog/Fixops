@@ -214,7 +214,7 @@ export default function MultiLLM() {
 
         <TabsContent value="comparison">
           <Card><CardContent className="p-6"><div className="overflow-x-auto">
-            <table role="table" className="w-full text-sm">
+            <table className="w-full text-sm">
               <thead><tr className="border-b border-border/50">
                 <th className="text-left py-2 px-3 text-muted-foreground font-medium">Provider</th>
                 <th className="text-right py-2 px-3 text-muted-foreground font-medium">Accuracy</th>

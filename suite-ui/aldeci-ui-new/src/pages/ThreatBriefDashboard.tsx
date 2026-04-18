@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type TLPLevel = "RED" | "AMBER" | "GREEN" | "WHITE";
 type BriefType = "daily" | "weekly" | "monthly" | "incident" | "threat-actor" | "campaign";
@@ -41,7 +41,7 @@ interface ThreatBrief {
   tags: string[];
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_BRIEFS: ThreatBrief[] = [
   {
@@ -59,7 +59,7 @@ const MOCK_BRIEFS: ThreatBrief[] = [
   },
   {
     id: "tb-002",
-    title: "Daily Threat Intelligence Summary = April 16",
+    title: "Daily Threat Intelligence Summary — April 16",
     brief_type: "daily",
     tlp: "GREEN",
     summary: "Daily threat summary covering 1,247 new IOCs ingested from 14 feeds. Key highlights: 3 new ransomware families detected, 12 compromised credential batches, 847 malicious IPs added to blocklist. No critical zero-days reported in the last 24 hours.",
@@ -72,7 +72,7 @@ const MOCK_BRIEFS: ThreatBrief[] = [
   },
   {
     id: "tb-003",
-    title: "LockBit 3.0 Ransomware Campaign = Healthcare Targets",
+    title: "LockBit 3.0 Ransomware Campaign — Healthcare Targets",
     brief_type: "campaign",
     tlp: "AMBER",
     summary: "LockBit 3.0 affiliates have been observed targeting healthcare organizations in North America. Initial access via exposed RDP (port 3389) and VPN vulnerabilities. Double-extortion model with 72-hour ransom timer. Recommend immediate RDP audit and MFA enforcement.",
@@ -85,7 +85,7 @@ const MOCK_BRIEFS: ThreatBrief[] = [
   },
   {
     id: "tb-004",
-    title: "Weekly Executive Security Briefing = Week 16",
+    title: "Weekly Executive Security Briefing — Week 16",
     brief_type: "weekly",
     tlp: "GREEN",
     summary: "Week 16 security posture summary for executive leadership. Overall risk score: 72/100 (stable). Key activities: 3 critical vulnerabilities patched, 2 security incidents resolved, SOC processed 14,382 alerts. Next week focus: FedRAMP audit preparation and zero-trust rollout.",
@@ -98,7 +98,7 @@ const MOCK_BRIEFS: ThreatBrief[] = [
   },
   {
     id: "tb-005",
-    title: "Critical Incident Report = Cloud Storage Misconfiguration",
+    title: "Critical Incident Report — Cloud Storage Misconfiguration",
     brief_type: "incident",
     tlp: "AMBER",
     summary: "S3 bucket misconfiguration exposed 14,000 internal documents for approximately 6 hours on April 15. Affected bucket has been secured. No evidence of external access detected in CloudTrail logs. Full forensics investigation underway. Regulatory notification assessment in progress.",
@@ -124,7 +124,7 @@ const MOCK_BRIEFS: ThreatBrief[] = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const TLP_CONFIG: Record<TLPLevel, { cls: string; bg: string }> = {
   RED:   { cls: "text-red-300 border-red-500/40",    bg: "bg-red-600" },
@@ -149,7 +149,7 @@ const THREAT_LEVEL_CONFIG: Record<string, string> = {
   low:      "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function ThreatBriefDashboard() {
   const [selectedBrief, setSelectedBrief] = useState<ThreatBrief | null>(MOCK_BRIEFS[0]);
@@ -157,13 +157,12 @@ export default function ThreatBriefDashboard() {
     fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(
-  const [loading, setLoading] = useState(true);
-    new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id));
+    new Set(MOCK_BRIEFS.filter((b) => b.distributed).map((b) => b.id))
+  );
 
   const totalBriefs = MOCK_BRIEFS.length;
   const distributedToday = MOCK_BRIEFS.filter((b) => b.distributed && b.created_at.startsWith("2026-04-16")).length;
@@ -178,27 +177,8 @@ export default function ThreatBriefDashboard() {
     }, 1500);
   }
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <PageHeader
         title="Threat Briefs"
         description="Curated threat intelligence briefs by type with TLP classification and distribution tracking"
@@ -223,13 +203,7 @@ export default function ThreatBriefDashboard() {
         {/* Brief Cards */}
         <div className="xl:col-span-2 flex flex-col gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">All Briefs</h2>
-          {MOCK_BRIEFS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_BRIEFS.map((brief, i) => (
+          {MOCK_BRIEFS.map((brief, i) => (
             <motion.div
               key={brief.id}
               initial={{ opacity: 0, x: -8 }}
@@ -264,7 +238,7 @@ export default function ThreatBriefDashboard() {
                 )}
               </div>
             </motion.div>
-          )))}
+          ))}
         </div>
 
         {/* Brief Detail */}
@@ -275,7 +249,7 @@ export default function ThreatBriefDashboard() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle className="text-sm font-semibold leading-snug">{selectedBrief.title}</CardTitle>
-                    <p className="text-xs text-gray-400 mt-1">{selectedBrief.author} = {selectedBrief.created_at}</p>
+                    <p className="text-xs text-gray-400 mt-1">{selectedBrief.author} · {selectedBrief.created_at}</p>
                   </div>
                   <div
                     className={cn("flex-shrink-0 px-2 py-1 rounded text-xs font-bold border", TLP_CONFIG[selectedBrief.tlp].cls)}
@@ -309,7 +283,7 @@ export default function ThreatBriefDashboard() {
                   <div className="flex flex-wrap gap-2">
                     {selectedBrief.tags.map((tag) => (
                       <span key={tag} className="px-2 py-0.5 bg-gray-700/50 border border-gray-600/50 rounded text-xs text-gray-300">#{tag}</span>
-                    )))}
+                    ))}
                   </div>
                 </div>
 

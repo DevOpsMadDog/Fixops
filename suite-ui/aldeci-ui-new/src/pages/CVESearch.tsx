@@ -4,7 +4,7 @@
  * Search CVEs by ID, view popular vulnerabilities, display CVSS/EPSS/KEV data.
  * Route: /cve-search
  *
- * API: GET /api/v1/cve/{cve_id} = falls back to mock data on failure.
+ * API: GET /api/v1/cve/{cve_id} — falls back to mock data on failure.
  */
 
 import { useState, useMemo } from "react";
@@ -38,9 +38,9 @@ const API_KEY =
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface CVEData {
   cve_id: string;
@@ -56,9 +56,9 @@ interface CVEData {
   patch_priority: "critical" | "high" | "medium" | "low";
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const POPULAR_CVES = [
   { id: "CVE-2021-44228", label: "Log4Shell" },
@@ -100,9 +100,9 @@ const DEFAULT_MOCK_CVE: CVEData = {
   patch_priority: "low",
 };
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helper functions
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function getCVSSColor(score: number): string {
   if (score >= 9) return "bg-red-500/20 text-red-700 border-red-500/50";
@@ -118,9 +118,9 @@ function getPatchPriorityColor(priority: string): string {
   return "bg-blue-500 text-white";
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Component
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function CVESearch() {
   const [searchInput, setSearchInput] = useState("");
@@ -242,7 +242,7 @@ export default function CVESearch() {
               className="flex items-center justify-center py-12"
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" / role="status" aria-live="polite">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-slate-400">Loading CVE data...</p>
               </div>
             </motion.div>
@@ -391,7 +391,7 @@ export default function CVESearch() {
                               )}
                             </button>
                           </div>
-                        )))}
+                        ))}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -422,7 +422,7 @@ export default function CVESearch() {
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
                         </a>
-                      )))}
+                      ))}
                     </div>
                   </CardContent>
                 </Card>

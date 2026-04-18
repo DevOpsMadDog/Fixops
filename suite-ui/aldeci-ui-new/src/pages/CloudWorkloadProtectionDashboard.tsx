@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_workloads: 287,
@@ -63,7 +63,7 @@ const MOCK_THREATS = [
   { threat_type: "Suspicious cron job added",  severity: "high",     detection_source: "File",     workload_id: "legacy-monolith",    status: "resolved" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function CloudProviderBadge({ provider }: { provider: string }) {
   const map: Record<string, string> = {
@@ -131,13 +131,16 @@ function ThreatStatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CloudWorkloadProtectionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; workloads: any[] | null; threats: any[] | null; }>({ stats: null, workloads: null, threats: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    workloads: any[] | null;
+    threats: any[] | null;
+  }>({ stats: null, workloads: null, threats: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -165,14 +168,6 @@ export default function CloudWorkloadProtectionDashboard() {
   const stats     = liveData.stats     ?? MOCK_STATS;
   const workloads = liveData.workloads ?? MOCK_WORKLOADS;
   const threats   = liveData.threats   ?? MOCK_THREATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -228,13 +223,7 @@ export default function CloudWorkloadProtectionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workloads.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  workloads.map((w: any, i: number) => (
+                {workloads.map((w: any, i: number) => (
                   <TableRow key={w.workload_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{w.workload_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{w.workload_type}</TableCell>
@@ -243,8 +232,7 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2"><RiskBadge level={w.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2"><ProtectionStatusBadge status={w.protection_status ?? "protected"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -278,13 +266,7 @@ export default function CloudWorkloadProtectionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {threats.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  threats.map((t: any, i: number) => (
+                {threats.map((t: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{t.threat_type}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={t.severity ?? "medium"} /></TableCell>
@@ -292,8 +274,7 @@ export default function CloudWorkloadProtectionDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{t.workload_id}</TableCell>
                     <TableCell className="py-2"><ThreatStatusBadge status={t.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

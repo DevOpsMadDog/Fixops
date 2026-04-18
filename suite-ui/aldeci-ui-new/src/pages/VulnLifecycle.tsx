@@ -1,7 +1,7 @@
 /**
- * Vulnerability Lifecycle = Kanban board
+ * Vulnerability Lifecycle — Kanban board
  *
- * 6-column Kanban: discovered = triaging = confirmed = in_remediation = fixed = closed
+ * 6-column Kanban: discovered → triaging → confirmed → in_remediation → fixed → closed
  * Metrics bar, severity filter, card state transitions.
  * Route: /vuln-lifecycle
  *
@@ -51,9 +51,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 type Severity = "critical" | "high" | "medium" | "low";
 type VulnState = "discovered" | "triaging" | "confirmed" | "in_remediation" | "fixed" | "closed";
@@ -68,9 +68,9 @@ interface Vuln {
   assigned: string;
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const MOCK_VULNS: Vuln[] = [
   { id: "LC-001", finding_id: "FIND-847", severity: "critical", title: "RCE in log4j",                   state: "confirmed",      age: "3d",  assigned: "alice"      },
@@ -87,9 +87,9 @@ const MOCK_VULNS: Vuln[] = [
   { id: "LC-012", finding_id: "FIND-244", severity: "low",      title: "Missing security headers",        state: "fixed",          age: "7d",  assigned: "dave"       },
 ];
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Column config
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface ColumnDef {
   state: VulnState;
@@ -108,9 +108,9 @@ const COLUMNS: ColumnDef[] = [
   { state: "closed",         label: "Closed",         icon: ShieldCheck,  accent: "text-slate-400  border-slate-400/30"                          },
 ];
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helpers
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const SEV_BADGE: Record<Severity, "critical" | "high" | "medium" | "low"> = {
   critical: "critical",
@@ -126,9 +126,9 @@ const SEV_BORDER: Record<Severity, string> = {
   low:      "border-l-blue-400",
 };
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Vuln Card
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function VulnCard({
   vuln,
@@ -196,9 +196,9 @@ function VulnCard({
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Column
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function KanbanColumn({
   col,
@@ -255,14 +255,13 @@ function KanbanColumn({
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Main Page
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function VulnLifecycle() {
   const [sevFilter, setSevFilter] = useState<Severity | "all">("all");
   const [liveStats, setLiveStats] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -306,7 +305,7 @@ export default function VulnLifecycle() {
       return res.json();
     },
     onMutate: async ({ id, next }) => {
-      // Optimistic update = move card locally immediately
+      // Optimistic update — move card locally immediately
       queryClient.setQueryData<Vuln[]>(["vuln-lifecycle"], (old) =>
         old?.map((v) => (v.id === id ? { ...v, state: next } : v)) ?? [],
       );
@@ -329,7 +328,7 @@ export default function VulnLifecycle() {
     return vulns.filter((v) => v.severity === sevFilter);
   }, [vulns, sevFilter]);
 
-  // Metrics = prefer live stats from API, fall back to local computation
+  // Metrics — prefer live stats from API, fall back to local computation
   const openCount  = liveStats?.open_count  ?? liveStats?.total_open  ?? vulns?.filter((v) => !["fixed", "closed"].includes(v.state)).length ?? 0;
   const inRemCount = liveStats?.in_remediation_count ?? vulns?.filter((v) => v.state === "in_remediation").length ?? 0;
   const fixedCount = liveStats?.fixed_count ?? vulns?.filter((v) => v.state === "fixed").length ?? 0;
@@ -345,14 +344,6 @@ export default function VulnLifecycle() {
     { label: "Medium",   value: "medium"   },
     { label: "Low",      value: "low"      },
   ];
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
 
   return (
     <TooltipProvider>
@@ -379,7 +370,7 @@ export default function VulnLifecycle() {
                 >
                   {label}
                 </Button>
-              )))}
+              ))}
             </div>
           }
         />

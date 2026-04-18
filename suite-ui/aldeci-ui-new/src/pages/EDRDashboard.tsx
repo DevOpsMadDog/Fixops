@@ -1,7 +1,7 @@
 /**
  * EDR Dashboard
  *
- * Endpoint Detection & Response = process telemetry, malware detection, and endpoint isolation.
+ * Endpoint Detection & Response — process telemetry, malware detection, and endpoint isolation.
  *   1. KPIs: Endpoints Online, Isolated, New Detections, Critical Alerts
  *   2. Endpoint inventory (12 rows)
  *   3. Live detection feed (10 detections)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Monitor, AlertTriangle, Shield, Lock, RefreshCw, Activity, Terminal } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const ORG_ID = "default";
 
 function getApiKey() {
@@ -27,8 +27,7 @@ function getApiKey() {
 }
 
 async function apiFetch(path: string) {
-  const { buildApiUrl } = await import("@/lib/api");
-  const res = await fetch(buildApiUrl(`/api/v1${path}`), {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -42,7 +41,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ENDPOINTS = [
   { hostname: "WINDC-01",    ip: "10.4.22.5",   os: "Windows", status: "compromised", risk_score: 97, last_seen: "2 min ago",  agent: "7.3.1" },
@@ -89,13 +88,13 @@ const PROCESS_EVENTS = [
 
 const ISOLATION_LOG = [
   { hostname: "FS-SERVER-02", reason: "BlackCat ransomware staging detected",   isolated_by: "Auto-EDR",  duration: "47 min",  status: "isolated" },
-  { hostname: "WORKST-047",   reason: "LSASS credential dump = Mimikatz sig",   isolated_by: "Auto-EDR",  duration: "1h 12m",  status: "isolated" },
+  { hostname: "WORKST-047",   reason: "LSASS credential dump — Mimikatz sig",   isolated_by: "Auto-EDR",  duration: "1h 12m",  status: "isolated" },
   { hostname: "DB-SRV-01",    reason: "Rootkit kernel module loaded",            isolated_by: "Auto-EDR",  duration: "1h 54m",  status: "isolated" },
   { hostname: "WORKST-033",   reason: "Lateral movement via PsExec confirmed",   isolated_by: "analyst1",  duration: "3h 20m",  status: "released" },
   { hostname: "WORKST-021",   reason: "Cryptominer process terminated and clean", isolated_by: "analyst2", duration: "5h 41m",  status: "released" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function OsBadge({ os }: { os: string }) {
   const map: Record<string, string> = {
@@ -159,13 +158,12 @@ function RiskBar({ score }: { score: number }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function EDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -180,22 +178,13 @@ export default function EDRDashboard() {
       if (stats || endpoints || detections) {
         setLiveData({ stats, endpoints, detections });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -332,13 +321,7 @@ export default function EDRDashboard() {
             <CardDescription className="text-xs">Isolated and recently released endpoints</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {ISOLATION_LOG.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ISOLATION_LOG.map((iso, i) => (
+            {ISOLATION_LOG.map((iso, i) => (
               <div key={i} className={cn("rounded-lg border bg-muted/20 p-3 space-y-1.5", iso.status === "isolated" ? "border-orange-500/30" : "border-border")}>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-semibold">{iso.hostname}</span>
@@ -352,8 +335,7 @@ export default function EDRDashboard() {
                   <span>Duration: <span className="text-foreground tabular-nums font-medium">{iso.duration}</span></span>
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -383,13 +365,7 @@ export default function EDRDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PROCESS_EVENTS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  PROCESS_EVENTS.map((pe, i) => (
+                {PROCESS_EVENTS.map((pe, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SevDot sev={pe.severity} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] font-semibold">{pe.process}</TableCell>
@@ -402,8 +378,7 @@ export default function EDRDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{pe.hostname}</TableCell>
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{pe.observed_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

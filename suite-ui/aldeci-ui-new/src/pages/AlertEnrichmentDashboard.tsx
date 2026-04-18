@@ -6,7 +6,7 @@
  *   2. Enrichment queue (sorted critical-first)
  *   3. Per-alert enrichment history
  *   4. Source reliability table
- *   5. High-risk alerts panel (risk_score = 7.0)
+ *   5. High-risk alerts panel (risk_score ≥ 7.0)
  *
  * Route: /alert-enrichment
  */
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const API_BASE = "/api/v1/alert-enrichment";
 const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_QUEUE = [
   { id: "alr-001", source: "SIEM",    severity: "critical", indicator_type: "IP",     raw_indicator: "185.220.101.47",                        confidence_score: 92, risk_score: 9.4, status: "pending",  enriched: false },
@@ -56,7 +56,7 @@ const MOCK_SOURCES = [
   { id: "src-006", source_name: "Shodan",      type: "recon",      reliability_score: 82, success_count:  2100, error_count: 198, enabled: false },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -109,28 +109,23 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function AlertEnrichmentDashboard() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [sources, setSources] = useState(MOCK_SOURCES);
   const [queue, setQueue] = useState(MOCK_QUEUE);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(`${API_BASE}/alerts`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setQueue(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setQueue(d); })
+      .catch(() => {});
     fetch(`${API_BASE}/sources`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setSources(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setSources(d); })
+      .catch(() => {});
+  }, []);
 
   const sortedQueue = [...queue].sort((a, b) => b.risk_score - a.risk_score);
   const enriched  = queue.filter(a => a.status === "enriched").length;
@@ -149,13 +144,6 @@ export default function AlertEnrichmentDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -172,21 +160,15 @@ export default function AlertEnrichmentDashboard() {
         <KpiCard icon={Zap}           label="Total Alerts"   value={queue.length} color="bg-yellow-500/20 text-yellow-400" />
         <KpiCard icon={CheckCircle}   label="Enriched"       value={enriched}           color="bg-emerald-500/20 text-emerald-400" />
         <KpiCard icon={XCircle}       label="Failed"         value={failed}             color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={AlertTriangle} label="High Risk (=7)" value={highRisk.length}    color="bg-orange-500/20 text-orange-400" />
+        <KpiCard icon={AlertTriangle} label="High Risk (≥7)" value={highRisk.length}    color="bg-orange-500/20 text-orange-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Enrichment Queue */}
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
-          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Enrichment Queue = Critical First</h2>
+          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Enrichment Queue — Critical First</h2>
           <div className="space-y-2">
-            {sortedQueue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              sortedQueue.map(alert => (
+            {sortedQueue.map(alert => (
               <div key={alert.id}>
                 <div
                   className={cn("bg-gray-900 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-700/40 transition-all",
@@ -224,7 +206,7 @@ export default function AlertEnrichmentDashboard() {
                         <ResultTypeBadge r={h.result_type} />
                         <span className="text-gray-500 ml-auto">{fmt(h.enriched_at)}</span>
                       </div>
-                    )))}
+                    ))}
                   </motion.div>
                 )}
               </div>
@@ -236,17 +218,11 @@ export default function AlertEnrichmentDashboard() {
           {/* High Risk Panel */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400" /> High Risk Alerts (=7.0)
+              <AlertTriangle className="w-4 h-4 text-red-400" /> High Risk Alerts (≥7.0)
             </h2>
             <div className="space-y-2">
-              {highRisk.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                highRisk.map(a => (
-                <div key={a.id} className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2" role="status" aria-live="polite">
+              {highRisk.map(a => (
+                <div key={a.id} className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
                   <div className="flex items-center justify-between">
                     <IndicatorBadge t={a.indicator_type} />
                     <span className="text-red-400 font-bold text-sm">{a.risk_score.toFixed(1)}</span>
@@ -257,8 +233,7 @@ export default function AlertEnrichmentDashboard() {
                     <SeverityBadge s={a.severity} />
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </div>
 
@@ -266,13 +241,7 @@ export default function AlertEnrichmentDashboard() {
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Source Reliability</h2>
             <div className="space-y-3">
-              {sources.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                sources.map(src => (
+              {sources.map(src => (
                 <div key={src.id} className="bg-gray-900 rounded-lg px-3 py-2">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-white font-medium">{src.source_name}</p>
@@ -292,8 +261,7 @@ export default function AlertEnrichmentDashboard() {
                     <span className="text-red-400">{src.error_count} err</span>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </div>
         </div>

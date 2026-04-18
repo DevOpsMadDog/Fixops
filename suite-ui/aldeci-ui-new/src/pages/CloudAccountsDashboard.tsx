@@ -13,7 +13,7 @@ const _API_BASE = "/api/v1/cloud-accounts";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type Provider = "AWS" | "Azure" | "GCP" | "OCI" | "Alibaba";
 type AccountStatus = "healthy" | "warning" | "critical";
@@ -41,7 +41,7 @@ interface AccountEvent {
   resolved: boolean;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ACCOUNTS: CloudAccount[] = [
   { id: "acc-001", account_name: "Production AWS",         account_id: "123456789012", provider: "AWS",     status: "warning",  risk_score: 64, region: "us-east-1",      environment: "Production",  unresolved_events: 8,  last_scanned: "2026-04-16 09:00" },
@@ -65,7 +65,7 @@ const MOCK_EVENTS: AccountEvent[] = [
   { id: "evt-008", account_id: "acc-006", title: "Service account key created",        severity: "low",      event_time: "2026-04-15 18:15", resolved: false },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const providerBadge: Record<Provider, string> = {
   AWS:     "bg-orange-700 text-orange-100",
@@ -95,30 +95,25 @@ function riskBarColor(score: number) {
   return "bg-green-500";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
-  const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState(MOCK_ACCOUNTS);
   const [events, setEvents] = useState(MOCK_EVENTS);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(`${_API_BASE}/accounts`, { headers: _getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setAccounts(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setAccounts(d); })
+      .catch(() => {});
     fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setEvents(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setEvents(d); })
+      .catch(() => {});
+  }, []);
 
   const filtered = providerFilter === "All"
     ? accounts
@@ -140,13 +135,6 @@ export default function CloudAccountsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -218,7 +206,7 @@ export default function CloudAccountsDashboard() {
               </div>
             </div>
             <div className="flex items-center justify-between text-xs text-gray-400">
-              <span>{account.region} = {account.environment}</span>
+              <span>{account.region} · {account.environment}</span>
               <span className={account.unresolved_events > 0 ? "text-orange-400 font-medium" : "text-gray-500"}>
                 {account.unresolved_events} events
               </span>
@@ -243,7 +231,7 @@ export default function CloudAccountsDashboard() {
                     <div>
                       <p className="text-sm font-medium">{evt.title}</p>
                       <p className="text-xs opacity-70 mt-0.5">
-                        {account?.account_name} = {evt.event_time}
+                        {account?.account_name} · {evt.event_time}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
@@ -260,7 +248,7 @@ export default function CloudAccountsDashboard() {
         {/* Provider Risk Summary */}
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Provider Risk Summary</h2>
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700 text-gray-400 text-left">
                 <th className="pb-3 pr-4">Provider</th>

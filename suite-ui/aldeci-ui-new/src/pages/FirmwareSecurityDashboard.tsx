@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_devices: 214,
@@ -63,7 +63,7 @@ const MOCK_VULNS = [
   { cve_id: "CVE-2024-1111", severity: "low",      affected_component: "Telnet service",   patch_available: true,  status: "patched"    },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -106,13 +106,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function FirmwareSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; devices: any[] | null; vulns: any[] | null; }>({ stats: null, devices: null, vulns: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    devices: any[] | null;
+    vulns: any[] | null;
+  }>({ stats: null, devices: null, vulns: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -140,14 +143,6 @@ export default function FirmwareSecurityDashboard() {
   const stats   = liveData.stats   ?? MOCK_STATS;
   const devices = liveData.devices ?? MOCK_DEVICES;
   const vulns   = liveData.vulns   ?? MOCK_VULNS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -203,13 +198,7 @@ export default function FirmwareSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {devices.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  devices.map((d: any, i: number) => (
+                {devices.map((d: any, i: number) => (
                   <TableRow key={d.device_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{d.device_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.device_type}</TableCell>
@@ -218,8 +207,7 @@ export default function FirmwareSecurityDashboard() {
                     <TableCell className="py-2"><RiskBadge level={d.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.last_scanned}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -253,13 +241,7 @@ export default function FirmwareSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vulns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  vulns.map((v: any, i: number) => (
+                {vulns.map((v: any, i: number) => (
                   <TableRow key={v.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-blue-400">{v.cve_id}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={v.severity ?? "medium"} /></TableCell>
@@ -271,8 +253,7 @@ export default function FirmwareSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><StatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

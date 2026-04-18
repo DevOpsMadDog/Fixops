@@ -194,8 +194,9 @@ function ControlTreePanel({ framework, bundles }: { framework: string; bundles: 
                         <Badge className="text-xs py-0 h-3.5 bg-violet-900/40 text-violet-300 border-violet-700">Q</Badge>
                       )}
                     </div>
-                  ))}
-                </div>
+                  ))
+                }
+              </div>
             )}
           </div>
         );
@@ -435,7 +436,7 @@ export default function EvidenceExportCenter() {
                       <p className="text-xs text-muted-foreground">{f.desc}</p>
                     </div>
                   </div>
-                )))}
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -463,7 +464,7 @@ export default function EvidenceExportCenter() {
                   </div>
                   <p className="text-xs text-muted-foreground ml-6">{opt.desc}</p>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
@@ -635,7 +636,7 @@ export default function EvidenceExportCenter() {
                     </TableRow>
                   ))
                 )}
-                </TableBody>
+              </TableBody>
             </Table>
             </div>
           </CardContent>

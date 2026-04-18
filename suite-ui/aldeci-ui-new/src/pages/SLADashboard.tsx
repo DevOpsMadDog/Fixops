@@ -3,10 +3,10 @@
  *
  * Remediation SLAs, breach tracking, and MTTR analytics.
  *   1. KPIs: SLA Compliance, Active Breaches, At Risk, Avg MTTR
- *   2. SLA Compliance by Severity = horizontal bars
+ *   2. SLA Compliance by Severity — horizontal bars
  *   3. Active Breaches table (8 rows)
  *   4. At-Risk items table (10 rows, sorted by time remaining)
- *   5. MTTR Trend chart = 6-month div-based bars by severity
+ *   5. MTTR Trend chart — 6-month div-based bars by severity
  *   6. Team Performance table
  *   7. Policy Configuration card
  *
@@ -17,7 +17,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, AlertTriangle, Shield, Users, Settings, RefreshCw, BarChart3 } from "lucide-react";
 
-// == API ========================================================
+// ── API ────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "aldeci-demo";
 
@@ -41,7 +41,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const SEVERITY_BARS = [
   { label: "Critical", sla: "24h SLA", pct: 65, color: "bg-red-500", text: "text-red-400" },
@@ -98,7 +98,7 @@ const SLA_POLICY = [
   { severity: "Low",      response: "72h", contain: "7d",  resolve: "30d" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -109,15 +109,14 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-const MTTR_MAX = 10; // days = for bar scaling
+const MTTR_MAX = 10; // days — for bar scaling
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SLADashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -145,7 +144,7 @@ export default function SLADashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derived KPI values = prefer live, fall back to mock
+  // Derived KPI values — prefer live, fall back to mock
   const complianceRate = liveData?.compliance?.compliance_rate != null
     ? `${Math.round(liveData.compliance.compliance_rate)}%`
     : liveData?.dashboard?.compliance_rate != null
@@ -170,38 +169,30 @@ export default function SLADashboard() {
       ? `${liveData.dashboard.avg_mttr_days.toFixed(1)}d`
       : "4.2d";
 
-  // Live breach rows = map SLARecord fields to display shape
+  // Live breach rows — map SLARecord fields to display shape
   const liveBreaches = Array.isArray(liveData?.breached) && liveData.breached.length > 0
     ? liveData.breached.slice(0, 8).map((r: any, i: number) => ({
         id:      r.finding_id ?? `FND-${i}`,
-        title:   r.title     ?? r.finding_id ?? "=",
+        title:   r.title     ?? r.finding_id ?? "—",
         severity: r.severity ?? "High",
         type:    "Resolve",
-        owner:   r.assigned_to ?? "=",
-        due:     r.deadline   ?? "=",
-        overdue: r.hours_overdue != null ? `${Math.round(r.hours_overdue)}h` : "=",
+        owner:   r.assigned_to ?? "—",
+        due:     r.deadline   ?? "—",
+        overdue: r.hours_overdue != null ? `${Math.round(r.hours_overdue)}h` : "—",
       }))
     : BREACHES;
 
   const liveAtRisk = Array.isArray(liveData?.atRisk) && liveData.atRisk.length > 0
     ? liveData.atRisk.slice(0, 10).map((r: any, i: number) => ({
         id:        r.finding_id ?? `FND-${i}`,
-        title:     r.title ?? r.finding_id ?? "=",
+        title:     r.title ?? r.finding_id ?? "—",
         severity:  r.severity ?? "Medium",
-        deadline:  r.deadline ?? "=",
-        remaining: r.hours_remaining != null ? `${Math.round(r.hours_remaining)}h` : "=",
-        owner:     r.assigned_to ?? "=",
+        deadline:  r.deadline ?? "—",
+        remaining: r.hours_remaining != null ? `${Math.round(r.hours_remaining)}h` : "—",
+        owner:     r.assigned_to ?? "—",
         urgent:    (r.hours_remaining ?? 999) < 2,
       }))
     : AT_RISK;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -225,7 +216,7 @@ export default function SLADashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard title="SLA Compliance"   value={complianceRate} icon={Shield}        trend="down" className="border-amber-500/20" />
         <KpiCard title="Active Breaches"  value={activeBreaches} icon={AlertTriangle} trend="up"   className="border-red-500/20" />
-        <KpiCard title="At Risk (=20%)"   value={atRiskCount}    icon={Clock}         trend="up"   className="border-yellow-500/20" />
+        <KpiCard title="At Risk (≤20%)"   value={atRiskCount}    icon={Clock}         trend="up"   className="border-yellow-500/20" />
         <KpiCard title="Avg MTTR"         value={avgMttr}        icon={BarChart3}     trend="down" />
       </div>
 
@@ -241,13 +232,7 @@ export default function SLADashboard() {
             <CardDescription className="text-xs">% of findings resolved within SLA window</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {SEVERITY_BARS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              SEVERITY_BARS.map((bar) => (
+            {SEVERITY_BARS.map((bar) => (
               <div key={bar.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -265,12 +250,11 @@ export default function SLADashboard() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
-        {/* MTTR trend = div-based bars */}
+        {/* MTTR trend — div-based bars */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -281,20 +265,14 @@ export default function SLADashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-3 h-36">
-              {MTTR_TREND.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MTTR_TREND.map((m) => (
+              {MTTR_TREND.map((m) => (
                 <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
                   <div className="w-full flex items-end gap-0.5 h-28">
                     <div
                       className="flex-1 rounded-t bg-red-500/70 transition-all"
                       style={{ height: `${(m.critical / MTTR_MAX) * 100}%` }}
                       title={`Critical: ${m.critical}d`}
-                    / role="status" aria-live="polite">
+                    />
                     <div
                       className="flex-1 rounded-t bg-amber-500/70 transition-all"
                       style={{ height: `${(m.high / MTTR_MAX) * 100}%` }}
@@ -308,7 +286,7 @@ export default function SLADashboard() {
                   </div>
                   <span className="text-[10px] text-muted-foreground">{m.month}</span>
                 </div>
-              )))}
+              ))}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/70 inline-block" />Critical</span>
@@ -349,13 +327,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveBreaches.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  liveBreaches.map((row) => (
+                {liveBreaches.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
@@ -370,7 +342,7 @@ export default function SLADashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -389,7 +361,7 @@ export default function SLADashboard() {
               {liveAtRisk.length} items
             </Badge>
           </div>
-          <CardDescription className="text-xs">Findings within 20% of their SLA deadline = sorted by time remaining</CardDescription>
+          <CardDescription className="text-xs">Findings within 20% of their SLA deadline — sorted by time remaining</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -405,13 +377,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveAtRisk.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  liveAtRisk.map((row) => (
+                {liveAtRisk.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(
@@ -428,7 +394,7 @@ export default function SLADashboard() {
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -457,13 +423,7 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TEAMS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  TEAMS.map((t) => (
+                {TEAMS.map((t) => (
                   <TableRow key={t.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{t.name}</TableCell>
                     <TableCell className="py-2.5 w-32">
@@ -477,7 +437,7 @@ export default function SLADashboard() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{t.open}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -508,20 +468,14 @@ export default function SLADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SLA_POLICY.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  SLA_POLICY.map((p) => (
+                {SLA_POLICY.map((p) => (
                   <TableRow key={p.severity} className="hover:bg-muted/30">
                     <TableCell className="py-2.5"><SeverityBadge sev={p.severity} /></TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.response}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.contain}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-medium">{p.resolve}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const NODES = [
   { hostname: "web-prod-01",    ip: "10.0.1.10",  type: "server",      os: "Ubuntu 22.04", location: "us-east-1a", criticality: "Critical", segment: "DMZ",       status: "online" },
@@ -64,7 +64,7 @@ const SEGMENTS = [
 ];
 
 const EXPOSURES = [
-  { src: "iot-sensor-03 (10.0.5.3)",   dst: "db-primary (10.0.3.10)",    risk: "IoT device has direct route to DB = no firewall rule", proto: "TCP 5432" },
+  { src: "iot-sensor-03 (10.0.5.3)",   dst: "db-primary (10.0.3.10)",    risk: "IoT device has direct route to DB — no firewall rule", proto: "TCP 5432" },
   { src: "web-prod-01 (10.0.1.10)",    dst: "db-replica (10.0.3.11)",    risk: "HTTP server reaches replica DB without WAF interception", proto: "TCP 3306" },
   { src: "workstation-42 (10.0.4.42)", dst: "db-primary (10.0.3.10)",    risk: "Lateral movement: workstation can reach restricted DB", proto: "TCP 5432" },
   { src: "iot-sensor-03 (10.0.5.3)",   dst: "api-gateway-01 (10.0.2.5)", risk: "IoT device bypasses DMZ firewall to internal API", proto: "TCP 443" },
@@ -75,7 +75,7 @@ const EXPOSURES = [
 
 const MOCK_PATH = ["fw-edge-01 (192.168.1.1)", "core-switch-01 (10.0.0.1)", "api-gateway-01 (10.0.2.5)", "db-primary (10.0.3.10)"];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const cls =
@@ -112,11 +112,9 @@ function StatusDot({ status }: { status: string }) {
   return <span className={cn("inline-block w-2 h-2 rounded-full", cls)} title={status} />;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function NetworkTopology() {
-  const [loading, setLoading] = useState(true);
-
   const [refreshing, setRefreshing]   = useState(false);
   const [srcNode, setSrcNode]         = useState("");
   const [dstNode, setDstNode]         = useState("");
@@ -133,7 +131,7 @@ export default function NetworkTopology() {
       if (assets || stats) setLiveData({ assets, stats });
     });
 
-  useEffect(() => { fetchAll();}, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -143,14 +141,6 @@ export default function NetworkTopology() {
   const handleFindPath = () => {
     if (srcNode.trim() && dstNode.trim()) setPathResult(MOCK_PATH);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -203,13 +193,7 @@ export default function NetworkTopology() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {NODES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  NODES.map((n) => (
+                {NODES.map((n) => (
                   <TableRow key={n.hostname} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{n.hostname}</TableCell>
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{n.ip}</TableCell>
@@ -220,8 +204,7 @@ export default function NetworkTopology() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{n.segment}</TableCell>
                     <TableCell className="py-2.5"><StatusDot status={n.status} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -235,13 +218,7 @@ export default function NetworkTopology() {
           Network Segments
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SEGMENTS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            SEGMENTS.map((seg) => (
+          {SEGMENTS.map((seg) => (
             <Card key={seg.name} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -260,8 +237,7 @@ export default function NetworkTopology() {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -280,14 +256,8 @@ export default function NetworkTopology() {
           <CardDescription className="text-xs">Unexpected cross-segment paths connecting exposed assets to internal critical nodes</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {EXPOSURES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            EXPOSURES.map((e, i) => (
-            <div key={i} className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-1.5" role="status" aria-live="polite">
+          {EXPOSURES.map((e, i) => (
+            <div key={i} className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-1.5">
               <div className="flex items-center gap-2 text-xs">
                 <Shield className="h-3.5 w-3.5 text-red-400 shrink-0" />
                 <span className="font-mono text-red-300">{e.src}</span>
@@ -297,8 +267,7 @@ export default function NetworkTopology() {
               </div>
               <p className="text-[11px] text-muted-foreground pl-5">{e.risk}</p>
             </div>
-          ))
-        )}
+          ))}
         </CardContent>
       </Card>
 
@@ -337,20 +306,14 @@ export default function NetworkTopology() {
               animate={{ opacity: 1, y: 0 }}
               className="rounded-md border border-indigo-500/30 bg-indigo-500/5 p-3"
             >
-              <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Path discovered = {pathResult.length} hops</p>
+              <p className="text-[10px] uppercase tracking-wide text-indigo-400 mb-2">Path discovered — {pathResult.length} hops</p>
               <div className="flex items-center gap-1 flex-wrap">
-                {pathResult.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  pathResult.map((node, i) => (
+                {pathResult.map((node, i) => (
                   <span key={i} className="flex items-center gap-1">
                     <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">{node}</span>
                     {i < pathResult.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                   </span>
-                )))}
+                ))}
               </div>
             </motion.div>
           )}

@@ -4,7 +4,7 @@
  * Phishing simulation and security awareness.
  *   1. KPIs: Campaigns Run, Employees Tested, Click Rate, Reported Rate
  *   2. Campaign table (8 rows)
- *   3. Click rate by department = horizontal bars
+ *   3. Click rate by department — horizontal bars
  *   4. Top phishing templates (6 cards)
  *   5. Training completion progress bars
  *
@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID  = "default";
 
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CAMPAIGNS = [
   { name: "CEO Fraud Q1",        type: "pretexting", group: "Finance",     launched: "2026-04-01", sent: 48,  clicked: 12, reported: 8,  status: "completed" },
@@ -79,7 +79,7 @@ const TRAINING_MODULES = [
   { name: "Incident Reporting Procedures",     completion: 73 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function CampaignTypeBadge({ type }: { type: string }) {
   const cls =
@@ -108,13 +108,12 @@ function ClickRateBadge({ rate }: { rate: number }) {
 
 const DEPT_MAX = Math.max(...DEPT_CLICK_RATES.map((d) => d.rate));
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SocialEngineering() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -152,14 +151,14 @@ export default function SocialEngineering() {
     ? `${liveData.stats.avg_report_rate.toFixed(1)}%`
     : "34.7%";
 
-  // Campaign table = map API shape to mock shape
+  // Campaign table — map API shape to mock shape
   const liveCampaignsArr = Array.isArray(liveData?.campaigns) ? liveData.campaigns : null;
   const tableCampaigns = liveCampaignsArr && liveCampaignsArr.length > 0
     ? liveCampaignsArr.map((c: any) => ({
-        name:     c.name ?? "=",
+        name:     c.name ?? "—",
         type:     c.campaign_type ?? "phishing",
-        group:    c.target_group ?? "=",
-        launched: c.start_date ?? c.created_at ?? "=",
+        group:    c.target_group ?? "—",
+        launched: c.start_date ?? c.created_at ?? "—",
         sent:     c.total_targets   ?? c.sent     ?? 0,
         clicked:  c.total_clicked   ?? c.clicked  ?? 0,
         reported: c.total_reported  ?? c.reported ?? 0,
@@ -167,24 +166,16 @@ export default function SocialEngineering() {
       }))
     : CAMPAIGNS;
 
-  // Templates = map API shape to mock shape
+  // Templates — map API shape to mock shape
   const liveTemplatesArr = Array.isArray(liveData?.templates) ? liveData.templates : null;
   const tableTemplates = liveTemplatesArr && liveTemplatesArr.length > 0
     ? liveTemplatesArr.slice(0, 6).map((t: any) => ({
-        name:      t.name ?? "=",
+        name:      t.name ?? "—",
         type:      t.template_type ?? "phishing",
         clickRate: t.click_rate ?? t.avg_click_rate ?? 0,
-        lastUsed:  t.last_used ?? t.created_at ?? "=",
+        lastUsed:  t.last_used ?? t.created_at ?? "—",
       }))
     : TEMPLATES;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -254,13 +245,7 @@ export default function SocialEngineering() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableCampaigns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  tableCampaigns.map((c) => {
+                {tableCampaigns.map((c) => {
                   const clickPct  = c.sent > 0 ? ((c.clicked / c.sent) * 100).toFixed(1) : "0.0";
                   const reportPct = c.sent > 0 ? ((c.reported / c.sent) * 100).toFixed(1) : "0.0";
                   return (
@@ -279,8 +264,7 @@ export default function SocialEngineering() {
                       <TableCell className="py-2.5"><StatusBadge status={c.status} /></TableCell>
                     </TableRow>
                   );
-                })
-                )}
+                })}
               </TableBody>
             </Table>
           </div>
@@ -296,16 +280,10 @@ export default function SocialEngineering() {
               <BarChart3 className="h-4 w-4 text-amber-400" />
               Click Rate by Department
             </CardTitle>
-            <CardDescription className="text-xs">Sorted by click rate descending = red bars indicate high risk</CardDescription>
+            <CardDescription className="text-xs">Sorted by click rate descending — red bars indicate high risk</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DEPT_CLICK_RATES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              DEPT_CLICK_RATES.map((d) => (
+            {DEPT_CLICK_RATES.map((d) => (
               <div key={d.dept} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{d.dept}</span>
@@ -325,8 +303,7 @@ export default function SocialEngineering() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -340,13 +317,7 @@ export default function SocialEngineering() {
             <CardDescription className="text-xs">Security awareness module completion rates</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {TRAINING_MODULES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              TRAINING_MODULES.map((m) => (
+            {TRAINING_MODULES.map((m) => (
               <div key={m.name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium truncate pr-2">{m.name}</span>
@@ -359,8 +330,7 @@ export default function SocialEngineering() {
                 </div>
                 <Progress value={m.completion} className="h-1.5" />
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -372,13 +342,7 @@ export default function SocialEngineering() {
           Top Phishing Templates
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {tableTemplates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            tableTemplates.map((t) => (
+          {tableTemplates.map((t) => (
             <Card key={t.name} className={cn("hover:border-border/80 transition-colors", t.clickRate > 10 && "border-red-500/20")}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -390,14 +354,14 @@ export default function SocialEngineering() {
                   <span className="tabular-nums">Last: {t.lastUsed}</span>
                 </div>
                 {t.clickRate > 10 && (
-                  <div className="flex items-center gap-1 text-[10px] text-red-400" role="status" aria-live="polite">
+                  <div className="flex items-center gap-1 text-[10px] text-red-400">
                     <TrendingDown className="h-3 w-3" />
-                    High risk = prioritize retraining
+                    High risk — prioritize retraining
                   </div>
                 )}
               </CardContent>
             </Card>
-          )))}
+          ))}
         </div>
       </div>
     </motion.div>

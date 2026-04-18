@@ -43,7 +43,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ANOMALOUS_FLOWS = [
   { id: "FL-001", anomaly_type: "c2_traffic",   src_ip: "10.4.22.17",    dst_ip: "185.220.101.34", risk_score: 97, flagged: true,  detected_at: "14:32:11", bytes: 4512000000 },
@@ -91,7 +91,7 @@ const PROTO_COLORS: Record<string, string> = {
   Other: "bg-slate-500",
 };
 
-// == Helpers ==================================================
+// ── Helpers ──────────────────────────────────────────────────
 
 function AnomalyTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -126,13 +126,12 @@ function fmtBytes(b: number): string {
 
 const MAX_BYTES = TOP_TALKERS[0].bytes_sent;
 
-// == Component ================================================
+// ── Component ────────────────────────────────────────────────
 
 export default function NetworkTrafficDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -160,14 +159,6 @@ export default function NetworkTrafficDashboard() {
   const flaggedFlows= liveData?.stats?.flagged_flows  ?? anomalies.length;
   const anomalyRate = liveData?.stats?.anomaly_rate   ?? "0.64%";
   const avgRisk     = liveData?.stats?.avg_risk_score ?? Math.round(anomalies.reduce((s: number, f: any) => s + (f.risk_score ?? 0), 0) / anomalies.length);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -221,13 +212,7 @@ export default function NetworkTrafficDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {anomalies.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  anomalies.map((f: any, i: number) => (
+                {anomalies.map((f: any, i: number) => (
                   <TableRow key={f.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><AnomalyTypeBadge type={f.anomaly_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{f.src_ip}</TableCell>
@@ -250,8 +235,7 @@ export default function NetworkTrafficDashboard() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -281,13 +265,7 @@ export default function NetworkTrafficDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topTalkers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  topTalkers.map((t: any, i: number) => (
+                {topTalkers.map((t: any, i: number) => (
                   <TableRow key={t.src_ip ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{t.src_ip}</TableCell>
                     <TableCell className="py-2">
@@ -311,8 +289,7 @@ export default function NetworkTrafficDashboard() {
                       </span>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -332,29 +309,22 @@ export default function NetworkTrafficDashboard() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-[11px] h-8">Rule</TableHead>
-                  <TableHead className="text-[11px] h-8">Src = Dst</TableHead>
+                  <TableHead className="text-[11px] h-8">Src → Dst</TableHead>
                   <TableHead className="text-[11px] h-8">Action</TableHead>
                   <TableHead className="text-[11px] h-8 text-right">Hits</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rules.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  rules.map((r: any) => (
+                {rules.map((r: any) => (
                   <TableRow key={r.id ?? r.rule_name} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[130px] truncate">{r.name ?? r.rule_name}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">
-                      <span className="truncate block max-w-[120px]">{r.src} = {r.dst ?? r.dst_cidr}</span>
+                      <span className="truncate block max-w-[120px]">{r.src} → {r.dst ?? r.dst_cidr}</span>
                     </TableCell>
                     <TableCell className="py-2"><ActionBadge action={r.action} /></TableCell>
                     <TableCell className="py-2 text-right text-xs tabular-nums text-muted-foreground">{(r.hit_count ?? r.hits ?? 0).toLocaleString()}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -371,13 +341,7 @@ export default function NetworkTrafficDashboard() {
           <CardDescription className="text-xs">Traffic breakdown by protocol (% of total flows)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {PROTOCOLS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            PROTOCOLS.map((p, i) => (
+          {PROTOCOLS.map((p, i) => (
             <div key={p.name} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium w-12">{p.name}</span>
@@ -392,7 +356,7 @@ export default function NetworkTrafficDashboard() {
                 />
               </div>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

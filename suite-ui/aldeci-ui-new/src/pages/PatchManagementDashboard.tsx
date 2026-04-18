@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_PATCHES = [
   { id: "pat-001", title: "Windows Server 2022 KB5034439",    patch_type: "os",          severity: "critical", status: "deployed",    deployed_count: 412, failed_count: 3  },
@@ -59,7 +59,7 @@ const MOCK_STATS = {
   success_rate: 96.8,
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -90,12 +90,11 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PatchManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [livePatches, setLivePatches] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]     = useState<any | null>(null);
 
   useEffect(() => {
@@ -105,22 +104,13 @@ export default function PatchManagementDashboard() {
     ]).then(([patchRes, statsRes]) => {
       if (patchRes.status === "fulfilled")  setLivePatches(patchRes.value?.patches ?? patchRes.value ?? null);
       if (statsRes.status === "fulfilled")  setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const patches = livePatches ?? MOCK_PATCHES;
   const stats   = liveStats   ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -131,7 +121,7 @@ export default function PatchManagementDashboard() {
     >
       <PageHeader
         title="Patch Management"
-        description="Enterprise patch lifecycle = critical vulnerability remediation, deployment tracking, and success rate monitoring"
+        description="Enterprise patch lifecycle — critical vulnerability remediation, deployment tracking, and success rate monitoring"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -177,19 +167,13 @@ export default function PatchManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patches.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  patches.map((patch: any, i: number) => (
+                {patches.map((patch: any, i: number) => (
                   <TableRow key={patch.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-blue-300 max-w-[240px] truncate">
-                      {patch.title ?? "="}
+                      {patch.title ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize font-mono">
-                      {patch.patch_type ?? "="}
+                      {patch.patch_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={patch.severity ?? "low"} />
@@ -206,8 +190,7 @@ export default function PatchManagementDashboard() {
                       </span>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

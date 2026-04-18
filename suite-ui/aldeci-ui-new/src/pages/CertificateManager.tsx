@@ -4,7 +4,7 @@
  * TLS/SSL certificate inventory, expiry tracking, and weak config detection.
  * Route: /certificates
  *
- * API: /api/v1/certificates = falls back to mock data on failure.
+ * API: /api/v1/certificates — falls back to mock data on failure.
  */
 
 import { useState } from "react";
@@ -42,9 +42,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface CertRecord {
   id: string;
@@ -89,9 +89,9 @@ interface CheckResult {
   error?: string;
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const MOCK_STATS: CertStats = {
   total: 47,
@@ -181,9 +181,9 @@ const MOCK_ALERTS: ExpiryAlerts = {
   expiring_90d: [],
 };
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helpers
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function daysUntil(isoDate: string): number {
   const exp = new Date(isoDate).getTime();
@@ -208,9 +208,9 @@ function statusBadge(cert: CertRecord) {
   return <Badge className="bg-emerald-900/60 text-emerald-300 border-emerald-700">Healthy</Badge>;
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // KPI Card
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function KPICard({
   label,
@@ -238,9 +238,9 @@ function KPICard({
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Domain Check Panel
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function DomainCheckPanel() {
   const [domain, setDomain] = useState("");
@@ -266,6 +266,7 @@ function DomainCheckPanel() {
         error: "Failed to reach API",
       });
     } finally {
+      setLoading(false);
     }
   }
 
@@ -303,7 +304,7 @@ function DomainCheckPanel() {
             className="rounded-md border border-slate-700 bg-slate-800/50 p-3 space-y-2 text-sm"
           >
             {!result.reachable ? (
-              <div className="flex items-center gap-2 text-red-400" role="status" aria-live="polite">
+              <div className="flex items-center gap-2 text-red-400">
                 <XCircle className="w-4 h-4" />
                 <span>{result.error || "Unreachable"}</span>
               </div>
@@ -362,9 +363,9 @@ function DomainCheckPanel() {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Main Page
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function CertificateManagerPage() {
   const [filter, setFilter] = useState("");
@@ -518,9 +519,9 @@ export default function CertificateManagerPage() {
                     >
                       <p className="text-xs font-medium text-red-300 truncate">{cert.domain}</p>
                       <p className="text-xs text-slate-500">
-                        {cert.algorithm || "Unknown algorithm"} ={" "}
+                        {cert.algorithm || "Unknown algorithm"} ·{" "}
                         {cert.key_size > 0 ? `${cert.key_size}-bit` : "unknown key size"}
-                        {cert.self_signed && " = Self-signed"}
+                        {cert.self_signed && " · Self-signed"}
                       </p>
                     </div>
                   ))
@@ -556,7 +557,7 @@ export default function CertificateManagerPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table role="table" className="w-full text-xs">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-slate-800">
                       <th className="text-left px-4 py-2.5 text-slate-400 font-medium">Domain</th>
@@ -592,7 +593,7 @@ export default function CertificateManagerPage() {
                               </div>
                             </td>
                             <td className="px-4 py-2.5 text-slate-400 truncate max-w-[120px]">
-                              {cert.issuer || "="}
+                              {cert.issuer || "—"}
                             </td>
                             <td className={cn("px-4 py-2.5 font-semibold", color)}>
                               {label}
@@ -600,7 +601,7 @@ export default function CertificateManagerPage() {
                             <td className="px-4 py-2.5 text-slate-400 truncate max-w-[140px]">
                               {cert.algorithm
                                 ? cert.algorithm.replace("WithRSAEncryption", "")
-                                : "="}
+                                : "—"}
                               {cert.key_size > 0 && (
                                 <span className="text-slate-500"> ({cert.key_size})</span>
                               )}

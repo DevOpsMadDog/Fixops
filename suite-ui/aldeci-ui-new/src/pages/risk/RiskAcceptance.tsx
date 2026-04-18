@@ -547,7 +547,7 @@ function DetailDialog({ record, onClose, onApprove, onReject }: DetailDialogProp
                       <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-green-400" />
                       <span className="text-foreground/80">{cc.description}</span>
                     </li>
-                  )))}
+                  ))}
                 </ul>
               )}
             </div>
@@ -568,7 +568,7 @@ function DetailDialog({ record, onClose, onApprove, onReject }: DetailDialogProp
                       </div>
                       <p className="text-sm text-foreground/80">{c.body}</p>
                     </div>
-                  )))}
+                  ))}
                 </div>
               </div>
             )}
@@ -745,8 +745,7 @@ function PendingCard({ record, onClick }: { record: RiskAcceptanceRecord; onClic
                         <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-green-400" />
                         {cc.description}
                       </li>
-                    ))
-                  }
+                    ))}
                     {record.compensating_controls.length > 2 && (
                       <li className="text-xs text-muted-foreground">+{record.compensating_controls.length - 2} more — open to review all</li>
                     )}
@@ -1095,8 +1094,8 @@ export default function RiskAcceptance() {
                 pendingRecords.map((r) => (
                   <PendingCard key={r.id} record={r} onClick={() => setSelectedRecord(r)} />
                 ))
-                )}
-              </motion.div>
+              )}
+            </motion.div>
           ) : (
             <motion.div
               key="ledger"
@@ -1107,14 +1106,14 @@ export default function RiskAcceptance() {
             >
               <Card className="overflow-hidden">
                 <ScrollArea>
-                  <table role="table" className="w-full text-sm">
+                  <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
                         {["ID", "Finding / Asset", "Severity", "Status", "Expiration", "Approved By", "Framework"].map((h) => (
                           <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                             {h}
                           </th>
-                        )))}
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
@@ -1128,8 +1127,8 @@ export default function RiskAcceptance() {
                         ledgerRecords.map((r) => (
                           <AcceptedRow key={r.id} record={r} onClick={() => setSelectedRecord(r)} />
                         ))
-                        )}
-                      </tbody>
+                      )}
+                    </tbody>
                   </table>
                 </ScrollArea>
                 <div className="border-t border-border px-4 py-2.5 flex items-center justify-between">

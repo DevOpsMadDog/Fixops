@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_PIPELINES = [
   { id: "pipe-001", name: "SIEM Event Ingest",        source_type: "siem",         data_format: "CEF",     status: "active",  records_processed: 4820341, last_run: "2026-04-16T09:55:00Z" },
@@ -54,7 +54,7 @@ const MOCK_PIPELINES = [
 
 const MOCK_STATS = { total_pipelines: 38, active_pipelines: 29, records_processed: 19257370, error_rate: 2.6 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -80,13 +80,12 @@ function formatRecords(n: number) {
   return n.toString();
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DataPipelineDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [livePipelines, setLivePipelines] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -95,22 +94,13 @@ export default function DataPipelineDashboard() {
     ]).then(([pipeRes, statsRes]) => {
       if (pipeRes.status === "fulfilled") setLivePipelines(pipeRes.value?.pipelines ?? pipeRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const pipelines = livePipelines ?? MOCK_PIPELINES;
   const stats     = liveStats     ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -121,7 +111,7 @@ export default function DataPipelineDashboard() {
     >
       <PageHeader
         title="Data Pipeline"
-        description="Security data ingestion pipeline monitoring = source health, record throughput, and error rate tracking"
+        description="Security data ingestion pipeline monitoring — source health, record throughput, and error rate tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -167,22 +157,16 @@ export default function DataPipelineDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pipelines.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  pipelines.map((pipe: any, i: number) => (
+                {pipelines.map((pipe: any, i: number) => (
                   <TableRow key={pipe.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-emerald-300 max-w-[200px] truncate">
-                      {pipe.name ?? "="}
+                      {pipe.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(pipe.source_type ?? "=").replace(/_/g, " ")}
+                      {(pipe.source_type ?? "—").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {pipe.data_format ?? "="}
+                      {pipe.data_format ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={pipe.status ?? "stopped"} />
@@ -191,11 +175,10 @@ export default function DataPipelineDashboard() {
                       {formatRecords(pipe.records_processed ?? 0)}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {pipe.last_run ? formatTs(pipe.last_run) : "="}
+                      {pipe.last_run ? formatTs(pipe.last_run) : "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

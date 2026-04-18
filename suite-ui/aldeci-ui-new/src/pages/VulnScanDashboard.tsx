@@ -26,7 +26,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface Scan {
   id: string;
@@ -42,7 +42,7 @@ interface Scan {
   duration_min: number;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SCANS: Scan[] = [
   { id: "sc-001", scanner_type: "Nessus",       target: "10.0.0.0/16",        status: "completed", findings_count: 347, critical_count: 12, high_count: 48,  medium_count: 187, low_count: 100, started_at: "2026-04-16 08:00", duration_min: 42 },
@@ -64,7 +64,7 @@ const SEVERITY_BREAKDOWN = [
 
 const SCANNER_TYPES = ["Nessus", "Qualys", "OpenVAS", "Tenable.io", "Rapid7", "Burp Suite", "OWASP ZAP", "Trivy"];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function ScanStatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode }> = {
@@ -76,23 +76,12 @@ function ScanStatusBadge({ status }: { status: string }) {
   const { cls, icon } = map[status] ?? { cls: "bg-gray-500/10 text-gray-400", icon: null };
   return (
     <Badge className={cn("border text-xs gap-1 capitalize", cls)}>
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {icon}{status}
     </Badge>
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function VulnScanDashboard() {
   const [scans, setScans] = useState(MOCK_SCANS);
@@ -101,8 +90,7 @@ export default function VulnScanDashboard() {
     fetch(`${_API_BASE}/scans`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setScans(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const [scannerType, setScannerType] = useState("Nessus");
@@ -110,11 +98,10 @@ export default function VulnScanDashboard() {
     fetch(`${_API_BASE}/scans`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setScans(d); })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => {});
   }, []);
   const [target, setTarget] = useState("");
   const [triggering, setTriggering] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const activeScanCount = MOCK_SCANS.filter((s) => s.status === "running").length;
   const totalFindings = MOCK_SCANS.reduce((s, sc) => s + sc.findings_count, 0);
@@ -127,14 +114,6 @@ export default function VulnScanDashboard() {
     setTriggering(true);
     setTimeout(() => setTriggering(false), 2000);
   }
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -177,13 +156,7 @@ export default function VulnScanDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_SCANS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_SCANS.map((scan, i) => (
+                {MOCK_SCANS.map((scan, i) => (
                   <motion.tr
                     key={scan.id}
                     initial={{ opacity: 0 }}
@@ -194,16 +167,15 @@ export default function VulnScanDashboard() {
                     <TableCell className="text-sm font-medium text-gray-200">{scan.scanner_type}</TableCell>
                     <TableCell className="font-mono text-xs text-gray-400 max-w-[140px] truncate">{scan.target}</TableCell>
                     <TableCell><ScanStatusBadge status={scan.status} /></TableCell>
-                    <TableCell className="text-right text-sm text-gray-300">{scan.findings_count > 0 ? scan.findings_count.toLocaleString() : "="}</TableCell>
+                    <TableCell className="text-right text-sm text-gray-300">{scan.findings_count > 0 ? scan.findings_count.toLocaleString() : "—"}</TableCell>
                     <TableCell className="text-right">
                       {scan.critical_count > 0 ? (
                         <span className="text-red-400 font-semibold text-sm">{scan.critical_count}</span>
-                      ) : <span className="text-gray-500 text-sm">=</span>}
+                      ) : <span className="text-gray-500 text-sm">—</span>}
                     </TableCell>
                     <TableCell className="text-xs text-gray-400">{scan.started_at}</TableCell>
                   </motion.tr>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -217,13 +189,7 @@ export default function VulnScanDashboard() {
               <CardTitle className="text-sm font-semibold">Findings by Severity</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              {SEVERITY_BREAKDOWN.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                SEVERITY_BREAKDOWN.map((sev) => (
+              {SEVERITY_BREAKDOWN.map((sev) => (
                 <div key={sev.label} className="flex flex-col gap-1">
                   <div className="flex justify-between text-xs">
                     <span className={sev.textColor}>{sev.label}</span>
@@ -238,8 +204,7 @@ export default function VulnScanDashboard() {
                     />
                   </div>
                 </div>
-              ))
-            )}
+              ))}
               <div className="mt-2 pt-2 border-t border-gray-700/50 flex justify-between text-xs">
                 <span className="text-gray-400">Total</span>
                 <span className="text-gray-200 font-semibold">{SEVERITY_BREAKDOWN.reduce((s, sv) => s + sv.count, 0).toLocaleString()}</span>
@@ -260,13 +225,7 @@ export default function VulnScanDashboard() {
                   onChange={(e) => setScannerType(e.target.value)}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
                 >
-                  {SCANNER_TYPES.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    SCANNER_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {SCANNER_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">

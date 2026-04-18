@@ -14,7 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
@@ -35,7 +35,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ===================================================
+// ── Mock data ───────────────────────────────────────────────────
 
 const WATCHLISTS = [
   { id: "WL-001", name: "APT29 Indicators",        category: "threat_actor",  count: 842,  created: "2026-01-12", lastHit: "2026-04-16", action: "block",  status: "active" },
@@ -64,17 +64,17 @@ const MATCHES = [
 ];
 
 const TOP_IPS = [
-  { ip: "185.220.101.47", count: 47, country: "==", firstSeen: "2026-04-10", lastSeen: "2026-04-16", category: "ip_block" },
-  { ip: "194.165.16.10",  count: 31, country: "==", firstSeen: "2026-04-08", lastSeen: "2026-04-16", category: "ip_block" },
-  { ip: "45.134.26.174",  count: 24, country: "==", firstSeen: "2026-04-11", lastSeen: "2026-04-15", category: "threat_actor" },
-  { ip: "176.10.99.200",  count: 19, country: "==", firstSeen: "2026-04-09", lastSeen: "2026-04-16", category: "ip_block" },
-  { ip: "91.108.4.222",   count: 14, country: "==", firstSeen: "2026-04-12", lastSeen: "2026-04-15", category: "threat_actor" },
+  { ip: "185.220.101.47", count: 47, country: "🇩🇪", firstSeen: "2026-04-10", lastSeen: "2026-04-16", category: "ip_block" },
+  { ip: "194.165.16.10",  count: 31, country: "🇷🇺", firstSeen: "2026-04-08", lastSeen: "2026-04-16", category: "ip_block" },
+  { ip: "45.134.26.174",  count: 24, country: "🇧🇬", firstSeen: "2026-04-11", lastSeen: "2026-04-15", category: "threat_actor" },
+  { ip: "176.10.99.200",  count: 19, country: "🇨🇭", firstSeen: "2026-04-09", lastSeen: "2026-04-16", category: "ip_block" },
+  { ip: "91.108.4.222",   count: 14, country: "🇳🇱", firstSeen: "2026-04-12", lastSeen: "2026-04-15", category: "threat_actor" },
 ];
 
 const WATCHLIST_OPTIONS = ["WL-001 APT29", "WL-002 Tor Exit", "WL-003 C2 Domains", "WL-004 Hashes", "WL-005 Insider"];
 const TYPE_OPTIONS = ["ip", "domain", "hash", "url", "user"];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function CategoryBadge({ cat }: { cat: string }) {
   const map: Record<string, string> = {
@@ -113,7 +113,7 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[sev] ?? "")}>{sev}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function WatchlistManager() {
   const [refreshing, setRefreshing]   = useState(false);
@@ -123,7 +123,6 @@ export default function WatchlistManager() {
   const [added, setAdded]             = useState<string[]>([]);
   const [liveData, setLiveData]       = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -151,17 +150,9 @@ export default function WatchlistManager() {
 
   const handleAdd = () => {
     if (!iocInput.trim()) return;
-    setAdded((prev) => [`${iocInput} = ${targetList}`, ...prev]);
+    setAdded((prev) => [`${iocInput} → ${targetList}`, ...prev]);
     setIocInput("");
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -220,13 +211,7 @@ export default function WatchlistManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {WATCHLISTS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  WATCHLISTS.map((row) => (
+                {WATCHLISTS.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2 text-muted-foreground">{row.id}</TableCell>
                     <TableCell className="text-xs py-2 font-medium">{row.name}</TableCell>
@@ -256,8 +241,7 @@ export default function WatchlistManager() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -266,14 +250,14 @@ export default function WatchlistManager() {
 
       {/* Recent Matches + Add to Watchlist */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recent Matches Feed = spans 2 cols */}
+        {/* Recent Matches Feed — spans 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Eye className="h-4 w-4 text-amber-400" />
               Recent Matches
             </CardTitle>
-            <CardDescription className="text-xs">IOC hits against active watchlists = last 6 hours</CardDescription>
+            <CardDescription className="text-xs">IOC hits against active watchlists — last 6 hours</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -290,13 +274,7 @@ export default function WatchlistManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MATCHES.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    MATCHES.map((row, idx) => (
+                  {MATCHES.map((row, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2 max-w-[120px] truncate">{row.watchlist}</TableCell>
                       <TableCell className="text-xs py-2 font-mono max-w-[140px] truncate text-muted-foreground">
@@ -312,8 +290,7 @@ export default function WatchlistManager() {
                       <TableCell className="text-xs py-2 tabular-nums text-muted-foreground">{row.time}</TableCell>
                       <TableCell className="py-2"><SeverityBadge sev={row.severity} /></TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -346,15 +323,9 @@ export default function WatchlistManager() {
                 onChange={(e) => setIocType(e.target.value)}
                 className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                {TYPE_OPTIONS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  TYPE_OPTIONS.map((t) => (
+                {TYPE_OPTIONS.map((t) => (
                   <option key={t} value={t}>{t}</option>
-                )))}
+                ))}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -364,15 +335,9 @@ export default function WatchlistManager() {
                 onChange={(e) => setTargetList(e.target.value)}
                 className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                {WATCHLIST_OPTIONS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  WATCHLIST_OPTIONS.map((w) => (
+                {WATCHLIST_OPTIONS.map((w) => (
                   <option key={w} value={w}>{w}</option>
-                )))}
+                ))}
               </select>
             </div>
             <Button size="sm" className="h-8 text-xs" onClick={handleAdd}>
@@ -384,7 +349,7 @@ export default function WatchlistManager() {
                 <p className="text-[10px] text-muted-foreground font-medium">Recently added:</p>
                 {added.slice(0, 4).map((entry, idx) => (
                   <div key={idx} className="text-[10px] text-green-400 font-mono truncate">{entry}</div>
-                )))}
+                ))}
               </div>
             )}
           </CardContent>
@@ -401,13 +366,7 @@ export default function WatchlistManager() {
           <CardDescription className="text-xs">Highest-frequency IP matches across all watchlists</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {TOP_IPS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            TOP_IPS.map((ip) => (
+          {TOP_IPS.map((ip) => (
             <div
               key={ip.ip}
               className="rounded-lg border border-border bg-muted/10 p-3 flex flex-col gap-2"
@@ -423,7 +382,7 @@ export default function WatchlistManager() {
                 <div className="text-[9px] text-muted-foreground">Last: {ip.lastSeen}</div>
               </div>
             </div>
-          )))}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

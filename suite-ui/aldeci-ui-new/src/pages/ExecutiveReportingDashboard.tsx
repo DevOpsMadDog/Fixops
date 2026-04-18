@@ -25,7 +25,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -41,13 +41,13 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_REPORTS = [
   { id: "RPT-001", report_type: "monthly",    title: "April 2026 Security Summary",           period_start: "2026-04-01", period_end: "2026-04-30", status: "draft",     created_by: "CISO",     created_at: "2026-04-16T08:00:00Z" },
   { id: "RPT-002", report_type: "board",      title: "Q1 2026 Board Security Briefing",       period_start: "2026-01-01", period_end: "2026-03-31", status: "published", created_by: "CISO",     created_at: "2026-04-01T10:00:00Z" },
   { id: "RPT-003", report_type: "quarterly",  title: "Q1 2026 Security Operations Report",    period_start: "2026-01-01", period_end: "2026-03-31", status: "published", created_by: "SecOps",   created_at: "2026-04-05T09:00:00Z" },
-  { id: "RPT-004", report_type: "ciso",       title: "CISO Weekly = Week 15",                 period_start: "2026-04-07", period_end: "2026-04-13", status: "published", created_by: "CISO",     created_at: "2026-04-14T07:30:00Z" },
+  { id: "RPT-004", report_type: "ciso",       title: "CISO Weekly — Week 15",                 period_start: "2026-04-07", period_end: "2026-04-13", status: "published", created_by: "CISO",     created_at: "2026-04-14T07:30:00Z" },
   { id: "RPT-005", report_type: "weekly",     title: "Week 14 Security Operations",           period_start: "2026-03-31", period_end: "2026-04-06", status: "archived",  created_by: "SecOps",   created_at: "2026-04-07T08:00:00Z" },
   { id: "RPT-006", report_type: "monthly",    title: "March 2026 Security Summary",           period_start: "2026-03-01", period_end: "2026-03-31", status: "published", created_by: "CISO",     created_at: "2026-04-01T08:00:00Z" },
 ];
@@ -76,7 +76,7 @@ const MOCK_SUMMARY = {
   posture_trend: "stable",
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function ReportTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -139,53 +139,17 @@ function AudienceBadge({ audience }: { audience: string }) {
   );
 }
 
-// == Interfaces =================================================
-
-interface ExecReport {
-  id: string;
-  report_type: string;
-  title: string;
-  period_start: string;
-  period_end: string;
-  status: string;
-  created_by: string;
-  created_at: string;
-}
-
-interface ExecKpi {
-  id: string;
-  kpi_name: string;
-  kpi_value: number;
-  target_value: number;
-  kpi_unit: string;
-  status: string;
-  trend: string;
-}
-
-interface BoardPresentation {
-  id: string;
-  title: string;
-  presentation_date: string;
-  audience: string;
-  risk_summary?: string;
-  action_items?: string[];
-  created_at: string;
-}
-
-interface ExecSummary {
-  kpi_summary: { on_track: number; at_risk: number; off_track: number };
-  recent_reports: ExecReport[];
-  board_presentations_count: number;
-  posture_trend: string;
-}
-
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ExecutiveReportingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ reports: ExecReport[] | null; kpis: ExecKpi[] | null; boards: BoardPresentation[] | null; summary: ExecSummary | null; }>({ reports: null, kpis: null, boards: null, summary: null });
+  const [liveData, setLiveData] = useState<{
+    reports: any[] | null;
+    kpis: any[] | null;
+    boards: any[] | null;
+    summary: any | null;
+  }>({ reports: null, kpis: null, boards: null, summary: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -212,25 +176,17 @@ export default function ExecutiveReportingDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Resolved data = live ?? mock
+  // Resolved data — live ?? mock
   const reports = liveData.reports ?? MOCK_REPORTS;
   const kpis    = liveData.kpis    ?? MOCK_KPIS;
   const boards  = liveData.boards  ?? MOCK_BOARD_PRESENTATIONS;
   const summary = liveData.summary ?? MOCK_SUMMARY;
 
-  const publishedCount = reports.filter((r: ExecReport) => r.status === "published").length;
-  const draftCount     = reports.filter((r: ExecReport) => r.status === "draft").length;
-  const onTrackKpis    = summary?.kpi_summary?.on_track  ?? kpis.filter((k: ExecKpi) => k.status === "on_track").length;
-  const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: ExecKpi) => k.status === "at_risk").length;
-  const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: ExecKpi) => k.status === "off_track").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
+  const publishedCount = reports.filter((r: any) => r.status === "published").length;
+  const draftCount     = reports.filter((r: any) => r.status === "draft").length;
+  const onTrackKpis    = summary?.kpi_summary?.on_track  ?? kpis.filter((k: any) => k.status === "on_track").length;
+  const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: any) => k.status === "at_risk").length;
+  const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: any) => k.status === "off_track").length;
 
   return (
     <motion.div
@@ -246,7 +202,8 @@ export default function ExecutiveReportingDashboard() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
-          </Button>}
+          </Button>
+        }
       />
 
       {/* KPI cards */}
@@ -276,7 +233,7 @@ export default function ExecutiveReportingDashboard() {
               </Badge>
             </div>
           </div>
-          <CardDescription className="text-xs">Security reports for all audiences = board, CISO, audit committee</CardDescription>
+          <CardDescription className="text-xs">Security reports for all audiences — board, CISO, audit committee</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -292,27 +249,20 @@ export default function ExecutiveReportingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  reports.map((r: ExecReport) => (
+                {reports.map((r: any) => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[240px] truncate">{r.title}</TableCell>
                     <TableCell className="py-2"><ReportTypeBadge type={r.report_type ?? "monthly"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground whitespace-nowrap">
-                      {r.period_start} = {r.period_end}
+                      {r.period_start} → {r.period_end}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{r.created_by}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : "="}
+                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
                     </TableCell>
                     <TableCell className="py-2"><ReportStatusBadge status={r.status ?? "draft"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -331,9 +281,9 @@ export default function ExecutiveReportingDashboard() {
               </CardTitle>
               <div className="flex items-center gap-1.5 text-[10px]">
                 <span className="text-green-400 font-semibold">{onTrackKpis} on track</span>
-                <span className="text-muted-foreground">=</span>
+                <span className="text-muted-foreground">·</span>
                 <span className="text-amber-400 font-semibold">{atRiskKpis} at risk</span>
-                <span className="text-muted-foreground">=</span>
+                <span className="text-muted-foreground">·</span>
                 <span className="text-red-400 font-semibold">{offTrackKpis} off track</span>
               </div>
             </div>
@@ -352,13 +302,7 @@ export default function ExecutiveReportingDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpis.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    kpis.map((k: ExecKpi) => (
+                  {kpis.map((k: any) => (
                     <TableRow key={k.id ?? k.kpi_name} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-xs font-medium">{k.kpi_name}</TableCell>
                       <TableCell className="py-2 text-right">
@@ -376,8 +320,7 @@ export default function ExecutiveReportingDashboard() {
                       </TableCell>
                       <TableCell className="py-2"><KpiStatusBadge status={k.status ?? "on_track"} /></TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -394,13 +337,7 @@ export default function ExecutiveReportingDashboard() {
             <CardDescription className="text-xs">Recent board and executive security briefings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {boards.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              boards.map((bp: BoardPresentation) => (
+            {boards.map((bp: any) => (
               <div key={bp.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-semibold leading-tight">{bp.title}</span>
@@ -428,7 +365,7 @@ export default function ExecutiveReportingDashboard() {
                         <CheckCircle className="h-2.5 w-2.5 shrink-0 text-green-400" />
                         {item}
                       </div>
-                    )))}
+                    ))}
                   </div>
                 )}
               </div>
@@ -456,8 +393,8 @@ export default function ExecutiveReportingDashboard() {
               <div className="text-2xl font-bold text-amber-400">{atRiskKpis}</div>
               <div className="text-[10px] text-muted-foreground mt-1">KPIs At Risk</div>
             </div>
-            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center" role="status" aria-live="polite">
-              <div className="text-2xl font-bold text-red-400" role="status" aria-live="polite">{offTrackKpis}</div>
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center">
+              <div className="text-2xl font-bold text-red-400">{offTrackKpis}</div>
               <div className="text-[10px] text-muted-foreground mt-1">KPIs Off Track</div>
             </div>
             <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-center">

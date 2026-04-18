@@ -498,8 +498,8 @@ export default function PlaybookEditor() {
                       onMoveUp={() => moveStep(i, "up")}
                       onMoveDown={() => moveStep(i, "down")}
                     />
-                  )))}
-                <div className="flex justify-center mt-3">
+                  ))}
+                  <div className="flex justify-center mt-3">
                     <Button
                       variant="outline"
                       size="sm"
@@ -570,7 +570,7 @@ export default function PlaybookEditor() {
                   <span className="text-muted-foreground">{item.label}</span>
                   <span className="font-semibold">{item.val}</span>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -597,7 +597,7 @@ export default function PlaybookEditor() {
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                     Running: {step.name || `Step ${i + 1}`}
                   </div>
-                )))}
+                ))}
                 {steps.length > 3 && (
                   <p className="text-xs text-muted-foreground">
                     +{steps.length - 3} more steps...

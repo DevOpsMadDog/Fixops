@@ -1,7 +1,7 @@
 /**
  * PKI Management Dashboard
  *
- * Public Key Infrastructure = certificate lifecycle and CA hierarchy management.
+ * Public Key Infrastructure — certificate lifecycle and CA hierarchy management.
  *   1. KPI cards: Total Certs, Active, Expiring (30d), Revoked
  *   2. Certificates table
  *   3. Certificate Authorities table
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_certs: 284,
@@ -66,7 +66,7 @@ const MOCK_CAS = [
   { name: "Legacy Root CA",        ca_type: "root",         subject: "CN=Legacy Root CA, O=OldCorp",            status: "deprecated", cert_count: 0 },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function CertTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -137,13 +137,16 @@ function expiryColor(dateStr: string, status: string): string {
   return "text-muted-foreground";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PKIManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; certs: any[] | null; cas: any[] | null; }>({ stats: null, certs: null, cas: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    certs: any[] | null;
+    cas: any[] | null;
+  }>({ stats: null, certs: null, cas: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -172,14 +175,6 @@ export default function PKIManagementDashboard() {
   const certs = liveData.certs ?? MOCK_CERTS;
   const cas   = liveData.cas   ?? MOCK_CAS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -190,7 +185,7 @@ export default function PKIManagementDashboard() {
       {/* Header */}
       <PageHeader
         title="PKI Management"
-        description="Public Key Infrastructure = certificate lifecycle, CA hierarchy, and expiry tracking"
+        description="Public Key Infrastructure — certificate lifecycle, CA hierarchy, and expiry tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -233,13 +228,7 @@ export default function PKIManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {certs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  certs.map((c: any, i: number) => (
+                {certs.map((c: any, i: number) => (
                   <TableRow key={c.common_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{c.common_name}</TableCell>
                     <TableCell className="py-2"><CertTypeBadge type={c.cert_type ?? "server"} /></TableCell>
@@ -249,8 +238,7 @@ export default function PKIManagementDashboard() {
                       {c.expires_at}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -269,7 +257,7 @@ export default function PKIManagementDashboard() {
               {cas.length} CAs
             </Badge>
           </div>
-          <CardDescription className="text-xs">CA hierarchy = root and intermediate authorities with issued certificate counts</CardDescription>
+          <CardDescription className="text-xs">CA hierarchy — root and intermediate authorities with issued certificate counts</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -284,13 +272,7 @@ export default function PKIManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cas.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  cas.map((ca: any, i: number) => (
+                {cas.map((ca: any, i: number) => (
                   <TableRow key={ca.name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{ca.name}</TableCell>
                     <TableCell className="py-2"><CATypeBadge type={ca.ca_type ?? "intermediate"} /></TableCell>
@@ -298,8 +280,7 @@ export default function PKIManagementDashboard() {
                     <TableCell className="py-2"><CertStatusBadge status={ca.status ?? "active"} /></TableCell>
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{ca.cert_count}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

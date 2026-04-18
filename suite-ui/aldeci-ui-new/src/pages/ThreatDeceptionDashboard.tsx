@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_DECOYS = [
   { id: "dec-001", name: "FakeSQLServer", decoy_type: "database",    ip_address: "10.0.1.100", port: 1433, interaction_count: 47, active: true  },
@@ -52,7 +52,7 @@ const MOCK_DECOYS = [
 
 const MOCK_STATS = { active_decoys: 6, total_interactions: 231, unique_attackers: 14, active_campaigns: 3 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ActiveBadge({ active }: { active: boolean }) {
   return (
@@ -83,13 +83,12 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatDeceptionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveDecoys, setLiveDecoys] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -98,22 +97,13 @@ export default function ThreatDeceptionDashboard() {
     ]).then(([decoysRes, statsRes]) => {
       if (decoysRes.status === "fulfilled") setLiveDecoys(decoysRes.value?.decoys ?? decoysRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const decoys = liveDecoys ?? MOCK_DECOYS;
   const stats  = liveStats  ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -170,25 +160,19 @@ export default function ThreatDeceptionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {decoys.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  decoys.map((dec: any, i: number) => (
+                {decoys.map((dec: any, i: number) => (
                   <TableRow key={dec.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-indigo-300">
-                      {dec.name ?? "="}
+                      {dec.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <TypeBadge type={dec.decoy_type ?? "unknown"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {dec.ip_address ?? "="}
+                      {dec.ip_address ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-purple-300">
-                      {dec.port ?? "="}
+                      {dec.port ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
                       {dec.interaction_count ?? 0}
@@ -197,8 +181,7 @@ export default function ThreatDeceptionDashboard() {
                       <ActiveBadge active={dec.active ?? false} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

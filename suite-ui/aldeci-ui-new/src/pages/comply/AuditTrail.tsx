@@ -116,7 +116,7 @@ function AuditDetailDrawer({ log }: { log: any }) {
                 <p className="text-xs text-muted-foreground">{label}</p>
                 <p className="text-sm font-medium mt-0.5 font-mono truncate">{value}</p>
               </div>
-            )))}
+            ))}
           </div>
 
           {/* Hash chain verification */}
@@ -158,7 +158,7 @@ function AuditDetailDrawer({ log }: { log: any }) {
                     <Link2 className="h-2.5 w-2.5" />
                     {ctrl}
                   </Badge>
-                )))}
+                ))}
               </div>
             </div>
           )}
@@ -454,7 +454,7 @@ export default function AuditTrail() {
             </CardHeader>
             <CardContent className="space-y-2">
               {logs.filter((l: any) => l.hash_valid === false || l.tampered === true).map((l: any, i: number) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-red-950/30 border border-red-800/40" role="status" aria-live="polite">
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-red-950/30 border border-red-800/40">
                   <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-red-300">
@@ -544,8 +544,7 @@ export default function AuditTrail() {
                             <Badge key={ctrl} variant="outline" className="text-xs py-0 h-4 font-mono">
                               {ctrl}
                             </Badge>
-                          ))
-                        }
+                          ))}
                           {controlBadges.length > 1 && (
                             <Badge variant="outline" className="text-xs py-0 h-4 text-muted-foreground">
                               +{controlBadges.length - 1}

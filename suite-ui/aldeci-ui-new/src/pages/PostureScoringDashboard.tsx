@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_CONTROLS = [
   { id: "ctrl-001", name: "MFA Enforcement",          domain: "Identity",    weight: 10, control_status: "implemented",     last_assessed: "2026-04-15" },
@@ -54,7 +54,7 @@ const MOCK_CONTROLS = [
 
 const MOCK_STATS = { overall_score: 74, implemented_controls: 5, gap_controls: 2, score_level: "Good" };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -76,13 +76,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PostureScoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveControls, setLiveControls] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -91,22 +90,13 @@ export default function PostureScoringDashboard() {
     ]).then(([controlsRes, statsRes]) => {
       if (controlsRes.status === "fulfilled") setLiveControls(controlsRes.value?.controls ?? controlsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const controls = liveControls ?? MOCK_CONTROLS;
   const stats    = liveStats    ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -162,32 +152,25 @@ export default function PostureScoringDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {controls.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  controls.map((ctrl: any, i: number) => (
+                {controls.map((ctrl: any, i: number) => (
                   <TableRow key={ctrl.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-green-300">
-                      {ctrl.name ?? "="}
+                      {ctrl.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {ctrl.domain ?? "="}
+                      {ctrl.domain ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {ctrl.weight ?? "="}
+                      {ctrl.weight ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={ctrl.control_status ?? "not_implemented"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {ctrl.last_assessed ?? "="}
+                      {ctrl.last_assessed ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

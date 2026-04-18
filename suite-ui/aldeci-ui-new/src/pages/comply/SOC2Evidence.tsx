@@ -322,7 +322,7 @@ export default function SOC2Evidence() {
                   </TableRow>
                 ))
               )}
-              </TableBody>
+            </TableBody>
           </Table>
           </div>
         </CardContent>
@@ -433,7 +433,7 @@ export default function SOC2Evidence() {
                       )}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
             </div>

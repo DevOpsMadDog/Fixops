@@ -13,7 +13,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { DollarSign, TrendingUp, CheckCircle2, Clock, Plus, Trophy } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type InvestStatus = "active" | "completed" | "planned" | "on_hold";
 type Category = "detection" | "prevention" | "response" | "governance" | "training" | "infrastructure" | "tooling";
@@ -45,7 +45,7 @@ interface Outcome {
   verified: boolean;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const INVESTMENTS: Investment[] = [
   { id: "inv01", investment_name: "Crowdstrike EDR Enterprise", category: "detection", vendor: "CrowdStrike", amount: 180000, status: "active", roi_score: 167, start_date: "2025-01-01" },
@@ -76,7 +76,7 @@ const OUTCOMES: Outcome[] = [
   { id: "o05", investment_name: "Cyber Insurance Renegotiation", outcome_type: "insurance_reduction", quantified_value: 42000, verified: false },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -117,7 +117,7 @@ const OUTCOME_COLOR: Record<OutcomeType, string> = {
   insurance_reduction: "bg-yellow-500/20 text-yellow-300",
 };
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityInvestmentDashboard() {
   const [investments, setInvestments] = useState(INVESTMENTS);
@@ -126,8 +126,7 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const [showForm, setShowForm] = useState(false);
@@ -135,10 +134,9 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => {});
   }, []);
   const [newAlloc, setNewAlloc] = useState({ category: "detection", amount: "" });
-  const [loading, setLoading] = useState(true);
 
   const totalInvested = INVESTMENTS.reduce((s, i) => s + i.amount, 0);
   const avgROI = Math.round(INVESTMENTS.reduce((s, i) => s + i.roi_score, 0) / INVESTMENTS.length);
@@ -147,27 +145,8 @@ export default function SecurityInvestmentDashboard() {
 
   const top5 = [...INVESTMENTS].sort((a, b) => b.roi_score - a.roi_score).slice(0, 5);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -237,7 +216,7 @@ export default function SecurityInvestmentDashboard() {
           <TrendingUp size={18} className="text-emerald-400" /> Investment Portfolio
         </h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-400 border-b border-gray-700">
                 <th className="text-left py-2">Investment</th>
@@ -249,13 +228,7 @@ export default function SecurityInvestmentDashboard() {
               </tr>
             </thead>
             <tbody>
-              {INVESTMENTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                INVESTMENTS.map((inv) => (
+              {INVESTMENTS.map((inv) => (
                 <tr key={inv.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                   <td className="py-2 font-medium text-gray-200">{inv.investment_name}</td>
                   <td className="py-2">
@@ -280,8 +253,7 @@ export default function SecurityInvestmentDashboard() {
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -292,13 +264,7 @@ export default function SecurityInvestmentDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Budget Utilization by Category</h2>
           <div className="space-y-4">
-            {BUDGET.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              BUDGET.map((b) => {
+            {BUDGET.map((b) => {
               const pct = Math.round((b.spent / b.allocated) * 100);
               const over = b.spent > b.allocated;
               return (
@@ -306,7 +272,7 @@ export default function SecurityInvestmentDashboard() {
                   <div className="flex justify-between text-xs mb-1">
                     <span className={`font-medium ${over ? "text-red-400" : "text-gray-300"}`}>{b.category}</span>
                     <span className={over ? "text-red-400 font-medium" : "text-gray-400"}>
-                      {fmt(b.spent)} / {fmt(b.allocated)} {over ? "= OVER" : ""}
+                      {fmt(b.spent)} / {fmt(b.allocated)} {over ? "⚠ OVER" : ""}
                     </span>
                   </div>
                   <div className="bg-gray-700 rounded-full h-3 flex overflow-hidden">
@@ -314,13 +280,12 @@ export default function SecurityInvestmentDashboard() {
                       className={`h-3 rounded-l-full ${over ? "bg-red-500" : "bg-emerald-500"}`}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
-                    {over && <div className="bg-red-700 h-3 rounded-r-full" style={{ width: `${pct - 100}%` }} / role="status" aria-live="polite">}
+                    {over && <div className="bg-red-700 h-3 rounded-r-full" style={{ width: `${pct - 100}%` }} />}
                   </div>
                   <div className="text-right text-xs text-gray-500 mt-0.5">{pct}% utilized</div>
                 </div>
               );
-            })
-            )}
+            })}
           </div>
         </div>
 
@@ -331,13 +296,7 @@ export default function SecurityInvestmentDashboard() {
               <CheckCircle2 size={18} className="text-emerald-400" /> ROI Outcomes
             </h2>
             <div className="space-y-3">
-              {OUTCOMES.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                OUTCOMES.map((o) => (
+              {OUTCOMES.map((o) => (
                 <div key={o.id} className="flex items-center justify-between gap-2 text-sm border-b border-gray-700/50 pb-2 last:border-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`px-2 py-0.5 rounded text-xs shrink-0 ${OUTCOME_COLOR[o.outcome_type]}`}>
@@ -356,7 +315,7 @@ export default function SecurityInvestmentDashboard() {
                     )}
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
 
@@ -366,19 +325,13 @@ export default function SecurityInvestmentDashboard() {
               <Trophy size={18} className="text-yellow-400" /> Top-5 by ROI
             </h2>
             <div className="space-y-2">
-              {top5.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                top5.map((inv, i) => (
+              {top5.map((inv, i) => (
                 <div key={inv.id} className="flex items-center gap-3 text-sm">
                   <span className="text-gray-500 w-4">{i + 1}.</span>
                   <span className="flex-1 text-gray-200 truncate">{inv.investment_name}</span>
                   <span className="text-green-400 font-bold font-mono">{inv.roi_score}%</span>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         </div>

@@ -40,9 +40,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 type ThreatStatus = "Active" | "Contained" | "Investigating";
 type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
@@ -69,9 +69,9 @@ interface EndpointRow {
   issues_count: number;
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const MOCK_THREATS: ThreatDetection[] = [
   { id: "t1", hostname: "WORKSTATION-042", threat_name: "POWERSHELL EMPIRE", tactic: "Execution", detection_time: "2026-04-16 09:14", status: "Active", severity: "CRITICAL" },
@@ -99,9 +99,9 @@ const MOCK_ENDPOINTS: EndpointRow[] = [
   { id: "e15", hostname: "SERVER-BACKUP-01", os: "Ubuntu 20.04",        last_seen: "3 hr ago",   agent_version: "7.14.0", threat_score: 2.9, patch_status: "Needs patch",             issues_count: 1 },
 ];
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helpers
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function severityBadge(s: Severity) {
   const cls = {
@@ -149,9 +149,9 @@ function ThreatScoreBar({ score }: { score: number }) {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Main Component
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function EndpointSecurity() {
   const { data: endpointsData, isLoading: epLoading } = useQuery({
@@ -230,13 +230,7 @@ export default function EndpointSecurity() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {coverage.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              coverage.map((c) => (
+            {coverage.map((c) => (
               <div key={c.os} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-300 font-medium">{c.os}</span>
@@ -251,8 +245,7 @@ export default function EndpointSecurity() {
                   <div className={cn("h-full rounded-full", c.color)} style={{ width: `${c.covered}%` }} />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -264,13 +257,7 @@ export default function EndpointSecurity() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {policies.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              policies.map((p) => (
+            {policies.map((p) => (
               <div key={p.label} className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-300">{p.label}</span>
@@ -278,8 +265,7 @@ export default function EndpointSecurity() {
                 </div>
                 <Progress value={p.pct} className="h-1.5" />
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -344,13 +330,7 @@ export default function EndpointSecurity() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {threats.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                threats.map((t) => (
+              {threats.map((t) => (
                 <TableRow key={t.id} className="border-white/5 hover:bg-white/5">
                   <TableCell className="pl-6 font-mono text-xs text-slate-200">{t.hostname}</TableCell>
                   <TableCell className="text-xs font-semibold text-slate-100">{t.threat_name}</TableCell>
@@ -359,8 +339,7 @@ export default function EndpointSecurity() {
                   <TableCell>{statusBadge(t.status)}</TableCell>
                   <TableCell>{severityBadge(t.severity)}</TableCell>
                 </TableRow>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -387,13 +366,7 @@ export default function EndpointSecurity() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {endpoints.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                endpoints.map((ep) => (
+              {endpoints.map((ep) => (
                 <TableRow key={ep.id} className="border-white/5 hover:bg-white/5">
                   <TableCell className="pl-6 font-mono text-xs text-slate-200">{ep.hostname}</TableCell>
                   <TableCell className="text-xs text-slate-400">{ep.os}</TableCell>
@@ -407,7 +380,7 @@ export default function EndpointSecurity() {
                     </span>
                   </TableCell>
                 </TableRow>
-              )))}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

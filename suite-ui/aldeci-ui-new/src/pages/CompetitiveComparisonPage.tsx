@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { Shield, DollarSign, CheckCircle, XCircle, AlertCircle, TrendingDown, Award, Calculator } from "lucide-react";
 
-// == Data ======================================================================
+// ── Data ──────────────────────────────────────────────────────────────────────
 
 const VENDORS = ["ALDECI", "Wiz", "Lacework", "Snyk", "Rapid7", "Tenable"] as const;
 type Vendor = typeof VENDORS[number];
@@ -39,13 +39,13 @@ const FEATURE_ROWS: FeatureRow[] = [
   {
     feature: "Monthly Cost @ 500 Assets",
     category: "Pricing",
-    values: { ALDECI: "$35=99", Wiz: "$4,167", Lacework: "$3,500", Snyk: "$2,500", Rapid7: "$2,000", Tenable: "$3,000" },
+    values: { ALDECI: "$35–99", Wiz: "$4,167", Lacework: "$3,500", Snyk: "$2,500", Rapid7: "$2,000", Tenable: "$3,000" },
     winner: "ALDECI",
   },
   {
     feature: "Annual Cost (3 tools needed)",
     category: "Pricing",
-    values: { ALDECI: "$420=1,188", Wiz: "$50,000", Lacework: "$42,000", Snyk: "$30,000", Rapid7: "$24,000", Tenable: "$36,000" },
+    values: { ALDECI: "$420–1,188", Wiz: "$50,000", Lacework: "$42,000", Snyk: "$30,000", Rapid7: "$24,000", Tenable: "$36,000" },
     winner: "ALDECI",
   },
   {
@@ -75,7 +75,7 @@ const FEATURE_ROWS: FeatureRow[] = [
   {
     feature: "Time to Value",
     category: "Overview",
-    values: { ALDECI: "15 min", Wiz: "4=6 weeks", Lacework: "4=6 weeks", Snyk: "2=3 weeks", Rapid7: "4=6 weeks", Tenable: "4=6 weeks" },
+    values: { ALDECI: "15 min", Wiz: "4–6 weeks", Lacework: "4–6 weeks", Snyk: "2–3 weeks", Rapid7: "4–6 weeks", Tenable: "4–6 weeks" },
     winner: "ALDECI",
   },
   {
@@ -155,13 +155,13 @@ const COST_TABLE = [
   { label: "ALDECI Pro",                monthly: 99,   annual: 1188,    three_yr: 3564,   note: "Self-hosted, all features" },
   { label: "Wiz + Snyk + Rapid7",       monthly: 9167, annual: 110000,  three_yr: 330000, note: "Market-standard 3-tool stack" },
   { label: "Lacework + Snyk + Rapid7",  monthly: 8500, annual: 102000,  three_yr: 306000, note: "CTEM + ASPM + CTEM" },
-  { label: "Wiz only",                  monthly: 4167, annual: 50000,   three_yr: 150000, note: "CSPM only = gaps remain" },
+  { label: "Wiz only",                  monthly: 4167, annual: 50000,   three_yr: 150000, note: "CSPM only — gaps remain" },
 ];
 
 const WIN_SCENARIOS = [
   {
     title: "Mid-Market Startup",
-    profile: "50=500 employees, limited security budget, no vendor loyalty",
+    profile: "50–500 employees, limited security budget, no vendor loyalty",
     win: "Docker deploy in 15 min, $99/month, one dashboard, no lock-in",
     probability: 85,
     dealSize: "$1,188/yr",
@@ -185,7 +185,7 @@ const WIN_SCENARIOS = [
   },
 ];
 
-// == TCO Calculator ============================================================
+// ── TCO Calculator ────────────────────────────────────────────────────────────
 
 function TCOCalculator() {
   const [assets, setAssets] = useState(500);
@@ -230,9 +230,9 @@ function TCOCalculator() {
           <div className="text-2xl font-bold text-emerald-300">${aldeci.toLocaleString()}</div>
           <div className="text-xs text-gray-400 mt-1">Self-hosted Pro</div>
         </div>
-        <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4 text-center" role="status" aria-live="polite">
-          <div className="text-xs text-red-400 mb-1" role="status" aria-live="polite">3-Tool Stack Total</div>
-          <div className="text-2xl font-bold text-red-300" role="status" aria-live="polite">${competitor.toLocaleString()}</div>
+        <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4 text-center">
+          <div className="text-xs text-red-400 mb-1">3-Tool Stack Total</div>
+          <div className="text-2xl font-bold text-red-300">${competitor.toLocaleString()}</div>
           <div className="text-xs text-gray-400 mt-1">Wiz + Snyk + Rapid7</div>
         </div>
         <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4 text-center">
@@ -258,7 +258,7 @@ function TCOCalculator() {
   );
 }
 
-// == Cell renderer =============================================================
+// ── Cell renderer ─────────────────────────────────────────────────────────────
 
 function Cell({ vendor, value, isAldeci }: { vendor: Vendor; value: CellValue; isAldeci: boolean }) {
   const base = isAldeci ? "bg-emerald-900/20" : "";
@@ -291,7 +291,7 @@ function Cell({ vendor, value, isAldeci }: { vendor: Vendor; value: CellValue; i
   );
 }
 
-// == Scorecard bar =============================================================
+// ── Scorecard bar ─────────────────────────────────────────────────────────────
 
 const VENDOR_COLORS: Record<Vendor, string> = {
   ALDECI:   "bg-emerald-500",
@@ -316,7 +316,7 @@ function avg(scores: Record<string, number>) {
   return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
 }
 
-// == Main component ============================================================
+// ── Main component ────────────────────────────────────────────────────────────
 
 const CATEGORIES = [...new Set(FEATURE_ROWS.map(r => r.category))];
 
@@ -364,10 +364,10 @@ export default function CompetitiveComparisonPage() {
       {/* Hero price comparison */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "ALDECI Monthly",       value: "$35=99",  sub: "Pro tier / self-hosted",         color: "text-emerald-300", bg: "bg-emerald-900/20 border-emerald-500/30" },
+          { label: "ALDECI Monthly",       value: "$35–99",  sub: "Pro tier / self-hosted",         color: "text-emerald-300", bg: "bg-emerald-900/20 border-emerald-500/30" },
           { label: "Competitor Monthly",   value: "$9,167",  sub: "Wiz + Snyk + Rapid7 combined",   color: "text-red-300",     bg: "bg-red-900/20 border-red-500/20" },
           { label: "3-Year Savings",       value: "$326K+",  sub: "vs. market-standard stack",      color: "text-blue-300",    bg: "bg-blue-900/20 border-blue-500/20" },
-          { label: "Time to Value",        value: "15 min",  sub: "docker up = vs. 4=6 weeks",      color: "text-amber-300",   bg: "bg-amber-900/20 border-amber-500/20" },
+          { label: "Time to Value",        value: "15 min",  sub: "docker up — vs. 4–6 weeks",      color: "text-amber-300",   bg: "bg-amber-900/20 border-amber-500/20" },
         ].map(k => (
           <div key={k.label} className={`rounded-xl p-4 border ${k.bg} text-center`}>
             <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
@@ -380,13 +380,7 @@ export default function CompetitiveComparisonPage() {
       {/* Vendor toggles */}
       <div className="flex flex-wrap gap-2 items-center">
         <span className="text-xs text-gray-400 mr-1">Compare:</span>
-        {VENDORS.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          VENDORS.map(v => (
+        {VENDORS.map(v => (
           <button
             key={v}
             onClick={() => toggleVendor(v)}
@@ -399,19 +393,12 @@ export default function CompetitiveComparisonPage() {
           >
             {v}
           </button>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Category filter tabs */}
       <div className="flex flex-wrap gap-2">
-        {categories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          categories.map(cat => (
+        {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -423,41 +410,27 @@ export default function CompetitiveComparisonPage() {
           >
             {cat}
           </button>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Feature matrix table */}
       <div className="bg-gray-800 rounded-xl overflow-x-auto">
-        <table role="table" className="w-full text-sm min-w-[700px]">
+        <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="border-b border-gray-700">
               <th className="text-left px-4 py-3 text-gray-400 font-medium w-56">Feature</th>
-              {visibleVendors.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                visibleVendors.map(v => (
+              {visibleVendors.map(v => (
                 <th key={v} className={`px-3 py-3 text-center font-semibold text-xs ${v === "ALDECI" ? "text-emerald-400 bg-emerald-900/20" : VENDOR_TEXT[v]}`}>
                   {v}
                   {v === "ALDECI" && (
-                    <div className="text-xs font-normal text-gray-400 mt-0.5">$35=99/mo</div>
+                    <div className="text-xs font-normal text-gray-400 mt-0.5">$35–99/mo</div>
                   )}
                 </th>
-              ))
-            )}
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700/50">
-            {filteredRows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              filteredRows.map((row, i) => (
+            {filteredRows.map((row, i) => (
               <tr key={i} className="hover:bg-gray-700/20 transition-colors">
                 <td className="px-4 py-2.5">
                   <div className="text-gray-200 text-xs font-medium">{row.feature}</div>
@@ -465,7 +438,7 @@ export default function CompetitiveComparisonPage() {
                 </td>
                 {visibleVendors.map(v => (
                   <Cell key={v} vendor={v} value={row.values[v]} isAldeci={v === "ALDECI"} />
-                )))}
+                ))}
               </tr>
             ))}
           </tbody>
@@ -488,7 +461,7 @@ export default function CompetitiveComparisonPage() {
             <h2 className="font-semibold text-white text-sm">3-Year Total Cost of Ownership</h2>
           </div>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-sm">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
                   <th className="text-left px-4 py-2 text-gray-400 font-medium text-xs">Vendor Stack</th>
@@ -498,13 +471,7 @@ export default function CompetitiveComparisonPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
-                {COST_TABLE.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  COST_TABLE.map((row, i) => (
+                {COST_TABLE.map((row, i) => (
                   <tr key={i} className={i === 0 ? "bg-emerald-900/20" : "hover:bg-gray-700/20"}>
                     <td className="px-4 py-3">
                       <div className={`text-xs font-semibold ${i === 0 ? "text-emerald-300" : "text-gray-200"}`}>{row.label}</div>
@@ -520,12 +487,12 @@ export default function CompetitiveComparisonPage() {
                       ${row.three_yr.toLocaleString()}
                     </td>
                   </tr>
-                )))}
+                ))}
               </tbody>
             </table>
           </div>
           <div className="px-4 py-3 bg-gray-700/30 text-xs text-gray-400">
-            At 500 assets = <span className="text-emerald-400 font-semibold">92=98% cost reduction</span> vs. market-standard stack.
+            At 500 assets — <span className="text-emerald-400 font-semibold">92–98% cost reduction</span> vs. market-standard stack.
           </div>
         </div>
 
@@ -540,13 +507,7 @@ export default function CompetitiveComparisonPage() {
           Where ALDECI Wins
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {WIN_SCENARIOS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            WIN_SCENARIOS.map(s => (
+          {WIN_SCENARIOS.map(s => (
             <div key={s.title} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-emerald-500/40 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <div className="font-semibold text-white text-sm">{s.title}</div>
@@ -573,7 +534,7 @@ export default function CompetitiveComparisonPage() {
                 </div>
               </div>
             </div>
-          )))}
+          ))}
         </div>
       </div>
 
@@ -582,20 +543,14 @@ export default function CompetitiveComparisonPage() {
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="font-semibold text-white text-sm flex items-center gap-2">
             <Award className="w-4 h-4 text-indigo-400" />
-            Competitive Advantage Scorecard (0=10)
+            Competitive Advantage Scorecard (0–10)
           </h2>
           <div className="text-xs text-gray-400">Average scores across all dimensions</div>
         </div>
 
         {/* Average scores row */}
         <div className="grid grid-cols-6 divide-x divide-gray-700 border-b border-gray-700">
-          {VENDORS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            VENDORS.map(v => (
+          {VENDORS.map(v => (
             <div key={v} className={`p-3 text-center ${v === "ALDECI" ? "bg-emerald-900/20" : ""}`}>
               <div className={`text-xs font-semibold mb-1 ${VENDOR_TEXT[v]}`}>{v}</div>
               <div className={`text-2xl font-bold ${v === "ALDECI" ? "text-emerald-300" : "text-gray-300"}`}>
@@ -603,18 +558,12 @@ export default function CompetitiveComparisonPage() {
               </div>
               <div className="text-xs text-gray-500 mt-0.5">avg</div>
             </div>
-          )))}
+          ))}
         </div>
 
         {/* Per-dimension bars */}
         <div className="p-4 space-y-4">
-          {SCORECARD_DIMS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            SCORECARD_DIMS.map(dim => (
+          {SCORECARD_DIMS.map(dim => (
             <div key={dim}>
               <div className="text-xs text-gray-400 mb-2">{dim}</div>
               <div className="space-y-1.5">
@@ -632,15 +581,14 @@ export default function CompetitiveComparisonPage() {
                       <span className="text-xs text-gray-400 w-4 text-right">{score}</span>
                     </div>
                   );
-                })
-          )}
+                })}
               </div>
             </div>
           ))}
         </div>
 
         <div className="px-4 py-3 bg-gray-700/30 text-xs text-gray-400 border-t border-gray-700">
-          ALDECI average: <span className="text-emerald-400 font-semibold">6.8</span> = highest overall.
+          ALDECI average: <span className="text-emerald-400 font-semibold">6.8</span> — highest overall.
           Incumbents lead on brand/support/analyst coverage; ALDECI leads on cost, architecture, and AI.
         </div>
       </div>
@@ -660,10 +608,10 @@ export default function CompetitiveComparisonPage() {
               <ul className="space-y-1">
                 {q.items.map(item => (
                   <li key={item} className="text-gray-300 flex items-start gap-1">
-                    <span className="text-emerald-500 flex-shrink-0 mt-0.5">=</span>
+                    <span className="text-emerald-500 flex-shrink-0 mt-0.5">›</span>
                     {item}
                   </li>
-                )))}
+                ))}
               </ul>
             </div>
           ))}

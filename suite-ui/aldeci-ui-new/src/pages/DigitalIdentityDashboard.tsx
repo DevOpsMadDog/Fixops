@@ -106,14 +106,6 @@ export default function DigitalIdentityDashboard() {
   const stats    = liveData.stats    ?? MOCK_STATS;
   const profiles = liveData.profiles ?? MOCK_PROFILES;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -165,16 +157,10 @@ export default function DigitalIdentityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  profiles.map((p: any, i: number) => (
+                {profiles.map((p: any, i: number) => (
                   <TableRow key={p.user_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {(p.user_id ?? "").slice(0, 14)}=
+                      {(p.user_id ?? "").slice(0, 14)}…
                     </TableCell>
                     <TableCell className="py-2"><IALBadge level={p.identity_level ?? "IAL1"} /></TableCell>
                     <TableCell className="py-2"><VerificationStatusBadge status={p.verification_status ?? "unverified"} /></TableCell>
@@ -184,10 +170,9 @@ export default function DigitalIdentityDashboard() {
                         {p.assurance_level}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "="}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{p.verified_at || "—"}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

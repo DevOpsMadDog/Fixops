@@ -37,11 +37,11 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_FINDINGS = [
   { id: "CLD-001", resource: "s3://prod-backups",           provider: "aws",   severity: "critical", finding: "Public read ACL enabled on production bucket",     status: "open" },
-  { id: "CLD-002", resource: "iam::role/lambda-exec",       provider: "aws",   severity: "high",     finding: "Overprivileged Lambda role = AdministratorAccess", status: "open" },
+  { id: "CLD-002", resource: "iam::role/lambda-exec",       provider: "aws",   severity: "high",     finding: "Overprivileged Lambda role — AdministratorAccess", status: "open" },
   { id: "CLD-003", resource: "storage/customer-data",       provider: "gcp",   severity: "critical", finding: "Bucket publicly accessible without auth",          status: "investigating" },
   { id: "CLD-004", resource: "vm/prod-web-01",              provider: "azure", severity: "medium",   finding: "SSH port 22 open to 0.0.0.0/0",                   status: "open" },
   { id: "CLD-005", resource: "rds/prod-mysql-primary",      provider: "aws",   severity: "high",     finding: "Database instance publicly accessible",            status: "open" },
@@ -52,7 +52,7 @@ const MOCK_FINDINGS = [
 
 const MOCK_STATS = { cloud_resources: 3842, misconfigs_found: 47, risk_score: 68, events_hr: 12400 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ProviderBadge({ provider }: { provider: string }) {
   const map: Record<string, string> = {
@@ -83,12 +83,11 @@ function FindingStatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>{status}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CloudSecurityAnalyticsDashboard() {
   const [refreshing, setRefreshing]   = useState(false);
   const [liveFindings, setLiveFindings] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]       = useState<any | null>(null);
 
   useEffect(() => {
@@ -98,8 +97,7 @@ export default function CloudSecurityAnalyticsDashboard() {
     ]).then(([eventsRes, anomaliesRes]) => {
       if (eventsRes.status === "fulfilled") setLiveFindings(eventsRes.value?.events ?? eventsRes.value ?? null);
       if (anomaliesRes.status === "fulfilled") setLiveStats(anomaliesRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -108,14 +106,6 @@ export default function CloudSecurityAnalyticsDashboard() {
   const stats    = liveStats    ?? MOCK_STATS;
 
   const openCount = findings.filter((f: any) => (f.status ?? "open") === "open").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -170,17 +160,11 @@ export default function CloudSecurityAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  findings.map((f: any, i: number) => (
+                {findings.map((f: any, i: number) => (
                   <TableRow key={f.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{f.id}</TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[180px] truncate">
-                      {f.resource ?? f.resource_id ?? "="}
+                      {f.resource ?? f.resource_id ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <ProviderBadge provider={f.provider ?? f.cloud_provider ?? "aws"} />
@@ -189,14 +173,13 @@ export default function CloudSecurityAnalyticsDashboard() {
                       <SeverityBadge severity={f.severity ?? "medium"} />
                     </TableCell>
                     <TableCell className="py-2 text-xs text-muted-foreground max-w-[240px] truncate">
-                      {f.finding ?? f.description ?? f.title ?? "="}
+                      {f.finding ?? f.description ?? f.title ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <FindingStatusBadge status={f.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

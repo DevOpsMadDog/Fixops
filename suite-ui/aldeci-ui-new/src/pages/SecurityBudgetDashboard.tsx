@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   fiscal_year: 2026,
@@ -69,7 +69,7 @@ const MOCK_TRANSACTIONS = [
   { vendor: "HackerOne",        description: "Bug bounty platform fee",        amount: 25000,  date: "2026-03-10", status: "rejected"  },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function fmtMoney(n: number): string {
   if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
@@ -97,13 +97,16 @@ function TransactionStatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityBudgetDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; allocations: any[] | null; transactions: any[] | null; }>({ stats: null, allocations: null, transactions: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    allocations: any[] | null;
+    transactions: any[] | null;
+  }>({ stats: null, allocations: null, transactions: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -134,14 +137,6 @@ export default function SecurityBudgetDashboard() {
 
   const utilPct = stats.utilization_pct ?? (stats.total_allocated > 0 ? (stats.total_spent / stats.total_allocated) * 100 : 0);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -152,7 +147,7 @@ export default function SecurityBudgetDashboard() {
       {/* Header */}
       <PageHeader
         title="Security Budget Tracker"
-        description={`Security spend, allocations, and ROI = FY${stats.fiscal_year ?? 2026}`}
+        description={`Security spend, allocations, and ROI — FY${stats.fiscal_year ?? 2026}`}
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -173,7 +168,7 @@ export default function SecurityBudgetDashboard() {
         <CardContent className="pt-4 pb-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-muted-foreground">Budget Utilization = FY{stats.fiscal_year ?? 2026}</span>
+              <span className="font-medium text-muted-foreground">Budget Utilization — FY{stats.fiscal_year ?? 2026}</span>
               <span className={cn("font-bold tabular-nums",
                 utilPct >= 90 ? "text-red-400" : utilPct >= 75 ? "text-orange-400" : "text-blue-400"
               )}>
@@ -219,13 +214,7 @@ export default function SecurityBudgetDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allocations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  allocations.map((a: any, i: number) => {
+                {allocations.map((a: any, i: number) => {
                   const pct = a.allocated > 0 ? Math.round((a.spent / a.allocated) * 100) : 0;
                   return (
                     <TableRow key={a.category ?? i} className="hover:bg-muted/30">
@@ -240,8 +229,7 @@ export default function SecurityBudgetDashboard() {
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
                               transition={{ duration: 0.6, delay: i * 0.04 }}
-                              ))
-                            )}
+                              className={cn("h-full rounded-full", utilizationColor(pct))}
                             />
                           </div>
                           <span className="text-[11px] tabular-nums text-muted-foreground w-8 text-right">{pct}%</span>
@@ -249,8 +237,7 @@ export default function SecurityBudgetDashboard() {
                       </TableCell>
                     </TableRow>
                   );
-                })
-                )}
+                })}
               </TableBody>
             </Table>
           </div>
@@ -284,13 +271,7 @@ export default function SecurityBudgetDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  transactions.map((t: any, i: number) => (
+                {transactions.map((t: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{t.vendor}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[260px] truncate">{t.description}</TableCell>
@@ -300,7 +281,7 @@ export default function SecurityBudgetDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{t.date}</TableCell>
                     <TableCell className="py-2"><TransactionStatusBadge status={t.status ?? "pending"} /></TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock Data ==================================================
+// ── Mock Data ──────────────────────────────────────────────────
 
 const MOCK_ACCOUNTS = [
   { id: "pa-001", username: "svc-db-prod", account_type: "service", system_name: "prod-db-01", department: "Engineering", risk_level: "critical", mfa_enabled: false, last_used: "2026-04-16T09:10:00Z", password_last_rotated: "2025-10-01T00:00:00Z", status: "active", certified: true },
@@ -48,7 +48,7 @@ const MOCK_SESSIONS = [
   { id: "sess-005", username: "dba-oracle", session_type: "database", target_system: "Oracle DB", started_at: "2026-04-16T06:40:00Z", commands_executed: 312, anomaly_score: 88 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const RISK_COLORS: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/30",
@@ -95,12 +95,12 @@ function AnomalyBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -113,19 +113,18 @@ function AnomalyBar({ score }: { score: number }) {
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function PrivilegedIdentityDashboard() {
   const [certifyTarget, setCertifyTarget] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [certifiedSet, setCertifiedSet] = useState<Set<string>>(
-    new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id));
+    new Set(MOCK_ACCOUNTS.filter(a => a.certified).map(a => a.id))
+  );
   const [rotatedSet, setRotatedSet] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/privileged-identity/accounts?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const highRisk = MOCK_ACCOUNTS.filter(a => ["critical","high"].includes(a.risk_level)).length;
@@ -135,14 +134,6 @@ export default function PrivilegedIdentityDashboard() {
     return needsRotation && !rotatedSet.has(a.id);
   }).length;
   const uncertified = MOCK_ACCOUNTS.filter(a => !certifiedSet.has(a.id)).length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -179,7 +170,7 @@ export default function PrivilegedIdentityDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-xs">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-zinc-700">
                   {["Username", "Type", "System", "Department", "Risk", "MFA", "Last Used", "Pwd Rotated", "Certified", "Status", ""].map(h => (
@@ -188,13 +179,7 @@ export default function PrivilegedIdentityDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_ACCOUNTS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_ACCOUNTS.map(a => {
+                {MOCK_ACCOUNTS.map(a => {
                   const { days, needsRotation: needs } = rotationAge(a.password_last_rotated);
                   const isRotated = rotatedSet.has(a.id);
                   const isCertified = certifiedSet.has(a.id);
@@ -212,7 +197,7 @@ export default function PrivilegedIdentityDashboard() {
                       <td className="py-2 px-2 whitespace-nowrap">
                         <span className={cn("text-[10px]", (needs && !isRotated) ? "text-orange-400 font-semibold" : "text-zinc-500")}>
                           {isRotated ? "Just now" : `${days}d ago`}
-                          {needs && !isRotated && " ="}
+                          {needs && !isRotated && " ⚠"}
                         </span>
                       </td>
                       <td className="py-2 px-2 text-center">
@@ -229,8 +214,7 @@ export default function PrivilegedIdentityDashboard() {
                       </td>
                     </tr>
                   );
-                })
-                )}
+                })}
               </tbody>
             </table>
           </div>
@@ -242,13 +226,7 @@ export default function PrivilegedIdentityDashboard() {
         <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Active Sessions</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {MOCK_SESSIONS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_SESSIONS.map(s => (
+            {MOCK_SESSIONS.map(s => (
               <motion.div key={s.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                 className="bg-zinc-900 rounded-lg p-3 border border-zinc-700 space-y-2">
                 <div className="flex items-center justify-between">
@@ -265,7 +243,7 @@ export default function PrivilegedIdentityDashboard() {
                   <AnomalyBar score={s.anomaly_score} />
                 </div>
               </motion.div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -59,7 +59,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   return res.json();
 }
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type Frequency = "daily" | "weekly" | "monthly" | "on_demand";
 type ReportType = "executive_summary" | "vulnerability_digest" | "compliance_status" | "threat_intel" | "incident_summary" | "kpi_report";
@@ -94,7 +94,7 @@ interface ReportRun {
   error_message?: string;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SCHEDULES: Schedule[] = [
   {
@@ -118,12 +118,12 @@ const MOCK_SCHEDULES: Schedule[] = [
     format: "html", enabled: true, last_run_at: "2026-04-15T06:00:00Z", next_run_at: "2026-04-22T06:00:00Z", run_count: 14, created_at: "2026-01-08T00:00:00Z",
   },
   {
-    id: "SCH-005", name: "KPI Report = Board Pack", report_type: "kpi_report", frequency: "monthly",
+    id: "SCH-005", name: "KPI Report — Board Pack", report_type: "kpi_report", frequency: "monthly",
     hour_utc: 10, recipients: ["board@acme.com", "ceo@acme.com", "ciso@acme.com"], slack_webhook_url: "",
     format: "pdf", enabled: false, last_run_at: "2026-04-01T10:00:00Z", next_run_at: null, run_count: 3, created_at: "2026-02-01T00:00:00Z",
   },
   {
-    id: "SCH-006", name: "Incident Summary = On Demand", report_type: "incident_summary", frequency: "on_demand",
+    id: "SCH-006", name: "Incident Summary — On Demand", report_type: "incident_summary", frequency: "on_demand",
     hour_utc: 0, recipients: ["ir-team@acme.com"], slack_webhook_url: "https://hooks.slack.com/services/T0001/B0004/aaa",
     format: "json", enabled: true, last_run_at: "2026-04-10T14:22:00Z", next_run_at: null, run_count: 8, created_at: "2026-03-01T00:00:00Z",
   },
@@ -134,7 +134,7 @@ const MOCK_RUNS: ReportRun[] = [
   { id: "RUN-002", schedule_id: "SCH-004", schedule_name: "Weekly Threat Intel Brief",    report_type: "threat_intel",         status: "delivered",  started_at: "2026-04-15T06:00:00Z", completed_at: "2026-04-15T06:01:15Z", recipients_count: 1, delivery_channel: "slack" },
   { id: "RUN-003", schedule_id: "SCH-001", schedule_name: "Weekly Executive Summary",     report_type: "executive_summary",    status: "delivered",  started_at: "2026-04-14T08:00:00Z", completed_at: "2026-04-14T08:02:30Z", recipients_count: 2, delivery_channel: "email+slack" },
   { id: "RUN-004", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "delivered",  started_at: "2026-04-15T07:00:00Z", completed_at: "2026-04-15T07:00:38Z", recipients_count: 1, delivery_channel: "email" },
-  { id: "RUN-005", schedule_id: "SCH-006", schedule_name: "Incident Summary = On Demand", report_type: "incident_summary",    status: "delivered",  started_at: "2026-04-10T14:22:00Z", completed_at: "2026-04-10T14:22:55Z", recipients_count: 1, delivery_channel: "slack" },
+  { id: "RUN-005", schedule_id: "SCH-006", schedule_name: "Incident Summary — On Demand", report_type: "incident_summary",    status: "delivered",  started_at: "2026-04-10T14:22:00Z", completed_at: "2026-04-10T14:22:55Z", recipients_count: 1, delivery_channel: "slack" },
   { id: "RUN-006", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "failed",     started_at: "2026-04-13T07:00:00Z", completed_at: "2026-04-13T07:00:05Z", recipients_count: 0, delivery_channel: "email", error_message: "SMTP connection timeout" },
   { id: "RUN-007", schedule_id: "SCH-003", schedule_name: "Monthly Compliance Status",   report_type: "compliance_status",    status: "delivered",  started_at: "2026-04-01T09:00:00Z", completed_at: "2026-04-01T09:03:45Z", recipients_count: 3, delivery_channel: "email+slack" },
   { id: "RUN-008", schedule_id: "SCH-002", schedule_name: "Daily Vulnerability Digest",  report_type: "vulnerability_digest", status: "completed",  started_at: "2026-04-12T07:00:00Z", completed_at: "2026-04-12T07:00:40Z", recipients_count: 1, delivery_channel: "email" },
@@ -158,7 +158,7 @@ const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   kpi_report: "KPI Report",
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function FrequencyBadge({ f }: { f: Frequency }) {
   const cls =
@@ -185,7 +185,7 @@ function RunStatusBadge({ s }: { s: RunStatus }) {
 }
 
 function formatTime(iso: string | null) {
-  if (!iso) return "=";
+  if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleString("en-GB", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
@@ -373,7 +373,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function ScheduledReportsDashboard() {
   const [schedules, setSchedules] = useState<Schedule[]>(MOCK_SCHEDULES);
@@ -399,8 +399,9 @@ export default function ScheduledReportsDashboard() {
       if (Array.isArray(runsData)) setRuns(runsData);
       if (statsData && typeof statsData === "object") setStats({ ...MOCK_STATS, ...statsData });
     } catch {
-      // backend offline = mock data shown
+      // backend offline — mock data shown
     } finally {
+      setLoading(false);
     }
   }
 
@@ -408,7 +409,7 @@ export default function ScheduledReportsDashboard() {
     const action = sched.enabled ? "pause" : "resume";
     try {
       await apiFetch(`/api/v1/scheduled-reports/schedules/${sched.id}/${action}?org_id=${ORG_ID}`, { method: "POST" });
-    } catch { /* noop = update UI optimistically */ }
+    } catch { /* noop — update UI optimistically */ }
     setSchedules(prev => prev.map(s => s.id === sched.id ? { ...s, enabled: !s.enabled } : s));
   }
 
@@ -482,7 +483,7 @@ export default function ScheduledReportsDashboard() {
 
       <PageHeader
         title="Scheduled Reports"
-        description="Manage automated report delivery via email and Slack = executive summaries, vuln digests, compliance status"
+        description="Manage automated report delivery via email and Slack — executive summaries, vuln digests, compliance status"
         icon={<Calendar className="h-6 w-6 text-blue-400" />}
         actions={
           <div className="flex gap-2">
@@ -538,7 +539,7 @@ export default function ScheduledReportsDashboard() {
             Report Schedules
           </CardTitle>
           <CardDescription className="text-xs">
-            {schedules.length} schedules = {activeCount} active, {schedules.length - activeCount} paused
+            {schedules.length} schedules — {activeCount} active, {schedules.length - activeCount} paused
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -556,13 +557,7 @@ export default function ScheduledReportsDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {schedules.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                schedules.map((sched, i) => (
+              {schedules.map((sched, i) => (
                 <motion.tr
                   key={sched.id}
                   initial={{ opacity: 0 }}
@@ -648,8 +643,7 @@ export default function ScheduledReportsDashboard() {
                     </div>
                   </TableCell>
                 </motion.tr>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -664,7 +658,7 @@ export default function ScheduledReportsDashboard() {
               <Activity className="h-4 w-4 text-green-400" />
               Delivery History
             </CardTitle>
-            <CardDescription className="text-xs">Recent report runs = most recent first</CardDescription>
+            <CardDescription className="text-xs">Recent report runs — most recent first</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -679,13 +673,7 @@ export default function ScheduledReportsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {runs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  runs.map((run, i) => (
+                {runs.map((run, i) => (
                   <motion.tr
                     key={run.id}
                     initial={{ opacity: 0 }}
@@ -717,8 +705,7 @@ export default function ScheduledReportsDashboard() {
                       <span className="text-[11px] text-muted-foreground">{run.recipients_count}</span>
                     </TableCell>
                   </motion.tr>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

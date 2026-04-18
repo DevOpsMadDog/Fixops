@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Package, AlertTriangle, ShieldAlert, RefreshCw, Search, Bug, FileCheck, BarChart3 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MALICIOUS_PKGS = [
   { name: "colours",           eco: "npm",   malware: "typosquat",         confidence: 98, reported: "2026-04-15", source: "Socket.dev" },
@@ -84,7 +84,7 @@ const PKG_CHECK_RESULTS = [
   { name: "lodash.utils",eco: "npm",   malicious: true,  vulns: 0, risk: "Critical" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function EcoBadge({ eco }: { eco: string }) {
   const map: Record<string, string> = {
@@ -121,7 +121,7 @@ function RiskBadge({ r }: { r: string }) {
   return <SevBadge sev={r} />;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SupplyChainIntelDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -131,7 +131,6 @@ export default function SupplyChainIntelDashboard() {
   const [checkLoading, setCheckLoading] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -150,8 +149,7 @@ export default function SupplyChainIntelDashboard() {
       if (stats || packages || sbom || malicious || vulns) {
         setLiveData({ stats, packages, sbom, malicious, vulns });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleSearch = () => {
@@ -165,16 +163,9 @@ export default function SupplyChainIntelDashboard() {
         apiFetch(`/api/v1/supply-chain-intel/check?org_id=${ORG_ID}&name=${encodeURIComponent(query.trim())}&ecosystem=pypi`)
           .then((data) => setCheckResult(data))
           .catch(() => setCheckResult(null))
+      )
       .finally(() => setCheckLoading(false));
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -216,7 +207,7 @@ export default function SupplyChainIntelDashboard() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {(liveData?.malicious ?? MALICIOUS_PKGS).map((pkg: any, i: number) => (
-            <div key={i} className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2.5 space-y-1.5" role="status" aria-live="polite">
+            <div key={i} className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2.5 space-y-1.5">
               <div className="flex items-center gap-2">
                 <code className="text-xs font-mono text-red-300 truncate flex-1">{pkg.name}</code>
                 <EcoBadge eco={pkg.eco ?? pkg.ecosystem ?? "npm"} />
@@ -226,7 +217,7 @@ export default function SupplyChainIntelDashboard() {
                 <span>Confidence: <span className="text-red-400 font-bold">{Math.round((pkg.confidence ?? 0.9) * (pkg.confidence <= 1 ? 100 : 1))}%</span></span>
               </div>
               <div className="text-[10px] text-muted-foreground truncate">
-                {pkg.source ?? "="} = {pkg.reported ?? pkg.reported_at ?? "="}
+                {pkg.source ?? "—"} · {pkg.reported ?? pkg.reported_at ?? "—"}
               </div>
             </div>
           ))}
@@ -262,10 +253,10 @@ export default function SupplyChainIntelDashboard() {
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{p.name}</TableCell>
                     <TableCell className="py-2.5"><EcoBadge eco={p.eco ?? p.ecosystem ?? "npm"} /></TableCell>
-                    <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{p.ver ?? p.version ?? "="}</TableCell>
+                    <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{p.ver ?? p.version ?? "—"}</TableCell>
                     <TableCell className="py-2.5"><SevBadge sev={p.sev ?? p.severity ?? "Medium"} /></TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 font-bold">{p.vulns ?? 1}</TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground">{p.license ?? "="}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground">{p.license ?? "—"}</TableCell>
                     <TableCell className="py-2.5"><RiskBadge r={p.risk ?? p.severity ?? "Medium"} /></TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">
@@ -298,8 +289,8 @@ export default function SupplyChainIntelDashboard() {
               const critCount = snap.critical ?? snap.critical_count ?? 0;
               const licIssues = snap.licenses ?? snap.license_issues ?? 0;
               const depCount  = snap.deps ?? snap.total_packages ?? snap.packages?.length ?? 0;
-              const takenAt   = snap.taken ?? snap.created_at ?? "=";
-              const projName  = snap.project ?? snap.project_name ?? "=";
+              const takenAt   = snap.taken ?? snap.created_at ?? "—";
+              const projName  = snap.project ?? snap.project_name ?? "—";
               return (
               <div key={i} className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between">
@@ -349,7 +340,7 @@ export default function SupplyChainIntelDashboard() {
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Search package name="
+                placeholder="Search package name…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -360,10 +351,10 @@ export default function SupplyChainIntelDashboard() {
               </Button>
             </div>
 
-            {/* Check results = live API result or demo mock */}
+            {/* Check results — live API result or demo mock */}
             <div className="space-y-2">
               {searched && checkLoading && (
-                <p className="text-[10px] text-muted-foreground animate-pulse">Checking package "{query}"=</p>
+                <p className="text-[10px] text-muted-foreground animate-pulse">Checking package "{query}"…</p>
               )}
               {searched && !checkLoading && checkResult && (
                 <>
@@ -390,14 +381,8 @@ export default function SupplyChainIntelDashboard() {
               )}
               {(!searched || (!checkLoading && !checkResult)) && (
                 <>
-                  <p className="text-[10px] text-muted-foreground">{searched ? `No result for "${query}" = showing demo` : 'Showing demo results for "lodash"'}</p>
-                  {PKG_CHECK_RESULTS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    PKG_CHECK_RESULTS.map((r, i) => (
+                  <p className="text-[10px] text-muted-foreground">{searched ? `No result for "${query}" — showing demo` : 'Showing demo results for "lodash"'}</p>
+                  {PKG_CHECK_RESULTS.map((r, i) => (
                     <div key={i} className={cn(
                       "flex items-center justify-between rounded-lg border px-3 py-2",
                       r.malicious ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/10"
@@ -416,7 +401,7 @@ export default function SupplyChainIntelDashboard() {
                         <RiskBadge r={r.risk} />
                       </div>
                     </div>
-                  )))}
+                  ))}
                 </>
               )}
             </div>

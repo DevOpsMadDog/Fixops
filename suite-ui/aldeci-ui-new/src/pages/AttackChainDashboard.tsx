@@ -124,14 +124,6 @@ export default function AttackChainDashboard() {
   const stats  = liveData.stats  ?? MOCK_STATS;
   const chains = liveData.chains ?? MOCK_CHAINS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -167,13 +159,7 @@ export default function AttackChainDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-            {KILL_CHAIN_PHASES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              KILL_CHAIN_PHASES.map((p) => (
+            {KILL_CHAIN_PHASES.map((p) => (
               <div
                 key={p.phase}
                 className={cn("rounded-lg border p-3 text-center", PHASE_COLORS[p.phase] ?? "border-border")}
@@ -181,8 +167,7 @@ export default function AttackChainDashboard() {
                 <div className="text-xl font-bold">{p.count}</div>
                 <div className="text-[10px] mt-1 leading-tight opacity-80">{p.label}</div>
               </div>
-            ))
-          )}
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -216,13 +201,7 @@ export default function AttackChainDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {chains.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  chains.map((c: any, i: number) => (
+                {chains.map((c: any, i: number) => (
                   <TableRow key={c.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-medium">{c.name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{c.threat_actor}</TableCell>
@@ -232,8 +211,7 @@ export default function AttackChainDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-mono">{c.steps}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtDate(c.created_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

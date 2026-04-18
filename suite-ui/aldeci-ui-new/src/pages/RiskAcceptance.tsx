@@ -1,12 +1,12 @@
 /**
- * Risk Acceptance Workflow = Formal risk acceptance management page
+ * Risk Acceptance Workflow — Formal risk acceptance management page
  *
  * Design:
  * - Header: "Risk Acceptance Workflow" with subtitle
  * - Top stats: Pending Approvals, Accepted Risks, Expired Acceptances, Due This Week
  * - "Pending Approvals" table with actions (Approve/Reject)
  * - "Active Risk Acceptances" table with colored days_remaining
- * - "Approval Request" button = modal form
+ * - "Approval Request" button → modal form
  * - "Expired Risks" collapsed section
  * - Filter tabs: All / Pending / Active / Expired
  *
@@ -43,9 +43,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type RiskLevel = "critical" | "high" | "medium" | "low";
 type FilterTab = "all" | "pending" | "active" | "expired";
@@ -80,9 +80,9 @@ interface RiskAcceptanceData {
   expired_acceptances: RiskAcceptance[];
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_DATA: RiskAcceptanceData = {
   pending_count: 4,
@@ -205,9 +205,9 @@ const MOCK_DATA: RiskAcceptanceData = {
   ],
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const RISK_BADGE: Record<RiskLevel, "critical" | "high" | "medium" | "low"> = {
   critical: "critical",
@@ -222,9 +222,9 @@ const getDaysRemainingColor = (days: number): string => {
   return "text-green-400";
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Approval Request Modal
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 interface ApprovalModalProps {
   isOpen: boolean;
@@ -239,24 +239,10 @@ function ApprovalRequestModal({ isOpen, onClose }: ApprovalModalProps) {
     compensating_controls: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await fetch(`${API_BASE}/api/v1/risk-acceptance/request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          finding_id: formData.finding_id,
-          justification: formData.business_justification,
-          business_reason: formData.business_justification,
-          compensating_controls: formData.compensating_controls,
-          requested_by: "analyst@aldeci.local",
-          expires_at: formData.requested_expiry || new Date(Date.now() + 90 * 86400000).toISOString(),
-        }),
-      });
-    } catch {
-      // API unavailable - form closes gracefully
-    }
+    // TODO: POST to /api/v1/risk-acceptance/request
+    console.log("Submitting approval request:", formData);
     onClose();
   };
 
@@ -378,9 +364,9 @@ function ApprovalRequestModal({ isOpen, onClose }: ApprovalModalProps) {
   );
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Page Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 export default function RiskAcceptancePage() {
   const queryClient = useQueryClient();
@@ -397,6 +383,7 @@ export default function RiskAcceptancePage() {
         if (!response.ok) throw new Error("Failed to fetch risk acceptance data");
         return response.json();
       } catch {
+        console.warn("Risk acceptance API unavailable, using mock data");
         return MOCK_DATA;
       }
     },

@@ -45,7 +45,7 @@ export default function ThreatIndicatorDashboard() {
     fetch(`${API_BASE}/indicators`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setIndicators(d); })
-      .catch(() => { setError('Failed to load data'); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -57,12 +57,12 @@ export default function ThreatIndicatorDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -74,7 +74,7 @@ export default function ThreatIndicatorDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">IOC lifecycle, sighting tracking, and confidence scoring</p>
         </div>
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm" aria-label="Refresh data">
+        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -109,7 +109,7 @@ export default function ThreatIndicatorDashboard() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Type</th>
@@ -121,13 +121,7 @@ export default function ThreatIndicatorDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filtered.map(ioc => (
+              {filtered.map(ioc => (
                 <tr key={ioc.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-3 pr-4">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${typeColor[ioc.indicator_type] || "bg-gray-700 text-gray-200"}`}>
@@ -151,8 +145,7 @@ export default function ThreatIndicatorDashboard() {
                   </td>
                   <td className="py-3 text-gray-400 text-xs">{ioc.created_at}</td>
                 </tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </div>

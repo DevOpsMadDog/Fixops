@@ -397,7 +397,7 @@ function EvidenceDrawer({ control, onClose }: { control: Control | null; onClose
               <div className="space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Attached Evidence</p>
                 {control.evidenceCount === 0 ? (
-                  <div className="rounded-lg border border-dashed border-red-500/30 bg-red-500/5 p-4 text-center" role="status" aria-live="polite">
+                  <div className="rounded-lg border border-dashed border-red-500/30 bg-red-500/5 p-4 text-center">
                     <AlertCircle className="h-5 w-5 text-red-400 mx-auto mb-2" />
                     <p className="text-sm text-red-400 font-medium">No evidence collected</p>
                     <p className="text-xs text-muted-foreground mt-1">This control is failing due to missing evidence.</p>
@@ -418,8 +418,8 @@ function EvidenceDrawer({ control, onClose }: { control: Control | null; onClose
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
                   ))
-                  )}
-                </div>
+                )}
+              </div>
 
               <Separator />
 
@@ -922,7 +922,7 @@ export default function ComplianceDashboard() {
                       <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </motion.div>
-                )))}
+                ))}
               </div>
             )}
 

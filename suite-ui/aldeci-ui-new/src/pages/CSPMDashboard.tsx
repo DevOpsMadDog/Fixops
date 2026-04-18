@@ -1,12 +1,12 @@
 /**
- * CSPM Dashboard = Cloud Security Posture Management
+ * CSPM Dashboard — Cloud Security Posture Management
  *
  * Continuous misconfiguration detection across AWS, Azure, GCP:
- *   1. KPI Row = Posture Score, Critical Misconfigs, Resources Scanned, Compliant %
- *   2. Provider Cards = AWS / Azure / GCP score + last scan + critical count
- *   3. Findings Table = 10 rows with severity, resource, provider, rule, category, Remediate
- *   4. CIS Benchmark Card = Pass/Fail/Manual for CIS AWS 1.5
- *   5. Remediation Priority = top 5 fixes with impact score
+ *   1. KPI Row — Posture Score, Critical Misconfigs, Resources Scanned, Compliant %
+ *   2. Provider Cards — AWS / Azure / GCP score + last scan + critical count
+ *   3. Findings Table — 10 rows with severity, resource, provider, rule, category, Remediate
+ *   4. CIS Benchmark Card — Pass/Fail/Manual for CIS AWS 1.5
+ *   5. Remediation Priority — top 5 fixes with impact score
  *
  * API: GET /api/v1/cspm/findings, GET /api/v1/cspm/score
  * Fallback: mock data when API unavailable
@@ -40,9 +40,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 type Provider = "AWS" | "Azure" | "GCP";
@@ -89,9 +89,9 @@ interface CSPMScore {
   compliant_pct: number;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_SCORE: CSPMScore = {
   posture_score: 74,
@@ -128,9 +128,9 @@ const MOCK_REMEDIATION: RemediationItem[] = [
   { id: "r5", title: "Disable Azure Blob public access", provider: "Azure", impact: 78, affected: 3, category: "Storage" },
 ];
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 function severityColor(sev: Severity): string {
   const map: Record<Severity, string> = {
@@ -157,9 +157,9 @@ function scoreGrade(score: number): { label: string; color: string } {
   return { label: "Poor", color: "text-red-400" };
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Sub-components
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 function ScoreBar({ score }: { score: number }): JSX.Element {
   const color =
@@ -174,20 +174,19 @@ function ScoreBar({ score }: { score: number }): JSX.Element {
   );
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 export default function CSPMDashboard() {
   const [remediating, setRemediating] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
 
   const { data: scoreData, isLoading: scoreLoading } = useQuery<CSPMScore>({
     queryKey: ["cspm-posture", ORG_ID],
     queryFn: async () => {
       try {
         const data = await apiFetch(`/api/v1/cspm/posture?org_id=${ORG_ID}`);
-        // Map OrgPosture = CSPMScore shape
+        // Map OrgPosture → CSPMScore shape
         return {
           posture_score: data.overall_score ?? data.posture_score ?? MOCK_SCORE.posture_score,
           critical_misconfigs: data.critical_count ?? data.critical_misconfigs ?? MOCK_SCORE.critical_misconfigs,
@@ -263,14 +262,6 @@ export default function CSPMDashboard() {
   const cisBenchmark: CISBenchmark = MOCK_CIS;
   const cisTotal = cisBenchmark.pass + cisBenchmark.fail + cisBenchmark.manual;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -279,7 +270,7 @@ export default function CSPMDashboard() {
         subtitle="Continuous misconfiguration detection across AWS, Azure, GCP"
       />
 
-      {/* == KPI Row == */}
+      {/* ── KPI Row ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -316,20 +307,14 @@ export default function CSPMDashboard() {
         />
       </motion.div>
 
-      {/* == Provider Cards == */}
+      {/* ── Provider Cards ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="grid grid-cols-3 gap-4"
       >
-        {providers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          providers.map((p) => {
+        {providers.map((p) => {
           const grade = scoreGrade(p.score);
           return (
             <Card
@@ -378,11 +363,10 @@ export default function CSPMDashboard() {
               </CardContent>
             </Card>
           );
-        })
-        )}
+        })}
       </motion.div>
 
-      {/* == Findings Table == */}
+      {/* ── Findings Table ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -414,13 +398,7 @@ export default function CSPMDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {findings.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    findings.map((f) => (
+                  {findings.map((f) => (
                     <TableRow
                       key={f.id}
                       className="border-slate-700/50 hover:bg-slate-800/30 transition-colors"
@@ -428,7 +406,7 @@ export default function CSPMDashboard() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          )))}
+                          className={cn("border font-mono text-xs", severityColor(f.severity))}
                         >
                           {f.severity}
                         </Badge>
@@ -439,7 +417,7 @@ export default function CSPMDashboard() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          )))}
+                          className={cn("border text-xs", providerColor(f.provider))}
                         >
                           {f.provider}
                         </Badge>
@@ -469,7 +447,7 @@ export default function CSPMDashboard() {
                         )}
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -477,7 +455,7 @@ export default function CSPMDashboard() {
         </Card>
       </motion.div>
 
-      {/* == CIS Benchmark + Remediation Priority == */}
+      {/* ── CIS Benchmark + Remediation Priority ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -499,7 +477,7 @@ export default function CSPMDashboard() {
                 <p className="text-2xl font-bold text-emerald-400">{cisBenchmark.pass}</p>
                 <p className="text-xs text-gray-400 mt-1">Pass</p>
               </div>
-              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center" role="status" aria-live="polite">
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">{cisBenchmark.fail}</p>
                 <p className="text-xs text-gray-400 mt-1">Fail</p>
               </div>
@@ -522,7 +500,7 @@ export default function CSPMDashboard() {
                 <div
                   className="bg-red-500 h-2"
                   style={{ width: `${(cisBenchmark.fail / cisTotal) * 100}%` }}
-                / role="status" aria-live="polite">
+                />
                 <div className="bg-slate-500 h-2 flex-1" />
               </div>
             </div>
@@ -538,13 +516,7 @@ export default function CSPMDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {MOCK_REMEDIATION.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_REMEDIATION.map((item, idx) => (
+            {MOCK_REMEDIATION.map((item, idx) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 hover:border-slate-600/60 transition-colors"
@@ -557,7 +529,7 @@ export default function CSPMDashboard() {
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge
                       variant="outline"
-                      )))}
+                      className={cn("border text-xs px-1 py-0", providerColor(item.provider))}
                     >
                       {item.provider}
                     </Badge>
@@ -572,7 +544,7 @@ export default function CSPMDashboard() {
                   <p className="text-xs text-gray-500">impact</p>
                 </div>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </motion.div>

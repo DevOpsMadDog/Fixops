@@ -45,7 +45,7 @@ export default function TrainingEffectivenessDashboard() {
     fetch(`${API_BASE}/programs`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setPrograms(d); })
-      .catch(() => { setError('Failed to load data'); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -61,12 +61,12 @@ export default function TrainingEffectivenessDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -78,7 +78,7 @@ export default function TrainingEffectivenessDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Completion rates, score improvements, and retention trends</p>
         </div>
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm" aria-label="Refresh data">
+        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -103,13 +103,7 @@ export default function TrainingEffectivenessDashboard() {
           {loading && <span className="text-xs text-gray-400 ml-2">Loading...</span>}
         </h2>
         <div className="space-y-4">
-          {programs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            programs.map(prog => (
+          {programs.map(prog => (
             <div key={prog.id} className="bg-gray-700/30 rounded-lg p-4 border border-gray-700">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -147,8 +141,7 @@ export default function TrainingEffectivenessDashboard() {
                 </div>
               </div>
             </div>
-          ))
-        )}
+          ))}
         </div>
       </div>
     </div>

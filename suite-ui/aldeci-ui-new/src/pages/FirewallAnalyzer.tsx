@@ -45,7 +45,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API config =============================================
+// ── API config ─────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -60,9 +60,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type FindingType = "Unused" | "Overly Permissive" | "Shadow" | "Any-Any" | "Expired";
 type Severity = "critical" | "high" | "medium" | "low";
@@ -88,9 +88,9 @@ interface FirewallDevice {
   health: HealthStatus;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_FINDINGS: FirewallFinding[] = [
   {
@@ -107,7 +107,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Unused",
     severity: "high",
     firewall_name: "FW-EDGE-01",
-    recommendation: "Remove = no hits in 180 days, VPN decommissioned",
+    recommendation: "Remove — no hits in 180 days, VPN decommissioned",
   },
   {
     rule_id: "#156",
@@ -123,7 +123,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Shadow",
     severity: "medium",
     firewall_name: "FW-PROD-01",
-    recommendation: "Remove = rule is masked by #201 and never evaluated",
+    recommendation: "Remove — rule is masked by #201 and never evaluated",
   },
   {
     rule_id: "#089",
@@ -131,7 +131,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Expired",
     severity: "high",
     firewall_name: "FW-DMZ-01",
-    recommendation: "Remove = expired 2025-11-01, mail relay replaced",
+    recommendation: "Remove — expired 2025-11-01, mail relay replaced",
   },
   {
     rule_id: "#723",
@@ -147,7 +147,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Unused",
     severity: "medium",
     firewall_name: "FW-EDGE-01",
-    recommendation: "Remove = contractor engagement ended, no traffic in 90d",
+    recommendation: "Remove — contractor engagement ended, no traffic in 90d",
   },
   {
     rule_id: "#290",
@@ -163,7 +163,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Shadow",
     severity: "low",
     firewall_name: "FW-DMZ-01",
-    recommendation: "Remove shadow duplicate = identical rule #610 takes precedence",
+    recommendation: "Remove shadow duplicate — identical rule #610 takes precedence",
   },
   {
     rule_id: "#038",
@@ -171,7 +171,7 @@ const MOCK_FINDINGS: FirewallFinding[] = [
     finding_type: "Expired",
     severity: "medium",
     firewall_name: "FW-INTERNAL-01",
-    recommendation: "Remove = test lab decommissioned 2025-09-15",
+    recommendation: "Remove — test lab decommissioned 2025-09-15",
   },
 ];
 
@@ -214,7 +214,7 @@ const MOCK_FIREWALLS: FirewallDevice[] = [
   },
 ];
 
-// 12-month rule count trend (Jan=Dec 2025 = Apr 2026)
+// 12-month rule count trend (Jan–Dec 2025 → Apr 2026)
 const TREND_DATA = [
   { month: "May", count: 1089 },
   { month: "Jun", count: 1112 },
@@ -230,9 +230,9 @@ const TREND_DATA = [
   { month: "Apr", count: 1247 },
 ];
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Styling helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const SEV_COLORS: Record<Severity, string> = {
   critical: "bg-red-500/10 text-red-400 border-red-500/30",
@@ -262,16 +262,15 @@ const VENDOR_COLORS: Record<Vendor, string> = {
   "Check Point": "text-green-400",
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const ORG_ID = "default";
 
 export default function FirewallAnalyzer() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchAll = () =>
     Promise.allSettled([
@@ -289,7 +288,8 @@ export default function FirewallAnalyzer() {
 
   useEffect(() => {
     setDataLoading(true);
-    fetchAll().finally(() => setDataLoading(false));}, []);
+    fetchAll().finally(() => setDataLoading(false));
+  }, []);
 
   const findings: FirewallFinding[] =
     (liveData?.violations?.items ?? liveData?.violations?.findings ?? liveData?.violations) ?? MOCK_FINDINGS;
@@ -305,14 +305,6 @@ export default function FirewallAnalyzer() {
   const trendMin = Math.min(...TREND_DATA.map((d) => d.count));
   const trendRange = trendMax - trendMin || 1;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-slate-900 p-8 space-y-8">
       {/* Header */}
@@ -322,7 +314,8 @@ export default function FirewallAnalyzer() {
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={dataLoading}>
             <RefreshCw className={cn("h-4 w-4", dataLoading && "animate-spin")} />
-          </Button>}
+          </Button>
+        }
       />
 
       {/* KPIs */}
@@ -363,7 +356,7 @@ export default function FirewallAnalyzer() {
           <CardHeader className="border-b border-slate-700">
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-400" />
-              Risk Findings = Top Priority
+              Risk Findings — Top Priority
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -381,13 +374,7 @@ export default function FirewallAnalyzer() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {findings.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    findings.map((finding, idx) => (
+                  {findings.map((finding, idx) => (
                     <motion.tr
                       key={finding.rule_id}
                       initial={{ opacity: 0 }}
@@ -428,8 +415,7 @@ export default function FirewallAnalyzer() {
                         </Button>
                       </TableCell>
                     </motion.tr>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -448,13 +434,7 @@ export default function FirewallAnalyzer() {
           Firewall Inventory
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {firewallDevices.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            firewallDevices.map((fw, idx) => (
+          {firewallDevices.map((fw, idx) => (
             <motion.div
               key={fw.id}
               initial={{ opacity: 0, scale: 0.97 }}
@@ -497,8 +477,7 @@ export default function FirewallAnalyzer() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))
-        )}
+          ))}
         </div>
       </motion.div>
 
@@ -515,18 +494,12 @@ export default function FirewallAnalyzer() {
             <CardHeader className="border-b border-slate-700">
               <CardTitle className="flex items-center gap-2 text-base">
                 <TrendingUp className="w-5 h-5 text-blue-400" />
-                Rule Count Growth = 12 Months
+                Rule Count Growth — 12 Months
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="flex items-end gap-2 h-40">
-                {TREND_DATA.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  TREND_DATA.map((point, idx) => {
+                {TREND_DATA.map((point, idx) => {
                   const heightPct = ((point.count - trendMin) / trendRange) * 80 + 10;
                   return (
                     <div key={point.month} className="flex-1 flex flex-col items-center gap-1">
@@ -549,8 +522,7 @@ export default function FirewallAnalyzer() {
                       <span className="text-xs text-slate-500">{point.month}</span>
                     </div>
                   );
-                })
-                )}
+                })}
               </div>
               <p className="text-xs text-slate-500 mt-3 text-center">
                 +158 rules added over 12 months (+14.5% rule bloat)

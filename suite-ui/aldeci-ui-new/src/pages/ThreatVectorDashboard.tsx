@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_VECTORS = [
   { id: "vec-001", name: "Phishing Campaign",          vector_type: "Social Engineering", severity: "high",     risk_score: 82, indicator_count: 47,  mitigation_count: 3 },
@@ -54,7 +54,7 @@ const MOCK_VECTORS = [
 
 const MOCK_STATS = { total_vectors: 87, active_vectors: 62, critical_vectors: 14, open_mitigations: 39 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -88,13 +88,12 @@ function exportCsv(vectors: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatVectorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveVectors, setLiveVectors] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -103,22 +102,13 @@ export default function ThreatVectorDashboard() {
     ]).then(([vecRes, statsRes]) => {
       if (vecRes.status === "fulfilled") setLiveVectors(vecRes.value?.vectors ?? vecRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const vectors = liveVectors ?? MOCK_VECTORS;
   const stats   = liveStats   ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -129,7 +119,7 @@ export default function ThreatVectorDashboard() {
     >
       <PageHeader
         title="Threat Vectors"
-        description="Active threat vector monitoring = risk scoring, indicator tracking, and mitigation status across all attack surfaces"
+        description="Active threat vector monitoring — risk scoring, indicator tracking, and mitigation status across all attack surfaces"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -180,19 +170,13 @@ export default function ThreatVectorDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vectors.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  vectors.map((vec: any, i: number) => (
+                {vectors.map((vec: any, i: number) => (
                   <TableRow key={vec.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300 max-w-[200px] truncate">
-                      {vec.name ?? "="}
+                      {vec.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {vec.vector_type ?? "="}
+                      {vec.vector_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={vec.severity ?? "low"} />
@@ -207,8 +191,7 @@ export default function ThreatVectorDashboard() {
                       {vec.mitigation_count ?? 0}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

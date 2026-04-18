@@ -27,23 +27,23 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Types ======================================================================
+// ── Types ──────────────────────────────────────────────────────────────────────
 type ThreatLevel = "critical" | "high" | "medium" | "low";
 type FlowAction = "block" | "monitor" | "allow";
 
 interface TopTalker { id: string; src: string; flag: string; country: string; dst: string; proto: string; bytes: string; score: number; action: FlowAction; }
 interface Anomaly { id: string; ts: string; type: string; src: string; dst: string; severity: ThreatLevel; }
 
-// == Mock data ==================================================================
+// ── Mock data ──────────────────────────────────────────────────────────────────
 const TALKERS: TopTalker[] = [
-  { id:"1", src:"45.83.64.12",      flag:"==", country:"China",        dst:"10.0.1.45:443",   proto:"HTTPS", bytes:"2.3 GB",  score:94, action:"block"   },
-  { id:"2", src:"185.220.101.33",   flag:"==", country:"Russia",       dst:"10.0.2.18:22",    proto:"SSH",   bytes:"18.4 MB", score:88, action:"block"   },
-  { id:"3", src:"175.45.176.0",     flag:"==", country:"North Korea",  dst:"10.0.1.100:8080", proto:"HTTP",  bytes:"892 KB",  score:96, action:"block"   },
-  { id:"4", src:"52.94.28.1",       flag:"==", country:"United States",dst:"10.0.3.22:443",   proto:"HTTPS", bytes:"4.1 GB",  score:2,  action:"allow"   },
-  { id:"5", src:"91.108.56.14",     flag:"==", country:"Iran",         dst:"10.0.1.77:53",    proto:"DNS",   bytes:"234 MB",  score:91, action:"block"   },
-  { id:"6", src:"104.26.3.54",      flag:"==", country:"United States",dst:"10.0.2.55:443",   proto:"HTTPS", bytes:"1.7 GB",  score:5,  action:"allow"   },
-  { id:"7", src:"185.220.101.47",   flag:"==", country:"Russia",       dst:"10.0.1.12:3389",  proto:"RDP",   bytes:"67.3 MB", score:99, action:"block"   },
-  { id:"8", src:"13.248.148.20",    flag:"==", country:"Germany",      dst:"10.0.3.80:443",   proto:"HTTPS", bytes:"328 MB",  score:8,  action:"monitor" },
+  { id:"1", src:"45.83.64.12",      flag:"🇨🇳", country:"China",        dst:"10.0.1.45:443",   proto:"HTTPS", bytes:"2.3 GB",  score:94, action:"block"   },
+  { id:"2", src:"185.220.101.33",   flag:"🇷🇺", country:"Russia",       dst:"10.0.2.18:22",    proto:"SSH",   bytes:"18.4 MB", score:88, action:"block"   },
+  { id:"3", src:"175.45.176.0",     flag:"🇰🇵", country:"North Korea",  dst:"10.0.1.100:8080", proto:"HTTP",  bytes:"892 KB",  score:96, action:"block"   },
+  { id:"4", src:"52.94.28.1",       flag:"🇺🇸", country:"United States",dst:"10.0.3.22:443",   proto:"HTTPS", bytes:"4.1 GB",  score:2,  action:"allow"   },
+  { id:"5", src:"91.108.56.14",     flag:"🇮🇷", country:"Iran",         dst:"10.0.1.77:53",    proto:"DNS",   bytes:"234 MB",  score:91, action:"block"   },
+  { id:"6", src:"104.26.3.54",      flag:"🇺🇸", country:"United States",dst:"10.0.2.55:443",   proto:"HTTPS", bytes:"1.7 GB",  score:5,  action:"allow"   },
+  { id:"7", src:"185.220.101.47",   flag:"🇷🇺", country:"Russia",       dst:"10.0.1.12:3389",  proto:"RDP",   bytes:"67.3 MB", score:99, action:"block"   },
+  { id:"8", src:"13.248.148.20",    flag:"🇩🇪", country:"Germany",      dst:"10.0.3.80:443",   proto:"HTTPS", bytes:"328 MB",  score:8,  action:"monitor" },
 ];
 
 const ANOMALIES: Anomaly[] = [
@@ -85,7 +85,7 @@ const ACT_CFG: Record<FlowAction, { label:string; cls:string; icon:React.ReactNo
   allow:   { label:"Allow",   cls:"text-green-400 bg-green-500/10", icon:<CheckCircle className="w-3 h-3 mr-1"/> },
 };
 
-// == Main Page =================================================================
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NetworkAnalysis() {
   const [search, setSearch] = useState("");
 
@@ -115,7 +115,8 @@ export default function NetworkAnalysis() {
   const anomalies = ndrAlerts;
 
   const filtered = (talkers as TopTalker[]).filter(t =>
-    !search || t.src.includes(search) || t.country.toLowerCase().includes(search.toLowerCase());
+    !search || t.src.includes(search) || t.country.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -139,13 +140,13 @@ export default function NetworkAnalysis() {
           <CardHeader className="border-b border-slate-700 pb-4">
             <div className="flex items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2"><Network className="w-5 h-5 text-blue-400"/>Top Talkers</CardTitle>
-              <input placeholder="Filter IP / country=" value={search} onChange={e=>setSearch(e.target.value)}
+              <input placeholder="Filter IP / country…" value={search} onChange={e=>setSearch(e.target.value)}
                 className="h-8 w-44 rounded border border-slate-700 bg-slate-800/50 px-3 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"/>
             </div>
           </CardHeader>
           <CardContent className="pt-0 overflow-x-auto">
-            {l1 ? <p className="text-slate-400 py-4 px-4">Loading=</p> : (
-              <table role="table" className="w-full text-sm">
+            {l1 ? <p className="text-slate-400 py-4 px-4">Loading…</p> : (
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-700/50">
                     {["Source IP","Country","Destination","Protocol","Bytes","Threat Score","Action"].map(h=>(
@@ -154,13 +155,7 @@ export default function NetworkAnalysis() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    filtered.map((t,i)=>(
+                  {filtered.map((t,i)=>(
                     <motion.tr key={t.id} initial={{opacity:0}} animate={{opacity:1}} transition={{delay:i*0.04}}
                       className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
                       <td className="py-2.5 px-3 font-mono text-slate-200 text-xs">{t.src}</td>
@@ -182,7 +177,7 @@ export default function NetworkAnalysis() {
                         </Badge>
                       </td>
                     </motion.tr>
-                  )))}
+                  ))}
                 </tbody>
               </table>
             )}
@@ -196,20 +191,14 @@ export default function NetworkAnalysis() {
               <CardTitle className="flex items-center gap-2"><Radio className="w-5 h-5 text-purple-400"/>Protocol Distribution</CardTitle>
             </CardHeader>
             <CardContent className="pt-5 space-y-3">
-              {PROTOCOLS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                PROTOCOLS.map((p,i)=>(
+              {PROTOCOLS.map((p,i)=>(
                 <div key={p.label} className="space-y-1">
                   <div className="flex justify-between text-sm"><span className="text-slate-300">{p.label}</span><span className="text-slate-400 font-semibold">{p.pct}%</span></div>
                   <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                     <motion.div initial={{width:0}} animate={{width:`${p.pct}%`}} transition={{delay:i*0.05,duration:0.5}} className={cn("h-full rounded-full",p.color)}/>
                   </div>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
@@ -222,7 +211,7 @@ export default function NetworkAnalysis() {
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
-                {l2 ? <p className="text-slate-400">Loading=</p> : (anomalies as Anomaly[]).map((a,i)=>(
+                {l2 ? <p className="text-slate-400">Loading…</p> : (anomalies as Anomaly[]).map((a,i)=>(
                   <motion.div key={a.id} initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}} transition={{delay:i*0.06}}
                     className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
                     <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5 shrink-0"/>
@@ -231,12 +220,11 @@ export default function NetworkAnalysis() {
                         <span className="text-xs font-semibold text-slate-200">{a.type}</span>
                         <Badge variant="outline" className={cn("border-0 h-5 text-xs",SEV_CLR[a.severity])}>{a.severity.toUpperCase()}</Badge>
                       </div>
-                      <p className="text-xs text-slate-400 font-mono truncate">{a.src} = {a.dst}</p>
+                      <p className="text-xs text-slate-400 font-mono truncate">{a.src} → {a.dst}</p>
                     </div>
                     <span className="text-xs text-slate-500 shrink-0">{a.ts}</span>
                   </motion.div>
-                ))
-              )}
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -250,19 +238,13 @@ export default function NetworkAnalysis() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid grid-cols-4 gap-2">
-                {REGIONS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  REGIONS.map((r,i)=>(
+                {REGIONS.map((r,i)=>(
                   <motion.div key={r.label} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.05}}
                     className={cn("rounded-lg border p-3 text-center",r.cls)}>
                     <p className="text-xs font-semibold text-slate-200 leading-tight mb-1">{r.label}</p>
                     <p className={cn("text-xs capitalize font-medium",r.level==="high"?"text-red-300":r.level==="medium"?"text-yellow-300":"text-green-300")}>{r.level}</p>
                   </motion.div>
-                )))}
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -273,24 +255,18 @@ export default function NetworkAnalysis() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="flex items-end gap-0.5 h-24">
-                {HOURLY.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  HOURLY.map((v,h)=>(
-                  <motion.div key={h} title={`${String(h).padStart(2,"0")}:00 = ${v}${ANOMALY_HOURS.has(h)?" =":""}`}
+                {HOURLY.map((v,h)=>(
+                  <motion.div key={h} title={`${String(h).padStart(2,"0")}:00 — ${v}${ANOMALY_HOURS.has(h)?" ⚠":""}`}
                     initial={{height:0,opacity:0}} animate={{height:`${(v/MAX_H)*100}%`,opacity:1}} transition={{delay:h*0.02,duration:0.4}}
                     className={cn("flex-1 rounded-t cursor-pointer",ANOMALY_HOURS.has(h)?"bg-gradient-to-t from-red-600 to-red-400":"bg-gradient-to-t from-blue-600 to-blue-400 opacity-60")}/>
-                )))}
+                ))}
               </div>
               <div className="flex justify-between mt-1">
                 {[0,4,8,12,16,20,23].map(h=><span key={h} className="text-xs text-slate-600">{String(h).padStart(2,"0")}h</span>)}
               </div>
               <div className="flex items-center gap-4 mt-3">
                 <div className="flex items-center gap-1.5 text-xs text-slate-400"><div className="w-3 h-3 rounded-sm bg-blue-500/60"/>Normal</div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400"><div className="w-3 h-3 rounded-sm bg-red-500"/ role="status" aria-live="polite">Anomaly</div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-400"><div className="w-3 h-3 rounded-sm bg-red-500"/>Anomaly</div>
               </div>
             </CardContent>
           </Card>

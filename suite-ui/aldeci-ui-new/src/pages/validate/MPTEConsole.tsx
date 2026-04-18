@@ -173,7 +173,7 @@ function ScanDetailDialog({
                     </Badge>
                   )}
                 </div>
-              )))}
+              ))}
             </div>
           </div>
           {!!scan.details && (
@@ -526,8 +526,8 @@ export default function MPTEConsole() {
                         </TableCell>
                       </TableRow>
                     ))
-                    )}
-                  </TableBody>
+                  )}
+                </TableBody>
               </Table>
               </div>
             </CardContent>
@@ -559,7 +559,7 @@ export default function MPTEConsole() {
                       >
                         {pieData.map((entry) => (
                           <Cell key={entry.name} fill={entry.color} />
-                        )))}
+                        ))}
                       </Pie>
                       <Tooltip
                         contentStyle={{
@@ -591,7 +591,7 @@ export default function MPTEConsole() {
                       {totalScans > 0 ? Math.round((d.value / totalScans) * 100) : 0}%
                     </span>
                   </div>
-                )))}
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -675,7 +675,7 @@ export default function MPTEConsole() {
                     </p>
                     <p className="font-medium mt-1">{String(val)}</p>
                   </div>
-                )))}
+                ))}
                 {Object.keys(status).length === 0 && (
                   <div className="col-span-3 text-center py-8 text-muted-foreground text-sm">
                     Engine status unavailable

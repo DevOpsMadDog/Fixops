@@ -498,8 +498,8 @@ function FixPanel({ suggestion, findingId }: { suggestion: FixSuggestion; findin
         {/* Diff */}
         <div className="space-y-2 font-mono text-xs">
           {/* Before */}
-          <div className="rounded-md border border-red-900/40 bg-red-950/20 overflow-hidden" role="status" aria-live="polite">
-            <div className="flex items-center gap-2 border-b border-red-900/30 px-3 py-1.5 bg-red-950/30" role="status" aria-live="polite">
+          <div className="rounded-md border border-red-900/40 bg-red-950/20 overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-red-900/30 px-3 py-1.5 bg-red-950/30">
               <XCircle className="h-3 w-3 text-red-500" />
               <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wider">Before</span>
             </div>
@@ -618,7 +618,7 @@ function ReposTable({ repos }: { repos: Repo[] }) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-xs">
+          <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border/50 text-muted-foreground">
                 <th className="px-4 py-2.5 text-left font-medium">Repository</th>
@@ -673,7 +673,7 @@ function ReposTable({ repos }: { repos: Repo[] }) {
                     <TrendIcon trend={repo.trend} delta={repo.trendDelta} />
                   </td>
                 </motion.tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

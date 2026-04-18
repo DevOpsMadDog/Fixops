@@ -459,7 +459,7 @@ export default function TicketIntegration() {
                   onToggleBidirectional={handleToggleBidirectional}
                   onTestConnection={handleTest}
                 />
-              )))}
+              ))}
             </div>
           )}
         </TabsContent>

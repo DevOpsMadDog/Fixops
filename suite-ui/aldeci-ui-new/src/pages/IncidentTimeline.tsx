@@ -1,12 +1,12 @@
 /**
- * Incident Response Timeline = Forensic Incident Chronicle
+ * Incident Response Timeline — Forensic Incident Chronicle
  *
  * Chronicle and reconstruct security incidents with forensic precision:
- *   1. KPI row = Active Incidents, MTTD, MTTC, Incidents This Month
- *   2. Active Incidents panel = severity, phase, team, affected systems
- *   3. Timeline View = vertical event log for selected incident, color-coded by type
- *   4. Incident Summary = root cause, MITRE ATT&CK, lessons learned
- *   5. MTTR Breakdown = phase-by-phase time bars
+ *   1. KPI row — Active Incidents, MTTD, MTTC, Incidents This Month
+ *   2. Active Incidents panel — severity, phase, team, affected systems
+ *   3. Timeline View — vertical event log for selected incident, color-coded by type
+ *   4. Incident Summary — root cause, MITRE ATT&CK, lessons learned
+ *   5. MTTR Breakdown — phase-by-phase time bars
  *
  * API: GET /api/v1/incidents, GET /api/v1/incidents/{id}/timeline
  * Fallback: mock data when API is unavailable
@@ -30,9 +30,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 type Phase = "Detection" | "Containment" | "Eradication" | "Recovery" | "Closed";
@@ -85,9 +85,9 @@ interface IncidentsData {
   incidents_this_month: number;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_INCIDENTS_DATA: IncidentsData = {
   active_incidents: 3,
@@ -134,7 +134,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
     title: "Ransomware attempt on finance workstation",
     severity: "CRITICAL",
     affected_systems: ["fin-ws-042", "fin-fs-001", "domain-ctrl-02"],
-    containment_status: "Partially contained = network segment isolated",
+    containment_status: "Partially contained — network segment isolated",
     root_cause: "Phishing email delivered malicious macro-enabled Excel attachment. User executed macro which downloaded and staged Ryuk ransomware loader. EDR caught pre-encryption phase.",
     lessons_learned: [
       "Enable macro execution policy via GPO to block unsigned macros",
@@ -160,7 +160,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
         actor: "ALDECI SIEM",
         description: "High severity alert correlated: 3 IoCs matched Ryuk ransomware signatures (C2 domain, hash, network beacon).",
         evidence_attached: true,
-        evidence_detail: "C2 domain: updates-service[.]net = matches Ryuk known C2. File hash: 3a4f9c... matches VirusTotal 58/72.",
+        evidence_detail: "C2 domain: updates-service[.]net — matches Ryuk known C2. File hash: 3a4f9c... matches VirusTotal 58/72.",
       },
       {
         id: "e3",
@@ -204,7 +204,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
         actor: "IR Lead (Martinez)",
         description: "Persistence mechanisms identified and removed: 2 scheduled tasks, 1 registry run key. Credential reset initiated for 14 affected accounts.",
         evidence_attached: true,
-        evidence_detail: "Scheduled tasks: 'WindowsDefenderUpdateTask', 'AdobeFlashUpdater' = both malicious. Registry: HKLM\\Run\\svcupd.",
+        evidence_detail: "Scheduled tasks: 'WindowsDefenderUpdateTask', 'AdobeFlashUpdater' — both malicious. Registry: HKLM\\Run\\svcupd.",
       },
     ],
   },
@@ -213,7 +213,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
     title: "Suspicious API access from unknown IP",
     severity: "HIGH",
     affected_systems: ["api-gateway-01", "auth-service"],
-    containment_status: "Under investigation = monitoring active",
+    containment_status: "Under investigation — monitoring active",
     root_cause: "Under investigation. Anomalous API key usage from IP 45.33.32.156 (Shodan scan node). Possible key leak via public repository.",
     lessons_learned: [
       "Implement API key rotation every 90 days",
@@ -236,7 +236,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
         timestamp: "2026-04-16T01:22:00Z",
         event_type: "alert",
         actor: "ALDECI Threat Intel",
-        description: "Source IP 45.33.32.156 matched AbuseIPDB score 98/100 = confirmed scanner/attacker node.",
+        description: "Source IP 45.33.32.156 matched AbuseIPDB score 98/100 — confirmed scanner/attacker node.",
         evidence_attached: false,
       },
       {
@@ -253,7 +253,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
         timestamp: "2026-04-16T04:50:00Z",
         event_type: "note",
         actor: "SOC T1 Analyst (Park)",
-        description: "GitHub secret scanning triggered = API key found in public fork of internal repo (user: dev-contractor-22). Key created 2025-11-14.",
+        description: "GitHub secret scanning triggered — API key found in public fork of internal repo (user: dev-contractor-22). Key created 2025-11-14.",
         evidence_attached: true,
         evidence_detail: "GitHub URL: github.com/dev-contractor-22/aldeci-fork/blob/main/.env.example. Key exposed for 5 months.",
       },
@@ -264,7 +264,7 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
     title: "Insider data exfiltration attempt",
     severity: "HIGH",
     affected_systems: ["hr-workstation-07", "sharepoint-prod", "s3-hr-docs"],
-    containment_status: "Contained = employee account suspended",
+    containment_status: "Contained — employee account suspended",
     root_cause: "Terminated contractor (effective 2026-04-13) retained active credentials for 36 hours post-termination. Downloaded 4.2GB of HR documents to personal USB device before DLP triggered.",
     lessons_learned: [
       "Automate credential revocation on HR system termination event",
@@ -330,16 +330,16 @@ const MOCK_INCIDENT_DETAILS: Record<string, IncidentDetail> = {
         timestamp: "2026-04-16T02:10:00Z",
         event_type: "note",
         actor: "Legal / Compliance",
-        description: "Privacy counsel notified. Data breach assessment initiated = 847 employee records potentially compromised. GDPR/CCPA notification timeline triggered (72h).",
+        description: "Privacy counsel notified. Data breach assessment initiated — 847 employee records potentially compromised. GDPR/CCPA notification timeline triggered (72h).",
         evidence_attached: false,
       },
     ],
   },
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 function getSeverityStyle(severity: Severity) {
   switch (severity) {
@@ -386,9 +386,9 @@ function formatTs(ts: string): string {
   });
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Phase Progress Bar
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const PHASE_ORDER: Phase[] = ["Detection", "Containment", "Eradication", "Recovery"];
 
@@ -396,13 +396,7 @@ const PhaseProgress = ({ current }: { current: Phase }) => {
   const idx = PHASE_ORDER.indexOf(current);
   return (
     <div className="flex items-center gap-1">
-      {PHASE_ORDER.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        PHASE_ORDER.map((phase, i) => (
+      {PHASE_ORDER.map((phase, i) => (
         <div key={phase} className="flex items-center gap-1">
           <div
             className={cn(
@@ -415,15 +409,14 @@ const PhaseProgress = ({ current }: { current: Phase }) => {
             <ChevronRight className="w-3 h-3 text-slate-600" />
           )}
         </div>
-      ))
-    )}
+      ))}
     </div>
   );
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // MTTR Breakdown Bar
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_durations"] }) => {
   const total = durations.detection + durations.containment + durations.eradication + durations.recovery;
@@ -439,37 +432,23 @@ const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_duratio
   return (
     <div className="space-y-3">
       <div className="flex h-6 rounded-full overflow-hidden gap-0.5">
-        {phases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          phases.map(p => (
+        {phases.map(p => (
           <div
             key={p.label}
             className={cn("h-full transition-all", p.color)}
             style={{ width: `${(p.hours / total) * 100}%` }}
             title={`${p.label}: ${p.hours}h`}
           />
-        ))
-      )}
+        ))}
       </div>
       <div className="flex flex-wrap gap-4">
-        {phases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          phases.map(p => (
+        {phases.map(p => (
           <div key={p.label} className="flex items-center gap-2">
             <div className={cn("w-3 h-3 rounded-full", p.color)} />
             <span className="text-sm text-gray-300">{p.label}</span>
             <span className="text-sm font-semibold text-white">{p.hours}h</span>
           </div>
-        ))
-      )}
+        ))}
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-gray-400">Total MTTR:</span>
           <span className="text-sm font-bold text-blue-400">{total.toFixed(1)}h</span>
@@ -479,9 +458,9 @@ const MTTRBreakdown = ({ durations }: { durations: IncidentDetail["phase_duratio
   );
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Timeline Event Row
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const TimelineEventRow = ({ event, isLast }: { event: TimelineEvent; isLast: boolean }) => {
   const [expanded, setExpanded] = useState(false);
@@ -506,7 +485,7 @@ const TimelineEventRow = ({ event, isLast }: { event: TimelineEvent; isLast: boo
               {cfg.label}
             </Badge>
             <span className="text-xs text-gray-400">{formatTs(event.timestamp)}</span>
-            <span className="text-xs text-gray-500">= {event.actor}</span>
+            <span className="text-xs text-gray-500">· {event.actor}</span>
           </div>
           {event.evidence_attached && (
             <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 border text-xs gap-1">
@@ -548,9 +527,9 @@ const TimelineEventRow = ({ event, isLast }: { event: TimelineEvent; isLast: boo
   );
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 export default function IncidentTimeline() {
   const [selectedId, setSelectedId] = useState<string>("INC-2026-001");
@@ -600,7 +579,7 @@ export default function IncidentTimeline() {
         icon={Activity}
       />
 
-      {/* == KPI Row == */}
+      {/* ── KPI Row ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -638,14 +617,14 @@ export default function IncidentTimeline() {
         </div>
       </motion.div>
 
-      {/* == Main Grid: Incidents + Timeline == */}
+      {/* ── Main Grid: Incidents + Timeline ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="grid grid-cols-12 gap-6"
       >
-        {/* == Left: Active Incidents Panel == */}
+        {/* ── Left: Active Incidents Panel ── */}
         <div className="col-span-4 space-y-3">
           <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700/50">
             <CardHeader className="pb-3">
@@ -697,7 +676,7 @@ export default function IncidentTimeline() {
           </Card>
         </div>
 
-        {/* == Right: Timeline View == */}
+        {/* ── Right: Timeline View ── */}
         <div className="col-span-8">
           {detail ? (
             <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700/50">
@@ -734,7 +713,7 @@ export default function IncidentTimeline() {
         </div>
       </motion.div>
 
-      {/* == Bottom Row: Summary + MTTR == */}
+      {/* ── Bottom Row: Summary + MTTR ── */}
       {detail && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -758,7 +737,7 @@ export default function IncidentTimeline() {
                     <Badge key={sys} variant="outline" className="bg-slate-800 text-slate-300 border-slate-600 font-mono text-xs">
                       {sys}
                     </Badge>
-                  )))}
+                  ))}
                 </div>
               </div>
 
@@ -777,10 +756,10 @@ export default function IncidentTimeline() {
                 <div className="space-y-1">
                   {detail.mitre_techniques.map(t => (
                     <div key={t} className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" / role="status" aria-live="polite">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
                       <span className="text-xs text-gray-300 font-mono">{t}</span>
                     </div>
-                  )))}
+                  ))}
                 </div>
               </div>
 
@@ -792,7 +771,7 @@ export default function IncidentTimeline() {
                       <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0 mt-0.5" />
                       <span className="text-xs text-gray-300 leading-relaxed">{lesson}</span>
                     </div>
-                  )))}
+                  ))}
                 </div>
               </div>
             </CardContent>
@@ -836,7 +815,7 @@ export default function IncidentTimeline() {
                       />
                     </div>
                     <span className="text-sm font-semibold text-white w-12 text-right">
-                      {hours > 0 ? `${hours}h` : <span className="text-gray-600">=</span>}
+                      {hours > 0 ? `${hours}h` : <span className="text-gray-600">—</span>}
                     </span>
                   </div>
                 ))}

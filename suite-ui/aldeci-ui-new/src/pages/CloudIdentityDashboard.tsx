@@ -151,14 +151,6 @@ export default function CloudIdentityDashboard() {
   const identities = liveData.identities ?? MOCK_IDENTITIES;
   const reviews    = liveData.reviews    ?? MOCK_REVIEWS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -217,13 +209,7 @@ export default function CloudIdentityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {identities.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  identities.map((ident: any, i: number) => (
+                {identities.map((ident: any, i: number) => (
                   <TableRow key={ident.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-mono">{ident.name}</TableCell>
                     <TableCell className="py-2"><IdentityTypeBadge type={ident.type ?? "user"} /></TableCell>
@@ -240,8 +226,7 @@ export default function CloudIdentityDashboard() {
                         : <XCircle    className="h-3.5 w-3.5 text-gray-500 inline" />}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -274,21 +259,14 @@ export default function CloudIdentityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reviews.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  reviews.map((rev: any, i: number) => (
+                {reviews.map((rev: any, i: number) => (
                   <TableRow key={rev.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-mono text-muted-foreground">{rev.identity_name ?? rev.id}</TableCell>
                     <TableCell className="py-2 text-[11px]">{rev.review_type}</TableCell>
                     <TableCell className="py-2"><ReviewOutcomeBadge outcome={rev.outcome ?? "no_action"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(rev.reviewed_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

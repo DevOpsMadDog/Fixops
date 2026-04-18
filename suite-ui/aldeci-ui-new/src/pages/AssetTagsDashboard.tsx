@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type TagCategory = "environment" | "criticality" | "compliance" | "team" | "location" | "classification" | "lifecycle" | "custom";
 
@@ -44,17 +44,17 @@ interface CategoryInfo {
   tag_count: number;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CATEGORY_INFO: CategoryInfo[] = [
-  { category: "environment",    label: "Environment",    description: "prod, staging, dev, test",       icon: "=", color: "border-blue-500/40 bg-blue-500/5",     tag_count: 6  },
-  { category: "criticality",   label: "Criticality",    description: "critical, high, medium, low",    icon: "=", color: "border-red-500/40 bg-red-500/5",       tag_count: 4  },
-  { category: "compliance",    label: "Compliance",     description: "pci-scope, hipaa, sox, gdpr",    icon: "=", color: "border-purple-500/40 bg-purple-500/5", tag_count: 8  },
-  { category: "team",          label: "Team",           description: "platform, security, devops, sre", icon: "=", color: "border-green-500/40 bg-green-500/5",   tag_count: 12 },
-  { category: "location",      label: "Location",       description: "us-east, eu-west, on-prem, dc1",  icon: "=", color: "border-yellow-500/40 bg-yellow-500/5", tag_count: 9  },
-  { category: "classification",label: "Classification", description: "public, internal, confidential", icon: "=", color: "border-orange-500/40 bg-orange-500/5", tag_count: 5  },
-  { category: "lifecycle",     label: "Lifecycle",      description: "active, eol, decommission, new",  icon: "==", color: "border-cyan-500/40 bg-cyan-500/5",     tag_count: 7  },
-  { category: "custom",        label: "Custom",         description: "user-defined tags",              icon: "==", color: "border-gray-500/40 bg-gray-500/5",     tag_count: 23 },
+  { category: "environment",    label: "Environment",    description: "prod, staging, dev, test",       icon: "🌐", color: "border-blue-500/40 bg-blue-500/5",     tag_count: 6  },
+  { category: "criticality",   label: "Criticality",    description: "critical, high, medium, low",    icon: "⚡", color: "border-red-500/40 bg-red-500/5",       tag_count: 4  },
+  { category: "compliance",    label: "Compliance",     description: "pci-scope, hipaa, sox, gdpr",    icon: "📋", color: "border-purple-500/40 bg-purple-500/5", tag_count: 8  },
+  { category: "team",          label: "Team",           description: "platform, security, devops, sre", icon: "👥", color: "border-green-500/40 bg-green-500/5",   tag_count: 12 },
+  { category: "location",      label: "Location",       description: "us-east, eu-west, on-prem, dc1",  icon: "📍", color: "border-yellow-500/40 bg-yellow-500/5", tag_count: 9  },
+  { category: "classification",label: "Classification", description: "public, internal, confidential", icon: "🔒", color: "border-orange-500/40 bg-orange-500/5", tag_count: 5  },
+  { category: "lifecycle",     label: "Lifecycle",      description: "active, eol, decommission, new",  icon: "♻️", color: "border-cyan-500/40 bg-cyan-500/5",     tag_count: 7  },
+  { category: "custom",        label: "Custom",         description: "user-defined tags",              icon: "✏️", color: "border-gray-500/40 bg-gray-500/5",     tag_count: 23 },
 ];
 
 const MOCK_TAGS: TagEntry[] = [
@@ -87,7 +87,7 @@ const MATRIX_ASSETS = [
 
 const MATRIX_TAG_COLS = ["production", "staging", "development", "critical", "high", "pci-scope", "soc2-scope", "confidential"];
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function AssetTagsDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<TagCategory | null>(null);
@@ -96,7 +96,6 @@ export default function AssetTagsDashboard() {
   const [assetQuery, setAssetQuery] = useState("");
   const [tagging, setTagging] = useState(false);
   const [tagSuccess, setTagSuccess] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const filteredTags = selectedCategory
     ? MOCK_TAGS.filter((t) => t.category === selectedCategory)
@@ -112,14 +111,6 @@ export default function AssetTagsDashboard() {
     setTagging(true);
     setTimeout(() => { setTagging(false); setTagSuccess(true); setTimeout(() => setTagSuccess(false), 2000); }, 1500);
   }
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -147,13 +138,7 @@ export default function AssetTagsDashboard() {
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Tag Categories</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {CATEGORY_INFO.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            CATEGORY_INFO.map((cat, i) => (
+          {CATEGORY_INFO.map((cat, i) => (
             <motion.div
               key={cat.category}
               initial={{ opacity: 0, y: 8 }}
@@ -173,8 +158,7 @@ export default function AssetTagsDashboard() {
               <p className="text-sm font-medium text-gray-200">{cat.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">{cat.description}</p>
             </motion.div>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -183,7 +167,7 @@ export default function AssetTagsDashboard() {
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-semibold">
-              Tag List {selectedCategory && <span className="text-gray-400 font-normal ml-1">= {selectedCategory}</span>}
+              Tag List {selectedCategory && <span className="text-gray-400 font-normal ml-1">— {selectedCategory}</span>}
             </CardTitle>
             {selectedCategory && (
               <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setSelectedCategory(null)}>
@@ -193,20 +177,13 @@ export default function AssetTagsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {filteredTags.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filteredTags.map((tag) => (
+              {filteredTags.map((tag) => (
                 <div key={tag.id} className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm", tag.color)}>
                   <Tag className="w-3 h-3" />
                   <span>{tag.name}</span>
                   <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded-full">{tag.asset_count.toLocaleString()}</span>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -227,13 +204,7 @@ export default function AssetTagsDashboard() {
               <label className="text-xs text-gray-400">Category</label>
               <select value={newTagCategory} onChange={(e) => setNewTagCategory(e.target.value as TagCategory)}
                 className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                {CATEGORY_INFO.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  CATEGORY_INFO.map((c) => <option key={c.category} value={c.category}>{c.label}</option>)}
+                {CATEGORY_INFO.map((c) => <option key={c.category} value={c.category}>{c.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -257,40 +228,28 @@ export default function AssetTagsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-xs">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-700/50">
                   <th className="text-left py-2 px-3 text-gray-400 font-medium">Asset</th>
-                  {MATRIX_TAG_COLS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    MATRIX_TAG_COLS.map((col) => (
+                  {MATRIX_TAG_COLS.map((col) => (
                     <th key={col} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{col}</th>
-                  )))}
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {MATRIX_ASSETS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MATRIX_ASSETS.map((asset) => (
+                {MATRIX_ASSETS.map((asset) => (
                   <tr key={asset.name} className="border-b border-gray-700/30 hover:bg-gray-800/20">
                     <td className="py-2 px-3 font-mono text-gray-300">{asset.name}</td>
                     {MATRIX_TAG_COLS.map((col) => (
                       <td key={col} className="py-2 px-2 text-center">
                         {asset.tags.includes(col) ? (
-                          <span className="inline-block w-4 h-4 bg-blue-500/30 border border-blue-500/50 rounded text-blue-400 text-center leading-4">=</span>
+                          <span className="inline-block w-4 h-4 bg-blue-500/30 border border-blue-500/50 rounded text-blue-400 text-center leading-4">✓</span>
                         ) : (
-                          <span className="inline-block w-4 h-4 text-gray-700">=</span>
+                          <span className="inline-block w-4 h-4 text-gray-700">—</span>
                         )}
                       </td>
-                    )))}
+                    ))}
                   </tr>
                 ))}
               </tbody>

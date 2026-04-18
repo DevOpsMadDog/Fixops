@@ -394,7 +394,7 @@ export default function FAILEngine() {
               </Card>
             ))
           )}
-          </TabsContent>
+        </TabsContent>
 
         <TabsContent value="scorecard">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -417,7 +417,7 @@ export default function FAILEngine() {
                       className="h-2"
                     />
                   </div>
-                )))}
+                ))}
                 {scorecardData.every((d) => d.value === 0) && (
                   <p className="text-center text-sm text-muted-foreground py-4">
                     No scorecard data available yet
@@ -483,8 +483,8 @@ export default function FAILEngine() {
                 neglectZones.map((zone, i) => (
                   <NeglectZoneCard key={i} zone={zone} />
                 ))
-                )}
-              </CardContent>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -559,8 +559,8 @@ export default function FAILEngine() {
                         </TableCell>
                       </TableRow>
                     ))
-                    )}
-                  </TableBody>
+                  )}
+                </TableBody>
               </Table>
               </div>
             </CardContent>
@@ -590,8 +590,7 @@ export default function FAILEngine() {
                       data={Object.entries(industryComparison).map(([key, val]) => ({
                         name: key,
                         value: val,
-                      ))
-                    }
+                      }))}
                       margin={{ top: 4, right: 4, left: -16, bottom: 4 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -613,8 +612,7 @@ export default function FAILEngine() {
                             key={key}
                             fill={i === 0 ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
                           />
-                        ))
-                      )}
+                        ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -642,7 +640,7 @@ export default function FAILEngine() {
                       <p className="text-xs text-muted-foreground">{item.label}</p>
                       <p className="font-semibold mt-1">{item.val}</p>
                     </div>
-                  )))}
+                  ))}
                 </div>
               </CardContent>
             </Card>

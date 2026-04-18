@@ -19,7 +19,7 @@ import {
   BarChart2,
 } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface CSFDomain {
   name: string;
@@ -51,7 +51,7 @@ interface Snapshot {
   score: number;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CSF_DOMAINS: CSFDomain[] = [
   { name: "Identify", key: "identify", maturity: 4, score: 82, color: "#38bdf8" },
@@ -97,7 +97,7 @@ const HISTORY: Snapshot[] = [
   { date: "Apr", score: 67 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function Stars({ count, max = 5 }: { count: number; max?: number }) {
   return (
@@ -142,7 +142,7 @@ function lessonStatus(s: string) {
   return <span className={`text-xs font-medium ${map[s] ?? "text-gray-400"}`}>{s.replace("_", " ")}</span>;
 }
 
-// == SVG Arc Gauge ==============================================
+// ── SVG Arc Gauge ──────────────────────────────────────────────
 
 function ArcGauge({ score }: { score: number }) {
   const r = 60;
@@ -181,7 +181,7 @@ function ArcGauge({ score }: { score: number }) {
   );
 }
 
-// == Sparkline ==================================================
+// ── Sparkline ──────────────────────────────────────────────────
 
 function Sparkline({ data }: { data: Snapshot[] }) {
   if (data.length < 2) return null;
@@ -195,58 +195,33 @@ function Sparkline({ data }: { data: Snapshot[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-12">
       <polyline points={pts} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinejoin="round" />
-      {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        data.map((d, i) => (
+      {data.map((d, i) => (
         <circle key={i} cx={toX(i)} cy={toY(d.score)} r="3" fill="#22c55e" />
-      ))
-    )}
-      {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        data.map((d, i) => (
+      ))}
+      {data.map((d, i) => (
         <text key={`l${i}`} x={toX(i)} y={H} fontSize="7" fill="#94a3b8" textAnchor="middle">{d.date}</text>
-      ))
-    )}
+      ))}
     </svg>
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CyberResilienceDashboard() {
   const [metricFilter, setMetricFilter] = useState<string>("all");
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(() => { /* live data available */ })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filteredMetrics = metricFilter === "all" ? METRICS : METRICS.filter((m) =>
-    m.category.toLowerCase().includes(metricFilter.toLowerCase());
+    m.category.toLowerCase().includes(metricFilter.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center gap-3">
         <ShieldAlert className="text-green-400" size={28} />
@@ -273,19 +248,13 @@ export default function CyberResilienceDashboard() {
         <div className="bg-gray-800 rounded-lg p-6 lg:col-span-3">
           <h2 className="text-lg font-semibold mb-4">NIST CSF Domain Maturity</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {CSF_DOMAINS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              CSF_DOMAINS.map((d) => (
+            {CSF_DOMAINS.map((d) => (
               <div key={d.key} className="bg-gray-700/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-sm" style={{ color: d.color }}>{d.name}</span>
                   <Stars count={d.maturity} />
                 </div>
-                <div className="text-xs text-gray-400 mb-1">Level {d.maturity}/5 = Score {d.score}</div>
+                <div className="text-xs text-gray-400 mb-1">Level {d.maturity}/5 · Score {d.score}</div>
                 <div className="bg-gray-700 rounded-full h-2">
                   <div
                     className="h-2 rounded-full"
@@ -293,7 +262,7 @@ export default function CyberResilienceDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))}
           </div>
         </div>
       </div>
@@ -303,7 +272,7 @@ export default function CyberResilienceDashboard() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <BarChart2 size={18} className="text-green-400" /> Exercise Tracker
         </h2>
-        <table role="table" className="w-full text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-gray-400 border-b border-gray-700">
               <th className="text-left py-2">Exercise</th>
@@ -315,13 +284,7 @@ export default function CyberResilienceDashboard() {
             </tr>
           </thead>
           <tbody>
-            {EXERCISES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              EXERCISES.map((ex) => (
+            {EXERCISES.map((ex) => (
               <tr key={ex.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                 <td className="py-2 text-gray-200 font-medium">{ex.exercise_name}</td>
                 <td className="py-2">{typeBadge(ex.type)}</td>
@@ -331,12 +294,12 @@ export default function CyberResilienceDashboard() {
                   {ex.findings_count > 0 ? (
                     <span className="text-orange-400 font-medium">{ex.findings_count}</span>
                   ) : (
-                    <span className="text-gray-500">=</span>
+                    <span className="text-gray-500">—</span>
                   )}
                 </td>
                 <td className="py-2 pl-4 text-gray-400">{ex.scheduled_date}</td>
               </tr>
-            )))}
+            ))}
           </tbody>
         </table>
       </div>
@@ -348,13 +311,7 @@ export default function CyberResilienceDashboard() {
             <BookOpen size={18} className="text-green-400" /> Lessons Learned
           </h2>
           <div className="space-y-3">
-            {LESSONS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              LESSONS.map((l) => (
+            {LESSONS.map((l) => (
               <div key={l.id} className="bg-gray-700/40 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm text-gray-200">{l.finding}</p>
@@ -362,7 +319,7 @@ export default function CyberResilienceDashboard() {
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Source: {l.exercise}</p>
               </div>
-            )))}
+            ))}
           </div>
         </div>
 
@@ -383,13 +340,7 @@ export default function CyberResilienceDashboard() {
             </select>
           </div>
           <div className="space-y-4">
-            {filteredMetrics.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              filteredMetrics.map((m) => {
+            {filteredMetrics.map((m) => {
               const pct = Math.min(100, Math.round((m.value / m.target) * 100));
               const onTarget = m.value >= m.target;
               return (
@@ -411,8 +362,7 @@ export default function CyberResilienceDashboard() {
                   </div>
                 </div>
               );
-            })
-            )}
+            })}
           </div>
         </div>
       </div>

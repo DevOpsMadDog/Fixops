@@ -32,7 +32,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type CommType = "notification" | "update" | "escalation" | "resolution" | "postmortem" | "stakeholder" | "public";
 type Channel = "email" | "slack" | "sms" | "pagerduty" | "teams" | "jira" | "webhook";
@@ -49,27 +49,27 @@ interface CommEntry {
   status: "sent" | "failed" | "pending";
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_COMMS: CommEntry[] = [
-  { id: "cm-001", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "notification",  channel: "pagerduty", subject: "P1 Incident: DB Outage detected",                    recipient_count: 12, sent_at: "2026-04-16 08:03", status: "sent" },
-  { id: "cm-002", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "update",        channel: "slack",     subject: "INC-2041 Update: RCA in progress, ETA 30min",          recipient_count: 48, sent_at: "2026-04-16 08:45", status: "sent" },
-  { id: "cm-003", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "stakeholder",   channel: "email",     subject: "[Stakeholder] Production database impact = update",     recipient_count: 8,  sent_at: "2026-04-16 09:00", status: "sent" },
-  { id: "cm-004", incident_id: "INC-2041", incident_title: "DB Outage = Prod",          comm_type: "resolution",    channel: "slack",     subject: "INC-2041 RESOLVED: Service restored at 09:22",         recipient_count: 52, sent_at: "2026-04-16 09:22", status: "sent" },
+  { id: "cm-001", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "notification",  channel: "pagerduty", subject: "P1 Incident: DB Outage detected",                    recipient_count: 12, sent_at: "2026-04-16 08:03", status: "sent" },
+  { id: "cm-002", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "update",        channel: "slack",     subject: "INC-2041 Update: RCA in progress, ETA 30min",          recipient_count: 48, sent_at: "2026-04-16 08:45", status: "sent" },
+  { id: "cm-003", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "stakeholder",   channel: "email",     subject: "[Stakeholder] Production database impact — update",     recipient_count: 8,  sent_at: "2026-04-16 09:00", status: "sent" },
+  { id: "cm-004", incident_id: "INC-2041", incident_title: "DB Outage — Prod",          comm_type: "resolution",    channel: "slack",     subject: "INC-2041 RESOLVED: Service restored at 09:22",         recipient_count: 52, sent_at: "2026-04-16 09:22", status: "sent" },
   { id: "cm-005", incident_id: "INC-2038", incident_title: "API Latency Spike",         comm_type: "notification",  channel: "pagerduty", subject: "P2 Incident: API p99 latency > 5s threshold",          recipient_count: 6,  sent_at: "2026-04-16 06:15", status: "sent" },
   { id: "cm-006", incident_id: "INC-2038", incident_title: "API Latency Spike",         comm_type: "escalation",    channel: "teams",     subject: "Escalation: API latency unresolved after 2h",          recipient_count: 4,  sent_at: "2026-04-16 08:17", status: "sent" },
-  { id: "cm-007", incident_id: "INC-2035", incident_title: "S3 Misconfiguration",       comm_type: "postmortem",    channel: "jira",      subject: "PIR: S3 bucket public exposure = root cause & actions", recipient_count: 14, sent_at: "2026-04-16 10:00", status: "sent" },
+  { id: "cm-007", incident_id: "INC-2035", incident_title: "S3 Misconfiguration",       comm_type: "postmortem",    channel: "jira",      subject: "PIR: S3 bucket public exposure — root cause & actions", recipient_count: 14, sent_at: "2026-04-16 10:00", status: "sent" },
   { id: "cm-008", incident_id: "INC-2042", incident_title: "Suspicious Login Activity", comm_type: "notification",  channel: "slack",     subject: "Security Alert: Multiple failed logins from RU IP",    recipient_count: 9,  sent_at: "2026-04-16 10:30", status: "sent" },
-  { id: "cm-009", incident_id: "INC-2042", incident_title: "Suspicious Login Activity", comm_type: "update",        channel: "email",     subject: "Security Incident INC-2042 = investigation ongoing",   recipient_count: 5,  sent_at: "2026-04-16 11:00", status: "pending" },
-  { id: "cm-010", incident_id: "INC-2040", incident_title: "Certificate Expiry Alert",  comm_type: "public",        channel: "webhook",   subject: "Maintenance window notification = cert renewal",        recipient_count: 0,  sent_at: "2026-04-16 07:00", status: "failed" },
+  { id: "cm-009", incident_id: "INC-2042", incident_title: "Suspicious Login Activity", comm_type: "update",        channel: "email",     subject: "Security Incident INC-2042 — investigation ongoing",   recipient_count: 5,  sent_at: "2026-04-16 11:00", status: "pending" },
+  { id: "cm-010", incident_id: "INC-2040", incident_title: "Certificate Expiry Alert",  comm_type: "public",        channel: "webhook",   subject: "Maintenance window notification — cert renewal",        recipient_count: 0,  sent_at: "2026-04-16 07:00", status: "failed" },
 ];
 
 const INCIDENTS = [
-  "INC-2041 = DB Outage (P1)",
-  "INC-2042 = Suspicious Login (P2)",
-  "INC-2038 = API Latency (P2)",
-  "INC-2040 = Certificate Expiry (P3)",
-  "INC-2035 = S3 Misconfiguration (P2)",
+  "INC-2041 — DB Outage (P1)",
+  "INC-2042 — Suspicious Login (P2)",
+  "INC-2038 — API Latency (P2)",
+  "INC-2040 — Certificate Expiry (P3)",
+  "INC-2035 — S3 Misconfiguration (P2)",
 ];
 
 const COMM_TYPES: CommType[] = ["notification", "update", "escalation", "resolution", "postmortem", "stakeholder", "public"];
@@ -104,7 +104,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("border text-xs capitalize", map[status] ?? "")}>{status}</Badge>;
 }
 
-// == Channel Breakdown ==========================================
+// ── Channel Breakdown ──────────────────────────────────────────
 
 function ChannelBreakdown() {
   const counts = CHANNELS.map((ch) => ({
@@ -115,13 +115,7 @@ function ChannelBreakdown() {
 
   return (
     <div className="flex flex-col gap-2">
-      {counts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        counts.map(({ channel, count }) => (
+      {counts.map(({ channel, count }) => (
         <div key={channel} className="flex items-center gap-2">
           <Badge className={cn("border text-xs capitalize w-24 justify-center", CHANNEL_COLORS[channel])}>{channel}</Badge>
           <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -134,13 +128,12 @@ function ChannelBreakdown() {
           </div>
           <span className="text-xs text-gray-400 w-4 text-right">{count}</span>
         </div>
-      ))
-    )}
+      ))}
     </div>
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function IncidentCommsDashboard() {
   const [incident, setIncident] = useState(INCIDENTS[0]);
@@ -157,25 +150,17 @@ export default function IncidentCommsDashboard() {
   };
 
   useEffect(() => {
-    loadData();}, []);
+    loadData();
+  }, []);
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   function handleSend() {
     if (!subject) return;
     setSending(true);
     setTimeout(() => { setSending(false); setSent(true); setTimeout(() => setSent(false), 2000); }, 1500);
   }
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -187,14 +172,15 @@ export default function IncidentCommsDashboard() {
           <Button size="sm" variant="outline" className="gap-2">
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
-          </Button>}
+          </Button>
+        }
       />
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
         </div>
       )}
 
@@ -226,13 +212,7 @@ export default function IncidentCommsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_COMMS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_COMMS.map((comm, i) => (
+                {MOCK_COMMS.map((comm, i) => (
                   <motion.tr
                     key={comm.id}
                     initial={{ opacity: 0 }}
@@ -254,8 +234,7 @@ export default function IncidentCommsDashboard() {
                     <TableCell><StatusBadge status={comm.status} /></TableCell>
                     <TableCell className="text-xs text-gray-400 whitespace-nowrap">{comm.sent_at}</TableCell>
                   </motion.tr>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -273,39 +252,21 @@ export default function IncidentCommsDashboard() {
                 <label className="text-xs text-gray-400">Incident</label>
                 <select value={incident} onChange={(e) => setIncident(e.target.value)}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                  {INCIDENTS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    INCIDENTS.map((inc) => <option key={inc} value={inc}>{inc}</option>)}
+                  {INCIDENTS.map((inc) => <option key={inc} value={inc}>{inc}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Communication Type</label>
                 <select value={commType} onChange={(e) => setCommType(e.target.value as CommType)}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                  {COMM_TYPES.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    COMM_TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
+                  {COMM_TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-400">Channel</label>
                 <select value={channel} onChange={(e) => setChannel(e.target.value as Channel)}
                   className="bg-gray-700/50 border border-gray-600 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-                  {CHANNELS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    CHANNELS.map((ch) => <option key={ch} value={ch} className="capitalize">{ch}</option>)}
+                  {CHANNELS.map((ch) => <option key={ch} value={ch} className="capitalize">{ch}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">

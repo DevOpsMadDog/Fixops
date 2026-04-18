@@ -14,7 +14,7 @@ const _API_BASE = "/api/v1/security-okrs";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type Period = "Q1 2026" | "Q2 2026" | "Q3 2026" | "Q4 2026";
 type KRStatus = "on_track" | "at_risk" | "off_track" | "completed";
@@ -40,7 +40,7 @@ interface Objective {
   overall_progress: number;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_OBJECTIVES: Objective[] = [
   { id: "obj-001", title: "Reduce critical vulnerability exposure time",      period: "Q2 2026", owner: "CISO",         team: "Security Ops",  overall_progress: 72 },
@@ -55,7 +55,7 @@ const MOCK_KEY_RESULTS: KeyResult[] = [
   // obj-001
   { id: "kr-001", objective_id: "obj-001", title: "Reduce P1 vuln MTTR",          target: 24,  current: 31,  unit: "hours",   status: "at_risk",   owner: "SecOps",      notes: "Working on automation pipeline" },
   { id: "kr-002", objective_id: "obj-001", title: "Patch critical CVEs",           target: 100, current: 87,  unit: "%",       status: "on_track",  owner: "PatchTeam",   notes: "On schedule" },
-  { id: "kr-003", objective_id: "obj-001", title: "Eliminate unpatched CVSS=9",   target: 0,   current: 4,   unit: "vulns",   status: "at_risk",   owner: "SecOps",      notes: "4 remaining in prod" },
+  { id: "kr-003", objective_id: "obj-001", title: "Eliminate unpatched CVSS≥9",   target: 0,   current: 4,   unit: "vulns",   status: "at_risk",   owner: "SecOps",      notes: "4 remaining in prod" },
   // obj-002
   { id: "kr-004", objective_id: "obj-002", title: "Complete SOC 2 evidence mapping", target: 114, current: 67, unit: "controls", status: "on_track", owner: "GRC Analyst", notes: "On track for June audit" },
   { id: "kr-005", objective_id: "obj-002", title: "Remediate audit gaps",          target: 0,   current: 12,  unit: "gaps",    status: "at_risk",   owner: "GRC Lead",    notes: "12 gaps remain" },
@@ -74,7 +74,7 @@ const MOCK_KEY_RESULTS: KeyResult[] = [
   { id: "kr-014", objective_id: "obj-006", title: "IOC distribution per month",    target: 500, current: 120, unit: "IOCs",    status: "off_track", owner: "CTI Analyst", notes: "Feed integration in progress" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function progressColor(pct: number) {
   if (pct >= 70) return "bg-green-500";
@@ -104,7 +104,7 @@ function krProgress(kr: KeyResult) {
   return Math.min(100, Math.round((kr.current / kr.target) * 100));
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityOKRDashboard() {
   const [objectives, setObjectives] = useState(MOCK_OBJECTIVES);
@@ -113,8 +113,7 @@ export default function SecurityOKRDashboard() {
     fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const [period, setPeriod] = useState<Period>("Q2 2026");
@@ -125,11 +124,10 @@ export default function SecurityOKRDashboard() {
     fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => {});
   }, []);
   const [updateNotes, setUpdateNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const filteredObjectives = MOCK_OBJECTIVES.filter(o => o.period === period);
 
@@ -150,27 +148,8 @@ export default function SecurityOKRDashboard() {
     }
   }
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -224,7 +203,7 @@ export default function SecurityOKRDashboard() {
                 }`}
               >
                 <p className="text-white text-sm font-medium leading-snug">{obj.title}</p>
-                <p className="text-gray-500 text-xs mt-1">{obj.team} = {obj.owner}</p>
+                <p className="text-gray-500 text-xs mt-1">{obj.team} · {obj.owner}</p>
                 <div className="mt-3 flex items-center gap-2">
                   <div className="flex-1 bg-gray-700 rounded-full h-2">
                     <div className={`h-2 rounded-full ${progressColor(obj.overall_progress)}`} style={{ width: `${obj.overall_progress}%` }} />
@@ -239,7 +218,7 @@ export default function SecurityOKRDashboard() {
         {/* Key Results */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-lg font-semibold text-white">
-            Key Results = {selectedObj?.title.slice(0, 50)}{(selectedObj?.title.length ?? 0) > 50 ? "=" : ""}
+            Key Results — {selectedObj?.title.slice(0, 50)}{(selectedObj?.title.length ?? 0) > 50 ? "…" : ""}
           </h2>
           {selectedKRs.length === 0 ? (
             <p className="text-gray-500 text-sm">No key results for this objective.</p>
@@ -265,7 +244,7 @@ export default function SecurityOKRDashboard() {
                     </div>
                     <div className="flex-1 flex items-center gap-1 text-gray-600">
                       <div className="flex-1 h-px bg-gray-700" />
-                      <span className="text-xs">=</span>
+                      <span className="text-xs">→</span>
                       <div className="flex-1 h-px bg-gray-700" />
                     </div>
                     <div className="text-right">

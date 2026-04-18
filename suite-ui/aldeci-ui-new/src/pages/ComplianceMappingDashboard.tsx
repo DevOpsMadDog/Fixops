@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface Framework {
   id: string;
@@ -46,7 +46,7 @@ interface Control {
   mappings: number;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_FRAMEWORKS: Framework[] = [
   { id: "f1", name: "SOC 2 Type II",   version: "2017",  total_controls: 64,  mapped_controls: 61, implementation_rate: 95, evidence_count: 243, status: "compliant" },
@@ -72,7 +72,7 @@ const MOCK_CONTROLS: Control[] = [
   { id: "c10", framework: "NIST CSF",   control_id: "DE.CM-1", title: "Network Monitoring",              implementation_rate: 98,  evidence_count: 19, mappings: 5 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -97,21 +97,16 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function ComplianceMappingDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch("/api/v1/compliance-mapping", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(() => { /* live data available */ })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => { /* live data available */ })
+      .catch(() => {});
+  }, []);
 
   const filtered = selectedFramework
     ? MOCK_CONTROLS.filter((c) => c.framework === selectedFramework)
@@ -125,13 +120,6 @@ export default function ComplianceMappingDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       <PageHeader
         title="Compliance Mapping"
         description="Multi-framework control mapping, implementation rates, and evidence coverage across 8 frameworks"
@@ -159,13 +147,7 @@ export default function ComplianceMappingDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {MOCK_FRAMEWORKS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_FRAMEWORKS.map((fw, i) => (
+            {MOCK_FRAMEWORKS.map((fw, i) => (
               <motion.div
                 key={fw.id}
                 initial={{ opacity: 0, x: -8 }}
@@ -182,14 +164,13 @@ export default function ComplianceMappingDashboard() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm font-medium text-gray-100">{fw.name}</p>
-                    <p className="text-xs text-gray-500">v{fw.version} = {fw.mapped_controls}/{fw.total_controls} controls = {fw.evidence_count} evidence</p>
+                    <p className="text-xs text-gray-500">v{fw.version} · {fw.mapped_controls}/{fw.total_controls} controls · {fw.evidence_count} evidence</p>
                   </div>
                   <StatusBadge status={fw.status} />
                 </div>
                 <ProgressBar value={fw.implementation_rate} />
               </motion.div>
-            ))
-          )}
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -200,7 +181,7 @@ export default function ComplianceMappingDashboard() {
           <CardTitle className="text-sm font-semibold">
             Control Details
             {selectedFramework && (
-              <span className="ml-2 text-xs font-normal text-gray-400">= {selectedFramework}</span>
+              <span className="ml-2 text-xs font-normal text-gray-400">— {selectedFramework}</span>
             )}
           </CardTitle>
           {selectedFramework && (
@@ -222,13 +203,7 @@ export default function ComplianceMappingDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filtered.map((ctrl) => (
+              {filtered.map((ctrl) => (
                 <TableRow key={ctrl.id} className="border-gray-700/50 hover:bg-gray-800/30">
                   <TableCell className="text-xs text-gray-400">{ctrl.framework}</TableCell>
                   <TableCell className="font-mono text-xs text-blue-400">{ctrl.control_id}</TableCell>
@@ -239,8 +214,7 @@ export default function ComplianceMappingDashboard() {
                   <TableCell className="text-right text-sm text-gray-300">{ctrl.evidence_count}</TableCell>
                   <TableCell className="text-right text-sm text-gray-300">{ctrl.mappings}</TableCell>
                 </TableRow>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -253,23 +227,17 @@ export default function ComplianceMappingDashboard() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-xs">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-700/50">
                   <th className="text-left py-2 px-3 text-gray-400 font-medium">Framework</th>
                   {["Access Control","Monitoring","Encryption","Incident Resp","Audit Logging","Risk Mgmt","Vendor Mgmt","Training"].map((h) => (
                     <th key={h} className="text-center py-2 px-2 text-gray-400 font-medium whitespace-nowrap">{h}</th>
-                  )))}
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {MOCK_FRAMEWORKS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_FRAMEWORKS.map((fw) => {
+                {MOCK_FRAMEWORKS.map((fw) => {
                   const scores = [
                     Math.min(100, fw.implementation_rate + Math.floor(Math.random() * 10 - 5)),
                     Math.min(100, fw.implementation_rate + Math.floor(Math.random() * 14 - 7)),
@@ -293,12 +261,10 @@ export default function ComplianceMappingDashboard() {
                             <span className={cn("inline-block px-2 py-0.5 rounded text-xs font-medium", bg)}>{score}%</span>
                           </td>
                         );
-                      })
-                )}
+                      })}
                     </tr>
                   );
-                })
-                )}
+                })}
               </tbody>
             </table>
           </div>

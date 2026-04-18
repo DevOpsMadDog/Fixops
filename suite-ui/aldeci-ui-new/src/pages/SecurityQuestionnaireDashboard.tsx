@@ -19,7 +19,7 @@ import {
   RefreshCw, Send, Users, BarChart2
 } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface Questionnaire {
   id: string;
@@ -48,7 +48,7 @@ interface Question {
   required: boolean;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const QUESTIONNAIRES: Questionnaire[] = [
   { id: "q1", name: "SIG Core",            framework: "SIG",      question_count: 218, type: "standard", created_at: "2026-01-10" },
@@ -67,7 +67,7 @@ const ASSESSMENTS: Assessment[] = [
   { id: "a5", vendor_name: "LogiTech Partners", questionnaire: "VSA Lite",           status: "completed",   score: 74,  risk_level: "medium",   sent_at: "2026-02-28", due_date: "2026-03-28" },
   { id: "a6", vendor_name: "CloudStore Ltd",    questionnaire: "ISO 27001 Supplier", status: "overdue",     score: 0,   risk_level: "high",     sent_at: "2026-02-10", due_date: "2026-03-10" },
   { id: "a7", vendor_name: "Apex Analytics",    questionnaire: "SIG Core",           status: "in_progress", score: 55,  risk_level: "high",     sent_at: "2026-03-25", due_date: "2026-04-25" },
-  { id: "a8", vendor_name: "NovaTech AI",       questionnaire: "CAIQ 4.0",           status: "draft",       score: 0,   risk_level: "medium",   sent_at: "=",          due_date: "2026-05-01" },
+  { id: "a8", vendor_name: "NovaTech AI",       questionnaire: "CAIQ 4.0",           status: "draft",       score: 0,   risk_level: "medium",   sent_at: "—",          due_date: "2026-05-01" },
 ];
 
 const SAMPLE_QUESTIONS: Question[] = [
@@ -80,7 +80,7 @@ const SAMPLE_QUESTIONS: Question[] = [
 
 const RESPONSE_LABELS = ["No", "Partial", "Yes", "Yes + Evidence", "N/A"];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const statusColor: Record<Assessment["status"], string> = {
   draft: "bg-gray-600 text-gray-100",
@@ -107,7 +107,7 @@ function isOverdue(a: Assessment): boolean {
   return a.status === "overdue" || (a.status !== "completed" && new Date(a.due_date) < new Date());
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityQuestionnaireDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
@@ -115,12 +115,10 @@ export default function SecurityQuestionnaireDashboard() {
     fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");
-  const [loading, setLoading] = useState(true);
 
   const overdue = ASSESSMENTS.filter(isOverdue);
   const completed = ASSESSMENTS.filter(a => a.status === "completed");
@@ -135,27 +133,8 @@ export default function SecurityQuestionnaireDashboard() {
     low: ASSESSMENTS.filter(a => a.risk_level === "low").length,
   };
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -172,17 +151,11 @@ export default function SecurityQuestionnaireDashboard() {
 
       {/* Overdue banner */}
       {overdue.length > 0 && (
-        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3" role="status" aria-live="polite">
+        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
           <span className="text-red-300 font-medium">
-            {overdue.length} assessment{overdue.length > 1 ? "s are" : " is"} overdue ={" "}
-            {overdue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              overdue.map(a => a.vendor_name).join(", ")}
+            {overdue.length} assessment{overdue.length > 1 ? "s are" : " is"} overdue —{" "}
+            {overdue.map(a => a.vendor_name).join(", ")}
           </span>
         </div>
       )}
@@ -192,7 +165,6 @@ export default function SecurityQuestionnaireDashboard() {
         {[
           { label: "Questionnaires", value: QUESTIONNAIRES.length, icon: <ClipboardList className="w-5 h-5 text-blue-400" />, sub: "templates available" },
           { label: "Active Assessments", value: ASSESSMENTS.filter(a => ["sent","in_progress"].includes(a.status)).length, icon: <Clock className="w-5 h-5 text-yellow-400" />, sub: "awaiting response" },
-            )}
           { label: "Overdue", value: overdue.length, icon: <AlertTriangle className="w-5 h-5 text-red-400" />, sub: "require follow-up" },
           { label: "Avg Score", value: `${avgScore}%`, icon: <BarChart2 className="w-5 h-5 text-green-400" />, sub: "completed assessments" },
         ].map(k => (
@@ -204,7 +176,7 @@ export default function SecurityQuestionnaireDashboard() {
             <div className="text-3xl font-bold">{k.value}</div>
             <div className="text-gray-500 text-xs mt-1">{k.sub}</div>
           </div>
-        )))}
+        ))}
       </div>
 
       {/* Vendor risk summary */}
@@ -217,7 +189,7 @@ export default function SecurityQuestionnaireDashboard() {
               <div className="text-gray-500 text-xs">risk vendors</div>
             </div>
           </div>
-        )))}
+        ))}
       </div>
 
       {/* Tabs */}
@@ -232,7 +204,7 @@ export default function SecurityQuestionnaireDashboard() {
           >
             {tab}
           </button>
-        )))}
+        ))}
       </div>
 
       {activeTab === "assessments" ? (
@@ -243,22 +215,16 @@ export default function SecurityQuestionnaireDashboard() {
               <Users className="w-4 h-4 text-blue-400" /> Vendor Assessments
             </div>
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-700/50">
                   <tr>
                     {["Vendor","Questionnaire","Status","Score","Risk","Due Date"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    )))}
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ASSESSMENTS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    ASSESSMENTS.map(a => (
+                  {ASSESSMENTS.map(a => (
                     <tr
                       key={a.id}
                       onClick={() => setSelectedAssessment(a)}
@@ -285,7 +251,7 @@ export default function SecurityQuestionnaireDashboard() {
                             <span className="text-xs text-gray-300">{a.score}%</span>
                           </div>
                         ) : (
-                          <span className="text-gray-500 text-xs">=</span>
+                          <span className="text-gray-500 text-xs">—</span>
                         )}
                       </td>
                       <td className={`px-4 py-3 font-semibold capitalize text-xs ${riskColor[a.risk_level]}`}>
@@ -295,7 +261,7 @@ export default function SecurityQuestionnaireDashboard() {
                         {a.due_date}
                       </td>
                     </tr>
-                  )))}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -310,13 +276,7 @@ export default function SecurityQuestionnaireDashboard() {
             {selectedAssessment ? (
               <>
                 <div className="space-y-4">
-                  {SAMPLE_QUESTIONS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    SAMPLE_QUESTIONS.map((q, i) => (
+                  {SAMPLE_QUESTIONS.map((q, i) => (
                     <div key={q.id} className="bg-gray-700/50 rounded-lg p-3 space-y-2">
                       <div className="text-xs text-gray-400 flex justify-between">
                         <span className="bg-gray-600 px-2 py-0.5 rounded">{q.category}</span>
@@ -331,8 +291,7 @@ export default function SecurityQuestionnaireDashboard() {
                               name={q.id}
                               value={val}
                               checked={responses[q.id] === val}
-                              ))
-                            )}
+                              onChange={() => setResponses(r => ({ ...r, [q.id]: val }))}
                               className="accent-blue-500"
                             />
                             <span className="text-xs text-gray-300">{label}</span>
@@ -358,24 +317,17 @@ export default function SecurityQuestionnaireDashboard() {
             <ClipboardList className="w-4 h-4 text-blue-400" /> Questionnaire Templates
           </div>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-sm">
+            <table className="w-full text-sm">
               <thead className="bg-gray-700/50">
                 <tr>
                   {["Name","Framework","Questions","Type","Created"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                  ))
-                )}
+                  ))}
                   <th className="px-4 py-3 text-left text-gray-400 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {QUESTIONNAIRES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  QUESTIONNAIRES.map(q => (
+                {QUESTIONNAIRES.map(q => (
                   <tr key={q.id} className="border-t border-gray-700 hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3 font-medium">{q.name}</td>
                     <td className="px-4 py-3">
@@ -392,7 +344,7 @@ export default function SecurityQuestionnaireDashboard() {
                       </button>
                     </td>
                   </tr>
-                )))}
+                ))}
               </tbody>
             </table>
           </div>

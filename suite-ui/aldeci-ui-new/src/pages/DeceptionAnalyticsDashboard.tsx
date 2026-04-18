@@ -1,7 +1,7 @@
 /**
  * Deception Analytics Dashboard
  *
- * Advanced deception technology analytics = honeypots, canary tokens, attacker intelligence.
+ * Advanced deception technology analytics — honeypots, canary tokens, attacker intelligence.
  *   1. KPI cards: Total Assets, Active Assets, Total Interactions, Unique Attacker IPs
  *   2. Deception Assets table
  *   3. Attacker Interactions table
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_assets:          48,
@@ -69,7 +69,7 @@ const MOCK_INTERACTIONS = [
   { attacker_technique: "File Exfiltration Attempt",severity: "critical", source_ip: "77.91.78.14",   confidence_score: 0.96, asset_id: "can-hr-xls"   },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function AssetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -125,13 +125,16 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DeceptionAnalyticsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; assets: any[] | null; interactions: any[] | null; }>({ stats: null, assets: null, interactions: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    assets: any[] | null;
+    interactions: any[] | null;
+  }>({ stats: null, assets: null, interactions: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -160,14 +163,6 @@ export default function DeceptionAnalyticsDashboard() {
   const assets       = liveData.assets       ?? MOCK_ASSETS;
   const interactions = liveData.interactions ?? MOCK_INTERACTIONS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -178,7 +173,7 @@ export default function DeceptionAnalyticsDashboard() {
       {/* Header */}
       <PageHeader
         title="Deception Analytics"
-        description="Honeypot and canary token telemetry = attacker intelligence and interaction analysis"
+        description="Honeypot and canary token telemetry — attacker intelligence and interaction analysis"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -221,13 +216,7 @@ export default function DeceptionAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  assets.map((a: any, i: number) => (
+                {assets.map((a: any, i: number) => (
                   <TableRow key={a.asset_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{a.asset_name}</TableCell>
                     <TableCell className="py-2"><AssetTypeBadge type={a.asset_type ?? "honeypot"} /></TableCell>
@@ -235,8 +224,7 @@ export default function DeceptionAnalyticsDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-semibold text-orange-400">{a.interaction_count}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.last_interaction)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -270,13 +258,7 @@ export default function DeceptionAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {interactions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  interactions.map((ia: any, i: number) => (
+                {interactions.map((ia: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{ia.attacker_technique}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={ia.severity ?? "medium"} /></TableCell>
@@ -286,8 +268,7 @@ export default function DeceptionAnalyticsDashboard() {
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ia.asset_id}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

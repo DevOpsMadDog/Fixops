@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_devices: 512,
@@ -62,7 +62,7 @@ const MOCK_ANOMALIES = [
   { anomaly_type: "Repeated auth failures",   severity: "medium",   device_id: "badge-reader-05", status: "resolved", detected_at: "2026-04-15T14:05:09Z" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function DeviceStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -107,13 +107,16 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function IoTSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; devices: any[] | null; anomalies: any[] | null; }>({ stats: null, devices: null, anomalies: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    devices: any[] | null;
+    anomalies: any[] | null;
+  }>({ stats: null, devices: null, anomalies: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -141,14 +144,6 @@ export default function IoTSecurityDashboard() {
   const stats     = liveData.stats     ?? MOCK_STATS;
   const devices   = liveData.devices   ?? MOCK_DEVICES;
   const anomalies = liveData.anomalies ?? MOCK_ANOMALIES;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -204,13 +199,7 @@ export default function IoTSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {devices.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  devices.map((d: any, i: number) => (
+                {devices.map((d: any, i: number) => (
                   <TableRow key={d.device_name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{d.device_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{d.device_category}</TableCell>
@@ -223,8 +212,7 @@ export default function IoTSecurityDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><DeviceStatusBadge status={d.status ?? "online"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -258,13 +246,7 @@ export default function IoTSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {anomalies.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  anomalies.map((a: any, i: number) => (
+                {anomalies.map((a: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px]">{a.anomaly_type}</TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={a.severity ?? "medium"} /></TableCell>
@@ -272,8 +254,7 @@ export default function IoTSecurityDashboard() {
                     <TableCell className="py-2"><AnomalyStatusBadge status={a.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(a.detected_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

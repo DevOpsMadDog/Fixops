@@ -4,7 +4,7 @@
  * Search IP addresses, display ASN/organization/country, open ports, CVEs, C2 status.
  * Route: /ip-reputation
  *
- * API: GET /api/v1/cve/ip/{ip} = falls back to mock data on failure.
+ * API: GET /api/v1/cve/ip/{ip} — falls back to mock data on failure.
  */
 
 import { useState, useMemo } from "react";
@@ -33,9 +33,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface IPReputationData {
   ip: string;
@@ -52,9 +52,9 @@ interface IPReputationData {
   reputation_sources: string[];
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const QUICK_IPS = [
   { ip: "8.8.8.8", label: "Google Public DNS" },
@@ -93,21 +93,21 @@ const MOCK_IP_DATA: Record<string, IPReputationData> = {
 };
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  US: "==",
-  GB: "==",
-  DE: "==",
-  FR: "==",
-  RU: "==",
-  CN: "==",
-  KP: "==",
-  IR: "==",
-  SY: "==",
-  CU: "==",
+  US: "🇺🇸",
+  GB: "🇬🇧",
+  DE: "🇩🇪",
+  FR: "🇫🇷",
+  RU: "🇷🇺",
+  CN: "🇨🇳",
+  KP: "🇰🇵",
+  IR: "🇮🇷",
+  SY: "🇸🇾",
+  CU: "🇨🇺",
 };
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helper functions
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function isValidIP(ip: string): boolean {
   const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
@@ -123,12 +123,12 @@ function getAbuseConfidenceColor(score: number): string {
 }
 
 function getCountryFlag(countryCode: string): string {
-  return COUNTRY_FLAGS[countryCode] || "=";
+  return COUNTRY_FLAGS[countryCode] || "🌍";
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Component
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function IPReputation() {
   const [searchInput, setSearchInput] = useState("");
@@ -268,7 +268,7 @@ export default function IPReputation() {
               className="flex items-center justify-center py-12"
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" / role="status" aria-live="polite">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-slate-400">Loading IP data...</p>
               </div>
             </motion.div>
@@ -292,7 +292,7 @@ export default function IPReputation() {
                         <span className="text-2xl">{getCountryFlag(ipData.country_code)}</span>
                       </div>
                       <p className="text-sm text-slate-400">
-                        {ipData.organization} = {ipData.country} ({ipData.country_code})
+                        {ipData.organization} • {ipData.country} ({ipData.country_code})
                       </p>
                       <p className="text-sm text-slate-500 mt-1 font-mono">{ipData.asn}</p>
                     </div>
@@ -378,7 +378,7 @@ export default function IPReputation() {
                         >
                           :{port}
                         </Badge>
-                      )))}
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -415,7 +415,7 @@ export default function IPReputation() {
                               )}
                             </button>
                           </div>
-                        )))}
+                        ))}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -447,7 +447,7 @@ export default function IPReputation() {
                             </span>
                             <ExternalLink className="w-4 h-4 text-slate-500 flex-shrink-0 group-hover:text-red-500" />
                           </a>
-                        )))}
+                        ))}
                       </div>
                     </ScrollArea>
                   </CardContent>

@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock Data ==================================================
+// ── Mock Data ──────────────────────────────────────────────────
 
 const MOCK_SERVICES = [
   { id: "svc-001", service_name: "Vulnerability Scanning", category: "assessment", owner_team: "SecOps", sla_response_hours: 4, sla_resolution_hours: 48, request_count: 284, availability_pct: 99.8, status: "active" },
@@ -57,7 +57,7 @@ const MOCK_OUTAGES = [
   { id: "out-003", service_name: "DLP Policy Exception", outage_type: "unplanned", severity: "moderate", duration_mins: 62, affected_users: 15, started_at: "2026-04-12T11:30:00Z" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
   assessment:        "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -114,17 +114,6 @@ function AvailabilityGauge({ pct }: { pct: number }) {
   const offset = circ - (pct / 100) * circ;
   return (
     <div className="flex items-center gap-1.5">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <svg width="30" height="30" viewBox="0 0 30 30">
         <circle cx="15" cy="15" r={r} fill="none" stroke="#374151" strokeWidth="3" />
         <circle cx="15" cy="15" r={r} fill="none" stroke={strokeColor} strokeWidth="3"
@@ -136,16 +125,14 @@ function AvailabilityGauge({ pct }: { pct: number }) {
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function ServiceCatalogDashboard() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestForm, setRequestForm] = useState({ service: "", requester: "", dept: "Engineering", priority: "medium", notes: "" });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => {});
   }, []);
 
   const activeServices = MOCK_SERVICES.filter(s => s.status === "active").length;
@@ -162,14 +149,6 @@ export default function ServiceCatalogDashboard() {
     const total = reqs.filter(r => r.sla_met !== null).length;
     return { ...svc, req_count: reqs.length, sla_met: met, total_measured: total, compliance: total ? Math.round((met / total) * 100) : null };
   });
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -203,7 +182,7 @@ export default function ServiceCatalogDashboard() {
                   <label className="text-[10px] text-zinc-500 mb-1 block">Service</label>
                   <select className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white"
                     value={requestForm.service} onChange={e => setRequestForm(p => ({ ...p, service: e.target.value }))}>
-                    <option value="">Select service=</option>
+                    <option value="">Select service…</option>
                     {MOCK_SERVICES.filter(s => s.status === "active").map(s => <option key={s.id}>{s.service_name}</option>)}
                   </select>
                 </div>
@@ -228,7 +207,7 @@ export default function ServiceCatalogDashboard() {
                   </div>
                 </div>
               </div>
-              <textarea className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white placeholder-zinc-600 resize-none" rows={2} placeholder="Notes / business justification=" value={requestForm.notes} onChange={e => setRequestForm(p => ({ ...p, notes: e.target.value }))} />
+              <textarea className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white placeholder-zinc-600 resize-none" rows={2} placeholder="Notes / business justification…" value={requestForm.notes} onChange={e => setRequestForm(p => ({ ...p, notes: e.target.value }))} />
               <Button size="sm" className="mt-3 bg-blue-600 hover:bg-blue-700 text-xs" onClick={() => setShowRequestForm(false)}>Submit Request</Button>
             </CardContent>
           </Card>
@@ -240,7 +219,7 @@ export default function ServiceCatalogDashboard() {
         <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Services</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-xs">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-zinc-700">
                   {["Service", "Category", "Owner", "SLA Response", "SLA Resolution", "Requests", "Availability", "Status"].map(h => (
@@ -249,13 +228,7 @@ export default function ServiceCatalogDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_SERVICES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_SERVICES.map(s => (
+                {MOCK_SERVICES.map(s => (
                   <tr key={s.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
                     <td className="py-2 px-2 text-zinc-200 font-medium">{s.service_name}</td>
                     <td className="py-2 px-2"><Badge className={cn("text-[9px] border whitespace-nowrap", CATEGORY_COLORS[s.category] ?? "border-zinc-600 text-zinc-400")}>{s.category.replace("-"," ")}</Badge></td>
@@ -268,8 +241,7 @@ export default function ServiceCatalogDashboard() {
                       <Badge className={cn("text-[9px] border capitalize", s.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10" : "border-red-500/30 text-red-400 bg-red-500/10")}>{s.status}</Badge>
                     </td>
                   </tr>
-                ))
-              )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -282,37 +254,31 @@ export default function ServiceCatalogDashboard() {
           <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Service Requests</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-xs">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-zinc-700">
                     {["Requester", "Dept", "Service", "Priority", "Status", "Response", "Resolution", "SLA"].map(h => (
                       <th key={h} className="text-left py-2 px-1 text-zinc-500 font-medium whitespace-nowrap">{h}</th>
-                    )))}
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_REQUESTS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    MOCK_REQUESTS.map(r => (
+                  {MOCK_REQUESTS.map(r => (
                     <tr key={r.id} className="border-b border-zinc-700/50 hover:bg-zinc-700/20">
                       <td className="py-2 px-1 text-zinc-300">{r.requester}</td>
                       <td className="py-2 px-1"><Badge className={cn("text-[9px] border", DEPT_COLORS[r.dept] ?? "border-zinc-600 text-zinc-400")}>{r.dept}</Badge></td>
                       <td className="py-2 px-1 text-zinc-400 max-w-[120px] truncate">{r.service_name}</td>
                       <td className="py-2 px-1"><Badge className={cn("text-[9px] border capitalize", PRIORITY_COLORS[r.priority])}>{r.priority}</Badge></td>
                       <td className="py-2 px-1"><Badge className={cn("text-[9px] border capitalize", REQUEST_STATUS_COLORS[r.status])}>{r.status.replace("_"," ")}</Badge></td>
-                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.response_hrs ? `${r.response_hrs}h` : "="}</td>
-                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.resolution_hrs ? `${r.resolution_hrs}h` : "="}</td>
+                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.response_hrs ? `${r.response_hrs}h` : "—"}</td>
+                      <td className="py-2 px-1 text-zinc-400 font-mono">{r.resolution_hrs ? `${r.resolution_hrs}h` : "—"}</td>
                       <td className="py-2 px-1">
                         {r.sla_met === true && <Badge className="text-[9px] border border-green-500/30 text-green-400 bg-green-500/10">Met</Badge>}
                         {r.sla_met === false && <Badge className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">Missed</Badge>}
-                        {r.sla_met === null && <span className="text-zinc-600">=</span>}
+                        {r.sla_met === null && <span className="text-zinc-600">—</span>}
                       </td>
                     </tr>
-                  )))}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -337,20 +303,14 @@ export default function ServiceCatalogDashboard() {
                     </div>
                   )}
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-400" />Outages</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {MOCK_OUTAGES.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_OUTAGES.map(o => (
+              {MOCK_OUTAGES.map(o => (
                 <div key={o.id} className="bg-zinc-900 rounded-lg p-3 border border-zinc-700 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs text-zinc-200">{o.service_name}</p>
@@ -365,7 +325,7 @@ export default function ServiceCatalogDashboard() {
                     <span className="ml-auto">{o.started_at.slice(0, 10)}</span>
                   </div>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </div>

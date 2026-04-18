@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_QUEUE = [
   { cve_id: "CVE-2024-3400",  asset_id: "prod-firewall-01",   priority_score: 98, priority_level: "critical", cvss_score: 10.0, epss_score: 0.94, status: "open" },
@@ -52,7 +52,7 @@ const MOCK_QUEUE = [
 
 const MOCK_STATS = { total_vulns: 3847, critical_priority: 127, exploited_in_wild: 43, avg_priority_score: 68 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function PriorityBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -86,11 +86,10 @@ function PriorityScore({ score }: { score: number }) {
   return <span className={cn("font-mono font-bold text-[12px]", color)}>{score}</span>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function VulnPrioritizationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [liveQueue, setLiveQueue]   = useState<any[] | null>(null);
   const [liveStats, setLiveStats]   = useState<any | null>(null);
 
@@ -101,22 +100,13 @@ export default function VulnPrioritizationDashboard() {
     ]).then(([queueRes, statsRes]) => {
       if (queueRes.status === "fulfilled") setLiveQueue(queueRes.value?.queue ?? queueRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const queue = liveQueue ?? MOCK_QUEUE;
   const stats = liveStats ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -156,7 +146,7 @@ export default function VulnPrioritizationDashboard() {
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Prioritized by composite risk score = CVSS severity, EPSS exploitation probability, KEV status, and asset exposure
+            Prioritized by composite risk score — CVSS severity, EPSS exploitation probability, KEV status, and asset exposure
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -174,19 +164,13 @@ export default function VulnPrioritizationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {queue.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  queue.map((vuln: any, i: number) => (
+                {queue.map((vuln: any, i: number) => (
                   <TableRow key={vuln.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-semibold text-rose-300">
-                      {vuln.cve_id ?? "="}
+                      {vuln.cve_id ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground max-w-[140px] truncate">
-                      {vuln.asset_id ?? "="}
+                      {vuln.asset_id ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <PriorityScore score={vuln.priority_score ?? 0} />
@@ -204,8 +188,7 @@ export default function VulnPrioritizationDashboard() {
                       <StatusBadge status={vuln.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

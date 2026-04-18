@@ -44,9 +44,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface GraphNode {
   id: string;
@@ -88,9 +88,9 @@ interface AttackPathsStats {
   paths: AttackPath[];
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const MOCK_GRAPH_NODES: GraphNode[] = [
   { id: "entry-1", name: "Web Server (exposed)", type: "entry_point", risk_score: 92 },
@@ -149,9 +149,9 @@ const MOCK_CROWN_JEWELS: CrownJewel[] = [
   },
 ];
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Node Visualization Component
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] }) {
   // Calculate positions in a circle layout
@@ -199,13 +199,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
   return (
     <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="max-w-full">
       {/* Edges */}
-      {edges.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        edges.map((edge, idx) => {
+      {edges.map((edge, idx) => {
         const from = positions[edge.from];
         const to = positions[edge.to];
         if (!from || !to) return null;
@@ -221,8 +215,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
             markerEnd="url(#arrowhead)"
           />
         );
-      })
-      )}
+      })}
 
       {/* Arrow marker */}
       <defs>
@@ -239,13 +232,7 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
       </defs>
 
       {/* Nodes */}
-      {nodes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        nodes.map((node) => {
+      {nodes.map((node) => {
         const pos = positions[node.id];
         if (!pos) return null;
         const color = getNodeColor(node);
@@ -285,15 +272,14 @@ function NodeGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphEdge[] })
             </text>
           </g>
         );
-      })
-      )}
+      })}
     </svg>
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Entry Point Card
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function EntryPointCard({ node, index }: { node: GraphNode; index: number }) {
   const getRiskColor = (score: number) => {
@@ -329,9 +315,9 @@ function EntryPointCard({ node, index }: { node: GraphNode; index: number }) {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Attack Path Row
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function AttackPathRow({
   path,
@@ -359,7 +345,7 @@ function AttackPathRow({
         </span>
       </td>
       <td className="py-2.5 px-3 text-xs">
-        {startNode?.name || "Unknown"} = {endNode?.name || "Unknown"}
+        {startNode?.name || "Unknown"} → {endNode?.name || "Unknown"}
       </td>
       <td className="py-2.5 px-3 text-xs text-muted-foreground">{path.cves_required.length} CVEs</td>
       <td className="py-2.5 px-3 text-xs text-right">
@@ -371,9 +357,9 @@ function AttackPathRow({
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Crown Jewel Row
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function CrownJewelRow({ jewel, index }: { jewel: CrownJewel; index: number }) {
   const riskColor =
@@ -415,14 +401,13 @@ function CrownJewelRow({ jewel, index }: { jewel: CrownJewel; index: number }) {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Main Page
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function AttackPathAnalysis() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -478,14 +463,6 @@ export default function AttackPathAnalysis() {
   const criticalPaths = useMemo(() => {
     return stats?.paths.filter((p) => p.blast_radius >= 5) || [];
   }, [stats]);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -575,7 +552,8 @@ export default function AttackPathAnalysis() {
                 {entryPoints.length > 0 ? (
                   entryPoints.map((node, i) => (
                     <EntryPointCard key={node.id} node={node} index={i} />
-                  )) : (
+                  ))
+                ) : (
                   <div className="text-xs text-muted-foreground text-center py-8">
                     No entry points detected
                   </div>
@@ -595,7 +573,7 @@ export default function AttackPathAnalysis() {
             <Separator />
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-[220px]">
-                <table role="table" className="w-full text-sm">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground sticky top-0 bg-background">
                       <th className="py-2 px-3 text-left font-medium text-xs">ID</th>
@@ -614,7 +592,8 @@ export default function AttackPathAnalysis() {
                           nodeMap={nodeMap}
                           index={i}
                         />
-                      )) : (
+                      ))
+                    ) : (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-xs text-muted-foreground">
                           No attack paths found
@@ -638,7 +617,7 @@ export default function AttackPathAnalysis() {
             <Separator />
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-[220px]">
-                <table role="table" className="w-full text-sm">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground sticky top-0 bg-background">
                       <th className="py-2 px-3 text-left font-medium text-xs">Asset</th>
@@ -651,7 +630,8 @@ export default function AttackPathAnalysis() {
                     {crownJewels && crownJewels.length > 0 ? (
                       crownJewels.map((jewel, i) => (
                         <CrownJewelRow key={jewel.asset} jewel={jewel} index={i} />
-                      )) : (
+                      ))
+                    ) : (
                       <tr>
                         <td colSpan={4} className="py-8 text-center text-xs text-muted-foreground">
                           No crown jewels identified

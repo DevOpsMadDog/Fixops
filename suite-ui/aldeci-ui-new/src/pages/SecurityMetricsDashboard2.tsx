@@ -35,7 +35,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 type MetricStatus = "normal" | "warning" | "critical";
 type MetricTrend  = "up" | "down" | "flat";
@@ -83,7 +83,7 @@ const ALERTS = [
   { id: "a6",  severity: "warning",  metric: "SLA Compliance",        msg: "Trending down for 4 consecutive readings",   created: "2026-04-16 09:10" },
   { id: "a7",  severity: "warning",  metric: "Open Critical Vulns",   msg: "3 new critical findings in last 24 hrs",     created: "2026-04-16 09:20" },
   { id: "a8",  severity: "info",     metric: "MFA Adoption",          msg: "6% below full coverage target",              created: "2026-04-16 09:30" },
-  { id: "a9",  severity: "info",     metric: "Endpoint Detection %",  msg: "0.1% margin above target = monitor closely", created: "2026-04-16 09:45" },
+  { id: "a9",  severity: "info",     metric: "Endpoint Detection %",  msg: "0.1% margin above target — monitor closely", created: "2026-04-16 09:45" },
   { id: "a10", severity: "warning",  metric: "Patch Compliance Rate", msg: "48 endpoints missing Q1 patches",            created: "2026-04-16 10:00" },
 ];
 
@@ -98,7 +98,7 @@ const AGGREGATES = [
   { name: "EDR Coverage (%)",     daily_avg: 99.1, daily_min: 99.0,daily_max: 99.2,weekly_avg: 99.0, monthly_avg: 98.9 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<MetricStatus, string> = {
   normal:   "border-green-500/30 text-green-400 bg-green-500/10",
@@ -118,17 +118,15 @@ function TrendIcon({ trend }: { trend: MetricTrend }) {
   return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityMetricsDashboard2() {
   const [selectedMetric, setSelectedMetric] = useState<string>("m1");
   const [refreshing, setRefreshing] = useState(false);
   const [acked, setAcked] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => {});
   }, []);
 
   const readings = READINGS[selectedMetric] ?? [];
@@ -140,14 +138,6 @@ export default function SecurityMetricsDashboard2() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -155,17 +145,6 @@ export default function SecurityMetricsDashboard2() {
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-6"
     >
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <PageHeader
         title="Security Metrics Live"
@@ -189,13 +168,7 @@ export default function SecurityMetricsDashboard2() {
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Metric Dashboard</h3>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {METRICS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            METRICS.map((m) => (
+          {METRICS.map((m) => (
             <Card
               key={m.id}
               onClick={() => setSelectedMetric(m.id)}
@@ -222,8 +195,7 @@ export default function SecurityMetricsDashboard2() {
                 <div className="mt-1 text-[10px] text-muted-foreground">{m.updated}</div>
               </CardContent>
             </Card>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -234,19 +206,13 @@ export default function SecurityMetricsDashboard2() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-400" />
-              Readings = {selMetric?.name}
+              Readings — {selMetric?.name}
             </CardTitle>
             <CardDescription className="text-xs">Last 12 readings for selected metric</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1 h-28 mb-2">
-              {readings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                readings.map((v, i) => {
+              {readings.map((v, i) => {
                 const pct = maxReading > 0 ? (v / maxReading) * 100 : 0;
                 const isLast = i === readings.length - 1;
                 return (
@@ -260,8 +226,7 @@ export default function SecurityMetricsDashboard2() {
                     />
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>12 readings ago</span>
@@ -285,13 +250,7 @@ export default function SecurityMetricsDashboard2() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-64 overflow-y-auto divide-y divide-border/40">
-              {ALERTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                ALERTS.map((a) => (
+              {ALERTS.map((a) => (
                 <div
                   key={a.id}
                   className={cn(
@@ -310,7 +269,7 @@ export default function SecurityMetricsDashboard2() {
                       variant="ghost"
                       size="sm"
                       className="h-6 px-2 text-[10px] shrink-0"
-                      onClick={() => setAcked((prev) => new Set([...prev, a.id])))}
+                      onClick={() => setAcked((prev) => new Set([...prev, a.id]))}
                     >
                       Ack
                     </Button>
@@ -318,8 +277,7 @@ export default function SecurityMetricsDashboard2() {
                     <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
                   )}
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -348,13 +306,7 @@ export default function SecurityMetricsDashboard2() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {AGGREGATES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  AGGREGATES.map((row) => (
+                {AGGREGATES.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right">{row.daily_avg}</TableCell>
@@ -363,7 +315,7 @@ export default function SecurityMetricsDashboard2() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.weekly_avg}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right text-muted-foreground">{row.monthly_avg}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

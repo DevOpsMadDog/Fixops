@@ -18,7 +18,7 @@ import {
   Clock,
 } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface Domain {
   domain_name: string;
@@ -50,7 +50,7 @@ interface TargetItem {
   owner: string;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const DOMAINS: Domain[] = [
   { domain_name: "Vulnerability Management", category: "technical", score: 82, max_score: 100, status: "green", weight: 15 },
@@ -91,7 +91,7 @@ const TARGETS: TargetItem[] = [
   { domain: "Identity & Access", target_score: 90, current_score: 74, deadline: "2026-06-15", owner: "IAM Team" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function computeOverallScore(domains: Domain[]): number {
   const totalWeight = domains.reduce((s, d) => s + d.weight, 0);
@@ -138,17 +138,6 @@ function Sparkline({ data }: { data: Snapshot[] }) {
   const pts = data.map((d, i) => `${toX(i)},${toY(d.score)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} className="w-full h-16">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <polyline
         points={pts}
         fill="none"
@@ -175,29 +164,19 @@ function Sparkline({ data }: { data: Snapshot[] }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityHealthScorecardDashboard() {
   const [snapshotMsg, setSnapshotMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/health-scorecard", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const overallScore = computeOverallScore(DOMAINS);
   const { grade, color, bg } = scoreToGrade(overallScore);
   const redDomains = DOMAINS.filter((d) => d.status === "red");
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -253,7 +232,7 @@ export default function SecurityHealthScorecardDashboard() {
         </div>
         <div className="bg-gray-800 rounded-lg p-6 flex flex-col justify-center">
           <div className="text-gray-400 text-sm mb-1">Critical Gaps</div>
-          <div className="text-3xl font-bold text-red-400" role="status" aria-live="polite">
+          <div className="text-3xl font-bold text-red-400">
             {redDomains.length}
           </div>
           <div className="text-gray-400 text-xs mt-1">Red domains</div>
@@ -290,7 +269,7 @@ export default function SecurityHealthScorecardDashboard() {
             })}
           </div>
           <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-500">
-            Weights: {DOMAINS.map((d) => `${d.domain_name.split(" ")[0]} ${d.weight}%`).join(" = ")}
+            Weights: {DOMAINS.map((d) => `${d.domain_name.split(" ")[0]} ${d.weight}%`).join(" · ")}
           </div>
         </div>
 
@@ -308,7 +287,7 @@ export default function SecurityHealthScorecardDashboard() {
               <AlertTriangle size={16} className="text-red-400" /> Improvement Areas
             </h2>
             {redDomains.length === 0 ? (
-              <p className="text-gray-400 text-xs">No critical gaps = all domains passing.</p>
+              <p className="text-gray-400 text-xs">No critical gaps — all domains passing.</p>
             ) : (
               <div className="space-y-2">
                 {redDomains.map((d) => {
@@ -316,7 +295,7 @@ export default function SecurityHealthScorecardDashboard() {
                   return (
                     <div key={d.domain_name} className="flex items-center justify-between text-sm">
                       <span className="text-red-300">{d.domain_name}</span>
-                      <span className="text-red-400 font-bold">={gap}%</span>
+                      <span className="text-red-400 font-bold">−{gap}%</span>
                     </div>
                   );
                 })}
@@ -331,7 +310,7 @@ export default function SecurityHealthScorecardDashboard() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <TrendingUp size={18} className="text-sky-400" /> Grade Trend
         </h2>
-        <table role="table" className="w-full text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-gray-400 border-b border-gray-700">
               <th className="text-left py-2">Period</th>
@@ -352,7 +331,7 @@ export default function SecurityHealthScorecardDashboard() {
                   <td className="py-2 text-right text-gray-200">{row.score}</td>
                   <td className="py-2 text-right">
                     {row.change === 0 ? (
-                      <span className="text-gray-500">=</span>
+                      <span className="text-gray-500">—</span>
                     ) : (
                       <span className={row.change > 0 ? "text-green-400" : "text-red-400"}>
                         {row.change > 0 ? "+" : ""}{row.change}
@@ -371,7 +350,7 @@ export default function SecurityHealthScorecardDashboard() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Target size={18} className="text-sky-400" /> Target Tracking
         </h2>
-        <table role="table" className="w-full text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-gray-400 border-b border-gray-700">
               <th className="text-left py-2">Domain</th>
@@ -391,7 +370,7 @@ export default function SecurityHealthScorecardDashboard() {
                   <td className="py-2 text-gray-200">{t.domain}</td>
                   <td className="py-2 text-right text-gray-300">{t.current_score}</td>
                   <td className="py-2 text-right text-sky-300">{t.target_score}</td>
-                  <td className="py-2 text-right text-red-400 font-medium">={gap}</td>
+                  <td className="py-2 text-right text-red-400 font-medium">−{gap}</td>
                   <td className="py-2 pl-4">
                     <div className="flex items-center gap-1 text-gray-400">
                       <Clock size={12} /> {t.deadline}

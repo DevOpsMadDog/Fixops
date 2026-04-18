@@ -87,7 +87,7 @@ function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[]
                       <UserMinus className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                )))}
+                ))}
               </div>
             )}
           </div>
@@ -117,7 +117,7 @@ function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[]
                       <UserPlus2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                )))}
+                ))}
               </div>
             </div>
           )}
@@ -426,7 +426,7 @@ export default function TeamsPage() {
                               <Avatar key={j} className="h-6 w-6 border-2 border-background">
                                 <AvatarFallback className="text-xs">{getInitials(m.name ?? m.email ?? "?")}</AvatarFallback>
                               </Avatar>
-                            )))}
+                            ))}
                           </div>
                           <span className="text-xs text-muted-foreground ml-1">
                             {team.members_count ?? (team.members ?? []).length}
@@ -516,8 +516,7 @@ export default function TeamsPage() {
                   name: (t.name ?? "Team").slice(0, 12),
                   mttr: t.avg_mttr ?? 0,
                   sla: t.sla_compliance ?? 0,
-                ))
-              }
+                }))}
                 margin={{ top: 4, right: 12, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />

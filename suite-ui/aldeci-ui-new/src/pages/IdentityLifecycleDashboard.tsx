@@ -71,14 +71,14 @@ export default function IdentityLifecycleDashboard() {
   };
 
   useEffect(() => {
-    loadData();}, []);
+    loadData();
+  }, []);
 
   const [filterAccount, setFilterAccount] = useState("all");
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [showGrantAccess, setShowGrantAccess] = useState(false);
   const [newAccount, setNewAccount] = useState({ username: "", display_name: "", account_type: "employee", department: "", manager: "" });
   const [newEntitlement, setNewEntitlement] = useState({ account_id: "acc-001", system_name: "", role: "", access_level: "read" });
-  const [loading, setLoading] = useState(true);
 
   const totalAccounts = accounts.length;
   const activeAccounts = accounts.filter(a => a.status === "active").length;
@@ -93,14 +93,6 @@ export default function IdentityLifecycleDashboard() {
 
   const today = "2026-04-16";
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -111,9 +103,9 @@ export default function IdentityLifecycleDashboard() {
 
         {/* Fetch Error Banner */}
         {fetchError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6" role="status" aria-live="polite">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between mb-6">
             <span className="text-sm">Failed to load live data: {fetchError}</span>
-            <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
+            <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
           </div>
         )}
 
@@ -171,7 +163,7 @@ export default function IdentityLifecycleDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Username", "Display Name", "Type", "Department", "Manager", "Status", "Last Active", "Actions"].map(h => <th key={h} className="text-left px-4 py-2 whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
@@ -191,7 +183,7 @@ export default function IdentityLifecycleDashboard() {
                           <span className={isOrphan ? "text-red-400 font-medium" : "text-gray-400"}>
                             {a.last_active} {isOrphan && `(${age}d)`}
                           </span>
-                          {isOrphan && <span className="ml-1 text-red-400 text-xs">= Orphan</span>}
+                          {isOrphan && <span className="ml-1 text-red-400 text-xs">⚠ Orphan</span>}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
@@ -239,7 +231,7 @@ export default function IdentityLifecycleDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Account", "System", "Role", "Access Level", "Granted By", "Expires", "Status", "Action"].map(h => <th key={h} className="text-left px-4 py-2 whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
@@ -256,7 +248,7 @@ export default function IdentityLifecycleDashboard() {
                         <td className="px-4 py-3 text-gray-400 text-xs">{e.granted_by}</td>
                         <td className="px-4 py-3">
                           {e.expires_at
-                            ? <span className={expiring ? "text-red-400 font-medium" : "text-gray-400"}>{e.expires_at}{expiring ? " =" : ""}</span>
+                            ? <span className={expiring ? "text-red-400 font-medium" : "text-gray-400"}>{e.expires_at}{expiring ? " ⚠" : ""}</span>
                             : <span className="text-gray-500">Never</span>}
                         </td>
                         <td className="px-4 py-3">{statusBadge(e.status)}</td>
@@ -274,7 +266,7 @@ export default function IdentityLifecycleDashboard() {
         {activeTab === "orphans" && (
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700">
-              <h2 className="font-semibold text-red-400">Orphan Accounts = Active with no activity &gt;90 days</h2>
+              <h2 className="font-semibold text-red-400">Orphan Accounts — Active with no activity &gt;90 days</h2>
             </div>
             {orphanAccounts.length === 0 ? (
               <div className="p-8 text-center text-green-400">No orphan accounts detected.</div>
@@ -288,7 +280,7 @@ export default function IdentityLifecycleDashboard() {
                         {typeBadge(a.account_type)}
                         <span className="bg-red-700 text-white text-xs px-2 py-0.5 rounded">{daysSince(a.last_active)}d inactive</span>
                       </div>
-                      <p className="text-gray-400 text-xs">{a.display_name} = {a.department} = Manager: {a.manager || "unassigned"}</p>
+                      <p className="text-gray-400 text-xs">{a.display_name} — {a.department} — Manager: {a.manager || "unassigned"}</p>
                       <p className="text-gray-500 text-xs">Last active: {a.last_active}</p>
                     </div>
                     <div className="flex gap-2">
@@ -296,7 +288,7 @@ export default function IdentityLifecycleDashboard() {
                       <button className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">Deprovision</button>
                     </div>
                   </div>
-                )))}
+                ))}
               </div>
             )}
           </div>
@@ -322,7 +314,7 @@ export default function IdentityLifecycleDashboard() {
                         {eventBadge(ev.event_type)}
                         <span className="font-mono text-xs text-gray-300">{acc?.username}</span>
                       </div>
-                      <p className="text-xs text-gray-400">Performed by: {ev.performed_by} = {ev.event_time}</p>
+                      <p className="text-xs text-gray-400">Performed by: {ev.performed_by} — {ev.event_time}</p>
                     </div>
                   </div>
                 );

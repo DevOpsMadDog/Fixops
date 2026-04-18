@@ -20,7 +20,7 @@ import { motion } from "framer-motion";
 import { Target, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, Play, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_BASELINES = [
   { id: "bl-001", baseline_name: "Linux Server Hardening",   target_type: "OS",         framework: "CIS",       control_count: 248, status: "active",      published_at: "2026-03-01T10:00:00Z" },
@@ -64,7 +64,7 @@ const MOCK_DRIFT = [
   { control_id: "K8S-1.1.1", direction: "degraded",  label: "Audit log rotation not set (missing --audit-log-maxage)" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function fmt(iso: string) {
   if (!iso) return "Not published";
@@ -109,7 +109,7 @@ function SeverityBadge({ s }: { s: string }) {
   return <span className={cn("text-xs capitalize", cls[s] ?? "text-gray-400")}>{s}</span>;
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function SecurityBaselineDashboard() {
   const [selectedBaseline, setSelectedBaseline] = useState(MOCK_BASELINES[0]);
@@ -117,21 +117,19 @@ export default function SecurityBaselineDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedBaseline(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [targetName, setTargetName] = useState("");
   const [assessMsg, setAssessMsg] = useState("");
   const [publishMsg, setPublishMsg] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const controls = MOCK_CONTROLS[selectedBaseline.id] ?? [];
   const maxPct = Math.max(...MOCK_TREND.map(t => t.pct));
 
   function runAssessment() {
     if (!targetName.trim()) return;
-    setAssessMsg(`Assessment started for "${targetName}" using baseline "${selectedBaseline.baseline_name}"=`);
-    setTimeout(() => setAssessMsg(`Assessment complete = ${controls.length} controls evaluated`), 1800);
+    setAssessMsg(`Assessment started for "${targetName}" using baseline "${selectedBaseline.baseline_name}"…`);
+    setTimeout(() => setAssessMsg(`Assessment complete — ${controls.length} controls evaluated`), 1800);
   }
 
   function publishBaseline() {
@@ -142,27 +140,8 @@ export default function SecurityBaselineDashboard() {
     }
   }
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -185,13 +164,7 @@ export default function SecurityBaselineDashboard() {
         {/* Baseline List */}
         <div className="bg-gray-800 rounded-lg p-6 space-y-2">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Baselines</h2>
-          {MOCK_BASELINES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_BASELINES.map(bl => (
+          {MOCK_BASELINES.map(bl => (
             <button key={bl.id} onClick={() => setSelectedBaseline(bl)}
               className={cn("w-full bg-gray-900 rounded-lg p-3 text-left hover:bg-gray-700/50 transition-all border",
                 selectedBaseline.id === bl.id ? "border-emerald-500/60" : "border-transparent")}>
@@ -203,21 +176,20 @@ export default function SecurityBaselineDashboard() {
                 <TargetBadge t={bl.target_type} />
                 <FrameworkBadge f={bl.framework} />
               </div>
-              <p className="text-gray-500 text-[10px] mt-1">{bl.control_count} controls = {fmt(bl.published_at)}</p>
+              <p className="text-gray-500 text-[10px] mt-1">{bl.control_count} controls · {fmt(bl.published_at)}</p>
             </button>
-          ))
-        )}
+          ))}
         </div>
 
         <div className="lg:col-span-3 space-y-6">
           {/* Controls Table */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
-              Controls = <span className="text-emerald-400">{selectedBaseline.baseline_name}</span>
+              Controls — <span className="text-emerald-400">{selectedBaseline.baseline_name}</span>
             </h2>
             {controls.length > 0 ? (
               <div className="overflow-x-auto">
-                <table role="table" className="w-full text-sm">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                       <th className="text-left pb-2 pr-4">Control ID</th>
@@ -229,13 +201,7 @@ export default function SecurityBaselineDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {controls.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                        <p className="text-lg font-medium">No data available</p>
-                        <p className="text-sm">Data will appear here once available</p>
-                      </div>
-                    ) : (
-                      controls.map(c => (
+                    {controls.map(c => (
                       <tr key={c.control_id} className="border-b border-gray-700/50 hover:bg-gray-700/20">
                         <td className="py-2.5 pr-4 font-mono text-cyan-300 text-xs">{c.control_id}</td>
                         <td className="py-2.5 pr-4 text-gray-200 text-xs max-w-[200px]">{c.control_name}</td>
@@ -248,8 +214,7 @@ export default function SecurityBaselineDashboard() {
                             : <span className="text-gray-600 text-xs">Manual</span>}
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -265,13 +230,7 @@ export default function SecurityBaselineDashboard() {
                 <TrendingUp className="w-4 h-4 text-emerald-400" /> Compliance Trend
               </h2>
               <div className="flex items-end gap-3 h-32">
-                {MOCK_TREND.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_TREND.map(t => (
+                {MOCK_TREND.map(t => (
                   <div key={t.date} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-xs text-emerald-400 font-semibold">{t.pct}%</span>
                     <div className="w-full bg-gray-700 rounded-t relative" style={{ height: `${(t.pct / maxPct) * 96}px` }}>
@@ -279,7 +238,7 @@ export default function SecurityBaselineDashboard() {
                     </div>
                     <span className="text-[10px] text-gray-500">{t.date}</span>
                   </div>
-                )))}
+                ))}
               </div>
             </div>
 
@@ -289,13 +248,7 @@ export default function SecurityBaselineDashboard() {
                 <AlertTriangle className="w-4 h-4 text-yellow-400" /> Drift Report
               </h2>
               <div className="space-y-2">
-                {MOCK_DRIFT.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_DRIFT.map((d, i) => (
+                {MOCK_DRIFT.map((d, i) => (
                   <div key={i} className="flex items-start gap-3 bg-gray-900 rounded px-3 py-2">
                     {d.direction === "improved"   && <TrendingUp   className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
                     {d.direction === "degraded"   && <TrendingDown  className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />}
@@ -305,7 +258,7 @@ export default function SecurityBaselineDashboard() {
                       <p className="text-xs text-gray-300 mt-0.5">{d.label}</p>
                     </div>
                   </div>
-                )))}
+                ))}
               </div>
             </div>
           </div>

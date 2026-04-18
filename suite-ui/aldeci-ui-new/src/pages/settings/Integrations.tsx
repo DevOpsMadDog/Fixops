@@ -440,8 +440,8 @@ export default function Integrations() {
                     </TableCell>
                   </TableRow>
                 ))
-                )}
-              </TableBody>
+              )}
+            </TableBody>
           </Table>
           </div>
         </CardContent>
@@ -507,7 +507,7 @@ export default function Integrations() {
                     </div>
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         </CardContent>

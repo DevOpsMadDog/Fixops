@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_containers: 312,
@@ -71,7 +71,7 @@ const MOCK_VIOLATIONS = [
   { id: "v-008", violation_type: "untrusted_image",          severity: "critical", container_id: "c-010", action_taken: "blocked",    timestamp: "2026-04-15T16:30:00Z" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskScoreBadge({ score }: { score: number }) {
   const cls =
@@ -127,13 +127,16 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ContainerRuntimeSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; containers: any[] | null; violations: any[] | null; }>({ stats: null, containers: null, violations: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    containers: any[] | null;
+    violations: any[] | null;
+  }>({ stats: null, containers: null, violations: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -161,14 +164,6 @@ export default function ContainerRuntimeSecurityDashboard() {
   const stats      = liveData.stats      ?? MOCK_STATS;
   const containers = liveData.containers ?? MOCK_CONTAINERS;
   const violations = liveData.violations ?? MOCK_VIOLATIONS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -223,13 +218,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {containers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  containers.map((c: any, i: number) => (
+                {containers.map((c: any, i: number) => (
                   <TableRow key={c.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{c.id}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{c.container_name}</TableCell>
@@ -237,8 +226,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><RiskScoreBadge score={c.risk_score ?? 0} /></TableCell>
                     <TableCell className="py-2"><ContainerStatusBadge status={c.status ?? "running"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -273,13 +261,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {violations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  violations.map((v: any, i: number) => (
+                {violations.map((v: any, i: number) => (
                   <TableRow key={v.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{v.id}</TableCell>
                     <TableCell className="py-2 text-[11px] capitalize">{(v.violation_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -288,8 +270,7 @@ export default function ContainerRuntimeSecurityDashboard() {
                     <TableCell className="py-2"><ActionBadge action={v.action_taken ?? "logged"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(v.timestamp)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

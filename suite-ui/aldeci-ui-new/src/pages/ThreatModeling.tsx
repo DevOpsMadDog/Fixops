@@ -1,11 +1,11 @@
 /**
- * Threat Modeling = STRIDE Analysis Workspace
+ * Threat Modeling — STRIDE Analysis Workspace
  *
  * Interactive threat modeling workspace for STRIDE analysis:
- *   1. Models list (left sidebar) = create new threat models
- *   2. Components grid = system components with trust boundaries
- *   3. Threats table = STRIDE categories with severity and mitigation status
- *   4. Mitigation progress = track remediation progress
+ *   1. Models list (left sidebar) — create new threat models
+ *   2. Components grid — system components with trust boundaries
+ *   3. Threats table — STRIDE categories with severity and mitigation status
+ *   4. Mitigation progress — track remediation progress
  *
  * Route: /threat-modeling
  * API: GET /api/v1/threat-modeling/models, /api/v1/threat-modeling/threats
@@ -13,7 +13,6 @@
  */
 
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -36,9 +35,9 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type ComponentType = "API" | "Database" | "Service" | "External";
 type Severity = "critical" | "high" | "medium" | "low";
@@ -75,9 +74,9 @@ interface ThreatModel {
   updated_at: string;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_COMPONENTS: ThreatComponent[] = [
   {
@@ -255,17 +254,17 @@ const MOCK_MODEL: ThreatModel = {
   updated_at: "2026-04-14",
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const STRIDE_ICONS: Record<StrideCategory, { icon: typeof Lock; emoji: string; color: string }> = {
-  Spoofing: { icon: Lock, emoji: "=", color: "text-red-500" },
-  Tampering: { icon: AlertTriangle, emoji: "==", color: "text-orange-500" },
-  Repudiation: { icon: Clipboard, emoji: "=", color: "text-yellow-500" },
-  InformationDisclosure: { icon: Eye, emoji: "==", color: "text-blue-500" },
-  DenialOfService: { icon: Zap, emoji: "=", color: "text-purple-500" },
-  ElevationOfPrivilege: { icon: AlertTriangle, emoji: "==", color: "text-pink-500" },
+  Spoofing: { icon: Lock, emoji: "🔒", color: "text-red-500" },
+  Tampering: { icon: AlertTriangle, emoji: "⚠️", color: "text-orange-500" },
+  Repudiation: { icon: Clipboard, emoji: "📋", color: "text-yellow-500" },
+  InformationDisclosure: { icon: Eye, emoji: "👁️", color: "text-blue-500" },
+  DenialOfService: { icon: Zap, emoji: "🚫", color: "text-purple-500" },
+  ElevationOfPrivilege: { icon: AlertTriangle, emoji: "⬆️", color: "text-pink-500" },
 };
 
 const SEV_COLORS: Record<Severity, string> = {
@@ -303,9 +302,9 @@ const COMPONENT_TYPE_COLORS: Record<ComponentType, string> = {
   External: "text-orange-500",
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Components
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 function ComponentCard({
   component,
@@ -417,13 +416,7 @@ function ModelsList({
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
-          {models.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            models.map((model) => (
+          {models.map((model) => (
             <button
               key={model.id}
               onClick={() => onSelect(model.id)}
@@ -437,17 +430,16 @@ function ModelsList({
               <div className="font-medium truncate">{model.name}</div>
               <div className="text-xs opacity-75 truncate mt-0.5">{model.description}</div>
             </button>
-          ))
-        )}
+          ))}
         </div>
       </ScrollArea>
     </div>
   );
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 export default function ThreatModeling() {
   const [selectedModelId, setSelectedModelId] = useState(MOCK_MODEL.id);
@@ -472,13 +464,12 @@ export default function ThreatModeling() {
 
   return (
     <div className="flex h-full bg-background">
-      {/* Left sidebar = Models list */}
+      {/* Left sidebar — Models list */}
       <ModelsList
         models={models}
         selectedModelId={selectedModelId}
         onSelect={setSelectedModelId}
-        onCreateNew={() => toast.info("Create new model", { description: "Model creation will be available in the next release" })
-          )}
+        onCreateNew={() => alert("Create new model — coming soon")}
       />
 
       {/* Main content */}
@@ -553,7 +544,7 @@ export default function ThreatModeling() {
               <TabsContent value="components" className="mt-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">System Components ({selectedModel.components.length})</h3>
-                  <Button size="sm" variant="outline" onClick={() => toast.info("Add Component", { description: "Component creation form will be available in the next release" })}>
+                  <Button size="sm" variant="outline">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Component
                   </Button>
@@ -564,7 +555,7 @@ export default function ThreatModeling() {
                     <ComponentCard
                       key={component.id}
                       component={component}
-                      onSelect={() => toast.info(`Component: ${component.name}`, { description: "Component detail view will be available in the next release" })}
+                      onSelect={() => alert(`Edit component: ${component.name}`)}
                     />
                   ))}
                 </div>
@@ -614,7 +605,7 @@ export default function ThreatModeling() {
                           <ThreatRow
                             key={threat.id}
                             threat={threat}
-                            onEdit={() => toast.info(`Threat: ${threat.name}`, { description: `${threat.stride_category} - ${threat.severity} severity` })}
+                            onEdit={() => alert(`View threat: ${threat.name}`)}
                           />
                         ))}
                       </TableBody>
@@ -632,11 +623,11 @@ export default function ThreatModeling() {
                   <span className="ml-4">Last updated: {selectedModel.updated_at}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => toast.success("Export started", { description: "Threat model report download initiated" })}>
+                  <Button size="sm" variant="ghost">
                     <Download className="w-4 h-4 mr-1" />
                     Export
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => toast.info("Refreshed", { description: "Threat model data reloaded" })}>
+                  <Button size="sm" variant="ghost">
                     <RefreshCw className="w-4 h-4 mr-1" />
                     Refresh
                   </Button>

@@ -65,23 +65,23 @@ export default function PrivacyImpactDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
       )}
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -93,7 +93,7 @@ export default function PrivacyImpactDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">PIA/DPIA workflow and risk tracking</p>
         </div>
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors" aria-label="Refresh data">
+        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -118,7 +118,7 @@ export default function PrivacyImpactDashboard() {
           {loading && <span className="text-xs text-gray-400 ml-2">Loading...</span>}
         </h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Title</th>
@@ -128,13 +128,7 @@ export default function PrivacyImpactDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {pias.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                pias.map(pia => (
+              {pias.map(pia => (
                 <tr key={pia.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-3 pr-4 text-gray-200 font-medium">{pia.title}</td>
                   <td className="py-3 pr-4">
@@ -145,8 +139,7 @@ export default function PrivacyImpactDashboard() {
                   <td className={`py-3 pr-4 font-bold ${riskColor(pia.risk_score)}`}>{pia.risk_score}</td>
                   <td className="py-3 text-gray-400 text-xs">{pia.created_at}</td>
                 </tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </div>

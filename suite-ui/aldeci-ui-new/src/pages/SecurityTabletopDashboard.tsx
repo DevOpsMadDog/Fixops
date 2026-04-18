@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_exercises: 24,
@@ -66,7 +66,7 @@ const MOCK_FINDINGS = [
   { title: "Cloud creds not rotated post-sim",   finding_type: "remediation",      severity: "medium",   status: "resolved", exercise_id: "ex-006" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ExerciseStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -132,13 +132,16 @@ function scoreColor(score: number): string {
   return "text-red-400";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityTabletopDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; exercises: any[] | null; findings: any[] | null; }>({ stats: null, exercises: null, findings: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    exercises: any[] | null;
+    findings: any[] | null;
+  }>({ stats: null, exercises: null, findings: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -166,14 +169,6 @@ export default function SecurityTabletopDashboard() {
   const stats     = liveData.stats     ?? MOCK_STATS;
   const exercises = liveData.exercises ?? MOCK_EXERCISES;
   const findings  = liveData.findings  ?? MOCK_FINDINGS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -228,24 +223,17 @@ export default function SecurityTabletopDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exercises.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  exercises.map((ex: any, i: number) => (
+                {exercises.map((ex: any, i: number) => (
                   <TableRow key={ex.title ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px]">{ex.title}</TableCell>
                     <TableCell className="py-2"><ScenarioTypeBadge type={ex.scenario_type ?? "unknown"} /></TableCell>
                     <TableCell className="py-2"><ExerciseStatusBadge status={ex.status ?? "scheduled"} /></TableCell>
                     <TableCell className={cn("py-2 text-right font-mono text-[11px] font-semibold", scoreColor(ex.overall_score ?? 0))}>
-                      {ex.overall_score > 0 ? `${ex.overall_score}%` : "="}
+                      {ex.overall_score > 0 ? `${ex.overall_score}%` : "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{ex.scheduled_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -279,13 +267,7 @@ export default function SecurityTabletopDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  findings.map((f: any, i: number) => (
+                {findings.map((f: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px]">{f.title}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">{(f.finding_type ?? "gap").replace(/_/g, " ")}</TableCell>
@@ -293,8 +275,7 @@ export default function SecurityTabletopDashboard() {
                     <TableCell className="py-2"><FindingStatusBadge status={f.status ?? "open"} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{f.exercise_id}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

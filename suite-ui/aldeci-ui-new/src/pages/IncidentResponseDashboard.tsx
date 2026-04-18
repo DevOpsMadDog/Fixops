@@ -1,5 +1,5 @@
 /**
- * Incident Response Dashboard = management view
+ * Incident Response Dashboard — management view
  *
  * Full lifecycle incident management and playbook execution.
  * NOTE: IncidentTimeline.tsx exists at route /incident-timeline (different page).
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -53,7 +53,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const INCIDENTS = [
   { id: "INC-0421", title: "Ransomware detected on finance workstations",    type: "ransomware",   sev: "P1", status: "active",      analyst: "s.kim",     open: "6h 14m", slaDue: "2026-04-16 16:00", slaBreach: true  },
@@ -72,7 +72,7 @@ const INCIDENTS = [
 
 const TIMELINE_STEPS = [
   { label: "Detect",    desc: "Threat detected by EDR agent",      done: true,    current: false },
-  { label: "Triage",    desc: "Severity assessed = P1 Ransomware", done: true,    current: false },
+  { label: "Triage",    desc: "Severity assessed — P1 Ransomware", done: true,    current: false },
   { label: "Contain",   desc: "Network segment isolated",           done: false,   current: true  },
   { label: "Eradicate", desc: "Remove malware artifacts",           done: false,   current: false },
   { label: "Recover",   desc: "Restore systems from clean backup",  done: false,   current: false },
@@ -84,7 +84,7 @@ const TASKS = [
   { done: true,  label: "Capture memory dump from primary infected host",       owner: "forensics",due: "09:30", priority: "P1" },
   { done: true,  label: "Revoke all active sessions for finance AD group",      owner: "iam-team", due: "10:00", priority: "P1" },
   { done: false, label: "Block IOC hashes across all AV/EDR policies",         owner: "secops",   due: "10:30", priority: "P1" },
-  { done: false, label: "Notify CISO and legal team (ransomware playbook =4)", owner: "s.kim",    due: "11:00", priority: "P2" },
+  { done: false, label: "Notify CISO and legal team (ransomware playbook §4)", owner: "s.kim",    due: "11:00", priority: "P2" },
   { done: false, label: "Enumerate lateral movement from patient-zero host",    owner: "a.wright", due: "12:00", priority: "P2" },
   { done: false, label: "Begin backup integrity verification",                  owner: "infra",    due: "13:00", priority: "P2" },
   { done: false, label: "Submit CISA incident notification (72h deadline)",     owner: "legal",    due: "16:00", priority: "P3" },
@@ -98,7 +98,7 @@ const ARTIFACTS = [
   { name: "finance-pc-01_disk.e01",      type: "forensic_image",  size: "512 GB",  by: "forensics",  ts: "2026-04-16 10:02" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
   ransomware:  "border-red-500/30 text-red-400 bg-red-500/10",
@@ -138,13 +138,12 @@ const PRIORITY_COLORS: Record<string, string> = {
   P3: "text-blue-400",
 };
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function IncidentResponseDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -159,8 +158,7 @@ export default function IncidentResponseDashboard() {
       if (stats || incidents || playbooks) {
         setLiveData({ stats, incidents, playbooks });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
@@ -181,8 +179,8 @@ export default function IncidentResponseDashboard() {
           sev: inc.severity ?? inc.priority ?? "P3",
           status: inc.status ?? "active",
           analyst: inc.assigned_to ?? inc.analyst ?? "Unassigned",
-          open: inc.open_duration ?? inc.age ?? "=",
-          slaDue: inc.sla_due ?? inc.due_date ?? "=",
+          open: inc.open_duration ?? inc.age ?? "—",
+          slaDue: inc.sla_due ?? inc.due_date ?? "—",
           slaBreach: inc.sla_breached ?? false,
         }))
       : Array.isArray(liveData?.incidents?.incidents)
@@ -193,19 +191,11 @@ export default function IncidentResponseDashboard() {
             sev: inc.severity ?? "P3",
             status: inc.status ?? "active",
             analyst: inc.assigned_to ?? "Unassigned",
-            open: inc.open_duration ?? "=",
-            slaDue: inc.sla_due ?? "=",
+            open: inc.open_duration ?? "—",
+            slaDue: inc.sla_due ?? "—",
             slaBreach: inc.sla_breached ?? false,
           }))
         : INCIDENTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -245,7 +235,7 @@ export default function IncidentResponseDashboard() {
               {liveActiveCount} active
             </Badge>
           </div>
-          <CardDescription className="text-xs">Full incident list = sorted by severity and open time</CardDescription>
+          <CardDescription className="text-xs">Full incident list — sorted by severity and open time</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -264,13 +254,7 @@ export default function IncidentResponseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveIncidents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  liveIncidents.map((inc) => (
+                {liveIncidents.map((inc) => (
                   <TableRow
                     key={inc.id}
                     className={cn("hover:bg-muted/30", inc.slaBreach && "bg-red-500/5 border-l-2 border-l-red-500")}
@@ -296,7 +280,7 @@ export default function IncidentResponseDashboard() {
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{inc.open}</TableCell>
                     <TableCell className={cn("text-xs tabular-nums py-2.5", inc.slaBreach ? "text-red-400 font-bold" : "text-muted-foreground")}>
                       {inc.slaDue.split(" ")[1]}
-                      {inc.slaBreach && <span className="ml-1 text-[10px]">= breached</span>}
+                      {inc.slaBreach && <span className="ml-1 text-[10px]">⚠ breached</span>}
                     </TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">
@@ -304,8 +288,7 @@ export default function IncidentResponseDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -319,19 +302,13 @@ export default function IncidentResponseDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-400" />
-              Response Timeline = INC-0421
+              Response Timeline — INC-0421
             </CardTitle>
             <CardDescription className="text-xs">6-step incident response lifecycle progress</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="relative flex flex-col gap-0">
-              {TIMELINE_STEPS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                TIMELINE_STEPS.map((step, i) => (
+              {TIMELINE_STEPS.map((step, i) => (
                 <div key={step.label} className="flex items-start gap-3">
                   {/* Icon + connector line */}
                   <div className="flex flex-col items-center">
@@ -367,8 +344,7 @@ export default function IncidentResponseDashboard() {
                     )}
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -378,20 +354,14 @@ export default function IncidentResponseDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-400" />
-              Task Checklist = INC-0421
+              Task Checklist — INC-0421
             </CardTitle>
             <CardDescription className="text-xs">
               {TASKS.filter(t => t.done).length}/{TASKS.length} tasks completed
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {TASKS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              TASKS.map((task, i) => (
+            {TASKS.map((task, i) => (
               <div
                 key={i}
                 className={cn(
@@ -410,15 +380,14 @@ export default function IncidentResponseDashboard() {
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-muted-foreground">{task.owner}</span>
-                    <span className="text-[10px] text-muted-foreground">= due {task.due}</span>
+                    <span className="text-[10px] text-muted-foreground">· due {task.due}</span>
                     <span className={cn("text-[10px] font-bold", PRIORITY_COLORS[task.priority] ?? "text-muted-foreground")}>
                       {task.priority}
                     </span>
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -429,7 +398,7 @@ export default function IncidentResponseDashboard() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <FileText className="h-4 w-4 text-amber-400" />
-              Forensic Artifacts = INC-0421
+              Forensic Artifacts — INC-0421
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
               {ARTIFACTS.length} artifacts
@@ -450,13 +419,7 @@ export default function IncidentResponseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ARTIFACTS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  ARTIFACTS.map((a, i) => (
+                {ARTIFACTS.map((a, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[220px] truncate">{a.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -468,7 +431,7 @@ export default function IncidentResponseDashboard() {
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{a.by}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{a.ts}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

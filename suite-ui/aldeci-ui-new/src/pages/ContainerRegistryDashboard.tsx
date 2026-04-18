@@ -1,7 +1,7 @@
 /**
  * Container Registry Dashboard
  *
- * Container image scanning = registries, scan results, policy enforcement.
+ * Container image scanning — registries, scan results, policy enforcement.
  *   1. KPIs: Registries, Total Scans, Critical Images, Policy Violations
  *   2. Recent image scans table (image name, tag, vulnerabilities, scan score, policy result)
  *
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SCANS = [
   { id: "IMG-001", image: "acme/api-gateway",     tag: "v2.4.1",   vulnerabilities: 3,  scan_score: 91, policy: "pass",    scanned_at: "5 min ago" },
@@ -57,7 +57,7 @@ const MOCK_STATS = {
   policy_violations: 12,
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function PolicyBadge({ result }: { result: string }) {
   const map: Record<string, string> = {
@@ -98,22 +98,17 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ContainerRegistryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     apiFetch(`/api/v1/container-registry-security/stats?org_id=${ORG_ID}`)
-    .then((d) => setLiveData(d))
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then((d) => setLiveData(d))
+      .catch(() => {});
+  }, []);
 
   const stats = liveData ?? MOCK_STATS;
   const scans = liveData?.recent_scans ?? MOCK_SCANS;
@@ -122,7 +117,7 @@ export default function ContainerRegistryDashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/container-registry-security/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(err => setError(err.message || 'Failed to load data'))
+      .catch(() => {})
       .finally(() => setRefreshing(false));
   };
 
@@ -138,13 +133,6 @@ export default function ContainerRegistryDashboard() {
         description="Image scanning, vulnerability detection, and policy enforcement across registries"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
@@ -183,13 +171,7 @@ export default function ContainerRegistryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scans.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  scans.map((scan: any) => (
+                {scans.map((scan: any) => (
                   <TableRow key={scan.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-xs text-foreground">{scan.image}</TableCell>
                     <TableCell className="py-2">
@@ -221,8 +203,7 @@ export default function ContainerRegistryDashboard() {
                       {scan.scanned_at}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

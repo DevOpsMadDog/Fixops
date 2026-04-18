@@ -123,14 +123,6 @@ export default function SoftwareLicenseDashboard() {
 
   const breakdown = MOCK_RISK_BREAKDOWN;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -159,7 +151,7 @@ export default function SoftwareLicenseDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="border-red-500/30">
           <CardContent className="pt-4 pb-3 text-center">
-            <div className="text-2xl font-bold text-red-400" role="status" aria-live="polite">{breakdown.critical}</div>
+            <div className="text-2xl font-bold text-red-400">{breakdown.critical}</div>
             <div className="text-[11px] text-muted-foreground mt-1">Critical Risk</div>
           </CardContent>
         </Card>
@@ -212,13 +204,7 @@ export default function SoftwareLicenseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {records.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  records.map((r: any, i: number) => (
+                {records.map((r: any, i: number) => (
                   <TableRow key={r.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-medium font-mono">{r.package_name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground font-mono">{r.version}</TableCell>
@@ -236,12 +222,11 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2 text-right text-[11px] font-mono">{r.vulnerabilities}</TableCell>
                     <TableCell className="py-2 text-center">
                       {r.approved
-                        ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">= Approved</Badge>
-                        : <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">= Not Approved</Badge>}
+                        ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">✓ Approved</Badge>
+                        : <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">✗ Not Approved</Badge>}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -274,13 +259,7 @@ export default function SoftwareLicenseDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {violations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  violations.map((v: any, i: number) => (
+                {violations.map((v: any, i: number) => (
                   <TableRow key={v.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-mono">
                       {recordMap[v.record_id] ?? v.record_id ?? "N/A"}
@@ -293,8 +272,7 @@ export default function SoftwareLicenseDashboard() {
                     <TableCell className="py-2"><RiskBadge risk={v.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><ViolationStatusBadge status={v.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

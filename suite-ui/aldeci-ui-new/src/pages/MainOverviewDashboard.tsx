@@ -37,7 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
-// == Config ======================================================
+// ── Config ──────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -53,7 +53,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Fallback mock data ===========================================
+// ── Fallback mock data ───────────────────────────────────────────
 const MOCK_POSTURE = { score: 74, grade: "B", trend: "improving", previous_score: 71 };
 
 const MOCK_ALERT_STATS = {
@@ -104,7 +104,7 @@ const MOCK_FEEDS = [
   { name: "CISA KEV",         status: "active",   last_sync: "2026-04-17T08:05:00Z", ioc_count: 1148   },
 ];
 
-// == Colour helpers ===============================================
+// ── Colour helpers ───────────────────────────────────────────────
 const SEV_COLOUR: Record<string, string> = {
   critical: "#ef4444",
   high:     "#f97316",
@@ -145,7 +145,7 @@ function complianceBarColour(score: number) {
   return "bg-yellow-500";
 }
 
-// == Posture Gauge ================================================
+// ── Posture Gauge ────────────────────────────────────────────────
 function PostureGauge({ score, grade, trend }: { score: number; grade: string; trend: string }) {
   const data = [{ value: score, fill: scoreColour(score) }];
   const TrendIcon = trend === "improving" ? TrendingUp : trend === "declining" ? TrendingDown : Minus;
@@ -179,7 +179,7 @@ function PostureGauge({ score, grade, trend }: { score: number; grade: string; t
   );
 }
 
-// == Alert Severity Chart =========================================
+// ── Alert Severity Chart ─────────────────────────────────────────
 function AlertSeverityChart({ data }: { data: { severity: string; count: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={160}>
@@ -193,23 +193,16 @@ function AlertSeverityChart({ data }: { data: { severity: string; count: number 
           itemStyle={{ color: "#a1a1aa" }}
         />
         <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-          {data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            data.map((entry) => (
+          {data.map((entry) => (
             <Cell key={entry.severity} fill={SEV_COLOUR[entry.severity] ?? "#6b7280"} />
-          ))
-        )}
+          ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-// == KPI pill =====================================================
+// ── KPI pill ─────────────────────────────────────────────────────
 function KpiPill({ label, value, sub, colour }: { label: string; value: string | number; sub?: string; colour?: string }) {
   return (
     <div className="flex flex-col gap-0.5 rounded-lg border border-border/50 bg-zinc-900/60 px-4 py-3 min-w-[110px]">
@@ -220,7 +213,7 @@ function KpiPill({ label, value, sub, colour }: { label: string; value: string |
   );
 }
 
-// == Main component ===============================================
+// ── Main component ───────────────────────────────────────────────
 export default function MainOverviewDashboard() {
   const [posture, setPosture]     = useState<typeof MOCK_POSTURE | null>(null);
   const [alertStats, setAlerts]   = useState<typeof MOCK_ALERT_STATS | null>(null);
@@ -251,6 +244,7 @@ export default function MainOverviewDashboard() {
     setFeeds(     f.status === "fulfilled" ? (f.value.feeds ?? MOCK_FEEDS) : MOCK_FEEDS);
 
     setLastRefresh(new Date());
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -266,7 +260,7 @@ export default function MainOverviewDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-screen bg-background">
-      {/* == Header == */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
@@ -289,7 +283,7 @@ export default function MainOverviewDashboard() {
         </Button>
       </div>
 
-      {/* == Top KPI strip == */}
+      {/* ── Top KPI strip ── */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -304,7 +298,7 @@ export default function MainOverviewDashboard() {
         <KpiPill label="Compliant Frameworks" value={c.frameworks.filter(f => f.status === "compliant").length} sub={`of ${c.frameworks.length} total`} colour="text-green-400" />
       </motion.div>
 
-      {/* == Row 1: Posture gauge + Alert chart + Compliance bars == */}
+      {/* ── Row 1: Posture gauge + Alert chart + Compliance bars ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Posture Gauge */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
@@ -362,13 +356,13 @@ export default function MainOverviewDashboard() {
                     />
                   </div>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      {/* == Row 2: Top vulns + Incidents timeline == */}
+      {/* ── Row 2: Top vulns + Incidents timeline ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Top 5 Critical Vulnerabilities */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -381,7 +375,7 @@ export default function MainOverviewDashboard() {
               <CardDescription className="text-xs text-zinc-500">Highest priority by CVSS + EPSS + KEV</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <table role="table" className="w-full text-xs">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-zinc-800">
                     <th className="text-left px-4 py-2 text-zinc-500 font-medium">CVE</th>
@@ -394,7 +388,7 @@ export default function MainOverviewDashboard() {
                   {v.slice(0, 5).map((vuln, idx) => (
                     <tr key={vuln.id} className={cn("border-b border-zinc-800/50", idx % 2 === 0 ? "bg-zinc-900/30" : "")}>
                       <td className="px-4 py-2">
-                        <div className="font-mono text-red-300" role="status" aria-live="polite">{vuln.id}</div>
+                        <div className="font-mono text-red-300">{vuln.id}</div>
                         <div className="text-zinc-400 text-[10px] truncate max-w-[160px]">{vuln.title}</div>
                       </td>
                       <td className="px-4 py-2 text-zinc-400 hidden sm:table-cell">{vuln.asset}</td>
@@ -406,7 +400,7 @@ export default function MainOverviewDashboard() {
                       <td className="px-4 py-2 text-right">
                         {vuln.kev
                           ? <Zap className="w-3.5 h-3.5 text-red-400 inline" />
-                          : <span className="text-zinc-600">=</span>}
+                          : <span className="text-zinc-600">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -430,13 +424,7 @@ export default function MainOverviewDashboard() {
               <div className="relative flex flex-col gap-0">
                 {/* Timeline line */}
                 <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-700" />
-                {inc.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  inc.map((incident, idx) => (
+                {inc.map((incident, idx) => (
                   <motion.div
                     key={incident.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -460,21 +448,20 @@ export default function MainOverviewDashboard() {
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                         <span className="font-mono">{incident.id}</span>
-                        <span>=</span>
+                        <span>·</span>
                         <Clock className="w-3 h-3" />
                         <span>{timeAgo(incident.created_at)}</span>
                       </div>
                     </div>
                   </motion.div>
-                ))
-              )}
+                ))}
               </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      {/* == Row 3: Threat intel feed status == */}
+      {/* ── Row 3: Threat intel feed status ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="border-border/50 bg-zinc-900/60">
           <CardHeader className="pb-2">
@@ -488,13 +475,7 @@ export default function MainOverviewDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {fd.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                fd.map((feed) => (
+              {fd.map((feed) => (
                 <div
                   key={feed.name}
                   className={cn(
@@ -519,8 +500,7 @@ export default function MainOverviewDashboard() {
                     Synced {timeAgo(feed.last_sync)}
                   </span>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>

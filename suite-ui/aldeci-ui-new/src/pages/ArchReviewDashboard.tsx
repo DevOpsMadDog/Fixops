@@ -52,7 +52,6 @@ const implBadge = (s: string) => {
 
 export default function ArchReviewDashboard() {
   const [activeTab, setActiveTab] = useState<"reviews" | "findings" | "controls" | "gaps">("reviews");
-  const [error, setError] = useState<string | null>(null);
   const [filterReview, setFilterReview] = useState("all");
   const [showAddReview, setShowAddReview] = useState(false);
   const [showAddFinding, setShowAddFinding] = useState(false);
@@ -61,20 +60,16 @@ export default function ArchReviewDashboard() {
   const [liveReviews, setLiveReviews] = useState(reviews);
   const [liveFindings, setLiveFindings] = useState(findings);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(`${API_BASE}/reviews`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
+      .catch(() => {});
     fetch(`${API_BASE}/findings`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
+      .catch(() => {});
+  }, []);
 
   const totalReviews = reviews.length;
   const criticalFindings = findings.filter(f => f.severity === "critical").length;
@@ -87,13 +82,6 @@ export default function ArchReviewDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Architecture Security Reviews</h1>
@@ -150,25 +138,19 @@ export default function ArchReviewDashboard() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Review Name", "System", "Type", "Reviewer", "Findings", "Critical", "Score", "Risk", "Status", "Action"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {reviews.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    reviews.map(r => (
+                  {reviews.map(r => (
                     <tr key={r.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{r.review_name}</td>
                       <td className="px-4 py-3 text-gray-400 font-mono text-xs">{r.system_name}</td>
                       <td className="px-4 py-3"><span className="bg-purple-700 text-purple-100 text-xs px-2 py-0.5 rounded">{r.review_type.replace("_", " ")}</span></td>
                       <td className="px-4 py-3 text-gray-300">{r.reviewer}</td>
                       <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{r.finding_count}</span></td>
-                      <td className="px-4 py-3">{r.critical_count > 0 ? <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{r.critical_count}</span> : <span className="text-gray-500">=</span>}</td>
+                      <td className="px-4 py-3">{r.critical_count > 0 ? <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{r.critical_count}</span> : <span className="text-gray-500">—</span>}</td>
                       <td className="px-4 py-3 min-w-[120px]">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-700 rounded-full h-2">
@@ -181,8 +163,7 @@ export default function ArchReviewDashboard() {
                       <td className="px-4 py-3">{statusBadge(r.status)}</td>
                       <td className="px-4 py-3">{r.status !== "completed" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}</td>
                     </tr>
-                  ))
-                )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -197,31 +178,17 @@ export default function ArchReviewDashboard() {
                 <h2 className="font-semibold">Findings</h2>
                 <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterReview} onChange={e => setFilterReview(e.target.value)}>
                   <option value="all">All Reviews</option>
-                  {reviews.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
+                  {reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAddFinding(!showAddFinding)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">+ Add Finding</button>
-                  )}
             </div>
             {showAddFinding && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newFinding.review_id} onChange={e => setNewFinding({ ...newFinding, review_id: e.target.value })}>
-                  {reviews.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
+                  {reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Component" value={newFinding.component} onChange={e => setNewFinding({ ...newFinding, component: e.target.value })} />
-                  )}
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm col-span-2" placeholder="Finding title" value={newFinding.title} onChange={e => setNewFinding({ ...newFinding, title: e.target.value })} />
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newFinding.severity} onChange={e => setNewFinding({ ...newFinding, severity: e.target.value })}>
                   {["critical", "high", "medium", "low"].map(s => <option key={s} value={s}>{s}</option>)}
@@ -234,13 +201,7 @@ export default function ArchReviewDashboard() {
               </div>
             )}
             <div className="divide-y divide-gray-700">
-              {filteredFindings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filteredFindings.map(f => (
+              {filteredFindings.map(f => (
                 <div key={f.id} className="p-4 hover:bg-gray-750">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -255,7 +216,7 @@ export default function ArchReviewDashboard() {
                     <div>{statusBadge(f.status)}</div>
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         )}
@@ -267,29 +228,16 @@ export default function ArchReviewDashboard() {
               <h2 className="font-semibold">Security Controls</h2>
               <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={filterReview} onChange={e => setFilterReview(e.target.value)}>
                 <option value="all">All Reviews</option>
-                {reviews.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
+                {reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
               </select>
             </div>
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
                   <tr>{["Control", "Domain", "Implementation", "Effectiveness", "Gaps"].map(h => <th key={h} className="text-left px-4 py-2">{h}</th>)}</tr>
-                )}
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {filteredControls.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    filteredControls.map(c => (
+                  {filteredControls.map(c => (
                     <tr key={c.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{c.control_name}</td>
                       <td className="px-4 py-3"><span className="bg-teal-700 text-teal-100 text-xs px-2 py-0.5 rounded">{c.domain.replace("_", " ")}</span></td>
@@ -304,7 +252,7 @@ export default function ArchReviewDashboard() {
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{c.gaps || <span className="text-green-500">None</span>}</td>
                     </tr>
-                  )))}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -315,16 +263,10 @@ export default function ArchReviewDashboard() {
         {activeTab === "gaps" && (
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700">
-              <h2 className="font-semibold">Control Gaps = Not Implemented (sorted by effectiveness asc)</h2>
+              <h2 className="font-semibold">Control Gaps — Not Implemented (sorted by effectiveness asc)</h2>
             </div>
             <div className="divide-y divide-gray-700">
-              {gapControls.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                gapControls.map(c => (
+              {gapControls.map(c => (
                 <div key={c.id} className="p-4 flex items-center gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -338,13 +280,13 @@ export default function ArchReviewDashboard() {
                     <div className="text-xs text-gray-400 mb-1">Effectiveness</div>
                     <div className="flex items-center gap-2">
                       <div className="w-24 bg-gray-700 rounded-full h-2">
-                        <div className="h-2 rounded-full bg-red-500" style={{ width: `${c.effectiveness}%` }} / role="status" aria-live="polite">
+                        <div className="h-2 rounded-full bg-red-500" style={{ width: `${c.effectiveness}%` }} />
                       </div>
                       <span className="text-red-400 font-bold text-sm">{c.effectiveness}</span>
                     </div>
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </div>
         )}

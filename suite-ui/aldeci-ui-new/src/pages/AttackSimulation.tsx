@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Target, Clock, AlertTriangle, RefreshCw, Play, Eye } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,12 +37,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const SIMULATIONS = [
   { name: "Q2 Full BAS Run",            type: "BAS",              scope: "All assets",           target: "Enterprise",     status: "completed", started: "2026-04-14", findings: 28 },
-  { name: "Purple Team = Ransomware",   type: "purple_team",      scope: "Endpoint + Lateral",   target: "Production",     status: "completed", started: "2026-04-12", findings: 14 },
-  { name: "CISO Tabletop = BEC",        type: "tabletop",         scope: "Email + Auth",         target: "Executives",     status: "completed", started: "2026-04-10", findings: 6  },
+  { name: "Purple Team — Ransomware",   type: "purple_team",      scope: "Endpoint + Lateral",   target: "Production",     status: "completed", started: "2026-04-12", findings: 14 },
+  { name: "CISO Tabletop — BEC",        type: "tabletop",         scope: "Email + Auth",         target: "Executives",     status: "completed", started: "2026-04-10", findings: 6  },
   { name: "External Pentest Q1",        type: "penetration_test", scope: "Internet-facing",      target: "Web + API",      status: "completed", started: "2026-03-28", findings: 19 },
   { name: "Cloud Privilege Escalation", type: "BAS",              scope: "AWS + GCP",            target: "Cloud infra",    status: "running",   started: "2026-04-16", findings: 4  },
   { name: "Insider Threat Simulation",  type: "purple_team",      scope: "Internal network",     target: "HR + Finance",   status: "scheduled", started: "2026-04-18", findings: 0  },
@@ -67,11 +67,11 @@ const MITRE_TACTICS = [
 const TIMELINE = [
   { tactic: "Initial Access",    technique: "T1566.001", name: "Spearphishing Attachment", success: true,  detected: true,  detectionTime: "2m 14s" },
   { tactic: "Execution",         technique: "T1204.002", name: "Malicious File",           success: true,  detected: true,  detectionTime: "0m 47s" },
-  { tactic: "Persistence",       technique: "T1053.005", name: "Scheduled Task",           success: true,  detected: false, detectionTime: "="      },
-  { tactic: "Privilege Esc.",    technique: "T1055.012", name: "Process Hollowing",        success: true,  detected: false, detectionTime: "="      },
+  { tactic: "Persistence",       technique: "T1053.005", name: "Scheduled Task",           success: true,  detected: false, detectionTime: "—"      },
+  { tactic: "Privilege Esc.",    technique: "T1055.012", name: "Process Hollowing",        success: true,  detected: false, detectionTime: "—"      },
   { tactic: "Defense Evasion",   technique: "T1027.001", name: "Binary Padding",           success: false, detected: true,  detectionTime: "1m 02s" },
   { tactic: "Credential Access", technique: "T1003.001", name: "LSASS Memory",             success: true,  detected: true,  detectionTime: "4m 38s" },
-  { tactic: "Lateral Movement",  technique: "T1021.002", name: "SMB/Admin Shares",         success: true,  detected: false, detectionTime: "="      },
+  { tactic: "Lateral Movement",  technique: "T1021.002", name: "SMB/Admin Shares",         success: true,  detected: false, detectionTime: "—"      },
   { tactic: "Exfiltration",      technique: "T1041",     name: "Exfil Over C2 Channel",   success: false, detected: true,  detectionTime: "0m 22s" },
 ];
 
@@ -79,7 +79,7 @@ const FINDINGS = [
   { id: "F-SIM-001", severity: "Critical", technique: "T1053.005", name: "Scheduled task persistence not detected", dwellTime: "72h", detectionMethod: "none"        },
   { id: "F-SIM-002", severity: "Critical", technique: "T1055.012", name: "Process hollowing evaded EDR",             dwellTime: "48h", detectionMethod: "none"        },
   { id: "F-SIM-003", severity: "High",     technique: "T1021.002", name: "SMB lateral movement undetected",          dwellTime: "18h", detectionMethod: "none"        },
-  { id: "F-SIM-004", severity: "High",     technique: "T1003.001", name: "LSASS dump = slow detection (4m38s)",      dwellTime: "6h",  detectionMethod: "EDR alert"   },
+  { id: "F-SIM-004", severity: "High",     technique: "T1003.001", name: "LSASS dump — slow detection (4m38s)",      dwellTime: "6h",  detectionMethod: "EDR alert"   },
   { id: "F-SIM-005", severity: "High",     technique: "T1078.004", name: "Valid cloud credentials abused",           dwellTime: "24h", detectionMethod: "SIEM"        },
   { id: "F-SIM-006", severity: "Medium",   technique: "T1562.001", name: "AV disabled without alert",                dwellTime: "12h", detectionMethod: "none"        },
   { id: "F-SIM-007", severity: "Medium",   technique: "T1087.002", name: "Domain account enumeration",               dwellTime: "2h",  detectionMethod: "SIEM"        },
@@ -88,7 +88,7 @@ const FINDINGS = [
   { id: "F-SIM-010", severity: "Low",      technique: "T1016",     name: "Network config enumeration",               dwellTime: "0.5h",detectionMethod: "EDR alert"   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function SimTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -124,13 +124,12 @@ function coverageColor(pct: number) {
   return "bg-red-500/80 text-red-100";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AttackSimulation() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -164,7 +163,7 @@ export default function AttackSimulation() {
   const detectionRate = totalSteps > 0 ? `${((detectedSteps / totalSteps) * 100).toFixed(1)}%` : "73.4%";
   const criticalFindings = scenariosList.reduce((acc: number, s: any) => acc + (s.findings ?? 0), 0) || 18;
 
-  // Map live scenarios to table rows shape = fall back to SIMULATIONS mock
+  // Map live scenarios to table rows shape — fall back to SIMULATIONS mock
   const tableRows = liveData?.scenarios
     ? scenariosList.map((s: any) => ({
         name:     s.name,
@@ -172,18 +171,10 @@ export default function AttackSimulation() {
         scope:    s.target_assets?.join(", ") || "All assets",
         target:   s.complexity ?? "medium",
         status:   "completed",
-        started:  s.created_at?.slice(0, 10) ?? "=",
+        started:  s.created_at?.slice(0, 10) ?? "—",
         findings: s.objectives?.length ?? 0,
       }))
     : SIMULATIONS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -223,7 +214,7 @@ export default function AttackSimulation() {
             <Target className="h-4 w-4 text-purple-400" />
             Simulation Runs
           </CardTitle>
-          <CardDescription className="text-xs">All simulation campaigns = click View to inspect findings</CardDescription>
+          <CardDescription className="text-xs">All simulation campaigns — click View to inspect findings</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -241,13 +232,7 @@ export default function AttackSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableRows.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  tableRows.map((row) => (
+                {tableRows.map((row) => (
                   <TableRow key={row.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[180px] truncate">{row.name}</TableCell>
                     <TableCell className="py-2.5"><SimTypeBadge type={row.type} /></TableCell>
@@ -255,15 +240,14 @@ export default function AttackSimulation() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.target}</TableCell>
                     <TableCell className="py-2.5"><StatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{row.started}</TableCell>
-                    <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{row.findings || "="}</TableCell>
+                    <TableCell className="text-xs tabular-nums py-2.5 text-right font-bold">{row.findings || "—"}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" disabled={row.status !== "completed"}>
                         <Eye className="h-3 w-3 mr-1" /> View
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -278,27 +262,21 @@ export default function AttackSimulation() {
             MITRE ATT&CK Coverage
           </CardTitle>
           <CardDescription className="text-xs">
-            Detection coverage by tactic = <span className="text-red-400">red &lt;50%</span>, <span className="text-amber-400">yellow 50-75%</span>, <span className="text-green-400">green &gt;75%</span>
+            Detection coverage by tactic — <span className="text-red-400">red &lt;50%</span>, <span className="text-amber-400">yellow 50-75%</span>, <span className="text-green-400">green &gt;75%</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-11">
-            {MITRE_TACTICS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MITRE_TACTICS.map((t) => (
+            {MITRE_TACTICS.map((t) => (
               <div
                 key={t.tactic}
-                )))}
+                className={cn("rounded-lg p-2.5 text-center cursor-default transition-opacity hover:opacity-80", coverageColor(t.pct))}
                 title={`${t.tactic}: ${t.pct}% coverage`}
               >
                 <div className="text-[10px] font-semibold leading-tight mb-1">{t.short}</div>
                 <div className="text-sm font-bold tabular-nums">{t.pct}%</div>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -310,19 +288,13 @@ export default function AttackSimulation() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Clock className="h-4 w-4 text-cyan-400" />
-              Attack Path Timeline = Q2 Full BAS Run
+              Attack Path Timeline — Q2 Full BAS Run
             </CardTitle>
             <CardDescription className="text-xs">Step-by-step execution trace for the latest simulation</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="relative space-y-0">
-              {TIMELINE.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                TIMELINE.map((event, idx) => (
+              {TIMELINE.map((event, idx) => (
                 <div key={event.technique} className="flex gap-3">
                   {/* vertical line */}
                   <div className="flex flex-col items-center">
@@ -346,7 +318,7 @@ export default function AttackSimulation() {
                     <div className="text-[11px] text-muted-foreground mt-0.5">{event.name}</div>
                   </div>
                 </div>
-              )))}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -358,7 +330,7 @@ export default function AttackSimulation() {
               <AlertTriangle className="h-4 w-4 text-amber-400" />
               Finding Prioritization
             </CardTitle>
-            <CardDescription className="text-xs">Top findings by remediation priority = sorted by severity + dwell time</CardDescription>
+            <CardDescription className="text-xs">Top findings by remediation priority — sorted by severity + dwell time</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -372,13 +344,7 @@ export default function AttackSimulation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {FINDINGS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  FINDINGS.map((f) => (
+                {FINDINGS.map((f) => (
                   <TableRow key={f.id} className="hover:bg-muted/30">
                     <TableCell className="text-[10px] font-mono py-2">{f.id}</TableCell>
                     <TableCell className="py-2"><SeverityBadge sev={f.severity} /></TableCell>
@@ -392,7 +358,7 @@ export default function AttackSimulation() {
                       </Badge>
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

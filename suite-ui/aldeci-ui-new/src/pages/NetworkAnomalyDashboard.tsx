@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock Data ==================================================
+// ── Mock Data ──────────────────────────────────────────────────
 
 const MOCK_ANOMALIES = [
   { id: "anm-001", segment: "DMZ", protocol: "TCP", anomaly_type: "spike", severity: "critical", deviation_pct: 340, baseline: 1200, observed: 5280, detected_at: "2026-04-16T10:32:00Z", resolved: false },
@@ -56,7 +56,7 @@ const MOCK_TRAFFIC = {
   "OT Network": [800, 820, 810, 790, 230, 350, 540, 700],
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/30",
@@ -98,7 +98,7 @@ function BytesBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function NetworkAnomalyDashboard() {
   const [resolvedSet, setResolvedSet] = useState<Set<string>>(new Set(["anm-006"]));
@@ -115,9 +115,9 @@ export default function NetworkAnomalyDashboard() {
   };
 
   useEffect(() => {
-    loadData();}, []);
+    loadData();
+  }, []);
   const [detectForm, setDetectForm] = useState({ segment: "DMZ", protocol: "TCP", bytes: "", packets: "" });
-  const [loading, setLoading] = useState(true);
 
   const anomalies = MOCK_ANOMALIES.filter(a => !resolvedSet.has(a.id));
   const activeAnomalies = anomalies.length;
@@ -133,14 +133,6 @@ export default function NetworkAnomalyDashboard() {
 
   const maxSev = Math.max(...sevDist.map(s => s.count), 1);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       <PageHeader
@@ -150,9 +142,9 @@ export default function NetworkAnomalyDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
         </div>
       )}
 
@@ -211,7 +203,7 @@ export default function NetworkAnomalyDashboard() {
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Active Anomalies</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table role="table" className="w-full text-xs">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-700">
                       {["Segment", "Protocol", "Type", "Severity", "Deviation", "Baseline", "Observed", "Detected", ""].map(h => (
@@ -259,13 +251,7 @@ export default function NetworkAnomalyDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-1.5 h-28">
-                {trafficData.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  trafficData.map((v, i) => {
+                {trafficData.map((v, i) => {
                   const pct = (v / maxTraffic) * 100;
                   const isSpike = v > maxTraffic * 0.6;
                   return (
@@ -274,8 +260,7 @@ export default function NetworkAnomalyDashboard() {
                       <span className="text-[9px] text-zinc-500">T{i + 1}</span>
                     </div>
                   );
-                })
-                )}
+                })}
               </div>
             </CardContent>
           </Card>
@@ -287,13 +272,7 @@ export default function NetworkAnomalyDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Severity Distribution</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {sevDist.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                sevDist.map(s => (
+              {sevDist.map(s => (
                 <div key={s.label}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="capitalize text-zinc-300">{s.label}</span>
@@ -304,8 +283,7 @@ export default function NetworkAnomalyDashboard() {
                       style={{ width: `${(s.count / maxSev) * 100}%` }} />
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </CardContent>
           </Card>
 
@@ -313,13 +291,7 @@ export default function NetworkAnomalyDashboard() {
           <Card className="bg-gray-800 border-zinc-700">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-zinc-200">Baseline Health</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {MOCK_BASELINES.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_BASELINES.map(b => (
+              {MOCK_BASELINES.map(b => (
                 <div key={b.id} className="border border-zinc-700 rounded-lg p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-300">{b.segment}</span>
@@ -327,13 +299,12 @@ export default function NetworkAnomalyDashboard() {
                   </div>
                   <BytesBar value={b.avg_bytes} max={20000} />
                   <div className="flex justify-between text-[10px] text-zinc-500">
-                    <span>=={b.std_dev.toLocaleString()}</span>
+                    <span>σ={b.std_dev.toLocaleString()}</span>
                     <Badge className="text-[9px] border border-zinc-600 text-zinc-400">{b.sample_count.toLocaleString()} samples</Badge>
                   </div>
                   <p className="text-[10px] text-zinc-600">Baseline: {b.baseline_date}</p>
                 </div>
-              ))
-            )}
+              ))}
             </CardContent>
           </Card>
         </div>

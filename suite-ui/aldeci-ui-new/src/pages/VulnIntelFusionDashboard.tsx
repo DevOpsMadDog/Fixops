@@ -1,7 +1,7 @@
 /**
  * Vulnerability Intelligence Fusion Dashboard
  *
- * Multi-source CVE intelligence fusion = CVSS, EPSS, KEV, fusion scoring.
+ * Multi-source CVE intelligence fusion — CVSS, EPSS, KEV, fusion scoring.
  *   1. KPI cards: total CVEs, KEV count (alert), critical count, avg fusion score
  *   2. CVE table (cvss badge, epss, kev badge, severity, fusion score bar, source count, affected assets)
  *   3. Source ingest panel (per-CVE source contributions)
@@ -42,7 +42,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data =================================================================
+// ── Mock data ─────────────────────────────────────────────────────────────────
 
 const MOCK_CVES = [
   { cve_id: "CVE-2024-3400",  cvss: 10.0, epss: 0.972, kev: true,  severity: "critical", fusion_score: 98, source_count: 5, affected_assets: 12 },
@@ -95,7 +95,7 @@ const CRITICAL_COUNT = MOCK_CVES.filter(c => c.severity === "critical").length;
 const AVG_FUSION     = (MOCK_CVES.reduce((s, c) => s + c.fusion_score, 0) / MOCK_CVES.length).toFixed(1);
 const PRIORITY_QUEUE = [...MOCK_CVES].sort((a, b) => b.fusion_score - a.fusion_score).slice(0, 10);
 
-// == Helpers ===================================================================
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function CvssBadge({ score }: { score: number }) {
   const cls = score >= 9 ? "border-red-500/30 text-red-400 bg-red-500/10"
@@ -133,17 +133,6 @@ function FusionBar({ score }: { score: number }) {
   const color = score >= 90 ? "bg-red-500" : score >= 70 ? "bg-orange-500" : score >= 50 ? "bg-yellow-500" : "bg-green-500";
   return (
     <div className="flex items-center gap-2">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full", color)} style={{ width: `${score}%` }} />
       </div>
@@ -152,7 +141,7 @@ function FusionBar({ score }: { score: number }) {
   );
 }
 
-// == Component =================================================================
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function VulnIntelFusionDashboard() {
   const [selectedCve, setSelectedCve] = useState<string>("CVE-2024-3400");
@@ -160,8 +149,7 @@ export default function VulnIntelFusionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => {});
   }, []);
   const [form, setForm] = useState({
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",
@@ -182,19 +170,11 @@ export default function VulnIntelFusionDashboard() {
   const sources = MOCK_SOURCES[selectedCve] ?? [];
   const assets  = MOCK_ASSETS[selectedCve] ?? [];
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-6">
       <PageHeader
         title="Vulnerability Intelligence Fusion"
-        description="Multi-source CVE intelligence fusion = CVSS, EPSS, CISA KEV, and composite scoring"
+        description="Multi-source CVE intelligence fusion — CVSS, EPSS, CISA KEV, and composite scoring"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing}>
@@ -276,13 +256,7 @@ export default function VulnIntelFusionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_CVES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  MOCK_CVES.map(c => (
+                {MOCK_CVES.map(c => (
                   <TableRow
                     key={c.cve_id}
                     className={cn("hover:bg-muted/30 cursor-pointer", selectedCve === c.cve_id && "bg-muted/20")}
@@ -294,7 +268,7 @@ export default function VulnIntelFusionDashboard() {
                     <TableCell className="py-2">
                       {c.kev
                         ? <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">KEV</Badge>
-                        : <span className="text-[10px] text-muted-foreground">=</span>}
+                        : <span className="text-[10px] text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="py-2"><SeverityBadge s={c.severity} /></TableCell>
                     <TableCell className="py-2 min-w-[120px]"><FusionBar score={c.fusion_score} /></TableCell>
@@ -303,8 +277,7 @@ export default function VulnIntelFusionDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{c.affected_assets}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -338,13 +311,7 @@ export default function VulnIntelFusionDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sources.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                        <p className="text-lg font-medium">No data available</p>
-                        <p className="text-sm">Data will appear here once available</p>
-                      </div>
-                    ) : (
-                      sources.map((s, i) => (
+                    {sources.map((s, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="py-2 text-[11px] font-semibold">{s.source_name}</TableCell>
                         <TableCell className="py-2"><CvssBadge score={s.cvss} /></TableCell>
@@ -352,12 +319,11 @@ export default function VulnIntelFusionDashboard() {
                         <TableCell className="py-2">
                           {s.kev
                             ? <Badge className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">KEV</Badge>
-                            : <span className="text-[10px] text-muted-foreground">=</span>}
+                            : <span className="text-[10px] text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="py-2 text-[10px] text-muted-foreground">{s.vendor}<br /><span className="font-mono text-[9px]">{s.version}</span></TableCell>
                       </TableRow>
-                    ))
-                  )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -391,13 +357,7 @@ export default function VulnIntelFusionDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {assets.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                        <p className="text-lg font-medium">No data available</p>
-                        <p className="text-sm">Data will appear here once available</p>
-                      </div>
-                    ) : (
-                      assets.map((a, i) => (
+                    {assets.map((a, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="py-2 font-mono text-[11px]">{a.asset_name}</TableCell>
                         <TableCell className="py-2"><AssetTypeBadge t={a.asset_type} /></TableCell>
@@ -408,7 +368,7 @@ export default function VulnIntelFusionDashboard() {
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    )))}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -428,17 +388,11 @@ export default function VulnIntelFusionDashboard() {
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">top 10 by fusion score</Badge>
           </div>
-          <CardDescription className="text-xs">Ordered by composite fusion score = address in this sequence</CardDescription>
+          <CardDescription className="text-xs">Ordered by composite fusion score — address in this sequence</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {PRIORITY_QUEUE.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              PRIORITY_QUEUE.map((c, i) => (
+            {PRIORITY_QUEUE.map((c, i) => (
               <div
                 key={c.cve_id}
                 className={cn(
@@ -460,7 +414,7 @@ export default function VulnIntelFusionDashboard() {
                 </div>
                 <span className="text-[10px] text-muted-foreground shrink-0">{c.affected_assets} assets</span>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

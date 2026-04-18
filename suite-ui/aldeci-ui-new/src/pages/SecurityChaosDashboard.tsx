@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_experiments: 48,
@@ -68,7 +68,7 @@ const MOCK_OBSERVATIONS = [
   { id: "ob-007", observation_type: "response_latency",     severity: "low",      experiment_id: "ex-008", detail: "SOAR playbook triggered after 4 min" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ExperimentStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -85,7 +85,7 @@ function ExperimentStatusBadge({ status }: { status: string }) {
 }
 
 function ResilienceScoreBadge({ score }: { score: number }) {
-  if (score === 0) return <span className="text-[11px] text-muted-foreground">=</span>;
+  if (score === 0) return <span className="text-[11px] text-muted-foreground">—</span>;
   const cls =
     score >= 80 ? "border-green-500/30 text-green-400 bg-green-500/10" :
     score >= 60 ? "border-amber-500/30 text-amber-400 bg-amber-500/10" :
@@ -113,13 +113,16 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityChaosDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; experiments: any[] | null; observations: any[] | null; }>({ stats: null, experiments: null, observations: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    experiments: any[] | null;
+    observations: any[] | null;
+  }>({ stats: null, experiments: null, observations: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -147,14 +150,6 @@ export default function SecurityChaosDashboard() {
   const stats        = liveData.stats        ?? MOCK_STATS;
   const experiments  = liveData.experiments  ?? MOCK_EXPERIMENTS;
   const observations = liveData.observations ?? MOCK_OBSERVATIONS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -210,13 +205,7 @@ export default function SecurityChaosDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {experiments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  experiments.map((ex: any, i: number) => (
+                {experiments.map((ex: any, i: number) => (
                   <TableRow key={ex.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ex.id}</TableCell>
                     <TableCell className="py-2 text-[11px] capitalize">{(ex.experiment_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -225,8 +214,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2"><ResilienceScoreBadge score={ex.resilience_score ?? 0} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ex.started_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -260,13 +248,7 @@ export default function SecurityChaosDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {observations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  observations.map((ob: any, i: number) => (
+                {observations.map((ob: any, i: number) => (
                   <TableRow key={ob.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ob.id}</TableCell>
                     <TableCell className="py-2 text-[11px] capitalize">{(ob.observation_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -274,8 +256,7 @@ export default function SecurityChaosDashboard() {
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ob.experiment_id}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-xs truncate">{ob.detail}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

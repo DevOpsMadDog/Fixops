@@ -67,10 +67,10 @@ export default function AccessAnomalyDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
         </div>
       )}
       <div className="flex items-center justify-between">
@@ -80,7 +80,7 @@ export default function AccessAnomalyDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Impossible travel, off-hours access, and privilege anomalies</p>
         </div>
-        <button onClick={() => { setError(null); fetchData(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm" aria-label="Refresh data">
+        <button onClick={() => { setError(null); fetchData(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -111,13 +111,7 @@ export default function AccessAnomalyDashboard() {
           </label>
         </div>
         <div className="space-y-3">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            filtered.map(a => (
+          {filtered.map(a => (
             <div key={a.id} className={`p-4 rounded-lg border ${a.resolved ? "border-gray-700 bg-gray-700/10 opacity-60" : "border-gray-600 bg-gray-700/30"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -137,8 +131,7 @@ export default function AccessAnomalyDashboard() {
                 </div>
               </div>
             </div>
-          ))
-        )}
+          ))}
         </div>
       </div>
     </div>

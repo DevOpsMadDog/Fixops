@@ -1,7 +1,7 @@
 /**
- * SCA Dashboard = Software Composition Analysis
+ * SCA Dashboard — Software Composition Analysis
  *
- * Open-source dependency scanning = vulnerable libs, license violations.
+ * Open-source dependency scanning — vulnerable libs, license violations.
  *   1. KPIs: Projects, Scans, Vulnerable Dependencies, License Violations
  *   2. Projects table (language, last scan date, vuln count, risk level)
  *
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_PROJECTS = [
   { id: "PRJ-001", name: "api-gateway",      language: "Go",         last_scan: "2026-04-16", vuln_count: 3,  risk_level: "medium" },
@@ -57,7 +57,7 @@ const MOCK_STATS = {
   license_violations: 9,
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -89,17 +89,16 @@ function LangBadge({ lang }: { lang: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SCADashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => { setError('Failed to load data'); });
+      .catch(() => {});
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;
@@ -109,18 +108,9 @@ export default function SCADashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false))
+      .catch(() => {})
       .finally(() => setRefreshing(false));
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -130,7 +120,7 @@ export default function SCADashboard() {
       className="flex flex-col gap-6"
     >
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); handleRefresh(); }}
@@ -182,13 +172,7 @@ export default function SCADashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  projects.map((proj: any) => (
+                {projects.map((proj: any) => (
                   <TableRow key={proj.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-xs text-foreground">{proj.name}</TableCell>
                     <TableCell className="py-2">
@@ -217,8 +201,7 @@ export default function SCADashboard() {
                       <RiskBadge level={proj.risk_level} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

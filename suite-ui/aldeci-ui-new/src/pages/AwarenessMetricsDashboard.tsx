@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_METRICS = [
   { id: "met-001", metric_type: "Phishing Click Rate",       department: "Engineering",    value: 2.1,  period: "Q1-2026", sample_size: 340,  recorded_at: "2026-04-01T00:00:00Z" },
@@ -55,11 +55,11 @@ const MOCK_METRICS = [
 const MOCK_STATS = {
   metrics_tracked: 48,
   departments: 9,
-  best_metric: "MFA Enrollment = Executive: 100%",
-  worst_metric: "Training Completion = Marketing: 62%",
+  best_metric: "MFA Enrollment — Executive: 100%",
+  worst_metric: "Training Completion — Marketing: 62%",
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function MetricTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -80,12 +80,11 @@ function formatTs(ts: string) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AwarenessMetricsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveMetrics, setLiveMetrics] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]   = useState<any | null>(null);
 
   useEffect(() => {
@@ -95,22 +94,13 @@ export default function AwarenessMetricsDashboard() {
     ]).then(([metricsRes, statsRes]) => {
       if (metricsRes.status === "fulfilled") setLiveMetrics(metricsRes.value?.metrics ?? metricsRes.value ?? null);
       if (statsRes.status === "fulfilled")   setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const metrics = liveMetrics ?? MOCK_METRICS;
   const stats   = liveStats   ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -121,7 +111,7 @@ export default function AwarenessMetricsDashboard() {
     >
       <PageHeader
         title="Awareness Metrics"
-        description="Security awareness program metrics = phishing click rates, training completion, MFA adoption by department"
+        description="Security awareness program metrics — phishing click rates, training completion, MFA adoption by department"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -167,35 +157,28 @@ export default function AwarenessMetricsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {metrics.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  metrics.map((metric: any, i: number) => (
+                {metrics.map((metric: any, i: number) => (
                   <TableRow key={metric.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
-                      <MetricTypeBadge type={metric.metric_type ?? "="} />
+                      <MetricTypeBadge type={metric.metric_type ?? "—"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] font-semibold text-green-300">
-                      {metric.department ?? "="}
+                      {metric.department ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-teal-300">
-                      {metric.value != null ? `${metric.value}%` : "="}
+                      {metric.value != null ? `${metric.value}%` : "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {metric.period ?? "="}
+                      {metric.period ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {metric.sample_size ?? "="}
+                      {metric.sample_size ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {metric.recorded_at ? formatTs(metric.recorded_at) : "="}
+                      {metric.recorded_at ? formatTs(metric.recorded_at) : "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

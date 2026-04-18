@@ -3,8 +3,8 @@
  *
  * Data sensitivity classification and DLP oversight.
  *   1. KPIs: Classified Items, PII Detected, Unclassified, Policy Violations
- *   2. Classification breakdown (5 levels) = horizontal bars
- *   3. Data type distribution (8 types) = colored rows
+ *   2. Classification breakdown (5 levels) — horizontal bars
+ *   3. Data type distribution (8 types) — colored rows
  *   4. Violation table (12 rows)
  *   5. Recent scan results (6 scan cards)
  *
@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, ShieldAlert, AlertTriangle, Search, RefreshCw, FileText, Lock } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const CLASSIFICATION_LEVELS = [
   { level: "TOP SECRET",  count: 1_247,   pct: 0.8,  color: "bg-red-600",    text: "text-red-500",    border: "border-red-500/30" },
@@ -50,14 +50,14 @@ const CLASSIFICATION_LEVELS = [
 ];
 
 const DATA_TYPES = [
-  { type: "PII",         count: 23_847, icon: "=", color: "text-red-400",    bar: "bg-red-500"    },
-  { type: "PHI",         count: 8_124,  icon: "=", color: "text-pink-400",   bar: "bg-pink-500"   },
-  { type: "PCI",         count: 4_391,  icon: "=", color: "text-amber-400",  bar: "bg-amber-500"  },
-  { type: "Credentials", count: 1_203,  icon: "=", color: "text-red-500",    bar: "bg-red-600"    },
-  { type: "IP / Source", count: 12_882, icon: "==", color: "text-purple-400", bar: "bg-purple-500" },
-  { type: "Classified",  count: 9_659,  icon: "=", color: "text-orange-400", bar: "bg-orange-500" },
-  { type: "General",     count: 74_321, icon: "=", color: "text-blue-400",   bar: "bg-blue-500"   },
-  { type: "Unknown",     count: 13_847, icon: "=", color: "text-muted-foreground", bar: "bg-muted-foreground" },
+  { type: "PII",         count: 23_847, icon: "👤", color: "text-red-400",    bar: "bg-red-500"    },
+  { type: "PHI",         count: 8_124,  icon: "🏥", color: "text-pink-400",   bar: "bg-pink-500"   },
+  { type: "PCI",         count: 4_391,  icon: "💳", color: "text-amber-400",  bar: "bg-amber-500"  },
+  { type: "Credentials", count: 1_203,  icon: "🔑", color: "text-red-500",    bar: "bg-red-600"    },
+  { type: "IP / Source", count: 12_882, icon: "⚙️", color: "text-purple-400", bar: "bg-purple-500" },
+  { type: "Classified",  count: 9_659,  icon: "🔒", color: "text-orange-400", bar: "bg-orange-500" },
+  { type: "General",     count: 74_321, icon: "📄", color: "text-blue-400",   bar: "bg-blue-500"   },
+  { type: "Unknown",     count: 13_847, icon: "❓", color: "text-muted-foreground", bar: "bg-muted-foreground" },
 ];
 
 const VIOLATIONS = [
@@ -76,7 +76,7 @@ const VIOLATIONS = [
 ];
 
 const SCANS = [
-  { name: "S3 Full Bucket Scan",       scope: "AWS S3 = all buckets",    itemsScanned: 284_112, violations: 47, scanTime: "4m 12s", status: "completed" },
+  { name: "S3 Full Bucket Scan",       scope: "AWS S3 — all buckets",    itemsScanned: 284_112, violations: 47, scanTime: "4m 12s", status: "completed" },
   { name: "Email Archive DLP",         scope: "Exchange Online archive",  itemsScanned: 1_204_891, violations: 89, scanTime: "18m 04s", status: "completed" },
   { name: "Endpoint File Crawler",     scope: "Windows endpoints (412)",  itemsScanned: 9_281_444, violations: 34, scanTime: "1h 02m", status: "completed" },
   { name: "GitHub Secrets Scan",       scope: "All org repos",           itemsScanned: 48_221, violations: 12, scanTime: "2m 38s", status: "completed" },
@@ -84,7 +84,7 @@ const SCANS = [
   { name: "SharePoint Content Audit",  scope: "SharePoint Online",       itemsScanned: 0, violations: 0, scanTime: "--", status: "scheduled" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -142,13 +142,12 @@ function ScanStatusBadge({ status }: { status: string }) {
 
 const MAX_TYPE_COUNT = Math.max(...DATA_TYPES.map(d => d.count));
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DataClassificationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -159,17 +158,10 @@ export default function DataClassificationDashboard() {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const assets = assetsResult.status === "fulfilled" ? assetsResult.value : null;
       if (stats || assets) {
-        setLiveData({ stats, assets });}
+        setLiveData({ stats, assets });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -212,13 +204,7 @@ export default function DataClassificationDashboard() {
             <CardDescription className="text-xs">Data items by sensitivity level</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {CLASSIFICATION_LEVELS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              CLASSIFICATION_LEVELS.map((lvl) => (
+            {CLASSIFICATION_LEVELS.map((lvl) => (
               <div key={lvl.level} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -238,8 +224,7 @@ export default function DataClassificationDashboard() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -253,13 +238,7 @@ export default function DataClassificationDashboard() {
             <CardDescription className="text-xs">Finding counts by data category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {DATA_TYPES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              DATA_TYPES.map((d) => (
+            {DATA_TYPES.map((d) => (
               <div key={d.type} className="flex items-center gap-3">
                 <span className="text-sm w-4 shrink-0">{d.icon}</span>
                 <span className={cn("text-xs font-medium w-24 shrink-0", d.color)}>{d.type}</span>
@@ -275,8 +254,7 @@ export default function DataClassificationDashboard() {
                   {d.count.toLocaleString()}
                 </span>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -310,13 +288,7 @@ export default function DataClassificationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {VIOLATIONS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  VIOLATIONS.map((row, i) => (
+                {VIOLATIONS.map((row, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{row.user}</TableCell>
                     <TableCell className="py-2.5"><DataTypeBadge type={row.dataType} /></TableCell>
@@ -343,8 +315,7 @@ export default function DataClassificationDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -362,13 +333,7 @@ export default function DataClassificationDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {SCANS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              SCANS.map((scan, i) => (
+            {SCANS.map((scan, i) => (
               <div
                 key={i}
                 className="rounded-lg border border-border bg-muted/10 p-4 flex flex-col gap-2 hover:bg-muted/20 transition-colors"
@@ -382,7 +347,7 @@ export default function DataClassificationDashboard() {
                   <div className="flex flex-col gap-0.5">
                     <span className="text-muted-foreground text-[10px]">Items scanned</span>
                     <span className="font-bold tabular-nums">
-                      {scan.itemsScanned > 0 ? scan.itemsScanned.toLocaleString() : "="}
+                      {scan.itemsScanned > 0 ? scan.itemsScanned.toLocaleString() : "—"}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-right">
@@ -391,7 +356,7 @@ export default function DataClassificationDashboard() {
                       "font-bold tabular-nums",
                       scan.violations > 0 ? "text-red-400" : "text-green-400"
                     )}>
-                      {scan.violations > 0 ? scan.violations : "="}
+                      {scan.violations > 0 ? scan.violations : "—"}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-right">
@@ -400,7 +365,7 @@ export default function DataClassificationDashboard() {
                   </div>
                 </div>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

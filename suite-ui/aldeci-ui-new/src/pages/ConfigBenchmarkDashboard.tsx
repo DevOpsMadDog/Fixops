@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const PROFILES = [
   { name: "CIS Ubuntu 22.04 L2",     standard: "CIS",          target: "Linux",      version: "2.0.0", last_assessed: "2026-04-15", score: 72 },
@@ -123,7 +123,7 @@ const SCORE_BY_STANDARD = [
   { standard: "Custom",      score: 61.0, count: 0 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const STANDARD_COLORS: Record<string, string> = {
   "CIS":          "border-blue-500/30 text-blue-400 bg-blue-500/10",
@@ -186,14 +186,13 @@ function StatusIcon({ status }: { status: string }) {
   return <Minus className="h-4 w-4 text-muted-foreground" />;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ConfigBenchmarkDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedCheck, setExpandedCheck] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -206,7 +205,8 @@ export default function ConfigBenchmarkDashboard() {
       const profiles    = profilesResult.status    === "fulfilled" ? profilesResult.value    : null;
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : null;
       if (stats || profiles || assessments) {
-        setLiveData({ stats, profiles, assessments });}
+        setLiveData({ stats, profiles, assessments });
+      }
     }).finally(() => setDataLoading(false));
   }, []);
 
@@ -214,14 +214,6 @@ export default function ConfigBenchmarkDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -286,7 +278,7 @@ export default function ConfigBenchmarkDashboard() {
                       <Badge className={cn("text-[10px] border", TARGET_COLORS[p.target ?? p.target_type] ?? "border-border text-muted-foreground")}>{p.target ?? p.target_type}</Badge>
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground font-mono">{p.version}</TableCell>
-                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{p.last_assessed ?? p.created_at ?? "="}</TableCell>
+                    <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{p.last_assessed ?? p.created_at ?? "—"}</TableCell>
                     <TableCell className="py-2.5"><ScoreBar score={p.score ?? 0} /></TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Assess Now</Button>
@@ -301,7 +293,7 @@ export default function ConfigBenchmarkDashboard() {
 
       {/* Latest Assessment Results + Score by Standard */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Check Results = spans 2 cols */}
+        {/* Check Results — spans 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -315,7 +307,7 @@ export default function ConfigBenchmarkDashboard() {
                 <AlertTriangle className="h-3 w-3 text-amber-400" /> Warn
               </div>
             </div>
-            <CardDescription className="text-xs">CIS Ubuntu 22.04 L2 = Apr 15 2026</CardDescription>
+            <CardDescription className="text-xs">CIS Ubuntu 22.04 L2 — Apr 15 2026</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -332,13 +324,7 @@ export default function ConfigBenchmarkDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {CHECK_RESULTS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    CHECK_RESULTS.map((c) => (
+                  {CHECK_RESULTS.map((c) => (
                     <TableRow key={c.ref} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 w-8"><StatusIcon status={c.status} /></TableCell>
                       <TableCell className="text-[10px] font-mono py-2.5 text-muted-foreground whitespace-nowrap">{c.ref}</TableCell>
@@ -350,8 +336,7 @@ export default function ConfigBenchmarkDashboard() {
                       <TableCell className="text-[10px] py-2.5 font-mono text-muted-foreground max-w-[100px] truncate">{c.actual}</TableCell>
                       <TableCell className="text-[10px] py-2.5 font-mono text-muted-foreground max-w-[100px] truncate">{c.expected}</TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -368,13 +353,7 @@ export default function ConfigBenchmarkDashboard() {
             <CardDescription className="text-xs">Average score across all profiles per standard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
-            {SCORE_BY_STANDARD.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              SCORE_BY_STANDARD.map((s) => (
+            {SCORE_BY_STANDARD.map((s) => (
               <div key={s.standard} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{s.standard}</span>
@@ -391,8 +370,7 @@ export default function ConfigBenchmarkDashboard() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -403,20 +381,14 @@ export default function ConfigBenchmarkDashboard() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-400">
               <XCircle className="h-4 w-4" />
-              Failed Checks = Remediation Guide
+              Failed Checks — Remediation Guide
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{FAILED_CHECKS.length} failed</Badge>
           </div>
           <CardDescription className="text-xs">Click a check to expand remediation steps</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {FAILED_CHECKS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            FAILED_CHECKS.map((fc) => {
+          {FAILED_CHECKS.map((fc) => {
             const isOpen = expandedCheck === fc.ref;
             return (
               <div key={fc.ref} className="rounded-md border border-border/60 overflow-hidden">
@@ -445,8 +417,7 @@ export default function ConfigBenchmarkDashboard() {
                 )}
               </div>
             );
-          })
-          )}
+          })}
         </CardContent>
       </Card>
     </motion.div>

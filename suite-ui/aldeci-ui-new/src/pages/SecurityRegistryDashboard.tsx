@@ -24,7 +24,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type ArtifactType = "policy" | "procedure" | "standard" | "guideline" | "runbook" | "playbook" | "template" | "checklist";
 type ArtifactStatus = "draft" | "review" | "active" | "deprecated";
@@ -42,7 +42,7 @@ interface RegistryArtifact {
   tags: string[];
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ARTIFACTS: RegistryArtifact[] = [
   { id: "reg-001", title: "Information Security Policy",           artifact_type: "policy",    status: "active",     version: "3.2", owner: "CISO",           last_reviewed: "2026-03-01", next_review: "2026-09-01", review_count: 12, tags: ["iso27001", "soc2"] },
@@ -70,7 +70,7 @@ const TYPE_STATS: { type: ArtifactType; count: number; icon: React.ReactNode; co
   { type: "checklist", count: 1,  icon: <CheckCircle2 className="w-4 h-4" />,  color: "text-teal-400" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<ArtifactStatus, { cls: string; label: string }> = {
   active:     { cls: "bg-green-500/10 text-green-400 border-green-500/20",   label: "Active" },
@@ -98,33 +98,20 @@ function StatusBadge({ status }: { status: ArtifactStatus }) {
 function TypeBadge({ type }: { type: ArtifactType }) {
   return (
     <span className={cn("inline-block px-2 py-0.5 rounded text-xs font-medium capitalize", TYPE_COLORS[type])}>
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {type}
     </span>
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function SecurityRegistryDashboard() {
   const [filterStatus, setFilterStatus] = useState<ArtifactStatus | "all">("all");
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch("/api/v1/security-registry", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const filtered = filterStatus === "all"
@@ -135,14 +122,6 @@ export default function SecurityRegistryDashboard() {
   const activeCount = MOCK_ARTIFACTS.filter((a) => a.status === "active").length;
   const pendingReview = MOCK_ARTIFACTS.filter((a) => a.status === "review").length;
   const deprecatedCount = MOCK_ARTIFACTS.filter((a) => a.status === "deprecated").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
@@ -168,13 +147,7 @@ export default function SecurityRegistryDashboard() {
 
       {/* Type Stats */}
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-        {TYPE_STATS.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          TYPE_STATS.map((ts, i) => (
+        {TYPE_STATS.map((ts, i) => (
           <motion.div
             key={ts.type}
             initial={{ opacity: 0, y: 6 }}
@@ -186,8 +159,7 @@ export default function SecurityRegistryDashboard() {
             <p className="text-lg font-bold text-gray-100">{ts.count}</p>
             <p className="text-xs text-gray-500 capitalize">{ts.type}s</p>
           </motion.div>
-        ))
-      )}
+        ))}
       </div>
 
       {/* Filter Tabs */}
@@ -205,7 +177,7 @@ export default function SecurityRegistryDashboard() {
           >
             {s === "all" ? "All Artifacts" : STATUS_CONFIG[s as ArtifactStatus]?.label ?? s}
           </button>
-        )))}
+        ))}
       </div>
 
       {/* Registry Table */}
@@ -231,13 +203,7 @@ export default function SecurityRegistryDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filtered.map((artifact, i) => (
+              {filtered.map((artifact, i) => (
                 <motion.tr
                   key={artifact.id}
                   initial={{ opacity: 0 }}
@@ -250,7 +216,7 @@ export default function SecurityRegistryDashboard() {
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {artifact.tags.slice(0, 2).map((tag) => (
                         <span key={tag} className="px-1.5 py-0.5 bg-gray-700/50 border border-gray-600/50 rounded text-xs text-gray-400">#{tag}</span>
-                      )))}
+                      ))}
                     </div>
                   </TableCell>
                   <TableCell><TypeBadge type={artifact.artifact_type} /></TableCell>

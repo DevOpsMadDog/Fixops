@@ -36,7 +36,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ==================================================
+// ── API helpers ──────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -52,7 +52,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ====================================================
+// ── Mock data ────────────────────────────────────────────────────
 
 const MOCK_STATS = {
   total_endpoints: 342,
@@ -81,7 +81,7 @@ const MOCK_ABUSE_EVENTS = [
   { id: "ab-001", event_type: "rate_limit_exceeded", endpoint_id: "ep-001", source_ip: "45.33.32.156",   severity: "high",     status: "detected",    detected_at: "14:41:02", request_payload_preview: "POST /api/v1/auth/token x2847" },
   { id: "ab-002", event_type: "injection_attempt",   endpoint_id: "ep-004", source_ip: "91.108.4.175",   severity: "critical", status: "blocked",     detected_at: "14:38:17", request_payload_preview: "PUT /api/v1/admin/config {\"role\":\"superadmin\"}" },
   { id: "ab-003", event_type: "credential_stuffing",  endpoint_id: "ep-001", source_ip: "198.51.100.22",  severity: "high",     status: "investigating",detected_at: "14:31:44", request_payload_preview: "1,204 failed login attempts in 8 min" },
-  { id: "ab-004", event_type: "excessive_scraping",   endpoint_id: "ep-003", source_ip: "203.0.113.99",   severity: "medium",   status: "detected",    detected_at: "14:25:09", request_payload_preview: "GET /api/v1/findings = 9,400 req/hr" },
+  { id: "ab-004", event_type: "excessive_scraping",   endpoint_id: "ep-003", source_ip: "203.0.113.99",   severity: "medium",   status: "detected",    detected_at: "14:25:09", request_payload_preview: "GET /api/v1/findings — 9,400 req/hr" },
   { id: "ab-005", event_type: "bola_attempt",         endpoint_id: "ep-002", source_ip: "10.4.22.17",     severity: "high",     status: "blocked",     detected_at: "14:19:33", request_payload_preview: "Accessing user IDs not owned by caller" },
   { id: "ab-006", event_type: "mass_assignment",      endpoint_id: "ep-006", source_ip: "10.5.12.100",    severity: "medium",   status: "detected",    detected_at: "14:14:55", request_payload_preview: "POST /api/v1/webhooks with unexpected fields" },
   { id: "ab-007", event_type: "rate_limit_exceeded",  endpoint_id: "ep-010", source_ip: "192.168.1.44",   severity: "low",      status: "closed",      detected_at: "14:08:22", request_payload_preview: "GET /api/v1/reports/download x330/hr" },
@@ -96,7 +96,7 @@ const MOCK_SCANS = [
   { id: "sc-005", scan_type: "owasp_api_top10",  target_service: "export-service",    status: "running",   endpoints_scanned: 12, vulnerabilities_found: 1, critical_count: 0, started_at: "09:10", completed_at: null  },
 ];
 
-// == Helper components ============================================
+// ── Helper components ────────────────────────────────────────────
 
 function SensitivityBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -181,7 +181,7 @@ function AbuseTypeBadge({ type }: { type: string }) {
   );
 }
 
-// == Main Component ===============================================
+// ── Main Component ───────────────────────────────────────────────
 
 export default function APISecurityMgmtDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -293,13 +293,7 @@ export default function APISecurityMgmtDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayEndpoints.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  displayEndpoints.map((ep: any, i: number) => (
+                {displayEndpoints.map((ep: any, i: number) => (
                   <TableRow key={ep.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
                       <MethodBadge method={ep.http_method ?? "GET"} />
@@ -308,7 +302,7 @@ export default function APISecurityMgmtDashboard() {
                       {ep.endpoint_path}
                     </TableCell>
                     <TableCell className="py-2 text-xs text-muted-foreground">
-                      {ep.service_name || "="}
+                      {ep.service_name || "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       {ep.authentication_required ? (
@@ -328,8 +322,7 @@ export default function APISecurityMgmtDashboard() {
                       <RiskScore score={ep.risk_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -349,7 +342,7 @@ export default function APISecurityMgmtDashboard() {
               </CardTitle>
               <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">Live</Badge>
             </div>
-            <CardDescription className="text-xs">Detected API abuse patterns = rate limiting, injection, credential stuffing</CardDescription>
+            <CardDescription className="text-xs">Detected API abuse patterns — rate limiting, injection, credential stuffing</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -364,32 +357,25 @@ export default function APISecurityMgmtDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayAbuse.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    displayAbuse.map((ev: any, i: number) => (
+                  {displayAbuse.map((ev: any, i: number) => (
                     <TableRow key={ev.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2">
                         <AbuseTypeBadge type={ev.event_type ?? "unknown"} />
                       </TableCell>
                       <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                        {ev.source_ip || "="}
+                        {ev.source_ip || "—"}
                       </TableCell>
                       <TableCell className="py-2">
                         <SeverityBadge severity={ev.severity ?? "medium"} />
                       </TableCell>
                       <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">
-                        {ev.detected_at ?? "="}
+                        {ev.detected_at ?? "—"}
                       </TableCell>
                       <TableCell className="py-2">
                         <StatusBadge status={ev.status ?? "detected"} />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -406,13 +392,7 @@ export default function APISecurityMgmtDashboard() {
             <CardDescription className="text-xs">OWASP API Top 10 and schema validation scan history</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {displayScans.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              displayScans.map((scan: any, i: number) => (
+            {displayScans.map((scan: any, i: number) => (
               <div key={scan.id ?? i} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold truncate">{scan.target_service || "unknown"}</span>
@@ -420,7 +400,7 @@ export default function APISecurityMgmtDashboard() {
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <span className="capitalize">{(scan.scan_type ?? "").replace(/_/g, " ")}</span>
-                  <span className="tabular-nums">{scan.started_at} {scan.completed_at ? `= ${scan.completed_at}` : "(running)"}</span>
+                  <span className="tabular-nums">{scan.started_at} {scan.completed_at ? `→ ${scan.completed_at}` : "(running)"}</span>
                 </div>
                 <div className="flex items-center gap-4 text-[11px]">
                   <span className="text-muted-foreground">
@@ -443,8 +423,7 @@ export default function APISecurityMgmtDashboard() {
                   )}
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -471,7 +450,7 @@ export default function APISecurityMgmtDashboard() {
                 <div className={cn("text-2xl font-bold tabular-nums", item.color)}>{item.value}</div>
                 <div className="text-[11px] text-muted-foreground">{item.label}</div>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

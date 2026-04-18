@@ -752,7 +752,7 @@ function ChecklistPanel({ items, currentState }: { items: ChecklistItem[]; curre
                     )}
                   </div>
                 </button>
-              )))}
+              ))}
             </div>
           </div>
         );
@@ -1170,8 +1170,8 @@ export default function IncidentResponse() {
                         onClick={() => setSelectedId(selectedId === inc.id ? null : inc.id)}
                       />
                     ))
-                    )}
-                  </AnimatePresence>
+                  )}
+                </AnimatePresence>
               </div>
             </ScrollArea>
           </div>

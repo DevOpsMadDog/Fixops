@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_RISKS = [
   { id: "risk-001", name: "Ransomware Attack",         risk_category: "Cyber",       likelihood: 4, impact: 5, risk_score: 20, risk_level: "critical", status: "open"        },
@@ -54,7 +54,7 @@ const MOCK_RISKS = [
 
 const MOCK_STATS = { total_risks: 47, critical_risks: 3, high_risks: 11, open_risks: 29 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskLevelBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -90,13 +90,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function RiskRegisterDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveRisks, setLiveRisks] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -105,22 +104,13 @@ export default function RiskRegisterDashboard() {
     ]).then(([risksRes, statsRes]) => {
       if (risksRes.status === "fulfilled") setLiveRisks(risksRes.value?.risks ?? risksRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const risks = liveRisks ?? MOCK_RISKS;
   const stats = liveStats ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -178,28 +168,22 @@ export default function RiskRegisterDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {risks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  risks.map((risk: any, i: number) => (
+                {risks.map((risk: any, i: number) => (
                   <TableRow key={risk.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-orange-300">
-                      {risk.name ?? "="}
+                      {risk.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {risk.risk_category ?? "="}
+                      {risk.risk_category ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {risk.likelihood ?? "="}
+                      {risk.likelihood ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {risk.impact ?? "="}
+                      {risk.impact ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] font-semibold text-amber-300">
-                      {risk.risk_score ?? "="}
+                      {risk.risk_score ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskLevelBadge level={risk.risk_level ?? "low"} />
@@ -208,8 +192,7 @@ export default function RiskRegisterDashboard() {
                       <StatusBadge status={risk.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -13,7 +13,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { ShieldOff, Plus, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type ModelStatus = "draft" | "in_review" | "finalized" | "archived";
 type StrideCategory = "Spoofing" | "Tampering" | "Repudiation" | "InfoDisclosure" | "DoS" | "ElevationOfPrivilege";
@@ -48,7 +48,7 @@ interface UnmitigatedThreat {
   model_name: string;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MODELS: ThreatModel[] = [
   { id: "tm01", model_name: "Customer Auth Service", methodology: "STRIDE", component_type: "api", risk_score: 4, status: "finalized", threats_count: 18, mitigated_count: 14, last_updated: "2026-04-10" },
@@ -76,7 +76,7 @@ const UNMITIGATED: UnmitigatedThreat[] = [
   { id: "ut06", threat_name: "IoT firmware update without signature verification", stride_category: "Tampering", likelihood: 2, impact: 4, risk_level: "high", model_name: "IoT Sensor Gateway" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const RISK_SCORE_CONFIG: Record<number, { label: string; color: string; bg: string }> = {
   1: { label: "Low", color: "text-gray-400", bg: "bg-gray-500/20" },
@@ -129,17 +129,6 @@ function RiskGauge({ score }: { score: 1 | 2 | 3 | 4 }) {
   const cfg = RISK_SCORE_CONFIG[score];
   return (
     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold ${cfg.bg} ${cfg.color}`}>
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {Array.from({ length: 4 }, (_, i) => (
         <span key={i} className={`w-2 h-2 rounded-sm ${i < score ? "" : "opacity-20"}`}
           style={{ backgroundColor: i < score ? (score === 4 ? "#ef4444" : score === 3 ? "#f97316" : score === 2 ? "#eab308" : "#6b7280") : "#374151" }} />
@@ -161,7 +150,7 @@ function MatrixCell({ likelihood, impact }: { likelihood: number; impact: number
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatModelingPipelineDashboard() {
   const [showAddPanel, setShowAddPanel] = useState(false);
@@ -169,14 +158,12 @@ export default function ThreatModelingPipelineDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
   const [mitigatedIds, setMitigatedIds] = useState<Set<string>>(new Set());
   const [newThreat, setNewThreat] = useState({ name: "", stride: "Spoofing", likelihood: "3", impact: "3" });
-  const [loading, setLoading] = useState(true);
 
   function handleMitigate(id: string) {
     setMitigating(id);
@@ -192,14 +179,6 @@ export default function ThreatModelingPipelineDashboard() {
   }
 
   const visibleThreats = UNMITIGATED.filter((t) => !mitigatedIds.has(t.id));
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -218,7 +197,7 @@ export default function ThreatModelingPipelineDashboard() {
             className={`flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-all ${recomputing ? "opacity-70" : ""}`}
           >
             <RefreshCw size={14} className={recomputing ? "animate-spin text-violet-400" : ""} />
-            {recomputing ? "Recomputing=" : "Recompute Scores"}
+            {recomputing ? "Recomputing…" : "Recompute Scores"}
           </button>
           <button
             onClick={() => setShowAddPanel(!showAddPanel)}
@@ -344,12 +323,12 @@ export default function ThreatModelingPipelineDashboard() {
             <p className="font-medium">All threats mitigated!</p>
           </div>
         ) : (
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-400 border-b border-gray-700">
                 <th className="text-left py-2">Threat</th>
                 <th className="text-left py-2">STRIDE</th>
-                <th className="text-center py-2">L=I</th>
+                <th className="text-center py-2">L×I</th>
                 <th className="text-left py-2">Risk</th>
                 <th className="text-left py-2">Model</th>
                 <th className="text-center py-2">Action</th>
@@ -385,11 +364,11 @@ export default function ThreatModelingPipelineDashboard() {
                           : "bg-violet-700 hover:bg-violet-600 text-white"
                       }`}
                     >
-                      {mitigating === t.id ? "Mitigating=" : "Mitigate"}
+                      {mitigating === t.id ? "Mitigating…" : "Mitigate"}
                     </button>
                   </td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         )}

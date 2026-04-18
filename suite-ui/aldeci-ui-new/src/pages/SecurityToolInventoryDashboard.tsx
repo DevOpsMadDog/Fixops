@@ -1,7 +1,7 @@
 /**
  * Security Tool Inventory Dashboard
  *
- * Security tool portfolio management = coverage, cost, and effectiveness tracking.
+ * Security tool portfolio management — coverage, cost, and effectiveness tracking.
  *   1. KPI cards: Total Tools, Active Tools, Annual Cost, Avg Coverage
  *   2. Tools table
  *   3. Recent Assessments table
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_tools: 47,
@@ -70,7 +70,7 @@ const MOCK_ASSESSMENTS = [
   { tool_id: "qualys-was",         coverage_score: 61, effectiveness_score: 70, utilization_pct: 43 },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ToolStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -132,17 +132,20 @@ function scoreBar(value: number): JSX.Element {
 }
 
 function fmtCost(cost: number): string {
-  if (cost === 0) return "=";
+  if (cost === 0) return "—";
   return `$${cost.toLocaleString()}`;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityToolInventoryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; tools: any[] | null; assessments: any[] | null; }>({ stats: null, tools: null, assessments: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    tools: any[] | null;
+    assessments: any[] | null;
+  }>({ stats: null, tools: null, assessments: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -171,14 +174,6 @@ export default function SecurityToolInventoryDashboard() {
   const tools       = liveData.tools       ?? MOCK_TOOLS;
   const assessments = liveData.assessments ?? MOCK_ASSESSMENTS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -189,7 +184,7 @@ export default function SecurityToolInventoryDashboard() {
       {/* Header */}
       <PageHeader
         title="Security Tool Inventory"
-        description="Security tool portfolio = coverage, cost, effectiveness, and utilization tracking"
+        description="Security tool portfolio — coverage, cost, effectiveness, and utilization tracking"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -233,13 +228,7 @@ export default function SecurityToolInventoryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tools.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  tools.map((t: any, i: number) => (
+                {tools.map((t: any, i: number) => (
                   <TableRow key={t.name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{t.name}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{t.vendor}</TableCell>
@@ -250,8 +239,7 @@ export default function SecurityToolInventoryDashboard() {
                       {fmtCost(t.cost_annual ?? 0)}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -284,21 +272,14 @@ export default function SecurityToolInventoryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assessments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  assessments.map((a: any, i: number) => (
+                {assessments.map((a: any, i: number) => (
                   <TableRow key={a.tool_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{a.tool_id}</TableCell>
                     <TableCell className="py-2">{scoreBar(a.coverage_score ?? 0)}</TableCell>
                     <TableCell className="py-2">{scoreBar(a.effectiveness_score ?? 0)}</TableCell>
                     <TableCell className="py-2">{scoreBar(a.utilization_pct ?? 0)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

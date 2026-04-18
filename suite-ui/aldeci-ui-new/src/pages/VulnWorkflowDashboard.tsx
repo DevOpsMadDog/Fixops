@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_WORKFLOWS = [
   { id: "wf-001", title: "Patch Log4Shell on prod-web-01",         workflow_type: "patch",         priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-17", status: "open"       },
@@ -48,13 +48,13 @@ const MOCK_WORKFLOWS = [
   { id: "wf-006", title: "Disable TLS 1.0 on API gateway",         workflow_type: "configuration", priority: "medium",   sla_tier: "P3", sla_due_date: "2026-04-22", status: "closed"     },
   { id: "wf-007", title: "Patch VMware ESXi hypervisors",           workflow_type: "patch",         priority: "critical", sla_tier: "P1", sla_due_date: "2026-04-15", status: "overdue"    },
   { id: "wf-008", title: "Remediate SQLi in legacy API",            workflow_type: "code_fix",      priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-19", status: "in_progress"},
-  { id: "wf-009", title: "Update nginx = CVE-2026-0482",           workflow_type: "patch",         priority: "low",      sla_tier: "P4", sla_due_date: "2026-04-30", status: "open"       },
+  { id: "wf-009", title: "Update nginx — CVE-2026-0482",           workflow_type: "patch",         priority: "low",      sla_tier: "P4", sla_due_date: "2026-04-30", status: "open"       },
   { id: "wf-010", title: "Enforce MFA on admin accounts",           workflow_type: "configuration", priority: "high",     sla_tier: "P2", sla_due_date: "2026-04-16", status: "closed"     },
 ];
 
 const MOCK_STATS = { total_workflows: 218, open_workflows: 87, overdue: 14, closed_today: 9 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function PriorityBadge({ priority }: { priority: string }) {
   const map: Record<string, string> = {
@@ -90,13 +90,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function VulnWorkflowDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveWorkflows, setLiveWorkflows] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -105,22 +104,13 @@ export default function VulnWorkflowDashboard() {
     ]).then(([wfRes, statsRes]) => {
       if (wfRes.status === "fulfilled") setLiveWorkflows(wfRes.value?.workflows ?? wfRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const workflows = liveWorkflows ?? MOCK_WORKFLOWS;
   const stats     = liveStats     ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -177,35 +167,28 @@ export default function VulnWorkflowDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workflows.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  workflows.map((wf: any, i: number) => (
+                {workflows.map((wf: any, i: number) => (
                   <TableRow key={wf.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-amber-300 max-w-[240px] truncate">
-                      {wf.title ?? "="}
+                      {wf.title ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(wf.workflow_type ?? "=").replace(/_/g, " ")}
+                      {(wf.workflow_type ?? "—").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <PriorityBadge priority={wf.priority ?? "medium"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-300">
-                      {wf.sla_tier ?? "="}
+                      {wf.sla_tier ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {wf.sla_due_date ?? "="}
+                      {wf.sla_due_date ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <StatusBadge status={wf.status ?? "open"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

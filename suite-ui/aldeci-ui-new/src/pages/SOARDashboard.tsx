@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, PlayCircle, GitBranch, Clock, RefreshCw, Activity, Link2 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const PLAYBOOKS = [
   { name: "Critical Alert Response",      trigger: "Alert",     enabled: true,  execs: 412, success: 97.1, lastRun: "2026-04-16 09:42" },
@@ -86,7 +86,7 @@ const ACTION_RATES = [
   { action: "send_email",     pct: 97.8, color: "bg-cyan-500" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TriggerBadge({ t }: { t: string }) {
   const cls =
@@ -104,13 +104,12 @@ function StatusBadge({ s }: { s: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{s}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SOARDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -134,14 +133,6 @@ export default function SOARDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -179,7 +170,7 @@ export default function SOARDashboard() {
             </CardTitle>
             <Button variant="outline" size="sm" className="h-7 text-xs">New Playbook</Button>
           </div>
-          <CardDescription className="text-xs">Automated response workflows = click Run Now to trigger manually</CardDescription>
+          <CardDescription className="text-xs">Automated response workflows — click Run Now to trigger manually</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -217,7 +208,7 @@ export default function SOARDashboard() {
                     )}>
                       {successPct}%
                     </TableCell>
-                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.last_executed_at ?? row.lastRun ?? "="}</TableCell>
+                    <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.last_executed_at ?? row.lastRun ?? "—"}</TableCell>
                     <TableCell className="py-2.5 text-right">
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Run Now</Button>
                     </TableCell>
@@ -232,7 +223,7 @@ export default function SOARDashboard() {
 
       {/* Recent executions + integrations */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recent executions = 2/3 width */}
+        {/* Recent executions — 2/3 width */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -259,18 +250,18 @@ export default function SOARDashboard() {
                     const execStatus = row.status ?? "completed";
                     const stepsStr = row.steps_completed != null && row.total_steps != null
                       ? `${row.steps_completed}/${row.total_steps}`
-                      : (row.steps ?? "=");
+                      : (row.steps ?? "—");
                     const durationStr = row.duration_seconds != null
                       ? `${row.duration_seconds.toFixed(1)}s`
-                      : (row.duration ?? "=");
+                      : (row.duration ?? "—");
                     return (
                     <TableRow key={row.id ?? i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.playbook_id ?? row.playbook}</TableCell>
-                      <TableCell className="text-xs py-2 text-muted-foreground max-w-[160px] truncate">{row.trigger_event ?? row.event ?? "="}</TableCell>
+                      <TableCell className="text-xs py-2 text-muted-foreground max-w-[160px] truncate">{row.trigger_event ?? row.event ?? "—"}</TableCell>
                       <TableCell className="py-2"><StatusBadge s={execStatus} /></TableCell>
                       <TableCell className="text-xs tabular-nums py-2">{stepsStr}</TableCell>
                       <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{durationStr}</TableCell>
-                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.started_at ?? row.ts ?? "="}</TableCell>
+                      <TableCell className="text-xs tabular-nums py-2 text-muted-foreground">{row.started_at ?? row.ts ?? "—"}</TableCell>
                     </TableRow>
                     );
                   })}
@@ -280,7 +271,7 @@ export default function SOARDashboard() {
           </CardContent>
         </Card>
 
-        {/* Integrations = 1/3 width */}
+        {/* Integrations — 1/3 width */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -290,13 +281,7 @@ export default function SOARDashboard() {
             <CardDescription className="text-xs">SOAR platform connections</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {INTEGRATIONS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              INTEGRATIONS.map((intg) => (
+            {INTEGRATIONS.map((intg) => (
               <div key={intg.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/50">
                 <div className="flex items-center gap-2">
                   <div className={cn("w-2 h-2 rounded-full", intg.connected ? "bg-green-400" : "bg-red-400")} />
@@ -314,8 +299,7 @@ export default function SOARDashboard() {
                   <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px]">Test</Button>
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -330,13 +314,7 @@ export default function SOARDashboard() {
           <CardDescription className="text-xs">Success rate per action type across all executions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {ACTION_RATES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            ACTION_RATES.map((a) => (
+          {ACTION_RATES.map((a) => (
             <div key={a.action} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-mono text-muted-foreground">{a.action}</span>
@@ -351,8 +329,7 @@ export default function SOARDashboard() {
                 />
               </div>
             </div>
-          ))
-        )}
+          ))}
         </CardContent>
       </Card>
     </motion.div>

@@ -18,7 +18,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { Layers, Users, Shield, Plus, BarChart2, AlertTriangle } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface AssetGroup {
   id: string;
@@ -43,7 +43,7 @@ interface GroupPolicy {
   enabled: boolean;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const GROUPS: AssetGroup[] = [
   {
@@ -127,7 +127,7 @@ const GROUPS: AssetGroup[] = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const critColor: Record<AssetGroup["criticality"], string> = {
   critical: "text-red-400 border-red-700",
@@ -170,24 +170,19 @@ const policyTypeColor: Record<GroupPolicy["policy_type"], string> = {
   backup: "bg-gray-700 text-gray-300",
 };
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AssetGroupsDashboard() {
   const [selectedGroup, setSelectedGroup] = useState<AssetGroup | null>(GROUPS[0]);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => {
-    // live data loaded = components read from API response
-    void d;
-    })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        // live data loaded — components read from API response
+        void d;
+      })
+      .catch(() => {});
+  }, []);
 
   const [activeTab, setActiveTab] = useState<"members" | "policies">("members");
   const [bulkInput, setBulkInput] = useState("");
@@ -205,13 +200,6 @@ export default function AssetGroupsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -245,13 +233,7 @@ export default function AssetGroupsDashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Group grid */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 content-start">
-          {GROUPS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            GROUPS.map(g => (
+          {GROUPS.map(g => (
             <div
               key={g.id}
               onClick={() => setSelectedGroup(g)}
@@ -274,8 +256,7 @@ export default function AssetGroupsDashboard() {
               </div>
               <div className="text-xs text-gray-500 mt-1 truncate">Owner: {g.owner}</div>
             </div>
-          ))
-        )}
+          ))}
         </div>
 
         {/* Stats */}
@@ -301,8 +282,7 @@ export default function AssetGroupsDashboard() {
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
           </div>
           <div>
             <div className="text-xs text-gray-400 font-medium mb-3">By Type</div>
@@ -347,7 +327,7 @@ export default function AssetGroupsDashboard() {
                   >
                     {tab}
                   </button>
-                )))}
+                ))}
               </div>
             </div>
           </div>
@@ -370,12 +350,12 @@ export default function AssetGroupsDashboard() {
 
           {activeTab === "members" ? (
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-700/50">
                   <tr>
                     {["Asset ID","Type","Added By","Added At"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    )))}
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -390,19 +370,18 @@ export default function AssetGroupsDashboard() {
                       <td className="px-4 py-3 text-gray-400 text-xs">{m.added_by}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{m.added_at}</td>
                     </tr>
-                  )))}
+                  ))}
                 </tbody>
               </table>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-700/50">
                   <tr>
                     {["Policy Name","Type","Status"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                    ))
-                  )}
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -421,7 +400,7 @@ export default function AssetGroupsDashboard() {
                         </div>
                       </td>
                     </tr>
-                  )))}
+                  ))}
                 </tbody>
               </table>
             </div>

@@ -2,9 +2,9 @@
  * Threat Score Dashboard
  *
  * Composite threat scoring across all assets.
- *   1. KPI cards: Total Assets Scored, Critical Assets (=80), Average Score, Scored Today
+ *   1. KPI cards: Total Assets Scored, Critical Assets (≥80), Average Score, Scored Today
  *   2. Top Threats table (by score)
- *   3. Score Distribution = count cards for critical/high/medium/low
+ *   3. Score Distribution — count cards for critical/high/medium/low
  *
  * API: GET /api/v1/threat-scores/{stats,top-threats,scores}
  */
@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_assets_scored: 1284,
@@ -65,7 +65,7 @@ const MOCK_DISTRIBUTION = {
   low: 642,
 };
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function scoreColor(score: number): string {
   if (score >= 80) return "text-red-400";
@@ -100,13 +100,16 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; topThreats: any[] | null; distribution: any | null; }>({ stats: null, topThreats: null, distribution: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    topThreats: any[] | null;
+    distribution: any | null;
+  }>({ stats: null, topThreats: null, distribution: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -136,14 +139,6 @@ export default function ThreatScoreDashboard() {
   const distribution = liveData.distribution ?? MOCK_DISTRIBUTION;
 
   const distTotal = (distribution.critical ?? 0) + (distribution.high ?? 0) + (distribution.medium ?? 0) + (distribution.low ?? 0);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -198,13 +193,7 @@ export default function ThreatScoreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topThreats.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  topThreats.map((t: any, i: number) => (
+                {topThreats.map((t: any, i: number) => (
                   <TableRow key={t.asset_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{t.asset_id}</TableCell>
                     <TableCell className="py-2 text-xs capitalize">{(t.asset_type ?? "").replace(/_/g, " ")}</TableCell>
@@ -215,7 +204,7 @@ export default function ThreatScoreDashboard() {
                             initial={{ width: 0 }}
                             animate={{ width: `${t.score ?? 0}%` }}
                             transition={{ duration: 0.6, delay: i * 0.05 }}
-                            )))}
+                            className={cn("h-full rounded-full", scoreBg(t.score ?? 0))}
                           />
                         </div>
                         <span className={cn("text-xs font-bold tabular-nums w-6 text-right", scoreColor(t.score ?? 0))}>
@@ -226,7 +215,7 @@ export default function ThreatScoreDashboard() {
                     <TableCell className="py-2"><RiskLevelBadge level={t.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(t.calculated_at)}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -245,9 +234,9 @@ export default function ThreatScoreDashboard() {
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: "Critical (=80)", count: distribution.critical ?? 0, color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20" },
-              { label: "High (60=79)",   count: distribution.high ?? 0,     color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
-              { label: "Medium (40=59)", count: distribution.medium ?? 0,   color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
+              { label: "Critical (≥80)", count: distribution.critical ?? 0, color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20" },
+              { label: "High (60–79)",   count: distribution.high ?? 0,     color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+              { label: "Medium (40–59)", count: distribution.medium ?? 0,   color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
               { label: "Low (<40)",      count: distribution.low ?? 0,      color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20" },
             ].map((band) => (
               <motion.div

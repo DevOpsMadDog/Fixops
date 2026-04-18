@@ -44,7 +44,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ==============================================================
+// ── API helpers ──────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const apiKey =
   (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
@@ -59,7 +59,7 @@ const apiFetch = (path: string) =>
     return r.json();
   });
 
-// == Types ====================================================================
+// ── Types ────────────────────────────────────────────────────────────────────
 interface SectionSummary {
   [key: string]: number | string;
 }
@@ -106,13 +106,13 @@ interface TopRisksData {
   top_risks: TopRisk[];
 }
 
-// == Mock data ================================================================
+// ── Mock data ────────────────────────────────────────────────────────────────
 const MOCK_BRIEF: WeeklyBrief = {
   report_date: new Date().toISOString().slice(0, 10),
   risk_posture_score: 61,
   exec_summary: [
     "Critical vulnerability exposure decreased 18% this week following emergency patching of CVE-2024-3400 across 47 affected hosts.",
-    "Ransomware detection coverage remains below target at 42% = recommend prioritising EDR rollout for OT network segment.",
+    "Ransomware detection coverage remains below target at 42% — recommend prioritising EDR rollout for OT network segment.",
     "SOC2 Type II audit readiness at 87%; three evidence gaps in access-review controls require remediation before June deadline.",
   ],
   sections: {
@@ -175,7 +175,7 @@ const MOCK_TOP_RISKS: TopRisksData = {
   ],
 };
 
-// == Helpers ==================================================================
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function riskScoreColor(score: number): string {
   if (score >= 70) return "text-emerald-400";
   if (score >= 40) return "text-amber-400";
@@ -221,7 +221,7 @@ function sectionHighlight(name: string, data: SectionSummary): { label: string; 
   }
 }
 
-// == Component ================================================================
+// ── Component ────────────────────────────────────────────────────────────────
 export default function CISOReportDashboard() {
   const [brief, setBrief]           = useState<WeeklyBrief>(MOCK_BRIEF);
   const [execSummary, setExecSummary] = useState<ExecSummary>(MOCK_EXEC_SUMMARY);
@@ -241,6 +241,7 @@ export default function CISOReportDashboard() {
     if (execRes.status === "fulfilled")   setExecSummary(execRes.value);
     if (risksRes.status === "fulfilled")  setTopRisks(risksRes.value.top_risks ?? []);
 
+    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -298,7 +299,7 @@ export default function CISOReportDashboard() {
               className="gap-2"
             >
               <Download className="h-4 w-4" />
-              {exporting ? "Exporting=" : "Export MD"}
+              {exporting ? "Exporting…" : "Export MD"}
             </Button>
           </div>
         }
@@ -319,19 +320,12 @@ export default function CISOReportDashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {bullets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                bullets.map((bullet, i) => (
+              {bullets.map((bullet, i) => (
                 <li key={i} className="flex gap-3 text-sm">
                   <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
                   <span className="text-muted-foreground leading-relaxed">{bullet}</span>
                 </li>
-              ))
-            )}
+              ))}
             </ul>
           </CardContent>
         </Card>
@@ -417,13 +411,7 @@ export default function CISOReportDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topRisks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  topRisks.map((risk, i) => (
+                {topRisks.map((risk, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium text-sm max-w-[160px]">
                       {risk.title}
@@ -431,7 +419,7 @@ export default function CISOReportDashboard() {
                     <TableCell>
                       <Badge
                         variant={severityVariant(risk.severity)}
-                        )))}
+                        className={cn("capitalize", severityClass(risk.severity))}
                       >
                         {risk.severity}
                       </Badge>
@@ -443,16 +431,16 @@ export default function CISOReportDashboard() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[220px]">
                       {risk.description.length > 80
-                        ? `${risk.description.slice(0, 80)}=`
+                        ? `${risk.description.slice(0, 80)}…`
                         : risk.description}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[220px]">
                       {risk.recommendation.length > 80
-                        ? `${risk.recommendation.slice(0, 80)}=`
+                        ? `${risk.recommendation.slice(0, 80)}…`
                         : risk.recommendation}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

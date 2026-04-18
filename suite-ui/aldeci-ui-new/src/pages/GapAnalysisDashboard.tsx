@@ -26,7 +26,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_FRAMEWORKS = [
   { id: "fw-01", name: "SOC 2",        coverage_pct: 87, risk_level: "low",      controls: { implemented: 112, partial: 15, not_implemented: 3 } },
@@ -67,7 +67,7 @@ const MOCK_REMEDIATION = [
   { id: "rem-003", control_id: "HIPAA-164.3", plan: "Enable S3 bucket encryption at rest with KMS CMK for all PHI data stores.", owner: "carol@aldeci.io", target: "2026-05-10", progress: 20 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function RiskBadge({ r }: { r: string }) {
   const cls: Record<string, string> = {
@@ -116,13 +116,12 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function GapAnalysisDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setFetchError(null);
@@ -132,7 +131,8 @@ export default function GapAnalysisDashboard() {
   };
 
   useEffect(() => {
-    loadData();}, []);
+    loadData();
+  }, []);
 
   const today = new Date("2026-04-16");
   const overdueGaps = MOCK_GAPS.filter(g => g.status === "open" && new Date(g.due_date) < today);
@@ -142,14 +142,6 @@ export default function GapAnalysisDashboard() {
   const displayedGaps = selectedFramework
     ? MOCK_GAPS.filter(g => g.control_id.startsWith(selectedFramework.split(" ")[0].toUpperCase()))
     : MOCK_GAPS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -163,9 +155,9 @@ export default function GapAnalysisDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
         </div>
       )}
 
@@ -174,7 +166,7 @@ export default function GapAnalysisDashboard() {
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm font-medium">{overdueGaps.length} control gap{overdueGaps.length > 1 ? "s are" : " is"} overdue = immediate remediation required</span>
+          <span className="text-sm font-medium">{overdueGaps.length} control gap{overdueGaps.length > 1 ? "s are" : " is"} overdue — immediate remediation required</span>
           <span className="ml-auto text-xs text-red-400">{overdueGaps.map(g => g.control_id).join(", ")}</span>
         </motion.div>
       )}
@@ -190,13 +182,7 @@ export default function GapAnalysisDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Framework Coverage</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {MOCK_FRAMEWORKS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_FRAMEWORKS.map(fw => (
+          {MOCK_FRAMEWORKS.map(fw => (
             <button key={fw.id} onClick={() => setSelectedFramework(selectedFramework === fw.name ? null : fw.name)}
               className={cn("bg-gray-900 rounded-lg p-4 text-left hover:bg-gray-700/50 transition-all border",
                 selectedFramework === fw.name ? "border-purple-500/60" : "border-transparent")}>
@@ -210,13 +196,12 @@ export default function GapAnalysisDashboard() {
                   style={{ width: `${fw.coverage_pct}%` }} />
               </div>
               <div className="flex gap-2 mt-2 text-[10px]">
-                <span className="text-emerald-400">{fw.controls.implemented}=</span>
+                <span className="text-emerald-400">{fw.controls.implemented}✓</span>
                 <span className="text-yellow-400">{fw.controls.partial}~</span>
-                <span className="text-red-400">{fw.controls.not_implemented}=</span>
+                <span className="text-red-400">{fw.controls.not_implemented}✗</span>
               </div>
             </button>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -224,7 +209,7 @@ export default function GapAnalysisDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Assessments</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-4">Assessment</th>
@@ -237,13 +222,7 @@ export default function GapAnalysisDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_ASSESSMENTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_ASSESSMENTS.map(a => (
+              {MOCK_ASSESSMENTS.map(a => (
                 <tr key={a.id} className="border-b border-gray-700/50 hover:bg-gray-700/20">
                   <td className="py-2.5 pr-4 text-white text-xs">{a.assessment_name}</td>
                   <td className="py-2.5 pr-4"><span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">{a.framework}</span></td>
@@ -261,8 +240,7 @@ export default function GapAnalysisDashboard() {
                   <td className="py-2.5 pr-4 text-red-400 font-semibold">{a.not_implemented}</td>
                   <td className="py-2.5"><RiskBadge r={a.risk_level} /></td>
                 </tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -273,13 +251,7 @@ export default function GapAnalysisDashboard() {
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Control Gaps</h2>
           <div className="space-y-2">
-            {displayedGaps.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              displayedGaps.map(g => {
+            {displayedGaps.map(g => {
               const overdue = g.status === "open" && new Date(g.due_date) < today;
               return (
                 <div key={g.id} className={cn("bg-gray-900 rounded-lg px-4 py-3 flex items-center gap-3", overdue && "border border-red-500/30")}>
@@ -293,8 +265,7 @@ export default function GapAnalysisDashboard() {
                   <span className="text-xs text-gray-500 truncate max-w-[120px]">{g.owner}</span>
                 </div>
               );
-            })
-            )}
+            })}
           </div>
         </div>
 
@@ -302,13 +273,7 @@ export default function GapAnalysisDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Remediation Plans</h2>
           <div className="space-y-4">
-            {MOCK_REMEDIATION.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_REMEDIATION.map(r => (
+            {MOCK_REMEDIATION.map(r => (
               <div key={r.id} className="bg-gray-900 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <code className="text-xs text-cyan-300 font-mono">{r.control_id}</code>
@@ -323,8 +288,7 @@ export default function GapAnalysisDashboard() {
                 </div>
                 <p className="text-[10px] text-gray-500 mt-2">{r.owner}</p>
               </div>
-            ))
-          )}
+            ))}
           </div>
         </div>
       </div>

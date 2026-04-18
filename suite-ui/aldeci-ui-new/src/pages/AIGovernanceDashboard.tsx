@@ -132,7 +132,7 @@ export default function AIGovernanceDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData();}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -143,14 +143,6 @@ export default function AIGovernanceDashboard() {
   const stats     = liveData.stats     ?? MOCK_STATS;
   const models    = liveData.models    ?? MOCK_MODELS;
   const incidents = liveData.incidents ?? MOCK_INCIDENTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -204,13 +196,7 @@ export default function AIGovernanceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {models.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  models.map((m: any, i: number) => (
+                {models.map((m: any, i: number) => (
                   <TableRow key={m.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-medium">{m.name}</TableCell>
                     <TableCell className="py-2">
@@ -223,8 +209,7 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2"><RiskBadge level={m.risk_level ?? "low"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{m.data_classification}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -257,13 +242,7 @@ export default function AIGovernanceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incidents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  incidents.map((inc: any, i: number) => (
+                {incidents.map((inc: any, i: number) => (
                   <TableRow key={inc.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[12px] font-medium">{inc.model_name}</TableCell>
                     <TableCell className="py-2">
@@ -274,8 +253,7 @@ export default function AIGovernanceDashboard() {
                     <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "open"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

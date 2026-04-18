@@ -1,7 +1,7 @@
 /**
  * Firewall Policy Dashboard
  *
- * Firewall rule analysis = unused rules, conflicts, coverage.
+ * Firewall rule analysis — unused rules, conflicts, coverage.
  *   1. KPIs: Firewalls, Total Rules, Unused Rules, Conflicting Rules
  *   2. Firewalls table (name, type, rule count, last analyzed)
  *
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_FIREWALLS = [
   { id: "FW-001", name: "edge-fw-01",       type: "perimeter",  rule_count: 284, unused_rules: 42, conflicts: 3,  last_analyzed: "2026-04-16 08:15" },
@@ -55,7 +55,7 @@ const MOCK_STATS = {
   conflicting_rules: 11,
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -72,22 +72,17 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function FirewallPolicyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<any>(null);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
-    .then((d) => setLiveData(d))
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then((d) => setLiveData(d))
+      .catch(() => {});
+  }, []);
 
   const stats     = liveData ?? MOCK_STATS;
   const firewalls = liveData?.firewalls ?? MOCK_FIREWALLS;
@@ -96,7 +91,7 @@ export default function FirewallPolicyDashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/firewall-policy/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(err => setError(err.message || 'Failed to load data'))
+      .catch(() => {})
       .finally(() => setRefreshing(false));
   };
 
@@ -109,16 +104,9 @@ export default function FirewallPolicyDashboard() {
     >
       <PageHeader
         title="Firewall Policy"
-        description="Firewall rule analysis = unused rules, conflicts, and policy coverage"
+        description="Firewall rule analysis — unused rules, conflicts, and policy coverage"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
@@ -157,13 +145,7 @@ export default function FirewallPolicyDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {firewalls.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  firewalls.map((fw: any) => (
+                {firewalls.map((fw: any) => (
                   <TableRow key={fw.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-xs text-foreground">{fw.name}</TableCell>
                     <TableCell className="py-2">
@@ -194,8 +176,7 @@ export default function FirewallPolicyDashboard() {
                       {fw.last_analyzed}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

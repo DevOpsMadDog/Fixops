@@ -311,7 +311,7 @@ export default function SystemHealth() {
                   <span className="text-muted-foreground">{label}</span>
                   <span className="font-medium font-mono text-right max-w-[140px] truncate">{value}</span>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
@@ -396,7 +396,7 @@ export default function SystemHealth() {
                 <span className="text-muted-foreground">{label}</span>
                 <span className="font-medium font-mono">{value}</span>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
 
@@ -463,7 +463,7 @@ export default function SystemHealth() {
                       {intg.created_at ? new Date(intg.created_at).toLocaleDateString() : "—"}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
             </div>
@@ -510,7 +510,7 @@ export function SystemHealthExtended({ events }: { events: any[] }) {
         <div className="max-h-64 overflow-y-auto">
           {events.slice(0, 20).map((ev: any, i: number) => (
             <SystemEventRow key={i} event={ev} />
-          )))}
+          ))}
         </div>
       </CardContent>
     </Card>

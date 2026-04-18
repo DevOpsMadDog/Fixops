@@ -1,11 +1,10 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import NotFound from "@/pages/NotFound";
 import { RequireAuth, RequireRole } from "@/lib/auth";
-import { useAppStore } from "@/stores";
 
 // Auth
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
@@ -217,7 +216,6 @@ const NDRDashboard = lazy(() => import("@/pages/NDRDashboard"));
 const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
 const AwarenessScoreDashboard = lazy(() => import("@/pages/AwarenessScoreDashboard"));
 const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
-const EndpointSecurity = lazy(() => import("@/pages/EndpointSecurity"));
 
 // New Beast Mode pages — Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel
 const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsDashboard"));
@@ -496,17 +494,6 @@ const MLDashboard = lazy(() => import("@/pages/ai/MLDashboard"));
 const Predictions = lazy(() => import("@/pages/ai/Predictions"));
 
 export default function App() {
-  const theme = useAppStore((s) => s.preferences.theme);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
-
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageSkeleton />}>
@@ -756,7 +743,6 @@ export default function App() {
             <Route path="/xdr" element={<XDRDashboard />} />
             <Route path="/awareness-score" element={<AwarenessScoreDashboard />} />
             <Route path="/edr" element={<EDRDashboard />} />
-            <Route path="/endpoint-security" element={<EndpointSecurity />} />
 
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
             <Route path="/identity-analytics" element={<IdentityAnalyticsDashboard />} />

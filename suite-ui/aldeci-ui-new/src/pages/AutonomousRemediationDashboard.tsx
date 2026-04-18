@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_workflows: 24,
@@ -69,7 +69,7 @@ const MOCK_EXECUTIONS = [
   { workflow_id: "wf-002", target_id: "203.0.113.99", target_type: "ip",    status: "succeeded", started_at: "2026-04-16T08:58:42Z" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -104,13 +104,16 @@ function fmtTime(ts: string): string {
   try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AutonomousRemediationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; workflows: any[] | null; executions: any[] | null; }>({ stats: null, workflows: null, executions: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    workflows: any[] | null;
+    executions: any[] | null;
+  }>({ stats: null, workflows: null, executions: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -138,14 +141,6 @@ export default function AutonomousRemediationDashboard() {
   const stats      = liveData.stats      ?? MOCK_STATS;
   const workflows  = liveData.workflows  ?? MOCK_WORKFLOWS;
   const executions = liveData.executions ?? MOCK_EXECUTIONS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -201,13 +196,7 @@ export default function AutonomousRemediationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workflows.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  workflows.map((w: any, i: number) => (
+                {workflows.map((w: any, i: number) => (
                   <TableRow key={w.name ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{w.name}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{w.trigger_type?.replace(/_/g, " ")}</TableCell>
@@ -216,8 +205,7 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2"><StatusBadge status={w.status ?? "draft"} /></TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">{w.success_count ?? 0}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -251,13 +239,7 @@ export default function AutonomousRemediationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {executions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  executions.map((e: any, i: number) => (
+                {executions.map((e: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{e.workflow_id}</TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{e.target_id}</TableCell>
@@ -265,8 +247,7 @@ export default function AutonomousRemediationDashboard() {
                     <TableCell className="py-2"><StatusBadge status={e.status ?? "running"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(e.started_at)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

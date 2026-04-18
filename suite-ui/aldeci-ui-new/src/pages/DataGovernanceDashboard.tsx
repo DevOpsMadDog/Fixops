@@ -3,17 +3,17 @@
  *
  * Data classification, policies, and compliance.
  *   1. KPIs: Total Assets, Policy Violations, Classified Assets %, Cross-Border Flows
- *   2. Asset table = 10 rows with classification color coding
- *   3. Policies table = 8 rows with enforcement and status badges
- *   4. Violations panel = 5 open violations
- *   5. Data flow map = 6 flows with source = destination
+ *   2. Asset table — 10 rows with classification color coding
+ *   3. Policies table — 8 rows with enforcement and status badges
+ *   4. Violations panel — 5 open violations
+ *   5. Data flow map — 6 flows with source → destination
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, AlertTriangle, Shield, Globe, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -36,7 +36,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ASSETS = [
   { name: "customer_records_db", type: "Database", classification: "restricted", categories: "PII, Financial", encrypted: true, owner: "DataOps" },
@@ -79,7 +79,7 @@ const FLOWS = [
   { source: "dev_test_snapshots", destination: "CI/CD Pipeline", type: "internal", encrypted: false, approved: false },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function ClassificationBadge({ cls }: { cls: string }) {
   const styles: Record<string, string> = {
@@ -139,13 +139,12 @@ function StatusBadge({ val }: { val: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DataGovernanceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -169,14 +168,6 @@ export default function DataGovernanceDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -206,7 +197,7 @@ export default function DataGovernanceDashboard() {
 
       {/* Asset table + Violations panel */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Asset table = spans 2 cols */}
+        {/* Asset table — spans 2 cols */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -274,7 +265,7 @@ export default function DataGovernanceDashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">{v.asset}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{v.policy}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{v.daysOpen}d open = {v.id}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{v.daysOpen}d open · {v.id}</div>
                 </div>
               </div>
             ))}
@@ -335,18 +326,12 @@ export default function DataGovernanceDashboard() {
             <CardDescription className="text-xs">Active data flows with encryption and approval status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {FLOWS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              FLOWS.map((flow, i) => (
+            {FLOWS.map((flow, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-xs font-mono">
                     <span className="truncate text-blue-400">{flow.source}</span>
-                    <span className="text-muted-foreground shrink-0">=</span>
+                    <span className="text-muted-foreground shrink-0">→</span>
                     <span className="truncate text-cyan-400">{flow.destination}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
@@ -367,8 +352,7 @@ export default function DataGovernanceDashboard() {
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>

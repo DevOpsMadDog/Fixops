@@ -33,7 +33,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_HEATMAP = [
   { country: "Russia",       country_code: "RU", event_count: 4821, risk_score: 94, blocked: true  },
@@ -64,7 +64,7 @@ const MOCK_STATS = {
 
 const MAX_EVENTS = MOCK_HEATMAP[0].event_count;
 
-// == Helpers ==================================================
+// ── Helpers ──────────────────────────────────────────────────
 
 function riskColor(score: number) {
   if (score >= 80) return { bar: "bg-red-500",    text: "text-red-400"    };
@@ -73,13 +73,12 @@ function riskColor(score: number) {
   return               { bar: "bg-green-500",   text: "text-green-400"  };
 }
 
-// == Component ================================================
+// ── Component ────────────────────────────────────────────────
 
 export default function ThreatGeolocationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -90,8 +89,7 @@ export default function ThreatGeolocationDashboard() {
       const stats   = statsR.status   === "fulfilled" ? statsR.value   : null;
       const heatmap = heatmapR.status === "fulfilled" ? heatmapR.value : null;
       if (stats || heatmap) setLiveData({ stats, heatmap });
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -99,14 +97,6 @@ export default function ThreatGeolocationDashboard() {
   const stats          = liveData?.stats ?? MOCK_STATS;
   const heatmap        = liveData?.heatmap?.items ?? liveData?.heatmap ?? MOCK_HEATMAP;
   const travelAlerts   = MOCK_TRAVEL_ALERTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -155,13 +145,7 @@ export default function ThreatGeolocationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {heatmap.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  heatmap.map((row: any, i: number) => {
+                {heatmap.map((row: any, i: number) => {
                   const colors = riskColor(row.risk_score);
                   return (
                     <TableRow key={row.country_code ?? i} className="hover:bg-muted/30">
@@ -209,8 +193,7 @@ export default function ThreatGeolocationDashboard() {
                       </TableCell>
                     </TableRow>
                   );
-                })
-                )}
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -237,13 +220,7 @@ export default function ThreatGeolocationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {travelAlerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  travelAlerts.map((t: any, i: number) => (
+                {travelAlerts.map((t: any, i: number) => (
                   <TableRow key={t.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium max-w-[120px] truncate">{t.user}</TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{t.from}</TableCell>
@@ -251,8 +228,7 @@ export default function ThreatGeolocationDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-amber-400 font-medium">{t.delta_hours}h</TableCell>
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{t.detected_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

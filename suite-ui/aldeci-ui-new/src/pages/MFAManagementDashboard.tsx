@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_enrolled: 342,
@@ -68,7 +68,7 @@ const MOCK_EVENTS = [
   { user_id: "usr-001", event_type: "verification", mfa_type: "totp",         success: true,  timestamp: "2026-04-16T06:10:08Z" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function MFATypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -120,13 +120,16 @@ function fmtTime(ts: string): string {
   }
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function MFAManagementDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; enrollments: any[] | null; events: any[] | null; }>({ stats: null, enrollments: null, events: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    enrollments: any[] | null;
+    events: any[] | null;
+  }>({ stats: null, enrollments: null, events: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -154,14 +157,6 @@ export default function MFAManagementDashboard() {
   const stats       = liveData.stats       ?? MOCK_STATS;
   const enrollments = liveData.enrollments ?? MOCK_ENROLLMENTS;
   const events      = liveData.events      ?? MOCK_EVENTS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -215,21 +210,14 @@ export default function MFAManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {enrollments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  enrollments.map((e: any, i: number) => (
+                {enrollments.map((e: any, i: number) => (
                   <TableRow key={e.user_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{e.user_id}</TableCell>
                     <TableCell className="py-2"><MFATypeBadge type={e.mfa_type ?? "totp"} /></TableCell>
                     <TableCell className="py-2"><EnrollmentStatusBadge status={e.status ?? "active"} /></TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{e.enrolled_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -263,13 +251,7 @@ export default function MFAManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {events.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  events.map((ev: any, i: number) => (
+                {events.map((ev: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{ev.user_id}</TableCell>
                     <TableCell className="py-2"><EventTypeBadge type={ev.event_type ?? "verification"} /></TableCell>
@@ -281,8 +263,7 @@ export default function MFAManagementDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtTime(ev.timestamp)}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

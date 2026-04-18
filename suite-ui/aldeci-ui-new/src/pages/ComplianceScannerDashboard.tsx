@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardCheck, AlertTriangle, RefreshCw, BarChart3, CheckCircle, XCircle, AlertCircle, Play } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const PROFILES = [
   { id: "PRF-01", name: "Production Cloud",   frameworks: ["SOC2", "ISO27001", "PCI"],     last_scan: "2026-04-16 06:00", score: 84, status: "passing" },
@@ -82,7 +82,7 @@ const FRAMEWORK_SCORES = [
   { name: "GDPR",     score: 71, color: "bg-amber-500"  },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function FrameworkBadge({ fw }: { fw: string }) {
   const map: Record<string, string> = {
@@ -138,13 +138,12 @@ function TaskStatusBadge({ s }: { s: string }) {
   return <Badge className={cn("text-[10px] border", map[s] ?? "")}>{s.replace("_", " ")}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ComplianceScannerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -168,14 +167,6 @@ export default function ComplianceScannerDashboard() {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -317,13 +308,7 @@ export default function ComplianceScannerDashboard() {
             <CardDescription className="text-xs">Current compliance posture per standard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {FRAMEWORK_SCORES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              FRAMEWORK_SCORES.map((fw) => (
+            {FRAMEWORK_SCORES.map((fw) => (
               <div key={fw.name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{fw.name}</span>
@@ -340,8 +325,7 @@ export default function ComplianceScannerDashboard() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -385,7 +369,7 @@ export default function ComplianceScannerDashboard() {
                       {row.days < 0 ? `${Math.abs(row.days)}d overdue` : `${row.days}d`}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

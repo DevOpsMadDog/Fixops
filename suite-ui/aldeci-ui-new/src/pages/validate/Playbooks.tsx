@@ -472,8 +472,8 @@ export default function Playbooks() {
                 }}
               />
             ))
-            )}
-          </div>
+          )}
+        </div>
       ) : (
         <Card>
           <CardContent className="p-0">
@@ -540,7 +540,7 @@ export default function Playbooks() {
                     </TableRow>
                   ))
                 )}
-                </TableBody>
+              </TableBody>
             </Table>
             </div>
           </CardContent>

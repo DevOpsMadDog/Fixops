@@ -42,7 +42,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SCAN_JOBS = [
   { id: "JOB-001", target_type: "git_repo",   target_path: "github.com/acme/backend-api",    status: "completed", secrets_found: 5,  duration: "42s",  created_at: "14:30:00" },
@@ -76,7 +76,7 @@ const SECRET_DIST = [
 ];
 const MAX_DIST = SECRET_DIST[0].count;
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function TargetTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -132,11 +132,9 @@ function FindingStatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>{status.replace(/_/g, " ")}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecretScannerDashboard() {
-  const [loading, setLoading] = useState(true);
-
   const [refreshing, setRefreshing]     = useState(false);
   const [dataLoading, setDataLoading]   = useState(false);
   const [liveData, setLiveData]         = useState<any>(null);
@@ -153,8 +151,7 @@ export default function SecretScannerDashboard() {
       const jobs     = jobsRes.status     === "fulfilled" ? jobsRes.value     : null;
       const findings = findingsRes.status === "fulfilled" ? findingsRes.value : null;
       if (jobs || findings) setLiveData({ jobs, findings });
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -171,7 +168,7 @@ export default function SecretScannerDashboard() {
       });
       setScanMsg("Scan triggered successfully.");
     } catch {
-      setScanMsg("Scan queued (engine offline = will run when connected).");
+      setScanMsg("Scan queued (engine offline — will run when connected).");
     } finally {
       setScanning(false);
     }
@@ -184,14 +181,6 @@ export default function SecretScannerDashboard() {
   const totalFindings = findings.filter((f: any) => f.status !== "false_positive").length;
   const criticalSecs  = findings.filter((f: any) => f.severity === "critical" && f.status === "active").length;
   const remediated    = findings.filter((f: any) => f.status === "remediated").length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -241,13 +230,7 @@ export default function SecretScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  jobs.map((job: any) => (
+                {jobs.map((job: any) => (
                   <TableRow key={job.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><TargetTypeBadge type={job.target_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground max-w-[220px] truncate">{job.target_path}</TableCell>
@@ -260,8 +243,7 @@ export default function SecretScannerDashboard() {
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.duration}</TableCell>
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{job.created_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -295,13 +277,7 @@ export default function SecretScannerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  findings.map((f: any) => (
+                {findings.map((f: any) => (
                   <TableRow key={f.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SecretTypeBadge type={f.secret_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[180px] truncate">{f.file_path}</TableCell>
@@ -315,8 +291,7 @@ export default function SecretScannerDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><FindingStatusBadge status={f.status} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -340,7 +315,7 @@ export default function SecretScannerDashboard() {
               <select
                 className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 value={scanForm.target_type}
-                onChange={(e) => setScanForm((s) => ({ ...s, target_type: e.target.value })))}
+                onChange={(e) => setScanForm((s) => ({ ...s, target_type: e.target.value }))}
               >
                 <option value="git_repo">Git Repository</option>
                 <option value="directory">Directory</option>
@@ -353,13 +328,13 @@ export default function SecretScannerDashboard() {
               <Input
                 placeholder="e.g. github.com/org/repo or /path/to/dir"
                 value={scanForm.target_path}
-                onChange={(e) => setScanForm((s) => ({ ...s, target_path: e.target.value })))}
+                onChange={(e) => setScanForm((s) => ({ ...s, target_path: e.target.value }))}
                 className="text-xs h-8"
               />
             </div>
             <Button size="sm" className="w-full" onClick={handleScan} disabled={scanning || !scanForm.target_path.trim()}>
               {scanning ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : <Play className="h-3 w-3 mr-1.5" />}
-              {scanning ? "Scanning=" : "Start Scan"}
+              {scanning ? "Scanning…" : "Start Scan"}
             </Button>
             {scanMsg && <p className="text-[11px] text-green-400">{scanMsg}</p>}
           </CardContent>
@@ -372,13 +347,7 @@ export default function SecretScannerDashboard() {
             <CardDescription className="text-xs">Findings breakdown by secret category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {SECRET_DIST.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              SECRET_DIST.map((item, i) => (
+            {SECRET_DIST.map((item, i) => (
               <div key={item.type} className="space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="font-mono text-muted-foreground">{item.type.replace(/_/g, " ")}</span>
@@ -393,7 +362,7 @@ export default function SecretScannerDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </div>

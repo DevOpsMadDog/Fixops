@@ -5,7 +5,7 @@
  * API: GET /api/v1/security-automation/stats, /api/v1/security-automation/executions
  *
  * KPIs: Automation Rules, Executions Today, Success Rate, Avg Duration
- * Table: Recent executions = rule name, trigger type, status badge, actions taken, duration
+ * Table: Recent executions — rule name, trigger type, status badge, actions taken, duration
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_STATS = {
   total_rules: 24,
@@ -57,7 +57,7 @@ const MOCK_EXECUTIONS = [
   { id: "EXEC-010", rule_name: "Notify on new admin account",  trigger: "event",      status: "success", actions_taken: 1, duration_ms: 55  },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function TriggerBadge({ trigger }: { trigger: string }) {
   const map: Record<string, string> = {
@@ -90,13 +90,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [executions, setExecutions] = useState<typeof MOCK_EXECUTIONS>(MOCK_EXECUTIONS);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -105,22 +104,13 @@ export default function SecurityAutomationDashboard() {
     ]).then(([statsRes, execRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (execRes.status === "fulfilled" && execRes.value) setExecutions(execRes.value);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const successRatePct = `${Math.round((stats.success_rate ?? 0) * 100)}%`;
   const avgDuration    = `${stats.avg_duration_ms ?? 0}ms`;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -174,13 +164,7 @@ export default function SecurityAutomationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {executions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  executions.map((exec: any) => (
+                {executions.map((exec: any) => (
                   <TableRow key={exec.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium max-w-[220px] truncate">{exec.rule_name}</TableCell>
                     <TableCell className="py-2"><TriggerBadge trigger={exec.trigger} /></TableCell>
@@ -197,8 +181,7 @@ export default function SecurityAutomationDashboard() {
                       {exec.duration_ms}ms
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

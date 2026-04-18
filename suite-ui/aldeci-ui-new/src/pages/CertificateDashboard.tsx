@@ -5,7 +5,7 @@
  * API: GET /api/v1/certificates/stats, /api/v1/certificates/expiring
  *
  * KPIs: Total Certs, Active, Expiring (30d), Expired
- * Table: Expiring certs = domain, type, issuer, expiry date, auto-renew badge
+ * Table: Expiring certs — domain, type, issuer, expiry date, auto-renew badge
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_STATS = {
   total: 89,
@@ -55,7 +55,7 @@ const MOCK_EXPIRING = [
   { id: "CERT-007", domain: "ci-deploy-client",        type: "client",       issuer: "Internal CA",     expiry_date: "2026-05-28", auto_renew: false },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function CertTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -85,11 +85,10 @@ function daysUntil(dateStr: string) {
   return diff;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CertificateDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [expiring, setExpiring]     = useState<typeof MOCK_EXPIRING>(MOCK_EXPIRING);
 
@@ -100,19 +99,10 @@ export default function CertificateDashboard() {
     ]).then(([statsRes, expiringRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (expiringRes.status === "fulfilled" && expiringRes.value) setExpiring(expiringRes.value);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -146,7 +136,7 @@ export default function CertificateDashboard() {
             <p className="text-2xl font-bold tabular-nums">{count as number}</p>
             <p className="text-[11px] text-muted-foreground mt-1 capitalize">{type.replace(/_/g, " ")}</p>
           </Card>
-        )))}
+        ))}
       </div>
 
       {/* Expiring Certs Table */}
@@ -177,13 +167,7 @@ export default function CertificateDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expiring.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  expiring.map((cert: any) => {
+                {expiring.map((cert: any) => {
                   const days = daysUntil(cert.expiry_date);
                   return (
                     <TableRow key={cert.id} className="hover:bg-muted/30">
@@ -202,8 +186,7 @@ export default function CertificateDashboard() {
                       <TableCell className="py-2"><AutoRenewBadge enabled={cert.auto_renew} /></TableCell>
                     </TableRow>
                   );
-                })
-                )}
+                })}
               </TableBody>
             </Table>
           </div>

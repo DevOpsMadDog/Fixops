@@ -3,7 +3,7 @@
  *
  * DMARC enforcement, phishing detection, and email authentication monitoring:
  *   1. KPIs: DMARC Pass Rate, Blocked Phishing Today, Spoofing Attempts, Email Volume
- *   2. Domain Authentication status (3 domains = DMARC/SPF/DKIM badges + Enforce button)
+ *   2. Domain Authentication status (3 domains — DMARC/SPF/DKIM badges + Enforce button)
  *   3. DMARC Reports chart: 30-day trend bar chart (pass/fail/quarantine/reject)
  *   4. Top Email Threats table (8 rows)
  *   5. Lookalike Domain Detection (5 suspicious domains)
@@ -16,7 +16,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
@@ -56,9 +56,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Types
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 type AuthStatus = "Pass" | "Fail" | "SoftFail" | "None";
 type DmarcPolicy = "none" | "quarantine" | "reject";
@@ -110,9 +110,9 @@ interface Recommendation {
   icon: typeof Shield;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Mock Data
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const MOCK_DOMAINS: DomainAuth[] = [
   { id: "d1", domain: "domain1.com", dmarc: "Pass", spf: "Pass", dkim: "Pass", policy: "quarantine" },
@@ -213,9 +213,9 @@ const RECOMMENDATIONS: Recommendation[] = [
   },
 ];
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Styling helpers
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 const AUTH_BADGE: Record<AuthStatus, string> = {
   Pass: "bg-green-500/10 text-green-400 border-green-500/30",
@@ -256,9 +256,9 @@ const IMPACT_TEXT: Record<"HIGH" | "MEDIUM" | "LOW", string> = {
   LOW: "text-blue-400",
 };
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Sub-components
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 function AuthStatusBadge({ status }: { status: AuthStatus }) {
   return (
@@ -276,14 +276,13 @@ function RiskScoreBadge({ score }: { score: number }) {
   return <span className={cn("font-bold tabular-nums", color)}>{score}</span>;
 }
 
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 // Main Component
-// ==============================================================
+// ══════════════════════════════════════════════════════════════
 
 export default function EmailSecurity() {
   const [enforcing, setEnforcing] = useState<Set<string>>(new Set());
   const [liveData, setLiveData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -298,7 +297,8 @@ export default function EmailSecurity() {
             dmarc_pass_rate: feedStats.feed_health_pct ?? null,
             blocked_count:   feedStats.total_items ?? feedStats.total ?? null,
             spoofing_count:  feedStats.by_type?.spoofing ?? null,
-            total_volume:    feedStats.total_items ?? null,}
+            total_volume:    feedStats.total_items ?? null,
+          }
         : null;
       const items = Array.isArray(feedItems)
         ? feedItems
@@ -311,7 +311,7 @@ export default function EmailSecurity() {
             subject_preview: item.description ?? item.title ?? "",
             threat_type:    item.feed_type === "phishing" ? "Phishing" : (item.threat_type ?? "Phishing"),
             action_taken:   item.status === "blocked" ? "Blocked" : (item.status === "quarantined" ? "Quarantined" : "Blocked"),
-            similarity:     item.confidence != null ? `${item.confidence}%` : "=",
+            similarity:     item.confidence != null ? `${item.confidence}%` : "—",
           }))
         : null;
       if (stats || threats) {
@@ -327,14 +327,7 @@ export default function EmailSecurity() {
   // Bar chart max for scaling
   const dmarcBars = liveData?.reports ?? MOCK_DMARC_BARS;
   const maxTotal = Math.max(
-    ...dmarcBars.map((b: any) => (b.pass ?? b.pass_count ?? 0) + (b.fail ?? b.fail_count ?? 0) + (b.quarantine ?? b.quarantine_count ?? 0) + (b.reject ?? b.reject_count ?? 0));
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
+    ...dmarcBars.map((b: any) => (b.pass ?? b.pass_count ?? 0) + (b.fail ?? b.fail_count ?? 0) + (b.quarantine ?? b.quarantine_count ?? 0) + (b.reject ?? b.reject_count ?? 0))
   );
 
   return (
@@ -391,13 +384,7 @@ export default function EmailSecurity() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {MOCK_DOMAINS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_DOMAINS.map((domain, idx) => (
+              {MOCK_DOMAINS.map((domain, idx) => (
                 <motion.div
                   key={domain.id}
                   initial={{ opacity: 0, scale: 0.97 }}
@@ -440,7 +427,7 @@ export default function EmailSecurity() {
                     </Button>
                   )}
                 </motion.div>
-              )))}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -457,7 +444,7 @@ export default function EmailSecurity() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-cyan-400" />
-                DMARC Reports = 30-Day Trend
+                DMARC Reports — 30-Day Trend
               </CardTitle>
               <div className="flex items-center gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500/70 inline-block" />Pass</span>
@@ -469,13 +456,7 @@ export default function EmailSecurity() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="flex items-end gap-2 h-40">
-              {dmarcBars.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                dmarcBars.map((bar: any, idx: number) => {
+              {dmarcBars.map((bar: any, idx: number) => {
                 const total = (bar.pass ?? bar.pass_count ?? 0) + (bar.fail ?? bar.fail_count ?? 0) + (bar.quarantine ?? bar.quarantine_count ?? 0) + (bar.reject ?? bar.reject_count ?? 0);
                 const scale = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
                 const passV = bar.pass ?? bar.pass_count ?? 0;
@@ -496,15 +477,14 @@ export default function EmailSecurity() {
                       >
                         <div className="bg-orange-500/70" style={{ height: `${rejH}%` }} />
                         <div className="bg-yellow-500/70" style={{ height: `${quarH}%` }} />
-                        <div className="bg-red-500/70" style={{ height: `${failH}%` }} / role="status" aria-live="polite">
+                        <div className="bg-red-500/70" style={{ height: `${failH}%` }} />
                         <div className="bg-green-500/70 flex-1" />
                       </div>
                     </div>
                     <span className="text-xs text-slate-500 whitespace-nowrap">{bar.date ?? bar.report_date ?? ""}</span>
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
           </CardContent>
         </Card>
@@ -540,7 +520,7 @@ export default function EmailSecurity() {
                   {(liveData?.threats ?? MOCK_THREATS).map((threat: any, idx: number) => {
                     const threatType = (threat.threat_type ?? "Phishing") as ThreatType;
                     const actionTaken = (threat.action_taken ?? threat.status ?? "Blocked") as ActionTaken;
-                    const simScore = threat.similarity_score != null ? `${Math.round(threat.similarity_score * 100)}%` : (threat.similarity ?? "=");
+                    const simScore = threat.similarity_score != null ? `${Math.round(threat.similarity_score * 100)}%` : (threat.similarity ?? "—");
                     return (
                     <motion.tr
                       key={threat.id ?? idx}
@@ -617,13 +597,7 @@ export default function EmailSecurity() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_LOOKALIKES.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    MOCK_LOOKALIKES.map((d, idx) => (
+                  {MOCK_LOOKALIKES.map((d, idx) => (
                     <motion.tr
                       key={d.id}
                       initial={{ opacity: 0 }}
@@ -650,7 +624,7 @@ export default function EmailSecurity() {
                         <RiskScoreBadge score={d.risk_score} />
                       </TableCell>
                     </motion.tr>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -671,13 +645,7 @@ export default function EmailSecurity() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
-              {RECOMMENDATIONS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                RECOMMENDATIONS.map((rec, idx) => {
+              {RECOMMENDATIONS.map((rec, idx) => {
                 const Icon = rec.icon;
                 return (
                   <motion.div
@@ -702,8 +670,7 @@ export default function EmailSecurity() {
                     <p className="text-xs text-slate-400 leading-relaxed">{rec.description}</p>
                   </motion.div>
                 );
-              })
-              )}
+              })}
             </CardContent>
           </Card>
         </motion.div>

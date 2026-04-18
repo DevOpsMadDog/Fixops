@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ACCOUNTS = [
   { username: "svc-deploy-prod",   account_type: "service",        system: "k8s-prod-cluster",     owner: "DevOps",       risk_score: 91, last_used: "2 min ago" },
@@ -52,7 +52,7 @@ const MOCK_ACCOUNTS = [
 
 const MOCK_STATS = { total_pa_accounts: 312, active_sessions_today: 47, open_anomalies: 8, high_risk_accounts: 19 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function AccountTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -75,12 +75,11 @@ function RiskScore({ score }: { score: number }) {
   return <span className={cn("font-mono font-bold text-[12px]", color)}>{score}</span>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PAGDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveAccounts, setLiveAccounts] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]       = useState<any | null>(null);
 
   useEffect(() => {
@@ -90,22 +89,13 @@ export default function PAGDashboard() {
     ]).then(([accountsRes, statsRes]) => {
       if (accountsRes.status === "fulfilled") setLiveAccounts(accountsRes.value?.accounts ?? accountsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const accounts = liveAccounts ?? MOCK_ACCOUNTS;
   const stats    = liveStats    ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -145,7 +135,7 @@ export default function PAGDashboard() {
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Service accounts, admin accounts, break-glass credentials = risk-scored and usage-tracked
+            Service accounts, admin accounts, break-glass credentials — risk-scored and usage-tracked
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -162,35 +152,28 @@ export default function PAGDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  accounts.map((acc: any, i: number) => (
+                {accounts.map((acc: any, i: number) => (
                   <TableRow key={acc.username ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] font-semibold text-purple-300">
-                      {acc.username ?? "="}
+                      {acc.username ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <AccountTypeBadge type={acc.account_type ?? "service"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[160px] truncate">
-                      {acc.system ?? "="}
+                      {acc.system ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {acc.owner ?? "="}
+                      {acc.owner ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskScore score={acc.risk_score ?? 0} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {acc.last_used ?? "="}
+                      {acc.last_used ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

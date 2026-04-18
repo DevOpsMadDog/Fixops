@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_EVENTS = [
   { id: "evt-001", threat_type: "SQL Injection",        source_ip: "185.220.101.47", endpoint: "/api/v1/users",       action_taken: "blocked",  severity: "critical", detected_at: "2026-04-16 10:23:11" },
@@ -52,7 +52,7 @@ const MOCK_EVENTS = [
 
 const MOCK_STATS = { active_rules: 34, total_events: 847, blocked_events: 623, top_threat_type: "Rate Limit Abuse" };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -82,13 +82,12 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function APIThreatProtectionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveEvents, setLiveEvents] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -97,22 +96,13 @@ export default function APIThreatProtectionDashboard() {
     ]).then(([eventsRes, statsRes]) => {
       if (eventsRes.status === "fulfilled") setLiveEvents(eventsRes.value?.events ?? eventsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const events = liveEvents ?? MOCK_EVENTS;
   const stats  = liveStats  ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -169,22 +159,16 @@ export default function APIThreatProtectionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {events.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  events.map((evt: any, i: number) => (
+                {events.map((evt: any, i: number) => (
                   <TableRow key={evt.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300">
-                      {evt.threat_type ?? "="}
+                      {evt.threat_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
-                      {evt.source_ip ?? "="}
+                      {evt.source_ip ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-300 max-w-[180px] truncate">
-                      {evt.endpoint ?? "="}
+                      {evt.endpoint ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <ActionBadge action={evt.action_taken ?? "logged"} />
@@ -193,11 +177,10 @@ export default function APIThreatProtectionDashboard() {
                       <SeverityBadge severity={evt.severity ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground">
-                      {evt.detected_at ?? "="}
+                      {evt.detected_at ?? "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

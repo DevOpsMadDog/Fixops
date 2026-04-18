@@ -5,7 +5,7 @@
  * API: GET /api/v1/privilege-escalation/stats, /api/v1/privilege-escalation/events
  *
  * KPIs: Total Events, Anomalies Detected, Blocked Attempts, Alert Rate
- * Table: Recent events = user, from_role = to_role, method, anomaly score, timestamp
+ * Table: Recent events — user, from_role → to_role, method, anomaly score, timestamp
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_STATS = {
   total_events: 342,
@@ -56,7 +56,7 @@ const MOCK_EVENTS = [
   { id: "EVT-010", user: "backup-runner", from_role: "backup",      to_role: "storage-admin",  method: "iam_assume",  anomaly_score: 0.18, timestamp: "12:30:44", anomaly: false },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function MethodBadge({ method }: { method: string }) {
   const map: Record<string, string> = {
@@ -83,11 +83,10 @@ function AnomalyScore({ score, isAnomaly }: { score: number; isAnomaly: boolean 
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PrivilegeEscalationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [events, setEvents]         = useState<typeof MOCK_EVENTS>(MOCK_EVENTS);
 
@@ -98,8 +97,7 @@ export default function PrivilegeEscalationDashboard() {
     ]).then(([statsRes, eventsRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (eventsRes.status === "fulfilled" && eventsRes.value) setEvents(eventsRes.value);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -107,14 +105,6 @@ export default function PrivilegeEscalationDashboard() {
   const alertRate = stats.total_events > 0
     ? ((stats.anomalies / stats.total_events) * 100).toFixed(1) + "%"
     : "0%";
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -168,13 +158,7 @@ export default function PrivilegeEscalationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {events.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  events.map((evt: any) => (
+                {events.map((evt: any) => (
                   <TableRow
                     key={evt.id}
                     className={cn("hover:bg-muted/30", evt.anomaly && "bg-red-500/5")}
@@ -193,8 +177,7 @@ export default function PrivilegeEscalationDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-right font-mono text-[11px] text-muted-foreground">{evt.timestamp}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

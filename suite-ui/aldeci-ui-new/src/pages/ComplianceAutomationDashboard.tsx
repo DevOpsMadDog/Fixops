@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_JOBS = [
   { id: "job-001", framework: "SOC 2",       automation_type: "evidence_collection", status: "completed", started_at: "2026-04-16T08:00:00Z", completed_at: "2026-04-16T08:14:00Z" },
@@ -54,7 +54,7 @@ const MOCK_JOBS = [
 
 const MOCK_STATS = { total_jobs: 142, completed_jobs: 117, controls_tested: 892, pass_rate: 94.3 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -77,17 +77,16 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatTs(ts: string | null) {
-  if (!ts) return "=";
+  if (!ts) return "—";
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ComplianceAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveJobs, setLiveJobs] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -96,22 +95,13 @@ export default function ComplianceAutomationDashboard() {
     ]).then(([jobsRes, statsRes]) => {
       if (jobsRes.status === "fulfilled") setLiveJobs(jobsRes.value?.jobs ?? jobsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const jobs  = liveJobs  ?? MOCK_JOBS;
   const stats = liveStats ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -167,19 +157,13 @@ export default function ComplianceAutomationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  jobs.map((job: any, i: number) => (
+                {jobs.map((job: any, i: number) => (
                   <TableRow key={job.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-indigo-300">
-                      {job.framework ?? "="}
+                      {job.framework ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(job.automation_type ?? "=").replace(/_/g, " ")}
+                      {(job.automation_type ?? "—").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={job.status ?? "queued"} />
@@ -191,8 +175,7 @@ export default function ComplianceAutomationDashboard() {
                       {formatTs(job.completed_at)}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

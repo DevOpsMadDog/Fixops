@@ -1,5 +1,5 @@
 /**
- * CWPPDashboard = Cloud Workload Protection Platform
+ * CWPPDashboard — Cloud Workload Protection Platform
  *
  * Route: /cwpp
  * Sections:
@@ -24,7 +24,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const WORKLOADS = [
   { name: "api-gateway-prod", type: "container",   runtime: "docker",      image: "nginx:1.25.3",           cluster: "prod-k8s-1",  risk: 12, status: "running",    findings: 2  },
@@ -101,7 +101,7 @@ const POLICIES = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -136,13 +136,12 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className="text-[10px] border border-border text-muted-foreground">{status}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CWPPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -167,14 +166,6 @@ export default function CWPPDashboard() {
     loadData();
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -232,8 +223,8 @@ export default function CWPPDashboard() {
                   name: w.name ?? w.workload_id ?? "unknown",
                   type: w.workload_type ?? w.type ?? "container",
                   runtime: w.metadata?.runtime ?? w.runtime ?? "docker",
-                  image: w.metadata?.image ?? w.image ?? "=",
-                  cluster: w.metadata?.cluster ?? w.cluster ?? "=",
+                  image: w.metadata?.image ?? w.image ?? "—",
+                  cluster: w.metadata?.cluster ?? w.cluster ?? "—",
                   risk: w.risk_score ?? w.risk ?? 0,
                   status: w.status ?? "running",
                   findings: w.finding_count ?? w.findings ?? 0,
@@ -300,7 +291,7 @@ export default function CWPPDashboard() {
                   type: e.threat_type ?? e.event_type ?? e.type ?? "syscall_anomaly",
                   blocked: e.blocked ?? e.action === "block",
                   desc: e.description ?? e.details ?? e.message ?? "",
-                  ts: e.detected_at ?? e.timestamp ?? e.ts ?? "=",
+                  ts: e.detected_at ?? e.timestamp ?? e.ts ?? "—",
                 })) : EVENTS).map((e, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2">{e.workload}</TableCell>
@@ -333,13 +324,7 @@ export default function CWPPDashboard() {
             <CardDescription className="text-xs">Open findings grouped by category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {FINDING_TYPES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              FINDING_TYPES.map((f) => (
+            {FINDING_TYPES.map((f) => (
               <div key={f.type} className={cn("flex items-center justify-between rounded-lg border p-3", f.bg)}>
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-medium">{f.type.replace(/_/g, " ")}</span>
@@ -347,8 +332,7 @@ export default function CWPPDashboard() {
                 </div>
                 <span className={cn("text-sm font-bold tabular-nums", f.color)}>{f.count}</span>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -362,13 +346,7 @@ export default function CWPPDashboard() {
             <CardDescription className="text-xs">Active runtime security policies and coverage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {POLICIES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              POLICIES.map((p) => (
+            {POLICIES.map((p) => (
               <div key={p.name} className="rounded-lg border border-border bg-muted/10 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold">{p.name}</span>
@@ -383,7 +361,7 @@ export default function CWPPDashboard() {
                       <span className="w-1 h-1 rounded-full bg-muted-foreground/50 flex-shrink-0" />
                       {r}
                     </li>
-                  )))}
+                  ))}
                 </ul>
                 <p className="text-[11px] text-muted-foreground">
                   Applied to <span className="font-semibold text-foreground">{p.applied.toLocaleString()}</span> workloads

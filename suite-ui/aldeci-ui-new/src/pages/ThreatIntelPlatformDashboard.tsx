@@ -1,12 +1,12 @@
 /**
  * Threat Intel Platform Dashboard
  *
- * Unified threat intelligence = sources, indicators, reports, check form.
+ * Unified threat intelligence — sources, indicators, reports, check form.
  *   1. KPIs: Total Indicators, Active Sources, Reports Published, Relationships Mapped
  *   2. Source feed table (source_name, type, reliability, last_updated, total_indicators, status)
- *   3. Indicator search = GET /api/v1/tip/indicators?query=VALUE
+ *   3. Indicator search → GET /api/v1/tip/indicators?query=VALUE
  *   4. Indicator table (type, value, severity, threat_category, confidence, TLP, first_seen)
- *   5. Check Indicator form = POST /api/v1/tip/check
+ *   5. Check Indicator form → POST /api/v1/tip/check
  *   6. Intel reports list (report_name, type, TLP, published_date)
  *
  * Route: /threat-intel-platform
@@ -43,7 +43,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SOURCES = [
   { id: "SRC-001", source_name: "MITRE ATT&CK",     source_type: "framework",   reliability_score: 0.98, last_updated: "10 min ago", total_indicators: 14820, status: "active" },
@@ -67,12 +67,12 @@ const MOCK_INDICATORS = [
 
 const MOCK_REPORTS = [
   { id: "RPT-001", report_name: "APT29 Campaign Analysis Q1 2026", report_type: "strategic",  tlp_level: "RED",   published_date: "2026-04-14" },
-  { id: "RPT-002", report_name: "Ransomware Wave = Healthcare Sector", report_type: "tactical", tlp_level: "AMBER", published_date: "2026-04-12" },
+  { id: "RPT-002", report_name: "Ransomware Wave — Healthcare Sector", report_type: "tactical", tlp_level: "AMBER", published_date: "2026-04-12" },
   { id: "RPT-003", report_name: "Phishing Kit Resurgence 2026",   report_type: "operational", tlp_level: "GREEN", published_date: "2026-04-10" },
   { id: "RPT-004", report_name: "Zero-Day Advisory CVE-2026-1234", report_type: "technical",  tlp_level: "RED",   published_date: "2026-04-09" },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SourceTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -134,7 +134,7 @@ function ReportTypeBadge({ type }: { type: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[type] ?? "border-border")}>{type}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatIntelPlatformDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
@@ -142,7 +142,6 @@ export default function ThreatIntelPlatformDashboard() {
   const [liveData, setLiveData]           = useState<any>(null);
   const [searchQuery, setSearchQuery]     = useState("");
   const [searchResults, setSearchResults] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [searching, setSearching]         = useState(false);
   const [checkValue, setCheckValue]       = useState("");
   const [checkType, setCheckType]         = useState("ip");
@@ -162,8 +161,7 @@ export default function ThreatIntelPlatformDashboard() {
       const indicators = indicatorsRes.status === "fulfilled" ? indicatorsRes.value : null;
       const reports    = reportsRes.status    === "fulfilled" ? reportsRes.value    : null;
       if (stats || sources || indicators || reports) setLiveData({ stats, sources, indicators, reports });
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -207,14 +205,6 @@ export default function ThreatIntelPlatformDashboard() {
   const activeSources      = stats?.active_sources      ?? sources.filter((s: any) => s.status === "active").length;
   const reportsPublished   = stats?.total_reports       ?? reports.length;
   const relationshipsMapped = stats?.total_relationships ?? 24182;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -264,13 +254,7 @@ export default function ThreatIntelPlatformDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sources.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  sources.map((src: any) => (
+                {sources.map((src: any) => (
                   <TableRow key={src.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{src.source_name}</TableCell>
                     <TableCell className="py-2"><SourceTypeBadge type={src.source_type} /></TableCell>
@@ -291,8 +275,7 @@ export default function ThreatIntelPlatformDashboard() {
                     <TableCell className="py-2 text-right font-mono text-xs tabular-nums">{(src.total_indicators ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="py-2"><SourceStatusBadge status={src.status} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -311,7 +294,7 @@ export default function ThreatIntelPlatformDashboard() {
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="Search indicators= (IP, domain, hash, URL)"
+              placeholder="Search indicators… (IP, domain, hash, URL)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -335,13 +318,7 @@ export default function ThreatIntelPlatformDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {indicators.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  indicators.map((ioc: any) => (
+                {indicators.map((ioc: any) => (
                   <TableRow key={ioc.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><IndicatorTypeBadge type={ioc.indicator_type} /></TableCell>
                     <TableCell className="py-2 font-mono text-[10px] max-w-[200px] truncate text-muted-foreground">{ioc.value}</TableCell>
@@ -355,8 +332,7 @@ export default function ThreatIntelPlatformDashboard() {
                     <TableCell className="py-2"><TLPBadge tlp={ioc.tlp_level} /></TableCell>
                     <TableCell className="py-2 text-right text-[11px] text-muted-foreground tabular-nums">{ioc.first_seen}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -388,7 +364,7 @@ export default function ThreatIntelPlatformDashboard() {
                 <option value="email">Email</option>
               </select>
               <Input
-                placeholder="Enter value to check="
+                placeholder="Enter value to check…"
                 value={checkValue}
                 onChange={(e) => setCheckValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCheck()}
@@ -411,14 +387,14 @@ export default function ThreatIntelPlatformDashboard() {
               >
                 {checkResult.known_bad ? (
                   <div className="space-y-1">
-                    <div className="font-bold text-red-400" role="status" aria-live="polite">KNOWN BAD = {checkResult.value ?? checkValue}</div>
+                    <div className="font-bold text-red-400">KNOWN BAD — {checkResult.value ?? checkValue}</div>
                     {checkResult.severity    && <div>Severity: <span className="font-semibold">{checkResult.severity}</span></div>}
                     {checkResult.threat_category && <div>Category: {checkResult.threat_category.replace(/_/g, " ")}</div>}
                     {checkResult.confidence  && <div>Confidence: {Math.round(checkResult.confidence * 100)}%</div>}
                     {checkResult.tlp_level   && <div>TLP: {checkResult.tlp_level}</div>}
                   </div>
                 ) : (
-                  <div className="text-green-400 font-medium">Not found in threat intel database = {checkValue}</div>
+                  <div className="text-green-400 font-medium">Not found in threat intel database — {checkValue}</div>
                 )}
               </motion.div>
             )}
@@ -435,13 +411,7 @@ export default function ThreatIntelPlatformDashboard() {
             <CardDescription className="text-xs">Published threat intelligence reports</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {reports.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              reports.map((rpt: any) => (
+            {reports.map((rpt: any) => (
               <div key={rpt.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-medium leading-snug">{rpt.report_name}</span>
@@ -452,7 +422,7 @@ export default function ThreatIntelPlatformDashboard() {
                   <span className="text-[10px] text-muted-foreground tabular-nums">{rpt.published_date}</span>
                 </div>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </div>

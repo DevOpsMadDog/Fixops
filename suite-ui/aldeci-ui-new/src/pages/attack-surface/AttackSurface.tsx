@@ -702,7 +702,7 @@ export default function AttackSurface() {
                 </CardTitle>
               </CardHeader>
               <div className="overflow-x-auto">
-                <table role="table" className="w-full text-sm">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-zinc-900/40">
                       <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground w-[280px]">
@@ -835,7 +835,7 @@ export default function AttackSurface() {
                       <p className="text-xs text-muted-foreground leading-snug">{chg.detail}</p>
                       <p className="text-[10px] text-zinc-600 font-mono mt-1">{timeAgo(chg.timestamp)}</p>
                     </div>
-                  )))}
+                  ))}
                 </div>
                 {MOCK_CHANGES.length > 5 && (
                   <div className="px-5 py-2 border-t border-border/50">

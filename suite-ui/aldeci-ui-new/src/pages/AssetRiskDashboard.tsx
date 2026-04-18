@@ -3,7 +3,7 @@
  *
  * Asset risk scoring, factor analysis, and prioritization.
  *   1. KPIs: Total Assets, Critical Risk, High Risk, Avg Score
- *   2. Risk heatmap: 5=4 grid (asset_type = criticality)
+ *   2. Risk heatmap: 5×4 grid (asset_type × criticality)
  *   3. Top 15 highest-risk assets table
  *   4. Risk factor breakdown (5 bars)
  *   5. 8 recently added assets
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { HardDrive, AlertTriangle, RefreshCw, BarChart3, Globe, Shield } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 // Heatmap: rows = criticality, cols = asset_type
 // Values = composite risk score (0-100)
@@ -97,7 +97,7 @@ const RECENT_ASSETS = [
   { name: "sec-scanner-host",    type: "Server",      score: 33, added: "2d ago" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -163,13 +163,12 @@ function ScoreIndicator({ score }: { score: number }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AssetRiskDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -195,7 +194,7 @@ export default function AssetRiskDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // KPI values = live data with mock fallback
+  // KPI values — live data with mock fallback
   const totalAssets   = liveData?.stats?.total_assets   ?? liveData?.assets?.length ?? 342;
   const criticalRisk  = liveData?.stats?.critical_count ?? 18;
   const highRisk      = liveData?.stats?.high_count     ?? 47;
@@ -203,36 +202,28 @@ export default function AssetRiskDashboard() {
     ? liveData.stats.avg_risk_score.toFixed(1)
     : "44.2";
 
-  // Top assets = map live scores list to table shape, fall back to TOP_ASSETS mock
+  // Top assets — map live scores list to table shape, fall back to TOP_ASSETS mock
   const topAssets: typeof TOP_ASSETS = liveData?.scores?.length
     ? liveData.scores.slice(0, 15).map((s: any) => ({
-        id:          s.asset_id ?? s.id ?? "=",
+        id:          s.asset_id ?? s.id ?? "—",
         name:        s.asset_name ?? s.name ?? s.asset_id ?? "Unknown",
         type:        s.asset_type ?? "Server",
         criticality: s.criticality ?? "Medium",
         exposure:    s.exposure ?? "internal",
         score:       Math.round(s.composite_score ?? s.risk_score ?? s.score ?? 0),
-        top_factor:  s.top_factor ?? s.dominant_factor ?? "=",
+        top_factor:  s.top_factor ?? s.dominant_factor ?? "—",
       }))
     : TOP_ASSETS;
 
-  // Recent assets = use live assets list if available, fall back to mock
+  // Recent assets — use live assets list if available, fall back to mock
   const recentAssets: typeof RECENT_ASSETS = liveData?.assets?.length
     ? liveData.assets.slice(0, 8).map((a: any) => ({
         name:  a.name ?? a.asset_id ?? "Unknown",
         type:  a.asset_type ?? "Server",
         score: Math.round(a.risk_score ?? a.score ?? 0),
-        added: a.registered_at ? new Date(a.registered_at).toLocaleDateString() : "=",
+        added: a.registered_at ? new Date(a.registered_at).toLocaleDateString() : "—",
       }))
     : RECENT_ASSETS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -269,34 +260,21 @@ export default function AssetRiskDashboard() {
               <BarChart3 className="h-4 w-4 text-red-400" />
               Risk Heatmap
             </CardTitle>
-            <CardDescription className="text-xs">Composite risk score by asset type = criticality = darker = higher risk</CardDescription>
+            <CardDescription className="text-xs">Composite risk score by asset type × criticality — darker = higher risk</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table role="table" className="w-full text-xs border-collapse">
+              <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr>
                     <th className="text-left text-muted-foreground font-normal pb-2 w-24" />
-                    {ASSET_TYPES.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                        <p className="text-lg font-medium">No data available</p>
-                        <p className="text-sm">Data will appear here once available</p>
-                      </div>
-                    ) : (
-                      ASSET_TYPES.map((t) => (
+                    {ASSET_TYPES.map((t) => (
                       <th key={t} className="text-center text-muted-foreground font-medium pb-2 px-1">{t}</th>
-                    ))
-                  )}
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {CRITICALITY_LEVELS.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    CRITICALITY_LEVELS.map((crit) => (
+                  {CRITICALITY_LEVELS.map((crit) => (
                     <tr key={crit}>
                       <td className="text-muted-foreground font-medium py-1 pr-2 text-right text-xs">{crit}</td>
                       {ASSET_TYPES.map((type) => {
@@ -308,16 +286,15 @@ export default function AssetRiskDashboard() {
                             </div>
                           </td>
                         );
-                      })
-                  )}
+                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500/30 inline-block" />Low (&lt;25)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/60 inline-block" />Medium (25=44)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-500/70 inline-block" />High (45=79)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/60 inline-block" />Medium (25–44)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-500/70 inline-block" />High (45–79)</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500/80 inline-block" />Critical (80+)</span>
               </div>
             </div>
@@ -335,13 +312,7 @@ export default function AssetRiskDashboard() {
               <CardDescription className="text-xs">Score contribution by factor type</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {RISK_FACTORS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                RISK_FACTORS.map((f) => (
+              {RISK_FACTORS.map((f) => (
                 <div key={f.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{f.label}</span>
@@ -356,7 +327,7 @@ export default function AssetRiskDashboard() {
                     />
                   </div>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
@@ -368,13 +339,7 @@ export default function AssetRiskDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {recentAssets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                recentAssets.map((a) => (
+              {recentAssets.map((a) => (
                 <div key={a.name} className="flex items-center gap-2">
                   <ScoreIndicator score={a.score} />
                   <div className="flex-1 min-w-0">
@@ -383,7 +348,7 @@ export default function AssetRiskDashboard() {
                   <TypeBadge type={a.type} />
                   <span className="text-[10px] text-muted-foreground shrink-0">{a.added}</span>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -415,13 +380,7 @@ export default function AssetRiskDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topAssets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  topAssets.map((row) => (
+                {topAssets.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={row.type} /></TableCell>
@@ -430,7 +389,7 @@ export default function AssetRiskDashboard() {
                     <TableCell className="py-2.5 w-32"><ScoreBar score={row.score} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.top_factor}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

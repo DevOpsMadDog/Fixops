@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ==================================================
+// ── API helpers ──────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -53,7 +53,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ====================================================
+// ── Mock data ────────────────────────────────────────────────────
 
 const MOCK_STATS = {
   total_cves: 1_847,
@@ -158,7 +158,7 @@ const MOCK_SUBSCRIPTIONS = [
   { id: "sub-006", subscription_type: "product",  subscription_value: "Jenkins",    notify_severity_min: "high",     active: false },
 ];
 
-// == Helper components ============================================
+// ── Helper components ────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -207,7 +207,7 @@ function KevIndicator({ listed }: { listed: boolean }) {
       <Flame className="h-3 w-3" /> KEV
     </span>
   ) : (
-    <span className="text-[11px] text-muted-foreground">=</span>
+    <span className="text-[11px] text-muted-foreground">—</span>
   );
 }
 
@@ -221,7 +221,7 @@ function ExploitIndicator({ available }: { available: boolean }) {
   );
 }
 
-// == Main Component ===============================================
+// ── Main Component ───────────────────────────────────────────────
 
 export default function VulnIntelligenceDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -341,13 +341,7 @@ export default function VulnIntelligenceDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayCves.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  displayCves.map((cve: any, i: number) => (
+                {displayCves.map((cve: any, i: number) => (
                   <TableRow key={cve.cve_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
                       <span className="font-mono text-[11px] text-blue-400 flex items-center gap-1">
@@ -356,7 +350,7 @@ export default function VulnIntelligenceDashboard() {
                       </span>
                     </TableCell>
                     <TableCell className="py-2 text-xs text-muted-foreground max-w-[240px] truncate">
-                      {cve.title || "="}
+                      {cve.title || "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={cve.severity ?? "medium"} />
@@ -376,14 +370,13 @@ export default function VulnIntelligenceDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground max-w-[180px] truncate">
                       {Array.isArray(cve.affected_products)
                         ? cve.affected_products.slice(0, 2).join(", ")
-                        : (cve.affected_products || "=")}
+                        : (cve.affected_products || "—")}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={cve.status ?? "new"} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -405,16 +398,10 @@ export default function VulnIntelligenceDashboard() {
                 {displayAdvisories.filter((a: any) => a.status === "new").length} new
               </Badge>
             </div>
-            <CardDescription className="text-xs">Vendor security advisories = track and apply patches</CardDescription>
+            <CardDescription className="text-xs">Vendor security advisories — track and apply patches</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {displayAdvisories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              displayAdvisories.map((adv: any, i: number) => (
+            {displayAdvisories.map((adv: any, i: number) => (
               <div key={adv.id ?? i} className={cn(
                 "rounded-lg border bg-muted/20 p-3 space-y-2",
                 adv.status === "new" ? "border-amber-500/20" : "border-border"
@@ -432,13 +419,13 @@ export default function VulnIntelligenceDashboard() {
                 <div className="text-[11px] text-muted-foreground truncate">{adv.product}</div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground">
-                    CVEs: <span className="text-foreground font-mono">{Array.isArray(adv.cves_covered) ? adv.cves_covered.join(", ") : "="}</span>
+                    CVEs: <span className="text-foreground font-mono">{Array.isArray(adv.cves_covered) ? adv.cves_covered.join(", ") : "—"}</span>
                   </span>
                   <span className="text-muted-foreground tabular-nums">{adv.release_date}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground">
-                    Patch: <span className="text-green-400 font-mono">{adv.patch_version || "="}</span>
+                    Patch: <span className="text-green-400 font-mono">{adv.patch_version || "—"}</span>
                   </span>
                   {adv.status === "applied" ? (
                     <span className="flex items-center gap-1 text-green-400">
@@ -451,8 +438,7 @@ export default function VulnIntelligenceDashboard() {
                   )}
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -471,13 +457,7 @@ export default function VulnIntelligenceDashboard() {
             <CardDescription className="text-xs">Vendor, product, and keyword subscriptions for CVE notifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {displaySubs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              displaySubs.map((sub: any, i: number) => (
+            {displaySubs.map((sub: any, i: number) => (
               <div key={sub.id ?? i} className={cn(
                 "flex items-center justify-between rounded-lg border p-3",
                 sub.active === false ? "border-border bg-muted/10 opacity-60" : "border-border bg-muted/20"
@@ -510,7 +490,7 @@ export default function VulnIntelligenceDashboard() {
                   )}
                 </div>
               </div>
-            )))}
+            ))}
 
             <div className="pt-2">
               <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
@@ -543,7 +523,7 @@ export default function VulnIntelligenceDashboard() {
                 <div className={cn("text-2xl font-bold tabular-nums", item.color)}>{item.value}</div>
                 <div className="text-[11px] text-muted-foreground">{item.label}</div>
               </div>
-            )))}
+            ))}
           </div>
         </CardContent>
       </Card>

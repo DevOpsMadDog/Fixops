@@ -5,7 +5,7 @@
  * API: GET /api/v1/crypto-keys/stats, /api/v1/crypto-keys/expiring
  *
  * KPIs: Total Keys, Expiring (30d), Revoked, Key Types
- * Table: Expiring keys = name, type, purpose, days until expiry, rotate button
+ * Table: Expiring keys — name, type, purpose, days until expiry, rotate button
  */
 
 import { useState, useEffect } from "react";
@@ -35,7 +35,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_STATS = {
   total: 156,
@@ -55,7 +55,7 @@ const MOCK_EXPIRING = [
   { id: "KEY-008", name: "session-secret-prod",   type: "aes256",   purpose: "Session token secret",   days_until_expiry: 30 },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function KeyTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -78,11 +78,10 @@ function ExpiryBadge({ days }: { days: number }) {
   return <span className={cn("text-xs tabular-nums", cls)}>{days}d</span>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CryptoKeyDashboard() {
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [stats, setStats]           = useState<typeof MOCK_STATS>(MOCK_STATS);
   const [expiring, setExpiring]     = useState<typeof MOCK_EXPIRING>(MOCK_EXPIRING);
   const [rotating, setRotating]     = useState<string | null>(null);
@@ -94,8 +93,7 @@ export default function CryptoKeyDashboard() {
     ]).then(([statsRes, expiringRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
       if (expiringRes.status === "fulfilled" && expiringRes.value) setExpiring(expiringRes.value);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -106,14 +104,6 @@ export default function CryptoKeyDashboard() {
   };
 
   const keyTypeCount = Object.keys(stats.by_type ?? {}).length;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -177,13 +167,7 @@ export default function CryptoKeyDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expiring.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  expiring.map((k: any) => (
+                {expiring.map((k: any) => (
                   <TableRow key={k.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px]">{k.name}</TableCell>
                     <TableCell className="py-2"><KeyTypeBadge type={k.type} /></TableCell>
@@ -202,8 +186,7 @@ export default function CryptoKeyDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -1,7 +1,7 @@
 /**
  * Security Gamification Dashboard
  *
- * Security awareness gamification = challenges, leaderboard, and completion tracking.
+ * Security awareness gamification — challenges, leaderboard, and completion tracking.
  *   1. KPIs: Total Challenges, Active Users, Total Completions, Top Points
  *   2. Leaderboard table (rank, user_id, total_points)
  *   3. Challenges table (title, type, points, difficulty)
@@ -38,7 +38,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_LEADERBOARD = [
   { rank: 1,  user_id: "user-alice-k",    total_points: 4820 },
@@ -62,7 +62,7 @@ const MOCK_CHALLENGES = [
 
 const MOCK_STATS = { total_challenges: 42, active_users: 318, total_completions: 2847, top_points: 4820 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
   const map: Record<string, string> = {
@@ -93,19 +93,18 @@ function ChallengTypeBadge({ type }: { type: string }) {
 }
 
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <span className="text-yellow-400 font-bold text-[13px]">=</span>;
-  if (rank === 2) return <span className="text-slate-300 font-bold text-[13px]">=</span>;
-  if (rank === 3) return <span className="text-amber-600 font-bold text-[13px]">=</span>;
+  if (rank === 1) return <span className="text-yellow-400 font-bold text-[13px]">🥇</span>;
+  if (rank === 2) return <span className="text-slate-300 font-bold text-[13px]">🥈</span>;
+  if (rank === 3) return <span className="text-amber-600 font-bold text-[13px]">🥉</span>;
   return <span className="font-mono text-[11px] text-muted-foreground">#{rank}</span>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityGamificationDashboard() {
   const [refreshing, setRefreshing]       = useState(false);
   const [liveLeaderboard, setLiveLB]      = useState<any[] | null>(null);
   const [liveChallenges, setLiveChallenges] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]         = useState<any | null>(null);
 
   useEffect(() => {
@@ -117,8 +116,7 @@ export default function SecurityGamificationDashboard() {
       if (lbRes.status === "fulfilled") setLiveLB(lbRes.value?.leaderboard ?? lbRes.value ?? null);
       if (challengesRes.status === "fulfilled") setLiveChallenges(challengesRes.value?.challenges ?? challengesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -126,14 +124,6 @@ export default function SecurityGamificationDashboard() {
   const leaderboard = liveLeaderboard ?? MOCK_LEADERBOARD;
   const challenges  = liveChallenges  ?? MOCK_CHALLENGES;
   const stats       = liveStats       ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -181,26 +171,19 @@ export default function SecurityGamificationDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leaderboard.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    leaderboard.map((entry: any, i: number) => (
+                  {leaderboard.map((entry: any, i: number) => (
                     <TableRow key={entry.user_id ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2">
                         <RankBadge rank={entry.rank ?? i + 1} />
                       </TableCell>
                       <TableCell className="py-2 font-mono text-[11px] text-amber-300">
-                        {entry.user_id ?? "="}
+                        {entry.user_id ?? "—"}
                       </TableCell>
                       <TableCell className="py-2 text-right font-mono font-bold text-[12px] text-yellow-400">
                         {(entry.total_points ?? 0).toLocaleString()}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -228,16 +211,10 @@ export default function SecurityGamificationDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {challenges.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    challenges.map((ch: any, i: number) => (
+                  {challenges.map((ch: any, i: number) => (
                     <TableRow key={ch.title ?? i} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-[11px] font-medium max-w-[160px] truncate">
-                        {ch.title ?? "="}
+                        {ch.title ?? "—"}
                       </TableCell>
                       <TableCell className="py-2">
                         <ChallengTypeBadge type={ch.type ?? "quiz"} />
@@ -249,8 +226,7 @@ export default function SecurityGamificationDashboard() {
                         {ch.points ?? 0}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>

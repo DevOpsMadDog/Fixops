@@ -4,10 +4,10 @@
  * ML-powered alert classification and analyst verdict workflow.
  *   1. KPIs: New Alerts, True Positives, False Positives, Escalated
  *   2. Alert queue table (15 rows) with AI severity, classification, confidence %, MITRE technique
- *   3. AI confidence indicator = colored badge showing 0-100%
+ *   3. AI confidence indicator — colored badge showing 0-100%
  *   4. Classification legend: TP (red), FP (green), undetermined (amber)
- *   5. Analyst verdict form = confirm / dispute verdict for selected alert
- *   6. Stats panel = false_positive_rate, escalation_rate, avg_confidence
+ *   5. Analyst verdict form — confirm / dispute verdict for selected alert
+ *   6. Stats panel — false_positive_rate, escalation_rate, avg_confidence
  *
  * API: GET /api/v1/soc-triage/alerts, /api/v1/soc-triage/stats,
  *      POST /api/v1/soc-triage/alerts/{id}/verdict
@@ -20,7 +20,7 @@ import {
   RefreshCw, Brain, Eye, Filter, Send,
 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -45,10 +45,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ALERTS = [
-  { id: "SOC-001", title: "Brute force on SSH = 847 attempts",            source: "SIEM",  severity_original: "high",     ai_severity: "high",     ai_classification: "true_positive",  confidence: 94, mitre_technique: "T1110.001", recommended_action: "block",       status: "open",          created_at: "14:32" },
+  { id: "SOC-001", title: "Brute force on SSH — 847 attempts",            source: "SIEM",  severity_original: "high",     ai_severity: "high",     ai_classification: "true_positive",  confidence: 94, mitre_technique: "T1110.001", recommended_action: "block",       status: "open",          created_at: "14:32" },
   { id: "SOC-002", title: "Outbound HTTPS to known C2 server",            source: "NDR",   severity_original: "critical",  ai_severity: "critical",  ai_classification: "true_positive",  confidence: 97, mitre_technique: "T1071.001",  recommended_action: "escalate",    status: "escalated",     created_at: "14:28" },
   { id: "SOC-003", title: "Anomalous login from new country",              source: "SIEM",  severity_original: "medium",    ai_severity: "low",       ai_classification: "false_positive", confidence: 82, mitre_technique: "T1078",      recommended_action: "monitor",     status: "closed",        created_at: "14:25" },
   { id: "SOC-004", title: "PowerShell execution with encoded payload",     source: "EDR",   severity_original: "high",      ai_severity: "critical",  ai_classification: "true_positive",  confidence: 91, mitre_technique: "T1059.001",  recommended_action: "investigate", status: "open",          created_at: "14:22" },
@@ -62,7 +62,7 @@ const MOCK_ALERTS = [
   { id: "SOC-012", title: "Service account accessing sensitive share",    source: "SIEM",  severity_original: "medium",    ai_severity: "high",      ai_classification: "true_positive",  confidence: 79, mitre_technique: "T1078.002",  recommended_action: "investigate", status: "open",          created_at: "13:54" },
   { id: "SOC-013", title: "Port scan from internal workstation",          source: "NDR",   severity_original: "low",       ai_severity: "medium",    ai_classification: "undetermined",   confidence: 66, mitre_technique: "T1046",      recommended_action: "monitor",     status: "open",          created_at: "13:50" },
   { id: "SOC-014", title: "Registry run key modification",                source: "EDR",   severity_original: "medium",    ai_severity: "high",      ai_classification: "true_positive",  confidence: 86, mitre_technique: "T1547.001",  recommended_action: "investigate", status: "open",          created_at: "13:46" },
-  { id: "SOC-015", title: "Nightly batch job = elevated process",         source: "SIEM",  severity_original: "low",       ai_severity: "info",      ai_classification: "false_positive", confidence: 92, mitre_technique: "T1053",      recommended_action: "close",       status: "closed",        created_at: "13:40" },
+  { id: "SOC-015", title: "Nightly batch job — elevated process",         source: "SIEM",  severity_original: "low",       ai_severity: "info",      ai_classification: "false_positive", confidence: 92, mitre_technique: "T1053",      recommended_action: "close",       status: "closed",        created_at: "13:40" },
 ];
 
 const MOCK_STATS = {
@@ -75,7 +75,7 @@ const MOCK_STATS = {
   avg_confidence: 80,
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ClassificationBadge({ cls }: { cls: string }) {
   const map: Record<string, { label: string; style: string }> = {
@@ -160,7 +160,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SOCTriageDashboard() {
   const [alerts, setAlerts] = useState<any[]>(MOCK_ALERTS);
@@ -175,7 +175,6 @@ export default function SOCTriageDashboard() {
   const [analystNotes, setAnalystNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [verdictMsg, setVerdictMsg] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -226,14 +225,6 @@ export default function SOCTriageDashboard() {
     ? alerts
     : alerts.filter((a) => a.ai_classification === filterCls);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -244,11 +235,12 @@ export default function SOCTriageDashboard() {
       {/* Header */}
       <PageHeader
         title="SOC Alert Triage AI"
-        description="ML-powered alert classification = True Positive / False Positive triage with MITRE ATT&CK mapping and analyst verdict workflow"
+        description="ML-powered alert classification — True Positive / False Positive triage with MITRE ATT&CK mapping and analyst verdict workflow"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
-          </Button>}
+          </Button>
+        }
       />
 
       {/* KPIs */}
@@ -267,9 +259,9 @@ export default function SOCTriageDashboard() {
         </span>
         {[
           { key: "all",           label: "All Alerts",      cls: "border-border text-foreground" },
-          { key: "true_positive", label: "TP = True Positive",  cls: "border-red-500/30 text-red-400 bg-red-500/10" },
-          { key: "false_positive",label: "FP = False Positive", cls: "border-green-500/30 text-green-400 bg-green-500/10" },
-          { key: "undetermined",  label: "? = Undetermined",    cls: "border-amber-500/30 text-amber-400 bg-amber-500/10" },
+          { key: "true_positive", label: "TP — True Positive",  cls: "border-red-500/30 text-red-400 bg-red-500/10" },
+          { key: "false_positive",label: "FP — False Positive", cls: "border-green-500/30 text-green-400 bg-green-500/10" },
+          { key: "undetermined",  label: "? — Undetermined",    cls: "border-amber-500/30 text-amber-400 bg-amber-500/10" },
         ].map(({ key, label, cls }) => (
           <button
             key={key}
@@ -300,7 +292,7 @@ export default function SOCTriageDashboard() {
               AI Alert Queue
             </CardTitle>
             <CardDescription className="text-xs">
-              AI-triaged alerts = click a row to submit analyst verdict
+              AI-triaged alerts — click a row to submit analyst verdict
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -378,9 +370,9 @@ export default function SOCTriageDashboard() {
                       value={verdict}
                       onChange={(e) => setVerdict(e.target.value)}
                     >
-                      <option value="confirmed">Confirmed = TP</option>
-                      <option value="disputed">Disputed = FP</option>
-                      <option value="closed">Closed = No action</option>
+                      <option value="confirmed">Confirmed — TP</option>
+                      <option value="disputed">Disputed — FP</option>
+                      <option value="closed">Closed — No action</option>
                     </select>
                   </div>
 
@@ -391,7 +383,7 @@ export default function SOCTriageDashboard() {
                       rows={3}
                       value={analystNotes}
                       onChange={(e) => setAnalystNotes(e.target.value)}
-                      placeholder="Add analyst observations="
+                      placeholder="Add analyst observations…"
                     />
                   </div>
 
@@ -403,7 +395,7 @@ export default function SOCTriageDashboard() {
 
                   <Button size="sm" className="w-full" onClick={handleVerdict} disabled={submitting}>
                     <Send className="h-3.5 w-3.5 mr-1.5" />
-                    {submitting ? "Submitting=" : "Submit Verdict"}
+                    {submitting ? "Submitting…" : "Submit Verdict"}
                   </Button>
                 </>
               ) : (
@@ -441,7 +433,7 @@ export default function SOCTriageDashboard() {
                   </div>
                   <p className="text-[10px] text-muted-foreground">{note}</p>
                 </div>
-              )))}
+              ))}
 
               {/* Classification breakdown */}
               <div className="pt-1 border-t border-border space-y-1.5">
@@ -455,7 +447,7 @@ export default function SOCTriageDashboard() {
                     <span className="text-muted-foreground">{label}</span>
                     <span className={cn("font-bold tabular-nums px-2 py-0.5 rounded", cls)}>{count}</span>
                   </div>
-                )))}
+                ))}
               </div>
             </CardContent>
           </Card>

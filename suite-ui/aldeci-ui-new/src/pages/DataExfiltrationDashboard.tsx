@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_incidents: 143,
@@ -59,7 +59,7 @@ const MOCK_INCIDENTS = [
   { incident_type: "http_exfil",       severity: "high",     data_classification: "PII",           detection_method: "SIEM",       status: "blocked"    },
 ];
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function IncidentTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -123,13 +123,15 @@ function IncidentStatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DataExfiltrationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; incidents: any[] | null; }>({ stats: null, incidents: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    incidents: any[] | null;
+  }>({ stats: null, incidents: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -155,14 +157,6 @@ export default function DataExfiltrationDashboard() {
   const stats     = liveData.stats     ?? MOCK_STATS;
   const incidents = liveData.incidents ?? MOCK_INCIDENTS;
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -173,7 +167,7 @@ export default function DataExfiltrationDashboard() {
       {/* Header */}
       <PageHeader
         title="Data Exfiltration"
-        description="Data loss prevention = exfiltration incident detection, classification, and response"
+        description="Data loss prevention — exfiltration incident detection, classification, and response"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
             <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
@@ -216,13 +210,7 @@ export default function DataExfiltrationDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incidents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  incidents.map((inc: any, i: number) => (
+                {incidents.map((inc: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><IncidentTypeBadge type={inc.incident_type ?? "unknown"} /></TableCell>
                     <TableCell className="py-2"><SeverityBadge severity={inc.severity ?? "medium"} /></TableCell>
@@ -230,8 +218,7 @@ export default function DataExfiltrationDashboard() {
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{inc.detection_method}</TableCell>
                     <TableCell className="py-2"><IncidentStatusBadge status={inc.status ?? "under_review"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -255,8 +242,7 @@ export default function DataExfiltrationDashboard() {
               </CardContent>
             </Card>
           );
-        })
-                )}
+        })}
       </div>
     </motion.div>
   );

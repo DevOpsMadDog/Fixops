@@ -51,9 +51,9 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 type RiskLevel = "critical" | "high" | "medium" | "low";
 type IndicatorType = "after_hours_access" | "bulk_download" | "privilege_escalation" | "policy_violation" | "failed_auth";
@@ -87,9 +87,9 @@ interface Investigation {
   created: string;
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const MOCK_HIGH_RISK_USERS: HighRiskUser[] = [
   {
@@ -193,7 +193,7 @@ const MOCK_THREAT_TIMELINE: ThreatIndicator[] = [
 const MOCK_INVESTIGATIONS: Investigation[] = [
   {
     id: "inv-001",
-    title: "Suspicious data exfiltration = Financial data",
+    title: "Suspicious data exfiltration — Financial data",
     user: "john.smith@corp.com",
     status: "escalated",
     risk_indicator_count: 8,
@@ -209,7 +209,7 @@ const MOCK_INVESTIGATIONS: Investigation[] = [
   },
   {
     id: "inv-003",
-    title: "Privilege escalation attempt = Engineering",
+    title: "Privilege escalation attempt — Engineering",
     user: "michael.chen@corp.com",
     status: "open",
     risk_indicator_count: 3,
@@ -217,9 +217,9 @@ const MOCK_INVESTIGATIONS: Investigation[] = [
   },
 ];
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helper functions
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const RISK_LEVEL_CONFIG: Record<RiskLevel, { label: string; color: string; bgColor: string }> = {
   critical: { label: "Critical", color: "text-red-400", bgColor: "bg-red-500/10" },
@@ -249,9 +249,9 @@ const INVESTIGATION_STATUS: Record<string, { label: string; color: string }> = {
   escalated: { label: "Escalated", color: "bg-red-500/10 text-red-400" },
 };
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Risk trend bar chart (using divs + Tailwind)
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface TrendData {
   day: string;
@@ -270,9 +270,9 @@ const RISK_TREND: TrendData[] = [
 
 const maxTrendValue = Math.max(...RISK_TREND.map((d) => d.value));
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Component: Risk Trend Chart (Div-based)
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function RiskTrendChart() {
   return (
@@ -291,9 +291,9 @@ function RiskTrendChart() {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Component: High Risk Users Table
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface HighRiskTableProps {
   users: HighRiskUser[];
@@ -336,9 +336,8 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
         {isLoading ? (
           <div className="text-slate-400">Loading...</div>
         ) : (
-          <div className="overflow-x-auto">
           <ScrollArea className="w-full">
-            <table role="table" className="w-full text-sm">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700/50">
                   <th className="text-left py-3 px-4 font-semibold text-slate-300">User</th>
@@ -414,17 +413,15 @@ function HighRiskUsersTable({ users, isLoading }: HighRiskTableProps) {
               </tbody>
             </table>
           </ScrollArea>
-          </div>
-          </div>
         )}
       </CardContent>
     </Card>
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Component: Recent Threat Indicators Feed
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface ThreatFeedProps {
   indicators: ThreatIndicator[];
@@ -533,9 +530,9 @@ function RecentThreatFeed({ indicators, isLoading }: ThreatFeedProps) {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Component: Active Investigations Cards
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 interface InvestigationsProps {
   investigations: Investigation[];
@@ -594,7 +591,7 @@ function ActiveInvestigations({ investigations, isLoading }: InvestigationsProps
                   </span>
                 </div>
               </motion.div>
-            )))}
+            ))}
           </div>
         )}
       </CardContent>
@@ -602,9 +599,9 @@ function ActiveInvestigations({ investigations, isLoading }: InvestigationsProps
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Main Page
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function InsiderThreatMonitor() {
   const [liveStats, setLiveStats] = useState<any>(null);
@@ -627,15 +624,15 @@ export default function InsiderThreatMonitor() {
     queryFn: async () => {
       try {
         const data = await apiFetch(`/api/v1/insider-threat/high-risk?org_id=${ORG_ID}&threshold=50`);
-        // API returns List[UserRiskProfile] = map to page's shape
+        // API returns List[UserRiskProfile] — map to page's shape
         if (Array.isArray(data) && data.length > 0) {
           return data.map((u: any) => ({
             id: u.user_email ?? u.id ?? String(Math.random()),
             user: u.user_email ?? u.user ?? "unknown",
-            department: u.department ?? "=",
+            department: u.department ?? "—",
             risk_level: u.alert_level ?? u.risk_level ?? "low",
-            top_indicator: u.top_indicator ?? (u.indicators?.[0]?.indicator_type ?? "="),
-            last_activity: u.last_activity ?? "=",
+            top_indicator: u.top_indicator ?? (u.indicators?.[0]?.indicator_type ?? "—"),
+            last_activity: u.last_activity ?? "—",
             score: Math.round(u.risk_score ?? u.score ?? 0),
           }));
         }
@@ -658,11 +655,11 @@ export default function InsiderThreatMonitor() {
         if (Array.isArray(data) && data.length > 0) {
           return data.map((a: any) => ({
             id: a.id ?? a.activity_id ?? String(Math.random()),
-            timestamp: a.recorded_at ?? a.timestamp ?? "=",
+            timestamp: a.recorded_at ?? a.timestamp ?? "—",
             user: a.user_email ?? a.user ?? "unknown",
             indicator_type: a.activity_type ?? "policy_violation",
             severity: a.severity ?? "medium",
-            resource: a.details?.resource ?? a.resource ?? "=",
+            resource: a.details?.resource ?? a.resource ?? "—",
           }));
         }
         return MOCK_THREAT_TIMELINE;
@@ -726,7 +723,7 @@ export default function InsiderThreatMonitor() {
           />
         </div>
 
-        {/* Risk Trend & High Risk Users Table = 2 cols on lg, stack on md */}
+        {/* Risk Trend & High Risk Users Table — 2 cols on lg, stack on md */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Risk Trend Chart */}
           <Card className="border-slate-700 bg-slate-900/40">

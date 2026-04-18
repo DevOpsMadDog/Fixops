@@ -3,17 +3,17 @@
  *
  * Multi-jurisdiction change tracking, obligations, and compliance assessments.
  *   1. KPIs: Active Regulations, Pending Changes, Overdue Obligations, Avg Compliance
- *   2. Upcoming changes timeline = 10 regulatory changes
- *   3. Obligations table = 12 rows
- *   4. Assessment history = 8 assessments
- *   5. Regulation catalog = 10 regulations
+ *   2. Upcoming changes timeline — 10 regulatory changes
+ *   3. Obligations table — 12 rows
+ *   4. Assessment history — 8 assessments
+ *   5. Regulation catalog — 10 regulations
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, AlertTriangle, ClipboardCheck, BarChart3, RefreshCw, Globe, Calendar } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -37,7 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ===================================================
+// ── Mock data ───────────────────────────────────────────────────
 
 const UPCOMING_CHANGES = [
   { id: "RC-001", reg: "EU AI Act",            changeType: "new_requirement", impact: "critical", domains: ["AI/ML", "Data"], effectiveAt: "2026-05-01", daysUntil: 15 },
@@ -91,7 +91,7 @@ const CATALOG = [
   { name: "Cyber Resilience Act",jurisdiction:"EU",  category: "cybersecurity",status: "pending",  version: "Draft" },
 ];
 
-// == Helpers =====================================================
+// ── Helpers ─────────────────────────────────────────────────────
 
 function ChangeTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -184,13 +184,12 @@ function ComplianceBar({ pct }: { pct: number }) {
   );
 }
 
-// == Component ===================================================
+// ── Component ───────────────────────────────────────────────────
 
 export default function RegulatoryTrackerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -205,22 +204,13 @@ export default function RegulatoryTrackerDashboard() {
       if (stats || upcoming || active) {
         setLiveData({ stats, upcoming, active });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -257,7 +247,7 @@ export default function RegulatoryTrackerDashboard() {
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">{UPCOMING_CHANGES.length} changes</Badge>
           </div>
-          <CardDescription className="text-xs">Sorted by effective date = impact to your compliance posture</CardDescription>
+          <CardDescription className="text-xs">Sorted by effective date — impact to your compliance posture</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -321,13 +311,7 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {OBLIGATIONS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  OBLIGATIONS.map((row, i) => (
+                {OBLIGATIONS.map((row, i) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs py-2.5 max-w-[220px] truncate font-medium">{row.title}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.reg}</TableCell>
@@ -336,8 +320,7 @@ export default function RegulatoryTrackerDashboard() {
                     <TableCell className="py-2.5"><ObligStatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.owner}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -356,13 +339,7 @@ export default function RegulatoryTrackerDashboard() {
             <CardDescription className="text-xs">Recent compliance assessments with gap counts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {ASSESSMENTS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ASSESSMENTS.map((a, i) => (
+            {ASSESSMENTS.map((a, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -373,15 +350,14 @@ export default function RegulatoryTrackerDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>{a.gaps} gaps</span>
-                    <span>=</span>
+                    <span>·</span>
                     <span>{a.assessedAt}</span>
                   </div>
                 </div>
                 <ComplianceBar pct={a.compliancePct} />
                 <p className="text-[10px] text-muted-foreground">Assessed by: {a.assessor}</p>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -406,13 +382,7 @@ export default function RegulatoryTrackerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CATALOG.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  CATALOG.map((reg, i) => (
+                {CATALOG.map((reg, i) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2">{reg.name}</TableCell>
                     <TableCell className="py-2"><JurisdictionBadge j={reg.jurisdiction} /></TableCell>
@@ -424,7 +394,7 @@ export default function RegulatoryTrackerDashboard() {
                     </TableCell>
                     <TableCell className="text-xs py-2 text-muted-foreground font-mono">{reg.version}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

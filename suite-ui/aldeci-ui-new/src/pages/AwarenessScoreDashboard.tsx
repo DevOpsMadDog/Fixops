@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GraduationCap, Users, AlertTriangle, Award, RefreshCw, Shield, CheckCircle } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const TIER_BANDS = [
   { tier: "Champion",   color: "bg-green-500",  textColor: "text-green-400",  count: 47,  pct: 14 },
@@ -101,7 +101,7 @@ const TRAINING_COMPLETIONS = [
   { employee: "Lisa Zhang",      training_type: "DevSecOps Basics",    score: 86, passed: true,  completed_at: "2026-04-14 11:00" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TierBadge({ tier }: { tier: string }) {
   const map: Record<string, string> = {
@@ -150,13 +150,12 @@ function ScoreBar({ score, small }: { score: number; small?: boolean }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AwarenessScoreDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -171,22 +170,13 @@ export default function AwarenessScoreDashboard() {
       if (stats || employees || scores) {
         setLiveData({ stats, employees, scores });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -224,13 +214,7 @@ export default function AwarenessScoreDashboard() {
           <CardDescription className="text-xs">Employee population by security awareness tier</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {TIER_BANDS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            TIER_BANDS.map((band) => (
+          {TIER_BANDS.map((band) => (
             <div key={band.tier} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
@@ -250,8 +234,7 @@ export default function AwarenessScoreDashboard() {
                 </motion.div>
               </div>
             </div>
-          ))
-        )}
+          ))}
         </CardContent>
       </Card>
 
@@ -293,7 +276,7 @@ export default function AwarenessScoreDashboard() {
                     </TableCell>
                     <TableCell className="py-2"><TierBadge tier={emp.tier} /></TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -337,11 +320,11 @@ export default function AwarenessScoreDashboard() {
                     <TableCell className="py-2">
                       {t.reported
                         ? <Badge className="text-[10px] border border-green-500/30 text-green-400 bg-green-500/10">Reported</Badge>
-                        : <span className="text-[10px] text-muted-foreground">=</span>
+                        : <span className="text-[10px] text-muted-foreground">—</span>
                       }
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -357,13 +340,7 @@ export default function AwarenessScoreDashboard() {
             <CardDescription className="text-xs">Average awareness score and risk counts by department</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {DEPARTMENTS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              DEPARTMENTS.map((d) => (
+            {DEPARTMENTS.map((d) => (
               <div key={d.dept} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{d.dept}</span>
@@ -378,8 +355,7 @@ export default function AwarenessScoreDashboard() {
                 </div>
                 <ScoreBar score={d.avg_score} />
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -419,7 +395,7 @@ export default function AwarenessScoreDashboard() {
                       }
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

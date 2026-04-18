@@ -19,7 +19,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type LessonType = "process" | "technical" | "communication" | "training" | "tooling" | "policy";
 type LessonSeverity = "critical" | "high" | "medium" | "low";
@@ -55,7 +55,7 @@ interface ReviewOutcome {
   reviewed_date: string;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_LESSONS: Lesson[] = [
   { id: "les-001", title: "Insufficient MFA enforcement on admin accounts", incident_ref: "INC-2026-0312", lesson_type: "policy",        severity: "critical", status: "actioned",      identified_by: "CISO",        identified_date: "2026-03-15", implementation_rate: 90 },
@@ -81,7 +81,7 @@ const MOCK_OUTCOMES: ReviewOutcome[] = [
   { id: "out-003", lesson_id: "les-003", outcome: "Failover runbook drafted. Pending SRE sign-off and tabletop exercise.",        reviewed_by: "SRE Lead", reviewed_date: "2026-04-10" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const typeColors: Record<LessonType, string> = {
   process:       "bg-blue-700 text-blue-100",
@@ -121,13 +121,12 @@ const typeBarCounts = Object.fromEntries(
 ) as Record<LessonType, number>;
 const maxTypeCount = Math.max(...Object.values(typeBarCounts));
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function IncidentLessonsDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string>(MOCK_LESSONS[0].id);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setFetchError(null);
@@ -137,20 +136,13 @@ export default function IncidentLessonsDashboard() {
   };
 
   useEffect(() => {
-    loadData();}, []);
+    loadData();
+  }, []);
 
   const overdueActions = MOCK_ACTIONS.filter(a => a.status === "overdue");
   const selectedLesson_obj = MOCK_LESSONS.find(l => l.id === selectedLesson);
   const lessonActions = MOCK_ACTIONS.filter(a => a.lesson_id === selectedLesson);
   const lessonOutcomes = MOCK_OUTCOMES.filter(o => o.lesson_id === selectedLesson);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -162,20 +154,20 @@ export default function IncidentLessonsDashboard() {
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
           <span className="text-sm">Failed to load live data: {fetchError}</span>
-          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors" aria-label="Refresh data">Retry</button>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
         </div>
       )}
 
       {/* Overdue Actions Banner */}
       {overdueActions.length > 0 && (
-        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3" role="status" aria-live="polite">
-          <span className="text-red-400 text-xl">=</span>
+        <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 flex items-center gap-3">
+          <span className="text-red-400 text-xl">⚠</span>
           <div>
             <p className="text-red-300 font-semibold">{overdueActions.length} action item{overdueActions.length > 1 ? "s" : ""} overdue</p>
             <p className="text-red-400 text-sm mt-0.5">
-              {overdueActions.map(a => a.action.slice(0, 50) + "=").join(" = ")}
+              {overdueActions.map(a => a.action.slice(0, 50) + "…").join(" · ")}
             </p>
           </div>
         </div>
@@ -239,7 +231,7 @@ export default function IncidentLessonsDashboard() {
           </div>
         </div>
 
-        {/* Right panel = by type chart + implementation rate circle */}
+        {/* Right panel — by type chart + implementation rate circle */}
         <div className="space-y-6">
           {/* Implementation rate */}
           <div className="bg-gray-800 rounded-lg p-6">
@@ -297,7 +289,7 @@ export default function IncidentLessonsDashboard() {
       {/* Action Items for selected lesson */}
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">
-          Action Items = {selectedLesson_obj?.title.slice(0, 60)}
+          Action Items — {selectedLesson_obj?.title.slice(0, 60)}
         </h2>
         {lessonActions.length === 0 ? (
           <p className="text-gray-400 text-sm">No action items for this lesson.</p>
@@ -307,13 +299,13 @@ export default function IncidentLessonsDashboard() {
               <div key={action.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
                 <div className="flex-1">
                   <p className="text-white text-sm">{action.action}</p>
-                  <p className="text-gray-400 text-xs mt-0.5">Owner: {action.owner} = Due: {action.due_date}</p>
+                  <p className="text-gray-400 text-xs mt-0.5">Owner: {action.owner} · Due: {action.due_date}</p>
                 </div>
                 <span className={`ml-4 px-2 py-0.5 rounded text-xs font-medium ${actionStatusColors[action.status]}`}>
                   {action.status.replace("_", " ")}
                 </span>
               </div>
-            )))}
+            ))}
           </div>
         )}
       </div>
@@ -328,7 +320,7 @@ export default function IncidentLessonsDashboard() {
                 <p className="text-green-200 text-sm">{outcome.outcome}</p>
                 <p className="text-green-400 text-xs mt-1">Reviewed by {outcome.reviewed_by} on {outcome.reviewed_date}</p>
               </div>
-            )))}
+            ))}
           </div>
         </div>
       )}

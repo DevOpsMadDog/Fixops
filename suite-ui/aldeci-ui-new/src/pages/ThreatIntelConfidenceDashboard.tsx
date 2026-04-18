@@ -21,7 +21,7 @@ async function apiFetch(path: string) {
   return r.json();
 }
 
-// == Mock data ==================================================================
+// ── Mock data ──────────────────────────────────────────────────────────────────
 
 const MOCK_IOCS = [
   { id: "ioc-001", ioc_value: "185.220.101.47",               ioc_type: "ip",     confidence_score: 0.94, threat_level: "critical", source_count: 5, corroboration_count: 8, expires_at: "2026-05-01", status: "active"  },
@@ -45,7 +45,7 @@ const MOCK_SOURCES = [
   { source_name: "Internal Sensors",  reliability_score: 0.96, total_iocs: 441,  confirmed: 428,  false_positives: 7  },
 ];
 
-// == Helpers ====================================================================
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function confidenceColor(score: number): string {
   if (score >= 0.8) return "#ef4444";
@@ -58,17 +58,6 @@ function ConfidenceBar({ score }: { score: number }) {
   const color = confidenceColor(score);
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <div className="flex-1 bg-gray-700 rounded-full h-2">
         <div className="h-2 rounded-full transition-all" style={{ width: `${score * 100}%`, backgroundColor: color }} />
       </div>
@@ -108,10 +97,10 @@ function StatusBadge({ s }: { s: string }) {
 }
 
 function truncate(s: string, n = 32) {
-  return s.length > n ? s.slice(0, n) + "=" : s;
+  return s.length > n ? s.slice(0, n) + "…" : s;
 }
 
-// == Donut chart (SVG) =========================================================
+// ── Donut chart (SVG) ─────────────────────────────────────────────────────────
 
 function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
   const types = ["ip", "domain", "url", "hash", "email"];
@@ -159,20 +148,18 @@ function TypeDonut({ iocs }: { iocs: typeof MOCK_IOCS }) {
   );
 }
 
-// == Main Component =============================================================
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ThreatIntelConfidenceDashboard() {
   const [iocs, setIocs] = useState(MOCK_IOCS);
   const [search, setSearch] = useState("");
   const [expiring, setExpiring] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`).then((d) => {
       if (Array.isArray(d?.iocs)) setIocs(d.iocs);
       else if (Array.isArray(d)) setIocs(d);
-    }).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    }).catch(() => {});
   }, []);
 
   const filtered = search
@@ -192,15 +179,8 @@ export default function ThreatIntelConfidenceDashboard() {
         return exp && i.status === "active" ? { ...i, status: "expired" } : i;
       }));
       setExpiring(false);
-    }, 1000);}
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
+    }, 1000);
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -254,7 +234,7 @@ export default function ThreatIntelConfidenceDashboard() {
         <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-5 h-5 text-yellow-400" />
-            <h2 className="text-lg font-semibold text-white">High-Confidence IOCs (=70%)</h2>
+            <h2 className="text-lg font-semibold text-white">High-Confidence IOCs (≥70%)</h2>
           </div>
           <div className="space-y-2">
             {highConf.map(i => (
@@ -281,7 +261,7 @@ export default function ThreatIntelConfidenceDashboard() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search IOC value or type="
+              placeholder="Search IOC value or type…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-4 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 w-64"
@@ -289,7 +269,7 @@ export default function ThreatIntelConfidenceDashboard() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["IOC Value", "Type", "Confidence", "Threat Level", "Sources", "Corroborations", "Expires", "Status"].map(h => (
@@ -322,7 +302,7 @@ export default function ThreatIntelConfidenceDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Source Reliability Ranking</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 <th className="text-left text-gray-400 font-medium py-2 pr-4">Source</th>

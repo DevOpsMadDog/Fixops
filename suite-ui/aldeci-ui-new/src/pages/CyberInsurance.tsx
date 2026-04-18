@@ -31,7 +31,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const POLICIES = [
   {
@@ -82,10 +82,10 @@ const OVERALL_SCORE = 66;
 const CLAIMS = [
   { id: "CLM-2024-001", type: "ransomware",             date: "2024-09-14", loss: "$420,000",  settlement: "$380,000", status: "settled",      adjuster: "Marsh & McLennan" },
   { id: "CLM-2025-002", type: "data_breach",            date: "2025-02-28", loss: "$85,000",   settlement: "$72,000",  status: "settled",      adjuster: "Aon Cyber" },
-  { id: "CLM-2025-003", type: "business_interruption",  date: "2025-06-10", loss: "$210,000",  settlement: "=",        status: "approved",     adjuster: "Marsh & McLennan" },
-  { id: "CLM-2025-004", type: "data_breach",            date: "2025-11-01", loss: "$47,000",   settlement: "=",        status: "under_review", adjuster: "Willis Towers" },
-  { id: "CLM-2026-005", type: "ransomware",             date: "2026-01-18", loss: "$650,000",  settlement: "=",        status: "filed",        adjuster: "Aon Cyber" },
-  { id: "CLM-2026-006", type: "business_interruption",  date: "2026-03-05", loss: "$95,000",   settlement: "=",        status: "under_review", adjuster: "Willis Towers" },
+  { id: "CLM-2025-003", type: "business_interruption",  date: "2025-06-10", loss: "$210,000",  settlement: "—",        status: "approved",     adjuster: "Marsh & McLennan" },
+  { id: "CLM-2025-004", type: "data_breach",            date: "2025-11-01", loss: "$47,000",   settlement: "—",        status: "under_review", adjuster: "Willis Towers" },
+  { id: "CLM-2026-005", type: "ransomware",             date: "2026-01-18", loss: "$650,000",  settlement: "—",        status: "filed",        adjuster: "Aon Cyber" },
+  { id: "CLM-2026-006", type: "business_interruption",  date: "2026-03-05", loss: "$95,000",   settlement: "—",        status: "under_review", adjuster: "Willis Towers" },
 ];
 
 const GAPS = [
@@ -106,7 +106,7 @@ const GAPS = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function PolicyStatusBadge({ status }: { status: string }) {
   const cls =
@@ -145,19 +145,14 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   return <Badge className={cn("text-[10px] border capitalize", cls)}>{urgency} priority</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CyberInsurance() {
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-
-  const fetchData = () => {
-    setError(null);
-    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch(() => {});
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -180,13 +175,6 @@ export default function CyberInsurance() {
         description="Coverage management, claims, and security assessment"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }
@@ -202,13 +190,7 @@ export default function CyberInsurance() {
 
       {/* Policy Cards */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {POLICIES.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm">Data will appear here once available</p>
-          </div>
-        ) : (
-          POLICIES.map((p, i) => (
+        {POLICIES.map((p, i) => (
           <Card key={i} className="flex flex-col">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -233,7 +215,7 @@ export default function CyberInsurance() {
               <div className="flex flex-wrap gap-1 mt-1">
                 {p.events.map((e) => (
                   <Badge key={e} className="text-[10px] border border-border text-muted-foreground">{e}</Badge>
-                )))}
+                ))}
               </div>
               <Button variant="outline" size="sm" className="mt-auto h-7 text-xs w-full">View Details</Button>
             </CardContent>
@@ -259,17 +241,11 @@ export default function CyberInsurance() {
               <div>
                 <div className="text-xs font-semibold">Overall Security Score</div>
                 <div className="text-[10px] text-muted-foreground">
-                  {OVERALL_SCORE >= 80 ? "Preferred rate tier" : OVERALL_SCORE >= 60 ? "Standard rate tier" : "High-risk = premium surcharge likely"}
+                  {OVERALL_SCORE >= 80 ? "Preferred rate tier" : OVERALL_SCORE >= 60 ? "Standard rate tier" : "High-risk — premium surcharge likely"}
                 </div>
               </div>
             </div>
-            {RISK_SCORES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              RISK_SCORES.map((s) => (
+            {RISK_SCORES.map((s) => (
               <div key={s.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{s.label}</span>
@@ -284,8 +260,7 @@ export default function CyberInsurance() {
                   />
                 </div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
 
@@ -299,13 +274,7 @@ export default function CyberInsurance() {
             <CardDescription className="text-xs">Risks not covered by current policies</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {GAPS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              GAPS.map((g, i) => (
+            {GAPS.map((g, i) => (
               <div key={i} className="rounded-lg border border-border/50 bg-muted/10 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-semibold">{g.title}</span>
@@ -316,7 +285,7 @@ export default function CyberInsurance() {
                   <PlusCircle className="h-3 w-3 mr-1" /> Add Coverage
                 </Button>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -348,13 +317,7 @@ export default function CyberInsurance() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {CLAIMS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  CLAIMS.map((row) => (
+                {CLAIMS.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="py-2.5"><IncidentBadge type={row.type} /></TableCell>
@@ -364,7 +327,7 @@ export default function CyberInsurance() {
                     <TableCell className="py-2.5"><ClaimStatusBadge status={row.status} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.adjuster}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -160,7 +160,7 @@ function RoomSidebar({
           </button>
         ))
       )}
-      </div>
+    </div>
   );
 }
 
@@ -582,8 +582,7 @@ export default function Collaboration() {
                               {getInitials(p)}
                             </AvatarFallback>
                           </Avatar>
-                        ))
-                      }
+                        ))}
                         {selectedRoom.participants.length > 4 && (
                           <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] -ml-1 border-2 border-background">
                             +{selectedRoom.participants.length - 4}
@@ -601,7 +600,7 @@ export default function Collaboration() {
                           <Badge key={fid} variant="outline" className="text-[10px]">
                             {fid}
                           </Badge>
-                        )))}
+                        ))}
                       </div>
                     )}
                   </CardContent>
@@ -678,8 +677,8 @@ export default function Collaboration() {
                                 </span>
                               </div>
                             ))
-                            )}
-                          </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
 
@@ -709,7 +708,7 @@ export default function Collaboration() {
                                   <p className="text-muted-foreground">{att.size}</p>
                                 </div>
                               </div>
-                            )))}
+                            ))}
                           </div>
                         )}
                       </CardContent>

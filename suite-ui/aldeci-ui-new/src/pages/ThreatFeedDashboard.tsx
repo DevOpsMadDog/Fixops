@@ -28,7 +28,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const FEEDS = [
   { name: "NVD CVE Feed",           type: "cve",          format: "JSON",  freq: "Hourly",  lastFetched: "2m ago",   items: 234871, reliability: 98, enabled: true  },
@@ -92,7 +92,7 @@ const APT_CAMPAIGNS = [
 
 const IOC_TYPES = ["All", "IP", "Domain", "Hash", "URL"];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
   cve:          "border-red-500/30 text-red-400 bg-red-500/10",
@@ -107,17 +107,6 @@ const TYPE_COLORS: Record<string, string> = {
 function TypeBadge({ type }: { type: string }) {
   return (
     <Badge className={cn("text-[10px] border capitalize", TYPE_COLORS[type] ?? "border-border text-muted-foreground")}>
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {type.replace("_", " ")}
     </Badge>
   );
@@ -138,7 +127,7 @@ function fmtCount(n: number) {
   return n.toString();
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ThreatFeedDashboard() {
   const [refreshing, setRefreshing] = useState(false);
@@ -146,23 +135,13 @@ export default function ThreatFeedDashboard() {
   const [iocType, setIocType] = useState("All");
 
   useEffect(() => {
-    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => {});
   }, []);
   const [showResults, setShowResults] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const handleSearch = () => {
     if (iocQuery.trim()) setShowResults(true);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -223,13 +202,7 @@ export default function ThreatFeedDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {FEEDS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  FEEDS.map((f) => (
+                {FEEDS.map((f) => (
                   <TableRow key={f.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[160px] truncate">{f.name}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={f.type} /></TableCell>
@@ -259,8 +232,7 @@ export default function ThreatFeedDashboard() {
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -280,13 +252,7 @@ export default function ThreatFeedDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {RECENT_ITEMS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                RECENT_ITEMS.map((item, i) => (
+              {RECENT_ITEMS.map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-muted/20 transition-colors">
                   <SevDot sev={item.sev} />
                   <p className="flex-1 text-xs text-foreground truncate">{item.title}</p>
@@ -298,8 +264,7 @@ export default function ThreatFeedDashboard() {
                     <span className="text-[10px] text-muted-foreground w-12 text-right">{item.time}</span>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -323,13 +288,7 @@ export default function ThreatFeedDashboard() {
                 className="h-8 text-xs"
               />
               <div className="flex gap-1 flex-wrap">
-                {IOC_TYPES.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  IOC_TYPES.map((t) => (
+                {IOC_TYPES.map((t) => (
                   <button
                     key={t}
                     onClick={() => setIocType(t)}
@@ -342,7 +301,7 @@ export default function ThreatFeedDashboard() {
                   >
                     {t}
                   </button>
-                )))}
+                ))}
               </div>
               <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={handleSearch}>
                 <Search className="h-3 w-3" />
@@ -353,13 +312,7 @@ export default function ThreatFeedDashboard() {
             {showResults && (
               <div className="space-y-2 pt-1 border-t border-border">
                 <p className="text-[10px] text-muted-foreground">3 results for &ldquo;{iocQuery}&rdquo;</p>
-                {IOC_RESULTS.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  IOC_RESULTS.map((r) => (
+                {IOC_RESULTS.map((r) => (
                   <div key={r.ioc} className="rounded-lg border border-border bg-muted/10 p-2.5 space-y-1">
                     <div className="flex items-center justify-between">
                       <code className="text-[10px] font-mono text-foreground truncate">{r.ioc}</code>
@@ -368,7 +321,7 @@ export default function ThreatFeedDashboard() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {r.tags.map((tag) => (
                         <Badge key={tag} className="text-[9px] border border-red-500/30 text-red-400 bg-red-500/10">{tag}</Badge>
-                      )))}
+                      ))}
                       <span className="text-[9px] text-muted-foreground ml-auto">Seen {r.seen}</span>
                     </div>
                   </div>
@@ -397,13 +350,7 @@ export default function ThreatFeedDashboard() {
             <CardDescription className="text-xs">Total indicators by category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {FEED_TYPES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              FEED_TYPES.map((f) => (
+            {FEED_TYPES.map((f) => (
               <div key={f.type} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{f.type}</span>
@@ -418,7 +365,7 @@ export default function ThreatFeedDashboard() {
                   />
                 </div>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
 
@@ -432,13 +379,7 @@ export default function ThreatFeedDashboard() {
             <CardDescription className="text-xs">Active nation-state threat actors tracked</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-2">
-            {APT_CAMPAIGNS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              APT_CAMPAIGNS.map((c) => (
+            {APT_CAMPAIGNS.map((c) => (
               <div
                 key={c.name}
                 className="flex items-center gap-3 p-2.5 rounded-lg border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
@@ -458,7 +399,7 @@ export default function ThreatFeedDashboard() {
                   <p className="text-[9px] text-muted-foreground">Last: {c.last}</p>
                 </div>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </div>

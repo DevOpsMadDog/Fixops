@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_APPS = [
   { id: "app-001", name: "Slack",          app_category: "collaboration",  vendor: "Salesforce",  risk_level: "low",    users_count: 1240, sanctioned: true  },
@@ -54,7 +54,7 @@ const MOCK_APPS = [
 
 const MOCK_STATS = { cloud_apps: 284, unsanctioned_apps: 91, high_risk_apps: 17, unique_users: 1847 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function RiskBadge({ level }: { level: string }) {
   const map: Record<string, string> = {
@@ -77,13 +77,12 @@ function SanctionedBadge({ sanctioned }: { sanctioned: boolean }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CloudAccessSecurityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveApps, setLiveApps] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -92,22 +91,13 @@ export default function CloudAccessSecurityDashboard() {
     ]).then(([appsRes, statsRes]) => {
       if (appsRes.status === "fulfilled") setLiveApps(appsRes.value?.apps ?? appsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const apps  = liveApps  ?? MOCK_APPS;
   const stats = liveStats ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -164,35 +154,28 @@ export default function CloudAccessSecurityDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  apps.map((app: any, i: number) => (
+                {apps.map((app: any, i: number) => (
                   <TableRow key={app.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-cyan-300">
-                      {app.name ?? "="}
+                      {app.name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {(app.app_category ?? "=").replace(/_/g, " ")}
+                      {(app.app_category ?? "—").replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {app.vendor ?? "="}
+                      {app.vendor ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <RiskBadge level={app.risk_level ?? "low"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-sky-300">
-                      {app.users_count?.toLocaleString() ?? "="}
+                      {app.users_count?.toLocaleString() ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <SanctionedBadge sanctioned={!!app.sanctioned} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

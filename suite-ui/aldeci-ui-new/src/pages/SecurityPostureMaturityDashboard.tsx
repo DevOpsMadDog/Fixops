@@ -14,7 +14,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 import { Shield, Star, AlertTriangle, ChevronRight, TrendingUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================================
+// ── Mock data ──────────────────────────────────────────────────────────────────
 
 const MOCK_OVERALL = 3.4;
 
@@ -58,7 +58,7 @@ const MOCK_HISTORY = [
   { date: "2026-04", level: 3.4 },
 ];
 
-// == Helpers ====================================================================
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function domainColor(level: number) {
   if (level >= 4) return "text-green-400";
@@ -105,17 +105,6 @@ function statusBadge(s: string) {
 function Stars({ level }: { level: number }) {
   return (
     <span className="flex gap-0.5">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {[1,2,3,4,5].map(i => (
         <Star key={i} className={cn("w-3.5 h-3.5", i <= Math.round(level) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
       ))}
@@ -123,7 +112,7 @@ function Stars({ level }: { level: number }) {
   );
 }
 
-// == Maturity gauge (SVG arc) ===================================================
+// ── Maturity gauge (SVG arc) ───────────────────────────────────────────────────
 
 function MaturityGauge({ value }: { value: number }) {
   const min = 1, max = 5;
@@ -158,7 +147,7 @@ function MaturityGauge({ value }: { value: number }) {
   );
 }
 
-// == Sparkline =================================================================
+// ── Sparkline ─────────────────────────────────────────────────────────────────
 
 function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
   const vals = data.map(d => d.level);
@@ -173,13 +162,7 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-16">
       <polyline points={pts.join(" ")} fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinejoin="round" />
-      {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Data will appear here once available</p>
-        </div>
-      ) : (
-        data.map((d, i) => {
+      {data.map((d, i) => {
         const x = (i / (data.length - 1)) * W;
         const y = H - ((d.level - min) / (max - min)) * H;
         return (
@@ -188,32 +171,21 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
             <text x={x} y={H - 2} textAnchor="middle" fill="#64748b" fontSize="7">{d.date}</text>
           </g>
         );
-      })
-      )}
+      })}
     </svg>
   );
 }
 
-// == Main Component =============================================================
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SecurityPostureMaturityDashboard() {
   const [advanced, setAdvanced] = useState(false);
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      )))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -259,13 +231,7 @@ export default function SecurityPostureMaturityDashboard() {
             <AlertTriangle className="w-5 h-5 text-orange-400" />
             <h3 className="font-semibold text-orange-400">Overdue Reviews</h3>
           </div>
-          {MOCK_OVERDUE.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_OVERDUE.map(o => (
+          {MOCK_OVERDUE.map(o => (
             <div key={o.domain} className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0">
               <div>
                 <p className="text-sm font-medium text-white">{o.domain}</p>
@@ -275,8 +241,7 @@ export default function SecurityPostureMaturityDashboard() {
                 {o.days_overdue}d overdue
               </span>
             </div>
-          ))
-        )}
+          ))}
         </div>
 
         {/* Sparkline */}
@@ -296,26 +261,20 @@ export default function SecurityPostureMaturityDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Domain Breakdown</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {MOCK_DOMAINS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_DOMAINS.map(d => (
+          {MOCK_DOMAINS.map(d => (
             <div key={d.name} className="bg-gray-900 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1 truncate" title={d.name}>{d.name}</p>
               <p className={cn("text-2xl font-bold", domainColor(d.avg_level))}>{d.avg_level.toFixed(1)}</p>
               <Stars level={d.avg_level} />
               <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
                 <div
-                  )))}
+                  className={cn("h-1.5 rounded-full", domainBg(d.avg_level))}
                   style={{ width: `${((d.avg_level - 1) / 4) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">{d.capability_count} capabilities</p>
             </div>
-          )))}
+          ))}
         </div>
       </div>
 
@@ -323,7 +282,7 @@ export default function SecurityPostureMaturityDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Capability Roadmap</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 <th className="text-left text-gray-400 font-medium py-2 pr-4">Capability</th>
@@ -336,13 +295,7 @@ export default function SecurityPostureMaturityDashboard() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_ROADMAP.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_ROADMAP.map(r => (
+              {MOCK_ROADMAP.map(r => (
                 <tr key={r.capability} className="border-b border-gray-700/40 hover:bg-gray-700/30">
                   <td className="py-2.5 pr-4 font-medium text-white">{r.capability}</td>
                   <td className="py-2.5 pr-4">
@@ -373,7 +326,7 @@ export default function SecurityPostureMaturityDashboard() {
                   </td>
                   <td className="py-2.5 text-gray-400 text-xs">{r.owner}</td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_RESOURCES = [
   { id: "res-001", resource_name: "prod-api-cluster",       provider: "aws",   resource_type: "eks",        compliance_status: "compliant",     resource_state: "running",  security_score: 88 },
@@ -54,7 +54,7 @@ const MOCK_RESOURCES = [
 
 const MOCK_STATS = { total_resources: 1847, running: 1612, non_compliant: 214, avg_security_score: 72.4 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ComplianceBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -96,13 +96,12 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function CloudResourceInventoryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveResources, setLiveResources] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -111,22 +110,13 @@ export default function CloudResourceInventoryDashboard() {
     ]).then(([resRes, statsRes]) => {
       if (resRes.status === "fulfilled") setLiveResources(resRes.value?.resources ?? resRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const resources = liveResources ?? MOCK_RESOURCES;
   const stats     = liveStats     ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -137,7 +127,7 @@ export default function CloudResourceInventoryDashboard() {
     >
       <PageHeader
         title="Cloud Resource Inventory"
-        description="Multi-cloud asset inventory = resource compliance posture, state, and security scoring across AWS, GCP, Azure"
+        description="Multi-cloud asset inventory — resource compliance posture, state, and security scoring across AWS, GCP, Azure"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -188,35 +178,28 @@ export default function CloudResourceInventoryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resources.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  resources.map((res: any, i: number) => (
+                {resources.map((res: any, i: number) => (
                   <TableRow key={res.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-indigo-300 max-w-[180px] truncate">
-                      {res.resource_name ?? "="}
+                      {res.resource_name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <ProviderBadge provider={res.provider ?? "aws"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-blue-300">
-                      {res.resource_type ?? "="}
+                      {res.resource_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <ComplianceBadge status={res.compliance_status ?? "unknown"} />
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground capitalize">
-                      {res.resource_state ?? "="}
+                      {res.resource_state ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <ScoreCell score={res.security_score ?? 0} />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

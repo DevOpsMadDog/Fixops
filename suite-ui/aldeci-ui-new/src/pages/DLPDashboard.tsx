@@ -1,7 +1,7 @@
 /**
  * DLP Dashboard
  *
- * Data Loss Prevention = policy management, incident feed, PII detection stats.
+ * Data Loss Prevention — policy management, incident feed, PII detection stats.
  *   1. KPIs: Total Incidents, Blocked Today, Quarantined, False Positives
  *   2. DLP policy table (policy_name, data_types, channels, action, severity, enabled, hit_count)
  *   3. Incident feed (channel, masked user, data_type, action_taken, file_name, timestamp)
@@ -39,7 +39,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_POLICIES = [
   {
@@ -97,7 +97,7 @@ const PII_STATS = [
 ];
 const MAX_PII = PII_STATS[0].count;
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function ActionBadge({ action }: { action: string }) {
   const map: Record<string, string> = {
@@ -156,13 +156,12 @@ function GaugeMeter({ label, value, color }: { label: string; value: number; col
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function DLPDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -175,8 +174,7 @@ export default function DLPDashboard() {
       const policies  = policiesRes.status  === "fulfilled" ? policiesRes.value  : null;
       const incidents = incidentsRes.status === "fulfilled" ? incidentsRes.value : null;
       if (stats || policies || incidents) setLiveData({ stats, policies, incidents });
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -191,14 +189,6 @@ export default function DLPDashboard() {
   const falsePositives = stats?.false_positives  ?? 8;
   const blockRate      = stats?.block_rate       ?? 72;
   const fpRate         = stats?.false_positive_rate ?? 14;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -252,20 +242,14 @@ export default function DLPDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {policies.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  policies.map((p: any) => (
+                {policies.map((p: any) => (
                   <TableRow key={p.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium">{p.policy_name}</TableCell>
                     <TableCell className="py-2">
                       <div className="flex flex-wrap gap-1">
                         {(p.data_types ?? []).slice(0, 3).map((dt: string) => (
                           <Badge key={dt} className="text-[9px] border border-purple-500/30 text-purple-400 bg-purple-500/10 font-mono">{dt}</Badge>
-                        )))}
+                        ))}
                         {(p.data_types ?? []).length > 3 && (
                           <Badge className="text-[9px] border border-border text-muted-foreground">+{p.data_types.length - 3}</Badge>
                         )}
@@ -275,7 +259,7 @@ export default function DLPDashboard() {
                       <div className="flex flex-wrap gap-1">
                         {(p.channels ?? []).slice(0, 2).map((ch: string) => (
                           <ChannelBadge key={ch} channel={ch} />
-                        )))}
+                        ))}
                         {(p.channels ?? []).length > 2 && (
                           <Badge className="text-[9px] border border-border text-muted-foreground">+{(p.channels.length - 2)}</Badge>
                         )}
@@ -293,7 +277,7 @@ export default function DLPDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-                </TableBody>
+              </TableBody>
             </Table>
           </div>
         </CardContent>
@@ -325,13 +309,7 @@ export default function DLPDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incidents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  incidents.map((inc: any) => (
+                {incidents.map((inc: any) => (
                   <TableRow key={inc.id} className="hover:bg-muted/30">
                     <TableCell className="py-2"><ChannelBadge channel={inc.channel} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">{inc.user_email}</TableCell>
@@ -342,9 +320,8 @@ export default function DLPDashboard() {
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground max-w-[160px] truncate">{inc.file_name}</TableCell>
                     <TableCell className="py-2 text-right text-[11px] tabular-nums text-muted-foreground">{inc.timestamp}</TableCell>
                   </TableRow>
-                ))
-                )}
-                </TableBody>
+                ))}
+              </TableBody>
             </Table>
           </div>
         </CardContent>
@@ -358,13 +335,7 @@ export default function DLPDashboard() {
             <CardDescription className="text-xs">Total detections per sensitive data category</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {PII_STATS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              PII_STATS.map((item, i) => (
+            {PII_STATS.map((item, i) => (
               <div key={item.data_type} className="space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="font-mono text-muted-foreground">{item.data_type}</span>
@@ -379,9 +350,8 @@ export default function DLPDashboard() {
                   />
                 </div>
               </div>
-            ))
-            )}
-            </CardContent>
+            ))}
+          </CardContent>
         </Card>
 
         <Card>

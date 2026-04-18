@@ -1,7 +1,7 @@
 /**
  * DAST Dashboard
  *
- * Dynamic Application Security Testing = scan results, findings, endpoint coverage.
+ * Dynamic Application Security Testing — scan results, findings, endpoint coverage.
  *   1. KPIs: Total Scans, Findings, Critical Issues, Endpoints Tested
  *   2. Recent findings table (endpoint, vuln type, severity, scan date, status)
  *
@@ -34,7 +34,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_STATS = {
   scans: 8,
@@ -62,7 +62,7 @@ const MOCK_FINDINGS = [
   { id: "DAST-015", endpoint: "/api/v1/docs",              vuln_type: "Missing Rate Limit",      severity: "low",      scan_date: "2026-04-10", status: "remediated" },
 ];
 
-// == Severity badge =============================================
+// ── Severity badge ─────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -98,7 +98,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Main Component =============================================
+// ── Main Component ─────────────────────────────────────────────
 
 export default function DASTDashboard() {
   const [stats, setStats] = useState(MOCK_STATS);
@@ -115,8 +115,9 @@ export default function DASTDashboard() {
       if (s && typeof s.scans === "number") setStats(s);
       if (Array.isArray(f) && f.length > 0) setFindings(f);
     } catch {
-      // API not available = keep mock data
+      // API not available — keep mock data
     } finally {
+      setLoading(false);
     }
   };
 
@@ -126,7 +127,7 @@ export default function DASTDashboard() {
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="DAST Dashboard"
-        description="Dynamic Application Security Testing = runtime vulnerability discovery across all API endpoints"
+        description="Dynamic Application Security Testing — runtime vulnerability discovery across all API endpoints"
         actions={
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
@@ -189,13 +190,7 @@ export default function DASTDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {findings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  findings.map((f) => (
+                {findings.map((f) => (
                   <TableRow key={f.id} className="border-white/10 hover:bg-white/5">
                     <TableCell className="font-mono text-xs text-white/70">{f.endpoint}</TableCell>
                     <TableCell className="text-white/80">{f.vuln_type}</TableCell>
@@ -203,8 +198,7 @@ export default function DASTDashboard() {
                     <TableCell className="text-white/50 text-sm">{f.scan_date}</TableCell>
                     <TableCell><StatusBadge status={f.status} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

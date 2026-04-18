@@ -42,9 +42,9 @@ import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Types
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 type RiskLevel = "critical" | "high" | "medium" | "low";
 type Ecosystem = "npm" | "PyPI" | "Maven" | "RubyGems" | "NuGet" | "Composer";
@@ -82,9 +82,9 @@ interface SupplyChainSummary {
   components_scanned: number;
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Mock data
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const MOCK_SUMMARY: SupplyChainSummary = {
   total_dependencies: 842,
@@ -228,9 +228,9 @@ const MOCK_TREE: TransitiveDep[] = [
   { name: "markupsafe", version: "2.1.0", depth: 2 },
 ];
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Helpers
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function riskColor(score: number): string {
   if (score >= 80) return "text-red-400 bg-red-500/10";
@@ -259,9 +259,9 @@ function licenseColor(status: LicenseStatus): string {
   }
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Dependency Risk Heatmap
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
   const grid = deps.slice(0, 12);
@@ -276,13 +276,7 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-6 gap-1.5">
-          {grid.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            grid.map((dep) => (
+          {grid.map((dep) => (
             <motion.div
               key={dep.id}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -303,17 +297,16 @@ function DependencyHeatmap({ deps }: { deps: Dependency[] }) {
             >
               <span className="text-xs font-bold text-center">{dep.risk_score}</span>
             </motion.div>
-          ))
-        )}
+          ))}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // High Risk Dependencies Table
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelectDep: (dep: Dependency) => void }) {
   const [search, setSearch] = useState("");
@@ -370,7 +363,7 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
 
         {/* Table */}
         <ScrollArea className="border rounded-lg">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/50 bg-muted/30">
                 <th className="px-4 py-2 text-left font-semibold">Package</th>
@@ -382,13 +375,7 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filtered.map((dep) => (
+              {filtered.map((dep) => (
                 <motion.tr
                   key={dep.id}
                   initial={{ opacity: 0, y: 4 }}
@@ -459,8 +446,7 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
                     </div>
                   </td>
                 </motion.tr>
-              ))
-            )}
+              ))}
             </tbody>
           </table>
         </ScrollArea>
@@ -469,9 +455,9 @@ function DependenciesTable({ deps, onSelectDep }: { deps: Dependency[]; onSelect
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // SBOM Overview
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function SBOMOverview({ summary }: { summary: SupplyChainSummary }) {
   return (
@@ -507,7 +493,7 @@ function SBOMOverview({ summary }: { summary: SupplyChainSummary }) {
               <Badge key={fmt} variant="secondary" className="text-xs">
                 {fmt.trim()}
               </Badge>
-            )))}
+            ))}
           </div>
         </div>
       </CardContent>
@@ -515,9 +501,9 @@ function SBOMOverview({ summary }: { summary: SupplyChainSummary }) {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Transitive Dependency Tree
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function TransitiveDependencyTree() {
   return (
@@ -531,13 +517,7 @@ function TransitiveDependencyTree() {
       <CardContent>
         <ScrollArea className="h-64">
           <div className="space-y-1 pr-4 font-mono text-sm">
-            {MOCK_TREE.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              MOCK_TREE.map((dep, idx) => (
+            {MOCK_TREE.map((dep, idx) => (
               <motion.div
                 key={`${dep.name}-${idx}`}
                 initial={{ opacity: 0, x: -8 }}
@@ -546,12 +526,12 @@ function TransitiveDependencyTree() {
                 className="text-muted-foreground"
               >
                 <span style={{ marginLeft: `${dep.depth * 24}px` }}>
-                  {dep.depth > 0 ? "=== " : ""}
+                  {dep.depth > 0 ? "├── " : ""}
                   <span className="text-foreground">{dep.name}</span>
                   <span className="text-xs ml-1">@{dep.version}</span>
                 </span>
               </motion.div>
-            )))}
+            ))}
           </div>
         </ScrollArea>
       </CardContent>
@@ -559,9 +539,9 @@ function TransitiveDependencyTree() {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // License Compliance Donut
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 function LicenseCompliance({ deps }: { deps: Dependency[] }) {
   const permissive = deps.filter((d) => d.license_status === "permissive").length;
@@ -624,9 +604,9 @@ function LicenseCompliance({ deps }: { deps: Dependency[] }) {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Recent Supply Chain Events
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 const EVENTS = [
   { time: "2 hours ago", event: "Log4j v2.17.1 critical CVE disclosed", type: "critical", icon: AlertTriangle },
@@ -648,13 +628,7 @@ function RecentEvents() {
       <CardContent>
         <ScrollArea className="h-64">
           <div className="space-y-3 pr-4">
-            {EVENTS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              EVENTS.map((item, idx) => {
+            {EVENTS.map((item, idx) => {
               const EventIcon = item.icon;
               const bgColor =
                 item.type === "critical"
@@ -683,8 +657,7 @@ function RecentEvents() {
                   </div>
                 </motion.div>
               );
-            })
-            )}
+            })}
           </div>
         </ScrollArea>
       </CardContent>
@@ -692,9 +665,9 @@ function RecentEvents() {
   );
 }
 
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 // Main Page
-// ===========================================================
+// ═══════════════════════════════════════════════════════════
 
 export default function SupplyChainSecurity() {
   const [selectedDep, setSelectedDep] = useState<Dependency | null>(null);

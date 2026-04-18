@@ -15,7 +15,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -44,7 +44,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const IOC_TYPES = ["All", "IP", "Domain", "Hash", "URL", "Email"];
 
@@ -83,7 +83,7 @@ const RECENT_ADDITIONS = [
   { value: "dead0ff...",             type: "Hash",   source: "VirusTotal",   ts: "5h ago" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function TypeIcon({ type }: { type: string }) {
   const props = { className: "h-3.5 w-3.5 shrink-0" };
@@ -122,7 +122,7 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function IOCHunter() {
   const [refreshing, setRefreshing] = useState(false);
@@ -130,7 +130,6 @@ export default function IOCHunter() {
   const [iocType, setIocType]       = useState("All");
   const [liveData, setLiveData]     = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -154,29 +153,21 @@ export default function IOCHunter() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Derive display values = live data takes precedence over mock
-  // API returns ioc_type (not type) and last_seen (not lastSeen) = normalize here
+  // Derive display values — live data takes precedence over mock
+  // API returns ioc_type (not type) and last_seen (not lastSeen) — normalize here
   const rawIocs = Array.isArray(liveData?.iocs) ? liveData.iocs : null;
   const displayIocs = rawIocs
     ? rawIocs.map((ioc: any) => ({
         ...ioc,
         type: ioc.ioc_type ?? ioc.type ?? "IP",
-        lastSeen: ioc.last_seen ?? ioc.lastSeen ?? "=",
+        lastSeen: ioc.last_seen ?? ioc.lastSeen ?? "—",
         confidence: ioc.confidence ?? 50,
         severity: ioc.severity ? ioc.severity.charAt(0).toUpperCase() + ioc.severity.slice(1) : "Medium",
         verdict: ioc.verdict ?? "unknown",
-        source: ioc.source ?? "=",
+        source: ioc.source ?? "—",
       }))
     : IOCS;
   const firstIoc = displayIocs[0] ?? IOCS[0];
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -209,13 +200,7 @@ export default function IOCHunter() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex rounded-md border border-border overflow-hidden">
-              {IOC_TYPES.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                IOC_TYPES.map((t) => (
+              {IOC_TYPES.map((t) => (
                 <button
                   key={t}
                   onClick={() => setIocType(t)}
@@ -228,11 +213,10 @@ export default function IOCHunter() {
                 >
                   {t}
                 </button>
-              ))
-            )}
+              ))}
             </div>
             <Input
-              placeholder="Enter IP, domain, hash, URL, or email="
+              placeholder="Enter IP, domain, hash, URL, or email…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-8 text-xs flex-1 min-w-[220px]"
@@ -279,13 +263,7 @@ export default function IOCHunter() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayIocs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  displayIocs.map((ioc: any, i: number) => (
+                {displayIocs.map((ioc: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 max-w-[180px] truncate">{ioc.value}</TableCell>
                     <TableCell className="py-2.5"><TypeBadge type={ioc.type} /></TableCell>
@@ -306,8 +284,7 @@ export default function IOCHunter() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -346,7 +323,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["UNC2452", "COZY BEAR", "SolarWinds-APT"].map((c) => (
                   <Badge key={c} className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">{c}</Badge>
-                )))}
+                ))}
               </div>
             </div>
             <div className="rounded-md bg-muted/30 p-3 space-y-2">
@@ -354,7 +331,7 @@ export default function IOCHunter() {
               <div className="flex flex-wrap gap-1">
                 {["Cobalt Strike", "SUNBURST", "Mimikatz"].map((m) => (
                   <Badge key={m} className="text-[10px] border border-amber-500/30 text-amber-400 bg-amber-500/10">{m}</Badge>
-                )))}
+                ))}
               </div>
             </div>
           </CardContent>
@@ -366,13 +343,7 @@ export default function IOCHunter() {
             <Eye className="h-4 w-4 text-indigo-400" />
             Watchlists
           </h3>
-          {WATCHLISTS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            WATCHLISTS.map((wl) => (
+          {WATCHLISTS.map((wl) => (
             <Card key={wl.name} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4 flex items-center justify-between gap-4">
                 <div className="space-y-0.5 min-w-0">
@@ -385,7 +356,7 @@ export default function IOCHunter() {
                 </div>
               </CardContent>
             </Card>
-          )))}
+          ))}
 
           {/* Recent additions */}
           <Card>
@@ -393,20 +364,14 @@ export default function IOCHunter() {
               <CardTitle className="text-sm font-semibold">Recent Additions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1.5">
-              {RECENT_ADDITIONS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                RECENT_ADDITIONS.map((r, i) => (
+              {RECENT_ADDITIONS.map((r, i) => (
                 <div key={i} className="flex items-center gap-2 py-1 border-b border-border/30 last:border-0">
                   <TypeIcon type={r.type} />
                   <span className="text-xs font-mono flex-1 truncate">{r.value}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">{r.source}</span>
                   <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{r.ts}</span>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </div>

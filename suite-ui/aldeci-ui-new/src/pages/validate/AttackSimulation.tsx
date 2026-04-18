@@ -472,7 +472,7 @@ export default function AttackSimulation() {
                       </TableRow>
                     ))
                   )}
-                  </TableBody>
+                </TableBody>
               </Table>
               </div>
             </CardContent>
@@ -514,8 +514,8 @@ export default function AttackSimulation() {
                         </p>
                       </div>
                     ))
-                    )}
-                </CardContent>
+                )}
+              </CardContent>
             </Card>
             <Card>
               <CardHeader>
@@ -551,7 +551,7 @@ export default function AttackSimulation() {
                       </Badge>
                       <span className="text-xs">{t.name}</span>
                     </div>
-                  )))}
+                  ))}
                 </CardContent>
               </Card>
             ))}

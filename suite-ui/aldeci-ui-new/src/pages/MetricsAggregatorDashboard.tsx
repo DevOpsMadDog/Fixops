@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SOURCES = [
   { id: "SRC-001", name: "SIEM Event Stream",       type: "siem",       last_collected: "30 sec ago",  metric_count: 14823, status: "active" },
@@ -52,7 +52,7 @@ const MOCK_SOURCES = [
 
 const MOCK_STATS = { total_metrics: 64182, sources_active: 7, aggregations_hr: 2840, alerts_triggered: 23 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SourceTypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -77,12 +77,11 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-[10px] border capitalize", map[status] ?? "border-border")}>{status}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function MetricsAggregatorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveSources, setLiveSources] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats]     = useState<any | null>(null);
 
   useEffect(() => {
@@ -92,22 +91,13 @@ export default function MetricsAggregatorDashboard() {
     ]).then(([sourcesRes, statsRes]) => {
       if (sourcesRes.status === "fulfilled") setLiveSources(sourcesRes.value?.sources ?? sourcesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const sources = liveSources ?? MOCK_SOURCES;
   const stats   = liveStats   ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -159,25 +149,18 @@ export default function MetricsAggregatorDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sources.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  sources.map((src: any, i: number) => (
+                {sources.map((src: any, i: number) => (
                   <TableRow key={src.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[10px] text-muted-foreground">{src.id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium">{src.name}</TableCell>
                     <TableCell className="py-2"><SourceTypeBadge type={src.type ?? src.source_type ?? "unknown"} /></TableCell>
-                    <TableCell className="py-2 text-[11px] text-muted-foreground">{src.last_collected ?? src.last_seen ?? "="}</TableCell>
+                    <TableCell className="py-2 text-[11px] text-muted-foreground">{src.last_collected ?? src.last_seen ?? "—"}</TableCell>
                     <TableCell className="py-2 text-right font-mono text-xs tabular-nums">
                       {(src.metric_count ?? src.metrics ?? 0).toLocaleString()}
                     </TableCell>
                     <TableCell className="py-2 text-right"><StatusBadge status={src.status ?? "active"} /></TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_SESSIONS = [
   { id: "ses-001", account_name: "svc-deploy-bot",    session_type: "ssh",       target_system: "prod-bastion-01", status: "recording", duration_minutes: 42,  alerts_count: 0 },
@@ -54,7 +54,7 @@ const MOCK_SESSIONS = [
 
 const MOCK_STATS = { total_sessions: 512, active_sessions: 4, high_risk_sessions: 9, total_alerts: 63 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -79,13 +79,12 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PrivilegedSessionRecordingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveSessions, setLiveSessions] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -94,22 +93,13 @@ export default function PrivilegedSessionRecordingDashboard() {
     ]).then(([sesRes, statsRes]) => {
       if (sesRes.status === "fulfilled") setLiveSessions(sesRes.value?.sessions ?? sesRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const sessions = liveSessions ?? MOCK_SESSIONS;
   const stats    = liveStats    ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -120,7 +110,7 @@ export default function PrivilegedSessionRecordingDashboard() {
     >
       <PageHeader
         title="Privileged Session Recording"
-        description="Real-time privileged access session recording = monitor active sessions, alerts, and high-risk activity"
+        description="Real-time privileged access session recording — monitor active sessions, alerts, and high-risk activity"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -171,22 +161,16 @@ export default function PrivilegedSessionRecordingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sessions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  sessions.map((ses: any, i: number) => (
+                {sessions.map((ses: any, i: number) => (
                   <TableRow key={ses.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-purple-300 max-w-[160px] truncate">
-                      {ses.account_name ?? "="}
+                      {ses.account_name ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-violet-300">
-                      {ses.session_type ?? "="}
+                      {ses.session_type ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {ses.target_system ?? "="}
+                      {ses.target_system ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <StatusBadge status={ses.status ?? "completed"} />
@@ -204,8 +188,7 @@ export default function PrivilegedSessionRecordingDashboard() {
                       </span>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

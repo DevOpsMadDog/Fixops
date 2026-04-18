@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ALERTS = [
   { id: "alt-001", title: "Brute Force Login Detected",       source_system: "SIEM",       severity: "critical", priority: "p1", status: "open",        ingested_at: "2026-04-16T09:55:00Z" },
@@ -59,7 +59,7 @@ const MOCK_STATS = {
   avg_triage_time: 8.3,
 };
 
-// == Badge helpers ==============================================
+// ── Badge helpers ──────────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
@@ -109,13 +109,12 @@ function formatTs(ts: string) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AlertTriageDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveAlerts, setLiveAlerts] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -124,22 +123,13 @@ export default function AlertTriageDashboard() {
     ]).then(([alertsRes, statsRes]) => {
       if (alertsRes.status === "fulfilled") setLiveAlerts(alertsRes.value?.alerts ?? alertsRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const alerts = liveAlerts ?? MOCK_ALERTS;
   const stats  = liveStats  ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -196,19 +186,13 @@ export default function AlertTriageDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {alerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  alerts.map((alert: any, i: number) => (
+                {alerts.map((alert: any, i: number) => (
                   <TableRow key={alert.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-semibold text-[11px] text-red-300 max-w-[220px] truncate">
-                      {alert.title ?? "="}
+                      {alert.title ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground font-mono">
-                      {alert.source_system ?? "="}
+                      {alert.source_system ?? "—"}
                     </TableCell>
                     <TableCell className="py-2">
                       <SeverityBadge severity={alert.severity ?? "low"} />
@@ -220,11 +204,10 @@ export default function AlertTriageDashboard() {
                       <StatusBadge status={alert.status ?? "open"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {alert.ingested_at ? formatTs(alert.ingested_at) : "="}
+                      {alert.ingested_at ? formatTs(alert.ingested_at) : "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

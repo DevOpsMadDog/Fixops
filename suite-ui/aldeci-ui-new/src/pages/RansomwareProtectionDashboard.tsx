@@ -74,12 +74,12 @@ export default function RansomwareProtectionDashboard() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
       {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={() => { setError(null); window.location.reload(); }}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
+          >
             Retry
           </button>
         </div>
@@ -91,7 +91,7 @@ export default function RansomwareProtectionDashboard() {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Detection patterns, backup coverage, and containment status</p>
         </div>
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm" aria-label="Refresh data">
+        <button onClick={() => window.location.reload()} className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -136,27 +136,20 @@ export default function RansomwareProtectionDashboard() {
           {loading && <span className="text-xs text-gray-400 ml-2">Loading...</span>}
         </h2>
         <div className="space-y-3">
-          {patterns.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            patterns.map(p => (
+          {patterns.map(p => (
             <div key={p.id} className={`p-4 rounded-lg border flex items-center justify-between ${p.enabled ? "border-gray-600 bg-gray-700/30" : "border-gray-700 bg-gray-700/10 opacity-60"}`}>
               <div className="flex items-center gap-3">
                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${severityColor[p.severity] || "bg-gray-700 text-gray-200"}`}>{p.severity}</span>
                 <div>
                   <p className="text-white font-medium text-sm">{p.pattern_name}</p>
-                  <p className="text-gray-400 text-xs">{p.pattern_type} = {p.match_count} matches</p>
+                  <p className="text-gray-400 text-xs">{p.pattern_type} · {p.match_count} matches</p>
                 </div>
               </div>
               <span className={`text-xs px-2 py-1 rounded ${p.enabled ? "bg-green-800/50 text-green-300" : "bg-gray-700 text-gray-400"}`}>
                 {p.enabled ? "Enabled" : "Disabled"}
               </span>
             </div>
-          ))
-        )}
+          ))}
         </div>
       </div>
     </div>

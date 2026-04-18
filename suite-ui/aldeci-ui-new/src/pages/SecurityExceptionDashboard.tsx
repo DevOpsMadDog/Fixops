@@ -3,17 +3,17 @@
  *
  * Risk-accepted exceptions with approval workflows and expiry tracking.
  *   1. KPIs: Total Exceptions, Pending Approval, Expiring Soon, Critical Accepted
- *   2. Exception table = 12 rows
- *   3. Approval queue = 5 pending exceptions
- *   4. Expiring exceptions = 8 rows with countdown bar
- *   5. Stats panel = by_type bars + by_risk horizontal bars
+ *   2. Exception table — 12 rows
+ *   3. Approval queue — 5 pending exceptions
+ *   4. Expiring exceptions — 8 rows with countdown bar
+ *   5. Stats panel — by_type bars + by_risk horizontal bars
  */
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShieldAlert, Clock, AlertTriangle, CheckCircle, XCircle, HelpCircle, RefreshCw, BarChart3 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ORG_ID = "default";
 
@@ -34,7 +34,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ===================================================
+// ── Mock data ───────────────────────────────────────────────────
 
 const EXCEPTIONS = [
   { id: "EXC-001", title: "CVE-2025-1234 unpatched on air-gapped host", type: "vulnerability", risk: "critical", status: "approved",  requestor: "J. Smith",   expires: "2026-06-15", daysLeft: 60 },
@@ -44,7 +44,7 @@ const EXCEPTIONS = [
   { id: "EXC-005", title: "PCI DSS 6.3.3 carve-out for legacy POS",     type: "compliance",    risk: "high",     status: "pending",   requestor: "K. Johnson", expires: "2026-08-01", daysLeft: 107 },
   { id: "EXC-006", title: "Shared service account credentials",          type: "access",        risk: "high",     status: "rejected",  requestor: "T. Wilson",  expires: "N/A",        daysLeft: -1 },
   { id: "EXC-007", title: "Self-signed cert on internal API gateway",    type: "config",        risk: "medium",   status: "approved",  requestor: "S. Davis",   expires: "2026-05-10", daysLeft: 24 },
-  { id: "EXC-008", title: "SOC2 CC6.1 gap = physical access log gaps",  type: "compliance",    risk: "medium",   status: "pending",   requestor: "L. Brown",   expires: "2026-09-01", daysLeft: 138 },
+  { id: "EXC-008", title: "SOC2 CC6.1 gap — physical access log gaps",  type: "compliance",    risk: "medium",   status: "pending",   requestor: "L. Brown",   expires: "2026-09-01", daysLeft: 138 },
   { id: "EXC-009", title: "Log4j 2.14 in isolated research sandbox",     type: "vulnerability", risk: "critical", status: "approved",  requestor: "N. Garcia",  expires: "2026-04-30", daysLeft: 14 },
   { id: "EXC-010", title: "Unencrypted backup to on-prem NAS",           type: "policy",        risk: "high",     status: "expired",   requestor: "P. Lee",     expires: "2026-04-10", daysLeft: -6 },
   { id: "EXC-011", title: "SSH password auth on jump server",            type: "config",        risk: "high",     status: "pending",   requestor: "C. Martinez",expires: "2026-06-01", daysLeft: 46 },
@@ -72,7 +72,7 @@ const PENDING_QUEUE = [
   },
   {
     id: "EXC-008",
-    title: "SOC2 CC6.1 gap = physical access log gaps",
+    title: "SOC2 CC6.1 gap — physical access log gaps",
     risk: "medium",
     justification: "Badge system vendor EOL before replacement deployment. Manual log process documented.",
     controls: "Manual check-in log, security guard escort policy, CCTV coverage",
@@ -127,7 +127,7 @@ const RISK_DIST = [
 ];
 const RISK_MAX = Math.max(...RISK_DIST.map((r) => r.count));
 
-// == Helpers =====================================================
+// ── Helpers ─────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, string> = {
@@ -180,13 +180,12 @@ function CountdownBar({ days }: { days: number }) {
   );
 }
 
-// == Component ===================================================
+// ── Component ───────────────────────────────────────────────────
 
 export default function SecurityExceptionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setDataLoading(true);
@@ -210,33 +209,25 @@ export default function SecurityExceptionDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // KPI values = live with mock fallback
+  // KPI values — live with mock fallback
   const totalExceptions  = liveData?.stats?.total_exceptions  ?? liveData?.list?.length ?? 47;
   const pendingApproval  = liveData?.stats?.pending_count     ?? liveData?.stats?.pending ?? 8;
   const expiringSoon     = liveData?.stats?.expiring_soon     ?? 5;
   const criticalAccepted = liveData?.stats?.critical_accepted ?? liveData?.stats?.critical_count ?? 3;
 
-  // Exception rows = live list mapped to table shape, fall back to mock
+  // Exception rows — live list mapped to table shape, fall back to mock
   const exceptions: typeof EXCEPTIONS = liveData?.list?.length
     ? liveData.list.slice(0, 50).map((e: any) => ({
-        id:        e.id ?? e.exception_id ?? "=",
-        title:     e.title ?? e.description ?? "=",
+        id:        e.id ?? e.exception_id ?? "—",
+        title:     e.title ?? e.description ?? "—",
         type:      e.type ?? e.exception_type ?? "policy",
         risk:      e.risk ?? e.risk_level ?? "medium",
         status:    e.status ?? "pending",
-        requestor: e.requestor ?? e.requested_by ?? "=",
-        expires:   e.expires ?? e.expiry_date ?? e.expires_at ?? "=",
+        requestor: e.requestor ?? e.requested_by ?? "—",
+        expires:   e.expires ?? e.expiry_date ?? e.expires_at ?? "—",
         daysLeft:  e.days_left ?? e.days_remaining ?? 0,
       }))
     : EXCEPTIONS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -292,13 +283,7 @@ export default function SecurityExceptionDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exceptions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  exceptions.map((row) => (
+                {exceptions.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.title}</TableCell>
@@ -312,8 +297,7 @@ export default function SecurityExceptionDashboard() {
                       <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Review</Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -333,13 +317,7 @@ export default function SecurityExceptionDashboard() {
           <CardDescription className="text-xs">Exceptions awaiting security team review and approval decision</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {PENDING_QUEUE.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            PENDING_QUEUE.map((item) => (
+          {PENDING_QUEUE.map((item) => (
             <div key={item.id} className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -348,7 +326,7 @@ export default function SecurityExceptionDashboard() {
                     <RiskBadge risk={item.risk} />
                   </div>
                   <p className="text-sm font-medium mt-1">{item.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Requested by {item.requestor} = {item.team}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Requested by {item.requestor} · {item.team}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <Button variant="outline" size="sm" className="h-7 px-3 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10">
@@ -373,8 +351,7 @@ export default function SecurityExceptionDashboard() {
                 </div>
               </div>
             </div>
-          ))
-        )}
+          ))}
         </CardContent>
       </Card>
 
@@ -390,13 +367,7 @@ export default function SecurityExceptionDashboard() {
             <CardDescription className="text-xs">Exceptions requiring renewal or remediation decisions soon</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {EXPIRING.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              EXPIRING.map((item) => (
+            {EXPIRING.map((item) => (
               <div key={item.id} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -407,7 +378,7 @@ export default function SecurityExceptionDashboard() {
                 </div>
                 <CountdownBar days={item.daysLeft} />
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
 
@@ -422,13 +393,7 @@ export default function SecurityExceptionDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {TYPE_DIST.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                TYPE_DIST.map((t) => (
+              {TYPE_DIST.map((t) => (
                 <div key={t.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{t.label}</span>
@@ -443,7 +408,7 @@ export default function SecurityExceptionDashboard() {
                     />
                   </div>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
 
@@ -456,13 +421,7 @@ export default function SecurityExceptionDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {RISK_DIST.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                RISK_DIST.map((r) => (
+              {RISK_DIST.map((r) => (
                 <div key={r.label} className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground w-16 shrink-0">{r.label}</span>
                   <div className="flex-1 h-4 bg-muted/30 rounded overflow-hidden">
@@ -475,7 +434,7 @@ export default function SecurityExceptionDashboard() {
                   </div>
                   <span className="text-xs font-bold tabular-nums w-4 text-right">{r.count}</span>
                 </div>
-              )))}
+              ))}
             </CardContent>
           </Card>
         </div>

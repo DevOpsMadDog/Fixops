@@ -3,10 +3,10 @@
  *
  * Policy enforcement and violation tracking.
  *   1. KPIs: Active Policies, Users Audited, Violations Found, Compliance Rate
- *   2. Policy cards (3) = complexity requirements + compliance bar + Edit button
+ *   2. Policy cards (3) — complexity requirements + compliance bar + Edit button
  *   3. Violation table (12 rows)
  *   4. Audit history (6 audits)
- *   5. Password strength distribution = horizontal bars
+ *   5. Password strength distribution — horizontal bars
  *
  * API stubs: GET /api/v1/password-policy/policies, /api/v1/password-policy/violations, /api/v1/password-policy/audits
  */
@@ -18,7 +18,7 @@ import {
   RefreshCw, BarChart3, ClipboardList, Users,
 } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID   = "aldeci-demo";
@@ -38,7 +38,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const POLICIES = [
   {
@@ -94,7 +94,7 @@ const VIOLATIONS = [
   { userId: "usr_g3u8***", policy: "Corporate Standard", type: "Minimum Length Fail",     severity: "Medium", detected: "2026-04-15 15:42", status: "Remediated" },
   { userId: "usr_h6v5***", policy: "Guest/Contractor",   type: "No Rotation in 95d",      severity: "Medium", detected: "2026-04-15 13:20", status: "Remediated" },
   { userId: "usr_i4w1***", policy: "Privileged Account", type: "Rotation Overdue 7d",     severity: "High",   detected: "2026-04-15 11:05", status: "Open" },
-  { userId: "usr_j7x3***", policy: "Corporate Standard", type: "Common Pattern (123=)",   severity: "Medium", detected: "2026-04-14 23:50", status: "Remediated" },
+  { userId: "usr_j7x3***", policy: "Corporate Standard", type: "Common Pattern (123…)",   severity: "Medium", detected: "2026-04-14 23:50", status: "Remediated" },
   { userId: "usr_k2y9***", policy: "Corporate Standard", type: "No Uppercase Letter",     severity: "Low",    detected: "2026-04-14 19:30", status: "Remediated" },
   { userId: "usr_l5z6***", policy: "Guest/Contractor",   type: "Weak Password",           severity: "High",   detected: "2026-04-14 16:15", status: "Remediated" },
 ];
@@ -116,7 +116,7 @@ const STRENGTH_DIST = [
   { label: "Very Strong",count: 1034,color: "bg-green-400", pct: 26.9 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function SeverityBadge({ sev }: { sev: string }) {
   const cls =
@@ -127,13 +127,12 @@ function SeverityBadge({ sev }: { sev: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{sev}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function PasswordPolicy() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -172,14 +171,6 @@ export default function PasswordPolicy() {
     }).finally(() => { setDataLoading(false); setRefreshing(false); });
   };
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -213,13 +204,7 @@ export default function PasswordPolicy() {
           Active Policies
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {POLICIES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            POLICIES.map((policy) => (
+          {POLICIES.map((policy) => (
             <Card key={policy.name}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -239,7 +224,7 @@ export default function PasswordPolicy() {
                       {req.label}
                     </span>
                   </div>
-                )))}
+                ))}
                 <div className="pt-2 space-y-1 border-t border-border/50">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Compliance</span>
@@ -278,7 +263,7 @@ export default function PasswordPolicy() {
               {(liveData?.violations?.violations ?? VIOLATIONS).filter((v: any) => v.status === "Open" || v.status === "open").length} open
             </Badge>
           </div>
-          <CardDescription className="text-xs">Detected password policy violations = user IDs are masked for privacy</CardDescription>
+          <CardDescription className="text-xs">Detected password policy violations — user IDs are masked for privacy</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -371,13 +356,7 @@ export default function PasswordPolicy() {
             <CardDescription className="text-xs">Across all {(3847).toLocaleString()} audited accounts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {STRENGTH_DIST.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              STRENGTH_DIST.map((s) => (
+            {STRENGTH_DIST.map((s) => (
               <div key={s.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{s.label}</span>
@@ -395,7 +374,7 @@ export default function PasswordPolicy() {
                   />
                 </div>
               </div>
-            )))}
+            ))}
           </CardContent>
         </Card>
       </div>

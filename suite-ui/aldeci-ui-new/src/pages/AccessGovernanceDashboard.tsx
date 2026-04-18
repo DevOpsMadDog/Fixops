@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 const API_BASE = "/api/v1/access-governance";
 const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 type AccessLevel = "read" | "write" | "admin" | "owner" | "execute";
 type SoDSeverity = "critical" | "high" | "medium" | "low";
@@ -52,7 +52,7 @@ interface RoleDefinition {
   permissions_count: number;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ENTITLEMENTS: Entitlement[] = [
   { id: "ent-001", user_id: "alice@corp.io",  resource: "prod-db-main",         access_level: "admin",   granted_by: "IAM Admin",    granted_at: "2025-10-01", expires_at: "2026-04-30", active: true,  revoked: false },
@@ -66,7 +66,7 @@ const MOCK_ENTITLEMENTS: Entitlement[] = [
 ];
 
 const MOCK_VIOLATIONS: SoDViolation[] = [
-  { id: "sod-001", rule_name: "Approve + Initiate Payments", severity: "critical", user_id: "alice@corp.io",  description: "User has both payment initiation and approval rights = bypasses 4-eyes control.", detected_at: "2026-04-14", acknowledged: false },
+  { id: "sod-001", rule_name: "Approve + Initiate Payments", severity: "critical", user_id: "alice@corp.io",  description: "User has both payment initiation and approval rights — bypasses 4-eyes control.", detected_at: "2026-04-14", acknowledged: false },
   { id: "sod-002", rule_name: "Code Deploy + Code Review",   severity: "high",     user_id: "dave@corp.io",   description: "User can merge their own PRs and trigger production deploys.",                  detected_at: "2026-04-12", acknowledged: false },
   { id: "sod-003", rule_name: "Create + Approve Vendors",    severity: "high",     user_id: "frank@corp.io",  description: "User can create vendor records and approve purchase orders.",                   detected_at: "2026-04-10", acknowledged: true  },
   { id: "sod-004", rule_name: "Admin + Audit Log Access",    severity: "medium",   user_id: "carol@corp.io",  description: "Administrator also has rights to modify audit logs.",                          detected_at: "2026-04-08", acknowledged: false },
@@ -81,7 +81,7 @@ const MOCK_ROLES: RoleDefinition[] = [
   { id: "role-006", role_name: "DBA",                  role_type: "privileged",  user_count: 3,  risk_level: "critical", description: "Database administration and schema changes.", permissions_count: 88 },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const accessLevelConfig: Record<AccessLevel, { label: string; color: string }> = {
   read:    { label: "Read",    color: "bg-blue-900 text-blue-200" },
@@ -127,29 +127,24 @@ function expiryWarning(expires_at: string | null): { warn: boolean; label: strin
   return { warn: false, label: expires_at };
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function AccessGovernanceDashboard() {
   const [entitlements, setEntitlements] = useState<Entitlement[]>(MOCK_ENTITLEMENTS);
-  const [error, setError] = useState<string | null>(null);
   const [violations, setViolations] = useState<SoDViolation[]>(MOCK_VIOLATIONS);
   const [revokeMsg, setRevokeMsg] = useState<string | null>(null);
   const [ackMsg, setAckMsg] = useState<string | null>(null);
 
-
-  const fetchData = () => {
-    setError(null);
+  useEffect(() => {
     fetch(`${API_BASE}/entitlements`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setEntitlements(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setEntitlements(d); })
+      .catch(() => {});
     fetch(`${API_BASE}/violations`, { headers: getHeaders() })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-    .then(d => { if (Array.isArray(d)) setViolations(d); })
-    .catch(err => setError(err.message || 'Failed to load data'));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (Array.isArray(d)) setViolations(d); })
+      .catch(() => {});
+  }, []);
 
   function handleRevoke(id: string) {
     setEntitlements(prev => prev.map(e => e.id === id ? { ...e, active: false, revoked: true } : e));
@@ -170,13 +165,6 @@ export default function AccessGovernanceDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="status" aria-live="polite">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error}</p>
-          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline" aria-label="Refresh data">Retry</button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -208,7 +196,7 @@ export default function AccessGovernanceDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Entitlements</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
                 <th className="text-left pb-2 pr-3">User</th>
@@ -220,13 +208,7 @@ export default function AccessGovernanceDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {entitlements.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                entitlements.map(ent => {
+              {entitlements.map(ent => {
                 const expiry = expiryWarning(ent.expires_at);
                 return (
                   <tr key={ent.id} className={`hover:bg-gray-700/30 transition-colors ${ent.revoked ? "opacity-50" : ""}`}>
@@ -241,7 +223,7 @@ export default function AccessGovernanceDashboard() {
                     <td className="py-2.5 pr-3">
                       <span className={`text-xs font-medium ${expiry.warn ? "text-red-400" : "text-gray-400"}`}>
                         {expiry.label}
-                        {expiry.warn && !ent.revoked && " ="}
+                        {expiry.warn && !ent.revoked && " ⚠"}
                       </span>
                     </td>
                     <td className="py-2.5">
@@ -258,8 +240,7 @@ export default function AccessGovernanceDashboard() {
                     </td>
                   </tr>
                 );
-              })
-              )}
+              })}
             </tbody>
           </table>
         </div>
@@ -272,13 +253,7 @@ export default function AccessGovernanceDashboard() {
           <span className="bg-red-800/50 text-red-300 px-2 py-1 rounded text-xs font-medium">{openViolations} open</span>
         </div>
         <div className="space-y-3">
-          {violations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            violations.map(v => (
+          {violations.map(v => (
             <div key={v.id} className={`p-4 rounded-lg border transition-opacity ${v.acknowledged ? "opacity-50 border-gray-700 bg-gray-700/20" : "border-gray-600 bg-gray-700/30"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -305,8 +280,7 @@ export default function AccessGovernanceDashboard() {
                 )}
               </div>
             </div>
-          ))
-        )}
+          ))}
         </div>
       </div>
 
@@ -317,13 +291,7 @@ export default function AccessGovernanceDashboard() {
           <span className="text-gray-400 text-sm">{highRiskRoles} high-risk role{highRiskRoles !== 1 ? "s" : ""}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MOCK_ROLES.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            MOCK_ROLES.map(role => (
+          {MOCK_ROLES.map(role => (
             <div key={role.id} className={`rounded-lg p-4 space-y-2 ${riskLevelConfig[role.risk_level].color}`}>
               <div className="flex items-start justify-between gap-2">
                 <p className="text-white font-semibold">{role.role_name}</p>
@@ -340,8 +308,7 @@ export default function AccessGovernanceDashboard() {
                 </span>
               </div>
             </div>
-          ))
-        )}
+          ))}
         </div>
       </div>
     </div>

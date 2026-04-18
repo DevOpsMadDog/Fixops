@@ -33,7 +33,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_ALERTS = [
   { id: "NM-001", interface_name: "eth0",    severity: "critical", metric: "packet_loss",    value: "18.4%",  detected_at: "14:52:01" },
@@ -60,7 +60,7 @@ const MOCK_STATS = {
   avg_utilization_pct: 54,
 };
 
-// == Helpers ==================================================
+// ── Helpers ──────────────────────────────────────────────────
 
 function SeverityBadge({ sev }: { sev: string }) {
   const map: Record<string, string> = {
@@ -90,13 +90,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ================================================
+// ── Component ────────────────────────────────────────────────
 
 export default function NetworkMonitoringDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -107,8 +106,7 @@ export default function NetworkMonitoringDashboard() {
       const stats  = statsR.status  === "fulfilled" ? statsR.value  : null;
       const alerts = alertsR.status === "fulfilled" ? alertsR.value : null;
       if (stats || alerts) setLiveData({ stats, alerts });
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
@@ -116,14 +114,6 @@ export default function NetworkMonitoringDashboard() {
   const stats     = liveData?.stats  ?? MOCK_STATS;
   const alerts    = liveData?.alerts?.items ?? liveData?.alerts ?? MOCK_ALERTS;
   const ifaces    = MOCK_INTERFACES;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -175,13 +165,7 @@ export default function NetworkMonitoringDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {alerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  alerts.map((a: any, i: number) => (
+                {alerts.map((a: any, i: number) => (
                   <TableRow key={a.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2"><SeverityBadge sev={a.severity} /></TableCell>
                     <TableCell className="py-2 font-mono text-[11px]">{a.interface_name}</TableCell>
@@ -189,8 +173,7 @@ export default function NetworkMonitoringDashboard() {
                     <TableCell className="py-2 text-[11px] font-medium tabular-nums">{a.value}</TableCell>
                     <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">{a.detected_at}</TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -217,13 +200,7 @@ export default function NetworkMonitoringDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ifaces.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                ifaces.map((iface: any, i: number) => (
+              {ifaces.map((iface: any, i: number) => (
                 <TableRow key={iface.name ?? i} className="hover:bg-muted/30">
                   <TableCell className="py-2 font-mono text-[11px]">{iface.name}</TableCell>
                   <TableCell className="py-2"><StatusBadge status={iface.status} /></TableCell>
@@ -248,8 +225,7 @@ export default function NetworkMonitoringDashboard() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

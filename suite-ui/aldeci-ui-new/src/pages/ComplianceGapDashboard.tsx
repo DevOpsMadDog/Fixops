@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -38,7 +38,7 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-// == Mock data (fallback) =======================================
+// ── Mock data (fallback) ───────────────────────────────────────
 
 const MOCK_STATS = {
   total_assessments: 12,
@@ -69,7 +69,7 @@ const MOCK_GAPS = [
   { control_id: "PR.DS-1", control_name: "Data-at-Rest Protection",       framework: "NIST CSF", severity: "low",      status: "open",            description: "Non-production S3 buckets missing encryption policy tag" },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function complianceColor(pct: number): string {
   if (pct >= 85) return "text-green-400";
@@ -110,13 +110,16 @@ function GapStatusBadge({ status }: { status: string }) {
   );
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ComplianceGapDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<{ stats: any | null; assessments: any[] | null; gaps: any[] | null; }>({ stats: null, assessments: null, gaps: null });
+  const [liveData, setLiveData] = useState<{
+    stats: any | null;
+    assessments: any[] | null;
+    gaps: any[] | null;
+  }>({ stats: null, assessments: null, gaps: null });
 
   const fetchData = () => {
     setDataLoading(true);
@@ -144,14 +147,6 @@ export default function ComplianceGapDashboard() {
   const stats       = liveData.stats       ?? MOCK_STATS;
   const frameworks  = liveData.assessments ?? MOCK_FRAMEWORKS;
   const gaps        = liveData.gaps        ?? MOCK_GAPS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -190,13 +185,7 @@ export default function ComplianceGapDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {frameworks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              frameworks.map((fw: any, i: number) => {
+            {frameworks.map((fw: any, i: number) => {
               const pct = fw.compliance_pct ?? 0;
               return (
                 <motion.div
@@ -217,8 +206,7 @@ export default function ComplianceGapDashboard() {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.7, delay: i * 0.06 }}
-                      ))
-                    )}
+                      className={cn("h-full rounded-full", complianceBar(pct))}
                     />
                   </div>
                   <div className="text-[10px] text-muted-foreground">
@@ -226,8 +214,7 @@ export default function ComplianceGapDashboard() {
                   </div>
                 </motion.div>
               );
-            })
-            )}
+            })}
           </div>
         </CardContent>
       </Card>
@@ -265,13 +252,7 @@ export default function ComplianceGapDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gaps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  gaps.map((g: any, i: number) => (
+                {gaps.map((g: any, i: number) => (
                   <TableRow key={g.control_id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{g.control_id}</TableCell>
                     <TableCell className="py-2 text-xs font-medium whitespace-nowrap">{g.control_name}</TableCell>
@@ -286,7 +267,7 @@ export default function ComplianceGapDashboard() {
                       {g.description}
                     </TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

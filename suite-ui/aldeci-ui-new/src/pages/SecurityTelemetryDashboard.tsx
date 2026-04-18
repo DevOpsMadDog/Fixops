@@ -37,7 +37,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const MOCK_TELEMETRY = [
   { id: "tel-001", telemetry_type: "cpu_usage",        source: "host-prod-01",    value: 87.4,   unit: "%",     recorded_at: "2026-04-16T09:58:00Z" },
@@ -54,7 +54,7 @@ const MOCK_TELEMETRY = [
 
 const MOCK_STATS = { total_datapoints: 4820341, active_sources: 38, alert_rules: 92, triggered_today: 14 };
 
-// == Helpers ==================================================
+// ── Helpers ──────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
   const colorMap: Record<string, string> = {
@@ -89,13 +89,12 @@ function exportCsv(rows: any[]) {
   URL.revokeObjectURL(url);
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityTelemetryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveTelemetry, setLiveTelemetry] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
@@ -104,22 +103,13 @@ export default function SecurityTelemetryDashboard() {
     ]).then(([telRes, statsRes]) => {
       if (telRes.status === "fulfilled") setLiveTelemetry(telRes.value?.datapoints ?? telRes.value ?? null);
       if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
-    })
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
 
   const telemetry = liveTelemetry ?? MOCK_TELEMETRY;
   const stats     = liveStats     ?? MOCK_STATS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -130,7 +120,7 @@ export default function SecurityTelemetryDashboard() {
     >
       <PageHeader
         title="Security Telemetry"
-        description="Security telemetry stream = real-time datapoints, source health, alert rule triggers, and signal monitoring"
+        description="Security telemetry stream — real-time datapoints, source health, alert rule triggers, and signal monitoring"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
@@ -180,32 +170,25 @@ export default function SecurityTelemetryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {telemetry.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  telemetry.map((tel: any, i: number) => (
+                {telemetry.map((tel: any, i: number) => (
                   <TableRow key={tel.id ?? i} className="hover:bg-muted/30">
                     <TableCell className="py-2">
                       <TypeBadge type={tel.telemetry_type ?? "unknown"} />
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-amber-300">
-                      {tel.source ?? "="}
+                      {tel.source ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-orange-300 font-semibold">
                       {tel.value ?? 0}
                     </TableCell>
                     <TableCell className="py-2 text-[11px] text-muted-foreground">
-                      {tel.unit ?? "="}
+                      {tel.unit ?? "—"}
                     </TableCell>
                     <TableCell className="py-2 font-mono text-[11px] text-muted-foreground text-right">
-                      {tel.recorded_at ? formatTs(tel.recorded_at) : "="}
+                      {tel.recorded_at ? formatTs(tel.recorded_at) : "—"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
               </TableBody>
             </Table>
           </div>

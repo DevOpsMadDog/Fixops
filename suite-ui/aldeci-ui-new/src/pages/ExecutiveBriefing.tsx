@@ -1,7 +1,7 @@
 /**
  * Executive Briefing
  *
- * Board-level security posture summary = Q2 2026.
+ * Board-level security posture summary — Q2 2026.
  *   1. Top risk indicators (3 large colored boxes)
  *   2. Security investment ROI table
  *   3. Regulatory compliance grid (6 frameworks)
@@ -16,7 +16,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
@@ -43,7 +43,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const ROI_TABLE = [
   { control: "EDR / Endpoint Protection",   cost: "$42K/yr",  prevented: 18, avoided: "$1.8M", roi: 4186 },
@@ -92,7 +92,7 @@ const BOARD_RISKS = [
     color: "border-amber-500/30 bg-amber-500/5",
   },
   {
-    title: "Insider threat = privileged account misuse",
+    title: "Insider threat — privileged account misuse",
     impact: "$320K",
     likelihood: "Low",
     action: "Accept",
@@ -110,7 +110,7 @@ const BUDGET = [
 
 const BUDGET_MAX = 380;
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const cls =
@@ -140,13 +140,12 @@ function LikelihoodBadge({ l }: { l: string }) {
   return <Badge className={cn("text-[10px] border", cls)}>{l}</Badge>;
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function ExecutiveBriefing() {
   const [refreshing, setRefreshing]   = useState(false);
   const [liveData, setLiveData]       = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
     setDataLoading(true);
@@ -178,14 +177,6 @@ export default function ExecutiveBriefing() {
 
   useEffect(() => { fetchData(); }, []);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -196,7 +187,7 @@ export default function ExecutiveBriefing() {
       {/* Header */}
       <PageHeader
         title="Executive Security Briefing"
-        description="Board-level security posture summary = Q2 2026"
+        description="Board-level security posture summary — Q2 2026"
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); fetchData(); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
@@ -212,7 +203,7 @@ export default function ExecutiveBriefing() {
 
       {/* Top risk indicators */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col items-center gap-2" role="status" aria-live="polite">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col items-center gap-2">
           <AlertTriangle className="h-8 w-8 text-red-400" />
           <span className="text-5xl font-black text-red-400 tabular-nums">
             {liveData?.incidents?.critical_count ?? liveData?.execKpis?.breached_count ?? liveData?.kpis?.critical_findings ?? 4}
@@ -255,7 +246,7 @@ export default function ExecutiveBriefing() {
               <DollarSign className="h-4 w-4 text-green-400" />
               Security Investment ROI
             </CardTitle>
-            <CardDescription className="text-xs">Cost vs. incidents prevented = sorted by ROI descending</CardDescription>
+            <CardDescription className="text-xs">Cost vs. incidents prevented — sorted by ROI descending</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -270,13 +261,7 @@ export default function ExecutiveBriefing() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ROI_TABLE.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                      <p className="text-lg font-medium">No data available</p>
-                      <p className="text-sm">Data will appear here once available</p>
-                    </div>
-                  ) : (
-                    ROI_TABLE.map((r) => (
+                  {ROI_TABLE.map((r) => (
                     <TableRow key={r.control} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2.5 max-w-[140px] truncate">{r.control}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums text-muted-foreground">{r.cost}</TableCell>
@@ -284,8 +269,7 @@ export default function ExecutiveBriefing() {
                       <TableCell className="text-xs py-2.5 tabular-nums text-right text-green-400 font-medium">{r.avoided}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums text-right font-bold text-green-400">{r.roi}%</TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -302,13 +286,7 @@ export default function ExecutiveBriefing() {
             <CardDescription className="text-xs">6 framework compliance status</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {FRAMEWORKS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              FRAMEWORKS.map((f) => (
+            {FRAMEWORKS.map((f) => (
               <div key={f.name} className="flex items-center gap-3">
                 <span className="text-xs font-medium w-32 flex-shrink-0">{f.name}</span>
                 <div className="flex-1 relative h-2 rounded-full bg-muted/30 overflow-hidden">
@@ -326,8 +304,7 @@ export default function ExecutiveBriefing() {
                 <span className="text-xs tabular-nums font-bold w-8 text-right">{f.pct}%</span>
                 <StatusBadge status={f.status} />
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -337,9 +314,9 @@ export default function ExecutiveBriefing() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-green-400" />
-            Incident Trend = Year-over-Year
+            Incident Trend — Year-over-Year
           </CardTitle>
-          <CardDescription className="text-xs">Security incidents: 2025 full year vs. 2026 YTD (Jan=Apr)</CardDescription>
+          <CardDescription className="text-xs">Security incidents: 2025 full year vs. 2026 YTD (Jan–Apr)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-8 justify-center py-4">
@@ -377,12 +354,12 @@ export default function ExecutiveBriefing() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold text-foreground">2026 YTD</p>
-                <p className="text-[11px] text-muted-foreground">8 incidents (Jan=Apr)</p>
+                <p className="text-[11px] text-muted-foreground">8 incidents (Jan–Apr)</p>
               </div>
             </div>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            At current pace: projected <strong className="text-green-400">24 incidents</strong> for full year 2026 = vs. 23 in 2025
+            At current pace: projected <strong className="text-green-400">24 incidents</strong> for full year 2026 — vs. 23 in 2025
           </p>
         </CardContent>
       </Card>
@@ -397,13 +374,7 @@ export default function ExecutiveBriefing() {
           <CardDescription className="text-xs">Business-impact risks requiring board-level awareness or decision</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {BOARD_RISKS.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            BOARD_RISKS.map((r, i) => (
+          {BOARD_RISKS.map((r, i) => (
             <div key={r.title} className={cn("flex items-start gap-3 p-3 rounded-lg border", r.color)}>
               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center text-xs font-bold text-foreground">
                 {i + 1}
@@ -420,8 +391,7 @@ export default function ExecutiveBriefing() {
                 <ActionBadge action={r.action} />
               </div>
             </div>
-          ))
-        )}
+          ))}
         </CardContent>
       </Card>
 
@@ -435,13 +405,7 @@ export default function ExecutiveBriefing() {
           <CardDescription className="text-xs">YTD spend vs. allocated budget by category (USD thousands)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {BUDGET.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Data will appear here once available</p>
-            </div>
-          ) : (
-            BUDGET.map((b) => {
+          {BUDGET.map((b) => {
             const pctSpent = Math.round((b.spent / b.allocated) * 100);
             return (
               <div key={b.category} className="space-y-1.5">
@@ -473,8 +437,7 @@ export default function ExecutiveBriefing() {
                 </div>
               </div>
             );
-          })
-          )}
+          })}
           <div className="flex items-center gap-4 pt-1 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-sm bg-blue-500 inline-block" />Spent</span>
             <span className="flex items-center gap-1"><span className="w-0.5 h-3 bg-white/40 inline-block" />Allocated limit</span>

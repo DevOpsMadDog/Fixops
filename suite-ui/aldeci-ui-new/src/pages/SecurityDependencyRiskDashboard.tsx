@@ -15,7 +15,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 import { Package, AlertTriangle, Shield, CheckCircle, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================================
+// ── Mock data ──────────────────────────────────────────────────────────────────
 
 type Ecosystem = "npm" | "pypi" | "maven" | "nuget" | "cargo" | "go";
 
@@ -63,7 +63,7 @@ const MOCK_TRANSITIVE = [
 
 const SUMMARY = { total: 847, direct: 124, transitive: 723, high_risk: 31 };
 
-// == Helpers ====================================================================
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function riskColor(score: number) {
   if (score >= 7) return "#ef4444";
@@ -76,17 +76,6 @@ function RiskBar({ score }: { score: number }) {
   const color = riskColor(score);
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       <div className="flex-1 bg-gray-700 rounded-full h-2">
         <div className="h-2 rounded-full" style={{ width: `${(score / 10) * 100}%`, backgroundColor: color }} />
       </div>
@@ -126,18 +115,16 @@ function LicenseRiskBadge({ level }: { level: string }) {
   return <span className={cn("px-2 py-0.5 rounded text-xs font-medium", cls[level] ?? "bg-gray-700 text-gray-300")}>{level}</span>;
 }
 
-// == Main Component =============================================================
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
   const [vulns, setVulns] = useState(MOCK_VULNS);
-  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setVulns(d); })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const filteredDeps = activeEco === "All"
@@ -148,15 +135,8 @@ export default function SecurityDependencyRiskDashboard() {
   const filteredVulns = vulns.filter(v => filteredDepsIds.has(v.dep_id));
 
   function patchVuln(id: string) {
-    setVulns(prev => prev.map(v => v.id === id ? { ...v, patched: true } : v));}
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
+    setVulns(prev => prev.map(v => v.id === id ? { ...v, patched: true } : v));
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -209,7 +189,7 @@ export default function SecurityDependencyRiskDashboard() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Risky Dependencies ({filteredDeps.length})</h2>
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700">
                 {["Package", "Version", "Ecosystem", "Risk Score", "Vulns", "Critical", "License"].map(h => (
@@ -240,13 +220,7 @@ export default function SecurityDependencyRiskDashboard() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Vulnerabilities ({filteredVulns.length})</h2>
           <div className="space-y-2">
-            {filteredVulns.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              filteredVulns.map(v => {
+            {filteredVulns.map(v => {
               const dep = MOCK_DEPS.find(d => d.id === v.dep_id);
               return (
                 <div key={v.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
@@ -257,7 +231,7 @@ export default function SecurityDependencyRiskDashboard() {
                       <span className="text-xs text-gray-500 font-mono">CVSS {v.cvss_score.toFixed(1)}</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {dep?.package_name} = fix: {v.fixed_version}
+                      {dep?.package_name} · fix: {v.fixed_version}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4 flex-shrink-0">
@@ -277,8 +251,7 @@ export default function SecurityDependencyRiskDashboard() {
                   </div>
                 </div>
               );
-            })
-            )}
+            })}
           </div>
         </div>
 
@@ -291,13 +264,7 @@ export default function SecurityDependencyRiskDashboard() {
               <h2 className="text-lg font-semibold text-white">License Conflicts</h2>
             </div>
             <div className="space-y-2">
-              {MOCK_LICENSE_CONFLICTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_LICENSE_CONFLICTS.map(l => (
+              {MOCK_LICENSE_CONFLICTS.map(l => (
                 <div key={l.package_name} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-white">{l.package_name}</p>
@@ -312,8 +279,7 @@ export default function SecurityDependencyRiskDashboard() {
                   </div>
                   <LicenseRiskBadge level={l.risk_level} />
                 </div>
-              ))
-            )}
+              ))}
             </div>
           </div>
 
@@ -321,13 +287,7 @@ export default function SecurityDependencyRiskDashboard() {
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Transitive Dependencies</h2>
             <div className="space-y-3">
-              {MOCK_TRANSITIVE.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                MOCK_TRANSITIVE.map(t => (
+              {MOCK_TRANSITIVE.map(t => (
                 <div key={t.parent}>
                   <div className="flex items-center gap-2 text-sm mb-1">
                     <Package className="w-3.5 h-3.5 text-yellow-400" />
@@ -336,10 +296,10 @@ export default function SecurityDependencyRiskDashboard() {
                   <div className="ml-5 space-y-1">
                     {t.children.map(c => (
                       <div key={c} className="flex items-center gap-2 text-xs text-gray-400">
-                        <span className="text-gray-600">==</span>
+                        <span className="text-gray-600">└─</span>
                         <span className="font-mono text-gray-300">{c}</span>
                       </div>
-                    )))}
+                    ))}
                   </div>
                 </div>
               ))}

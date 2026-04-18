@@ -1,7 +1,7 @@
 /**
  * XDR Dashboard
  *
- * Extended Detection & Response = cross-domain signal correlation and unified incident management.
+ * Extended Detection & Response — cross-domain signal correlation and unified incident management.
  *   1. KPIs: Signals Today, Active Incidents, Critical Incidents, Auto-Correlated
  *   2. Incident command center (6 active incidents)
  *   3. Kill chain coverage heat (11 MITRE tactics)
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, Zap, GitMerge, RefreshCw, Activity, Layers } from "lucide-react";
 
-// == API helpers ================================================
+// ── API helpers ────────────────────────────────────────────────
 const ORG_ID = "default";
 
 function getApiKey() {
@@ -27,8 +27,7 @@ function getApiKey() {
 }
 
 async function apiFetch(path: string) {
-  const { buildApiUrl } = await import("@/lib/api");
-  const res = await fetch(buildApiUrl(`/api/v1${path}`), {
+  const res = await fetch(`/api/v1${path}`, {
     headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -42,7 +41,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const INCIDENTS = [
   {
@@ -121,17 +120,17 @@ const SIGNALS = [
 ];
 
 const RULES = [
-  { name: "Multi-Source Lateral Movement",      conditions: "endpoint=network signals, same src within 5m", severity: "critical", mitre_tactic: "Lateral Movement",       enabled: true },
-  { name: "Credential Harvest + Exfil Chain",  conditions: "phishing_click = lsass_dump = data_exfil",     severity: "critical", mitre_tactic: "Credential Access",      enabled: true },
-  { name: "IAM Anomaly + Cloud Data Access",   conditions: "iam_anomaly = unusual_geo_login within 10m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
-  { name: "Ransomware Kill Chain",             conditions: "process_injection = file_encrypt = c2_beacon", severity: "critical", mitre_tactic: "Impact",                 enabled: true },
-  { name: "DNS Tunneling + Beacon Combo",      conditions: "dns_tunneling = c2_beacon same host",          severity: "high",     mitre_tactic: "Command & Control",      enabled: true },
-  { name: "Brute Force = Privilege Escalation",conditions: "brute_force_success = priv_esc within 30m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
-  { name: "Insider Threat Exfiltration",       conditions: "large_upload = off_hours = new_dst_country",  severity: "medium",   mitre_tactic: "Exfiltration",           enabled: true },
-  { name: "Supply Chain Compromise Indicator", conditions: "pkg_anomaly = outbound_c2 = ioc_match",       severity: "high",     mitre_tactic: "Initial Access",         enabled: false },
+  { name: "Multi-Source Lateral Movement",      conditions: "endpoint∧network signals, same src within 5m", severity: "critical", mitre_tactic: "Lateral Movement",       enabled: true },
+  { name: "Credential Harvest + Exfil Chain",  conditions: "phishing_click → lsass_dump → data_exfil",     severity: "critical", mitre_tactic: "Credential Access",      enabled: true },
+  { name: "IAM Anomaly + Cloud Data Access",   conditions: "iam_anomaly ∧ unusual_geo_login within 10m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
+  { name: "Ransomware Kill Chain",             conditions: "process_injection → file_encrypt → c2_beacon", severity: "critical", mitre_tactic: "Impact",                 enabled: true },
+  { name: "DNS Tunneling + Beacon Combo",      conditions: "dns_tunneling ∧ c2_beacon same host",          severity: "high",     mitre_tactic: "Command & Control",      enabled: true },
+  { name: "Brute Force → Privilege Escalation",conditions: "brute_force_success → priv_esc within 30m",   severity: "high",     mitre_tactic: "Privilege Escalation",   enabled: true },
+  { name: "Insider Threat Exfiltration",       conditions: "large_upload ∧ off_hours ∧ new_dst_country",  severity: "medium",   mitre_tactic: "Exfiltration",           enabled: true },
+  { name: "Supply Chain Compromise Indicator", conditions: "pkg_anomaly ∧ outbound_c2 ∧ ioc_match",       severity: "high",     mitre_tactic: "Initial Access",         enabled: false },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 function StageBadge({ stage }: { stage: string }) {
   const map: Record<string, string> = {
@@ -193,13 +192,12 @@ function killChainColor(count: number) {
   return "bg-amber-500/20 border-amber-500/40 text-amber-300";
 }
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function XDRDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setDataLoading(true);
@@ -214,22 +212,13 @@ export default function XDRDashboard() {
       if (stats || incidents || signals) {
         setLiveData({ stats, incidents, signals });
       }
-    })
-      .finally(() => setLoading(false)).finally(() => setDataLoading(false));
+    }).finally(() => setDataLoading(false));
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -329,17 +318,11 @@ export default function XDRDashboard() {
               <Layers className="h-4 w-4 text-orange-400" />
               MITRE Kill Chain Coverage
             </CardTitle>
-            <CardDescription className="text-xs">Incident count per tactic = intensity indicates exposure</CardDescription>
+            <CardDescription className="text-xs">Incident count per tactic — intensity indicates exposure</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
-              {KILL_CHAIN.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                KILL_CHAIN.map((t) => (
+              {KILL_CHAIN.map((t) => (
                 <motion.div
                   key={t.tag}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -356,8 +339,7 @@ export default function XDRDashboard() {
                     {t.count}
                   </div>
                 </motion.div>
-              ))
-            )}
+              ))}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-muted/40 inline-block border border-border" />None</span>
@@ -377,13 +359,7 @@ export default function XDRDashboard() {
             <CardDescription className="text-xs">Active cross-domain detection rules</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {RULES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              RULES.map((rule, i) => (
+            {RULES.map((rule, i) => (
               <div key={i} className={cn("rounded-lg border bg-muted/20 p-3 space-y-1.5", !rule.enabled && "opacity-50")}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold truncate">{rule.name}</span>
@@ -395,8 +371,7 @@ export default function XDRDashboard() {
                 <div className="text-[10px] font-mono text-muted-foreground truncate">{rule.conditions}</div>
                 <div className="text-[10px] text-blue-400">{rule.mitre_tactic}</div>
               </div>
-            ))
-          )}
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -446,7 +421,7 @@ export default function XDRDashboard() {
                     </TableCell>
                     <TableCell className="py-2 text-[11px] tabular-nums text-muted-foreground">{s.ingested_at}</TableCell>
                   </TableRow>
-                )))}
+                ))}
               </TableBody>
             </Table>
           </div>

@@ -18,7 +18,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { Bug, Shield, AlertTriangle, CheckCircle2, Filter, BarChart2, FileText } from "lucide-react";
 
-// == Types ======================================================
+// ── Types ──────────────────────────────────────────────────────
 
 interface Finding {
   id: string;
@@ -39,7 +39,7 @@ interface Finding {
   last_seen: string;
 }
 
-// == Mock data ==================================================
+// ── Mock data ──────────────────────────────────────────────────
 
 const FINDINGS: Finding[] = [
   {
@@ -96,7 +96,7 @@ const FINDINGS: Finding[] = [
     description: "Device IOT-SENS-003 still using vendor default password 'admin/admin' on SSH port 22.",
     remediation: "Change default credentials. Disable SSH if not needed. Place behind jump host.",
     evidence: ["shodan-alert-2026-04-10.json"],
-    suppressed_by: "it-admin", suppressed_reason: "Legacy device = cannot update until Q3 refresh",
+    suppressed_by: "it-admin", suppressed_reason: "Legacy device — cannot update until Q3 refresh",
     first_seen: "2026-04-10", last_seen: "2026-04-16",
   },
   {
@@ -133,7 +133,7 @@ const FINDINGS: Finding[] = [
   },
 ];
 
-// == Helpers ====================================================
+// ── Helpers ────────────────────────────────────────────────────
 
 const severityColor: Record<Finding["severity"], string> = {
   critical: "bg-red-600 text-white",
@@ -172,7 +172,7 @@ const ALL_SEVERITIES = ["all","critical","high","medium","low","informational"] 
 const ALL_STATUSES = ["all","open","in_review","resolved","suppressed","accepted_risk"] as const;
 const ALL_TOOLS = ["all", ...Array.from(new Set(FINDINGS.map(f => f.source_tool)))];
 
-// == Component ==================================================
+// ── Component ──────────────────────────────────────────────────
 
 export default function SecurityFindingsDashboard() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
@@ -181,12 +181,10 @@ export default function SecurityFindingsDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => { setError('Failed to load data'); })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");
-  const [loading, setLoading] = useState(true);
 
   const filtered = FINDINGS.filter(f =>
     (filterSeverity === "all" || f.severity === filterSeverity) &&
@@ -208,27 +206,8 @@ export default function SecurityFindingsDashboard() {
   FINDINGS.forEach(f => { assetCounts[f.asset_id] = (assetCounts[f.asset_id] || 0) + 1; });
   const top5Assets = Object.entries(assetCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
-      {error && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 flex items-center justify-between" role="status" aria-live="polite">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-           aria-label="Refresh data">
-            Retry
-          </button>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -290,13 +269,7 @@ export default function SecurityFindingsDashboard() {
             <Shield className="w-4 h-4 text-orange-400" /> Top Assets by Findings
           </div>
           <div className="space-y-3">
-            {top5Assets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              top5Assets.map(([asset, count], idx) => (
+            {top5Assets.map(([asset, count], idx) => (
               <div key={asset} className="flex items-center gap-3">
                 <span className="text-gray-500 text-xs w-4">{idx + 1}</span>
                 <div className="flex-1 min-w-0">
@@ -310,8 +283,7 @@ export default function SecurityFindingsDashboard() {
                 </div>
                 <span className="text-xs font-bold text-orange-400">{count}</span>
               </div>
-            ))
-          )}
+            ))}
           </div>
         </div>
 
@@ -348,7 +320,7 @@ export default function SecurityFindingsDashboard() {
                 <div className="space-y-1">
                   {selectedFinding.evidence.map(e => (
                     <div key={e} className="text-xs font-mono text-blue-400 truncate">{e}</div>
-                  )))}
+                  ))}
                 </div>
               </div>
               {selectedFinding.suppressed_by && (
@@ -381,13 +353,7 @@ export default function SecurityFindingsDashboard() {
             onChange={e => setFilterSeverity(e.target.value)}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            {ALL_SEVERITIES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ALL_SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+            {ALL_SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -397,13 +363,7 @@ export default function SecurityFindingsDashboard() {
             onChange={e => setFilterStatus(e.target.value)}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            {ALL_STATUSES.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
+            {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -413,13 +373,7 @@ export default function SecurityFindingsDashboard() {
             onChange={e => setFilterTool(e.target.value)}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            {ALL_TOOLS.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Data will appear here once available</p>
-              </div>
-            ) : (
-              ALL_TOOLS.map(t => <option key={t} value={t}>{t}</option>)}
+            {ALL_TOOLS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <span className="text-xs text-gray-400 ml-auto">{filtered.length} of {FINDINGS.length} findings</span>
@@ -428,23 +382,16 @@ export default function SecurityFindingsDashboard() {
       {/* Findings table */}
       <div className="bg-gray-800 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table role="table" className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead className="bg-gray-700/50">
               <tr>
                 {["Title","Type","Source","Severity","CVSS","Asset","Status","Count"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium">{h}</th>
-                ))
-              )}
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                  <p className="text-lg font-medium">No data available</p>
-                  <p className="text-sm">Data will appear here once available</p>
-                </div>
-              ) : (
-                filtered.map(f => (
+              {filtered.map(f => (
                 <tr
                   key={f.id}
                   onClick={() => setSelectedFinding(f)}
@@ -485,7 +432,7 @@ export default function SecurityFindingsDashboard() {
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-center">{f.occurrence_count}</td>
                 </tr>
-              )))}
+              ))}
             </tbody>
           </table>
         </div>

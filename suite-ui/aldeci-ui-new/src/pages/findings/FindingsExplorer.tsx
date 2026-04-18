@@ -1220,7 +1220,9 @@ function DetailPanel({ finding, onClose, onStatusChange }: {
         <button
           onClick={onClose}
           className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-         aria-label="Close"><X className="h-4 w-4" /></button>
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <ScrollArea className="flex-1">
@@ -1756,7 +1758,7 @@ export default function FindingsExplorer() {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table role="table" className="w-full text-xs">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/20">
                   <th className="px-4 py-2.5 w-10">
@@ -1893,7 +1895,7 @@ export default function FindingsExplorer() {
                         <VerdictBadge verdict={finding.verdict} confidence={finding.verdict_confidence} />
                       </td>
                     </motion.tr>
-                  )))}
+                  ))}
                 </AnimatePresence>
 
                 {paginated.length === 0 && (
