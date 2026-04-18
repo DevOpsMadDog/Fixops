@@ -1908,6 +1908,44 @@ def create_app() -> FastAPI:
     app.state.branding = branding
     app.state.flag_provider = flag_provider
 
+    # OpenAPI size guard — the schema can exceed 196MB with 500+ routers.
+    # Override app.openapi() to cap paths at 800 and strip examples/descriptions
+    # from individual schemas to keep the response under ~4MB.
+    def _capped_openapi() -> Dict[str, Any]:
+        if app.openapi_schema:
+            return app.openapi_schema
+        from fastapi.openapi.utils import get_openapi
+
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+            tags=app.openapi_tags,
+        )
+
+        # Trim paths to first 800 to avoid memory/response size issues
+        _MAX_PATHS = 800
+        paths = schema.get("paths", {})
+        if len(paths) > _MAX_PATHS:
+            trimmed = dict(list(paths.items())[:_MAX_PATHS])
+            schema["paths"] = trimmed
+            schema.setdefault("info", {})["x-paths-truncated"] = (
+                f"Schema truncated to {_MAX_PATHS} of {len(paths)} paths. "
+                "Use /api/v1/openapi-full.json for the complete schema (large)."
+            )
+
+        # Strip verbose per-operation examples to shrink schema further
+        for _path_item in schema.get("paths", {}).values():
+            for _op in _path_item.values():
+                if isinstance(_op, dict):
+                    _op.pop("examples", None)
+
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = _capped_openapi  # type: ignore[method-assign]
+
     app.add_middleware(CorrelationIdMiddleware)
 
     # Request tracing middleware — generates X-Request-ID and mirrors

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-18T02:34:57.807Z",
+  "updatedAt": "2026-04-18T02:35:36.778Z",
   "missions": [
     {
       "id": "session:cd94a3bb-f4d2-444d-81a3-399864718b47:none",
@@ -3285,14 +3285,14 @@
       "name": "none",
       "objective": "Session mission",
       "createdAt": "2026-04-16T05:52:26.956Z",
-      "updatedAt": "2026-04-18T02:34:57.807Z",
+      "updatedAt": "2026-04-18T02:35:36.778Z",
       "status": "running",
-      "workerCount": 117,
+      "workerCount": 119,
       "taskCounts": {
-        "total": 117,
+        "total": 119,
         "pending": 0,
         "blocked": 0,
-        "inProgress": 13,
+        "inProgress": 15,
         "completed": 104,
         "failed": 0
       },
@@ -4466,49 +4466,29 @@
           "latestUpdate": "completed",
           "completedSummary": null,
           "updatedAt": "2026-04-18T02:34:29.170Z"
+        },
+        {
+          "name": "executor:a9d6f32",
+          "role": "executor",
+          "ownership": "a9d6f326f9dc4d966",
+          "status": "running",
+          "currentStep": null,
+          "latestUpdate": null,
+          "completedSummary": null,
+          "updatedAt": "2026-04-18T02:35:28.870Z"
+        },
+        {
+          "name": "executor:ab68456",
+          "role": "executor",
+          "ownership": "ab684567b30c0f1d5",
+          "status": "running",
+          "currentStep": null,
+          "latestUpdate": null,
+          "completedSummary": null,
+          "updatedAt": "2026-04-18T02:35:36.778Z"
         }
       ],
       "timeline": [
-        {
-          "id": "session-start:a6713ef107e687747:2026-04-18T02:28:05.328Z",
-          "at": "2026-04-18T02:28:05.328Z",
-          "kind": "update",
-          "agent": "executor:a6713ef",
-          "detail": "started executor:a6713ef",
-          "sourceKey": "session-start:a6713ef107e687747"
-        },
-        {
-          "id": "session-stop:ab4fc31d8459af27c:2026-04-18T02:30:01.143Z",
-          "at": "2026-04-18T02:30:01.143Z",
-          "kind": "completion",
-          "agent": "executor:ab4fc31",
-          "detail": "completed",
-          "sourceKey": "session-stop:ab4fc31d8459af27c"
-        },
-        {
-          "id": "session-start:a25b998d0fb37e0c0:2026-04-18T02:31:15.493Z",
-          "at": "2026-04-18T02:31:15.493Z",
-          "kind": "update",
-          "agent": "executor:a25b998",
-          "detail": "started executor:a25b998",
-          "sourceKey": "session-start:a25b998d0fb37e0c0"
-        },
-        {
-          "id": "session-stop:a2d1336fcbbb5541a:2026-04-18T02:30:01.140Z",
-          "at": "2026-04-18T02:30:01.140Z",
-          "kind": "completion",
-          "agent": "executor:a2d1336",
-          "detail": "completed",
-          "sourceKey": "session-stop:a2d1336fcbbb5541a"
-        },
-        {
-          "id": "session-stop:a25b998d0fb37e0c0:2026-04-18T02:34:29.170Z",
-          "at": "2026-04-18T02:34:29.170Z",
-          "kind": "completion",
-          "agent": "executor:a25b998",
-          "detail": "completed",
-          "sourceKey": "session-stop:a25b998d0fb37e0c0"
-        },
         {
           "id": "session-stop:aa76170d3078e2096:2026-04-18T02:34:57.807Z",
           "at": "2026-04-18T02:34:57.807Z",
@@ -4516,6 +4496,22 @@
           "agent": "executor:aa76170",
           "detail": "completed",
           "sourceKey": "session-stop:aa76170d3078e2096"
+        },
+        {
+          "id": "session-start:a9d6f326f9dc4d966:2026-04-18T02:35:28.870Z",
+          "at": "2026-04-18T02:35:28.870Z",
+          "kind": "update",
+          "agent": "executor:a9d6f32",
+          "detail": "started executor:a9d6f32",
+          "sourceKey": "session-start:a9d6f326f9dc4d966"
+        },
+        {
+          "id": "session-start:ab684567b30c0f1d5:2026-04-18T02:35:36.778Z",
+          "at": "2026-04-18T02:35:36.778Z",
+          "kind": "update",
+          "agent": "executor:ab68456",
+          "detail": "started executor:ab68456",
+          "sourceKey": "session-start:ab684567b30c0f1d5"
         }
       ]
     }
