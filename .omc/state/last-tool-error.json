@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec bash -n /Users/devops.ai/fixops/Fixops/scripts/deploy_local.sh && echo \\\"deploy_local.sh: syntax OK\\\"\"}",
-  "error": "Exit code 2\n/Users/devops.ai/fixops/Fixops/scripts/deploy_local.sh: line 372: syntax error near unexpected token `('\n/Users/devops.ai/fixops/Fixops/scripts/deploy_local.sh: line 372: `        (cd \"${UI_DIR}\" && npm run dev -- --port \"${UI_PORT}\" --host 0.0.0.0) \\'",
-  "timestamp": "2026-04-18T05:08:58.556Z",
+  "tool_input_preview": "{\"command\":\"SELF_SCAN_DRY_RUN=1 python scripts/self_security_scan.py 2>&1\",\"timeout\":180000,\"description\":\"Full dry-run of self_security_scan.py to verify all 7 checks and final report\"}",
+  "error": "Exit code 1\n\n\u001b[1m\u001b[96m╔════════════════════════════════════════════════════════════════════╗\u001b[0m\n\u001b[1m\u001b[96m║            ALDECI SELF-SECURITY-SCAN  —  Dog-Food Mode             ║\u001b[0m\n\u001b[1m\u001b[96m║           Target: Fixops  |  API: http://localhost:8000            ║\u001b[0m\n\u001b[1m\u001b[96m╚════════════════════════════════════════════════════════════════════╝\u001b[0m\n\n  \u001b[93mDRY RUN mode enabled — findings will NOT be POSTed to ALDECI\u001b[0m\n\n  Backend health: HTTP 200  \u001b[92mreachable\u001b[0m\n\n\u001b[1m─────────────────────────...",
+  "timestamp": "2026-04-18T05:10:30.884Z",
   "retry_count": 1
 }
