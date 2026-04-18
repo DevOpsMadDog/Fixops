@@ -171,21 +171,83 @@ class KnowledgeBrain:
     def __init__(self, db_path: str | Path = "fixops_brain.db") -> None:
         self.db_path = str(db_path)
         self._conn_lock = threading.Lock()
-        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA foreign_keys=ON")
+        self._conn = self._open_connection()
         self._create_tables()
+        # Checkpoint any WAL data written in a previous session that was
+        # not flushed on shutdown (e.g. server killed with SIGKILL).
+        self._checkpoint()
         if nx is not None:
             self._graph = nx.MultiDiGraph()
         else:
             self._graph = None
         self._load_from_db()
+        # Background thread: checkpoint every 60 s so data survives unclean kills.
+        self._stop_checkpoint = threading.Event()
+        self._checkpoint_thread = threading.Thread(
+            target=self._periodic_checkpoint, daemon=True, name="brain-checkpoint"
+        )
+        self._checkpoint_thread.start()
         logger.info(
             "KnowledgeBrain initialized: %d nodes, %d edges (db=%s)",
             self.node_count(),
             self.edge_count(),
             self.db_path,
         )
+
+    def _open_connection(self) -> sqlite3.Connection:
+        """Open the SQLite connection. If the DB is corrupt, wipe and recreate.
+
+        SQLite automatically replays any existing WAL file on open — do NOT
+        delete WAL/SHM files before opening; that would discard unflushed data.
+        Only delete them if the main DB file is confirmed corrupt (unrecoverable).
+        """
+        db_file = Path(self.db_path)
+        db_file.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA foreign_keys=ON")
+            # Quick integrity check — catches corruption before we trust the file.
+            result = conn.execute("PRAGMA quick_check").fetchone()
+            if result and result[0] != "ok":
+                conn.close()
+                raise sqlite3.DatabaseError(f"Integrity check failed: {result[0]}")
+            return conn
+        except sqlite3.DatabaseError as exc:
+            logger.error(
+                "KnowledgeBrain DB corrupt (%s) — backing up and recreating: %s",
+                self.db_path,
+                exc,
+            )
+            # Back up the corrupt file + its WAL/SHM, then start fresh.
+            corrupt_path = self.db_path + ".corrupt"
+            try:
+                db_file.rename(corrupt_path)
+                logger.info("Corrupt DB moved to %s", corrupt_path)
+            except OSError:
+                db_file.unlink(missing_ok=True)
+            # Remove orphaned WAL/SHM for the corrupt DB — they're useless now.
+            for suffix in ("-wal", "-shm"):
+                Path(self.db_path + suffix).unlink(missing_ok=True)
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA foreign_keys=ON")
+            return conn
+
+    def _checkpoint(self) -> None:
+        """Run a WAL checkpoint to flush pending writes into the main DB file."""
+        try:
+            with self._conn_lock:
+                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as exc:
+            logger.warning("WAL checkpoint failed (non-fatal): %s", exc)
+
+    def _periodic_checkpoint(self) -> None:
+        """Background loop: checkpoint every 60 seconds."""
+        while not self._stop_checkpoint.wait(timeout=60):
+            self._checkpoint()
 
     @classmethod
     def get_instance(cls, db_path: str | Path = "fixops_brain.db") -> "KnowledgeBrain":
@@ -837,15 +899,28 @@ class KnowledgeBrain:
     # Lifecycle
     # ------------------------------------------------------------------
     def close(self) -> None:
-        """Close database connection."""
+        """Checkpoint WAL, then close database connection."""
+        # Stop background checkpoint thread first.
+        if hasattr(self, "_stop_checkpoint"):
+            self._stop_checkpoint.set()
+        # Final checkpoint: flush all WAL data into the main DB file so the
+        # next process startup reads a complete, up-to-date database.
+        self._checkpoint()
         with self._conn_lock:
             self._conn.close()
-        logger.info("KnowledgeBrain closed")
+        logger.info("KnowledgeBrain closed (WAL checkpointed)")
 
     def __del__(self) -> None:
         try:
-            self._conn.close()
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+            if hasattr(self, "_stop_checkpoint"):
+                self._stop_checkpoint.set()
+            if hasattr(self, "_conn"):
+                try:
+                    self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                except Exception:  # noqa: BLE001 — best-effort in __del__
+                    pass
+                self._conn.close()
+        except (OSError, ValueError, RuntimeError):
             pass
 
 
