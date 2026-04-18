@@ -28,6 +28,7 @@ import {
   llmApi,
   brainApi,
   containerApi,
+  complianceEvidenceApi,
   getStoredOrgId,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -449,6 +450,60 @@ export function useAssessCompliance() {
       toast.success("Compliance assessment started");
     },
     onError: () => toast.error("Assessment failed"),
+  });
+}
+
+export function useComplianceOverallStatus() {
+  return useQuery({
+    queryKey: ["compliance", "overall-status"],
+    queryFn: async () => {
+      const { data } = await complianceApi.overallStatus();
+      return data;
+    },
+  });
+}
+
+// ═══════════════════════════════════════════
+// Compliance Evidence hooks
+// ═══════════════════════════════════════════
+
+export function useComplianceEvidenceRequests(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ["compliance-evidence", "requests", params],
+    queryFn: async () => {
+      const { data } = await complianceEvidenceApi.requests(params);
+      return data;
+    },
+  });
+}
+
+export function useComplianceEvidenceStats(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ["compliance-evidence", "stats", params],
+    queryFn: async () => {
+      const { data } = await complianceEvidenceApi.stats(params);
+      return data;
+    },
+  });
+}
+
+export function useEvidenceSummary() {
+  return useQuery({
+    queryKey: ["evidence", "summary"],
+    queryFn: async () => {
+      const { data } = await evidenceApi.summary();
+      return data;
+    },
+  });
+}
+
+export function useEvidenceList(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ["evidence", "list", params],
+    queryFn: async () => {
+      const { data } = await evidenceApi.list(params);
+      return data;
+    },
   });
 }
 

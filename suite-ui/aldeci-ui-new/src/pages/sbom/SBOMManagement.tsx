@@ -11,7 +11,7 @@
  * Route: /sbom
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Package,
@@ -758,7 +758,37 @@ function ImportSBOMModal({ onClose }: { onClose: () => void }) {
 // Main Page
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+// API helpers
+// ═══════════════════════════════════════════════════════════
+
+const SBOM_API_HEADERS = () => ({
+  "Content-Type": "application/json",
+  "X-API-Key": localStorage.getItem("apiKey") || "",
+});
+
+/** Map a backend project row into the SBOMEntry shape. */
+function apiProjectToSBOM(p: Record<string, any>, idx: number): SBOMEntry {
+  return {
+    id: `sbom-api-${idx}`,
+    project: p.project_name || p.name || "unknown",
+    version: p.version_tag || p.version || "v1.0",
+    format: (p.format as SBOMFormat) || "CycloneDX",
+    componentCount: p.component_count ?? p.components ?? 0,
+    vulnCount: p.vuln_count ?? p.vulns ?? 0,
+    criticalVulns: p.critical_vulns ?? p.critical_count ?? 0,
+    licenseRisks: p.license_risks ?? 0,
+    importedAt: p.last_export ? new Date(p.last_export) : p.imported_at ? new Date(p.imported_at) : new Date(),
+    generatedAt: p.generated_at ? new Date(p.generated_at) : new Date(),
+    environment: (p.environment as SBOMEntry["environment"]) || "production",
+    components: [],
+  };
+}
+
 export default function SBOMManagement() {
+  const [sboms, setSboms] = useState<SBOMEntry[]>(MOCK_SBOMS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [formatFilter, setFormatFilter] = useState<"all" | SBOMFormat>("all");
   const [envFilter, setEnvFilter] = useState<"all" | "production" | "staging" | "development">("all");
@@ -772,27 +802,119 @@ export default function SBOMManagement() {
   const [diffRight, setDiffRight] = useState<string>("sbom-001");
   const [diffFilter, setDiffFilter] = useState<"all" | ComponentStatus>("all");
 
+  const fetchSBOMs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/sbom-export/projects?org_id=default", {
+        headers: SBOM_API_HEADERS(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list: Record<string, any>[] = Array.isArray(data) ? data : data.projects ?? [];
+      if (list.length > 0) {
+        const mapped = list.map(apiProjectToSBOM);
+        setSboms(mapped);
+        // Update diff selectors to reference new IDs
+        if (mapped.length >= 2) {
+          setDiffLeft(mapped[mapped.length - 1].id);
+          setDiffRight(mapped[0].id);
+        }
+      }
+      // If empty, keep MOCK_SBOMS as fallback
+    } catch (err: any) {
+      console.warn("SBOMManagement: API fetch failed, using mock data:", err.message);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSBOMs();
+  }, [fetchSBOMs]);
+
+  // Load real components when an SBOM is selected and has no components yet
+  useEffect(() => {
+    if (!selectedSBOM || selectedSBOM.components.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Try to fetch assets and their components for this project
+        const res = await fetch(
+          `/api/v1/sbom/assets?org_id=default`,
+          { headers: SBOM_API_HEADERS() },
+        );
+        if (!res.ok) return;
+        const assets: any[] = await res.json();
+        // Find asset matching this project name
+        const asset = assets.find(
+          (a: any) => (a.name || "").toLowerCase() === selectedSBOM.project.toLowerCase(),
+        );
+        if (!asset) return;
+        const compRes = await fetch(
+          `/api/v1/sbom/assets/${asset.id}/components?org_id=default`,
+          { headers: SBOM_API_HEADERS() },
+        );
+        if (!compRes.ok) return;
+        const comps: any[] = await compRes.json();
+        if (cancelled || !Array.isArray(comps) || comps.length === 0) return;
+        const mapped: Component[] = comps.map((c: any, i: number) => ({
+          id: c.id || `comp-${i}`,
+          name: c.name || c.component_name || "unknown",
+          version: c.version || c.component_version || "0.0.0",
+          ecosystem: c.ecosystem || "npm",
+          license: c.license || "Unknown",
+          licenseRisk: (c.license_risk as LicenseRisk) || "none",
+          vulns: Array.isArray(c.vulns)
+            ? c.vulns.map((v: any) => ({
+                id: v.cve_id || v.id || "CVE-0000",
+                severity: v.severity || "medium",
+                cvss: v.cvss_score ?? v.cvss ?? 0,
+                description: v.description || "",
+              }))
+            : [],
+          isTransitive: c.is_transitive ?? false,
+          supplier: c.supplier || undefined,
+          hash: c.hash_sha256 || undefined,
+        }));
+        setSboms((prev) =>
+          prev.map((s) =>
+            s.id === selectedSBOM.id ? { ...s, components: mapped } : s,
+          ),
+        );
+        setSelectedSBOM((prev) =>
+          prev && prev.id === selectedSBOM.id ? { ...prev, components: mapped } : prev,
+        );
+      } catch {
+        // Silently fall back to mock components if API fails
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedSBOM?.id]);
+
   const filtered = useMemo(() => {
-    return MOCK_SBOMS.filter((s) => {
+    return sboms.filter((s) => {
       const matchSearch = !search || s.project.toLowerCase().includes(search.toLowerCase()) || s.version.includes(search);
       const matchFormat = formatFilter === "all" || s.format === formatFilter;
       const matchEnv = envFilter === "all" || s.environment === envFilter;
       return matchSearch && matchFormat && matchEnv;
     });
-  }, [search, formatFilter, envFilter]);
+  }, [sboms, search, formatFilter, envFilter]);
 
   const kpis = useMemo(() => {
-    const total = MOCK_SBOMS.length;
-    const totalComponents = MOCK_SBOMS.reduce((a, s) => a + s.componentCount, 0);
-    const totalVulns = MOCK_SBOMS.reduce((a, s) => a + s.vulnCount, 0);
-    const criticals = MOCK_SBOMS.reduce((a, s) => a + s.criticalVulns, 0);
-    const licenseRisks = MOCK_SBOMS.reduce((a, s) => a + s.licenseRisks, 0);
+    const total = sboms.length;
+    const totalComponents = sboms.reduce((a, s) => a + s.componentCount, 0);
+    const totalVulns = sboms.reduce((a, s) => a + s.vulnCount, 0);
+    const criticals = sboms.reduce((a, s) => a + s.criticalVulns, 0);
+    const licenseRisks = sboms.reduce((a, s) => a + s.licenseRisks, 0);
     return { total, totalComponents, totalVulns, criticals, licenseRisks };
-  }, []);
+  }, [sboms]);
 
   const filteredDiff = useMemo(() => {
-    if (diffFilter === "all") return MOCK_DIFF;
-    return MOCK_DIFF.filter((d) => d.status === diffFilter);
+    const diffData = MOCK_DIFF;
+    if (diffFilter === "all") return diffData;
+    return diffData.filter((d) => d.status === diffFilter);
   }, [diffFilter]);
 
   const diffStats = useMemo(() => ({
@@ -802,8 +924,8 @@ export default function SBOMManagement() {
     unchanged: MOCK_DIFF.filter((d) => d.status === "unchanged").length,
   }), []);
 
-  const leftSBOM = MOCK_SBOMS.find((s) => s.id === diffLeft);
-  const rightSBOM = MOCK_SBOMS.find((s) => s.id === diffRight);
+  const leftSBOM = sboms.find((s) => s.id === diffLeft);
+  const rightSBOM = sboms.find((s) => s.id === diffRight);
 
   return (
     <TooltipProvider>
@@ -815,6 +937,10 @@ export default function SBOMManagement() {
           badge="SUPPLY CHAIN"
           actions={
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={fetchSBOMs} disabled={loading}>
+                <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                Refresh
+              </Button>
               <Button variant="outline" size="sm" className="gap-1.5">
                 <Download className="h-3.5 w-3.5" />
                 Export All
@@ -863,6 +989,20 @@ export default function SBOMManagement() {
             description="Copyleft / restrictive"
           />
         </div>
+
+        {/* Loading / error banners */}
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading SBOMs from API...
+          </div>
+        )}
+        {error && !loading && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>API unavailable ({error}) — showing fallback data.</span>
+          </div>
+        )}
 
         {/* Main content tabs */}
         <Tabs defaultValue="inventory">
@@ -1057,7 +1197,7 @@ export default function SBOMManagement() {
             </Card>
 
             <p className="text-xs text-muted-foreground">
-              Showing {filtered.length} of {MOCK_SBOMS.length} SBOMs · Click a row to inspect components
+              Showing {filtered.length} of {sboms.length} SBOMs · Click a row to inspect components
             </p>
           </TabsContent>
 
@@ -1281,7 +1421,7 @@ export default function SBOMManagement() {
                   <div className="flex-1 space-y-1">
                     <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Base (older)</label>
                     <div className="flex flex-col gap-1">
-                      {MOCK_SBOMS.map((s) => (
+                      {sboms.map((s) => (
                         <label key={s.id} className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="radio"
@@ -1308,7 +1448,7 @@ export default function SBOMManagement() {
                   <div className="flex-1 space-y-1">
                     <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Target (newer)</label>
                     <div className="flex flex-col gap-1">
-                      {MOCK_SBOMS.map((s) => (
+                      {sboms.map((s) => (
                         <label key={s.id} className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="radio"

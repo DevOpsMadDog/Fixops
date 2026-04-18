@@ -8,7 +8,7 @@
  * Route: /vendors
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
@@ -800,8 +800,64 @@ function VendorRow({ vendor, selected, onSelect, index }: VendorRowProps) {
 // Main Page
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+// API helpers
+// ═══════════════════════════════════════════════════════════
+
+const API_HEADERS = () => ({
+  "Content-Type": "application/json",
+  "X-API-Key": localStorage.getItem("apiKey") || "",
+});
+
+function scoreToGrade(score: number): RiskGrade {
+  if (score >= 90) return "A";
+  if (score >= 75) return "B";
+  if (score >= 60) return "C";
+  if (score >= 45) return "D";
+  return "F";
+}
+
+function tierToVendorTier(tier: string | null | undefined): VendorTier {
+  const t = (tier || "medium").toLowerCase();
+  if (t === "critical") return "critical";
+  if (t === "high") return "high";
+  if (t === "low") return "low";
+  return "medium";
+}
+
+/** Map backend VendorResponse → frontend Vendor shape. */
+function apiVendorToVendor(v: Record<string, any>): Vendor {
+  const score = typeof v.current_score === "number" ? Math.round(v.current_score) : 60;
+  const grade = scoreToGrade(score);
+  const tier = tierToVendorTier(v.tier);
+  return {
+    id: v.id || `VND-${Date.now()}`,
+    name: v.name || "Unknown",
+    domain: v.description || v.name?.toLowerCase().replace(/\s+/g, "") + ".com" || "vendor.com",
+    tier,
+    grade,
+    score,
+    trend: "stable",
+    trendDelta: 0,
+    lastAssessed: v.updated_at ? new Date(v.updated_at) : new Date(0),
+    nextAssessment: v.contract_end ? new Date(v.contract_end) : daysFrom(90),
+    contactEmail: "",
+    category: v.service_category || "Unknown",
+    components: [],
+    assessmentHistory: [],
+    alerts: [],
+    certifications: [],
+    slaBreaches: 0,
+    criticalFindings: 0,
+    totalFindings: 0,
+    notes: v.description || "",
+  };
+}
+
 export default function VendorManagement() {
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [search, setSearch] = useState("");
@@ -809,6 +865,31 @@ export default function VendorManagement() {
   const [filterGrade, setFilterGrade] = useState<"all" | RiskGrade>("all");
   const [sortBy, setSortBy] = useState<"score" | "name" | "tier" | "assessed">("score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const fetchVendors = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/vendors", { headers: API_HEADERS() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list: Record<string, any>[] = data.vendors ?? data ?? [];
+      if (Array.isArray(list) && list.length > 0) {
+        setVendors(list.map(apiVendorToVendor));
+      }
+      // If list is empty, keep MOCK_VENDORS as fallback (default state)
+    } catch (err: any) {
+      console.warn("VendorManagement: API fetch failed, using mock data:", err.message);
+      setError(err.message);
+      // Keep MOCK_VENDORS (already set as default)
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]);
 
   const filtered = useMemo(() => {
     let v = vendors.filter(vnd => {
@@ -895,10 +976,16 @@ export default function VendorManagement() {
           description="Third-party risk tracking, SBOM component linkage, and assessment history across your supply chain."
           badge="TPRM"
           actions={
-            <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              Add Vendor
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={fetchVendors} disabled={loading}>
+                <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                Refresh
+              </Button>
+              <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-1.5">
+                <Plus className="h-4 w-4" />
+                Add Vendor
+              </Button>
+            </div>
           }
         />
 
@@ -945,6 +1032,20 @@ export default function VendorManagement() {
             trendLabel={totalCVEs === 0 ? "No CVEs" : "In SBOM components"}
           />
         </div>
+
+        {/* Loading / error banners */}
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading vendors from API...
+          </div>
+        )}
+        {error && !loading && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>API unavailable ({error}) — showing fallback data.</span>
+          </div>
+        )}
 
         {/* Alert strip — undismissed high/critical alerts */}
         {activeAlertCount > 0 && (() => {

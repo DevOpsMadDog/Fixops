@@ -18,7 +18,7 @@ import {
   Eye, FileText, Lock, Activity, Shield, User, Layers
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useComplianceSoc2, useEvidenceBundles, useAssessCompliance } from "@/hooks/use-api";
+import { useComplianceSoc2, useEvidenceBundles, useComplianceEvidenceRequests, useAssessCompliance } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 const SOC2_CATEGORIES = [
@@ -85,22 +85,37 @@ function CategoryProgressBar({ controls }: { controls: any[] }) {
 export default function SOC2Evidence() {
   const soc2Query = useComplianceSoc2();
   const bundlesQuery = useEvidenceBundles({ framework: "SOC2" });
+  const evidenceRequestsQuery = useComplianceEvidenceRequests({ org_id: "default" });
   const refetchAll = useCallback(() => {
     soc2Query.refetch();
     bundlesQuery.refetch();
-  }, [soc2Query, bundlesQuery]);
+    evidenceRequestsQuery.refetch();
+  }, [soc2Query, bundlesQuery, evidenceRequestsQuery]);
 
   const [activeTab, setActiveTab] = useState("CC");
   const [auditorView, setAuditorView] = useState(false);
 
   const isLoading = soc2Query.isLoading || bundlesQuery.isLoading;
-  const isError = soc2Query.isError;
+  const isError = soc2Query.isError && evidenceRequestsQuery.isError;
 
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load SOC2 evidence data" onRetry={refetchAll} />;
 
+  const evidenceRequests: any[] = toArray(evidenceRequestsQuery.data);
   const soc2Data: any = soc2Query.data?.data ?? {};
-  const controls: any[] = soc2Data.controls ?? soc2Data ?? [];
+  // Prefer live evidence requests for controls if available, fall back to soc2 engine data
+  const controls: any[] = evidenceRequests.length > 0
+    ? evidenceRequests.map((r: any) => ({
+        control_id: r.control_id ?? r.id,
+        title: r.control_name ?? r.description ?? "Evidence request",
+        description: r.description ?? "",
+        status: r.status === "approved" ? "passed" : r.status === "rejected" ? "failed" : "partial",
+        evidence_status: r.status === "approved" ? "collected" : r.status === "submitted" ? "partial" : "pending",
+        last_verified: r.updated_at ?? r.created_at ?? "",
+        has_gap: r.status !== "approved",
+        framework: r.framework ?? "SOC2",
+      }))
+    : (soc2Data.controls ?? soc2Data ?? []);
   const bundles: any[] = toArray(bundlesQuery.data);
 
   // Group controls by category

@@ -21,7 +21,7 @@ import {
   Layers, Calendar, Shield, Eye, Zap, Clock, Mail, History,
   ChevronRight, ChevronDown, Lock, AlertTriangle
 } from "lucide-react";
-import { useEvidenceBundles, useComplianceFrameworks, useApps } from "@/hooks/use-api";
+import { useEvidenceBundles, useEvidenceSummary, useComplianceFrameworks, useApps } from "@/hooks/use-api";
 import { evidenceApi } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -207,14 +207,16 @@ function ControlTreePanel({ framework, bundles }: { framework: string; bundles: 
 
 export default function EvidenceExportCenter() {
   const bundlesQuery = useEvidenceBundles();
+  const summaryQuery = useEvidenceSummary();
   const frameworksQuery = useComplianceFrameworks();
   const appsQuery = useApps();
 
   const refetchAll = useCallback(() => {
     bundlesQuery.refetch();
+    summaryQuery.refetch();
     frameworksQuery.refetch();
     appsQuery.refetch();
-  }, [bundlesQuery, frameworksQuery, appsQuery]);
+  }, [bundlesQuery, summaryQuery, frameworksQuery, appsQuery]);
 
   const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>(["SOC2"]);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
@@ -227,12 +229,15 @@ export default function EvidenceExportCenter() {
   const [lastExport, setLastExport] = useState<any>(null);
 
   const isLoading = bundlesQuery.isLoading || appsQuery.isLoading;
-  const isError = bundlesQuery.isError;
+  const isError = bundlesQuery.isError && summaryQuery.isError;
 
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load export data" onRetry={refetchAll} />;
 
-  const bundles: any[] = toArray(bundlesQuery.data);
+  const summaryData: any = summaryQuery.data?.data ?? summaryQuery.data ?? {};
+  const bundles: any[] = toArray(summaryData.bundles ?? summaryData).length > 0
+    ? toArray(summaryData.bundles ?? summaryData)
+    : toArray(bundlesQuery.data);
   const apps: any[] = toArray(appsQuery.data);
   const frameworks: string[] = toArray(frameworksQuery.data).map((f: any) => {
     if (typeof f === "string") return f;
