@@ -21,7 +21,7 @@ import {
   Layers, Calendar, Shield, Eye, Zap, Clock, Mail, History,
   ChevronRight, ChevronDown, Lock, AlertTriangle
 } from "lucide-react";
-import { useEvidenceBundles, useComplianceFrameworks, useApps } from "@/hooks/use-api";
+import { useEvidenceBundles, useEvidenceSummary, useComplianceFrameworks, useApps } from "@/hooks/use-api";
 import { evidenceApi } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -207,14 +207,16 @@ function ControlTreePanel({ framework, bundles }: { framework: string; bundles: 
 
 export default function EvidenceExportCenter() {
   const bundlesQuery = useEvidenceBundles();
+  const summaryQuery = useEvidenceSummary();
   const frameworksQuery = useComplianceFrameworks();
   const appsQuery = useApps();
 
   const refetchAll = useCallback(() => {
     bundlesQuery.refetch();
+    summaryQuery.refetch();
     frameworksQuery.refetch();
     appsQuery.refetch();
-  }, [bundlesQuery, frameworksQuery, appsQuery]);
+  }, [bundlesQuery, summaryQuery, frameworksQuery, appsQuery]);
 
   const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>(["SOC2"]);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);

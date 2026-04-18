@@ -18,7 +18,7 @@ import {
   Eye, FileText, Lock, Activity, Shield, User, Layers
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useComplianceSoc2, useEvidenceBundles, useAssessCompliance } from "@/hooks/use-api";
+import { useComplianceSoc2, useEvidenceBundles, useComplianceEvidenceRequests, useAssessCompliance } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 const SOC2_CATEGORIES = [
