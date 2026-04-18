@@ -12,7 +12,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Brain, RefreshCw, Cpu, Eye, TrendingUp, AlertTriangle,
+  Brain, RefreshCw, Cpu, Eye, TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,35 +38,62 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
+// ── Interfaces ─────────────────────────────────────────────────
+
+interface SOCStats {
+  total_detections: number;
+  auto_triaged_count: number;
+  active_models: number;
+  avg_model_accuracy: number;
+}
+
+interface SOCDetection {
+  detection_name: string;
+  model_type: string;
+  confidence_score: number;
+  severity: string;
+  source_data_type: string;
+  status: string;
+}
+
+interface SOCModel {
+  model_name: string;
+  model_type: string;
+  accuracy_score: number;
+  false_positive_rate: number;
+  version: string;
+  status: string;
+}
+
 // ── Mock data (fallback) ───────────────────────────────────────
 
-const MOCK_STATS = {
+const MOCK_STATS: SOCStats = {
   total_detections:   1843,
   auto_triaged_count: 1621,
   active_models:      7,
   avg_model_accuracy: 94.3,
 };
 
-const MOCK_DETECTIONS = [
-  { detection_name: "Beaconing C2 Pattern",         model_type: "anomaly",     confidence_score: 0.97, severity: "critical", source_data_type: "netflow",  status: "escalated"  },
-  { detection_name: "Credential Stuffing Attempt",  model_type: "classifier",  confidence_score: 0.92, severity: "high",     source_data_type: "auth_log", status: "auto_closed"},
-  { detection_name: "Lateral Movement via WMI",     model_type: "sequence",    confidence_score: 0.88, severity: "high",     source_data_type: "edr",      status: "open"       },
-  { detection_name: "Data Exfiltration via DNS",    model_type: "anomaly",     confidence_score: 0.95, severity: "critical", source_data_type: "dns",      status: "open"       },
-  { detection_name: "Insider Privilege Abuse",      model_type: "behavioral",  confidence_score: 0.79, severity: "medium",   source_data_type: "dlp",      status: "reviewing"  },
-  { detection_name: "Phishing Link Click",          model_type: "nlp",         confidence_score: 0.85, severity: "medium",   source_data_type: "email",    status: "auto_closed"},
-  { detection_name: "Container Escape Attempt",     model_type: "classifier",  confidence_score: 0.91, severity: "high",     source_data_type: "syslog",   status: "open"       },
-  { detection_name: "Crypto Mining Process",        model_type: "anomaly",     confidence_score: 0.99, severity: "medium",   source_data_type: "cpu_metrics",status: "auto_closed"},
+const MOCK_DETECTIONS: SOCDetection[] = [
+  { detection_name: "Beaconing C2 Pattern",         model_type: "anomaly",     confidence_score: 0.97, severity: "critical", source_data_type: "netflow",     status: "escalated"   },
+  { detection_name: "Credential Stuffing Attempt",  model_type: "classifier",  confidence_score: 0.92, severity: "high",     source_data_type: "auth_log",    status: "auto_closed" },
+  { detection_name: "Lateral Movement via WMI",     model_type: "sequence",    confidence_score: 0.88, severity: "high",     source_data_type: "edr",         status: "open"        },
+  { detection_name: "Data Exfiltration via DNS",    model_type: "anomaly",     confidence_score: 0.95, severity: "critical", source_data_type: "dns",         status: "open"        },
+  { detection_name: "Insider Privilege Abuse",      model_type: "behavioral",  confidence_score: 0.79, severity: "medium",   source_data_type: "dlp",         status: "reviewing"   },
+  { detection_name: "Phishing Link Click",          model_type: "nlp",         confidence_score: 0.85, severity: "medium",   source_data_type: "email",       status: "auto_closed" },
+  { detection_name: "Container Escape Attempt",     model_type: "classifier",  confidence_score: 0.91, severity: "high",     source_data_type: "syslog",      status: "open"        },
+  { detection_name: "Crypto Mining Process",        model_type: "anomaly",     confidence_score: 0.99, severity: "medium",   source_data_type: "cpu_metrics", status: "auto_closed" },
 ];
 
-const MOCK_MODELS = [
-  { model_name: "NetFlow Anomaly Detector",  model_type: "anomaly",    accuracy_score: 96.2, false_positive_rate: 1.8, version: "v3.2.1", status: "active"     },
-  { model_name: "Auth Log Classifier",       model_type: "classifier", accuracy_score: 94.7, false_positive_rate: 2.4, version: "v2.1.0", status: "active"     },
-  { model_name: "Kill Chain Sequencer",      model_type: "sequence",   accuracy_score: 91.3, false_positive_rate: 4.1, version: "v1.8.3", status: "active"     },
-  { model_name: "Behavioral UBA Engine",     model_type: "behavioral", accuracy_score: 89.5, false_positive_rate: 5.7, version: "v2.0.0", status: "active"     },
-  { model_name: "Phishing NLP Model",        model_type: "nlp",        accuracy_score: 97.1, false_positive_rate: 1.2, version: "v4.0.2", status: "active"     },
-  { model_name: "Container Escape Detector", model_type: "classifier", accuracy_score: 93.4, false_positive_rate: 2.9, version: "v1.3.0", status: "active"     },
-  { model_name: "Crypto Mining Profiler",    model_type: "anomaly",    accuracy_score: 99.1, false_positive_rate: 0.4, version: "v2.5.1", status: "active"     },
-  { model_name: "DNS Tunnel Detector v2",    model_type: "sequence",   accuracy_score: 87.6, false_positive_rate: 6.3, version: "v2.0.0-beta", status: "training"},
+const MOCK_MODELS: SOCModel[] = [
+  { model_name: "NetFlow Anomaly Detector",  model_type: "anomaly",    accuracy_score: 96.2, false_positive_rate: 1.8, version: "v3.2.1",     status: "active"   },
+  { model_name: "Auth Log Classifier",       model_type: "classifier", accuracy_score: 94.7, false_positive_rate: 2.4, version: "v2.1.0",     status: "active"   },
+  { model_name: "Kill Chain Sequencer",      model_type: "sequence",   accuracy_score: 91.3, false_positive_rate: 4.1, version: "v1.8.3",     status: "active"   },
+  { model_name: "Behavioral UBA Engine",     model_type: "behavioral", accuracy_score: 89.5, false_positive_rate: 5.7, version: "v2.0.0",     status: "active"   },
+  { model_name: "Phishing NLP Model",        model_type: "nlp",        accuracy_score: 97.1, false_positive_rate: 1.2, version: "v4.0.2",     status: "active"   },
+  { model_name: "Container Escape Detector", model_type: "classifier", accuracy_score: 93.4, false_positive_rate: 2.9, version: "v1.3.0",     status: "active"   },
+  { model_name: "Crypto Mining Profiler",    model_type: "anomaly",    accuracy_score: 99.1, false_positive_rate: 0.4, version: "v2.5.1",     status: "active"   },
+  { model_name: "DNS Tunnel Detector v2",    model_type: "sequence",   accuracy_score: 87.6, false_positive_rate: 6.3, version: "v2.0.0-beta", status: "training" },
 ];
 
 // ── Badge helpers ──────────────────────────────────────────────
@@ -87,10 +114,10 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function DetectionStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    escalated:  "border-red-500/30 text-red-400 bg-red-500/10",
-    open:       "border-orange-500/30 text-orange-400 bg-orange-500/10",
-    reviewing:  "border-blue-500/30 text-blue-400 bg-blue-500/10",
-    auto_closed:"border-green-500/30 text-green-400 bg-green-500/10",
+    escalated:   "border-red-500/30 text-red-400 bg-red-500/10",
+    open:        "border-orange-500/30 text-orange-400 bg-orange-500/10",
+    reviewing:   "border-blue-500/30 text-blue-400 bg-blue-500/10",
+    auto_closed: "border-green-500/30 text-green-400 bg-green-500/10",
   };
   return (
     <Badge className={cn("text-[10px] border", map[status] ?? "border-border text-muted-foreground")}>
@@ -139,10 +166,9 @@ export default function AIPoweredSOCDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
-  const [loading, setLoading] = useState(true);
-    stats: any | null;
-    detections: any[] | null;
-    models: any[] | null;
+    stats: SOCStats | null;
+    detections: SOCDetection[] | null;
+    models: SOCModel[] | null;
   }>({ stats: null, detections: null, models: null });
 
   const fetchData = () => {
@@ -160,8 +186,7 @@ export default function AIPoweredSOCDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
-    setLoading(false);}, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -172,14 +197,6 @@ export default function AIPoweredSOCDashboard() {
   const stats      = liveData.stats      ?? MOCK_STATS;
   const detections = liveData.detections ?? MOCK_DETECTIONS;
   const models     = liveData.models     ?? MOCK_MODELS;
-
-  if (loading) return (
-    <div className="space-y-4 p-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg bg-zinc-800/50 animate-pulse" />
-      ))}
-    </div>
-  );
 
   return (
     <motion.div
@@ -201,11 +218,10 @@ export default function AIPoweredSOCDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Detections"   value={stats.total_detections
-    setLoading(false);}                         icon={Eye}          trend="up"   />
-        <KpiCard title="Auto-Triaged"       value={stats.auto_triaged_count}                       icon={Brain}        trend="up"   className="border-blue-500/20" />
-        <KpiCard title="Active Models"      value={stats.active_models}                            icon={Cpu}          trend="flat" className="border-purple-500/20" />
-        <KpiCard title="Avg Accuracy"       value={`${stats.avg_model_accuracy}%`}                 icon={TrendingUp}   trend="up"   className="border-green-500/20" />
+        <KpiCard title="Total Detections"   value={stats.total_detections}                         icon={Eye}        trend="up"   />
+        <KpiCard title="Auto-Triaged"       value={stats.auto_triaged_count}                       icon={Brain}      trend="up"   className="border-blue-500/20" />
+        <KpiCard title="Active Models"      value={stats.active_models}                            icon={Cpu}        trend="flat" className="border-purple-500/20" />
+        <KpiCard title="Avg Accuracy"       value={`${stats.avg_model_accuracy}%`}                 icon={TrendingUp} trend="up"   className="border-green-500/20" />
       </div>
 
       {/* Detections Table */}
@@ -217,7 +233,7 @@ export default function AIPoweredSOCDashboard() {
               AI Detections
             </CardTitle>
             <Badge className="text-[10px] border border-border text-muted-foreground">
-              {detections.filter((d: any) => d.status === "open" || d.status === "escalated").length} open
+              {detections.filter((d: SOCDetection) => d.status === "open" || d.status === "escalated").length} open
             </Badge>
           </div>
           <CardDescription className="text-xs">Real-time AI-generated threat detections with confidence scoring</CardDescription>
@@ -236,13 +252,7 @@ export default function AIPoweredSOCDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {detections.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  detections.map((d: any, i: number) => (
+                {detections.map((d: SOCDetection, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{d.detection_name}</TableCell>
                     <TableCell className="py-2"><ModelTypeBadge type={d.model_type ?? "anomaly"} /></TableCell>
@@ -269,7 +279,7 @@ export default function AIPoweredSOCDashboard() {
               AI Models
             </CardTitle>
             <Badge className="text-[10px] border border-purple-500/30 text-purple-400 bg-purple-500/10">
-              {models.filter((m: any) => m.status === "active").length} active
+              {models.filter((m: SOCModel) => m.status === "active").length} active
             </Badge>
           </div>
           <CardDescription className="text-xs">Deployed detection models with accuracy and false positive rates</CardDescription>
@@ -288,13 +298,7 @@ export default function AIPoweredSOCDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {models.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
-                ) : (
-                  models.map((m: any, i: number) => (
+                {models.map((m: SOCModel, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-[11px] font-medium">{m.model_name}</TableCell>
                     <TableCell className="py-2"><ModelTypeBadge type={m.model_type ?? "anomaly"} /></TableCell>

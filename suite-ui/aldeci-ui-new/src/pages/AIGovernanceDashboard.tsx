@@ -133,7 +133,7 @@ export default function AIGovernanceDashboard() {
     }).finally(() => setDataLoading(false));
   };
 
-  useEffect(() => { fetchData(); 
+  useEffect(() => { fetchData();
     setLoading(false);}, []);
 
   const handleRefresh = () => {
@@ -172,8 +172,7 @@ export default function AIGovernanceDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard title="Total Models"         value={stats.total_models}        icon={Brain
-    setLoading(false);}       trend="flat" />
+        <KpiCard title="Total Models"         value={stats.total_models}        icon={Brain}       trend="flat" />
         <KpiCard title="Production Models"    value={stats.production_models}   icon={Activity}    trend="up"   className="border-green-500/20" />
         <KpiCard title="Open Incidents"       value={stats.open_incidents}      icon={AlertTriangle} trend="down" className="border-red-500/20" />
         <KpiCard title="Critical Risk Models" value={stats.critical_risk_models} icon={ShieldAlert} trend="down" className="border-orange-500/20" />
