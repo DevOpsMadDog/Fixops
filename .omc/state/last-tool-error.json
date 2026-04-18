@@ -1,7 +1,7 @@
 {
-  "tool_name": "Grep",
-  "tool_input_preview": "{\"pattern\":\"def _query_alert|def _query_vuln|def _query_asset|def _query_compliance|org_id\",\"path\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/platform_router.py\",\"output_mode\":\"content\",\"conte...",
-  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
-  "timestamp": "2026-04-18T00:04:01.872Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sqlite3\\nconn = sqlite3.connect('data/fixops_brain.db')\\nprint('brain_nodes count:', conn.execute('SELECT COUNT(*) FROM brain_nodes').fetchone()[0])\\nprint('brain_edg...",
+  "error": "Exit code 1",
+  "timestamp": "2026-04-18T00:05:25.797Z",
   "retry_count": 1
 }
