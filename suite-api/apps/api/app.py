@@ -1977,6 +1977,11 @@ def create_app() -> FastAPI:
     # SOC2 CC6.1, PCI-DSS 6.5.9, OWASP A05:2021
     app.add_middleware(SecurityHeadersMiddleware)
 
+    # API versioning middleware — stamps X-API-Version on every response;
+    # attaches Sunset/Deprecation/Link headers for deprecated path prefixes.
+    from apps.api.api_versioning_middleware import APIVersioningMiddleware
+    app.add_middleware(APIVersioningMiddleware)
+
     # Rate-limit middleware — per-method token bucket per API key / client IP
     # Limits configurable via env vars:
     #   RATE_LIMIT_READ    — GET/HEAD/OPTIONS (default 200 req/min)
@@ -2410,6 +2415,10 @@ def create_app() -> FastAPI:
 
     # ── Health ────────────────────────────────────────────────────────────────
     app.include_router(health_v1_router)  # Health endpoints with /api/v1 prefix
+
+    # ── Version ───────────────────────────────────────────────────────────────
+    from apps.api.version_router import router as version_router
+    app.include_router(version_router)  # GET /api/v1/version
 
     # Legacy /health endpoint — required by Dockerfile HEALTHCHECK and
     # scripts/docker-entrypoint.sh readiness probes that poll /health directly.
