@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"for i in 1 2 3; do\\n  PYTHONPATH=\\\"/Users/devops.ai/fixops/Fixops\\\" \\\\\\n  FIXOPS_API_TOKEN=\\\"test\\\" REDIS_URL=\\\"\\\" DATABASE_URL=\\\"sqlite:///./fixops_test.db\\\" \\\\\\n  { time python3 -c \\\"\\nf...",
-  "error": "Exit code 2\n/opt/homebrew/bin/bash: eval: line 7: syntax error near unexpected token `}'\n/opt/homebrew/bin/bash: eval: line 7: `\" 2>/dev/null; } 2>&1 | grep real'",
-  "timestamp": "2026-04-18T03:58:32.784Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec docker exec multica-postgres-1 psql -U multica multica -c \\\"UPDATE issues SET status='done' WHERE number IN (568,574,586,591,612,613,616,622,624)\\\"\"}",
+  "error": "Exit code 1\nERROR:  relation \"issues\" does not exist\nLINE 1: UPDATE issues SET status='done' WHERE number IN (568,574,586...\n               ^",
+  "timestamp": "2026-04-18T04:04:05.601Z",
+  "retry_count": 1
 }
