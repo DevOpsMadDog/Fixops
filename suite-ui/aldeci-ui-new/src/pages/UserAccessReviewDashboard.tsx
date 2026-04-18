@@ -108,7 +108,7 @@ export default function UserAccessReviewDashboard() {
     fetch("/api/v1/access-reviews", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
     Object.fromEntries(MOCK_ITEMS.map(i => [i.id, i.decision]))

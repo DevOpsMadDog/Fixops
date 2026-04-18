@@ -132,7 +132,7 @@ export default function ServiceCatalogDashboard() {
   const [requestForm, setRequestForm] = useState({ service: "", requester: "", dept: "Engineering", priority: "medium", notes: "" });
 
   useEffect(() => {
-    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/service-catalog/services?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const activeServices = MOCK_SERVICES.filter(s => s.status === "active").length;

@@ -124,7 +124,7 @@ export default function SecurityDependencyRiskDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setVulns(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const filteredDeps = activeEco === "All"

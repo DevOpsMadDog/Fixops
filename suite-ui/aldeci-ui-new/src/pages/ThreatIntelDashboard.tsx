@@ -226,7 +226,7 @@ function IocRow({ ioc, index }: { ioc: IOC; index: number }) {
   const TypeIcon = typeCfg.icon;
 
   function handleCopy() {
-    navigator.clipboard.writeText(ioc.value).catch(() => {});
+    navigator.clipboard.writeText(ioc.value).catch(() => { /* clipboard not available */ });
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }

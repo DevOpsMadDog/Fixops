@@ -126,7 +126,7 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const [showForm, setShowForm] = useState(false);
@@ -134,7 +134,7 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [newAlloc, setNewAlloc] = useState({ category: "detection", amount: "" });
 

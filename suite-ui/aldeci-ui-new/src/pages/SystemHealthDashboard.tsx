@@ -224,7 +224,7 @@ export default function SystemHealthDashboard() {
   useEffect(() => {
     apiFetch(`/api/v1/system-health/?org_id=${ORG_ID}`).then((d) => {
       if (d?.score !== undefined) setHealth(d);
-    }).catch(() => {});
+    }).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const handleRefresh = () => {

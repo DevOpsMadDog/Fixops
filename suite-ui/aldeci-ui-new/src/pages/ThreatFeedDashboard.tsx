@@ -135,7 +135,7 @@ export default function ThreatFeedDashboard() {
   const [iocType, setIocType] = useState("All");
 
   useEffect(() => {
-    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/feeds/status?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showResults, setShowResults] = useState(false);
 

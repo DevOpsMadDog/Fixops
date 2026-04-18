@@ -113,7 +113,7 @@ export default function SecurityOKRDashboard() {
     fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const [period, setPeriod] = useState<Period>("Q2 2026");
@@ -124,7 +124,7 @@ export default function SecurityOKRDashboard() {
     fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [updateNotes, setUpdateNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);

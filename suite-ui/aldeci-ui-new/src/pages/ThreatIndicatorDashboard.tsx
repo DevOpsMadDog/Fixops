@@ -45,7 +45,7 @@ export default function ThreatIndicatorDashboard() {
     fetch(`${API_BASE}/indicators`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setIndicators(d); })
-      .catch(() => {})
+      .catch(() => { setError('Failed to load data'); })
       .finally(() => setLoading(false));
   }, []);
 

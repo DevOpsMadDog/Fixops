@@ -126,7 +126,7 @@ export default function SecurityMetricsDashboard2() {
   const [acked, setAcked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/security-metrics/metrics?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
 
   const readings = READINGS[selectedMetric] ?? [];

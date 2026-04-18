@@ -128,7 +128,7 @@ export default function SBOMExportDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);

@@ -181,7 +181,7 @@ export default function SecurityFindingsDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTool, setFilterTool] = useState("all");

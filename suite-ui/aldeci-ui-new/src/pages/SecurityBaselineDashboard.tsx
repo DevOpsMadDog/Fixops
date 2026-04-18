@@ -117,7 +117,7 @@ export default function SecurityBaselineDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedBaseline(d); })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [targetName, setTargetName] = useState("");
   const [assessMsg, setAssessMsg] = useState("");

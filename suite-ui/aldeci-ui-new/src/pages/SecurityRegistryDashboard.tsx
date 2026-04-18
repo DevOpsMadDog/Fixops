@@ -111,7 +111,7 @@ export default function SecurityRegistryDashboard() {
     fetch("/api/v1/security-registry", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const filtered = filterStatus === "all"

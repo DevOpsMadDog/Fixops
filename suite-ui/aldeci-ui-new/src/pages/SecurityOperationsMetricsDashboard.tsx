@@ -168,7 +168,7 @@ export default function SecurityOperationsMetricsDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   function ackAlert(id: string) {

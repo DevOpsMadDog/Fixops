@@ -167,7 +167,7 @@ export default function SecurityCultureDashboard() {
     fetch("/api/v1/security-culture", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const selAsmn = MOCK_ASSESSMENTS.find(a => a.id === selectedAssessment)!;

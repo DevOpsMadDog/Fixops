@@ -168,7 +168,7 @@ export default function SecurityScorecardDashboard() {
   useEffect(() => {
     apiFetch(`/api/v1/security-scorecard/?org_id=${ORG_ID}`).then((d) => {
       if (d?.overall_score !== undefined) setScorecard(d);
-    }).catch(() => {});
+    }).catch(() => { setError('Failed to load data'); });
   }, []);
   const [generated, setGenerated] = useState(false);
 

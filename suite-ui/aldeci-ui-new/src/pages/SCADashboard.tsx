@@ -98,7 +98,7 @@ export default function SCADashboard() {
   useEffect(() => {
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
 
   const stats    = liveData ?? MOCK_STATS;
@@ -108,7 +108,7 @@ export default function SCADashboard() {
     setRefreshing(true);
     apiFetch(`/api/v1/sca/stats?org_id=${ORG_ID}`)
       .then((d) => setLiveData(d))
-      .catch(() => {})
+      .catch(() => { setError('Failed to load data'); })
       .finally(() => setRefreshing(false));
   };
 

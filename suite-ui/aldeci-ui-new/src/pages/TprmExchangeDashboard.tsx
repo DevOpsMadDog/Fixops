@@ -158,7 +158,7 @@ export default function TprmExchangeDashboard() {
   );
 
   useEffect(() => {
-    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/tprm-exchange/vendors?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

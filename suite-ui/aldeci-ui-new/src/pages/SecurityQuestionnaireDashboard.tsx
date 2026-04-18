@@ -115,7 +115,7 @@ export default function SecurityQuestionnaireDashboard() {
     fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");

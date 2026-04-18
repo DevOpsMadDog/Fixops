@@ -183,7 +183,7 @@ export default function SBOMDashboard() {
     apiFetch(`/api/v1/sbom/assets/${sbom.id}/components?org_id=${ORG_ID}`).then((data) => {
       if (Array.isArray(data) && data.length > 0) setComponents(data);
       else if (Array.isArray(data?.components) && data.components.length > 0) setComponents(data.components);
-    }).catch(() => {});
+    }).catch(() => { setError('Failed to load data'); });
   };
 
   const handleExport = async (sbomId: string, format: string) => {

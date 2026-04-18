@@ -158,7 +158,7 @@ export default function ThreatModelingPipelineDashboard() {
     fetch(_API_BASE, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [mitigating, setMitigating] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);

@@ -157,7 +157,7 @@ export default function ThreatBriefDashboard() {
     fetch("/api/v1/threat-briefs", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [distributing, setDistributing] = useState<string | null>(null);
   const [distributed, setDistributed] = useState<Set<string>>(

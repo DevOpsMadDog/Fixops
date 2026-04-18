@@ -139,7 +139,7 @@ export default function ThreatLandscapeDashboard() {
     fetch("/api/v1/threat-landscape", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { setError('Failed to load data'); });
   }, []);
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
   const [resolvedMsg, setResolvedMsg] = useState<string | null>(null);
