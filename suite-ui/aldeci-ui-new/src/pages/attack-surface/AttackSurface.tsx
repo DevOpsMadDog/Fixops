@@ -8,7 +8,7 @@
  * Route: /attack-surface
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe,
@@ -36,6 +36,7 @@ import {
   Eye,
   EyeOff,
   Network,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -519,17 +520,99 @@ function ScoreRing({ score }: { score: number }) {
 // Main page component
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+// API → frontend mapping
+// ═══════════════════════════════════════════════════════════
+
+const ASSET_TYPE_MAP: Record<string, AssetType> = {
+  host: "host", server: "host", vm: "host",
+  cloud: "cloud", s3: "cloud", bucket: "cloud", lambda: "cloud",
+  container: "container", docker: "container", pod: "container",
+  api: "api", endpoint: "api", service: "api",
+  repo: "repo", repository: "repo", code: "repo",
+  database: "database", db: "database", rds: "database",
+  domain: "host", ip_address: "host", subdomain: "host",
+};
+
+function mapApiAsset(raw: Record<string, unknown>, idx: number): Asset {
+  const rawType = String(raw.asset_type ?? raw.type ?? "host").toLowerCase();
+  const type: AssetType = ASSET_TYPE_MAP[rawType] ?? "host";
+  const riskScore = Math.min(100, Math.max(0, Number(raw.risk_score ?? 0)));
+  const riskTier: RiskTier =
+    riskScore >= 80 ? "critical" : riskScore >= 60 ? "high" : riskScore >= 40 ? "medium" : "low";
+
+  const status = String(raw.status ?? "active").toLowerCase();
+  const exposure: ExposureLevel =
+    status === "internet" || rawType === "domain" || rawType === "subdomain"
+      ? "internet"
+      : status === "isolated" ? "isolated" : "internal";
+
+  const tagsRaw = raw.tags;
+  const tags: string[] = Array.isArray(tagsRaw)
+    ? tagsRaw.map(String)
+    : typeof tagsRaw === "string" && tagsRaw
+      ? tagsRaw.split(",").map((t: string) => t.trim())
+      : [rawType];
+
+  return {
+    id: String(raw.id ?? raw.asset_id ?? `AST-API-${idx}`),
+    name: String(raw.value ?? raw.name ?? "Unknown Asset"),
+    type,
+    exposure,
+    riskScore,
+    riskTier,
+    openPorts: Array.isArray(raw.open_ports) ? raw.open_ports.map(Number) : undefined,
+    cveCount: Number(raw.cve_count ?? raw.exposure_count ?? 0),
+    lastSeen: raw.last_seen ? new Date(String(raw.last_seen)) : new Date(),
+    owner: String(raw.owner ?? raw.notes ?? "unassigned"),
+    tags,
+    cloudProvider: raw.cloud_provider ? String(raw.cloud_provider) : undefined,
+  };
+}
+
 export default function AttackSurface() {
+  const [assets, setAssets] = useState<Asset[]>(MOCK_ASSETS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<AssetType | "all">("all");
   const [exposureFilter, setExposureFilter] = useState<ExposureLevel | "all">("all");
   const [riskFilter, setRiskFilter] = useState<RiskTier | "all">("all");
-  const [lastRefresh] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState(new Date());
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
   const [showAllChanges, setShowAllChanges] = useState(false);
 
+  // Fetch assets from real API, fall back to MOCK_ASSETS
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchAssets() {
+      try {
+        setLoading(true);
+        setError(null);
+        const resp = await fetch("/api/v1/asm/assets?org_id=default");
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const rawList: Record<string, unknown>[] = Array.isArray(data) ? data : (data.assets ?? []);
+        if (!cancelled && rawList.length > 0) {
+          const mapped = rawList.map(mapApiAsset);
+          setAssets(mapped);
+          setLastRefresh(new Date());
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load assets");
+          // Keep MOCK_ASSETS as fallback — already set as initial state
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchAssets();
+    return () => { cancelled = true; };
+  }, []);
+
   const filteredAssets = useMemo(() => {
-    return MOCK_ASSETS.filter((a) => {
+    return assets.filter((a) => {
       if (typeFilter !== "all" && a.type !== typeFilter) return false;
       if (exposureFilter !== "all" && a.exposure !== exposureFilter) return false;
       if (riskFilter !== "all" && a.riskTier !== riskFilter) return false;
@@ -544,16 +627,16 @@ export default function AttackSurface() {
       }
       return true;
     });
-  }, [searchQuery, typeFilter, exposureFilter, riskFilter]);
+  }, [searchQuery, typeFilter, exposureFilter, riskFilter, assets]);
 
   // KPI derivations
-  const totalAssets = MOCK_ASSETS.length;
-  const externalAssets = MOCK_ASSETS.filter((a) => a.exposure === "internet").length;
+  const totalAssets = assets.length;
+  const externalAssets = assets.filter((a) => a.exposure === "internet").length;
   const highRiskPaths = MOCK_PATHS.filter((p) => p.severity === "critical" || p.severity === "high").length;
-  const overallScore = surfaceScore(MOCK_ASSETS);
+  const overallScore = surfaceScore(assets);
 
-  const criticalCount = MOCK_ASSETS.filter((a) => a.riskTier === "critical").length;
-  const highCount     = MOCK_ASSETS.filter((a) => a.riskTier === "high").length;
+  const criticalCount = assets.filter((a) => a.riskTier === "critical").length;
+  const highCount     = assets.filter((a) => a.riskTier === "high").length;
 
   const visibleChanges = showAllChanges ? MOCK_CHANGES : MOCK_CHANGES.slice(0, 5);
 
@@ -623,6 +706,20 @@ export default function AttackSurface() {
             </motion.div>
           </div>
         </div>
+
+        {/* Loading / Error banners */}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading assets from API...
+          </div>
+        )}
+        {error && !loading && (
+          <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded-lg px-3 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>API unavailable ({error}) — showing cached demo data</span>
+          </div>
+        )}
 
         {/* ── Main grid: Asset Table + Side panels ── */}
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
@@ -860,7 +957,7 @@ export default function AttackSurface() {
               </CardHeader>
               <CardContent className="p-5 space-y-3">
                 {(["critical", "high", "medium", "low"] as RiskTier[]).map((tier) => {
-                  const count = MOCK_ASSETS.filter((a) => a.riskTier === tier).length;
+                  const count = assets.filter((a) => a.riskTier === tier).length;
                   const pct = Math.round((count / totalAssets) * 100);
                   const m = RISK_META[tier];
                   return (
