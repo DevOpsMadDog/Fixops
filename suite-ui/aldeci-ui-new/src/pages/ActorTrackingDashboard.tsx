@@ -147,19 +147,24 @@ const MAX_TTP = TOP_TTPS[0].count;
 
 export default function ActorTrackingDashboard() {
   const [selectedId, setSelectedId] = useState<string>("act-001");
+  const [error, setError] = useState<string | null>(null);
   const [actors, setActors] = useState(MOCK_ACTORS);
   const [activity, setActivity] = useState(MOCK_ACTIVITY);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${API_BASE}/actors`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setActors(d); })
-      .catch(() => {});
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setActors(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
     fetch(`${API_BASE}/activity`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setActivity(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setActivity(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const selected = actors.find(a => a.id === selectedId) ?? actors[0];
   const actorIntel = MOCK_INTEL[selectedId] ?? [];
@@ -173,6 +178,13 @@ export default function ActorTrackingDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

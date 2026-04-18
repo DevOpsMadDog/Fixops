@@ -134,23 +134,28 @@ const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", 
 
 export default function ComplianceCalendarDashboard() {
   const [calEvents, setCalEvents] = useState(EVENTS);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setCalEvents(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setCalEvents(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
   useEffect(() => {
     fetch(_API_BASE, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => {
         // live data loaded — components read from API response
         void d;
       })
-      .catch(() => {});
+      .catch(err => setError(err.message || 'Failed to load data'));
   }, []);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -189,6 +194,13 @@ export default function ComplianceCalendarDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

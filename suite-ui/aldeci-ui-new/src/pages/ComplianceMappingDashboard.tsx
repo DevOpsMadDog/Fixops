@@ -101,12 +101,17 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
 
 export default function ComplianceMappingDashboard() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
-  useEffect(() => {
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = () => {
+    setError(null);
     fetch("/api/v1/compliance-mapping", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(() => { /* live data available */ })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const filtered = selectedFramework
     ? MOCK_CONTROLS.filter((c) => c.framework === selectedFramework)
@@ -120,6 +125,13 @@ export default function ComplianceMappingDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-6 min-h-0">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <PageHeader
         title="Compliance Mapping"
         description="Multi-framework control mapping, implementation rates, and evidence coverage across 8 frameworks"

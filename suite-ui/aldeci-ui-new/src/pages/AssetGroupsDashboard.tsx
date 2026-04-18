@@ -174,15 +174,20 @@ const policyTypeColor: Record<GroupPolicy["policy_type"], string> = {
 
 export default function AssetGroupsDashboard() {
   const [selectedGroup, setSelectedGroup] = useState<AssetGroup | null>(GROUPS[0]);
-  useEffect(() => {
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = () => {
+    setError(null);
     fetch(_API_BASE, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        // live data loaded — components read from API response
-        void d;
-      })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => {
+    // live data loaded — components read from API response
+    void d;
+    })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const [activeTab, setActiveTab] = useState<"members" | "policies">("members");
   const [bulkInput, setBulkInput] = useState("");
@@ -200,6 +205,13 @@ export default function AssetGroupsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

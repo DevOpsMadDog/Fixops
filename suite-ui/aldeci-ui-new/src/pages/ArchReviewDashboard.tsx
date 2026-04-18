@@ -52,6 +52,7 @@ const implBadge = (s: string) => {
 
 export default function ArchReviewDashboard() {
   const [activeTab, setActiveTab] = useState<"reviews" | "findings" | "controls" | "gaps">("reviews");
+  const [error, setError] = useState<string | null>(null);
   const [filterReview, setFilterReview] = useState("all");
   const [showAddReview, setShowAddReview] = useState(false);
   const [showAddFinding, setShowAddFinding] = useState(false);
@@ -60,16 +61,20 @@ export default function ArchReviewDashboard() {
   const [liveReviews, setLiveReviews] = useState(reviews);
   const [liveFindings, setLiveFindings] = useState(findings);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${API_BASE}/reviews`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
-      .catch(() => {});
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
     fetch(`${API_BASE}/findings`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const totalReviews = reviews.length;
   const criticalFindings = findings.filter(f => f.severity === "critical").length;
@@ -82,6 +87,13 @@ export default function ArchReviewDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Architecture Security Reviews</h1>

@@ -44,15 +44,20 @@ const blastBadge = (b: string) => {
 
 export default function CloudIRDashboard() {
   const [activeTab, setActiveTab] = useState<"incidents" | "actions" | "playbooks">("incidents");
-  useEffect(() => {
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = () => {
+    setError(null);
     fetch(_API_BASE, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        // live data loaded — components read from API response
-        void d;
-      })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => {
+    // live data loaded — components read from API response
+    void d;
+    })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const [filterIncident, setFilterIncident] = useState("all");
   const [filterProvider, setFilterProvider] = useState("all");
@@ -76,6 +81,13 @@ export default function CloudIRDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Cloud Incident Response</h1>

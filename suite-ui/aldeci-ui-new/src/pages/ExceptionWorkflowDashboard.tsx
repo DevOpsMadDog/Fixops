@@ -131,11 +131,16 @@ function typeLabel(t: ExceptionType): string {
 
 export default function ExceptionWorkflowDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>("exc-001");
+  const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  useEffect(() => {
-    apiFetch(`/api/v1/exception-workflow/exceptions?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/exception-workflow/exceptions?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const selected = MOCK_EXCEPTIONS.find(e => e.id === selectedId) ?? null;
 
@@ -156,6 +161,13 @@ export default function ExceptionWorkflowDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

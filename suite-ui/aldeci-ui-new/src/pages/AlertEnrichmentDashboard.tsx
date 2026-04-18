@@ -113,19 +113,24 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 
 export default function AlertEnrichmentDashboard() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [sources, setSources] = useState(MOCK_SOURCES);
   const [queue, setQueue] = useState(MOCK_QUEUE);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${API_BASE}/alerts`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setQueue(d); })
-      .catch(() => {});
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setQueue(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
     fetch(`${API_BASE}/sources`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setSources(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setSources(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const sortedQueue = [...queue].sort((a, b) => b.risk_score - a.risk_score);
   const enriched  = queue.filter(a => a.status === "enriched").length;
@@ -144,6 +149,13 @@ export default function AlertEnrichmentDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

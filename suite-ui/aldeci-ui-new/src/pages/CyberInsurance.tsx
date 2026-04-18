@@ -149,10 +149,15 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
 
 export default function CyberInsurance() {
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch(() => {});
-  }, []);
+
+  const fetchData = () => {
+    setError(null);
+    apiFetch(`/api/v1/cyber-insurance/policies?org_id=${ORG_ID}`).catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -175,6 +180,13 @@ export default function CyberInsurance() {
         description="Coverage management, claims, and security assessment"
         actions={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
         }

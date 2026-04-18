@@ -131,20 +131,25 @@ function expiryWarning(expires_at: string | null): { warn: boolean; label: strin
 
 export default function AccessGovernanceDashboard() {
   const [entitlements, setEntitlements] = useState<Entitlement[]>(MOCK_ENTITLEMENTS);
+  const [error, setError] = useState<string | null>(null);
   const [violations, setViolations] = useState<SoDViolation[]>(MOCK_VIOLATIONS);
   const [revokeMsg, setRevokeMsg] = useState<string | null>(null);
   const [ackMsg, setAckMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+
+  const fetchData = () => {
+    setError(null);
     fetch(`${API_BASE}/entitlements`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setEntitlements(d); })
-      .catch(() => {});
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setEntitlements(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
     fetch(`${API_BASE}/violations`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setViolations(d); })
-      .catch(() => {});
-  }, []);
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
+    .then(d => { if (Array.isArray(d)) setViolations(d); })
+    .catch(err => setError(err.message || 'Failed to load data'));
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   function handleRevoke(id: string) {
     setEntitlements(prev => prev.map(e => e.id === id ? { ...e, active: false, revoked: true } : e));
@@ -165,6 +170,13 @@ export default function AccessGovernanceDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">{error}</p>
+          <button onClick={() => { setError(null); fetchData(); }} className="mt-2 text-sm underline">Retry</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
