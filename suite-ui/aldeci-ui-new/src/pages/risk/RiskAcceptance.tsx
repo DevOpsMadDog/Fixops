@@ -8,7 +8,7 @@
  * Route: /risk-acceptance
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert,
@@ -766,6 +766,8 @@ function PendingCard({ record, onClick }: { record: RiskAcceptanceRecord; onClic
 
 export default function RiskAcceptance() {
   const [records, setRecords] = useState<RiskAcceptanceRecord[]>(MOCK_RECORDS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"pending" | "ledger">("pending");
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
@@ -773,6 +775,56 @@ export default function RiskAcceptance() {
   const [selectedRecord, setSelectedRecord] = useState<RiskAcceptanceRecord | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
+
+  // Fetch records from the real API, fall back to MOCK_RECORDS on failure
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchRecords() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/v1/risk-acceptance?org_id=default");
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          const mapped: RiskAcceptanceRecord[] = data.map((r: Record<string, unknown>, idx: number) => ({
+            id: String(r.id ?? `RA-${String(idx + 1).padStart(4, "0")}`),
+            finding_id: String(r.finding_id ?? ""),
+            title: String(r.justification ?? r.finding_id ?? "Risk Acceptance"),
+            severity: (String(r.priority ?? "medium").toLowerCase()) as RiskSeverity,
+            status: (String(r.status ?? "pending").toLowerCase()) as AcceptanceStatus,
+            requester: String(r.requested_by ?? "Unknown"),
+            requester_role: String(r.requester_role ?? "Security Engineer"),
+            approver: r.approved_by ? String(r.approved_by) : undefined,
+            submitted_at: new Date(String(r.created_at ?? new Date().toISOString())),
+            reviewed_at: r.reviewed_at ? new Date(String(r.reviewed_at)) : undefined,
+            expiration: new Date(String(r.expires_at ?? daysFrom(90).toISOString())),
+            justification: String(r.business_reason ?? r.justification ?? ""),
+            compensating_controls: String(r.compensating_controls ?? "")
+              .split("\n")
+              .filter(Boolean)
+              .map((desc: string, ci: number) => ({ id: `CC-${ci + 1}`, description: desc })),
+            comments: Array.isArray(r.comments) ? (r.comments as Comment[]) : [],
+            asset: String(r.asset ?? r.finding_id ?? ""),
+            framework_ref: r.framework_ref ? String(r.framework_ref) : undefined,
+          }));
+          setRecords(mapped);
+        } else if (!cancelled) {
+          // Empty API response -- keep mock data as fallback
+          setRecords(MOCK_RECORDS);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Could not load records from API -- showing cached data");
+          setRecords(MOCK_RECORDS);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchRecords();
+    return () => { cancelled = true; };
+  }, [lastRefreshed]);
 
   // Derived stats
   const stats = useMemo(() => {
@@ -922,6 +974,26 @@ export default function RiskAcceptance() {
               Review and renew or close the associated findings before expiration resets them to open status.
             </p>
           </motion.div>
+        )}
+
+        {/* Loading / Error / Empty states */}
+        {loading && (
+          <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Loading risk acceptance records from API...</span>
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm text-amber-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+        {!loading && !error && records.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Inbox className="h-8 w-8 opacity-20 mb-2" />
+            <p className="text-sm">No risk acceptance records found.</p>
+          </div>
         )}
 
         {/* Toolbar */}

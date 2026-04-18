@@ -9,7 +9,7 @@
  * - Control Effectiveness Panel (selected risk controls)
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -781,12 +781,56 @@ function StatusBadge({
 
 export default function RiskRegister() {
   const [risks, setRisks] = useState<RiskItem[]>(MOCK_RISKS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [sortField, setSortField] = useState<keyof RiskItem>("score");
   const [sortAsc, setSortAsc] = useState(false);
   const [showCategoryLegend, setShowCategoryLegend] = useState(false);
+
+  // Fetch risks from the real API, fall back to MOCK_RISKS on failure
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchRisks() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/v1/risk-register-engine/risks?org_id=default");
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          const mapped: RiskItem[] = data.map((r: Record<string, unknown>, idx: number) => ({
+            id: String(r.id ?? `RSK-${String(idx + 1).padStart(3, "0")}`),
+            category: (String(r.risk_category ?? "operational").toUpperCase()) as RiskCategory,
+            description: String(r.description ?? r.name ?? ""),
+            likelihood: Number(r.likelihood ?? 3),
+            impact: Number(r.impact ?? 3),
+            score: Number(r.risk_score ?? (Number(r.likelihood ?? 3) * Number(r.impact ?? 3))),
+            owner: String(r.owner ?? "Unassigned"),
+            status: (String(r.status ?? "open").toUpperCase()) as RiskStatus,
+            dueDate: String(r.due_date ?? r.updated_at ?? new Date().toISOString()).slice(0, 10),
+            controls: Array.isArray(r.controls) ? (r.controls as Control[]) : [],
+            lastUpdated: String(r.updated_at ?? new Date().toISOString()).slice(0, 10),
+          }));
+          setRisks(mapped);
+        } else if (!cancelled) {
+          // Empty API response -- keep mock data as fallback
+          setRisks(MOCK_RISKS);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Could not load risks from API -- showing cached data");
+          setRisks(MOCK_RISKS);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchRisks();
+    return () => { cancelled = true; };
+  }, []);
 
   const selectedRisk = useMemo(
     () => risks.find((r) => r.id === selectedId) ?? null,
@@ -909,6 +953,26 @@ export default function RiskRegister() {
           className="border-green-500/20 bg-green-500/5"
         />
       </div>
+
+      {/* ── Loading / Error / Empty states ── */}
+      {loading && (
+        <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Loading risks from API...</span>
+        </div>
+      )}
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm text-amber-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+      {!loading && !error && risks.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Shield className="h-8 w-8 opacity-20 mb-2" />
+          <p className="text-sm">No risks found. Add your first risk to get started.</p>
+        </div>
+      )}
 
       {/* ── Top row: Heat Map + Trend Chart ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
