@@ -236,3 +236,4 @@
 {"t":0,"agent":"aa76170","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"ab4fc31","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a6713ef","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ab4fc31","agent_type":"executor","event":"agent_stop","success":true}
