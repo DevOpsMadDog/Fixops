@@ -27,7 +27,8 @@ function getApiKey() {
 }
 
 async function apiFetch(path: string) {
-  const res = await fetch(`/api/v1${path}`, {
+  const { buildApiUrl } = await import("@/lib/api");
+  const res = await fetch(buildApiUrl(`/api/v1${path}`), {
     headers: { "X-API-Key": getApiKey() },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);

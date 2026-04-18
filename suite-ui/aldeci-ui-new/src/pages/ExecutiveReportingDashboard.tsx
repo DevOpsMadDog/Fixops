@@ -139,16 +139,56 @@ function AudienceBadge({ audience }: { audience: string }) {
   );
 }
 
+// ── Interfaces ─────────────────────────────────────────────────
+
+interface ExecReport {
+  id: string;
+  report_type: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  status: string;
+  created_by: string;
+  created_at: string;
+}
+
+interface ExecKpi {
+  id: string;
+  kpi_name: string;
+  kpi_value: number;
+  target_value: number;
+  kpi_unit: string;
+  status: string;
+  trend: string;
+}
+
+interface BoardPresentation {
+  id: string;
+  title: string;
+  presentation_date: string;
+  audience: string;
+  risk_summary?: string;
+  action_items?: string[];
+  created_at: string;
+}
+
+interface ExecSummary {
+  kpi_summary: { on_track: number; at_risk: number; off_track: number };
+  recent_reports: ExecReport[];
+  board_presentations_count: number;
+  posture_trend: string;
+}
+
 // ── Component ──────────────────────────────────────────────────
 
 export default function ExecutiveReportingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [liveData, setLiveData] = useState<{
-    reports: any[] | null;
-    kpis: any[] | null;
-    boards: any[] | null;
-    summary: any | null;
+    reports: ExecReport[] | null;
+    kpis: ExecKpi[] | null;
+    boards: BoardPresentation[] | null;
+    summary: ExecSummary | null;
   }>({ reports: null, kpis: null, boards: null, summary: null });
 
   const fetchData = () => {
@@ -182,11 +222,11 @@ export default function ExecutiveReportingDashboard() {
   const boards  = liveData.boards  ?? MOCK_BOARD_PRESENTATIONS;
   const summary = liveData.summary ?? MOCK_SUMMARY;
 
-  const publishedCount = reports.filter((r: any) => r.status === "published").length;
-  const draftCount     = reports.filter((r: any) => r.status === "draft").length;
-  const onTrackKpis    = summary?.kpi_summary?.on_track  ?? kpis.filter((k: any) => k.status === "on_track").length;
-  const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: any) => k.status === "at_risk").length;
-  const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: any) => k.status === "off_track").length;
+  const publishedCount = reports.filter((r: ExecReport) => r.status === "published").length;
+  const draftCount     = reports.filter((r: ExecReport) => r.status === "draft").length;
+  const onTrackKpis    = summary?.kpi_summary?.on_track  ?? kpis.filter((k: ExecKpi) => k.status === "on_track").length;
+  const atRiskKpis     = summary?.kpi_summary?.at_risk   ?? kpis.filter((k: ExecKpi) => k.status === "at_risk").length;
+  const offTrackKpis   = summary?.kpi_summary?.off_track ?? kpis.filter((k: ExecKpi) => k.status === "off_track").length;
 
   return (
     <motion.div
@@ -249,7 +289,7 @@ export default function ExecutiveReportingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((r: any) => (
+                {reports.map((r: ExecReport) => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="py-2 text-xs font-medium max-w-[240px] truncate">{r.title}</TableCell>
                     <TableCell className="py-2"><ReportTypeBadge type={r.report_type ?? "monthly"} /></TableCell>
@@ -302,7 +342,7 @@ export default function ExecutiveReportingDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpis.map((k: any) => (
+                  {kpis.map((k: ExecKpi) => (
                     <TableRow key={k.id ?? k.kpi_name} className="hover:bg-muted/30">
                       <TableCell className="py-2 text-xs font-medium">{k.kpi_name}</TableCell>
                       <TableCell className="py-2 text-right">
@@ -337,7 +377,7 @@ export default function ExecutiveReportingDashboard() {
             <CardDescription className="text-xs">Recent board and executive security briefings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {boards.map((bp: any) => (
+            {boards.map((bp: BoardPresentation) => (
               <div key={bp.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-semibold leading-tight">{bp.title}</span>

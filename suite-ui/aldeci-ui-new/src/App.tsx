@@ -216,6 +216,7 @@ const NDRDashboard = lazy(() => import("@/pages/NDRDashboard"));
 const XDRDashboard = lazy(() => import("@/pages/XDRDashboard"));
 const AwarenessScoreDashboard = lazy(() => import("@/pages/AwarenessScoreDashboard"));
 const EDRDashboard = lazy(() => import("@/pages/EDRDashboard"));
+const EndpointSecurity = lazy(() => import("@/pages/EndpointSecurity"));
 
 // New Beast Mode pages — Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel
 const IdentityAnalyticsDashboard = lazy(() => import("@/pages/IdentityAnalyticsDashboard"));
@@ -743,6 +744,7 @@ export default function App() {
             <Route path="/xdr" element={<XDRDashboard />} />
             <Route path="/awareness-score" element={<AwarenessScoreDashboard />} />
             <Route path="/edr" element={<EDRDashboard />} />
+            <Route path="/endpoint-security" element={<EndpointSecurity />} />
 
             {/* Identity Analytics, CNAPP, Pentest Mgmt, Supply Chain Intel */}
             <Route path="/identity-analytics" element={<IdentityAnalyticsDashboard />} />
