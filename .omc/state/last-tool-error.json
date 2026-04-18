@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"SELF_SCAN_DRY_RUN=1 python scripts/self_security_scan.py 2>&1\",\"timeout\":180000,\"description\":\"Full dry-run of self_security_scan.py to verify all 7 checks and final report\"}",
-  "error": "Exit code 1\n\n\u001b[1m\u001b[96m╔════════════════════════════════════════════════════════════════════╗\u001b[0m\n\u001b[1m\u001b[96m║            ALDECI SELF-SECURITY-SCAN  —  Dog-Food Mode             ║\u001b[0m\n\u001b[1m\u001b[96m║           Target: Fixops  |  API: http://localhost:8000            ║\u001b[0m\n\u001b[1m\u001b[96m╚════════════════════════════════════════════════════════════════════╝\u001b[0m\n\n  \u001b[93mDRY RUN mode enabled — findings will NOT be POSTed to ALDECI\u001b[0m\n\n  Backend health: HTTP 200  \u001b[92mreachable\u001b[0m\n\n\u001b[1m─────────────────────────...",
-  "timestamp": "2026-04-18T05:10:30.884Z",
-  "retry_count": 1
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_export_router.py -x --tb=short --timeout=10 -q 2>&1\"}",
+  "error": "Exit code 3\ntimeout: 10.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\n\ntests/test_export_router.py::test_export_alerts_csv_status_200 \n-------------------------------- live log setup --------------------------------\n2026-04-18 15:51:27 [ WARNING] apps.api.auth_deps: JWT signing key is only 30 chars (minimum 32) — JWT auth disabled.\n-------------------------------- live log...",
+  "timestamp": "2026-04-18T05:51:29.508Z",
+  "retry_count": 5
 }
