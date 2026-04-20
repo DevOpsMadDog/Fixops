@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\ngit add -A && git commit -m \\\"$(cat <<'EOF'\\nbeast-mode(wave61): Auto-refresh dashboards + better error messages + API docs\\n\\n1. Auto-refresh hook on 5 ...",
-  "error": "Exit code 2\n/opt/homebrew/bin/bash: eval: line 32: unexpected EOF while looking for matching `\"'",
-  "timestamp": "2026-04-20T13:11:27.615Z",
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\ngrep -rn \\\"class ExploitabilityLevel\\\" suite-core/ suite-attack/ | head -5\\n# Then get the enum values\\ngrep -A 10 \\\"class ExploitabilityLevel\\\" suite-at...",
+  "error": "Exit code 1\nsuite-core/core/mpte_models.py:18:class ExploitabilityLevel(Enum):\nTraceback (most recent call last):\n  File \"<string>\", line 3, in <module>\nModuleNotFoundError: No module named 'core.mpte'",
+  "timestamp": "2026-04-20T13:24:56.648Z",
   "retry_count": 1
 }
