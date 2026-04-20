@@ -148,9 +148,15 @@ export default function AlertTriageDashboard() {
         title="Alert Triage"
         description="Security alert queue with priority classification, escalation tracking, and false positive management"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">Updated {secondsAgo}s ago</span>
+            <Button variant="outline" size="sm" onClick={togglePause}>
+              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            </Button>
+          </div>
         }
       />
 

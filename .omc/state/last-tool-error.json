@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"TOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\nBASE=\\\"http://localhost:8000\\\"\\nORG=\\\"demo\\\"\\n\\n# Find sbom-export POST endpoints\\ncurl -s -H \\\"X-API...",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-20T13:08:19.923Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_api_error_responses.py -v --timeout=10 -q 2>&1\"}",
+  "error": "Exit code 1\ncachedir: .pytest_cache\ntimeout: 10.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 10 items\n\ntests/test_api_error_responses.py::TestGlobalExceptionHandler::test_500_has_required_descriptive_fields \n-------------------------------- live log call ---------------------------------\n2026-04-20 23:07:36 [    INFO] httpx: HTTP Request: GET http...",
+  "timestamp": "2026-04-20T13:08:59.504Z",
+  "retry_count": 4
 }

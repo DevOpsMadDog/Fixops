@@ -119,7 +119,7 @@ export default function SecurityPostureDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/posture-advisor/score?org_id=${ORG_ID}`),
@@ -135,8 +135,13 @@ export default function SecurityPostureDashboard() {
     }).finally(() => setDataLoading(false));
   }, []);
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const { isPaused, togglePause, secondsAgo } = useAutoRefresh(fetchData, 60_000);
+
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
