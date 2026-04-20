@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-20T14:29:35.553Z",
+  "updatedAt": "2026-04-20T14:31:50.152Z",
   "missions": [
     {
       "id": "session:cd94a3bb-f4d2-444d-81a3-399864718b47:none",
@@ -3285,15 +3285,15 @@
       "name": "none",
       "objective": "Session mission",
       "createdAt": "2026-04-16T05:52:26.956Z",
-      "updatedAt": "2026-04-20T14:29:35.553Z",
+      "updatedAt": "2026-04-20T14:31:50.152Z",
       "status": "running",
       "workerCount": 196,
       "taskCounts": {
         "total": 196,
         "pending": 0,
         "blocked": 0,
-        "inProgress": 22,
-        "completed": 174,
+        "inProgress": 20,
+        "completed": 176,
         "failed": 0
       },
       "agents": [
@@ -3305,7 +3305,7 @@
           "currentStep": null,
           "latestUpdate": "completed",
           "completedSummary": null,
-          "updatedAt": "2026-04-20T12:42:49.594Z"
+          "updatedAt": "2026-04-20T14:31:37.238Z"
         },
         {
           "name": "Explore:a367f65",
@@ -5221,11 +5221,11 @@
           "name": "designer:a43842b",
           "role": "designer",
           "ownership": "a43842b82ccd63385",
-          "status": "running",
+          "status": "done",
           "currentStep": null,
-          "latestUpdate": null,
+          "latestUpdate": "completed",
           "completedSummary": null,
-          "updatedAt": "2026-04-20T14:29:12.778Z"
+          "updatedAt": "2026-04-20T14:31:50.152Z"
         },
         {
           "name": "executor:a649a6d",
@@ -5241,11 +5241,11 @@
           "name": "executor:af26e7b",
           "role": "executor",
           "ownership": "af26e7b44f01e38d6",
-          "status": "running",
+          "status": "done",
           "currentStep": null,
-          "latestUpdate": null,
+          "latestUpdate": "completed",
           "completedSummary": null,
-          "updatedAt": "2026-04-20T14:29:27.236Z"
+          "updatedAt": "2026-04-20T14:31:06.795Z"
         },
         {
           "name": "executor:afc6674",
@@ -5282,6 +5282,30 @@
           "agent": "executor:afc6674",
           "detail": "started executor:afc6674",
           "sourceKey": "session-start:afc66741286e6c70d"
+        },
+        {
+          "id": "session-stop:af26e7b44f01e38d6:2026-04-20T14:31:06.795Z",
+          "at": "2026-04-20T14:31:06.795Z",
+          "kind": "completion",
+          "agent": "executor:af26e7b",
+          "detail": "completed",
+          "sourceKey": "session-stop:af26e7b44f01e38d6"
+        },
+        {
+          "id": "session-stop:ab8f2557b2196422e:2026-04-20T14:31:37.238Z",
+          "at": "2026-04-20T14:31:37.238Z",
+          "kind": "completion",
+          "agent": "Explore:a0a2d32",
+          "detail": "completed",
+          "sourceKey": "session-stop:ab8f2557b2196422e"
+        },
+        {
+          "id": "session-stop:a43842b82ccd63385:2026-04-20T14:31:50.152Z",
+          "at": "2026-04-20T14:31:50.152Z",
+          "kind": "completion",
+          "agent": "designer:a43842b",
+          "detail": "completed",
+          "sourceKey": "session-stop:a43842b82ccd63385"
         }
       ]
     }
