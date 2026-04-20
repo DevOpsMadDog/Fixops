@@ -444,3 +444,7 @@
 {"t":0,"agent":"aa2b76f","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a848f97","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"aa2b76f","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"ab2658d","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a071e1c","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ac127c5","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"ae6f7ef","agent_type":"executor","event":"agent_stop","success":true}
