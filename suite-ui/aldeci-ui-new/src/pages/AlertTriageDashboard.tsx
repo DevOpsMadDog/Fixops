@@ -9,7 +9,9 @@
  * API: GET /api/v1/alert-triage
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { Pause, Play } from "lucide-react";
 import { motion } from "framer-motion";
 import { Bell, RefreshCw, AlertTriangle, Clock, Filter, BarChart2 } from "lucide-react";
 
@@ -116,7 +118,7 @@ export default function AlertTriageDashboard() {
   const [liveAlerts, setLiveAlerts] = useState<any[] | null>(null);
   const [liveStats, setLiveStats] = useState<any | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     Promise.allSettled([
       apiFetch(`/api/v1/alert-triage/alerts?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/alert-triage/stats?org_id=${ORG_ID}`),
@@ -126,7 +128,11 @@ export default function AlertTriageDashboard() {
     });
   }, []);
 
-  const handleRefresh = () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); };
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const { isPaused, togglePause, secondsAgo } = useAutoRefresh(fetchData, 15_000);
+
+  const handleRefresh = () => { setRefreshing(true); fetchData(); setTimeout(() => setRefreshing(false), 800); };
 
   const alerts = liveAlerts ?? MOCK_ALERTS;
   const stats  = liveStats  ?? MOCK_STATS;

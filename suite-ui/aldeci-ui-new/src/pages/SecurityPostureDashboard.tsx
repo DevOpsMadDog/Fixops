@@ -12,7 +12,9 @@
  * API stub: GET /api/v1/posture/score
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { Pause, Play } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Shield, TrendingUp, AlertTriangle, BarChart3,

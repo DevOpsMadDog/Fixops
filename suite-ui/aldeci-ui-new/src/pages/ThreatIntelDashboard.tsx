@@ -8,7 +8,9 @@
  * Falls back to mock data on failure.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { Pause, Play } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {

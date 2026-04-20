@@ -20,6 +20,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { Pause, Play } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   ShieldCheck, Bell, AlertTriangle, Activity,
@@ -249,6 +251,8 @@ export default function MainOverviewDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { isPaused, togglePause, secondsAgo } = useAutoRefresh(load, 30_000);
+
   const p   = posture   ?? MOCK_POSTURE;
   const a   = alertStats ?? MOCK_ALERT_STATS;
   const c   = compliance ?? MOCK_COMPLIANCE;
@@ -268,19 +272,30 @@ export default function MainOverviewDashboard() {
             Platform Overview
           </h1>
           <p className="text-sm text-zinc-400 mt-0.5">
-            Live security posture across all domains &mdash; last refreshed {lastRefresh.toLocaleTimeString()}
+            Live security posture across all domains &mdash; updated {secondsAgo}s ago
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={load}
-          disabled={loading}
-          className="gap-2 border-zinc-700 text-zinc-300 hover:text-white"
-        >
-          <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={togglePause}
+            className="gap-2 border-zinc-700 text-zinc-300 hover:text-white"
+          >
+            {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            {isPaused ? "Resume" : "Pause"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={load}
+            disabled={loading}
+            className="gap-2 border-zinc-700 text-zinc-300 hover:text-white"
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* ── Top KPI strip ── */}

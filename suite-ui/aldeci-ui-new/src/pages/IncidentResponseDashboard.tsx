@@ -15,7 +15,9 @@
  * API stubs: GET /api/v1/incidents  GET /api/v1/incidents/{id}/tasks
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { Pause, Play } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,

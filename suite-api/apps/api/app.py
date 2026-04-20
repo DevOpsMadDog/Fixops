@@ -2085,18 +2085,43 @@ def create_app() -> FastAPI:
     # Catches ALL unhandled exceptions and returns a safe 500 response
     # that never leaks stack traces, file paths, or internal details.
     # Compliance: SOC2 CC6.1, PCI-DSS 6.5.5, OWASP A09:2021
+    from fastapi.exceptions import RequestValidationError
     from fastapi.responses import JSONResponse
     from starlette.exceptions import HTTPException as StarletteHTTPException
+
+    _DOCS_BASE = "https://docs.aldeci.io/api"
+
+    def _classify_exception(exc: Exception) -> tuple:
+        """Return (error_category, suggested_action) based on exception type/message."""
+        exc_type = type(exc).__name__.lower()
+        exc_msg = str(exc).lower()
+        if any(k in exc_type for k in ("database", "sqlite", "operational", "integrity", "db")):
+            return "database", "retry in 30s; if persistent contact admin"
+        if any(k in exc_msg for k in ("database", "sqlite", "no such table", "disk", "locked")):
+            return "database", "retry in 30s; if persistent contact admin"
+        if any(k in exc_type for k in ("auth", "token", "jwt", "permission", "credential")):
+            return "authentication", "check your API key or Bearer token"
+        if any(k in exc_msg for k in ("auth", "token", "permission", "forbidden", "unauthorized")):
+            return "authentication", "check your API key or Bearer token"
+        if any(k in exc_type for k in ("timeout", "connection", "requests", "httpx", "aiohttp")):
+            return "external_service", "retry in 60s; upstream service may be degraded"
+        if any(k in exc_msg for k in ("timeout", "connection refused", "upstream", "service unavailable")):
+            return "external_service", "retry in 60s; upstream service may be degraded"
+        if any(k in exc_type for k in ("validation", "value", "type", "pydantic")):
+            return "validation", "check request body and parameter types"
+        return "internal", "retry in 30s; if persistent contact admin with correlation_id"
 
     @app.exception_handler(Exception)
     async def _global_exception_handler(request, exc):
         """Catch unhandled exceptions — never leak internal details."""
         correlation_id = getattr(request.state, "correlation_id", "unknown")
         trace_id = getattr(request.state, "trace_id", None)
+        error_category, suggested_action = _classify_exception(exc)
         logger.error(
             "unhandled_exception",
             extra={
                 "error_type": type(exc).__name__,
+                "error_category": error_category,
                 "path": request.url.path,
                 "correlation_id": correlation_id,
                 "trace_id": trace_id,
@@ -2105,21 +2130,73 @@ def create_app() -> FastAPI:
         )
         content: Dict[str, Any] = {
             "detail": "Internal server error",
+            "error_category": error_category,
+            "suggested_action": suggested_action,
+            "docs_link": f"{_DOCS_BASE}/errors#{error_category}",
             "correlation_id": correlation_id,
         }
         if trace_id:
             content["trace_id"] = trace_id
         return JSONResponse(status_code=500, content=content)
 
+    @app.exception_handler(RequestValidationError)
+    async def _validation_exception_handler(request, exc):
+        """Return 422 with per-field detail for request validation failures."""
+        correlation_id = getattr(request.state, "correlation_id", "unknown")
+        trace_id = getattr(request.state, "trace_id", None)
+        field_errors = []
+        for err in exc.errors():
+            loc = " -> ".join(str(p) for p in err.get("loc", []))
+            field_errors.append({
+                "field": loc,
+                "message": err.get("msg", "invalid value"),
+                "expected_type": err.get("type", "unknown"),
+            })
+        content: Dict[str, Any] = {
+            "detail": "Request validation failed",
+            "error_category": "validation",
+            "suggested_action": "check request body — see 'field_errors' for per-field details",
+            "docs_link": f"{_DOCS_BASE}/errors#validation",
+            "field_errors": field_errors,
+            "correlation_id": correlation_id,
+        }
+        if trace_id:
+            content["trace_id"] = trace_id
+        return JSONResponse(status_code=422, content=content)
+
+    # 4xx hint map: status_code -> (hint, suggested_action, docs_anchor)
+    _4XX_HINTS: Dict[int, tuple] = {
+        401: (
+            "Provide X-API-Key header or Bearer token",
+            "include 'X-API-Key: <token>' or 'Authorization: Bearer <jwt>' in your request",
+            "authentication",
+        ),
+        403: (
+            "Your role doesn't have access",
+            "request elevated permissions or use an account with the required role (e.g. admin)",
+            "authorization",
+        ),
+        404: (
+            "Endpoint not found",
+            "verify the URL; see /api/v1/system/routes for all available endpoints",
+            "routing",
+        ),
+    }
+
     @app.exception_handler(StarletteHTTPException)
     async def _http_exception_handler(request, exc):
-        """Re-raise HTTP exceptions with correlation ID and trace ID for traceability."""
+        """Re-raise HTTP exceptions with correlation ID, trace ID, and actionable hints."""
         correlation_id = getattr(request.state, "correlation_id", "unknown")
         trace_id = getattr(request.state, "trace_id", None)
         content: Dict[str, Any] = {
             "detail": exc.detail,
             "correlation_id": correlation_id,
         }
+        if exc.status_code in _4XX_HINTS:
+            hint, suggested_action, anchor = _4XX_HINTS[exc.status_code]
+            content["hint"] = hint
+            content["suggested_action"] = suggested_action
+            content["docs_link"] = f"{_DOCS_BASE}/errors#{anchor}"
         if trace_id:
             content["trace_id"] = trace_id
         return JSONResponse(status_code=exc.status_code, content=content)
