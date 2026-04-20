@@ -22,11 +22,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
-import { usePageTitle } from "@/hooks/use-page-title";
   setStoredAuthStrategy,
   setStoredAuthToken,
   buildApiUrl,
 } from "@/lib/api";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

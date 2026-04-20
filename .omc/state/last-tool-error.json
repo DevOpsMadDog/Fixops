@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls /Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/public/\",\"description\":\"List public directory contents\"}",
-  "error": "Exit code 1\nls: /Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/public/: No such file or directory",
-  "timestamp": "2026-04-20T20:49:18.635Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec git commit -m \\\"$(cat <<'EOF'\\nbeast-mode(autosave): Final comprehensive save — Multica 99.3%, 150/150 personas PASS, 10/10 investor demo PASS\\n\\n- Multica boar...",
+  "error": "Exit code 2\nsh: -c: line 0: syntax error near unexpected token `('\nsh: -c: line 0: `git commit -m beast-mode(autosave): Final comprehensive save — Multica 99.3%, 150/150 personas PASS, 10/10 investor demo PASS'",
+  "timestamp": "2026-04-20T20:51:51.462Z",
+  "retry_count": 1
 }
