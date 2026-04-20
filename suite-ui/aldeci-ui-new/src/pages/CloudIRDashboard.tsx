@@ -45,7 +45,7 @@ const blastBadge = (b: string) => {
 export default function CloudIRDashboard() {
   const [activeTab, setActiveTab] = useState<"incidents" | "actions" | "playbooks">("incidents");
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/incidents?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

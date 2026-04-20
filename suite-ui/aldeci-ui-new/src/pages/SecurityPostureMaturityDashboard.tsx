@@ -181,10 +181,10 @@ function Sparkline({ data }: { data: typeof MOCK_HISTORY }) {
 export default function SecurityPostureMaturityDashboard() {
   const [advanced, setAdvanced] = useState(false);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/overview?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   return (

@@ -126,7 +126,7 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   const [showForm, setShowForm] = useState(false);
@@ -134,7 +134,7 @@ export default function SecurityInvestmentDashboard() {
     fetch(`${_API_BASE}/investments?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
   const [newAlloc, setNewAlloc] = useState({ category: "detection", amount: "" });
 

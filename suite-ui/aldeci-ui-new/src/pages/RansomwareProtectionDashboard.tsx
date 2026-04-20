@@ -56,11 +56,11 @@ export default function RansomwareProtectionDashboard() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`${API_BASE}/patterns?org_id=default`, { headers: getHeaders() })
+      fetch(`${API_BASE}/detections?org_id=default`, { headers: getHeaders() })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (Array.isArray(d)) setPatterns(d); })
         .catch(() => { setError('Failed to load data'); }),
-      fetch(`${API_BASE}/backup-status?org_id=default`, { headers: getHeaders() })
+      fetch(`${API_BASE}/backups?org_id=default`, { headers: getHeaders() })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (d && typeof d === "object") setBackup(d); })
         .catch(() => { setError('Failed to load data'); }),

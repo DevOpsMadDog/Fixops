@@ -175,7 +175,7 @@ const policyTypeColor: Record<GroupPolicy["policy_type"], string> = {
 export default function AssetGroupsDashboard() {
   const [selectedGroup, setSelectedGroup] = useState<AssetGroup | null>(GROUPS[0]);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/groups?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

@@ -172,7 +172,7 @@ export default function PostureTrendsDashboard() {
 
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/trends?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

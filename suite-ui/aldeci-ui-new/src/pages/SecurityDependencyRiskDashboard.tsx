@@ -121,10 +121,10 @@ export default function SecurityDependencyRiskDashboard() {
   const [activeEco, setActiveEco] = useState<"All" | Ecosystem>("All");
   const [vulns, setVulns] = useState([]);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/summary?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setVulns(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   const filteredDeps = activeEco === "All"

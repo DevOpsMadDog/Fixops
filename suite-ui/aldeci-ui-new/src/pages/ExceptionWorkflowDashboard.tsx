@@ -134,7 +134,7 @@ export default function ExceptionWorkflowDashboard() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   useEffect(() => {
-    apiFetch(`/api/v1/exception-workflow/exceptions?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/exception-workflow/requests?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
   }, []);
 
   const selected = MOCK_EXCEPTIONS.find(e => e.id === selectedId) ?? null;

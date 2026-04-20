@@ -149,7 +149,7 @@ export default function VulnIntelFusionDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/vuln-intel-fusion/cves?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/vuln-intel-fusion/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
   }, []);
   const [form, setForm] = useState({
     cve_id: "", source_name: "NVD", cvss: "", epss: "", kev: false, vendor: "", version: "",

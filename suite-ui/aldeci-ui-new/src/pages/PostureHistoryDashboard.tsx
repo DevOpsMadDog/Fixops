@@ -102,7 +102,7 @@ export default function PostureHistoryDashboard() {
   const [period, setPeriod] = useState<Period>("weekly");
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/snapshots?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

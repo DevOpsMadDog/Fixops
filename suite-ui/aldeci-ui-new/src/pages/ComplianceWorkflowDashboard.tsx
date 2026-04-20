@@ -153,7 +153,7 @@ export default function ComplianceWorkflowDashboard() {
 
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(MOCK_WORKFLOWS[0].id);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/workflows?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

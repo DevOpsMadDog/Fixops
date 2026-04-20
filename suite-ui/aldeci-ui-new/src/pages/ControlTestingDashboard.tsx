@@ -180,7 +180,7 @@ export default function ControlTestingDashboard() {
 
   const [selectedControl, setSelectedControl] = useState<Control | null>(CONTROLS[0]);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/controls?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

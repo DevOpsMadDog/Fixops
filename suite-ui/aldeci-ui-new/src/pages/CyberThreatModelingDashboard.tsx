@@ -123,7 +123,7 @@ export default function CyberThreatModelingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/cyber-threat-models/models?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/cyber-threat-models/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
   }, []);
   const [modelForm, setModelForm] = useState({ model_name: "", scope: "application", methodology: "STRIDE", risk_level: "high" });
   const [treeForm, setTreeForm] = useState({ tree_name: "", model_id: "m1", likelihood: "medium", impact: "high", risk_level: "high" });

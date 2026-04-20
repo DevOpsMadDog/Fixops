@@ -136,15 +136,15 @@ export default function ComplianceCalendarDashboard() {
   const [calEvents, setCalEvents] = useState(EVENTS);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/events?org_id=default`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/upcoming?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setCalEvents(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/overdue?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

@@ -147,7 +147,7 @@ export default function EventTimelineDashboard() {
   const [showEventForm, setShowEventForm] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/event-timeline/incidents?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/event-timeline/summary?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
   }, []);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

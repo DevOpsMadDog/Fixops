@@ -135,7 +135,7 @@ export default function EvidenceVaultDashboard() {
   const [verifyId, setVerifyId] = useState("");
 
   useEffect(() => {
-    apiFetch(`/api/v1/evidence-vault/evidence?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/evidence-vault/search?org_id=${ORG_ID}`).catch(() => { /* graceful fallback */ });
   }, []);
   const [verifyContent, setVerifyContent] = useState("");
   const [verifyResult, setVerifyResult] = useState<"valid" | "invalid" | null>(null);

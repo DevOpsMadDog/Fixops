@@ -65,10 +65,10 @@ export default function ArchReviewDashboard() {
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
       .catch(() => {});
-    fetch(`${API_BASE}/findings?org_id=default`, { headers: getHeaders() })
+    fetch(`${API_BASE}/control-gaps?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   const totalReviews = reviews.length;

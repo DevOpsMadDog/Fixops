@@ -150,7 +150,7 @@ export default function RiskQuantDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/risk-quant/scenarios?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
+    apiFetch(`/api/v1/risk-quant/summary?org_id=${ORG_ID}`).catch(() => { setError('Failed to load data'); });
   }, []);
   const [form, setForm] = useState({
     scenario_name: "", asset_name: "", threat_actor: "", threat_type: "ransomware",
