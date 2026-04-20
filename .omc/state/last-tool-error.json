@@ -1,7 +1,7 @@
 {
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/cloud_finding_router.py\"}",
-  "error": "File does not exist. Note: your current working directory is /Users/devops.ai/fixops/Fixops.",
-  "timestamp": "2026-04-20T21:16:05.822Z",
-  "retry_count": 2
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"grep -n \\\"tprm\\\" /Users/devops.ai/fixops/Fixops/suite-api/app.py 2>/dev/null | head -5\\nwc -l /Users/devops.ai/fixops/Fixops/suite-api/app.py\",\"description\":\"Search for tprm in app.py and ...",
+  "error": "Exit code 1\nwc: /Users/devops.ai/fixops/Fixops/suite-api/app.py: open: No such file or directory",
+  "timestamp": "2026-04-20T21:23:37.244Z",
+  "retry_count": 1
 }
