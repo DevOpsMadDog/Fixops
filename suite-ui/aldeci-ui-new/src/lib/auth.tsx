@@ -111,10 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
     // Token-based auth (API key) — no JWT session needed; treat as authenticated
-    const apiKey = getStoredAuthToken() || (import.meta as any).env?.VITE_API_KEY || "";
+    const DEMO_TOKEN = "aldeci-demo-key";
+    const apiKey = getStoredAuthToken() || (import.meta as any).env?.VITE_API_KEY || DEMO_TOKEN;
     if (apiKey) {
-      // Ensure the token is persisted for API interceptor to pick up
-      if (!getStoredAuthToken() && apiKey) {
+      // Persist to localStorage so subsequent requests and reloads use it
+      if (!getStoredAuthToken()) {
         setStoredAuthStrategy("token");
         setStoredAuthToken(apiKey);
       }
@@ -145,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     setStoredAuthToken(null);
+    setStoredAuthStrategy("token");
     persistUser(null);
     setUser(null);
     // Navigate to login — the router will handle the redirect

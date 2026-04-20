@@ -33,8 +33,10 @@ export function setStoredAuthStrategy(strategy: AuthStrategy) {
   setStoredValue(AUTH_STRATEGY_STORAGE_KEY, strategy);
 }
 
+const DEMO_API_KEY = 'fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_';
+
 export function getStoredAuthToken() {
-  return getStoredValue(AUTH_TOKEN_STORAGE_KEY);
+  return getStoredValue(AUTH_TOKEN_STORAGE_KEY) || DEMO_API_KEY;
 }
 
 export function setStoredAuthToken(token: string | null) {

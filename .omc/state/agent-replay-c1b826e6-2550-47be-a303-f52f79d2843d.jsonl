@@ -430,3 +430,7 @@
 {"t":0,"agent":"a5c79c7","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a2a0bd1","agent_type":"designer","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a5c79c7","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"a2a0bd1","agent_type":"designer","event":"agent_stop","success":true}
+{"t":0,"agent":"afae171","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a0612d1","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a0612d1","agent_type":"executor","event":"agent_stop","success":true}

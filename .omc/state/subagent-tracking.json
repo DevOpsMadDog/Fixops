@@ -1817,11 +1817,29 @@
       "agent_type": "oh-my-claudecode:designer",
       "started_at": "2026-04-20T16:05:31.505Z",
       "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-20T16:08:44.273Z",
+      "duration_ms": 192768
+    },
+    {
+      "agent_id": "afae171cfd172eb0a",
+      "agent_type": "oh-my-claudecode:executor",
+      "started_at": "2026-04-20T20:47:45.929Z",
+      "parent_mode": "none",
       "status": "running"
+    },
+    {
+      "agent_id": "a0612d17acb767761",
+      "agent_type": "oh-my-claudecode:executor",
+      "started_at": "2026-04-20T20:47:51.416Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-20T20:48:17.114Z",
+      "duration_ms": 25698
     }
   ],
-  "total_spawned": 207,
-  "total_completed": 185,
+  "total_spawned": 209,
+  "total_completed": 187,
   "total_failed": 0,
-  "last_updated": "2026-04-20T16:07:15.261Z"
+  "last_updated": "2026-04-20T20:48:17.218Z"
 }
