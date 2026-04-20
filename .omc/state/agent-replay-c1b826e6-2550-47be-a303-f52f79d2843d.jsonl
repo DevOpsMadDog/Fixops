@@ -418,3 +418,7 @@
 {"t":0,"agent":"abb7cdd","agent_type":"designer","event":"agent_stop","success":true}
 {"t":0,"agent":"a75d715","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"a0bf8e9","agent_type":"designer","event":"agent_stop","success":true}
+{"t":0,"agent":"ad87bd5","agent_type":"designer","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"aced79d","agent_type":"designer","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ad4ffee","agent_type":"designer","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ac8e1da","agent_type":"executor","event":"agent_start","parent_mode":"none"}
