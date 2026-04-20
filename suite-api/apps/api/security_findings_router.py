@@ -83,6 +83,13 @@ class FindingSuppress(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_security_findings(org_id: str = Query("default")) -> Dict[str, Any]:
+    """List security findings for the org."""
+    findings = _get_engine().list_findings(org_id=org_id)
+    return {"org_id": org_id, "findings": findings, "total": len(findings)}
+
+
 @router.post("/findings", dependencies=[Depends(api_key_auth)])
 def record_finding(body: FindingCreate) -> Dict[str, Any]:
     """Record a finding; deduplicates if matching non-resolved finding exists."""

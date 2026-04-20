@@ -83,6 +83,12 @@ class WorkloadUpdate(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_soc_metrics(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get SOC metrics summary for the org."""
+    return _get_engine().get_soc_summary(org_id=org_id)
+
+
 @router.post("/alerts", dependencies=[Depends(api_key_auth)])
 def create_alert(body: AlertCreate) -> Dict[str, Any]:
     """Create a new SOC alert."""

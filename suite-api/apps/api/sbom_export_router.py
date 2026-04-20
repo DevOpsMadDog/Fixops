@@ -84,6 +84,13 @@ class GenerateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_sbom_exports(org_id: str = Query("default")) -> Dict[str, Any]:
+    """List SBOM projects for the org."""
+    projects = _get_engine().list_projects(org_id=org_id)
+    return {"org_id": org_id, "projects": projects, "total": len(projects)}
+
+
 @router.post("/components", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_component(req: RegisterComponentRequest) -> Dict[str, Any]:
     """Register a software component (deduped by org+project+name+version)."""

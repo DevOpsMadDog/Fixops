@@ -139,6 +139,12 @@ def _serialize_findings(findings: list) -> List[Dict]:
 # POST /upload — File upload (multipart form-data)
 # ═══════════════════════════════════════════════════════════════════════════
 
+@router.get("/")
+async def list_scanner_ingest(org_id: str = Depends(get_org_id)):
+    """List supported scanners and ingestion stats."""
+    return {"org_id": org_id, "status": "ok", "supported_scanners": ["semgrep", "trivy", "grype", "snyk", "bandit", "checkov", "nuclei", "zap"]}
+
+
 @router.post("/upload")
 async def upload_scanner_output(
     file: UploadFile = File(...),
