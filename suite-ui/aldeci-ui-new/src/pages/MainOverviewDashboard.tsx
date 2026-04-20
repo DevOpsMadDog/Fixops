@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LiveEventFeed } from "@/components/widgets/LiveEventFeed";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── Config ──────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -502,6 +503,7 @@ const cardBase = "border-zinc-800/80 bg-zinc-900/50 backdrop-blur-sm";
 
 // ── Main component ───────────────────────────────────────────────
 export default function MainOverviewDashboard() {
+  usePageTitle("Security Dashboard");
   const [posture, setPosture]       = useState<typeof MOCK_POSTURE | null>(null);
   const [alertStats, setAlerts]     = useState<typeof MOCK_ALERT_STATS | null>(null);
   const [compliance, setCompliance] = useState<typeof MOCK_COMPLIANCE | null>(null);

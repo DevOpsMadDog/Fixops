@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -341,6 +342,7 @@ const MicroSegmentationMap = () => {
 // ══════════════════════════════════════════════════════════════
 
 export default function ZeroTrustDashboard() {
+  usePageTitle("Zero Trust");
   const [expandedPolicy, setExpandedPolicy] = useState<string | null>(null);
 
   // Fetch Zero Trust data

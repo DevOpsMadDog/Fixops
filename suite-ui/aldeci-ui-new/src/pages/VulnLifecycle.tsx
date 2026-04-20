@@ -37,6 +37,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
@@ -260,6 +261,7 @@ function KanbanColumn({
 // ═══════════════════════════════════════════════════════════
 
 export default function VulnLifecycle() {
+  usePageTitle("Vulnerability Lifecycle");
   const [sevFilter, setSevFilter] = useState<Severity | "all">("all");
   const [liveStats, setLiveStats] = useState<Record<string, any> | null>(null);
   const queryClient = useQueryClient();

@@ -37,6 +37,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -124,6 +125,7 @@ function SevDot({ sev }: { sev: string }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ThreatHuntingDashboard() {
+  usePageTitle("Threat Hunting");
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);

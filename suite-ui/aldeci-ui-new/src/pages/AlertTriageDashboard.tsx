@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── API config (unchanged) ─────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -486,6 +487,7 @@ function BulkActionBar({ count, onAcknowledge, onEscalate, onDismiss, onClear }:
 // ── Main component ─────────────────────────────────────────────
 
 export default function AlertTriageDashboard() {
+  usePageTitle("Alert Triage");
   const [refreshing, setRefreshing] = useState(false);
   const [liveAlerts, setLiveAlerts] = useState<any[] | null>(null);
   const [liveStats,  setLiveStats]  = useState<any | null>(null);

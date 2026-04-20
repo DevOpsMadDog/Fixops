@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
+import { usePageTitle } from "@/hooks/use-page-title";
   setStoredAuthStrategy,
   setStoredAuthToken,
   buildApiUrl,
@@ -94,6 +95,7 @@ const fadeIn = (delay = 0) => ({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
+  usePageTitle("Sign In");
   const navigate = useNavigate();
   const { login, loading } = useAuth();
 

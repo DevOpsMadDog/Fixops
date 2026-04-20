@@ -33,6 +33,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── API helpers ────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ function TrendArrow({ trend, meeting }: { trend: string; meeting: boolean }) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityMetricsDashboard() {
+  usePageTitle("Security Metrics");
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);

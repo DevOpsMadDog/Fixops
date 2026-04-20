@@ -36,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -342,6 +343,7 @@ function AssetRow({
 // ═══════════════════════════════════════════════════════════
 
 export default function AssetInventory() {
+  usePageTitle("Asset Inventory");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [envFilter, setEnvFilter]   = useState<string>("all");
   const [riskFilter, setRiskFilter] = useState<string>("all");

@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── Mock data ──────────────────────────────────────────────────
 
@@ -130,6 +131,7 @@ function fmtCount(n: number) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ThreatFeedDashboard() {
+  usePageTitle("Threat Feed");
   const [refreshing, setRefreshing] = useState(false);
   const [iocQuery, setIocQuery] = useState("");
   const [iocType, setIocType] = useState("All");

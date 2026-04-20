@@ -38,6 +38,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -143,6 +144,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 // ── Component ──────────────────────────────────────────────────
 
 export default function IncidentResponseDashboard() {
+  usePageTitle("Incident Response");
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);

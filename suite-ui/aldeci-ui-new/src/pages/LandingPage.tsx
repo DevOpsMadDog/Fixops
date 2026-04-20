@@ -33,6 +33,7 @@ import {
   Terminal,
   Users,
 } from "lucide-react";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── Fonts (injected via <link> in head) ───────────────────────
 // Syne: geometric display — injected once at component mount
@@ -249,6 +250,7 @@ function RadialGlow({
 
 // ── Main component ────────────────────────────────────────────
 export default function LandingPage() {
+  usePageTitle("Enterprise Security Intelligence");
   useSyneFontInjection();
   const navigate = useNavigate();
 

@@ -41,6 +41,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
@@ -333,6 +334,7 @@ async function fetchRisks(): Promise<Risk[]> {
 // ═══════════════════════════════════════════════════════════
 
 export default function RiskRegister() {
+  usePageTitle("Risk Register");
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [liveStats, setLiveStats] = useState<any>(null);
 

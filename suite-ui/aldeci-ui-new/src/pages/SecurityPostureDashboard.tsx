@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -115,6 +116,7 @@ function effortBadge(effort: string) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityPostureDashboard() {
+  usePageTitle("Security Posture");
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
