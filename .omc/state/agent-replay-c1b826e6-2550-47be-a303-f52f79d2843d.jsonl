@@ -422,3 +422,6 @@
 {"t":0,"agent":"aced79d","agent_type":"designer","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"ad4ffee","agent_type":"designer","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"ac8e1da","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a137c63","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a567806","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a137c63","agent_type":"executor","event":"agent_stop","success":true}

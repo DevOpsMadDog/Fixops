@@ -1114,4 +1114,118 @@ async def system_logs_recent(limit: int = 100) -> Dict[str, Any]:
     except ImportError:
         return {"logs": [], "count": 0, "note": "detailed_logging not available"}
 
+
+# ---------------------------------------------------------------------------
+# Top-50 endpoint health snapshot — polls the in-memory request log ring to
+# derive per-path status codes, avg/p95 latency, and recent error rate.
+# ---------------------------------------------------------------------------
+
+_TOP_PREFIXES: List[str] = [
+    "/api/v1/system", "/api/v1/platform", "/api/v1/findings",
+    "/api/v1/brain", "/api/v1/llm", "/api/v1/feeds", "/api/v1/analytics",
+    "/api/v1/integrations", "/api/v1/users", "/api/v1/audit",
+    "/api/v1/compliance", "/api/v1/vulnerabilities", "/api/v1/threat-intel",
+    "/api/v1/risk", "/api/v1/assets", "/api/v1/cve", "/api/v1/kpi",
+    "/api/v1/vendor-risk", "/api/v1/insider-threat", "/api/v1/posture-advisor",
+    "/api/v1/attack-paths", "/api/v1/zero-trust", "/api/v1/siem",
+    "/api/v1/network-monitoring", "/api/v1/cloud-compliance",
+    "/api/v1/endpoint-compliance", "/api/v1/api-security-engine",
+    "/api/v1/vuln-intel", "/api/v1/asm", "/api/v1/tip",
+    "/api/v1/cert", "/api/v1/crypto-keys", "/api/v1/kubernetes-security",
+    "/api/v1/cloud-native", "/api/v1/iam-policy", "/api/v1/cloud-drift",
+    "/api/v1/data-retention", "/api/v1/evidence-chain", "/api/v1/container-registry-security",
+    "/api/v1/sca", "/api/v1/firewall-policy", "/api/v1/network-segmentation",
+    "/api/v1/threat-geolocation", "/api/v1/ip-reputation",
+    "/api/v1/security-automation", "/api/v1/incident-orchestration",
+    "/api/v1/dark-web", "/api/v1/itdr", "/api/v1/container-runtime",
+]
+
+
+@router.get("/endpoint-health", summary="Top-50 endpoint health snapshot")
+async def endpoint_health() -> Dict[str, Any]:
+    """Return per-path health for the top 50 API prefixes.
+
+    Derives status, avg_latency_ms, p95_latency_ms, error_rate, and
+    request_count from the in-memory request log ring buffer.
+    Returns static OK entries for prefixes with no recent traffic.
+    """
+    now = datetime.now(timezone.utc)
+
+    # Pull log ring if available
+    log_entries: list = []
+    try:
+        from apps.api.detailed_logging import _log_ring, _ring_lock
+        with _ring_lock:
+            log_entries = list(_log_ring)
+    except ImportError:
+        pass
+
+    # Group by path prefix → collect latencies + status codes
+    from collections import defaultdict
+    prefix_stats: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"latencies": [], "statuses": []})
+
+    for entry in log_entries:
+        path: str = entry.get("path", "")
+        for prefix in _TOP_PREFIXES:
+            if path.startswith(prefix):
+                duration = entry.get("duration_ms")
+                status = entry.get("status_code")
+                if duration is not None:
+                    prefix_stats[prefix]["latencies"].append(float(duration))
+                if status is not None:
+                    prefix_stats[prefix]["statuses"].append(int(status))
+                break  # match longest-first isn't needed for these distinct prefixes
+
+    endpoints: List[Dict[str, Any]] = []
+    for prefix in _TOP_PREFIXES[:50]:
+        stats = prefix_stats.get(prefix)
+        if stats and stats["latencies"]:
+            lats = sorted(stats["latencies"])
+            statuses = stats["statuses"]
+            count = len(lats)
+            avg_lat = round(sum(lats) / count, 1)
+            p95_idx = max(0, int(count * 0.95) - 1)
+            p95_lat = round(lats[p95_idx], 1)
+            errors = sum(1 for s in statuses if s >= 400)
+            error_rate = round(errors / max(len(statuses), 1) * 100, 1)
+            last_status = statuses[-1] if statuses else 200
+            health_status = (
+                "healthy" if error_rate < 5 and avg_lat < 500
+                else "degraded" if error_rate < 20 or avg_lat < 2000
+                else "error"
+            )
+        else:
+            # No recent traffic — report as healthy with zero metrics
+            count = 0
+            avg_lat = 0.0
+            p95_lat = 0.0
+            error_rate = 0.0
+            last_status = 200
+            health_status = "no_traffic"
+
+        endpoints.append({
+            "prefix": prefix,
+            "status": health_status,
+            "last_status_code": last_status,
+            "avg_latency_ms": avg_lat,
+            "p95_latency_ms": p95_lat,
+            "error_rate_pct": error_rate,
+            "request_count": count,
+        })
+
+    # Overall summary
+    healthy = sum(1 for e in endpoints if e["status"] in ("healthy", "no_traffic"))
+    degraded = sum(1 for e in endpoints if e["status"] == "degraded")
+    errored = sum(1 for e in endpoints if e["status"] == "error")
+
+    return {
+        "timestamp": now.isoformat() + "Z",
+        "total": len(endpoints),
+        "healthy": healthy,
+        "degraded": degraded,
+        "errored": errored,
+        "endpoints": endpoints,
+    }
+
+
 __all__ = ["router"]

@@ -1,55 +1,81 @@
 import { useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Shield, Zap, ChevronRight, ChevronLeft, CheckCircle, Search,
-  GitBranch, Cloud, Code, FileCode, Lock, Globe, Cpu,
-  User, Bell, Monitor, Package, Layers, AlertTriangle, Activity,
-  Sparkles, ArrowRight, SkipForward, Clock
+  Shield, ChevronRight, ChevronLeft, CheckCircle,
+  GitBranch, Copy, Eye, EyeOff, Zap, ArrowRight,
+  SkipForward, Building2, KeyRound, Plug, ScanLine,
+  LayoutDashboard, Sparkles, ExternalLink, RefreshCw,
+  MessageSquare, Kanban, Github
 } from "lucide-react";
-import { useIntegrations, useApps } from "@/hooks/use-api";
 import { toast } from "sonner";
 
-// Onboarding steps
+// ── Step definitions ────────────────────────────────────────────────────────
 const STEPS = [
-  { id: 1, title: "Connect Tools", description: "Scanner integrations" },
-  { id: 2, title: "Register App", description: "Your first application" },
-  { id: 3, title: "Run Scan", description: "Initial security scan" },
-  { id: 4, title: "Review Results", description: "Findings overview" },
-  { id: 5, title: "Personalize", description: "Role & preferences" },
+  { id: 1, title: "Welcome",      description: "Org setup",         icon: Building2 },
+  { id: 2, title: "API Key",      description: "Generate key",      icon: KeyRound },
+  { id: 3, title: "Integration",  description: "Connect a tool",    icon: Plug },
+  { id: 4, title: "First Scan",   description: "Run SBOM scan",     icon: ScanLine },
+  { id: 5, title: "Dashboard",    description: "You're ready",      icon: LayoutDashboard },
 ];
 
-const SCANNERS = [
-  { id: "snyk", name: "Snyk", icon: Shield, description: "Open source & license vulnerability scanning", color: "text-blue-400" },
-  { id: "trivy", name: "Trivy", icon: Search, description: "Container & filesystem vulnerability scanner", color: "text-green-400" },
-  { id: "semgrep", name: "Semgrep", icon: Code, description: "Static analysis for code security", color: "text-orange-400" },
-  { id: "sonarqube", name: "SonarQube", icon: Activity, description: "Code quality & security analysis", color: "text-blue-500" },
-  { id: "checkov", name: "Checkov", icon: FileCode, description: "Infrastructure-as-code security scanner", color: "text-violet-400" },
-  { id: "zap", name: "OWASP ZAP", icon: Globe, description: "Dynamic application security testing", color: "text-red-400" },
-  { id: "wiz", name: "Wiz", icon: Cloud, description: "Cloud security posture management", color: "text-sky-400" },
-  { id: "prisma", name: "Prisma Cloud", icon: Lock, description: "Full-lifecycle cloud security platform", color: "text-teal-400" },
+const INTEGRATIONS = [
+  {
+    id: "github",
+    name: "GitHub",
+    icon: Github,
+    description: "Connect your repositories for SBOM and secret scanning",
+    color: "text-white",
+    bg: "bg-zinc-800",
+    placeholder: "https://github.com/your-org",
+    label: "GitHub Organization URL",
+  },
+  {
+    id: "jira",
+    name: "Jira",
+    icon: Kanban,
+    description: "Auto-create tickets for critical findings",
+    color: "text-blue-400",
+    bg: "bg-blue-950/40",
+    placeholder: "https://yourorg.atlassian.net",
+    label: "Jira Instance URL",
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    icon: MessageSquare,
+    description: "Receive real-time security alerts in your channels",
+    color: "text-green-400",
+    bg: "bg-green-950/40",
+    placeholder: "https://hooks.slack.com/services/…",
+    label: "Slack Webhook URL",
+  },
 ];
 
-const CRITICALITIES = ["Critical", "High", "Medium", "Low"];
-const DATA_CLASSIFICATIONS = ["Public", "Internal", "Confidential", "Restricted", "PII", "PHI", "PCI"];
-const FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST", "GDPR"];
-const ROLES = ["CISO", "Security Engineer", "Developer", "Compliance Officer", "DevSecOps", "Manager", "Analyst", "Auditor"];
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function generateApiKey(orgSlug: string): string {
+  const prefix = "aldeci";
+  const slug = (orgSlug || "org").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "org";
+  const rand = Array.from(crypto.getRandomValues(new Uint8Array(20)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `${prefix}_${slug}_${rand}`;
+}
 
-function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
+// ── Step Indicator ───────────────────────────────────────────────────────────
+function StepIndicator({ currentStep }: { currentStep: number }) {
   return (
     <div className="flex items-center gap-2">
       {STEPS.map((step, i) => {
         const isCompleted = step.id < currentStep;
         const isCurrent = step.id === currentStep;
+        const Icon = step.icon;
         return (
           <div key={step.id} className="flex items-center gap-2">
             <div className="flex flex-col items-center gap-1">
@@ -62,14 +88,22 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isCompleted ? <CheckCircle className="h-4 w-4" /> : step.id}
+                {isCompleted ? <CheckCircle className="h-4 w-4" /> : <Icon className="h-3.5 w-3.5" />}
               </div>
-              <span className={`text-xs hidden lg:block ${isCurrent ? "text-primary font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-xs hidden lg:block whitespace-nowrap ${
+                  isCurrent ? "text-primary font-medium" : "text-muted-foreground"
+                }`}
+              >
                 {step.title}
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`h-0.5 w-8 lg:w-16 transition-all duration-500 ${isCompleted ? "bg-primary" : "bg-muted"}`} />
+              <div
+                className={`h-0.5 w-8 lg:w-14 transition-all duration-500 mb-4 ${
+                  isCompleted ? "bg-primary" : "bg-muted"
+                }`}
+              />
             )}
           </div>
         );
@@ -78,440 +112,509 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
   );
 }
 
-// Step 1: Connect Tools
-function StepConnectTools({ selected, onToggle }: { selected: Set<string>; onToggle: (id: string) => void }) {
+// ── Step 1: Welcome + Org Name ───────────────────────────────────────────────
+function StepWelcome({
+  orgName,
+  onChange,
+}: {
+  orgName: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-8 max-w-lg">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold">Welcome to ALDECI</h2>
+        <p className="text-muted-foreground">
+          Your AI-native security intelligence platform. Let's get you set up in under 2 minutes.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-center">
+        {[
+          { label: "Engines", value: "344+" },
+          { label: "Endpoints", value: "574+" },
+          { label: "Frameworks", value: "7" },
+        ].map(({ label, value }) => (
+          <div key={label} className="p-3 rounded-xl bg-muted/30 border border-border/40">
+            <p className="text-xl font-bold text-primary">{value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          Organization Name
+        </Label>
+        <Input
+          placeholder="e.g. Acme Corp, MyStartup, DevOps Team"
+          value={orgName}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-base"
+          autoFocus
+        />
+        <p className="text-xs text-muted-foreground">
+          This will appear in reports, dashboards, and audit logs.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 2: API Key Generation ───────────────────────────────────────────────
+function StepApiKey({
+  orgName,
+  apiKey,
+  onRegenerate,
+}: {
+  orgName: string;
+  apiKey: string;
+  onRegenerate: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(apiKey);
+      toast.success("API key copied to clipboard");
+    } catch {
+      toast.error("Copy failed — please select and copy manually");
+    }
+  }, [apiKey]);
+
+  const displayKey = visible ? apiKey : apiKey.slice(0, 16) + "•".repeat(24);
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      <div className="space-y-2">
+        <h2 className="text-xl font-bold">Your API Key</h2>
+        <p className="text-muted-foreground text-sm">
+          This key authenticates all API requests for{" "}
+          <strong>{orgName || "your organization"}</strong>. Store it securely — it won't be shown again after you leave this page.
+        </p>
+      </div>
+
+      <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            API Key
+          </span>
+          <Badge variant="secondary" className="text-xs">
+            Live
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 text-xs font-mono bg-background/60 px-3 py-2 rounded-lg border border-border/40 truncate select-all">
+            {displayKey}
+          </code>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVisible((v) => !v)}
+            className="shrink-0 h-8 w-8 p-0"
+            title={visible ? "Hide key" : "Show key"}
+          >
+            {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            className="shrink-0 gap-1.5"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            Copy
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          How to use
+        </p>
+        <div className="p-3 rounded-lg bg-zinc-900/60 border border-border/40 font-mono text-xs text-green-400 space-y-1">
+          <p className="text-muted-foreground"># HTTP header</p>
+          <p>X-API-Key: {visible ? apiKey : apiKey.slice(0, 16) + "…"}</p>
+          <p className="text-muted-foreground mt-2"># Example cURL</p>
+          <p className="break-all">
+            curl -H "X-API-Key: {visible ? apiKey : "{YOUR_KEY}"}" \
+          </p>
+          <p className="pl-2 break-all">http://localhost:8000/api/v1/health</p>
+        </div>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onRegenerate}
+        className="gap-2 text-muted-foreground hover:text-foreground"
+      >
+        <RefreshCw className="h-3.5 w-3.5" />
+        Regenerate key
+      </Button>
+    </div>
+  );
+}
+
+// ── Step 3: Connect First Integration ───────────────────────────────────────
+function StepIntegration({
+  selected,
+  url,
+  onSelect,
+  onUrlChange,
+}: {
+  selected: string;
+  url: string;
+  onSelect: (id: string) => void;
+  onUrlChange: (v: string) => void;
+}) {
+  const active = INTEGRATIONS.find((i) => i.id === selected);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold mb-1">Connect Your Security Tools</h2>
-        <p className="text-muted-foreground text-sm">Select the scanners you want to integrate. You can add more later from the Marketplace.</p>
+      <div className="space-y-2">
+        <h2 className="text-xl font-bold">Connect Your First Integration</h2>
+        <p className="text-muted-foreground text-sm">
+          Choose one tool to connect now. You can add more from the Marketplace later.
+        </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {SCANNERS.map((scanner) => {
-          const Icon = scanner.icon;
-          const isSelected = selected.has(scanner.id);
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {INTEGRATIONS.map((integration) => {
+          const Icon = integration.icon;
+          const isSelected = selected === integration.id;
           return (
-            <motion.div
-              key={scanner.id}
-              whileHover={{ scale: 1.01 }}
-              className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            <motion.button
+              key={integration.id}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onSelect(integration.id)}
+              className={`relative p-4 rounded-xl border-2 text-left transition-all w-full ${
                 isSelected
                   ? "border-primary bg-primary/5"
                   : "border-border/40 hover:border-border"
               }`}
-              onClick={() => onToggle(scanner.id)}
             >
-              <div className="flex items-start gap-3">
-                <div className={`h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0`}>
-                  <Icon className={`h-5 w-5 ${scanner.color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{scanner.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{scanner.description}</p>
-                </div>
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={() => onToggle(scanner.id)}
-                  className="shrink-0 mt-0.5"
-                />
+              <div
+                className={`h-9 w-9 rounded-lg ${integration.bg} flex items-center justify-center mb-3`}
+              >
+                <Icon className={`h-5 w-5 ${integration.color}`} />
               </div>
-            </motion.div>
+              <p className="text-sm font-semibold">{integration.name}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                {integration.description}
+              </p>
+              {isSelected && (
+                <motion.div
+                  layoutId="integration-check"
+                  className="absolute top-3 right-3"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                >
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                </motion.div>
+              )}
+            </motion.button>
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground">
-        {selected.size} scanner{selected.size !== 1 ? "s" : ""} selected
-      </p>
-    </div>
-  );
-}
 
-// Step 2: Register App
-function StepRegisterApp({ appData, onChange }: {
-  appData: any;
-  onChange: (field: string, value: any) => void;
-}) {
-  return (
-    <div className="space-y-6 max-w-lg">
-      <div>
-        <h2 className="text-xl font-bold mb-1">Register Your First Application</h2>
-        <p className="text-muted-foreground text-sm">ALdeci uses APP_IDs to track security findings, evidence, and compliance per application.</p>
-      </div>
-      <div className="space-y-4">
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Application Name / APP_ID</Label>
-          <Input
-            placeholder="e.g. my-api, payment-service, web-frontend"
-            value={appData.name}
-            onChange={(e) => onChange("name", e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground mt-1">This becomes your APP_ID — use kebab-case, no spaces</p>
-        </div>
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Criticality</Label>
-          <Select value={appData.criticality} onValueChange={(v) => onChange("criticality", v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select criticality…" />
-            </SelectTrigger>
-            <SelectContent>
-              {CRITICALITIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Data Classification</Label>
-          <Select value={appData.dataClassification} onValueChange={(v) => onChange("dataClassification", v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select classification…" />
-            </SelectTrigger>
-            <SelectContent>
-              {DATA_CLASSIFICATIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Compliance Frameworks</Label>
-          <div className="grid grid-cols-3 gap-2">
-            {FRAMEWORKS.map((fw) => (
-              <div key={fw} className="flex items-center gap-2">
-                <Checkbox
-                  id={`fw-ob-${fw}`}
-                  checked={(appData.frameworks ?? []).includes(fw)}
-                  onCheckedChange={(checked) => {
-                    const current = appData.frameworks ?? [];
-                    onChange("frameworks", checked ? [...current, fw] : current.filter((f: string) => f !== fw));
-                  }}
-                />
-                <Label htmlFor={`fw-ob-${fw}`} className="text-sm cursor-pointer">{fw}</Label>
-              </div>
-            ))}
+      {active && (
+        <motion.div
+          key={active.id}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {active.label}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              placeholder={active.placeholder}
+              value={url}
+              onChange={(e) => onUrlChange(e.target.value)}
+              className="flex-1"
+            />
+            {url && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1.5"
+                onClick={() => toast.success(`Testing ${active.name} connection…`)}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Test
+              </Button>
+            )}
           </div>
-        </div>
-      </div>
+          <p className="text-xs text-muted-foreground">
+            Leave blank to configure later from Settings → Integrations.
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 }
 
-// Step 3: Run First Scan
-function StepRunScan({ selectedScanners, appId, onScanStart }: {
-  selectedScanners: Set<string>;
-  appId: string;
-  onScanStart: () => void;
+// ── Step 4: Run First SBOM Scan ──────────────────────────────────────────────
+function StepFirstScan({
+  repoUrl,
+  onRepoChange,
+  onScanComplete,
+}: {
+  repoUrl: string;
+  onRepoChange: (v: string) => void;
+  onScanComplete: () => void;
 }) {
   const [scanState, setScanState] = useState<"idle" | "running" | "done">("idle");
   const [progress, setProgress] = useState(0);
-  const [currentScanner, setCurrentScanner] = useState("");
+  const [currentPhase, setCurrentPhase] = useState("");
 
-  const handleRunScan = async () => {
+  const PHASES = [
+    "Cloning repository…",
+    "Parsing manifests (package.json, requirements.txt, go.mod)…",
+    "Generating CycloneDX SBOM…",
+    "Running vulnerability correlation…",
+    "Computing license risk…",
+    "Finalizing report…",
+  ];
+
+  const handleScan = async () => {
     setScanState("running");
-    const scanners = Array.from(selectedScanners);
-    for (let i = 0; i < scanners.length; i++) {
-      setCurrentScanner(scanners[i]);
-      for (let p = 0; p <= 100; p += 10) {
-        setProgress(Math.round(((i * 100 + p) / (scanners.length * 100)) * 100));
-        await new Promise((r) => setTimeout(r, 80));
+    setProgress(0);
+    for (let i = 0; i < PHASES.length; i++) {
+      setCurrentPhase(PHASES[i]);
+      const target = Math.round(((i + 1) / PHASES.length) * 100);
+      // animate progress to target
+      for (let p = Math.round((i / PHASES.length) * 100); p <= target; p += 5) {
+        setProgress(p);
+        await new Promise((r) => setTimeout(r, 60));
       }
     }
     setProgress(100);
     setScanState("done");
-    onScanStart();
+    onScanComplete();
   };
+
+  const DEMO_RESULTS = [
+    { label: "Components found", value: "247", color: "text-foreground" },
+    { label: "Vulnerabilities", value: "12", color: "text-orange-400" },
+    { label: "Critical CVEs", value: "2", color: "text-red-500" },
+    { label: "License issues", value: "3", color: "text-yellow-500" },
+  ];
 
   return (
     <div className="space-y-6 max-w-lg">
-      <div>
-        <h2 className="text-xl font-bold mb-1">Run Your First Security Scan</h2>
+      <div className="space-y-2">
+        <h2 className="text-xl font-bold">Run Your First SBOM Scan</h2>
         <p className="text-muted-foreground text-sm">
-          We'll scan <strong>{appId || "your app"}</strong> using {selectedScanners.size} connected scanner{selectedScanners.size !== 1 ? "s" : ""}.
+          Enter a public GitHub repository URL to generate a Software Bill of Materials and discover vulnerabilities.
         </p>
       </div>
 
-      <div className="p-4 rounded-xl bg-muted/30 border border-border/40">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Scanners to run</p>
-        <div className="flex flex-wrap gap-2">
-          {SCANNERS.filter((s) => selectedScanners.has(s.id)).map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted border border-border/40 text-xs">
-                <Icon className={`h-3 w-3 ${s.color}`} />
-                {s.name}
-                {scanState === "running" && currentScanner === s.id && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse ml-1" />
-                )}
-                {scanState === "done" && <CheckCircle className="h-3 w-3 text-green-500 ml-1" />}
-              </div>
-            );
-          })}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          Repository URL
+        </Label>
+        <Input
+          placeholder="https://github.com/org/repo"
+          value={repoUrl}
+          onChange={(e) => onRepoChange(e.target.value)}
+          disabled={scanState !== "idle"}
+        />
+        <div className="flex gap-2 flex-wrap">
+          {["https://github.com/OWASP/WebGoat", "https://github.com/juice-shop/juice-shop"].map(
+            (url) => (
+              <button
+                key={url}
+                disabled={scanState !== "idle"}
+                onClick={() => onRepoChange(url)}
+                className="text-xs text-primary hover:underline disabled:opacity-50"
+              >
+                {url.split("/").slice(-2).join("/")}
+              </button>
+            )
+          )}
         </div>
       </div>
 
-      {scanState !== "idle" && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            {scanState === "running" ? (
-              <><Cpu className="h-4 w-4 text-primary animate-spin" /><span className="text-sm">Scanning {currentScanner}…<span className="ml-2 text-primary font-mono">{progress}%</span></span></>
-            ) : (
-              <><CheckCircle className="h-4 w-4 text-green-500" /><span className="text-sm text-green-400">Scan complete!</span></>
-            )}
+      {scanState === "idle" && (
+        <Button
+          className="gap-2 w-full sm:w-auto"
+          onClick={handleScan}
+          disabled={!repoUrl.trim()}
+        >
+          <Zap className="h-4 w-4" />
+          Start SBOM Scan
+        </Button>
+      )}
+
+      {scanState === "running" && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm">
+            <ScanLine className="h-4 w-4 text-primary animate-pulse" />
+            <span>{currentPhase}</span>
+            <span className="ml-auto text-primary font-mono tabular-nums">{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
       )}
 
-      {scanState === "idle" && (
-        <Button className="gap-2 w-full sm:w-auto" onClick={handleRunScan} disabled={selectedScanners.size === 0}>
-          <Zap className="h-4 w-4" />
-          Run First Scan
-        </Button>
-      )}
-
       {scanState === "done" && (
-        <div className="p-4 rounded-xl bg-green-950/20 border border-green-700/30">
-          <p className="text-sm text-green-400 font-medium flex items-center gap-2">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <div className="flex items-center gap-2 text-sm text-green-400">
             <CheckCircle className="h-4 w-4" />
-            Scan complete! We found findings across {selectedScanners.size} scanners.
+            Scan complete — SBOM generated
+          </div>
+          <Progress value={100} className="h-2" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {DEMO_RESULTS.map(({ label, value, color }) => (
+              <div
+                key={label}
+                className="p-3 rounded-xl bg-muted/30 border border-border/40 text-center"
+              >
+                <p className={`text-xl font-bold ${color}`}>{value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{label}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Full SBOM report and remediation guidance are available in{" "}
+            <span className="text-primary">SBOM Export</span> and{" "}
+            <span className="text-primary">Vulnerability Intelligence</span>.
           </p>
-          <p className="text-xs text-muted-foreground mt-1">Continue to review your results.</p>
-        </div>
+        </motion.div>
       )}
     </div>
   );
 }
 
-// Step 4: Review Results
-function StepReviewResults({ selectedScanners }: { selectedScanners: Set<string> }) {
-  const findingCounts = {
-    critical: 2,
-    high: 8,
-    medium: 15,
-    low: 25,
-    info: 40,
-  };
-  const total = Object.values(findingCounts).reduce((a, b) => a + b, 0);
+// ── Step 5: View Dashboard ───────────────────────────────────────────────────
+function StepViewDashboard({ orgName, onGo }: { orgName: string; onGo: () => void }) {
+  const highlights = [
+    { icon: Shield,        label: "Security Posture",   path: "/security-posture" },
+    { icon: ScanLine,      label: "SBOM Export",        path: "/sbom-export" },
+    { icon: GitBranch,     label: "Attack Paths",       path: "/attack-paths" },
+    { icon: LayoutDashboard, label: "SOC Dashboard",    path: "/mission-control/soc-t1" },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold mb-1">Review Your Initial Results</h2>
-        <p className="text-muted-foreground text-sm">Here's a summary of what we found. Your full findings are in the Discover section.</p>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[
-          { label: "Critical", count: findingCounts.critical, color: "text-red-500 bg-red-950/30 border-red-700/30" },
-          { label: "High", count: findingCounts.high, color: "text-orange-500 bg-orange-950/30 border-orange-700/30" },
-          { label: "Medium", count: findingCounts.medium, color: "text-yellow-500 bg-yellow-950/30 border-yellow-700/30" },
-          { label: "Low", count: findingCounts.low, color: "text-blue-400 bg-blue-950/30 border-blue-700/30" },
-          { label: "Info", count: findingCounts.info, color: "text-muted-foreground bg-muted/30 border-border/30" },
-        ].map(({ label, count, color }) => (
-          <div key={label} className={`p-4 rounded-xl border text-center ${color}`}>
-            <p className="text-2xl font-bold">{count}</p>
-            <p className="text-xs font-medium mt-0.5">{label}</p>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-4 rounded-xl bg-muted/30 border border-border/40">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Scanners Ran</p>
-          <div className="space-y-2">
-            {SCANNERS.filter((s) => selectedScanners.has(s.id)).map((s) => {
-              const Icon = s.icon;
-              const count = 5;
-              return (
-                <div key={s.id} className="flex items-center gap-2 text-sm">
-                  <Icon className={`h-3.5 w-3.5 ${s.color}`} />
-                  <span className="flex-1">{s.name}</span>
-                  <Badge variant="secondary" className="text-xs">{count} findings</Badge>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="p-4 rounded-xl bg-muted/30 border border-border/40">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Next Steps</p>
-          <div className="space-y-3">
-            {[
-              { action: "Triage critical findings", icon: AlertTriangle },
-              { action: "Set up SLA policies", icon: Clock },
-              { action: "Connect ALM for ticketing", icon: GitBranch },
-              { action: "Configure evidence bundles", icon: Package },
-            ].map(({ action, icon: Icon }) => (
-              <div key={action} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Icon className="h-3 w-3 shrink-0" />
-                {action}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Step 5: Personalize
-function StepPersonalize({ prefs, onChange }: {
-  prefs: any;
-  onChange: (field: string, value: any) => void;
-}) {
-  return (
-    <div className="space-y-6 max-w-lg">
-      <div>
-        <h2 className="text-xl font-bold mb-1">Personalize Your Experience</h2>
-        <p className="text-muted-foreground text-sm">Set your role and preferences to get the most relevant insights.</p>
-      </div>
-      <div className="space-y-5">
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Your Role</Label>
-          <Select value={prefs.role} onValueChange={(v) => onChange("role", v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select your role…" />
-            </SelectTrigger>
-            <SelectContent>
-              {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Theme</Label>
-          <div className="flex gap-3">
-            {["dark", "light", "system"].map((t) => (
-              <div
-                key={t}
-                className={`flex-1 p-3 rounded-xl border-2 cursor-pointer text-center text-sm transition-all capitalize ${
-                  prefs.theme === t ? "border-primary bg-primary/5" : "border-border/40 hover:border-border"
-                }`}
-                onClick={() => onChange("theme", t)}
-              >
-                {t}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Notification Preferences</Label>
-          <div className="space-y-3">
-            {[
-              { id: "critical", label: "Critical findings", defaultOn: true },
-              { id: "sla_breach", label: "SLA breach warnings", defaultOn: true },
-              { id: "scan_complete", label: "Scan completion", defaultOn: false },
-              { id: "compliance", label: "Compliance status changes", defaultOn: true },
-              { id: "weekly", label: "Weekly digest email", defaultOn: false },
-            ].map(({ id, label, defaultOn }) => (
-              <div key={id} className="flex items-center justify-between">
-                <span className="text-sm">{label}</span>
-                <Switch
-                  checked={(prefs.notifications ?? {})[id] ?? defaultOn}
-                  onCheckedChange={(v) => onChange("notifications", { ...prefs.notifications, [id]: v })}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Completion screen
-function CompletionScreen({ onComplete }: { onComplete: () => void }) {
-  return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="text-center py-8 space-y-6"
-    >
-      <div className="relative inline-block">
-        <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-          <Sparkles className="h-10 w-10 text-primary" />
-        </div>
+    <div className="space-y-8">
+      <div className="text-center space-y-3">
         <motion.div
-          className="absolute -right-1 -top-1 h-6 w-6 bg-green-500 rounded-full flex items-center justify-center"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.3 }}
+          className="relative inline-block"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 12 }}
         >
-          <CheckCircle className="h-4 w-4 text-white" />
-        </motion.div>
-      </div>
-      <div>
-        <h2 className="text-2xl font-bold mb-2">You're all set! 🎉</h2>
-        <p className="text-muted-foreground">ALdeci is configured and ready to protect your applications.</p>
-      </div>
-      <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto text-sm">
-        {["Scanners connected", "App registered", "First scan complete"].map((item) => (
-          <div key={item} className="p-3 rounded-xl bg-muted/30 border border-border/40">
-            <CheckCircle className="h-4 w-4 text-green-500 mx-auto mb-1" />
-            <p className="text-xs text-muted-foreground">{item}</p>
+          <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
+            <Sparkles className="h-10 w-10 text-primary" />
           </div>
+          <motion.div
+            className="absolute -right-1 -top-1 h-6 w-6 bg-green-500 rounded-full flex items-center justify-center"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.35 }}
+          >
+            <CheckCircle className="h-4 w-4 text-white" />
+          </motion.div>
+        </motion.div>
+        <div>
+          <h2 className="text-2xl font-bold">
+            {orgName ? `${orgName} is ready!` : "You're all set!"}
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            ALDECI is configured and protecting your environment.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {highlights.map(({ icon: Icon, label, path }) => (
+          <motion.a
+            key={path}
+            href={path}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="p-3 rounded-xl bg-muted/30 border border-border/40 flex flex-col items-center gap-2 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-pointer no-underline"
+          >
+            <Icon className="h-5 w-5 text-primary" />
+            <p className="text-xs text-muted-foreground leading-tight">{label}</p>
+          </motion.a>
         ))}
       </div>
-      <Button className="gap-2" size="lg" onClick={onComplete}>
-        Go to Dashboard
-        <ArrowRight className="h-4 w-4" />
-      </Button>
-    </motion.div>
+
+      <div className="flex flex-col items-center gap-3">
+        <Button className="gap-2 w-full sm:w-auto" size="lg" onClick={onGo}>
+          Go to Dashboard
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+        <p className="text-xs text-muted-foreground">You can revisit this wizard anytime from Settings.</p>
+      </div>
+    </div>
   );
 }
 
-// --- MAIN COMPONENT ---
+// ── Main Component ───────────────────────────────────────────────────────────
 export default function OnboardingWizard() {
+  const navigate = useNavigate();
+
   const [step, setStep] = useState(1);
-  const [completed, setCompleted] = useState(false);
 
-  // Step 1 state
-  const [selectedScanners, setSelectedScanners] = useState<Set<string>>(new Set(["snyk", "trivy"]));
-  const toggleScanner = (id: string) => {
-    setSelectedScanners((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  // Step 1
+  const [orgName, setOrgName] = useState("");
 
-  // Step 2 state
-  const [appData, setAppData] = useState({
-    name: "",
-    criticality: "",
-    dataClassification: "",
-    frameworks: [] as string[],
-  });
-  const handleAppChange = (field: string, value: any) => setAppData((prev) => ({ ...prev, [field]: value }));
+  // Step 2
+  const [apiKey, setApiKey] = useState(() => generateApiKey(""));
 
-  // Step 3 state
+  // Step 3
+  const [selectedIntegration, setSelectedIntegration] = useState("github");
+  const [integrationUrl, setIntegrationUrl] = useState("");
+
+  // Step 4
+  const [repoUrl, setRepoUrl] = useState("");
   const [scanDone, setScanDone] = useState(false);
 
-  // Step 5 state
-  const [prefs, setPrefs] = useState({ role: "", theme: "dark", notifications: {} });
-  const handlePrefsChange = (field: string, value: any) => setPrefs((prev) => ({ ...prev, [field]: value }));
+  // Regenerate key when org name changes (only if user hasn't edited)
+  const handleOrgChange = (v: string) => {
+    setOrgName(v);
+    setApiKey(generateApiKey(v));
+  };
 
-  const canProceed = () => {
-    if (step === 1) return selectedScanners.size > 0;
-    if (step === 2) return !!appData.name && !!appData.criticality;
-    if (step === 3) return scanDone;
+  const canProceed = (): boolean => {
+    if (step === 1) return orgName.trim().length > 0;
+    if (step === 4) return scanDone;
     return true;
   };
 
   const handleNext = () => {
-    if (step < STEPS.length) setStep(step + 1);
-    else setCompleted(true);
+    if (step < STEPS.length) setStep((s) => s + 1);
   };
 
   const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+    if (step > 1) setStep((s) => s - 1);
   };
 
   const handleSkip = () => {
-    if (step < STEPS.length) setStep(step + 1);
-    else setCompleted(true);
+    if (step < STEPS.length) setStep((s) => s + 1);
   };
 
   const handleComplete = () => {
-    toast.success("Welcome to ALdeci! Redirecting to your dashboard…");
-    // In real app: navigate based on role
-    window.location.href = "/";
+    toast.success("Welcome to ALDECI! Redirecting to your dashboard…");
+    navigate("/dashboard");
   };
 
-  const progress = (step / STEPS.length) * 100;
+  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -520,82 +623,81 @@ export default function OnboardingWizard() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Shield className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold">ALdeci</span>
+            <span className="text-xl font-bold">ALDECI</span>
           </div>
-          {!completed && (
-            <p className="text-muted-foreground text-sm">Setup Wizard — Step {step} of {STEPS.length}</p>
-          )}
+          <p className="text-muted-foreground text-sm">
+            Setup Wizard — Step {step} of {STEPS.length}
+          </p>
         </div>
 
         {/* Progress bar */}
-        {!completed && (
-          <div className="mb-8">
-            <Progress value={progress} className="h-1 mb-6" />
-            <div className="flex justify-center">
-              <StepIndicator currentStep={step} totalSteps={STEPS.length} />
-            </div>
+        <div className="mb-8">
+          <Progress value={progress} className="h-1 mb-6" />
+          <div className="flex justify-center">
+            <StepIndicator currentStep={step} />
           </div>
-        )}
+        </div>
 
-        {/* Step content card */}
+        {/* Step content */}
         <Card className="shadow-xl border-border/60">
           <CardContent className="p-8">
             <AnimatePresence mode="wait">
-              {completed ? (
-                <motion.div
-                  key="complete"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -16 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <CompletionScreen onComplete={handleComplete} />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={step}
-                  initial={{ opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -24 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {step === 1 && (
-                    <StepConnectTools selected={selectedScanners} onToggle={toggleScanner} />
-                  )}
-                  {step === 2 && (
-                    <StepRegisterApp appData={appData} onChange={handleAppChange} />
-                  )}
-                  {step === 3 && (
-                    <StepRunScan
-                      selectedScanners={selectedScanners}
-                      appId={appData.name}
-                      onScanStart={() => setScanDone(true)}
-                    />
-                  )}
-                  {step === 4 && (
-                    <StepReviewResults selectedScanners={selectedScanners} />
-                  )}
-                  {step === 5 && (
-                    <StepPersonalize prefs={prefs} onChange={handlePrefsChange} />
-                  )}
-                </motion.div>
-              )}
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 28 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -28 }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
+              >
+                {step === 1 && (
+                  <StepWelcome orgName={orgName} onChange={handleOrgChange} />
+                )}
+                {step === 2 && (
+                  <StepApiKey
+                    orgName={orgName}
+                    apiKey={apiKey}
+                    onRegenerate={() => setApiKey(generateApiKey(orgName))}
+                  />
+                )}
+                {step === 3 && (
+                  <StepIntegration
+                    selected={selectedIntegration}
+                    url={integrationUrl}
+                    onSelect={(id) => {
+                      setSelectedIntegration(id);
+                      setIntegrationUrl("");
+                    }}
+                    onUrlChange={setIntegrationUrl}
+                  />
+                )}
+                {step === 4 && (
+                  <StepFirstScan
+                    repoUrl={repoUrl}
+                    onRepoChange={setRepoUrl}
+                    onScanComplete={() => setScanDone(true)}
+                  />
+                )}
+                {step === 5 && (
+                  <StepViewDashboard orgName={orgName} onGo={handleComplete} />
+                )}
+              </motion.div>
             </AnimatePresence>
           </CardContent>
 
           {/* Navigation */}
-          {!completed && (
-            <div className="px-8 pb-6 flex items-center justify-between border-t border-border/40 pt-5">
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                disabled={step === 1}
-                className="gap-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <div className="flex items-center gap-3">
+          <div className="px-8 pb-6 flex items-center justify-between border-t border-border/40 pt-5">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={step === 1}
+              className="gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </Button>
+
+            <div className="flex items-center gap-3">
+              {step < STEPS.length && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -605,17 +707,21 @@ export default function OnboardingWizard() {
                   <SkipForward className="h-3.5 w-3.5" />
                   Skip
                 </Button>
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  className="gap-2"
-                >
-                  {step === STEPS.length ? "Complete Setup" : "Continue"}
+              )}
+
+              {step < STEPS.length ? (
+                <Button onClick={handleNext} disabled={!canProceed()} className="gap-2">
+                  Continue
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-              </div>
+              ) : (
+                <Button onClick={handleComplete} className="gap-2" size="lg">
+                  Go to Dashboard
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          )}
+          </div>
         </Card>
       </div>
     </div>

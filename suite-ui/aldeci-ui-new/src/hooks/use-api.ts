@@ -602,6 +602,39 @@ export function useIntegrationsStatus() {
   });
 }
 
+export function useEndpointHealth() {
+  return useQuery({
+    queryKey: ["system", "endpoint-health"],
+    queryFn: async () => {
+      const { data } = await systemApi.endpointHealth();
+      return data;
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+export function useSystemLogsRecent(limit = 200) {
+  return useQuery({
+    queryKey: ["system", "logs-recent", limit],
+    queryFn: async () => {
+      const { data } = await systemApi.logsRecent(limit);
+      return data;
+    },
+    refetchInterval: 15_000,
+  });
+}
+
+export function usePlatformHealth() {
+  return useQuery({
+    queryKey: ["platform", "health"],
+    queryFn: async () => {
+      const { data } = await systemApi.platformHealth();
+      return data;
+    },
+    refetchInterval: 60_000,
+  });
+}
+
 export function useIngestStats() {
   return useQuery({
     queryKey: ["scanner-ingest", "stats"],

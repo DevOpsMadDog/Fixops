@@ -365,6 +365,10 @@ export const systemApi = {
   health: () => api.get("/api/v1/system/health"),
   metrics: () => api.get("/api/v1/system/metrics"),
   config: () => api.get("/api/v1/system/config"),
+  endpointHealth: () => api.get("/api/v1/system/endpoint-health"),
+  logsRecent: (limit = 200) => api.get("/api/v1/system/logs/recent", { params: { limit } }),
+  platformHealth: () => api.get("/api/v1/platform/health"),
+  prometheusMetrics: () => api.get("/api/v1/metrics/prometheus"),
 };
 
 export const knowledgeGraphApi = {
