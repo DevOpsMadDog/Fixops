@@ -2,7 +2,7 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-20T23:30:09.871360",
+  "generated_at": "2026-04-21T00:29:47.574732",
   "total_scope": 2466,
   "completed": 2449,
   "in_progress": 9,
@@ -125,37 +125,37 @@
   "eta_days": 0.1,
   "daily_burndown": [
     {
-      "date": "2026-04-20",
+      "date": "2026-04-21",
       "remaining": 17,
       "completed": 2449
     },
     {
-      "date": "2026-04-21",
+      "date": "2026-04-22",
       "remaining": 0,
       "completed": 2584
     },
     {
-      "date": "2026-04-22",
+      "date": "2026-04-23",
       "remaining": 0,
       "completed": 2719
     },
     {
-      "date": "2026-04-23",
+      "date": "2026-04-24",
       "remaining": 0,
       "completed": 2854
     },
     {
-      "date": "2026-04-24",
+      "date": "2026-04-25",
       "remaining": 0,
       "completed": 2989
     },
     {
-      "date": "2026-04-25",
+      "date": "2026-04-26",
       "remaining": 0,
       "completed": 3124
     },
     {
-      "date": "2026-04-26",
+      "date": "2026-04-27",
       "remaining": 0,
       "completed": 3259
     }
