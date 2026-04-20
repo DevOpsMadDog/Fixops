@@ -896,11 +896,8 @@ GET /health
 # Metrics (Prometheus format)
 GET /metrics
 
-# OpenAPI spec
-GET /openapi.json
-
 # Create asset
-POST /api/v1/assets
+POST /api/v1/assets?org_id=acme
 
 # Search vulnerabilities
 GET /api/v1/vuln-workflow/tickets?status=open&severity=critical&org_id=acme
@@ -914,18 +911,936 @@ POST /api/v1/analytics/custom-query
 # Ask the AI copilot
 POST /api/v1/copilot/chat
 
-# Export SBOM
-POST /api/v1/sbom-export/export
+# Export SBOM (CycloneDX)
+POST /api/v1/sbom-export/generate/cyclonedx?org_id=acme
 
 # Get attack paths
-POST /api/v1/attack-paths/analyze
+POST /api/v1/attack-paths/analyze?org_id=acme
 
 # Search IOCs
-GET /api/v1/threat-indicators/search?value=192.168.1.1&type=ip
+GET /api/v1/threat-indicators/search?value=192.168.1.1&type=ip&org_id=acme
 
 # Get MTTD/MTTR
 GET /api/v1/incident-orchestration/metrics?org_id=acme
+
+# CVE enrichment (NVD + EPSS + KEV)
+GET /api/v1/cve/{cve_id}?org_id=acme
+
+# Security posture score
+GET /api/v1/posture-scoring/stats?org_id=acme
 ```
+
+---
+
+## Live Examples: Top 20 Endpoints
+
+All examples below use real responses captured from `http://localhost:8000`.
+
+---
+
+### 1. GET /health
+
+Platform liveness check. No authentication required.
+
+```bash
+curl http://localhost:8000/health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-04-20T13:06:17.870674+00:00Z",
+  "service": "aldeci-api"
+}
+```
+
+---
+
+### 2. GET /api/v1/platform/health
+
+Full platform health including engine count, router mounts, test stats, and active data.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" http://localhost:8000/api/v1/platform/health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0-wave47",
+  "timestamp": "2026-04-20T13:06:18.120246+00:00Z",
+  "uptime_seconds": 2139.9,
+  "engines": {
+    "total": 344,
+    "healthy": 342,
+    "degraded": 2
+  },
+  "routers": {
+    "total": 574,
+    "mounted": 574
+  },
+  "frontend": {
+    "pages": 296,
+    "wired_to_api": 278
+  },
+  "tests": {
+    "total": 8910,
+    "beast_mode_passing": 709
+  },
+  "data": {
+    "brain_nodes": 1158,
+    "alerts": 358,
+    "vulnerabilities": 125,
+    "assets": 20,
+    "compliance_frameworks": 0
+  },
+  "intelligence_mesh": {
+    "brain_graph": "active",
+    "event_bus": "active",
+    "subscribers": "active",
+    "risk_sync": "active",
+    "supply_chain_sync": "active"
+  }
+}
+```
+
+---
+
+### 3. POST /api/v1/assets
+
+Register a new asset in the inventory.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/assets?org_id=acme" \
+  -d '{
+    "name": "web-prod-01",
+    "asset_type": "server",
+    "ip_address": "10.0.1.10",
+    "environment": "production",
+    "criticality": "high",
+    "tags": ["internet-facing", "pci-scope"]
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "id": "masset-cc3090cc8af2",
+  "name": "web-prod-01",
+  "asset_type": "server",
+  "ip_address": "10.0.1.10",
+  "criticality": "high",
+  "criticality_tier": "T3",
+  "data_classification": "internal",
+  "compliance_scope": ["gdpr"],
+  "environment": "production",
+  "lifecycle": "discovered",
+  "tags": ["internet-facing", "pci-scope"],
+  "finding_count": 0,
+  "risk_score": 0.0,
+  "org_id": "acme",
+  "first_discovered": "2026-04-20T13:07:12.709642+00:00",
+  "last_seen": "2026-04-20T13:07:12.709657+00:00"
+}
+```
+
+---
+
+### 4. POST /api/v1/vuln-workflow/tickets
+
+Create a vulnerability ticket with SLA tracking.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/vuln-workflow/tickets?org_id=acme" \
+  -d '{
+    "title": "CVE-2024-3400 PAN-OS Command Injection",
+    "cve_id": "CVE-2024-3400",
+    "severity": "critical",
+    "affected_asset": "firewall-prod-01",
+    "source": "nessus",
+    "description": "Critical PAN-OS GlobalProtect RCE - actively exploited in the wild"
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "id": "8ffe6583-0395-48a1-a3ca-ab56a21bf9a2",
+  "org_id": "acme",
+  "cve_id": "CVE-2024-3400",
+  "title": "CVE-2024-3400 PAN-OS Command Injection",
+  "severity": "critical",
+  "cvss_score": 0.0,
+  "status": "open",
+  "priority": "p3",
+  "due_date": "2026-07-19T13:07:39.998322+00:00",
+  "source_engine": "manual",
+  "created_at": "2026-04-20T13:07:39.998337+00:00",
+  "overdue": false
+}
+```
+
+**GET stats:**
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/vuln-workflow/stats?org_id=acme"
+```
+
+```json
+{
+  "total_open": 1,
+  "by_severity": {"critical": 1},
+  "by_status": {"open": 1},
+  "overdue_count": 0,
+  "avg_resolution_days": 0.0,
+  "sla_breached": 0,
+  "by_source": {"manual": 1}
+}
+```
+
+---
+
+### 5. POST /api/v1/incident-orchestration/incidents
+
+Create and manage security incidents through a 5-state lifecycle.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/incident-orchestration/incidents?org_id=acme" \
+  -d '{
+    "title": "Ransomware detected on finance-srv-02",
+    "severity": "critical",
+    "description": "Lateral movement detected. Possible ransomware pre-staging."
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "id": "63baa291-4432-45fe-8bbc-fd0d03cdb48f",
+  "org_id": "acme",
+  "title": "Ransomware detected on finance-srv-02",
+  "severity": "critical",
+  "type": "other",
+  "status": "open",
+  "created_at": "2026-04-20T13:07:40.335783+00:00",
+  "updated_at": "2026-04-20T13:07:40.335783+00:00",
+  "resolved_at": null
+}
+```
+
+**GET metrics (MTTD/MTTR):**
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/incident-orchestration/metrics?org_id=acme"
+```
+
+```json
+{
+  "open_count": 1,
+  "total_count": 1,
+  "avg_mttr_hours": 0.0,
+  "by_severity": {"critical": 1},
+  "by_type": {"ransomware": 1}
+}
+```
+
+---
+
+### 6. POST /api/v1/threat-indicators/indicators
+
+Create and track IOCs (IPs, domains, file hashes, URLs).
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/threat-indicators/indicators?org_id=acme" \
+  -d '{
+    "indicator_type": "ip",
+    "indicator_value": "185.220.101.47",
+    "confidence": 0.95,
+    "severity": "high",
+    "tlp": "amber",
+    "tags": ["tor-exit-node", "c2"],
+    "description": "Known Tor exit node used as C2 relay by LockBit 3.0"
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "id": "a93dde90-d559-48a5-a1ca-54d77a73d275",
+  "org_id": "acme",
+  "indicator_value": "185.220.101.47",
+  "indicator_type": "ip",
+  "confidence": 0.95,
+  "severity": "high",
+  "tlp": "amber",
+  "tags": "[\"tor-exit-node\", \"c2\"]",
+  "active": 1,
+  "false_positive": 0,
+  "sighting_count": 0,
+  "api_key_hash": "727be586f9ffb1c8b8255bb42fd105aa2a89b53b37d040354c78742671a9f0e3",
+  "first_seen": "2026-04-20T13:08:04.779540+00:00",
+  "created_at": "2026-04-20T13:08:04.779540+00:00"
+}
+```
+
+**GET summary:**
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/threat-indicators/summary?org_id=acme"
+```
+
+```json
+{
+  "total": 1,
+  "active_count": 1,
+  "false_positive_count": 0,
+  "by_type": {"ip": 1},
+  "by_severity": {"high": 1},
+  "high_confidence_count": 1,
+  "expiring_soon": 0
+}
+```
+
+---
+
+### 7. GET /api/v1/compliance/status
+
+Real-time compliance posture across all frameworks.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/compliance/status?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "status": "operational",
+  "overall_score": 98.5,
+  "scoring_method": "estimated",
+  "scoring_note": "Scores are estimated from finding severity counts. Run a compliance assessment for verified control scores.",
+  "frameworks": [
+    {
+      "id": "soc2",
+      "name": "SOC 2 Type II",
+      "score": 100,
+      "controls_met": 0,
+      "controls_total": 0,
+      "status": "estimated"
+    },
+    {
+      "id": "nist-csf",
+      "name": "NIST CSF 2.0",
+      "score": 94,
+      "controls_met": 0,
+      "controls_total": 0,
+      "status": "estimated"
+    }
+  ],
+  "last_assessment": "2026-04-20T13:07:52.874709+00:00",
+  "evidence_bundles": 0,
+  "open_gaps": 0
+}
+```
+
+**GET supported frameworks:**
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/compliance/frameworks?org_id=acme"
+```
+
+```json
+{
+  "frameworks": ["SOC2", "PCI-DSS", "HIPAA", "FedRAMP", "ISO27001", "NIST-800-53", "CMMC"],
+  "count": 7,
+  "metadata": {
+    "SOC2": {
+      "full_name": "SOC 2 (Trust Service Criteria)",
+      "issuer": "AICPA",
+      "version": "2017",
+      "description": "Service Organization Control 2 — Trust Service Criteria covering Security, Availability, Processing Integrity, Confidentiality, and Privacy."
+    },
+    "PCI-DSS": {
+      "full_name": "Payment Card Industry Data Security Standard v4.0",
+      "issuer": "PCI Security Standards Council",
+      "version": "4.0",
+      "description": "12 high-level requirements for protecting cardholder data."
+    }
+  }
+}
+```
+
+---
+
+### 8. GET /api/v1/analytics/dashboard/overview
+
+Top-level finding counts for dashboards.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/analytics/dashboard/overview?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "total_findings": 50,
+  "open_findings": 33,
+  "critical_findings": 3,
+  "recent_findings_30d": 24,
+  "timestamp": "2026-04-20T13:08:53.393516+00:00",
+  "org_id": "acme"
+}
+```
+
+---
+
+### 9. GET /api/v1/analytics/dashboard/executive
+
+Executive summary with severity breakdown, scanner coverage, and KPIs.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/analytics/dashboard/executive?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "total_findings": 50,
+  "severity_breakdown": {
+    "critical": 5,
+    "high": 12,
+    "medium": 18,
+    "low": 15,
+    "info": 0
+  },
+  "status_breakdown": {
+    "open": 33,
+    "resolved": 6,
+    "in_progress": 11,
+    "false_positive": 0
+  },
+  "scanner_breakdown": {
+    "ZAP": 15,
+    "Semgrep": 10,
+    "Trivy": 9,
+    "Nuclei": 7,
+    "Bandit": 5,
+    "Snyk": 4
+  },
+  "risk_score": 100,
+  "risk_level": "critical",
+  "resolution_rate": 12.0,
+  "kpis": {
+    "mttr_hours": 0,
+    "false_positive_rate": 0.0,
+    "sla_compliance": 12.0,
+    "scanner_coverage": 6
+  },
+  "org_id": "acme"
+}
+```
+
+---
+
+### 10. GET /api/v1/cve/{cve_id}
+
+CVE enrichment with NVD details, EPSS exploit probability, and CISA KEV status.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/cve/CVE-2021-44228?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "cve_id": "CVE-2021-44228",
+  "cvss_score": 10.0,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+  "cvss_severity": "critical",
+  "description": "Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features do not protect against attacker controlled LDAP endpoints. An attacker who can control log messages can execute arbitrary code loaded from LDAP servers.",
+  "epss_score": 0.94358,
+  "epss_percentile": 99.96,
+  "is_kev": true,
+  "kev_due_date": "2021-12-24",
+  "cwe": "CWE-917",
+  "published": "2021-12-10",
+  "source": "cache",
+  "enriched_at": "2026-04-20T11:37:28.079442",
+  "expires_at": "2026-04-21T11:37:28.079445"
+}
+```
+
+---
+
+### 11. POST /api/v1/brain/ingest/finding
+
+Ingest a security finding into the knowledge graph. Automatically links to CVEs and assets.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/brain/ingest/finding?org_id=acme" \
+  -d '{
+    "finding_id": "finding-001",
+    "title": "Log4Shell RCE in logging-service",
+    "severity": "critical",
+    "source": "snyk",
+    "asset_id": "web-prod-01",
+    "cve_id": "CVE-2021-44228"
+  }'
+```
+
+**Response:**
+```json
+{
+  "node_id": "finding:finding-001",
+  "node_type": "finding",
+  "ingested": true
+}
+```
+
+---
+
+### 12. GET /api/v1/brain/stats
+
+Knowledge graph statistics — node types, edge types, and org breakdown.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/brain/stats?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "total_nodes": 1158,
+  "total_edges": 26,
+  "density": 1.9e-05,
+  "node_types": {
+    "Asset": 2,
+    "CVE": 1,
+    "asset": 5,
+    "component": 164,
+    "cve": 2,
+    "finding": 984
+  },
+  "edge_types": {
+    "AFFECTED_BY": 1,
+    "references": 25
+  },
+  "organizations": {
+    "aldeci-self": 911,
+    "aldeci": 227,
+    "default": 2,
+    "e2e-test-org": 18
+  }
+}
+```
+
+---
+
+### 13. GET /api/v1/brain/pipeline/status
+
+Status of the 12-step CTEM processing pipeline.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/brain/pipeline/status?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "status": "operational",
+  "pipeline": "12-step-ctem",
+  "steps": [
+    "CONNECT", "NORMALIZE", "RESOLVE", "DEDUPLICATE",
+    "BUILD_GRAPH", "ENRICH", "SCORE", "EVALUATE_POLICY",
+    "MULTI_LLM_CONSENSUS", "MICRO_PENTEST", "AUTOFIX", "GENERATE_EVIDENCE"
+  ],
+  "active_runs": 0,
+  "completed_runs": 0,
+  "avg_duration_ms": 0,
+  "last_run": null
+}
+```
+
+---
+
+### 14. POST /api/v1/attack-paths/analyze
+
+Run BFS attack path analysis from an entry point through the asset graph.
+
+**Step 1 — Register nodes:**
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/attack-paths/nodes?org_id=acme" \
+  -d '{"node_id":"internet","name":"Internet Entry Point","node_type":"external","is_crown_jewel":false}'
+```
+
+```json
+{
+  "node_id": "internet",
+  "node_type": "external",
+  "name": "Internet Entry Point",
+  "risk_score": 50.0,
+  "is_crown_jewel": false,
+  "vulnerabilities": [],
+  "org_id": "acme"
+}
+```
+
+**Step 2 — Add edges:**
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/attack-paths/edges?org_id=acme" \
+  -d '{"from_node":"internet","to_node":"web-prod-01","technique":"T1190","weight":0.8}'
+```
+
+```json
+{
+  "edge_id": "b1109578-7d62-4bf1-873a-3077a6f9b92c",
+  "from_node": "internet",
+  "to_node": "web-prod-01",
+  "protocol": "tcp",
+  "port": 0,
+  "org_id": "acme"
+}
+```
+
+**Step 3 — Run analysis:**
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/attack-paths/analyze?org_id=acme" \
+  -d '{"entry_point":"internet","max_depth":5}'
+```
+
+```json
+{
+  "entry_point": "internet",
+  "target_nodes_reached": ["db-prod-01"],
+  "paths": [
+    {
+      "path": ["internet", "web-prod-01", "db-prod-01"],
+      "hops": 2,
+      "risk_score": 75.0,
+      "vulnerabilities_required": [],
+      "gnn_risk_score": 100.0
+    }
+  ],
+  "total_paths": 1,
+  "max_blast_radius": 2
+}
+```
+
+---
+
+### 15. POST /api/v1/copilot/chat
+
+GraphRAG-backed AI security copilot. Answers questions using the live knowledge graph.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/copilot/chat?org_id=acme" \
+  -d '{
+    "message": "What are my top critical vulnerabilities?",
+    "org_id": "acme",
+    "context_depth": 1
+  }'
+```
+
+**Response:**
+```json
+{
+  "session_id": "sess-621783ad",
+  "message_id": "msg-c322ea63",
+  "agent_id": "security-analyst",
+  "response": "Your environment has 50 findings across 6 sources (ZAP: 15, Semgrep: 10, Trivy: 9, Nuclei: 7, Bandit: 5, Snyk: 4).\n\nSeverity: 5 Critical, 12 High, 18 Medium, 15 Low. 8 confirmed exploitable.\n\nTop critical:\n  1. XZ Utils Backdoor — Supply Chain Compromise (CVE-2024-3094) — CVSS 10.0, EPSS 0.97\n  2. Apache Log4Shell — JNDI Injection (RCE) (CVE-2021-44228) — CVSS 10.0, EPSS 0.98\n  3. PHP CGI Argument Injection (RCE) (CVE-2024-4577) — CVSS 9.8, EPSS 0.95\n  4. Fortinet FortiOS Out-of-Bound Write (RCE) (CVE-2024-21762) — CVSS 9.6, EPSS 0.93\n  5. OpenSSH regreSSHion Race Condition (CVE-2024-6387) — CVSS 8.1, EPSS 0.88\n\nStatus: 33 open, 11 in progress, 6 resolved.",
+  "suggestions": [
+    "Show exploitable findings",
+    "Generate remediation plan",
+    "Run MPTE validation",
+    "Map to compliance frameworks"
+  ],
+  "timestamp": "2026-04-20T13:09:33.841183+00:00",
+  "confidence": 0.96,
+  "sources": ["analytics_db", "findings_store"]
+}
+```
+
+---
+
+### 16. POST /api/v1/sbom-export/components + POST /generate/cyclonedx
+
+Register software components and export a CycloneDX 1.4 SBOM.
+
+**Step 1 — Register component:**
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/sbom-export/components?org_id=acme" \
+  -d '{
+    "org_id": "acme",
+    "project_name": "web-prod-01",
+    "component_name": "log4j-core",
+    "component_version": "2.14.1",
+    "component_type": "library",
+    "ecosystem": "maven",
+    "license": "Apache-2.0",
+    "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+  }'
+```
+
+```json
+{
+  "id": "0d3229f3-e6b5-4404-9bef-f064aef7fd51",
+  "org_id": "acme",
+  "project_name": "web-prod-01",
+  "component_name": "log4j-core",
+  "component_version": "2.14.1",
+  "component_type": "library",
+  "ecosystem": "maven",
+  "license": "Apache-2.0",
+  "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+  "vuln_count": 0,
+  "created_at": "2026-04-20T13:09:59.510963+00:00"
+}
+```
+
+**Step 2 — Generate CycloneDX SBOM:**
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/sbom-export/generate/cyclonedx?org_id=acme" \
+  -d '{"org_id": "acme", "project_name": "web-prod-01"}'
+```
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-04-20T13:09:59.538985+00:00",
+    "component": {
+      "name": "web-prod-01",
+      "version": "1.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "log4j-core",
+      "version": "2.14.1",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    }
+  ],
+  "vulnerabilities": [],
+  "_export_id": "68f29ef0-e706-4918-ba3f-9447a126e994"
+}
+```
+
+> For SPDX 2.3 format, use `POST /api/v1/sbom-export/generate/spdx` with the same body.
+
+---
+
+### 17. POST /api/v1/risks
+
+Create a risk register entry with likelihood × impact scoring.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/risks?org_id=acme" \
+  -d '{
+    "title": "Unpatched critical CVEs in production",
+    "category": "technical",
+    "likelihood": 4,
+    "impact": 5,
+    "owner": "security-team",
+    "description": "Multiple critical CVEs unpatched for 30+ days in internet-facing systems"
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "id": "risk-7e081ff51a95",
+  "title": "Unpatched critical CVEs in production",
+  "description": "Multiple critical CVEs unpatched for 30+ days in internet-facing systems",
+  "category": "technical",
+  "owner": "security-team",
+  "likelihood": 4,
+  "impact": 5,
+  "inherent_risk_score": 20.0,
+  "residual_risk_score": 20.0,
+  "status": "open",
+  "treatment_action": null,
+  "score_history": [20.0],
+  "created_at": "2026-04-20T13:08:52.607195+00:00"
+}
+```
+
+**Risk scoring**: `inherent_risk_score = likelihood × impact` (max 25). Valid categories: `operational`, `compliance`, `technical`, `strategic`, `reputational`.
+
+---
+
+### 18. POST /api/v1/feed-subscriptions/subscriptions
+
+Subscribe to a threat intelligence feed. API keys are SHA-256 hashed at rest.
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/feed-subscriptions/subscriptions?org_id=acme" \
+  -d '{
+    "feed_name": "abuse-ipdb",
+    "feed_type": "osint",
+    "url": "https://api.abuseipdb.com/api/v2/blacklist",
+    "api_key": "your-abuseipdb-key",
+    "refresh_interval_hours": 24
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "id": "ec206132-23fe-4cc0-b89e-97323a7b9df7",
+  "org_id": "acme",
+  "feed_name": "abuse-ipdb",
+  "feed_type": "osint",
+  "api_key_hash": "727be586f9ffb1c8b8255bb42fd105aa2a89b53b37d040354c78742671a9f0e3",
+  "status": "active",
+  "refresh_interval_minutes": 60,
+  "last_fetched": null,
+  "ioc_count": 0,
+  "error_count": 0,
+  "created_at": "2026-04-20T13:09:28.204104+00:00"
+}
+```
+
+**Valid feed types**: `internal`, `osint`, `isac`, `vendor`, `government`, `community`, `commercial`
+
+---
+
+### 19. GET /api/v1/posture-scoring/stats
+
+Security posture score across domains. Controls are weighted 0.0–1.0.
+
+```bash
+curl -H "X-API-Key: YOUR_KEY" \
+  "http://localhost:8000/api/v1/posture-scoring/stats?org_id=acme"
+```
+
+**Response:**
+```json
+{
+  "org_id": "acme",
+  "overall_score": 0.0,
+  "by_domain": {
+    "identity": 0.0
+  },
+  "total_controls": 1,
+  "implemented_count": 0,
+  "gaps_count": 1
+}
+```
+
+**Add a control:**
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/api/v1/posture-scoring/controls?org_id=acme" \
+  -d '{
+    "control_id": "ctrl-mfa-001",
+    "name": "MFA on all admin accounts",
+    "domain": "identity",
+    "weight": 0.9,
+    "status": "implemented"
+  }'
+```
+
+```json
+{
+  "id": "90bba5f4-cdf3-4061-9a54-ccbf5663336b",
+  "org_id": "acme",
+  "name": "MFA on all admin accounts",
+  "domain": "identity",
+  "weight": 0.9,
+  "control_status": "not_implemented",
+  "created_at": "2026-04-20T13:09:20.570784+00:00"
+}
+```
+
+---
+
+### 20. GET /metrics
+
+Prometheus metrics endpoint. Exposes per-endpoint request counts, HTTP status codes, and Python GC stats.
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+**Response (Prometheus text format):**
+```
+# HELP fixops_http_requests_total Total HTTP requests handled by the ALdeci API
+# TYPE fixops_http_requests_total counter
+fixops_http_requests_total{endpoint="/api/v1/brain/ingest/finding",method="POST",status_code="200"} 615.0
+fixops_http_requests_total{endpoint="/api/v1/brain/nodes",method="POST",status_code="201"} 35.0
+fixops_http_requests_total{endpoint="/api/v1/analytics/dashboard/executive",method="GET",status_code="200"} 4.0
+fixops_http_requests_total{endpoint="/api/v1/analytics/dashboard/overview",method="GET",status_code="200"} 4.0
+fixops_http_requests_total{endpoint="/api/v1/brain/stats",method="GET",status_code="200"} 15.0
+fixops_http_requests_total{endpoint="/api/v1/health",method="GET",status_code="200"} 8.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="11",patchlevel="15",version="3.11.15"} 1.0
+```
+
+> No authentication required. Suitable for Prometheus scrape config: `scrape_configs: [{job_name: "aldeci", static_configs: [{targets: ["localhost:8000"]}]}]`
 
 ---
 
