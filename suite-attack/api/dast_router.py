@@ -393,6 +393,25 @@ async def list_scan_profiles() -> Dict[str, Any]:
     }
 
 
+@router.get("/stats")
+async def get_dast_stats(org_id: Optional[str] = Query(None)) -> Dict[str, Any]:
+    """Return aggregate DAST scan statistics."""
+    from core.dast_scanner import get_dast_scanner
+    scanner = get_dast_scanner()
+    all_findings = scanner.get_all_findings()
+    scans = scanner.list_scans()
+    critical = sum(1 for f in all_findings if f.severity.value == "critical")
+    high = sum(1 for f in all_findings if f.severity.value == "high")
+    endpoints_tested = len({f.url for f in all_findings})
+    return {
+        "scans": len(scans),
+        "findings": len(all_findings),
+        "critical": critical,
+        "high": high,
+        "endpoints_tested": endpoints_tested,
+    }
+
+
 @router.get("/health")
 async def dast_health() -> Dict[str, Any]:
     """Health check for the DAST scanner engine."""

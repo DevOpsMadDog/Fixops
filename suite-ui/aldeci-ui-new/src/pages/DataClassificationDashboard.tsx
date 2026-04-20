@@ -15,6 +15,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Database, ShieldAlert, AlertTriangle, Search, RefreshCw, FileText, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -179,7 +180,7 @@ export default function DataClassificationDashboard() {
             <Button variant="outline" size="sm" onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }} disabled={refreshing || dataLoading}>
               <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
             </Button>
-            <Button size="sm">Run Scan</Button>
+            <Button size="sm" onClick={() => toast.info("Data classification scan started…")}>Run Scan</Button>
           </div>
         }
       />

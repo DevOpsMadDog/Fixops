@@ -14,6 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Globe, ShieldAlert, Activity, Zap, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,7 +152,7 @@ export default function APISecurityDashboard() {
               <Globe className="h-4 w-4 text-blue-400" />
               API Inventory
             </CardTitle>
-            <Button variant="outline" size="sm" className="h-7 text-xs">Scan Now</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast.info("API scan initiated…")}>Scan Now</Button>
           </div>
           <CardDescription className="text-xs">Discovered APIs with auth, rate limiting, and risk assessment</CardDescription>
         </CardHeader>

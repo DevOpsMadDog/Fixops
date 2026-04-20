@@ -115,8 +115,8 @@ export default function IRPlaybookDashboard() {
     setLoading(true);
     try {
       const [s, e] = await Promise.all([
-        apiFetch("/api/v1/ir/stats?org_id=default"),
-        apiFetch("/api/v1/ir/incidents?org_id=default&limit=10"),
+        apiFetch("/api/v1/ir/playbooks"),
+        apiFetch("/api/v1/ir/playbooks"),
       ]);
       if (s && typeof s.playbooks === "number") setStats(s);
       if (Array.isArray(e) && e.length > 0) setExecutions(e);

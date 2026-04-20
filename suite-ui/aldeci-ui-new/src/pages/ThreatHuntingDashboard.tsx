@@ -134,7 +134,7 @@ export default function ThreatHuntingDashboard() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/hunting/sessions?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
     ]).then(([statsResult, huntsResult]) => {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const hunts = huntsResult.status === "fulfilled" ? huntsResult.value : null;

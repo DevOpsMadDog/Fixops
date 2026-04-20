@@ -14,6 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, PlayCircle, GitBranch, Clock, RefreshCw, Activity, Link2 } from "lucide-react";
+import { toast } from "sonner";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";

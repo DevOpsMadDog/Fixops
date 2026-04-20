@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"# Check what fetch patterns exist in the pages\\ngrep -r \\\"fetch(\\\" /Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new/src/pages/ | grep -v \\\"node_modules\\\\|test\\\\|spec\\\" | grep -oP \\\"fe...",
-  "error": "Exit code 2\n/opt/homebrew/bin/bash: eval: line 2: unexpected EOF while looking for matching ``'",
-  "timestamp": "2026-04-20T20:56:34.259Z",
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\n# Find and restart the server process\\npkill -f \\\"uvicorn.*app\\\" 2>/dev/null || pkill -f \\\"python.*app.py\\\" 2>/dev/null || true\\nsleep 2\\n# Start server ...",
+  "error": "Exit code 7\nServer PID: 55665\n000",
+  "timestamp": "2026-04-20T21:01:31.608Z",
   "retry_count": 1
 }

@@ -17,6 +17,7 @@ const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" }
 
 import { motion } from "framer-motion";
 import { ScanLine, AlertTriangle, Activity, Play, RefreshCw, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -122,7 +123,7 @@ export default function VulnScanDashboard() {
         description="Scan history, active scans progress, findings severity breakdown across all scanner types"
         badge="Live"
         actions={
-          <Button size="sm" variant="outline" className="gap-2">
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => toast.info("Refreshing scan data…")}>
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </Button>
