@@ -367,3 +367,5 @@
 {"t":0,"agent":"ace7400","agent_type":"unknown","event":"agent_stop","success":true}
 {"t":0,"agent":"a376f52","agent_type":"unknown","event":"agent_stop","success":true}
 {"t":0,"agent":"a43cb29","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"a99f260","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a39ea16","agent_type":"executor","event":"agent_start","parent_mode":"none"}
