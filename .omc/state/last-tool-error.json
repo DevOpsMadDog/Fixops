@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"TOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\ncurl -s -H \\\"X-API-Key: $TOKEN\\\" http://localhost:8000/openapi.json | python3 -c \\\"\\nimport sys, json...",
+  "tool_input_preview": "{\"command\":\"python3 -c \\\"\\nimport sys; sys.path.insert(0,'suite-core')\\nfrom core.awareness_campaign_engine import AwarenessCampaignEngine\\nfrom core.behavioral_analytics_engine import BehavioralAnaly...",
   "error": "Exit code 1",
-  "timestamp": "2026-04-20T11:38:20.423Z",
+  "timestamp": "2026-04-20T11:54:31.183Z",
   "retry_count": 1
 }
