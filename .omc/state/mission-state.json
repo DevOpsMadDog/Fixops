@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-20T14:36:04.334Z",
+  "updatedAt": "2026-04-20T14:38:14.317Z",
   "missions": [
     {
       "id": "session:cd94a3bb-f4d2-444d-81a3-399864718b47:none",
@@ -3285,15 +3285,15 @@
       "name": "none",
       "objective": "Session mission",
       "createdAt": "2026-04-16T05:52:26.956Z",
-      "updatedAt": "2026-04-20T14:36:04.334Z",
+      "updatedAt": "2026-04-20T14:38:14.317Z",
       "status": "running",
       "workerCount": 199,
       "taskCounts": {
         "total": 199,
         "pending": 0,
         "blocked": 0,
-        "inProgress": 21,
-        "completed": 178,
+        "inProgress": 20,
+        "completed": 179,
         "failed": 0
       },
       "agents": [
@@ -5271,11 +5271,11 @@
           "name": "designer:abb7cdd",
           "role": "designer",
           "ownership": "abb7cdd44844ee2a2",
-          "status": "running",
+          "status": "done",
           "currentStep": null,
-          "latestUpdate": null,
+          "latestUpdate": "completed",
           "completedSummary": null,
-          "updatedAt": "2026-04-20T14:34:48.969Z"
+          "updatedAt": "2026-04-20T14:38:14.317Z"
         },
         {
           "name": "executor:a75d715",
@@ -5320,6 +5320,14 @@
           "agent": "executor:afc6674",
           "detail": "completed",
           "sourceKey": "session-stop:afc66741286e6c70d"
+        },
+        {
+          "id": "session-stop:abb7cdd44844ee2a2:2026-04-20T14:38:14.317Z",
+          "at": "2026-04-20T14:38:14.317Z",
+          "kind": "completion",
+          "agent": "designer:abb7cdd",
+          "detail": "completed",
+          "sourceKey": "session-stop:abb7cdd44844ee2a2"
         }
       ]
     }

@@ -1740,7 +1740,9 @@
       "agent_type": "oh-my-claudecode:designer",
       "started_at": "2026-04-20T14:34:48.969Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-20T14:38:14.316Z",
+      "duration_ms": 205347
     },
     {
       "agent_id": "a75d71527f6d87716",
@@ -1751,7 +1753,7 @@
     }
   ],
   "total_spawned": 199,
-  "total_completed": 178,
+  "total_completed": 179,
   "total_failed": 0,
-  "last_updated": "2026-04-20T14:36:04.436Z"
+  "last_updated": "2026-04-20T14:38:14.418Z"
 }
