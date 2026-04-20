@@ -1295,8 +1295,8 @@ export default function ThreatIntelDashboard() {
     setLoading(true);
     try {
       const [cveRes, iocRes] = await Promise.allSettled([
-        fetch(`${API}/api/v1/threat-intel/cves/recent?org_id=default`).then(r => r.json()),
-        fetch(`${API}/api/v1/threat-intel/iocs?org_id=default`).then(r => r.json()),
+        fetch(`${API}/api/v1/cve/search?org_id=default&limit=20`).then(r => r.json()),
+        fetch(`${API}/api/v1/threat-intel/actors?org_id=default`).then(r => r.json()),
       ]);
       setCves(cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : generateMockCves());
       setIocs(iocRes.status === "fulfilled" && Array.isArray(iocRes.value) ? iocRes.value : generateMockIocs());

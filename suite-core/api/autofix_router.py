@@ -11,12 +11,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from core.audit_logger import get_audit_logger
+from core.audit_logger import create_audit_logger
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 
 logger = logging.getLogger(__name__)
-_audit = get_audit_logger()
+_audit = create_audit_logger()
 
 router = APIRouter(prefix="/api/v1/autofix", tags=["AutoFix"])
 

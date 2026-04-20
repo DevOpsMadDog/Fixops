@@ -273,7 +273,7 @@ export default function SecretsRotation() {
   const { data: secrets } = useQuery<Secret[]>({
     queryKey: ["secrets-rotation"],
     queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/secrets-rotation/list?org_id=default`);
+      const res = await fetch(`${API}/api/v1/secrets-rotation/?org_id=default`);
       if (!res.ok) throw new Error("secrets api unavailable");
       return res.json();
     },

@@ -158,8 +158,8 @@ export default function ContainerSecurityDashboard() {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch("/api/v1/containers/policies"),
-      apiFetch("/api/v1/k8s/posture"),
-      apiFetch("/api/v1/k8s/findings?limit=50"),
+      apiFetch("/api/v1/kubernetes-security/stats?org_id=default"),
+      apiFetch("/api/v1/kubernetes-security/findings?org_id=default&limit=50"),
     ]).then(([policiesRes, postureRes, findingsRes]) => {
       if (policiesRes.status === "fulfilled" && policiesRes.value?.policies) {
         setPolicies(policiesRes.value.policies);

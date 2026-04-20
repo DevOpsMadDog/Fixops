@@ -677,7 +677,7 @@ export default function SupplyChainSecurity() {
     queryKey: ["supply-chain-summary"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API}/api/v1/supply-chain/risk-summary?org_id=default`);
+        const res = await fetch(`${API}/api/v1/supply-chain-intel/stats?org_id=default`);
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
       } catch {
@@ -691,7 +691,7 @@ export default function SupplyChainSecurity() {
     queryKey: ["supply-chain-dependencies"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API}/api/v1/supply-chain/dependencies?org_id=default`);
+        const res = await fetch(`${API}/api/v1/supply-chain-intel/packages?org_id=default`);
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
       } catch {

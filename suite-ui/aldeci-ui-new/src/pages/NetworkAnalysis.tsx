@@ -109,7 +109,7 @@ export default function NetworkAnalysis() {
 
   const { data: talkers = TALKERS, isLoading: l1 } = useQuery({
     queryKey: ["network-flows"],
-    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network/flows?org_id=default`, { headers: { "X-API-Key": API_KEY } }); if (!r.ok) throw 0; return r.json(); } catch { return TALKERS; } },
+    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network-monitoring/stats?org_id=default`, { headers: { "X-API-Key": API_KEY } }); if (!r.ok) throw 0; return r.json(); } catch { return TALKERS; } },
   });
 
   const anomalies = ndrAlerts;

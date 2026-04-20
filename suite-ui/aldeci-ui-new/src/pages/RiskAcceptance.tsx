@@ -379,7 +379,7 @@ export default function RiskAcceptancePage() {
     queryKey: ["risk-acceptance"],
     queryFn: async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/list?org_id=default`);
+        const response = await fetch(`${API_BASE}/api/v1/risk-acceptance?org_id=default`);
         if (!response.ok) throw new Error("Failed to fetch risk acceptance data");
         return response.json();
       } catch {

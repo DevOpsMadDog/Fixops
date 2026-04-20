@@ -174,10 +174,10 @@ export default function AttackSurfaceDashboard() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/attack-surface/summary?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/attack-surface/score?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/attack-surface/assets?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/attack-surface/paths?org_id=${ORG_ID}&min_score=0`),
-      apiFetch(`/api/v1/attack-surface/changes?org_id=${ORG_ID}&since_days=7`),
+      apiFetch(`/api/v1/attack-surface/exposed?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/attack-surface/shadow-it?org_id=${ORG_ID}`),
     ]).then(([summaryRes, assetsRes, pathsRes, changesRes]) => {
       const summary = summaryRes.status === "fulfilled" ? summaryRes.value : null;
       const assets  = assetsRes.status  === "fulfilled" ? assetsRes.value  : null;
@@ -193,7 +193,7 @@ export default function AttackSurfaceDashboard() {
     setScanning(true);
     setScanMsg(null);
     try {
-      await apiFetch(`/api/v1/attack-surface/discover`, {
+      await apiFetch(`/api/v1/attack-surface/assets/discover`, {
         method: "POST",
         body: JSON.stringify({ findings: [], org_id: ORG_ID }),
       });

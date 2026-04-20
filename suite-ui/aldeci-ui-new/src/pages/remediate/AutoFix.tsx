@@ -337,7 +337,7 @@ export default function AutoFix() {
   const handleBatchApprove = async () => {
     try {
       const ids = Array.from(selectedIds);
-      const resp = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/autofix/batch-approve', {
+      const resp = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/autofix/approve', {
         method: 'POST',
         headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
         body: JSON.stringify({ fix_ids: ids }),
@@ -367,7 +367,7 @@ export default function AutoFix() {
           onClick={async () => {
             toast.info("Generating autofixes for all eligible findings...");
             try {
-              await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/autofix/generate-all', {
+              await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/autofix/generate/bulk', {
                 method: 'POST',
                 headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ scope: 'all_open' }),
