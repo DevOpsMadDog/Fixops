@@ -409,6 +409,7 @@ const CloudCostOptimizationDashboard = lazy(() => import("@/pages/CloudCostOptim
 
 // Sales & Marketing
 const CompetitiveComparisonPage = lazy(() => import("@/pages/CompetitiveComparisonPage"));
+const LandingPage = lazy(() => import("@/pages/LandingPage"));
 
 // Wave 41 domain dashboards (frontend pages for Wave 40 engines)
 const ArchReviewDashboard = lazy(() => import("@/pages/ArchReviewDashboard"));
@@ -501,6 +502,7 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
+          <Route path="/landing" element={<LandingPage />} />
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
