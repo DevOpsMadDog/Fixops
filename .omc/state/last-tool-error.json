@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 << 'SCRIPT'\\nimport subprocess, re, sys\\n\\nPAGES_DIR = '/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new'\\n\\ndef run_build():\\n    result = subprocess.run(['npm', 'run', 'buil...",
-  "error": "Exit code 1\n  File \"<stdin>\", line 33\n    print(f\"  Fix: )))} -> ))}\")\n                               ^\nSyntaxError: f-string: single '}' is not allowed",
-  "timestamp": "2026-04-18T11:07:08.904Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"TOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\ncurl -s -H \\\"X-API-Key: $TOKEN\\\" http://localhost:8000/openapi.json | python3 -c \\\"\\nimport sys, json...",
+  "error": "Exit code 1",
+  "timestamp": "2026-04-20T11:38:20.423Z",
+  "retry_count": 1
 }
