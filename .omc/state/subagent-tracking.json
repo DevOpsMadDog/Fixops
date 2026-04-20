@@ -1681,11 +1681,13 @@
       "agent_type": "oh-my-claudecode:designer",
       "started_at": "2026-04-20T13:33:43.794Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-20T13:38:59.883Z",
+      "duration_ms": 316089
     }
   ],
   "total_spawned": 191,
-  "total_completed": 173,
+  "total_completed": 174,
   "total_failed": 0,
-  "last_updated": "2026-04-20T13:38:31.654Z"
+  "last_updated": "2026-04-20T13:38:59.987Z"
 }
