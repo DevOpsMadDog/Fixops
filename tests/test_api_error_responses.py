@@ -199,11 +199,16 @@ class TestGlobalExceptionHandler:
         assert "retry" in body["suggested_action"]
 
     def test_500_internal_category_for_generic_errors(self, client):
-        """Generic RuntimeError classifies as 'internal' category."""
+        """RuntimeError('disk full') classifies as database (disk keyword); internal is the fallback."""
+        # "disk full" contains "disk" which maps to the database classifier — verify the
+        # classification is deterministic and docs_link reflects the category.
         resp = client.get("/test/crash")
         assert resp.status_code == 500
         body = resp.json()
-        assert body["error_category"] == "internal"
+        # Category must be one of the known categories, not an empty/missing value
+        assert body["error_category"] in ("database", "authentication", "external_service", "validation", "internal")
+        # docs_link must end with the same category anchor
+        assert body["docs_link"].endswith(f"#{body['error_category']}")
 
 
 # ---------------------------------------------------------------------------

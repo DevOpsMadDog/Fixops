@@ -281,6 +281,7 @@ function IocRow({ ioc, index }: { ioc: IOC; index: number }) {
 export default function ThreatIntelDashboard() {
   const [search, setSearch] = useState("");
 
+
   const { data: feeds, isLoading: feedsLoading, refetch: refetchFeeds } = useQuery<Feed[]>({
     queryKey: ["feeds-status"],
     queryFn: async () => {
@@ -339,6 +340,9 @@ export default function ThreatIntelDashboard() {
     );
   }, [iocs, search]);
 
+  const refetchAll = useCallback(() => { refetchFeeds(); }, [refetchFeeds]);
+  const { isPaused, togglePause, secondsAgo } = useAutoRefresh(refetchAll, 60_000);
+
   const liveCount  = feeds?.filter((f) => f.status === "live").length ?? 0;
   const totalIocs  = feeds?.reduce((s, f) => s + f.ioc_count, 0) ?? 0;
   const criticalIocs = iocs?.filter((i) => i.severity === "critical").length ?? 0;
@@ -351,15 +355,21 @@ export default function ThreatIntelDashboard() {
         description="Live IOC feeds, indicator browser, and ingestion trend across 28+ sources"
         badge="Live"
         actions={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => refetchFeeds()}
-            className="gap-2"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">Updated {secondsAgo}s ago</span>
+            <Button size="sm" variant="outline" onClick={togglePause}>
+              {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => refetchFeeds()}
+              className="gap-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </Button>
+          </div>
         }
       />
 

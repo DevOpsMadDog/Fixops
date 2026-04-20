@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"/opt/homebrew/bin/omni exec python -m pytest tests/test_api_error_responses.py -v --timeout=10 -q 2>&1\"}",
-  "error": "Exit code 1\ncachedir: .pytest_cache\ntimeout: 10.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 10 items\n\ntests/test_api_error_responses.py::TestGlobalExceptionHandler::test_500_has_required_descriptive_fields \n-------------------------------- live log call ---------------------------------\n2026-04-20 23:07:36 [    INFO] httpx: HTTP Request: GET http...",
-  "timestamp": "2026-04-20T13:08:59.504Z",
-  "retry_count": 4
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\ngit add -A && git commit -m \\\"$(cat <<'EOF'\\nbeast-mode(wave61): Auto-refresh dashboards + better error messages + API docs\\n\\n1. Auto-refresh hook on 5 ...",
+  "error": "Exit code 2\n/opt/homebrew/bin/bash: eval: line 32: unexpected EOF while looking for matching `\"'",
+  "timestamp": "2026-04-20T13:11:27.615Z",
+  "retry_count": 1
 }

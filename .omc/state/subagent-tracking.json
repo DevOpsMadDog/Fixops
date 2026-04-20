@@ -1582,14 +1582,18 @@
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-20T13:05:51.912Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-20T13:10:47.259Z",
+      "duration_ms": 295347
     },
     {
       "agent_id": "a29bf9b48f0aa47fa",
       "agent_type": "oh-my-claudecode:executor",
       "started_at": "2026-04-20T13:05:59.344Z",
       "parent_mode": "none",
-      "status": "running"
+      "status": "completed",
+      "completed_at": "2026-04-20T13:10:55.503Z",
+      "duration_ms": 296159
     },
     {
       "agent_id": "a28b507f489f140cd",
@@ -1600,7 +1604,7 @@
     }
   ],
   "total_spawned": 182,
-  "total_completed": 162,
+  "total_completed": 164,
   "total_failed": 0,
-  "last_updated": "2026-04-20T13:06:05.875Z"
+  "last_updated": "2026-04-20T13:10:55.606Z"
 }

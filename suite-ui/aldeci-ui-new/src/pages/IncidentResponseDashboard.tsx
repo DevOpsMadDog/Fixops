@@ -147,7 +147,7 @@ export default function IncidentResponseDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     setDataLoading(true);
     Promise.allSettled([
       apiFetch(`/api/v1/incidents/stats?org_id=${ORG_ID}`),
@@ -163,8 +163,13 @@ export default function IncidentResponseDashboard() {
     }).finally(() => setDataLoading(false));
   }, []);
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const { isPaused, togglePause, secondsAgo } = useAutoRefresh(fetchData, 30_000);
+
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchData();
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -211,9 +216,15 @@ export default function IncidentResponseDashboard() {
         title="Incident Response"
         description="Full lifecycle incident management and playbook execution"
         actions={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
-            <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">Updated {secondsAgo}s ago</span>
+            <Button variant="outline" size="sm" onClick={togglePause}>
+              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || dataLoading}>
+              <RefreshCw className={cn("h-4 w-4", (refreshing || dataLoading) && "animate-spin")} />
+            </Button>
+          </div>
         }
       />
 
