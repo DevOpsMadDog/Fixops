@@ -32,7 +32,6 @@ import {
 import {
   RadialBarChart, RadialBar, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell,
-  defs, linearGradient, stop,
 } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -312,7 +311,7 @@ function AlertSeverityChart({ data }: { data: { severity: string; count: number 
         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
         <XAxis
           dataKey="severity"
-          tick={{ fill: "#71717a", fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}
+          tick={{ fill: "#71717a", fontSize: 10, fontWeight: 600 }}
           axisLine={false}
           tickLine={false}
         />
