@@ -455,3 +455,4 @@
 {"t":0,"agent":"a84cce1","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"aef3a0f","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"aae0d7a","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"aae0d7a","agent_type":"executor","event":"agent_stop","success":true}
