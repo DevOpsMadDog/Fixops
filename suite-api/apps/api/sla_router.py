@@ -85,9 +85,8 @@ class EscalateResponse(BaseModel):
 
 
 @router.get("/")
-async def list_sla(org_id: str = Depends(get_org_id)):
+async def list_sla(org_id: str = Depends(get_org_id), manager: SLAManager = Depends(_get_manager)):
     """List SLA records for the org."""
-    manager = _get_manager(org_id)
     breached = manager.get_breached(org_id)
     at_risk = manager.get_at_risk(org_id)
     return {"org_id": org_id, "breached": [r.model_dump() for r in breached], "at_risk": [r.model_dump() for r in at_risk], "total": len(breached) + len(at_risk)}

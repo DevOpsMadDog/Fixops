@@ -89,6 +89,12 @@ class ActionComplete(BaseModel):
 # Playbooks
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_threat_response(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get threat response summary for the org."""
+    return _get_engine().get_response_summary(org_id=org_id)
+
+
 @router.post("/playbooks", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_playbook(body: PlaybookCreate, org_id: str = Query(...)):
     """Create a new response playbook."""

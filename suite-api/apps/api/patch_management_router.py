@@ -76,6 +76,13 @@ class DeploymentCreate(BaseModel):
 # Patches
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_patch_management(org_id: str = Query("default")) -> Dict[str, Any]:
+    """List patches for the org."""
+    patches = _get_engine().list_patches(org_id=org_id)
+    return {"org_id": org_id, "patches": patches, "total": len(patches)}
+
+
 @router.post("/patches", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_patch(body: PatchCreate, org_id: str = Query(...)):
     """Register a new patch."""

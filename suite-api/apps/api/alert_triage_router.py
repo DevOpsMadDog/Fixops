@@ -90,6 +90,12 @@ class BulkTriageRequest(BaseModel):
 
 # ---------------------------------------------------------------------------
 # Endpoints
+
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_alert_triage(org_id: str = Query("default")) -> Dict[str, Any]:
+    """List alerts in the triage queue for the org."""
+    alerts = _get_engine().list_alerts(org_id=org_id)
+    return {"org_id": org_id, "alerts": alerts, "total": len(alerts)}
 # ---------------------------------------------------------------------------
 
 @router.post("/alerts", dependencies=[Depends(api_key_auth)])
