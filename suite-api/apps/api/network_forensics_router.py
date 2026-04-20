@@ -48,6 +48,13 @@ class AnalyzeRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/")
+def list_network_forensics(org_id: str = Query("default")):
+    """List network forensics captures for the org."""
+    captures = _get_engine().list_captures(org_id=org_id)
+    return {"org_id": org_id, "captures": captures, "total": len(captures)}
+
+
 @router.post("/captures")
 async def create_capture(
     body: CaptureCreate,

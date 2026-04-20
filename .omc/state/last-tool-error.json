@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"\\\\\\nFIXOPS_API_TOKEN=fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_ \\\\\\nALDECI_TOKEN=fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps...",
-  "error": "Exit code 1\n\n\u001b[1m\u001b[96m╔════════════════════════════════════════════════════════════════════╗\u001b[0m\n\u001b[1m\u001b[96m║            ALDECI SELF-SECURITY-SCAN  —  Dog-Food Mode             ║\u001b[0m\n\u001b[1m\u001b[96m║           Target: Fixops  |  API: http://localhost:8000            ║\u001b[0m\n\u001b[1m\u001b[96m╚════════════════════════════════════════════════════════════════════╝\u001b[0m\n\n  Backend health: HTTP 200  \u001b[92mreachable\u001b[0m\n\n\u001b[1m──────────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[1m  CHECK 1 — Bandit ...",
-  "timestamp": "2026-04-20T21:55:19.962Z",
+  "tool_name": "Glob",
+  "tool_input_preview": "{\"pattern\":\"/Users/devops.ai/fixops/Fixops/scripts/populate_multica*.py\"}",
+  "error": "spawn /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg ENOENT",
+  "timestamp": "2026-04-20T21:56:22.619Z",
   "retry_count": 1
 }

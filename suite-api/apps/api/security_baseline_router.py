@@ -94,6 +94,13 @@ class RunAssessmentRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_security_baselines(org_id: str = Query("default")) -> Dict[str, Any]:
+    """List security baselines for the org."""
+    baselines = _get_engine().list_baselines(org_id=org_id)
+    return {"org_id": org_id, "baselines": baselines, "total": len(baselines)}
+
+
 @router.post("/baselines", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_baseline(
     req: CreateBaselineRequest,

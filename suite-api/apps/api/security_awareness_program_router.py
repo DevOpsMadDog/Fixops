@@ -80,6 +80,13 @@ class EventRecord(BaseModel):
 # Programs
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_awareness_programs(org_id: str = Query("default")) -> Dict[str, Any]:
+    """List security awareness programs for the org."""
+    programs = _get_engine().list_programs(org_id=org_id)
+    return {"org_id": org_id, "programs": programs, "total": len(programs)}
+
+
 @router.post("/programs", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_program(body: ProgramCreate, org_id: str = Query(...)):
     """Create a new awareness program."""

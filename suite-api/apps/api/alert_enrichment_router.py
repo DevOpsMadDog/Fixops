@@ -103,6 +103,12 @@ class ToggleSourceRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/", dependencies=[Depends(api_key_auth)])
+def list_alert_enrichment(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Get alert enrichment summary for the org."""
+    return _get_engine().get_enrichment_summary(org_id=org_id)
+
+
 @router.post("/alerts", dependencies=[Depends(api_key_auth)], status_code=201)
 def submit_alert(
     req: SubmitAlertRequest,
