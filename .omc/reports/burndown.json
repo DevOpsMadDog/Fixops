@@ -2,40 +2,40 @@
   "sprint": "Wave 42-44",
   "start_date": "2026-04-17",
   "end_date": "2026-04-18",
-  "generated_at": "2026-04-21T07:43:08.334604",
-  "total_scope": 2466,
+  "generated_at": "2026-04-21T07:58:10.561018",
+  "total_scope": 2476,
   "completed": 2449,
   "in_progress": 9,
-  "todo": 7,
-  "completion_pct": 99.3,
+  "todo": 17,
+  "completion_pct": 98.9,
   "by_priority": {
     "medium": {
       "done": 2332,
       "in_progress": 3,
-      "todo": 0
+      "todo": 5
     },
     "high": {
       "done": 41,
       "in_progress": 3,
-      "todo": 7
+      "todo": 11
+    },
+    "urgent": {
+      "done": 8,
+      "in_progress": 3,
+      "todo": 1
     },
     "low": {
       "done": 68,
       "in_progress": 0,
       "todo": 0
-    },
-    "urgent": {
-      "done": 8,
-      "in_progress": 3,
-      "todo": 0
     }
   },
   "by_subepic": {
     "ASPM": {
-      "total": 16,
+      "total": 18,
       "done": 14,
       "in_progress": 2,
-      "todo": 0
+      "todo": 2
     },
     "CTEM": {
       "total": 5,
@@ -44,16 +44,16 @@
       "todo": 0
     },
     "CSPM": {
-      "total": 4,
+      "total": 5,
       "done": 3,
       "in_progress": 1,
-      "todo": 0
+      "todo": 1
     },
     "SIEM": {
-      "total": 5,
+      "total": 6,
       "done": 5,
       "in_progress": 0,
-      "todo": 0
+      "todo": 1
     },
     "EDR/XDR": {
       "total": 3,
@@ -68,16 +68,16 @@
       "todo": 0
     },
     "GRC": {
-      "total": 30,
+      "total": 31,
       "done": 29,
       "in_progress": 1,
-      "todo": 0
+      "todo": 1
     },
     "VULN": {
-      "total": 26,
+      "total": 27,
       "done": 26,
       "in_progress": 0,
-      "todo": 0
+      "todo": 1
     },
     "THREAT_INTEL": {
       "total": 14,
@@ -86,34 +86,34 @@
       "todo": 0
     },
     "SOC": {
-      "total": 28,
+      "total": 29,
       "done": 27,
       "in_progress": 1,
-      "todo": 0
+      "todo": 1
     },
     "CLOUD": {
-      "total": 27,
+      "total": 28,
       "done": 25,
       "in_progress": 1,
-      "todo": 1
+      "todo": 2
     },
     "FRONTEND": {
-      "total": 8,
+      "total": 11,
       "done": 7,
       "in_progress": 1,
-      "todo": 0
+      "todo": 3
     },
     "TESTING": {
-      "total": 671,
+      "total": 672,
       "done": 669,
       "in_progress": 1,
-      "todo": 1
+      "todo": 2
     },
     "ENGINE": {
-      "total": 39,
+      "total": 41,
       "done": 30,
       "in_progress": 1,
-      "todo": 8
+      "todo": 10
     }
   },
   "velocity": {
@@ -122,11 +122,11 @@
     "wave42": 0
   },
   "velocity_per_day": 135,
-  "eta_days": 0.1,
+  "eta_days": 0.2,
   "daily_burndown": [
     {
       "date": "2026-04-21",
-      "remaining": 17,
+      "remaining": 27,
       "completed": 2449
     },
     {

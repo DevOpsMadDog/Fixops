@@ -465,3 +465,4 @@
 {"t":0,"agent":"aa0201c","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"abc43d2","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a426f5e","agent_type":"executor","event":"agent_stop","success":true}
+{"t":0,"agent":"abc43d2","agent_type":"executor","event":"agent_stop","success":true}
