@@ -429,3 +429,4 @@
 {"t":0,"agent":"a567806","agent_type":"executor","event":"agent_stop","success":true}
 {"t":0,"agent":"a5c79c7","agent_type":"executor","event":"agent_start","parent_mode":"none"}
 {"t":0,"agent":"a2a0bd1","agent_type":"designer","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a5c79c7","agent_type":"executor","event":"agent_stop","success":true}

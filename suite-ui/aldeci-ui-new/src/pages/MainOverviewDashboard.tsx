@@ -38,6 +38,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LiveEventFeed } from "@/components/widgets/LiveEventFeed";
 
 // ── Config ──────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -912,11 +913,20 @@ export default function MainOverviewDashboard() {
         </motion.div>
       </div>
 
-      {/* ═══ ROW 3: Threat Intel Feeds ═════════════════════════════ */}
+      {/* ═══ ROW 3: Live Event Feed + Threat Intel Feeds ═══════════ */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.32, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ delay: 0.30, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <LiveEventFeed />
+      </motion.div>
+
+      {/* ═══ ROW 4: Threat Intel Feeds ═════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.36, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <Card className={cn(cardBase)}>
           <CardHeader className="pb-2">
