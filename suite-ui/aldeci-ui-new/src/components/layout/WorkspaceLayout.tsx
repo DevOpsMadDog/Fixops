@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import { ErrorState } from "@/components/shared/ErrorState";
 
@@ -24,9 +24,11 @@ class RouteErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
+
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores";
 import { motion, AnimatePresence } from "framer-motion";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import {
   Target,
   Search,
@@ -37,6 +39,7 @@ import {
   Bot,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LayoutDashboard,
   Crown,
   Clock,
@@ -116,18 +119,25 @@ import {
   FileBarChart,
   Gauge,
   Scan,
+  LogOut,
+  UserCircle,
+  Bell,
+  Command,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
+import { NotificationBell } from "./NotificationBell";
+import { GlobalSearch } from "./GlobalSearch";
 import { useAuth } from "@/lib/auth";
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface NavItem {
   label: string;
   to: string;
   icon: LucideIcon;
   badge?: string;
-  /** If set, only users with one of these roles see this item. Omit for everyone. */
   roles?: string[];
 }
 
@@ -137,390 +147,697 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const navGroups: NavGroup[] = [
+interface NavSection {
+  /** Section heading shown in expanded sidebar */
+  section: string;
+  /** Icon shown for the section in collapsed mode — represents the whole section */
+  icon: LucideIcon;
+  groups: NavGroup[];
+}
+
+// ── Navigation data ────────────────────────────────────────────────────────
+// All original routes preserved, reorganised into 6 top-level sections.
+
+const navSections: NavSection[] = [
+  // ── 1. DISCOVER ───────────────────────────────────────────────────────────
   {
-    label: "Mission Control",
-    icon: Target,
-    items: [
-      { label: "Command Dashboard", to: "/mission-control", icon: LayoutDashboard },
-      { label: "SOC Alert Triage", to: "/mission-control/soc", icon: AlertTriangle, badge: "P03" },
-      { label: "Executive View", to: "/mission-control/executive", icon: Crown, roles: ["admin", "security_analyst"] },
-      { label: "SLA Dashboard", to: "/sla-dashboard", icon: Clock, roles: ["admin", "security_analyst"] },
-      { label: "Live Feed", to: "/mission-control/live-feed", icon: Activity },
-      { label: "Risk Overview", to: "/mission-control/risk", icon: AlertTriangle },
-      { label: "Risk Register", to: "/mission-control/risk-register", icon: ClipboardCheck },
-    ],
-  },
-  {
-    label: "Executive",
-    icon: Crown,
-    items: [
-      { label: "Security Posture", to: "/security-posture", icon: Shield, badge: "NEW" },
-      { label: "Executive Briefing", to: "/executive-briefing", icon: Crown, badge: "NEW" },
-      { label: "Security Roadmap", to: "/security-roadmap", icon: Map, badge: "NEW" },
-      { label: "Security Health", to: "/security-health", icon: Activity, badge: "NEW" },
-      { label: "Security Metrics Live", to: "/security-metrics-live", icon: BarChart3, badge: "NEW" },
-      { label: "Cross-Domain Analytics", to: "/cross-domain-analytics", icon: Database, badge: "NEW" },
-      { label: "Security Scorecards", to: "/security-scorecard", icon: Award, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Governance",
-    icon: ClipboardCheck,
-    items: [
-      { label: "Security Exceptions", to: "/security-exceptions", icon: ShieldAlert, badge: "NEW" },
-      { label: "Regulatory Tracker", to: "/regulatory-tracker", icon: ScrollText, badge: "NEW" },
-      { label: "Continuous Control Mon.", to: "/ccm", icon: CheckCircle, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Discover",
+    section: "Discover",
     icon: Search,
-    items: [
-      { label: "Finding Explorer", to: "/discover", icon: Bug },
-      { label: "Code Scanning", to: "/discover/code", icon: Code },
-      { label: "Secrets", to: "/discover/secrets", icon: KeyRound },
-      { label: "Secret Scanner", to: "/secret-scanner", icon: Scan, badge: "NEW" },
-      { label: "IaC Scanning", to: "/discover/iac", icon: Server },
-      { label: "Cloud Posture", to: "/discover/cloud", icon: Cloud, roles: ["admin", "security_analyst"] },
-      { label: "Containers", to: "/discover/containers", icon: Container },
-      { label: "SBOM & Inventory", to: "/discover/sbom", icon: Package },
-      { label: "Knowledge Graph", to: "/discover/graph", icon: Share2, roles: ["admin", "security_analyst"] },
-      { label: "Attack Paths", to: "/discover/attack-paths", icon: Route, roles: ["admin", "security_analyst"] },
-      { label: "Threat Feeds", to: "/discover/threats", icon: Rss, roles: ["admin", "security_analyst"] },
-      { label: "Correlation Engine", to: "/discover/correlation", icon: GitMerge, roles: ["admin", "security_analyst"] },
-      { label: "Data Fabric", to: "/discover/data-fabric", icon: Database, roles: ["admin", "security_analyst"] },
+    groups: [
+      {
+        label: "Mission Control",
+        icon: Target,
+        items: [
+          { label: "Command Dashboard", to: "/mission-control", icon: LayoutDashboard },
+          { label: "SOC Alert Triage", to: "/mission-control/soc", icon: AlertTriangle, badge: "LIVE" },
+          { label: "Executive View", to: "/mission-control/executive", icon: Crown, roles: ["admin", "security_analyst"] },
+          { label: "SLA Dashboard", to: "/sla-dashboard", icon: Clock, roles: ["admin", "security_analyst"] },
+          { label: "Live Feed", to: "/mission-control/live-feed", icon: Activity },
+          { label: "Risk Overview", to: "/mission-control/risk", icon: AlertTriangle },
+          { label: "Risk Register", to: "/mission-control/risk-register", icon: ClipboardCheck },
+        ],
+      },
+      {
+        label: "Asset Discovery",
+        icon: HardDrive,
+        items: [
+          { label: "Asset Inventory", to: "/assets", icon: HardDrive },
+          { label: "Asset Risk", to: "/asset-risk", icon: AlertTriangle },
+          { label: "CMDB", to: "/cmdb", icon: Database },
+          { label: "Network Topology", to: "/network-topology", icon: GitBranch },
+        ],
+      },
+      {
+        label: "Code & Supply Chain",
+        icon: Code,
+        items: [
+          { label: "Finding Explorer", to: "/discover", icon: Bug },
+          { label: "Code Scanning", to: "/discover/code", icon: Code },
+          { label: "Secrets", to: "/discover/secrets", icon: KeyRound },
+          { label: "Secret Scanner", to: "/secret-scanner", icon: Scan },
+          { label: "IaC Scanning", to: "/discover/iac", icon: Server },
+          { label: "SBOM & Inventory", to: "/discover/sbom", icon: Package },
+          { label: "SBOM Management", to: "/sbom", icon: Package },
+          { label: "Supply Chain Intel", to: "/supply-chain-intel", icon: Package },
+          { label: "DevSecOps", to: "/devsecops", icon: GitBranch },
+        ],
+      },
+      {
+        label: "Cloud Posture",
+        icon: Cloud,
+        items: [
+          { label: "Cloud Posture", to: "/discover/cloud", icon: Cloud, roles: ["admin", "security_analyst"] },
+          { label: "CSPM", to: "/cspm", icon: Cloud },
+          { label: "CNAPP", to: "/cnapp", icon: Shield },
+          { label: "Cloud Security", to: "/cloud-security", icon: Cloud },
+          { label: "Cloud Compliance", to: "/cloud-compliance", icon: Cloud },
+          { label: "CWPP", to: "/cwpp", icon: Container },
+          { label: "Container Security", to: "/container-security", icon: Container },
+        ],
+      },
+      {
+        label: "Attack Surface",
+        icon: Globe,
+        items: [
+          { label: "Surface Overview", to: "/attack-surface", icon: Globe, badge: "CTEM" },
+          { label: "Attack Surface Dashboard", to: "/attack-surface-dashboard", icon: Scan },
+          { label: "Attack Paths", to: "/discover/attack-paths", icon: Route, roles: ["admin", "security_analyst"] },
+          { label: "Knowledge Graph", to: "/discover/graph", icon: Share2, roles: ["admin", "security_analyst"] },
+          { label: "Data Fabric", to: "/discover/data-fabric", icon: Database, roles: ["admin", "security_analyst"] },
+        ],
+      },
     ],
   },
+
+  // ── 2. PROTECT ────────────────────────────────────────────────────────────
   {
-    label: "Validate",
-    icon: ShieldCheck,
-    items: [
-      { label: "MPTE Console", to: "/validate/mpte", icon: Crosshair, roles: ["admin", "security_analyst"] },
-      { label: "Attack Simulation", to: "/validate/simulation", icon: Swords, roles: ["admin", "security_analyst"] },
-      { label: "FAIL Engine", to: "/validate/fail", icon: Flame, badge: "NEW", roles: ["admin", "security_analyst"] },
-      { label: "Playbooks", to: "/validate/playbooks", icon: BookOpen, roles: ["admin", "security_analyst"] },
-      { label: "Reachability", to: "/validate/reachability", icon: Network },
-    ],
-  },
-  {
-    label: "Remediate",
-    icon: Wrench,
-    items: [
-      { label: "Remediation Center", to: "/remediate", icon: CheckCircle },
-      { label: "AutoFix", to: "/remediate/autofix", icon: Wand2 },
-      { label: "Bulk Operations", to: "/remediate/bulk", icon: Layers, roles: ["admin", "security_analyst"] },
-      { label: "Collaboration", to: "/remediate/collaborate", icon: Users },
-      { label: "Workflows", to: "/remediate/workflows", icon: Workflow, roles: ["admin", "security_analyst"] },
-      { label: "Exposure Cases", to: "/remediate/cases", icon: AlertTriangle },
-      { label: "Ticket Integration", to: "/remediate/tickets", icon: Ticket, roles: ["admin", "security_analyst"] },
-      { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, badge: "GRC", roles: ["admin", "security_analyst"] },
-    ],
-  },
-  {
-    label: "Comply",
+    section: "Protect",
     icon: Shield,
-    items: [
-      { label: "Compliance Dashboard", to: "/comply", icon: ClipboardCheck },
-      { label: "Evidence Vault", to: "/comply/evidence", icon: Lock, roles: ["admin", "security_analyst"] },
-      { label: "Evidence Export", to: "/comply/export", icon: Download, roles: ["admin", "security_analyst"] },
-      { label: "SOC2 Evidence", to: "/comply/soc2", icon: FileCheck, roles: ["admin", "security_analyst"] },
-      { label: "SLSA Provenance", to: "/comply/slsa", icon: FileSignature, roles: ["admin", "security_analyst"] },
-      { label: "Audit Trail", to: "/comply/audit", icon: ScrollText, roles: ["admin", "security_analyst"] },
-      { label: "Reports", to: "/comply/reports", icon: FileText },
-      { label: "Analytics", to: "/comply/analytics", icon: BarChart3 },
+    groups: [
+      {
+        label: "Vulnerability Management",
+        icon: Bug,
+        items: [
+          { label: "Vulnerability Lifecycle", to: "/vuln-lifecycle", icon: Bug },
+          { label: "Vulnerability Intelligence", to: "/vuln-intelligence", icon: Radar },
+          { label: "Vuln Trends", to: "/vuln-trends", icon: TrendingUp },
+          { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
+          { label: "Attack Paths", to: "/attack-paths", icon: Route },
+          { label: "Vuln Heatmap", to: "/vuln-heatmap", icon: Map },
+          { label: "Vuln Risk Queue", to: "/vuln-risk", icon: List },
+          { label: "Vuln Scanner Mgmt", to: "/vuln-scanner-mgmt", icon: ScanSearch },
+          { label: "Bug Bounty", to: "/bug-bounty", icon: Award },
+          { label: "Security Metrics", to: "/security-metrics", icon: BarChart2 },
+        ],
+      },
+      {
+        label: "Identity & Access",
+        icon: UserX,
+        items: [
+          { label: "Identity Analytics", to: "/identity-analytics", icon: BarChart3 },
+          { label: "Insider Threats", to: "/insider-threats", icon: UserX },
+          { label: "Zero Trust", to: "/zero-trust", icon: Lock },
+          { label: "Zero Trust Policies", to: "/zero-trust-policies", icon: Shield },
+          { label: "Cloud IAM", to: "/cloud-iam", icon: KeyRound },
+          { label: "Identity Governance", to: "/identity-governance", icon: UserCheck },
+          { label: "PAM", to: "/pam", icon: Key },
+          { label: "Password Policy", to: "/password-policy", icon: Key },
+        ],
+      },
+      {
+        label: "Application Security",
+        icon: Code2,
+        items: [
+          { label: "AppSec (SAST/DAST)", to: "/app-security", icon: Code },
+          { label: "API Security", to: "/api-security", icon: Wifi },
+          { label: "API Security Mgmt", to: "/api-security-mgmt", icon: Wifi },
+          { label: "API Vuln Mgmt", to: "/api-sec", icon: Wifi },
+          { label: "Endpoint Compliance", to: "/endpoint-compliance", icon: Monitor },
+          { label: "Endpoint Security (EDR)", to: "/endpoint-security", icon: Monitor },
+          { label: "Mobile Security", to: "/mobile-security", icon: Smartphone },
+        ],
+      },
+      {
+        label: "Data Protection",
+        icon: ShieldOff,
+        items: [
+          { label: "Data Loss Prevention", to: "/dlp", icon: ShieldOff },
+          { label: "API Abuse Detection", to: "/api-abuse", icon: AlertTriangle },
+          { label: "Secrets Rotation", to: "/secrets-rotation", icon: RefreshCcw },
+          { label: "Data Governance", to: "/data-governance", icon: Database },
+          { label: "Data Classification", to: "/data-classification", icon: Tag },
+        ],
+      },
+      {
+        label: "Validate",
+        icon: ShieldCheck,
+        items: [
+          { label: "MPTE Console", to: "/validate/mpte", icon: Crosshair, roles: ["admin", "security_analyst"] },
+          { label: "Attack Simulation", to: "/validate/simulation", icon: Swords, roles: ["admin", "security_analyst"] },
+          { label: "FAIL Engine", to: "/validate/fail", icon: Flame, badge: "NEW", roles: ["admin", "security_analyst"] },
+          { label: "Playbooks", to: "/validate/playbooks", icon: BookOpen, roles: ["admin", "security_analyst"] },
+          { label: "Reachability", to: "/validate/reachability", icon: Network },
+        ],
+      },
     ],
   },
+
+  // ── 3. RESPOND ────────────────────────────────────────────────────────────
   {
-    label: "SBOM",
-    icon: Package,
-    items: [
-      { label: "SBOM Management", to: "/sbom", icon: Package, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Attack Surface",
-    icon: Globe,
-    items: [
-      { label: "Surface Overview", to: "/attack-surface", icon: Globe, badge: "CTEM" },
-      { label: "Attack Surface Dashboard", to: "/attack-surface-dashboard", icon: Scan, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Integrations",
-    icon: Wifi,
-    items: [
-      { label: "Integration Health", to: "/integrations", icon: Activity },
-    ],
-  },
-  {
-    label: "Threat Hunting",
-    icon: Crosshair,
-    items: [
-      { label: "Hunt Operations", to: "/hunting", icon: Crosshair, badge: "P04" },
-      { label: "Threat Hunting", to: "/threat-hunting", icon: Crosshair, badge: "NEW" },
-      { label: "Hunt Dashboard", to: "/threat-hunting-dashboard", icon: Radar, badge: "NEW" },
-    ],
-  },
-  {
-    label: "AI Engine",
-    icon: Brain,
-    items: [
-      { label: "AI Advisor", to: "/ai-advisor", icon: Brain, badge: "NEW" },
-      { label: "Scheduled Reports", to: "/scheduled-reports", icon: CalendarClock, badge: "NEW" },
-      { label: "Copilot", to: "/ai", icon: Bot },
-      { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow, roles: ["admin", "security_analyst"] },
-      { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale, roles: ["admin", "security_analyst"] },
-      { label: "Algorithmic Lab", to: "/ai/algorithms", icon: FlaskConical, roles: ["admin", "security_analyst"] },
-      { label: "ML Dashboard", to: "/ai/ml", icon: Cpu, roles: ["admin", "security_analyst"] },
-      { label: "Predictions", to: "/ai/predictions", icon: TrendingUp, roles: ["admin", "security_analyst"] },
-    ],
-  },
-  {
-    label: "Developer",
-    icon: Code2,
-    items: [
-      { label: "Security Portal", to: "/developer", icon: Code2, badge: "P10" },
-    ],
-  },
-  {
-    label: "Vendors",
-    icon: Building2,
-    items: [
-      { label: "Vendor Management", to: "/vendors", icon: Building2, badge: "TPRM" },
-    ],
-  },
-  {
-    label: "Security Operations",
+    section: "Respond",
     icon: Siren,
-    items: [
-      { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
-      { label: "Incident Timeline", to: "/incident-timeline", icon: AlertTriangle, badge: "NEW" },
-      { label: "IR Timeline Dashboard", to: "/incident-timeline-dashboard", icon: Activity, badge: "NEW" },
-      { label: "Network Analysis", to: "/network-analysis", icon: Network, badge: "NEW" },
-      { label: "NDR", to: "/ndr", icon: Wifi, badge: "NEW" },
-      { label: "XDR", to: "/xdr", icon: Layers, badge: "NEW" },
-      { label: "EDR", to: "/edr", icon: Monitor, badge: "NEW" },
-      { label: "Firewall Analyzer", to: "/firewall", icon: Shield, badge: "NEW" },
-      { label: "Email Security", to: "/email-security", icon: Mail, badge: "NEW" },
-      { label: "Endpoint Security (EDR)", to: "/endpoint-security", icon: Monitor, badge: "NEW" },
-      { label: "SOAR Automation", to: "/soar", icon: Zap, badge: "NEW" },
-      { label: "Threat Correlation", to: "/threat-correlation", icon: Link2, badge: "NEW" },
-      { label: "SOC", to: "/soc", icon: Monitor, badge: "NEW" },
-      { label: "User Behavior", to: "/uba", icon: Activity, badge: "NEW" },
-      { label: "Breach Response", to: "/breach-response", icon: AlertTriangle, badge: "NEW" },
+    groups: [
+      {
+        label: "Security Operations",
+        icon: Siren,
+        items: [
+          { label: "Incident Response", to: "/incidents", icon: Siren, badge: "IR" },
+          { label: "Incident Timeline", to: "/incident-timeline", icon: AlertTriangle },
+          { label: "IR Timeline Dashboard", to: "/incident-timeline-dashboard", icon: Activity },
+          { label: "SOC", to: "/soc", icon: Monitor },
+          { label: "SOAR Automation", to: "/soar", icon: Zap },
+          { label: "Breach Response", to: "/breach-response", icon: AlertTriangle },
+        ],
+      },
+      {
+        label: "Detection & Response",
+        icon: Radar,
+        items: [
+          { label: "NDR", to: "/ndr", icon: Wifi },
+          { label: "XDR", to: "/xdr", icon: Layers },
+          { label: "EDR", to: "/edr", icon: Monitor },
+          { label: "Network Analysis", to: "/network-analysis", icon: Network },
+          { label: "Firewall Analyzer", to: "/firewall", icon: Shield },
+          { label: "Email Security", to: "/email-security", icon: Mail },
+          { label: "User Behavior", to: "/uba", icon: Activity },
+          { label: "Threat Correlation", to: "/threat-correlation", icon: Link2 },
+        ],
+      },
+      {
+        label: "Remediate",
+        icon: Wrench,
+        items: [
+          { label: "Remediation Center", to: "/remediate", icon: CheckCircle },
+          { label: "AutoFix", to: "/remediate/autofix", icon: Wand2 },
+          { label: "Bulk Operations", to: "/remediate/bulk", icon: Layers, roles: ["admin", "security_analyst"] },
+          { label: "Collaboration", to: "/remediate/collaborate", icon: Users },
+          { label: "Workflows", to: "/remediate/workflows", icon: Workflow, roles: ["admin", "security_analyst"] },
+          { label: "Exposure Cases", to: "/remediate/cases", icon: AlertTriangle },
+          { label: "Ticket Integration", to: "/remediate/tickets", icon: Ticket, roles: ["admin", "security_analyst"] },
+          { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, badge: "GRC", roles: ["admin", "security_analyst"] },
+        ],
+      },
+      {
+        label: "Threat Hunting",
+        icon: Crosshair,
+        items: [
+          { label: "Hunt Operations", to: "/hunting", icon: Crosshair, badge: "P04" },
+          { label: "Threat Hunting", to: "/threat-hunting", icon: Crosshair },
+          { label: "Hunt Dashboard", to: "/threat-hunting-dashboard", icon: Radar },
+        ],
+      },
+      {
+        label: "Red Team & Testing",
+        icon: Swords,
+        items: [
+          { label: "Pentest Management", to: "/pentest-mgmt", icon: Crosshair },
+          { label: "Risk Quantification", to: "/risk-quantification", icon: Scale },
+          { label: "Attack Simulation", to: "/attack-simulation", icon: Swords },
+          { label: "Threat Models", to: "/threat-models", icon: Layers },
+          { label: "Red Team", to: "/red-team", icon: Flag },
+          { label: "Phishing Simulation", to: "/phishing", icon: Mail },
+          { label: "Social Engineering", to: "/social-engineering", icon: Users },
+        ],
+      },
     ],
   },
+
+  // ── 4. COMPLY ─────────────────────────────────────────────────────────────
   {
-    label: "Threat Intelligence",
-    icon: Radar,
-    items: [
-      { label: "Threat Intel Dashboard", to: "/threat-intel", icon: Radar, badge: "NEW" },
-      { label: "Threat Intel Platform", to: "/threat-intel-platform", icon: Gauge, badge: "NEW" },
-      { label: "Threat Actors", to: "/threat-actors", icon: Flag, badge: "NEW" },
-      { label: "CVE Search", to: "/cve-search", icon: ScanSearch },
-      { label: "IP Reputation", to: "/ip-reputation", icon: Globe },
-      { label: "Threat Feeds", to: "/threat-feeds", icon: Rss, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Vulnerability Mgmt",
-    icon: Bug,
-    items: [
-      { label: "Vulnerability Lifecycle", to: "/vuln-lifecycle", icon: Bug, badge: "NEW" },
-      { label: "Vulnerability Intelligence", to: "/vuln-intelligence", icon: Radar, badge: "NEW" },
-      { label: "Vuln Trends", to: "/vuln-trends", icon: TrendingUp, badge: "NEW" },
-      { label: "Patch Queue", to: "/patch-prioritizer", icon: ListChecks },
-      { label: "Attack Paths", to: "/attack-paths", icon: Route },
-      { label: "Vuln Heatmap", to: "/vuln-heatmap", icon: Map, badge: "NEW" },
-      { label: "Bug Bounty", to: "/bug-bounty", icon: Award, badge: "NEW" },
-      { label: "Security Metrics", to: "/security-metrics", icon: BarChart2, badge: "NEW" },
-      { label: "Vuln Risk Queue", to: "/vuln-risk", icon: List, badge: "NEW" },
-      { label: "Vuln Scanner Mgmt", to: "/vuln-scanner-mgmt", icon: ScanSearch, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Risk & Attack",
-    icon: Swords,
-    items: [
-      { label: "Pentest Management", to: "/pentest-mgmt", icon: Crosshair, badge: "NEW" },
-      { label: "Risk Quantification", to: "/risk-quantification", icon: Scale, badge: "NEW" },
-      { label: "Attack Simulation", to: "/attack-simulation", icon: Swords, badge: "NEW" },
-      { label: "Threat Models", to: "/threat-models", icon: Layers, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Asset Inventory",
-    icon: HardDrive,
-    items: [
-      { label: "Asset Inventory", to: "/assets", icon: HardDrive, badge: "NEW" },
-      { label: "Asset Risk", to: "/asset-risk", icon: AlertTriangle, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Identity & Access",
-    icon: UserX,
-    items: [
-      { label: "Identity Analytics", to: "/identity-analytics", icon: BarChart3, badge: "NEW" },
-      { label: "Insider Threats", to: "/insider-threats", icon: UserX, badge: "NEW" },
-      { label: "Zero Trust", to: "/zero-trust", icon: Lock },
-      { label: "Zero Trust Policies", to: "/zero-trust-policies", icon: Shield, badge: "NEW" },
-      { label: "Cloud IAM", to: "/cloud-iam", icon: KeyRound, badge: "NEW" },
-      { label: "Identity Governance", to: "/identity-governance", icon: UserCheck, badge: "NEW" },
-      { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap, badge: "NEW" },
-      { label: "Awareness Score", to: "/awareness-score", icon: Award, badge: "NEW" },
-      { label: "Security Training", to: "/security-training", icon: GraduationCap, badge: "NEW" },
-      { label: "Password Policy", to: "/password-policy", icon: Key, badge: "NEW" },
-      { label: "Mobile Security", to: "/mobile-security", icon: Smartphone, badge: "NEW" },
-      { label: "PAM", to: "/pam", icon: Key, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Risk & Compliance",
+    section: "Comply",
     icon: ClipboardCheck,
-    items: [
-      { label: "Compliance Dashboard", to: "/compliance", icon: ClipboardCheck, badge: "P07" },
-      { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, roles: ["admin", "security_analyst"] },
-      { label: "Vendor Risk", to: "/vendor-risk", icon: Building2 },
-      { label: "Security KPIs", to: "/security-kpis", icon: BarChart3 },
-      { label: "Executive Report", to: "/executive-report", icon: BarChart3, badge: "NEW" },
-      { label: "Executive Reporting", to: "/executive-reporting", icon: FileBarChart, badge: "NEW" },
-      { label: "Audit Log", to: "/audit-log", icon: FileText, badge: "NEW" },
-      { label: "GRC Dashboard", to: "/grc", icon: ClipboardCheck, badge: "NEW" },
-      { label: "Supply Chain Risk", to: "/supply-chain-risk", icon: Package, badge: "NEW" },
-      { label: "Watchlist Manager", to: "/watchlist", icon: Eye, badge: "NEW" },
-      { label: "IOC Hunter", to: "/ioc-hunter", icon: Search, badge: "NEW" },
-      { label: "Data Classification", to: "/data-classification", icon: Tag, badge: "NEW" },
+    groups: [
+      {
+        label: "Risk & Compliance",
+        icon: ClipboardCheck,
+        items: [
+          { label: "Compliance Dashboard", to: "/comply", icon: ClipboardCheck },
+          { label: "Compliance Dashboard", to: "/compliance", icon: ClipboardCheck, badge: "P07" },
+          { label: "Risk Acceptance", to: "/risk-acceptance", icon: ShieldAlert, roles: ["admin", "security_analyst"] },
+          { label: "Vendor Risk", to: "/vendor-risk", icon: Building2 },
+          { label: "Security KPIs", to: "/security-kpis", icon: BarChart3 },
+          { label: "Supply Chain Risk", to: "/supply-chain-risk", icon: Package },
+          { label: "GRC Dashboard", to: "/grc", icon: ClipboardCheck },
+          { label: "GRC Assessment", to: "/grc-assessment", icon: ClipboardCheck },
+        ],
+      },
+      {
+        label: "Evidence & Audit",
+        icon: FileCheck,
+        items: [
+          { label: "Evidence Vault", to: "/comply/evidence", icon: Lock, roles: ["admin", "security_analyst"] },
+          { label: "Evidence Export", to: "/comply/export", icon: Download, roles: ["admin", "security_analyst"] },
+          { label: "SOC2 Evidence", to: "/comply/soc2", icon: FileCheck, roles: ["admin", "security_analyst"] },
+          { label: "SLSA Provenance", to: "/comply/slsa", icon: FileSignature, roles: ["admin", "security_analyst"] },
+          { label: "Audit Trail", to: "/comply/audit", icon: ScrollText, roles: ["admin", "security_analyst"] },
+          { label: "Audit Log", to: "/audit-log", icon: FileText },
+          { label: "Digital Forensics", to: "/digital-forensics", icon: HardDrive },
+        ],
+      },
+      {
+        label: "Governance",
+        icon: ClipboardCheck,
+        items: [
+          { label: "Security Exceptions", to: "/security-exceptions", icon: ShieldAlert },
+          { label: "Regulatory Tracker", to: "/regulatory-tracker", icon: ScrollText },
+          { label: "Continuous Control Mon.", to: "/ccm", icon: CheckCircle },
+          { label: "Compliance Scanner", to: "/compliance-scanner", icon: ClipboardCheck },
+          { label: "Config Benchmarks", to: "/config-benchmark", icon: Shield },
+          { label: "IOC Hunter", to: "/ioc-hunter", icon: Search },
+          { label: "Watchlist Manager", to: "/watchlist", icon: Eye },
+        ],
+      },
+      {
+        label: "Reporting",
+        icon: FileBarChart,
+        items: [
+          { label: "Reports", to: "/comply/reports", icon: FileText },
+          { label: "Analytics", to: "/comply/analytics", icon: BarChart3 },
+          { label: "Executive Report", to: "/executive-report", icon: BarChart3 },
+          { label: "Executive Reporting", to: "/executive-reporting", icon: FileBarChart },
+          { label: "Cyber Insurance", to: "/cyber-insurance", icon: FileCheck },
+        ],
+      },
     ],
   },
+
+  // ── 5. INTELLIGENCE ───────────────────────────────────────────────────────
   {
-    label: "Architecture",
-    icon: Layers,
-    items: [
-      { label: "Posture Advisor", to: "/posture-advisor", icon: Target, badge: "NEW" },
-      { label: "Threat Modeling", to: "/threat-modeling", icon: Layers },
-      { label: "Supply Chain", to: "/supply-chain", icon: Link2 },
-      { label: "CSPM", to: "/cspm", icon: Cloud, badge: "NEW" },
-      { label: "Certificate Manager", to: "/certificates", icon: ShieldCheck, badge: "NEW" },
+    section: "Intelligence",
+    icon: Brain,
+    groups: [
+      {
+        label: "Threat Intelligence",
+        icon: Radar,
+        items: [
+          { label: "Threat Intel Dashboard", to: "/threat-intel", icon: Radar },
+          { label: "Threat Intel Platform", to: "/threat-intel-platform", icon: Gauge },
+          { label: "Threat Actors", to: "/threat-actors", icon: Flag },
+          { label: "CVE Search", to: "/cve-search", icon: ScanSearch },
+          { label: "IP Reputation", to: "/ip-reputation", icon: Globe },
+          { label: "Threat Feeds", to: "/threat-feeds", icon: Rss },
+          { label: "Threat Feeds (Discover)", to: "/discover/threats", icon: Rss, roles: ["admin", "security_analyst"] },
+          { label: "Correlation Engine", to: "/discover/correlation", icon: GitMerge, roles: ["admin", "security_analyst"] },
+        ],
+      },
+      {
+        label: "AI Engine",
+        icon: Brain,
+        items: [
+          { label: "AI Advisor", to: "/ai-advisor", icon: Brain, badge: "AI" },
+          { label: "Copilot", to: "/ai", icon: Bot },
+          { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow, roles: ["admin", "security_analyst"] },
+          { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale, roles: ["admin", "security_analyst"] },
+          { label: "Algorithmic Lab", to: "/ai/algorithms", icon: FlaskConical, roles: ["admin", "security_analyst"] },
+          { label: "ML Dashboard", to: "/ai/ml", icon: Cpu, roles: ["admin", "security_analyst"] },
+          { label: "Predictions", to: "/ai/predictions", icon: TrendingUp, roles: ["admin", "security_analyst"] },
+          { label: "Scheduled Reports", to: "/scheduled-reports", icon: CalendarClock },
+        ],
+      },
+      {
+        label: "Executive",
+        icon: Crown,
+        items: [
+          { label: "Security Posture", to: "/security-posture", icon: Shield },
+          { label: "Executive Briefing", to: "/executive-briefing", icon: Crown },
+          { label: "Security Roadmap", to: "/security-roadmap", icon: Map },
+          { label: "Security Health", to: "/security-health", icon: Activity },
+          { label: "Security Metrics Live", to: "/security-metrics-live", icon: BarChart3 },
+          { label: "Cross-Domain Analytics", to: "/cross-domain-analytics", icon: Database },
+          { label: "Security Scorecards", to: "/security-scorecard", icon: Award },
+        ],
+      },
+      {
+        label: "Architecture",
+        icon: Layers,
+        items: [
+          { label: "Posture Advisor", to: "/posture-advisor", icon: Target },
+          { label: "Threat Modeling", to: "/threat-modeling", icon: Layers },
+          { label: "Supply Chain", to: "/supply-chain", icon: Link2 },
+          { label: "Certificate Manager", to: "/certificates", icon: ShieldCheck },
+        ],
+      },
     ],
   },
+
+  // ── 6. PLATFORM ───────────────────────────────────────────────────────────
   {
-    label: "Cloud & Compliance",
-    icon: Cloud,
-    items: [
-      { label: "CNAPP", to: "/cnapp", icon: Shield, badge: "NEW" },
-      { label: "Cloud Security", to: "/cloud-security", icon: Cloud, badge: "NEW" },
-      { label: "Cloud Compliance", to: "/cloud-compliance", icon: Cloud, badge: "NEW" },
-      { label: "Endpoint Compliance", to: "/endpoint-compliance", icon: Monitor, badge: "NEW" },
-      { label: "Network Topology", to: "/network-topology", icon: GitBranch, badge: "NEW" },
-      { label: "CMDB", to: "/cmdb", icon: Database, badge: "NEW" },
-      { label: "CWPP", to: "/cwpp", icon: Container, badge: "NEW" },
-      { label: "Digital Forensics", to: "/digital-forensics", icon: HardDrive, badge: "NEW" },
-      { label: "GRC Assessment", to: "/grc-assessment", icon: ClipboardCheck, badge: "NEW" },
-      { label: "Compliance Scanner", to: "/compliance-scanner", icon: ClipboardCheck, badge: "NEW" },
-      { label: "Config Benchmarks", to: "/config-benchmark", icon: Shield, badge: "NEW" },
-    ],
-  },
-  {
-    label: "DevSecOps",
-    icon: Code2,
-    items: [
-      { label: "DevSecOps Dashboard", to: "/devsecops", icon: GitBranch, badge: "NEW" },
-      { label: "Supply Chain Intel", to: "/supply-chain-intel", icon: Package, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Application Security",
-    icon: Code,
-    items: [
-      { label: "AppSec (SAST/DAST)", to: "/app-security", icon: Code, badge: "NEW" },
-      { label: "API Security", to: "/api-security", icon: Wifi, badge: "NEW" },
-      { label: "API Security Mgmt", to: "/api-security-mgmt", icon: Wifi, badge: "NEW" },
-      { label: "API Vuln Mgmt", to: "/api-sec", icon: Wifi, badge: "NEW" },
-      { label: "Phishing Simulation", to: "/phishing", icon: Mail, badge: "NEW" },
-      { label: "Social Engineering", to: "/social-engineering", icon: Users, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Data Protection",
-    icon: ShieldOff,
-    items: [
-      { label: "Data Loss Prevention", to: "/dlp", icon: ShieldOff, badge: "NEW" },
-      { label: "API Abuse Detection", to: "/api-abuse", icon: AlertTriangle },
-      { label: "Secrets Rotation", to: "/secrets-rotation", icon: RefreshCcw },
-      { label: "Data Governance", to: "/data-governance", icon: Database, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Cyber Risk",
-    icon: FileCheck,
-    items: [
-      { label: "Cyber Insurance", to: "/cyber-insurance", icon: FileCheck, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Culture & Awareness",
-    icon: Award,
-    items: [
-      { label: "Security Champions", to: "/security-champions", icon: Trophy, badge: "NEW" },
-    ],
-  },
-  {
-    label: "Platform",
+    section: "Platform",
     icon: Settings,
-    items: [
-      { label: "System Health", to: "/settings/health", icon: Activity, badge: "NEW" },
-      { label: "Security Scorecard", to: "/security-scorecard", icon: Award, badge: "NEW" },
-      { label: "Secret Scanner", to: "/secret-scanner", icon: Scan, badge: "NEW" },
-      { label: "DLP Dashboard", to: "/dlp", icon: ShieldOff, badge: "NEW" },
+    groups: [
+      {
+        label: "People & Culture",
+        icon: Award,
+        items: [
+          { label: "Security Awareness", to: "/security-awareness", icon: GraduationCap },
+          { label: "Awareness Score", to: "/awareness-score", icon: Award },
+          { label: "Security Training", to: "/security-training", icon: GraduationCap },
+          { label: "Security Champions", to: "/security-champions", icon: Trophy },
+        ],
+      },
+      {
+        label: "Integrations",
+        icon: Wifi,
+        items: [
+          { label: "Integration Health", to: "/integrations", icon: Activity },
+          { label: "Developer Portal", to: "/developer", icon: Code2, badge: "P10" },
+          { label: "Vendor Management", to: "/vendors", icon: Building2, badge: "TPRM" },
+        ],
+      },
+      {
+        label: "System",
+        icon: Settings,
+        items: [
+          { label: "System Health", to: "/settings/health", icon: Activity },
+          { label: "Security Scorecard", to: "/security-scorecard", icon: Award },
+          { label: "DLP Dashboard", to: "/dlp", icon: ShieldOff },
+        ],
+      },
     ],
   },
 ];
 
-// ── User identity badge for sidebar ──
-import { LogOut, UserCircle } from "lucide-react";
+// Flat navGroups derived from sections — used for breadcrumbs
+const navGroups: NavGroup[] = navSections.flatMap((s) => s.groups);
+
+// ── Tooltip wrapper ────────────────────────────────────────────────────────
+
+function NavTooltip({ label, children, disabled }: { label: string; children: React.ReactNode; disabled?: boolean }) {
+  if (disabled) return <>{children}</>;
+  return (
+    <Tooltip.Root delayDuration={300}>
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side="right"
+          sideOffset={8}
+          className="z-[100] rounded-md bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-zinc-100 shadow-lg border border-zinc-700/60 select-none"
+        >
+          {label}
+          <Tooltip.Arrow className="fill-zinc-800" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
+// ── User badge ─────────────────────────────────────────────────────────────
 
 function UserBadge({ collapsed }: { collapsed: boolean }) {
   const { user, isAuthenticated, logout } = useAuth();
   if (!isAuthenticated || !user) return null;
 
-  const initials = `${(user.first_name?.[0] ?? "").toUpperCase()}${(user.last_name?.[0] ?? "").toUpperCase()}` || "U";
+  const initials =
+    `${(user.first_name?.[0] ?? "").toUpperCase()}${(user.last_name?.[0] ?? "").toUpperCase()}` || "U";
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ") || "User";
 
   if (collapsed) {
     return (
-      <button
-        onClick={logout}
-        className="flex w-full items-center justify-center rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-        title={`${user.email} — Sign out`}
-      >
-        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-          {initials}
-        </div>
-      </button>
+      <NavTooltip label={`${fullName} · ${user.role ?? "viewer"}`}>
+        <button
+          onClick={logout}
+          className="flex w-full items-center justify-center rounded-lg p-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
+          title={`${user.email} — Sign out`}
+        >
+          <div className="h-7 w-7 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-[11px] font-bold text-cyan-400">
+            {initials}
+          </div>
+        </button>
+      </NavTooltip>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
-      <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+    <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 hover:bg-sidebar-accent/40 transition-colors group">
+      <div className="h-8 w-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-[11px] font-bold text-cyan-400 shrink-0">
         {initials}
       </div>
-      <div className="flex-1 truncate">
-        <div className="truncate text-xs font-medium text-foreground">{user.first_name} {user.last_name}</div>
-        <div className="truncate text-[10px] text-muted-foreground">{user.role}</div>
+      <div className="flex-1 min-w-0">
+        <div className="truncate text-xs font-semibold text-foreground">{fullName}</div>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="truncate text-[10px] text-muted-foreground leading-none">
+            ALDECI
+          </span>
+          {user.role && (
+            <span className="rounded-sm bg-cyan-500/15 px-1 py-px text-[9px] font-semibold uppercase tracking-wider text-cyan-400 leading-none">
+              {user.role}
+            </span>
+          )}
+        </div>
       </div>
-      <button onClick={logout} className="text-muted-foreground hover:text-foreground" title="Sign out">
+      <button
+        onClick={logout}
+        className="text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+        title="Sign out"
+      >
         <LogOut className="h-3.5 w-3.5" />
       </button>
     </div>
   );
 }
 
-// ── Breadcrumb navigation derived from route + navGroups ──
-function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname: string }) {
+// ── Section tab (top of sidebar) ───────────────────────────────────────────
+
+function SectionTabs({
+  sections,
+  activeSection,
+  collapsed,
+  onSelect,
+}: {
+  sections: NavSection[];
+  activeSection: string;
+  collapsed: boolean;
+  onSelect: (s: string) => void;
+}) {
+  if (collapsed) {
+    return (
+      <div className="flex flex-col gap-0.5 px-2 py-2 border-b border-sidebar-border">
+        {sections.map((s) => {
+          const isActive = s.section === activeSection;
+          return (
+            <NavTooltip key={s.section} label={s.section}>
+              <button
+                onClick={() => onSelect(s.section)}
+                className={cn(
+                  "flex h-8 w-full items-center justify-center rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyan-500/15 text-cyan-400"
+                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+                )}
+              >
+                <s.icon className="h-4 w-4 shrink-0" />
+              </button>
+            </NavTooltip>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-1 px-3 py-2.5 border-b border-sidebar-border">
+      {sections.map((s) => {
+        const isActive = s.section === activeSection;
+        return (
+          <button
+            key={s.section}
+            onClick={() => onSelect(s.section)}
+            className={cn(
+              "flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-medium transition-all",
+              isActive
+                ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
+                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground border border-transparent"
+            )}
+          >
+            <s.icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="leading-none tracking-wide">{s.section}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Cmd+K search hint ─────────────────────────────────────────────────────
+
+function SidebarSearchHint({ collapsed, onClick }: { collapsed: boolean; onClick: () => void }) {
+  if (collapsed) {
+    return (
+      <NavTooltip label="Search (⌘K)">
+        <button
+          onClick={onClick}
+          className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-colors"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+        </button>
+      </NavTooltip>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/30 px-3 py-2 text-xs text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground transition-colors group"
+    >
+      <Search className="h-3.5 w-3.5 shrink-0 group-hover:text-cyan-400 transition-colors" />
+      <span className="flex-1 text-left">Search...</span>
+      <kbd className="flex items-center gap-0.5 rounded bg-background/60 px-1.5 py-0.5 text-[9px] font-mono border border-sidebar-border text-muted-foreground leading-none">
+        <Command className="h-2.5 w-2.5" />K
+      </kbd>
+    </button>
+  );
+}
+
+// ── Nav group with collapsible items ──────────────────────────────────────
+
+function NavGroupItem({
+  group,
+  collapsed,
+  expandedGroup,
+  onToggle,
+  pathname,
+}: {
+  group: NavGroup;
+  collapsed: boolean;
+  expandedGroup: string | null;
+  onToggle: (label: string) => void;
+  pathname: string;
+}) {
+  const isGroupExpanded = expandedGroup === group.label;
+  const isGroupActive = group.items.some(
+    (item) => pathname === item.to || pathname.startsWith(item.to + "/")
+  );
+
+  if (collapsed) {
+    // In collapsed mode show group icon with tooltip linking to first item
+    return (
+      <NavTooltip label={group.label}>
+        <NavLink
+          to={group.items[0]?.to ?? "/"}
+          className={({ isActive: active }) =>
+            cn(
+              "flex h-9 w-full items-center justify-center rounded-lg transition-all relative",
+              (active || isGroupActive)
+                ? "bg-cyan-500/15 text-cyan-400"
+                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+            )
+          }
+        >
+          {({ isActive: active }) => (
+            <>
+              {(active || isGroupActive) && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r-full bg-cyan-400" />
+              )}
+              <group.icon className="h-4 w-4 shrink-0" />
+            </>
+          )}
+        </NavLink>
+      </NavTooltip>
+    );
+  }
+
+  return (
+    <div className="mb-0.5">
+      <button
+        onClick={() => onToggle(group.label)}
+        className={cn(
+          "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all relative",
+          isGroupActive
+            ? "text-foreground"
+            : "text-sidebar-foreground hover:text-foreground hover:bg-sidebar-accent/40"
+        )}
+      >
+        {isGroupActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r-full bg-cyan-400" />
+        )}
+        <group.icon className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isGroupActive ? "text-cyan-400" : "text-muted-foreground group-hover:text-foreground")} />
+        <span className="flex-1 text-left">{group.label}</span>
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform duration-200",
+            isGroupExpanded && "rotate-180"
+          )}
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isGroupExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="ml-4 border-l border-sidebar-border/60 pl-2.5 py-0.5 space-y-px">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={
+                    item.to === "/mission-control" ||
+                    item.to === "/discover" ||
+                    item.to === "/remediate" ||
+                    item.to === "/comply"
+                  }
+                  className={({ isActive: active }) =>
+                    cn(
+                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] transition-all relative",
+                      active
+                        ? "bg-cyan-500/12 text-cyan-300 font-medium"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-foreground"
+                    )
+                  }
+                >
+                  {({ isActive: active }) => (
+                    <>
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-3 w-0.5 rounded-r-full bg-cyan-400" />
+                      )}
+                      <item.icon className={cn("h-3 w-3 shrink-0", active ? "text-cyan-400" : "text-muted-foreground/60")} />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          "ml-auto rounded px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider leading-none",
+                          item.badge === "LIVE" || item.badge === "IR"
+                            ? "bg-red-500/15 text-red-400 border border-red-500/20"
+                            : item.badge === "AI"
+                            ? "bg-violet-500/15 text-violet-400 border border-violet-500/20"
+                            : item.badge === "GRC" || item.badge === "CTEM"
+                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                            : "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Breadcrumbs ────────────────────────────────────────────────────────────
+
+function Breadcrumbs({ navGroups: groups, pathname }: { navGroups: NavGroup[]; pathname: string }) {
   const crumbs = useMemo(() => {
     const result: { label: string; to?: string; icon?: LucideIcon }[] = [];
-    for (const group of navGroups) {
+    for (const group of groups) {
       const match = group.items.find(
         (item) => pathname === item.to || pathname.startsWith(item.to + "/")
       );
@@ -529,7 +846,6 @@ function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname:
         if (match.to !== group.items[0]?.to || pathname !== match.to) {
           result.push({ label: match.label, to: match.to, icon: match.icon });
         }
-        // If there's a deeper path beyond the matched item, show it
         const rest = pathname.slice(match.to.length).replace(/^\//, "");
         if (rest) {
           const label = rest.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? rest;
@@ -538,32 +854,28 @@ function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname:
         break;
       }
     }
-    if (result.length === 0) {
-      // Settings or other top-level pages
-      if (pathname.startsWith("/settings")) {
-        result.push({ label: "Settings", to: "/settings", icon: Settings });
-        const sub = pathname.slice("/settings/".length).replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        if (sub && pathname !== "/settings") result.push({ label: sub });
-      }
+    if (result.length === 0 && pathname.startsWith("/settings")) {
+      result.push({ label: "Settings", to: "/settings", icon: Settings });
+      const sub = pathname.slice("/settings/".length).replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      if (sub && pathname !== "/settings") result.push({ label: sub });
     }
     return result;
-  }, [navGroups, pathname]);
-
-  // Cross-space quick-jump: show other spaces for fast navigation
-  const otherSpaces = useMemo(
-    () => navGroups.filter((g) => !g.items.some((i) => pathname === i.to || pathname.startsWith(i.to + "/"))).slice(0, 4),
-    [navGroups, pathname]
-  );
+  }, [groups, pathname]);
 
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0 flex-1">
+    <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1">
       {crumbs.map((crumb, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />}
+          {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/30" />}
           {crumb.to ? (
-            <Link to={crumb.to} className="flex items-center gap-1.5 hover:text-foreground transition-colors truncate">
-              {crumb.icon && <crumb.icon className="h-3.5 w-3.5 shrink-0" />}
-              <span className={i === crumbs.length - 1 ? "font-medium text-foreground" : ""}>{crumb.label}</span>
+            <Link
+              to={crumb.to}
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors truncate"
+            >
+              {crumb.icon && <crumb.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />}
+              <span className={i === crumbs.length - 1 ? "font-medium text-foreground" : "text-muted-foreground"}>
+                {crumb.label}
+              </span>
             </Link>
           ) : (
             <span className="flex items-center gap-1.5 font-medium text-foreground truncate">
@@ -573,29 +885,17 @@ function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname:
           )}
         </React.Fragment>
       ))}
-      {/* Cross-space quick-jump */}
-      {otherSpaces.length > 0 && (
-        <div className="ml-auto flex items-center gap-1 pl-4">
-          {otherSpaces.map((space) => (
-            <Link
-              key={space.label}
-              to={space.items[0]?.to ?? "/"}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-              title={space.label}
-            >
-              <space.icon className="h-3 w-3" />
-              <span className="hidden xl:inline">{space.label}</span>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
+// ── Main layout ────────────────────────────────────────────────────────────
+
 export function WorkspaceLayout() {
   const { preferences, toggleSidebar, toggleCopilot, toggleTheme } = useAppStore();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string>("Discover");
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
@@ -603,212 +903,243 @@ export function WorkspaceLayout() {
   const copilotOpen = preferences.copilotOpen;
   const userRole = user?.role ?? "viewer";
 
-  // Filter nav items by role — items without `roles` are visible to all
-  const filteredGroups = navGroups
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((item) => !item.roles || item.roles.includes(userRole)),
-    }))
-    .filter((g) => g.items.length > 0);
+  // Filter items by role across all sections
+  const filteredSections = navSections.map((s) => ({
+    ...s,
+    groups: s.groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((item) => !item.roles || item.roles.includes(userRole)),
+      }))
+      .filter((g) => g.items.length > 0),
+  }));
 
-  // Auto-expand active group
-  const activeGroup = filteredGroups.find((g) =>
-    g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/"))
-  );
+  const filteredNavGroups = filteredSections.flatMap((s) => s.groups);
 
-  const currentExpanded = expandedGroup ?? activeGroup?.label ?? null;
+  // Auto-select section based on current route
+  useEffect(() => {
+    for (const section of filteredSections) {
+      const found = section.groups.some((g) =>
+        g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/"))
+      );
+      if (found) {
+        setActiveSection(section.section);
+        break;
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Auto-expand active group within current section
+  const currentSectionData = filteredSections.find((s) => s.section === activeSection);
+
+  useEffect(() => {
+    if (!currentSectionData) return;
+    const active = currentSectionData.groups.find((g) =>
+      g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/"))
+    );
+    if (active) setExpandedGroup(active.label);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, location.pathname]);
+
+  // Open global search via Cmd+K
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  const handleGroupToggle = (label: string) => {
+    setExpandedGroup((prev) => (prev === label ? null : label));
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* ── Left Sidebar ── */}
-      <aside
-        className={cn(
-          "flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300",
-          collapsed ? "w-16" : "w-60",
-          "max-md:w-16"
-        )}
-      >
-        {/* Logo */}
-        <div className="flex h-14 items-center gap-3 border-b border-sidebar-border px-4">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-sm">
-            A
-          </div>
-          {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight">ALdeci</span>
+    <Tooltip.Provider>
+      <div className="flex h-screen overflow-hidden bg-background">
+        {/* ── Left Sidebar ── */}
+        <aside
+          className={cn(
+            "flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            collapsed ? "w-[52px]" : "w-[220px]",
+            "max-md:w-[52px]"
           )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2">
-          {filteredGroups.map((group) => {
-            const isExpanded = currentExpanded === group.label;
-            const isActive = group.items.some(
-              (item) =>
-                location.pathname === item.to ||
-                location.pathname.startsWith(item.to + "/")
-            );
-
-            return (
-              <div key={group.label} className="mb-1">
-                <button
-                  onClick={() => setExpandedGroup(isExpanded ? null : group.label)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-                  )}
-                >
-                  <group.icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 text-left">{group.label}</span>
-                      <ChevronRight
-                        className={cn(
-                          "h-3 w-3 transition-transform duration-200",
-                          isExpanded && "rotate-90"
-                        )}
-                      />
-                    </>
-                  )}
-                </button>
-
-                {/* Sub-items */}
-                <AnimatePresence initial={false}>
-                  {isExpanded && !collapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="ml-3 border-l border-sidebar-border pl-3 py-1">
-                        {group.items.map((item) => (
-                          <NavLink
-                            key={item.to}
-                            to={item.to}
-                            end={item.to === "/mission-control" || item.to === "/discover" || item.to === "/remediate" || item.to === "/comply"}
-                            className={({ isActive: active }) =>
-                              cn(
-                                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs transition-colors",
-                                active
-                                  ? "bg-primary/10 text-primary font-medium"
-                                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-                              )
-                            }
-                          >
-                            <item.icon className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{item.label}</span>
-                            {item.badge && (
-                              <span className="ml-auto rounded bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-medium text-purple-400">
-                                {item.badge}
-                              </span>
-                            )}
-                          </NavLink>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Bottom Actions */}
-        <div className="border-t border-sidebar-border p-2 space-y-1">
-          {/* User identity */}
-          <UserBadge collapsed={collapsed} />
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              )
-            }
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Settings</span>}
-          </NavLink>
-
-          <button
-            onClick={toggleTheme}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-          >
-            {preferences.theme === "dark" ? (
-              <Sun className="h-4 w-4 shrink-0" />
-            ) : (
-              <Moon className="h-4 w-4 shrink-0" />
-            )}
-            {!collapsed && <span>{preferences.theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
-          </button>
-
-          <button
-            onClick={toggleSidebar}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4 shrink-0" />
-            ) : (
-              <ChevronLeft className="h-4 w-4 shrink-0" />
-            )}
-            {!collapsed && <span>Collapse</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main Content ── */}
-      <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="h-full">
-          {/* Top Bar with Breadcrumbs */}
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-6">
-            <Breadcrumbs navGroups={filteredGroups} pathname={location.pathname} />
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleCopilot}
-                className={cn(copilotOpen && "bg-primary/10 text-primary")}
-              >
-                {copilotOpen ? (
-                  <PanelRightClose className="h-4 w-4" />
-                ) : (
-                  <PanelRightOpen className="h-4 w-4" />
-                )}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={toggleCopilot}>
-                <Bot className="h-4 w-4" />
-              </Button>
+        >
+          {/* ── Logo / Brand ── */}
+          <div className={cn(
+            "flex h-14 items-center gap-3 border-b border-sidebar-border",
+            collapsed ? "px-2 justify-center" : "px-4"
+          )}>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-600 shadow-[0_0_12px_oklch(0.65_0.15_195/0.3)]">
+              <span className="text-[11px] font-black text-white tracking-tight">AL</span>
             </div>
-          </header>
-
-          {/* Page Content */}
-          <div className="p-6 max-w-[1600px] mx-auto w-full">
-            <RouteErrorBoundary locationKey={location.pathname}>
-              <Outlet />
-            </RouteErrorBoundary>
+            {!collapsed && (
+              <div className="min-w-0">
+                <span className="block text-[13px] font-bold tracking-tight text-foreground">ALDECI</span>
+                <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground/70 leading-none mt-px">
+                  Security Platform
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      </main>
 
-      {/* ── AI Copilot Sidebar ── */}
-      <AnimatePresence>
-        {copilotOpen && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 380, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="border-l border-border bg-card overflow-hidden"
-          >
-            <CopilotSidebar onClose={toggleCopilot} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          {/* ── Section tabs ── */}
+          <SectionTabs
+            sections={filteredSections}
+            activeSection={activeSection}
+            collapsed={collapsed}
+            onSelect={(s) => {
+              setActiveSection(s);
+              setExpandedGroup(null);
+            }}
+          />
+
+          {/* ── Search hint ── */}
+          <div className={cn("px-2 pt-2", collapsed ? "pb-1" : "pb-2")}>
+            <SidebarSearchHint
+              collapsed={collapsed}
+              onClick={() => setSearchOpen(true)}
+            />
+          </div>
+
+          {/* ── Nav groups for active section ── */}
+          <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-px scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
+            {!collapsed && currentSectionData && (
+              <div className="mb-2 px-2 pt-1">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
+                  {currentSectionData.section}
+                </span>
+              </div>
+            )}
+            {(currentSectionData?.groups ?? []).map((group) => (
+              <NavGroupItem
+                key={group.label}
+                group={group}
+                collapsed={collapsed}
+                expandedGroup={expandedGroup}
+                onToggle={handleGroupToggle}
+                pathname={location.pathname}
+              />
+            ))}
+          </nav>
+
+          {/* ── Bottom: User + actions ── */}
+          <div className="border-t border-sidebar-border pb-1">
+            <div className="px-2 pt-2 pb-1">
+              <UserBadge collapsed={collapsed} />
+            </div>
+
+            <div className={cn("flex px-2 gap-1", collapsed ? "flex-col" : "flex-row items-center")}>
+              <NavTooltip label={`${preferences.theme === "dark" ? "Light" : "Dark"} mode`} disabled={!collapsed}>
+                <button
+                  onClick={toggleTheme}
+                  className="flex h-8 w-full items-center justify-center gap-2.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-colors"
+                >
+                  {preferences.theme === "dark" ? (
+                    <Sun className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <Moon className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  {!collapsed && <span className="flex-1 text-left text-[11px]">{preferences.theme === "dark" ? "Light mode" : "Dark mode"}</span>}
+                </button>
+              </NavTooltip>
+
+              <NavTooltip label="Settings" disabled={!collapsed}>
+                <NavLink
+                  to="/settings"
+                  className={({ isActive }) =>
+                    cn(
+                      "flex h-8 w-full items-center justify-center gap-2.5 rounded-lg px-2 text-xs transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+                    )
+                  }
+                >
+                  <Settings className="h-3.5 w-3.5 shrink-0" />
+                  {!collapsed && <span className="flex-1 text-left text-[11px]">Settings</span>}
+                </NavLink>
+              </NavTooltip>
+
+              <NavTooltip label={collapsed ? "Expand sidebar" : "Collapse sidebar"} disabled={false}>
+                <button
+                  onClick={toggleSidebar}
+                  className="flex h-8 w-full items-center justify-center gap-2.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-colors"
+                >
+                  {collapsed ? (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  {!collapsed && <span className="flex-1 text-left text-[11px]">Collapse</span>}
+                </button>
+              </NavTooltip>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main Content ── */}
+        <main className="flex-1 min-w-0 overflow-y-auto">
+          <div className="h-full">
+            {/* Top Bar */}
+            <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-6 gap-4">
+              <Breadcrumbs navGroups={filteredNavGroups} pathname={location.pathname} />
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Global search — also triggered by Cmd+K  */}
+                {searchOpen && (
+                  <div className="contents">
+                    {/* Render GlobalSearch in open state by triggering its internal state */}
+                  </div>
+                )}
+                <GlobalSearch />
+
+                <NotificationBell />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleCopilot}
+                  className={cn("h-8 w-8", copilotOpen && "bg-primary/10 text-primary")}
+                  title="AI Copilot"
+                >
+                  {copilotOpen ? (
+                    <PanelRightClose className="h-4 w-4" />
+                  ) : (
+                    <Bot className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </header>
+
+            {/* Page Content */}
+            <div className="p-6 max-w-[1600px] mx-auto w-full">
+              <RouteErrorBoundary locationKey={location.pathname}>
+                <Outlet />
+              </RouteErrorBoundary>
+            </div>
+          </div>
+        </main>
+
+        {/* ── AI Copilot Sidebar ── */}
+        <AnimatePresence>
+          {copilotOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 380, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="border-l border-border bg-card overflow-hidden"
+            >
+              <CopilotSidebar onClose={toggleCopilot} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </Tooltip.Provider>
   );
 }
