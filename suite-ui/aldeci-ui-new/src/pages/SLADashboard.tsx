@@ -16,6 +16,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, AlertTriangle, Shield, Users, Settings, RefreshCw, BarChart3 } from "lucide-react";
+import { toast } from "sonner";
 
 // ── API ────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -454,7 +455,7 @@ export default function SLADashboard() {
                 </CardTitle>
                 <CardDescription className="text-xs">Current SLA thresholds by severity tier</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-xs">Edit Policy</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast.info("SLA policy editor coming soon")}>Edit Policy</Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">

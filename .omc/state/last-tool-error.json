@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\n# Find and restart the server process\\npkill -f \\\"uvicorn.*app\\\" 2>/dev/null || pkill -f \\\"python.*app.py\\\" 2>/dev/null || true\\nsleep 2\\n# Start server ...",
-  "error": "Exit code 7\nServer PID: 55665\n000",
-  "timestamp": "2026-04-20T21:01:31.608Z",
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops\\nPYTHONPATH=\\\"$(pwd)/suite-api:$(pwd)/suite-core:$(pwd)/suite-feeds:$(pwd)/suite-evidence-risk:$(pwd)/suite-integrations:$(pwd)/suite-attack:$(pwd)\\\" FIXO...",
+  "error": "Exit code 144\nReady 12s",
+  "timestamp": "2026-04-20T21:03:14.988Z",
   "retry_count": 1
 }

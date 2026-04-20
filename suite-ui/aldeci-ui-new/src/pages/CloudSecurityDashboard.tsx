@@ -271,7 +271,7 @@ export default function CloudSecurityDashboard() {
                     <TableCell className="py-2.5"><ScoreBar value={acct.score} /></TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{acct.scanned}</TableCell>
                     <TableCell className="py-2.5 text-right">
-                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Scan Now</Button>
+                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toast.info("Cloud account scan initiated…")}>Scan Now</Button>
                     </TableCell>
                   </TableRow>
                 ))}

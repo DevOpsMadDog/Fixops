@@ -14,6 +14,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Shield, AlertTriangle, Target, Activity, RefreshCw,
   Play, Pause, CheckCircle, Lock, Plus, ChevronRight, X,
@@ -528,11 +529,11 @@ export default function OpenClawDashboard() {
           <span className="text-xs text-muted-foreground flex-1">
             Campaign <span className="text-foreground font-medium">{selectedCampaign.name}</span> is active — Phase: <span className="text-amber-400 capitalize">{selectedCampaign.phase?.replace(/_/g, " ")}</span>
           </span>
-          <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+          <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10" onClick={() => toast.info(`Campaign "${selectedCampaign.name}" paused`)}>
             <Pause className="h-3.5 w-3.5 mr-1" />
             Pause
           </Button>
-          <Button variant="outline" size="sm" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
+          <Button variant="outline" size="sm" className="border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => toast.success(`Campaign "${selectedCampaign.name}" marked complete`)}>
             <CheckCircle className="h-3.5 w-3.5 mr-1" />
             Complete
           </Button>

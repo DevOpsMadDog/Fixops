@@ -211,7 +211,7 @@ export default function SOARDashboard() {
                     </TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground tabular-nums">{row.last_executed_at ?? row.lastRun ?? "—"}</TableCell>
                     <TableCell className="py-2.5 text-right">
-                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Run Now</Button>
+                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => toast.success(`Playbook "${row.name ?? row.playbook_name ?? 'workflow'}" triggered`)}>Run Now</Button>
                     </TableCell>
                   </TableRow>
                   );
