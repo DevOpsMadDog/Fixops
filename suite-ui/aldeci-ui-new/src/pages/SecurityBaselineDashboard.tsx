@@ -114,10 +114,10 @@ function SeverityBadge({ s }: { s: string }) {
 export default function SecurityBaselineDashboard() {
   const [selectedBaseline, setSelectedBaseline] = useState(MOCK_BASELINES[0]);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/baselines?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedBaseline(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
   const [targetName, setTargetName] = useState("");
   const [assessMsg, setAssessMsg] = useState("");

@@ -125,10 +125,10 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.Element
 export default function SBOMExportDashboard() {
   const [search, setSearch] = useState("");
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/projects?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSelectedProject(d); })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[1]);
   const [expandedComp, setExpandedComp] = useState<string | null>(null);

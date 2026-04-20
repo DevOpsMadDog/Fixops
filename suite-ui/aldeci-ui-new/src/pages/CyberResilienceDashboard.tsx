@@ -210,10 +210,10 @@ function Sparkline({ data }: { data: Snapshot[] }) {
 export default function CyberResilienceDashboard() {
   const [metricFilter, setMetricFilter] = useState<string>("all");
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/score?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   const filteredMetrics = metricFilter === "all" ? METRICS : METRICS.filter((m) =>

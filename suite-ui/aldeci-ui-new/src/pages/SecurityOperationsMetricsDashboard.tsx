@@ -165,10 +165,10 @@ function TrendChart({ data }: { data: typeof MOCK_SNAPSHOTS }) {
 export default function SecurityOperationsMetricsDashboard() {
   const [queue, setQueue] = useState([]);
   useEffect(() => {
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/summary?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
-      .catch(() => {});
+      .catch(() => { /* graceful fallback */ });
   }, []);
 
   function ackAlert(id: string) {
