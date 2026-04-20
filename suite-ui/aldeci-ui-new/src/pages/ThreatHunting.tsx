@@ -114,7 +114,7 @@ export default function ThreatHuntingPage() {
   const { data: hunts = MOCK_HUNTS, isLoading } = useQuery<Hunt[]>({
     queryKey: ["threat-hunting-hunts"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/api/v1/threat-hunting/hunts`);
+      const res = await fetch(`${API_BASE}/api/v1/threat-hunting/hunts?org_id=default`);
       if (!res.ok) throw new Error("API unavailable");
       return res.json();
     },

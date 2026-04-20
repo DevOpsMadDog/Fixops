@@ -178,6 +178,12 @@ def get_department_culture_scores(org_id: str = Query(...)):
     return _get_engine().get_department_culture_scores(org_id)
 
 
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns culture summary for dashboard health-checks."""
+    return _get_engine().get_department_culture_scores(org_id)
+
+
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_culture_summary(org_id: str = Query(...)):
     """Return overall security culture summary."""

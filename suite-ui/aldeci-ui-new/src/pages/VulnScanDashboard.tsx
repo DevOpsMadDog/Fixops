@@ -84,10 +84,10 @@ function ScanStatusBadge({ status }: { status: string }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function VulnScanDashboard() {
-  const [scans, setScans] = useState(MOCK_SCANS);
+  const [scans, setScans] = useState([]);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/scans`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/scans?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setScans(d); })
       .catch(() => {});
@@ -95,7 +95,7 @@ export default function VulnScanDashboard() {
 
   const [scannerType, setScannerType] = useState("Nessus");
   useEffect(() => {
-    fetch(`${_API_BASE}/scans`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/scans?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setScans(d); })
       .catch(() => {});

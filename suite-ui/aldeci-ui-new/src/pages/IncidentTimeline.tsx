@@ -539,7 +539,7 @@ export default function IncidentTimeline() {
     queryKey: ["incidents"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/incidents`);
+        const res = await fetch(`${API_BASE}/api/v1/incidents?org_id=default`);
         if (!res.ok) throw new Error("Failed to fetch");
         return await res.json() as IncidentsData;
       } catch {
@@ -554,7 +554,7 @@ export default function IncidentTimeline() {
     queryKey: ["incident-timeline", selectedId],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/incidents/${selectedId}/timeline`);
+        const res = await fetch(`${API_BASE}/api/v1/incidents/${selectedId}/timeline?org_id=default`);
         if (!res.ok) throw new Error("Failed to fetch");
         return await res.json() as IncidentDetail;
       } catch {

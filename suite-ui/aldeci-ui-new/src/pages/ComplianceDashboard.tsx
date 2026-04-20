@@ -191,7 +191,7 @@ const EVIDENCE_CONFIG: Record<EvidenceStatus, { cls: string; Icon: React.Element
 // ══════════════════════════════════════════════════════════════
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`${res.status}`);

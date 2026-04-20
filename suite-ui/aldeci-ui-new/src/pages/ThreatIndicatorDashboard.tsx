@@ -42,7 +42,7 @@ export default function ThreatIndicatorDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/indicators`, { headers: getHeaders() })
+    fetch(`${API_BASE}/indicators?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setIndicators(d); })
       .catch(() => {})

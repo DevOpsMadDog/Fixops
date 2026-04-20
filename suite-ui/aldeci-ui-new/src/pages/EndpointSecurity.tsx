@@ -157,7 +157,7 @@ export default function EndpointSecurity() {
   const { data: endpointsData, isLoading: epLoading } = useQuery({
     queryKey: ["endpoints"],
     queryFn: async () => {
-      const r = await fetch(`${API}/api/v1/endpoints`);
+      const r = await fetch(`${API}/api/v1/endpoints?org_id=default`);
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     },
@@ -167,7 +167,7 @@ export default function EndpointSecurity() {
   const { data: threatsData, isLoading: thLoading } = useQuery({
     queryKey: ["endpoints-threats"],
     queryFn: async () => {
-      const r = await fetch(`${API}/api/v1/endpoints/threats`);
+      const r = await fetch(`${API}/api/v1/endpoints/threats?org_id=default`);
       if (!r.ok) throw new Error("unavailable");
       return r.json();
     },

@@ -39,7 +39,7 @@ const API_KEY =
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
 async function apiFetch(path: string, method = "GET", body?: unknown) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     method,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,

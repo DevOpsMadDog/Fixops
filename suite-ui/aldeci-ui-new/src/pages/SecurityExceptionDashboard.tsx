@@ -22,7 +22,7 @@ async function apiFetch(path: string) {
     (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
     import.meta.env.VITE_API_KEY ||
     "dev-key";
-  const res = await fetch(`${API_BASE}/api/v1${path}`, { headers: { "X-API-Key": key } });
+  const res = await fetch(`${API_BASE}/api/v1${path}?org_id=default`, { headers: { "X-API-Key": key } });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }

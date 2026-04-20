@@ -20,7 +20,7 @@ const API_KEY =
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -107,16 +107,16 @@ function MttrCell({ hours }: { hours: number }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function IRPlaybookDashboard() {
-  const [stats, setStats] = useState(MOCK_STATS);
-  const [executions, setExecutions] = useState(MOCK_EXECUTIONS);
+  const [stats, setStats] = useState([]);
+  const [executions, setExecutions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
       const [s, e] = await Promise.all([
-        apiFetch("/api/v1/ir-playbook/stats?org_id=default"),
-        apiFetch("/api/v1/ir-playbook/executions?org_id=default&limit=10"),
+        apiFetch("/api/v1/ir/stats?org_id=default"),
+        apiFetch("/api/v1/ir/incidents?org_id=default&limit=10"),
       ]);
       if (s && typeof s.playbooks === "number") setStats(s);
       if (Array.isArray(e) && e.length > 0) setExecutions(e);

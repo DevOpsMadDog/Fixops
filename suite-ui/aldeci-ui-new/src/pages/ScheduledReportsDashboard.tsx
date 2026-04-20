@@ -47,7 +47,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -378,7 +378,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 export default function ScheduledReportsDashboard() {
   const [schedules, setSchedules] = useState<Schedule[]>(MOCK_SCHEDULES);
   const [runs, setRuns] = useState<ReportRun[]>(MOCK_RUNS);
-  const [stats, setStats] = useState(MOCK_STATS);
+  const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);

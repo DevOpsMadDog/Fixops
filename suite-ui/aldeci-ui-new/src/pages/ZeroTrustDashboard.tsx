@@ -350,7 +350,7 @@ export default function ZeroTrustDashboard() {
     queryKey: ["zero-trust-policies"],
     queryFn: async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/zero-trust/policies`);
+        const response = await fetch(`${API_BASE}/api/v1/zero-trust/policies?org_id=default`);
         if (!response.ok) throw new Error("Failed to fetch");
         return response.json();
       } catch {

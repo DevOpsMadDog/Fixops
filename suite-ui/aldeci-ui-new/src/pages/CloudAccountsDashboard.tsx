@@ -101,15 +101,15 @@ const ALL_PROVIDERS: Provider[] = ["AWS", "Azure", "GCP", "OCI", "Alibaba"];
 
 export default function CloudAccountsDashboard() {
   const [providerFilter, setProviderFilter] = useState<Provider | "All">("All");
-  const [accounts, setAccounts] = useState(MOCK_ACCOUNTS);
-  const [events, setEvents] = useState(MOCK_EVENTS);
+  const [accounts, setAccounts] = useState([]);
+  const [events, setEvents] = useState([]);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/accounts`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/accounts?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setAccounts(d); })
       .catch(() => {});
-    fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/events?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setEvents(d); })
       .catch(() => {});

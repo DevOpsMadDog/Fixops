@@ -161,3 +161,9 @@ def compare_to_benchmark(body: CompareRequest, org_id: str = Query(...)):
 def get_org_benchmark_summary(org_id: str = Query(...)):
     """Return benchmark comparison summary with performance counts and overall percentile."""
     return _get_engine().get_org_benchmark_summary(org_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns benchmarks list for dashboard health-checks."""
+    return _get_engine().list_benchmarks(org_id)

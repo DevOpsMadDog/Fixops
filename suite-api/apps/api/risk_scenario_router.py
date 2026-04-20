@@ -182,3 +182,9 @@ def get_risk_reduction_summary(org_id: str = Query(...)):
 def get_scenario_stats(org_id: str = Query(...)):
     """Return aggregated scenario statistics for an org."""
     return _get_engine().get_scenario_stats(org_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns scenarios list for dashboard health-checks."""
+    return _get_engine().list_scenarios(org_id)

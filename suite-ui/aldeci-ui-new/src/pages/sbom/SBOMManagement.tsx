@@ -538,7 +538,7 @@ function LicensePieChart({ components }: { components: Component[] }) {
               fontFamily: "JetBrains Mono, monospace",
             }}
             formatter={(value: number, name: string) => [
-              `${value} (${((value / total) * 100).toFixed(1)}%)`,
+              `${value} (${total > 0 ? ((value / total) * 100).toFixed(1) : "0.0"}%)`,
               name,
             ]}
           />

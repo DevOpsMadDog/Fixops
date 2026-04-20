@@ -136,13 +136,13 @@ export default function AccessGovernanceDashboard() {
   const [ackMsg, setAckMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/entitlements`, { headers: getHeaders() })
+    fetch(`${API_BASE}/expiring?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setEntitlements(d); })
       .catch(() => {});
-    fetch(`${API_BASE}/violations`, { headers: getHeaders() })
+    fetch(`${API_BASE}/summary?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setViolations(d); })
+      .then(d => { if (d && Array.isArray(d.violations)) setViolations(d.violations); })
       .catch(() => {});
   }, []);
 

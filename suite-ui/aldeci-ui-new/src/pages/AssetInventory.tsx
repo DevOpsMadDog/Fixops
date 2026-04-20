@@ -352,7 +352,7 @@ export default function AssetInventory() {
   const { data: assets } = useQuery<Asset[]>({
     queryKey: ["assets"],
     queryFn: async () => {
-      const res = await fetch(`${API}/api/v1/assets`);
+      const res = await fetch(`${API}/api/v1/assets?org_id=default`);
       if (!res.ok) throw new Error("assets api unavailable");
       return res.json();
     },

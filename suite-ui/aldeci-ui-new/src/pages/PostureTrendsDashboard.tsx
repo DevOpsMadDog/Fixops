@@ -160,11 +160,11 @@ function sparklineColor(velocity: Velocity, higherIsBetter: boolean): string {
 // ── Component ──────────────────────────────────────────────────
 
 export default function PostureTrendsDashboard() {
-  const [trends, setTrends] = useState(MOCK_TRENDS);
+  const [trends, setTrends] = useState([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/trends`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/trends?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setTrends(d); })
       .catch(() => { setError('Failed to load data'); });

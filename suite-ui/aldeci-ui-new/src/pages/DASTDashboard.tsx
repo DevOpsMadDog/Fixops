@@ -20,7 +20,7 @@ const API_KEY =
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -101,8 +101,8 @@ function StatusBadge({ status }: { status: string }) {
 // ── Main Component ─────────────────────────────────────────────
 
 export default function DASTDashboard() {
-  const [stats, setStats] = useState(MOCK_STATS);
-  const [findings, setFindings] = useState(MOCK_FINDINGS);
+  const [stats, setStats] = useState([]);
+  const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {

@@ -47,7 +47,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API}${path}`, { headers: { "X-API-Key": API_KEY } });
+  const res = await fetch(`${API}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY } });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }
@@ -283,7 +283,7 @@ export default function VulnLifecycle() {
       const states: VulnState[] = ["discovered", "triaging", "confirmed", "in_remediation", "fixed", "closed"];
       const results = await Promise.all(
         states.map(async (s) => {
-          const res = await fetch(`${API}/api/v1/vuln-lifecycle/state/${s}`);
+          const res = await fetch(`${API}/api/v1/vuln-lifecycle/state/${s}?org_id=default`);
           if (!res.ok) throw new Error(`state ${s} unavailable`);
           const data: Vuln[] = await res.json();
           return data;
@@ -298,7 +298,7 @@ export default function VulnLifecycle() {
 
   const transition = useMutation({
     mutationFn: async ({ id, next }: { id: string; next: VulnState }) => {
-      const res = await fetch(`${API}/api/v1/vuln-lifecycle/${id}/transition`, {
+      const res = await fetch(`${API}/api/v1/vuln-lifecycle/${id}/transition?org_id=default`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: next }),

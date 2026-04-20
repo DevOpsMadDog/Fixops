@@ -48,7 +48,7 @@ export default function PrivacyImpactDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/assessments`, { headers: getHeaders() })
+    fetch(`${API_BASE}/assessments?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setPias(d); })
       .catch(() => { setError('Failed to load data'); })

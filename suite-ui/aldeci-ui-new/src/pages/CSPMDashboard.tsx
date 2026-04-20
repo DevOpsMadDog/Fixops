@@ -33,7 +33,7 @@ const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API ${res.status}`);

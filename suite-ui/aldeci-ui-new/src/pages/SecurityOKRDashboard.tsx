@@ -107,10 +107,10 @@ function krProgress(kr: KeyResult) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityOKRDashboard() {
-  const [objectives, setObjectives] = useState(MOCK_OBJECTIVES);
+  const [objectives, setObjectives] = useState([]);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
       .catch(() => {});
@@ -121,7 +121,7 @@ export default function SecurityOKRDashboard() {
   const [updateKR, setUpdateKR] = useState<string | null>(null);
   const [updateValue, setUpdateValue] = useState("");
   useEffect(() => {
-    fetch(`${_API_BASE}/objectives`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/objectives?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setObjectives(d); })
       .catch(() => {});

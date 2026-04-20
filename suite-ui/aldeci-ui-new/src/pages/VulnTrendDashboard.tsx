@@ -27,7 +27,7 @@ const ORG_ID = "default";
 async function apiFetch(path: string) {
   const key = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
     import.meta.env.VITE_API_KEY || "dev-key";
-  const res = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": key } });
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": key } });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }

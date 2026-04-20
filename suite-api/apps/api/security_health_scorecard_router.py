@@ -131,6 +131,12 @@ def get_grade_trend(
     return _get_engine().get_grade_trend(org_id)
 
 
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+    """Root endpoint — returns current scorecard for dashboard health-checks."""
+    return _get_engine().get_current_scorecard(org_id)
+
+
 @router.get("/domains", dependencies=[Depends(api_key_auth)])
 def get_domains(
     org_id: str = Query(..., description="Organization ID"),

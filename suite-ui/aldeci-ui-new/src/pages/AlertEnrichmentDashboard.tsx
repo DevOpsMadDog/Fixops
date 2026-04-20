@@ -113,15 +113,15 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: React.ElementType;
 
 export default function AlertEnrichmentDashboard() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
-  const [sources, setSources] = useState(MOCK_SOURCES);
-  const [queue, setQueue] = useState(MOCK_QUEUE);
+  const [sources, setSources] = useState([]);
+  const [queue, setQueue] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/alerts`, { headers: getHeaders() })
+    fetch(`${API_BASE}/queue?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setQueue(d); })
       .catch(() => {});
-    fetch(`${API_BASE}/sources`, { headers: getHeaders() })
+    fetch(`${API_BASE}/high-risk?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setSources(d); })
       .catch(() => {});

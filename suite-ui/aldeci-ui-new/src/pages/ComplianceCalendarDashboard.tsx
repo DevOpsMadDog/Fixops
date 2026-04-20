@@ -136,7 +136,7 @@ export default function ComplianceCalendarDashboard() {
   const [calEvents, setCalEvents] = useState(EVENTS);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/events`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/events?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setCalEvents(d); })
       .catch(() => {});

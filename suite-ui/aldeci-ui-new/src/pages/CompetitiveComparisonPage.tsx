@@ -313,6 +313,7 @@ const VENDOR_TEXT: Record<Vendor, string> = {
 
 function avg(scores: Record<string, number>) {
   const vals = Object.values(scores);
+  if (vals.length === 0) return "0.0";
   return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
 }
 

@@ -197,3 +197,9 @@ def get_campaign_stats(org_id: str = Query(...)):
 def get_review_summary(org_id: str = Query(...)):
     """Get total/pending/completed/overdue review counts."""
     return _get_engine().get_review_summary(org_id=org_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns reviews list for dashboard health-checks."""
+    return _get_engine().list_reviews(org_id=org_id)

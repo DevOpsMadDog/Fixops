@@ -61,11 +61,11 @@ export default function ArchReviewDashboard() {
   const [liveFindings, setLiveFindings] = useState(findings);
 
   useEffect(() => {
-    fetch(`${API_BASE}/reviews`, { headers: getHeaders() })
+    fetch(`${API_BASE}/reviews?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
       .catch(() => {});
-    fetch(`${API_BASE}/findings`, { headers: getHeaders() })
+    fetch(`${API_BASE}/findings?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
       .catch(() => {});

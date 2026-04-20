@@ -184,6 +184,12 @@ def list_assessments(
     return _get_engine().list_assessments(org_id, vendor_id=vendor_id, status=status)
 
 
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns assessments list for dashboard health-checks."""
+    return _get_engine().list_assessments(org_id)
+
+
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
 def get_overdue_assessments(org_id: str = Query(...)):
     """Return assessments that are past their due date."""

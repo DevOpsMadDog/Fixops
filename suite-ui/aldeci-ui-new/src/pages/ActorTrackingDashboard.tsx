@@ -147,15 +147,15 @@ const MAX_TTP = TOP_TTPS[0].count;
 
 export default function ActorTrackingDashboard() {
   const [selectedId, setSelectedId] = useState<string>("act-001");
-  const [actors, setActors] = useState(MOCK_ACTORS);
-  const [activity, setActivity] = useState(MOCK_ACTIVITY);
+  const [actors, setActors] = useState([]);
+  const [activity, setActivity] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/actors`, { headers: getHeaders() })
+    fetch(`${API_BASE}/actors?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setActors(d); })
       .catch(() => {});
-    fetch(`${API_BASE}/activity`, { headers: getHeaders() })
+    fetch(`${API_BASE}/active?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setActivity(d); })
       .catch(() => {});

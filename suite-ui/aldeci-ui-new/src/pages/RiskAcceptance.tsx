@@ -379,7 +379,7 @@ export default function RiskAcceptancePage() {
     queryKey: ["risk-acceptance"],
     queryFn: async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/list`);
+        const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/list?org_id=default`);
         if (!response.ok) throw new Error("Failed to fetch risk acceptance data");
         return response.json();
       } catch {
@@ -392,7 +392,7 @@ export default function RiskAcceptancePage() {
   // Approve/Reject mutations
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/approve`, {
+      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/approve?org_id=default`, {
         method: "POST",
       });
       if (!response.ok) throw new Error("Failed to approve");
@@ -405,7 +405,7 @@ export default function RiskAcceptancePage() {
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/reject`, {
+      const response = await fetch(`${API_BASE}/api/v1/risk-acceptance/${id}/reject?org_id=default`, {
         method: "POST",
       });
       if (!response.ok) throw new Error("Failed to reject");

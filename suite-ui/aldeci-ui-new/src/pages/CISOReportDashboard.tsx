@@ -52,7 +52,7 @@ const apiKey =
   "dev-key";
 
 const apiFetch = (path: string) =>
-  fetch(`${API_BASE}/api/v1${path}`, {
+  fetch(`${API_BASE}/api/v1${path}?org_id=default`, {
     headers: { "X-API-Key": apiKey },
   }).then((r) => {
     if (!r.ok) throw new Error(`API error: ${r.status}`);

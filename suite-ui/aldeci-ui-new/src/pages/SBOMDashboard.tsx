@@ -28,7 +28,7 @@ const API_KEY =
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -140,7 +140,7 @@ function VulnCount({ count }: { count: number }) {
 
 export default function SBOMDashboard() {
   const [sboms, setSboms] = useState<any[]>(MOCK_SBOMS);
-  const [stats, setStats] = useState(MOCK_STATS);
+  const [stats, setStats] = useState([]);
   const [selectedSbom, setSelectedSbom] = useState<any | null>(null);
   const [components, setComponents] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);

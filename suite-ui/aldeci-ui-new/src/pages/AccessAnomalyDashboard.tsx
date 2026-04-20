@@ -51,7 +51,7 @@ export default function AccessAnomalyDashboard() {
   const fetchData = () => {
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/anomalies`, { headers: getHeaders() })
+    fetch(`${API_BASE}/anomalies?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(d => { if (Array.isArray(d)) setAnomalies(d); })
       .catch(err => setError(err.message || 'Failed to load data'))

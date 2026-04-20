@@ -172,7 +172,7 @@ export default function ControlTestingDashboard() {
   const [controls, setControls] = useState(CONTROLS);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/controls`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/controls?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setControls(d); })
       .catch(() => {});

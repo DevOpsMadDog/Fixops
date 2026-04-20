@@ -934,9 +934,10 @@ export default function AuditLogPage() {
             {/* Event Type */}
             <select
               value={eventTypeFilter}
-              onChange={(e) =>
-                setEventTypeFilter(e.target.value as "all" | EventType)
-              }
+              onChange={(e) => {
+                setEventTypeFilter(e.target.value as "all" | EventType);
+                setCurrentPage(1);
+              }}
               className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="all">All Event Types</option>
@@ -950,9 +951,10 @@ export default function AuditLogPage() {
             {/* Severity */}
             <select
               value={severityFilter}
-              onChange={(e) =>
-                setSeverityFilter(e.target.value as "all" | Severity)
-              }
+              onChange={(e) => {
+                setSeverityFilter(e.target.value as "all" | Severity);
+                setCurrentPage(1);
+              }}
               className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="all">All Severities</option>

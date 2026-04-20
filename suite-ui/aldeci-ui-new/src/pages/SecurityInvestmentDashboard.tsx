@@ -123,7 +123,7 @@ export default function SecurityInvestmentDashboard() {
   const [investments, setInvestments] = useState(INVESTMENTS);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/investments?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
       .catch(() => {});
@@ -131,7 +131,7 @@ export default function SecurityInvestmentDashboard() {
 
   const [showForm, setShowForm] = useState(false);
   useEffect(() => {
-    fetch(`${_API_BASE}/investments`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/investments?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setInvestments(d); })
       .catch(() => {});

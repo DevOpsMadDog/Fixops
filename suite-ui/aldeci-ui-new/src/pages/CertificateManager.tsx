@@ -35,7 +35,7 @@ const API_KEY = import.meta.env.VITE_API_KEY || "dev-key";
 const ORG = "default";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${API}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
@@ -252,7 +252,7 @@ function DomainCheckPanel() {
     setLoading(true);
     setResult(null);
     try {
-      const resp = await fetch(`${API}/api/v1/certificates/check`, {
+      const resp = await fetch(`${API}/api/v1/certificates/check?org_id=default`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
         body: JSON.stringify({ domain: domain.trim(), port: 443, timeout: 5 }),

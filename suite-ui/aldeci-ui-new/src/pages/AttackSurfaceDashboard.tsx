@@ -27,7 +27,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });

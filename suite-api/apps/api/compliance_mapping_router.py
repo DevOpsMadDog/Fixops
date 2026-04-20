@@ -251,3 +251,9 @@ def get_control_context(
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for a control (related findings, assets, evidence)."""
     return _get_engine().get_control_context(org_id, control_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns controls list for dashboard health-checks."""
+    return _get_engine().list_controls(org_id)

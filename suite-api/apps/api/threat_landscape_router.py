@@ -204,3 +204,9 @@ def get_assessment(assessment_id: str, org_id: str = Query(...)):
 def get_landscape_summary(org_id: str = Query(...)):
     """Return summary stats across actors and threats."""
     return _get_engine().get_landscape_summary(org_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns landscape summary for dashboard health-checks."""
+    return _get_engine().get_landscape_summary(org_id)

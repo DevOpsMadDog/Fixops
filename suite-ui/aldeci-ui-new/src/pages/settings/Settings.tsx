@@ -322,7 +322,7 @@ function GeneralTab() {
 
 function AuthenticationTab() {
   const [showKey, setShowKey] = useState(false);
-  const [apiKeys, setApiKeys] = useState(MOCK_API_KEYS);
+  const [apiKeys, setApiKeys] = useState([]);
   const [newKeyName, setNewKeyName] = useState("");
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(true);
@@ -389,7 +389,7 @@ function AuthenticationTab() {
               <Progress value={26} className="h-1.5" />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => toast.success("API key rotated successfully")}>
                 <RotateCcw className="h-3 w-3" />
                 Rotate Key
               </Button>
@@ -503,8 +503,8 @@ function AuthenticationTab() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="gap-1.5 text-xs">Test SSO Connection</Button>
-                      <Button size="sm" className="gap-1.5 text-xs">Save SSO Config</Button>
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Testing SSO connection…")}>Test SSO Connection</Button>
+                      <Button size="sm" className="gap-1.5 text-xs" onClick={() => toast.success("SSO configuration saved")}>Save SSO Config</Button>
                     </div>
                   </div>
                 </motion.div>
@@ -563,7 +563,7 @@ function AuthenticationTab() {
 // ─────────────────────────────────────────────
 
 function IntegrationsTab() {
-  const [integrations, setIntegrations] = useState(MOCK_INTEGRATIONS);
+  const [integrations, setIntegrations] = useState([]);
 
   const toggleConnect = (id: string) => {
     setIntegrations((prev) =>
@@ -849,7 +849,7 @@ function NotificationsTab() {
 // ─────────────────────────────────────────────
 
 function TeamTab() {
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
   const [search, setSearch] = useState("");

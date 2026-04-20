@@ -28,7 +28,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
     ...opts,
   });
@@ -284,7 +284,7 @@ function NewCampaignForm({ onClose, onCreated }: { onClose: () => void; onCreate
 
 export default function OpenClawDashboard() {
   const [campaigns, setCampaigns] = useState<any[]>(MOCK_CAMPAIGNS);
-  const [stats, setStats] = useState(MOCK_STATS);
+  const [stats, setStats] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [findings, setFindings] = useState<any[]>([]);

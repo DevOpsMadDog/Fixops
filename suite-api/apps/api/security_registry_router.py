@@ -222,3 +222,9 @@ def get_registry_stats(
 ) -> Dict[str, Any]:
     """Return aggregated security registry statistics."""
     return _get_engine().get_registry_stats(org_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns artifacts list for dashboard health-checks."""
+    return _get_engine().list_artifacts(org_id)

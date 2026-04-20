@@ -143,7 +143,7 @@ export default function IPReputation() {
 
       // Try API first
       try {
-        const response = await fetch(`${API}/api/v1/cve/ip/${selectedIP}`);
+        const response = await fetch(`${API}/api/v1/cve/ip/${selectedIP}?org_id=default`);
         if (response.ok) {
           return await response.json();
         }

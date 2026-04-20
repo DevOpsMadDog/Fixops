@@ -48,7 +48,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -229,8 +229,8 @@ function RiskTimeline({ data }: { data: RiskDataPoint[] }) {
 
 export default function AISecurityAdvisorDashboard() {
   const [recs, setRecs] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
-  const [stats, setStats] = useState(MOCK_STATS);
-  const [threatBriefing, setThreatBriefing] = useState(MOCK_THREAT_BRIEFING);
+  const [stats, setStats] = useState([]);
+  const [threatBriefing, setThreatBriefing] = useState([]);
   const [riskTimeline] = useState<RiskDataPoint[]>(MOCK_RISK_TIMELINE);
   const [loading, setLoading] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<string>("all");

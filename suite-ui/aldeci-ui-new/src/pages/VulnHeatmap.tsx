@@ -648,9 +648,9 @@ export default function VulnHeatmap() {
                       <span className="text-gray-400">Per Asset</span>
                       <span className={cn(
                         "font-semibold",
-                        getRiskTextColor(zone.vuln_count / zone.asset_count / 10)
+                        getRiskTextColor(zone.asset_count > 0 ? zone.vuln_count / zone.asset_count / 10 : 0)
                       )}>
-                        {(zone.vuln_count / zone.asset_count).toFixed(0)}
+                        {zone.asset_count > 0 ? (zone.vuln_count / zone.asset_count).toFixed(0) : "—"}
                       </span>
                     </div>
                   </div>

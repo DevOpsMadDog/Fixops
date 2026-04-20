@@ -24,7 +24,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -133,8 +133,8 @@ export default function ThreatHuntingDashboard() {
   useEffect(() => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch(`/api/v1/threat-hunting/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/threat-hunting/hunts?org_id=${ORG_ID}&limit=20`),
+      apiFetch(`/api/v1/hunting/stats?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/hunting/sessions?org_id=${ORG_ID}&limit=20`),
     ]).then(([statsResult, huntsResult]) => {
       const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
       const hunts = huntsResult.status === "fulfilled" ? huntsResult.value : null;

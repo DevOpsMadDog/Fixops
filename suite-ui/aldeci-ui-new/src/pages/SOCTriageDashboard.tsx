@@ -29,7 +29,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
     ...opts,
   });
@@ -164,7 +164,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function SOCTriageDashboard() {
   const [alerts, setAlerts] = useState<any[]>(MOCK_ALERTS);
-  const [stats, setStats] = useState(MOCK_STATS);
+  const [stats, setStats] = useState([]);
   const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);

@@ -16,7 +16,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = "aldeci-demo";
 async function apiFetch(path: string) {
-  const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
+  const r = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
@@ -104,7 +104,7 @@ function dayAge(dateStr: string) {
 
 export default function CloudSecurityFindingsDashboard() {
   const [activeProvider, setActiveProvider] = useState("All");
-  const [findings, setFindings] = useState(MOCK_FINDINGS);
+  const [findings, setFindings] = useState([]);
   const [ingesting, setIngesting] = useState(false);
 
   useEffect(() => {

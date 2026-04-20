@@ -1080,7 +1080,7 @@ function IocFeed({ iocs }: { iocs: IocItem[] }) {
   const handleBlockAll = useCallback(async () => {
     setBlocking(true);
     try {
-      await fetch(`${API}/api/v1/threat-intel/block-iocs`, {
+      await fetch(`${API}/api/v1/threat-intel/block-iocs?org_id=default`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ioc_ids: iocs.map(i => i.id) }),
@@ -1295,8 +1295,8 @@ export default function ThreatIntelDashboard() {
     setLoading(true);
     try {
       const [cveRes, iocRes] = await Promise.allSettled([
-        fetch(`${API}/api/v1/threat-intel/cves/recent`).then(r => r.json()),
-        fetch(`${API}/api/v1/threat-intel/iocs`).then(r => r.json()),
+        fetch(`${API}/api/v1/threat-intel/cves/recent?org_id=default`).then(r => r.json()),
+        fetch(`${API}/api/v1/threat-intel/iocs?org_id=default`).then(r => r.json()),
       ]);
       setCves(cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : generateMockCves());
       setIocs(iocRes.status === "fulfilled" && Array.isArray(iocRes.value) ? iocRes.value : generateMockIocs());

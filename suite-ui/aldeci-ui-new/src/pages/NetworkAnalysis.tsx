@@ -22,7 +22,7 @@ const API_KEY =
   "dev-key";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API}${path}`, { headers: { "X-API-Key": API_KEY } });
+  const res = await fetch(`${API}${path}?org_id=default`, { headers: { "X-API-Key": API_KEY } });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -109,7 +109,7 @@ export default function NetworkAnalysis() {
 
   const { data: talkers = TALKERS, isLoading: l1 } = useQuery({
     queryKey: ["network-flows"],
-    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network/flows`, { headers: { "X-API-Key": API_KEY } }); if (!r.ok) throw 0; return r.json(); } catch { return TALKERS; } },
+    queryFn: async () => { try { const r = await fetch(`${API}/api/v1/network/flows?org_id=default`, { headers: { "X-API-Key": API_KEY } }); if (!r.ok) throw 0; return r.json(); } catch { return TALKERS; } },
   });
 
   const anomalies = ndrAlerts;

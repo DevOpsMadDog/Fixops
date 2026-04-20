@@ -231,3 +231,9 @@ def get_brief_stats(
 ) -> Dict[str, Any]:
     """Return aggregate threat brief statistics."""
     return _get_engine().get_brief_stats(org_id)
+
+
+@router.get("", dependencies=[Depends(api_key_auth)])
+def get_root(org_id: str = Query(default="default")):
+    """Root endpoint — returns briefs list for dashboard health-checks."""
+    return _get_engine().list_briefs(org_id)

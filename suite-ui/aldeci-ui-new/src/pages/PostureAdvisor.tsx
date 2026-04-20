@@ -425,7 +425,7 @@ export default function PostureAdvisor() {
     queryKey: ["posture-advisor"],
     queryFn: async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/posture-advisor/analyze`);
+        const response = await fetch(`${API_BASE}/api/v1/posture-advisor/analyze?org_id=default`);
         if (!response.ok) throw new Error("Failed to fetch");
         return await response.json();
       } catch {

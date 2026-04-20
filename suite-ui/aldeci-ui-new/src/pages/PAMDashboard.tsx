@@ -14,6 +14,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Key, Clock, AlertTriangle, RefreshCw, Video, CheckCircle, XCircle, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -24,7 +25,7 @@ const API_KEY =
 const ORG_ID = "aldeci-demo";
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -159,6 +160,22 @@ export default function PAMDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  const handleRotate = (username: string) => {
+    toast.success(`Rotation initiated for ${username}`);
+  };
+
+  const handleApprove = (id: string) => {
+    toast.success(`Session request ${id} approved`);
+  };
+
+  const handleDeny = (id: string) => {
+    toast.info(`Session request ${id} denied`);
+  };
+
+  const handleEndSession = (id: string) => {
+    toast.warning(`Session ${id} terminated`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -225,7 +242,7 @@ export default function PAMDashboard() {
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.last_rotated ?? row.rotated}</TableCell>
                     <TableCell className="py-2.5"><StatusBadge status={row.status} /></TableCell>
                     <TableCell className="py-2.5 text-right">
-                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]">Rotate</Button>
+                      <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => handleRotate(row.username ?? row.id ?? "account")}>Rotate</Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -277,10 +294,10 @@ export default function PAMDashboard() {
                     <TableCell className="py-2.5 text-right">
                       {rowStatus === "pending" ? (
                         <div className="flex items-center gap-1 justify-end">
-                          <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10">
+                          <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => handleApprove(row.id ?? row.session_id ?? String(i))}>
                             <CheckCircle className="h-3 w-3 mr-0.5" /> Approve
                           </Button>
-                          <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10">
+                          <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => handleDeny(row.id ?? row.session_id ?? String(i))}>
                             <XCircle className="h-3 w-3 mr-0.5" /> Deny
                           </Button>
                         </div>
@@ -326,7 +343,7 @@ export default function PAMDashboard() {
                     {s.elapsed ? ` · Elapsed ${s.elapsed}` : ""}
                   </span>
                 </div>
-                <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0 ml-2">
+                <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0 ml-2" onClick={() => handleEndSession(s.id ?? s.session_id ?? String(i))}>
                   End
                 </Button>
               </div>

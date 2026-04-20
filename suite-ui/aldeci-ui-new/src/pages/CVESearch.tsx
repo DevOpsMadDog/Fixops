@@ -135,7 +135,7 @@ export default function CVESearch() {
 
       // Try API first
       try {
-        const response = await fetch(`${API}/api/v1/cve/${selectedCVE}`, {
+        const response = await fetch(`${API}/api/v1/cve/${selectedCVE}?org_id=default`, {
           headers: { "X-API-Key": API_KEY },
         });
         if (response.ok) {

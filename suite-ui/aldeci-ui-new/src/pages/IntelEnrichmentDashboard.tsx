@@ -85,13 +85,13 @@ const statusColors: Record<EnrichmentStatus, string> = {
 // ── Component ──────────────────────────────────────────────────
 
 export default function IntelEnrichmentDashboard() {
-  const [requests, setRequests] = useState(MOCK_REQUESTS);
+  const [requests, setRequests] = useState([]);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadData = () => {
     setFetchError(null);
-    fetch(`${_API_BASE}/requests`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/requests?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => { if (Array.isArray(d)) setRequests(d); })
       .catch((err) => {

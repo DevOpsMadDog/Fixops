@@ -763,11 +763,13 @@ export default function IntegrationHealth() {
   const healthy = integrations.filter((i) => i.status === "HEALTHY").length;
   const degraded = integrations.filter((i) => i.status === "DEGRADED").length;
   const down = integrations.filter((i) => i.status === "DOWN").length;
-  const avgUptime = (integrations.reduce((s, i) => s + i.uptimePct, 0) / total).toFixed(2);
-  const avgResponse = Math.round(
-    integrations.filter((i) => i.responseMs > 0).reduce((s, i) => s + i.responseMs, 0) /
-      integrations.filter((i) => i.responseMs > 0).length
-  );
+  const avgUptime = total > 0
+    ? (integrations.reduce((s, i) => s + i.uptimePct, 0) / total).toFixed(2)
+    : "0.00";
+  const withResponse = integrations.filter((i) => i.responseMs > 0);
+  const avgResponse = withResponse.length > 0
+    ? Math.round(withResponse.reduce((s, i) => s + i.responseMs, 0) / withResponse.length)
+    : 0;
 
   // Filtered list
   const filtered = integrations.filter((ig) => {

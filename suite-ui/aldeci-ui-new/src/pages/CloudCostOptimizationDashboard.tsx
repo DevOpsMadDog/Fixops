@@ -43,7 +43,7 @@ export default function CloudCostOptimizationDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/resources`, { headers: getHeaders() })
+    fetch(`${API_BASE}/resources?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setResources(d); })
       .catch(() => {})

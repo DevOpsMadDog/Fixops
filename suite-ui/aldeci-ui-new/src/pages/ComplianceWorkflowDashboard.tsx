@@ -142,10 +142,10 @@ function readinessTextColor(score: number) {
 // ── Component ──────────────────────────────────────────────────
 
 export default function ComplianceWorkflowDashboard() {
-  const [workflows, setWorkflows] = useState(MOCK_WORKFLOWS);
+  const [workflows, setWorkflows] = useState([]);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/workflows`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/workflows?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setWorkflows(d); })
       .catch(() => {});

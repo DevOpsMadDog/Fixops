@@ -42,7 +42,7 @@ export default function TrainingEffectivenessDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/programs`, { headers: getHeaders() })
+    fetch(`${API_BASE}/programs?org_id=default`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setPrograms(d); })
       .catch(() => {})

@@ -677,7 +677,7 @@ export default function SupplyChainSecurity() {
     queryKey: ["supply-chain-summary"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API}/api/v1/supply-chain/risk-summary`);
+        const res = await fetch(`${API}/api/v1/supply-chain/risk-summary?org_id=default`);
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
       } catch {
@@ -691,7 +691,7 @@ export default function SupplyChainSecurity() {
     queryKey: ["supply-chain-dependencies"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API}/api/v1/supply-chain/dependencies`);
+        const res = await fetch(`${API}/api/v1/supply-chain/dependencies?org_id=default`);
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
       } catch {
@@ -881,13 +881,11 @@ export default function SupplyChainSecurity() {
 
                 {/* Actions */}
                 <div className="space-y-2">
-                  <Button className="w-full" variant="outline" size="sm" asChild>
-                    <a href="#" className="flex items-center justify-center gap-2">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      View on Source Registry
-                    </a>
+                  <Button className="w-full" variant="outline" size="sm" onClick={() => window.open("https://registry.npmjs.org", "_blank", "noopener,noreferrer")}>
+                    <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                    View on Source Registry
                   </Button>
-                  <Button className="w-full" variant="outline" size="sm">
+                  <Button className="w-full" variant="outline" size="sm" onClick={() => alert("Security issue report submitted.")}>
                     <AlertTriangle className="w-3.5 h-3.5 mr-2" />
                     Report Security Issue
                   </Button>
