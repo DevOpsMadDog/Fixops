@@ -135,7 +135,7 @@ export default function NetworkThreatsDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    fetch(_API_BASE, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/threats/active?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
         void d;

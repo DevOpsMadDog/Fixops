@@ -46,16 +46,18 @@ async def ai_agent_status() -> Dict[str, Any]:
     try:
         from core.single_agent import SingleAgentEngine
         engine = SingleAgentEngine()
+        backend = engine._backend
+        expert_roles = ["analyst", "architect", "auditor", "attacker"]
         return {
             "status": "operational",
             "engine": "single-agent",
             "version": "1.0.0",
-            "backend": engine.backend.__class__.__name__,
-            "model_info": engine.backend.model_info(),
-            "expert_count": len(engine.experts),
-            "experts": list(engine.experts.keys()),
-            "cache_size": len(engine._cache),
-            "consensus_threshold": 0.85,
+            "backend": backend.__class__.__name__,
+            "model_info": backend.model_info(),
+            "expert_count": len(expert_roles),
+            "experts": expert_roles,
+            "cache_size": len(engine._decision_cache),
+            "consensus_threshold": engine.consensus_threshold,
         }
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {

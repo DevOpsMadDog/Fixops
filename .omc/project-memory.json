@@ -503,8 +503,8 @@
   "hotPaths": [
     {
       "path": "suite-api/apps/api/app.py",
-      "accessCount": 614,
-      "lastAccessed": 1776719597847,
+      "accessCount": 616,
+      "lastAccessed": 1776721760881,
       "type": "directory"
     },
     {
@@ -604,6 +604,12 @@
       "type": "file"
     },
     {
+      "path": "suite-api/apps/api/compliance_engine_router.py",
+      "accessCount": 7,
+      "lastAccessed": 1776721927727,
+      "type": "file"
+    },
+    {
       "path": "suite-api/apps/api/attack_surface_router.py",
       "accessCount": 6,
       "lastAccessed": 1776090389451,
@@ -619,12 +625,6 @@
       "path": "tests/test_compliance_automation.py",
       "accessCount": 5,
       "lastAccessed": 1776263715025,
-      "type": "file"
-    },
-    {
-      "path": "suite-api/apps/api/compliance_engine_router.py",
-      "accessCount": 5,
-      "lastAccessed": 1776325358566,
       "type": "file"
     },
     {

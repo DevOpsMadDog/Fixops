@@ -204,12 +204,33 @@ async def generate_audit_bundle(
 ) -> Dict[str, Any]:
     """Generate a tamper-evident audit bundle."""
     try:
-        from compliance.compliance_engine import ComplianceEngine
+        from compliance.compliance_engine import ComplianceEngine, Framework
         engine = ComplianceEngine()
-        bundle = engine.generate_audit_bundle(framework)
+        # Resolve framework enum — default to SOC2 when not specified
+        fw = None
+        if framework:
+            fw_map = {f.value.lower(): f for f in Framework}
+            fw_key = framework.lower().replace("-", "_").replace(" ", "_")
+            fw = fw_map.get(fw_key) or fw_map.get(framework.lower())
+            if fw is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unknown framework '{framework}'. Valid: {[f.value for f in Framework]}",
+                )
+        else:
+            # Default to first available framework (SOC2 preferred)
+            for candidate in Framework:
+                if "soc" in candidate.value.lower():
+                    fw = candidate
+                    break
+            if fw is None:
+                fw = next(iter(Framework))
+        bundle = engine.generate_audit_bundle(fw)
         return bundle
-    except ImportError as e:
-        raise HTTPException(status_code=500, detail=type(e).__name__)
+    except HTTPException:
+        raise
+    except (OSError, ValueError, KeyError, RuntimeError, AttributeError) as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/cwe-mapping/{cwe_id}")

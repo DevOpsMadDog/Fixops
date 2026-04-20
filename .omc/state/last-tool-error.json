@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"TOKEN=\\\"fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_\\\"\\n# Check actual available sub-paths for each broken router\\nfor base alerts sources; do\\n  code=$(curl...",
-  "error": "Exit code 2\n/opt/homebrew/bin/bash: eval: line 3: syntax error near unexpected token `alerts'\n/opt/homebrew/bin/bash: eval: line 3: `for base alerts sources; do'",
-  "timestamp": "2026-04-20T21:46:00.752Z",
-  "retry_count": 1
+  "tool_input_preview": "{\"command\":\"python3 << 'EOF'\\nimport sys\\nsys.path.insert(0, '/Users/devops.ai/fixops/Fixops/suite-core')\\nsys.path.insert(0, '/Users/devops.ai/fixops/Fixops/suite-api')\\n\\n# Check the actual /api/v1/...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<stdin>\", line 7, in <module>\n  File \"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/detailed_logging.py\", line 172, in get_instance\n    cls._instance = cls()\n                    ^^^^^\n  File \"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/detailed_logging.py\", line 91, in __init__\n    self._init_schema()\n  File \"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/detailed_logging.py\", line 101, in _init_schema\n    c.executescript(\nsqlit...",
+  "timestamp": "2026-04-20T21:50:58.970Z",
+  "retry_count": 2
 }

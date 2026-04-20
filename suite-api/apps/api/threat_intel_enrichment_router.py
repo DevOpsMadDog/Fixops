@@ -104,6 +104,12 @@ def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.get("/requests", dependencies=[Depends(api_key_auth)])
+def list_enrichment_requests(org_id: str = Query(...), status: str = Query(None), limit: int = Query(50)):
+    """List enrichment requests for an org."""
+    return _get_engine().list_enrichment_requests(org_id=org_id, status=status, limit=limit)
+
+
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])
 def get_enrichment(request_id: str, org_id: str = Query(...)):
     """Get enrichment request with results."""

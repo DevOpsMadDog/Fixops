@@ -95,10 +95,15 @@ export default function CertificateDashboard() {
   useEffect(() => {
     Promise.allSettled([
       apiFetch(`/api/v1/certificates/stats?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/certificates/expiring?org_id=${ORG_ID}&days_ahead=30`),
+      apiFetch(`/api/v1/certificates/alerts/expiry?org_id=${ORG_ID}`),
     ]).then(([statsRes, expiringRes]) => {
       if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value);
-      if (expiringRes.status === "fulfilled" && expiringRes.value) setExpiring(expiringRes.value);
+      if (expiringRes.status === "fulfilled" && expiringRes.value) {
+        // /alerts/expiry returns {expired, expiring_7d, expiring_30d, expiring_90d}
+        const d = expiringRes.value;
+        const list = [...(d.expiring_30d ?? []), ...(d.expiring_7d ?? [])];
+        if (list.length) setExpiring(list);
+      }
     });
   }, []);
 

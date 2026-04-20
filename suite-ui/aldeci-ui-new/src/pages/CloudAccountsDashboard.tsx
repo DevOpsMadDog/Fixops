@@ -109,7 +109,7 @@ export default function CloudAccountsDashboard() {
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setAccounts(d); })
       .catch(() => {});
-    fetch(`${_API_BASE}/events?org_id=default`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/events/unresolved?org_id=default`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setEvents(d); })
       .catch(() => {});

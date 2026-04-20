@@ -189,6 +189,31 @@ class ThreatIntelEnrichmentEngine:
                 )
         return record
 
+    def list_enrichment_requests(
+        self,
+        org_id: str,
+        status: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """List enrichment requests for an org, optionally filtered by status."""
+        with self._lock:
+            with self._conn() as conn:
+                if status:
+                    rows = conn.execute(
+                        """SELECT * FROM enrichment_requests
+                           WHERE org_id = ? AND status = ?
+                           ORDER BY created_at DESC LIMIT ?""",
+                        (org_id, status, limit),
+                    ).fetchall()
+                else:
+                    rows = conn.execute(
+                        """SELECT * FROM enrichment_requests
+                           WHERE org_id = ?
+                           ORDER BY created_at DESC LIMIT ?""",
+                        (org_id, limit),
+                    ).fetchall()
+        return [self._row(r) for r in rows]
+
     def add_enrichment_result(
         self,
         request_id: str,

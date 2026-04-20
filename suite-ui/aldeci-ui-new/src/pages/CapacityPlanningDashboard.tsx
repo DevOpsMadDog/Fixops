@@ -132,7 +132,7 @@ export default function CapacityPlanningDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v1/capacity-planning/resources?org_id=${ORG_ID}`).catch(() => {});
+    apiFetch(`/api/v1/capacity-planning/summary?org_id=${ORG_ID}`).catch(() => {});
   }, []);
   const [resourceForm, setResourceForm] = useState({ resource_name: "", role: "", team: "SOC", fte: "1.0", status: "active" });
   const [demandForm, setDemandForm] = useState({ demand_name: "", domain: "cloud", priority: "high", required_fte: "1.0", timeline: "" });

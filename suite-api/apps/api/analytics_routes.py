@@ -70,7 +70,11 @@ def get_analytics_engine() -> AnalyticsEngine:
     """Get or create analytics engine."""
     global _analytics_engine
     if _analytics_engine is None:
-        _analytics_engine = AnalyticsEngine()
+        import os
+        from pathlib import Path
+        data_dir = Path(os.environ.get("FIXOPS_DATA_DIR", ".fixops_data"))
+        data_dir.mkdir(parents=True, exist_ok=True)
+        _analytics_engine = AnalyticsEngine(db_path=str(data_dir / "analytics_metrics.db"))
     return _analytics_engine
 
 
@@ -78,7 +82,11 @@ def get_risk_engine() -> RiskPostureEngine:
     """Get or create risk posture engine."""
     global _risk_engine
     if _risk_engine is None:
-        _risk_engine = RiskPostureEngine()
+        import os
+        from pathlib import Path
+        data_dir = Path(os.environ.get("FIXOPS_DATA_DIR", ".fixops_data"))
+        data_dir.mkdir(parents=True, exist_ok=True)
+        _risk_engine = RiskPostureEngine(db_path=str(data_dir / "risk_posture.db"))
     return _risk_engine
 
 

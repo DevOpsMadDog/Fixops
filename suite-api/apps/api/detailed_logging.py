@@ -98,12 +98,12 @@ class DetailedLogStore:
 
     def _init_schema(self):
         c = self._c()
+        # Create base table first (without columns that may need migration)
         c.executescript(
             "CREATE TABLE IF NOT EXISTS api_logs ("
             "id TEXT PRIMARY KEY, ts TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL,"
             "query_params TEXT, status_code INTEGER, duration_ms REAL,"
             "client_ip TEXT, user_agent TEXT, correlation_id TEXT,"
-            "request_id TEXT, org_id TEXT DEFAULT 'default',"
             "req_headers TEXT, req_body TEXT, resp_headers TEXT, resp_body TEXT,"
             "req_size INTEGER DEFAULT 0, resp_size INTEGER DEFAULT 0,"
             "error TEXT, error_type TEXT, level TEXT DEFAULT 'info');"
@@ -111,16 +111,20 @@ class DetailedLogStore:
             "CREATE INDEX IF NOT EXISTS ix_path ON api_logs(path);"
             "CREATE INDEX IF NOT EXISTS ix_status ON api_logs(status_code);"
             "CREATE INDEX IF NOT EXISTS ix_level ON api_logs(level);"
-            "CREATE INDEX IF NOT EXISTS ix_org ON api_logs(org_id);"
-            "CREATE INDEX IF NOT EXISTS ix_req_id ON api_logs(request_id);"
         )
         # Migrate existing tables: add new columns if they don't exist yet
+        # MUST happen before creating indexes that reference those columns
         existing = {row[1] for row in c.execute("PRAGMA table_info(api_logs)").fetchall()}
         if "request_id" not in existing:
             c.execute("ALTER TABLE api_logs ADD COLUMN request_id TEXT")
         if "org_id" not in existing:
             c.execute("ALTER TABLE api_logs ADD COLUMN org_id TEXT DEFAULT 'default'")
         c.commit()
+        # Create indexes for migrated columns after migration is complete
+        c.executescript(
+            "CREATE INDEX IF NOT EXISTS ix_org ON api_logs(org_id);"
+            "CREATE INDEX IF NOT EXISTS ix_req_id ON api_logs(request_id);"
+        )
         c.close()
 
     def insert(self, r: dict):

@@ -90,11 +90,28 @@ export default function ComplianceAutomationDashboard() {
 
   useEffect(() => {
     Promise.allSettled([
-      apiFetch(`/api/v1/compliance-automation/jobs?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/compliance-automation/stats?org_id=${ORG_ID}`),
-    ]).then(([jobsRes, statsRes]) => {
-      if (jobsRes.status === "fulfilled") setLiveJobs(jobsRes.value?.jobs ?? jobsRes.value ?? null);
-      if (statsRes.status === "fulfilled") setLiveStats(statsRes.value ?? null);
+      apiFetch(`/api/v1/compliance/status?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/compliance/gaps?org_id=${ORG_ID}`),
+    ]).then(([statusRes, gapsRes]) => {
+      if (statusRes.status === "fulfilled") {
+        const d = statusRes.value;
+        // Map status response to jobs-like list from frameworks
+        const fwJobs = (d?.frameworks ?? []).map((fw: any, i: number) => ({
+          id: `fw-${i}`,
+          framework: fw.name ?? fw.id,
+          automation_type: "evidence_collection",
+          status: fw.score >= 80 ? "completed" : fw.score >= 50 ? "running" : "queued",
+          started_at: null,
+          completed_at: null,
+        }));
+        if (fwJobs.length) setLiveJobs(fwJobs);
+        setLiveStats({
+          total_jobs: d?.frameworks?.length ?? MOCK_STATS.total_jobs,
+          completed_jobs: (d?.frameworks ?? []).filter((f: any) => f.score >= 80).length,
+          controls_tested: (d?.frameworks ?? []).reduce((s: number, f: any) => s + (f.controls_total ?? 0), 0),
+          pass_rate: d?.overall_score ?? MOCK_STATS.pass_rate,
+        });
+      }
     });
   }, []);
 
