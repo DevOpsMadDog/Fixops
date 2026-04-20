@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="6" fill="#0f172a"/>
+  <path d="M16 4L6 9v7c0 5.25 4.2 10.15 10 11.35C21.8 26.15 26 21.25 26 16V9L16 4z" fill="#0e7490" opacity="0.3"/>
+  <path d="M16 6L8 10.5v6c0 4.2 3.36 8.12 8 9.08 4.64-.96 8-4.88 8-9.08v-6L16 6z" fill="#0891b2" opacity="0.5"/>
+  <path d="M13 15l2 2 4-4" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="16" y="27" font-family="monospace" font-size="5" fill="#22d3ee" text-anchor="middle" font-weight="bold">ALDECI</text>
+</svg>
