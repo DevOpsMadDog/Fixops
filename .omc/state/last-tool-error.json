@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 << 'EOF'\\nimport sys\\nsys.path.insert(0, '/Users/devops.ai/fixops/Fixops/suite-core')\\nsys.path.insert(0, '/Users/devops.ai/fixops/Fixops/suite-api')\\n\\n# Check the actual /api/v1/...",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<stdin>\", line 7, in <module>\n  File \"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/detailed_logging.py\", line 172, in get_instance\n    cls._instance = cls()\n                    ^^^^^\n  File \"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/detailed_logging.py\", line 91, in __init__\n    self._init_schema()\n  File \"/Users/devops.ai/fixops/Fixops/suite-api/apps/api/detailed_logging.py\", line 101, in _init_schema\n    c.executescript(\nsqlit...",
-  "timestamp": "2026-04-20T21:50:58.970Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"\\\\\\nFIXOPS_API_TOKEN=fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_ \\\\\\nALDECI_TOKEN=fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps...",
+  "error": "Exit code 1\n\n\u001b[1m\u001b[96m╔════════════════════════════════════════════════════════════════════╗\u001b[0m\n\u001b[1m\u001b[96m║            ALDECI SELF-SECURITY-SCAN  —  Dog-Food Mode             ║\u001b[0m\n\u001b[1m\u001b[96m║           Target: Fixops  |  API: http://localhost:8000            ║\u001b[0m\n\u001b[1m\u001b[96m╚════════════════════════════════════════════════════════════════════╝\u001b[0m\n\n  Backend health: HTTP 200  \u001b[92mreachable\u001b[0m\n\n\u001b[1m──────────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[1m  CHECK 1 — Bandit ...",
+  "timestamp": "2026-04-20T21:55:19.962Z",
+  "retry_count": 1
 }
