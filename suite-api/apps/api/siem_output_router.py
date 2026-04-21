@@ -291,7 +291,7 @@ def _check_connector_health(target: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         if siem_type == "splunk_hec":
-            from integrations.siem_connectors.splunk_hec_connector import (
+            from siem_connectors.splunk_hec_connector import (
                 SplunkHECConfig,
                 SplunkHECConnector,
             )
@@ -306,7 +306,7 @@ def _check_connector_health(target: Dict[str, Any]) -> Dict[str, Any]:
             return connector.check_health()
 
         elif siem_type == "sentinel":
-            from integrations.siem_connectors.sentinel_connector import (
+            from siem_connectors.sentinel_connector import (
                 SentinelConfig,
                 SentinelConnector,
             )
@@ -338,7 +338,7 @@ def _send_test_to_connector(target: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         if siem_type == "splunk_hec":
-            from integrations.siem_connectors.splunk_hec_connector import (
+            from siem_connectors.splunk_hec_connector import (
                 SplunkHECConfig,
                 SplunkHECConnector,
             )
@@ -354,7 +354,7 @@ def _send_test_to_connector(target: Dict[str, Any]) -> Dict[str, Any]:
             return result.to_dict()
 
         elif siem_type == "sentinel":
-            from integrations.siem_connectors.sentinel_connector import (
+            from siem_connectors.sentinel_connector import (
                 SentinelConfig,
                 SentinelConnector,
             )
