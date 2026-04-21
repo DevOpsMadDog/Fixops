@@ -51,6 +51,8 @@ try:
 except ImportError as _exc:
     _logger.warning("cloud_graph_router: cloud_graph module unavailable: %s", _exc)
     _HAS_ENGINE = False
+    GraphNode = None  # type: ignore[assignment,misc]
+    GraphEdge = None  # type: ignore[assignment,misc]
 
 router = APIRouter(prefix="/api/v1/cloud-graph", tags=["cloud-graph"])
 
@@ -127,7 +129,7 @@ def get_graph(
     return engine.get_graph(org_id, node_type=nt, public_only=public_only)
 
 
-@router.post("/nodes", response_model="GraphNode", summary="Add a graph node")
+@router.post("/nodes", response_model=GraphNode, summary="Add a graph node")
 def add_node(req: AddNodeRequest) -> "GraphNode":
     """Add a single cloud resource node to the graph."""
     engine = _require_engine()
@@ -152,7 +154,7 @@ def add_node(req: AddNodeRequest) -> "GraphNode":
         raise HTTPException(status_code=500, detail=f"Add node failed: {exc}") from exc
 
 
-@router.post("/edges", response_model="GraphEdge", summary="Add a graph edge")
+@router.post("/edges", response_model=GraphEdge, summary="Add a graph edge")
 def add_edge(req: AddEdgeRequest) -> "GraphEdge":
     """Add a relationship edge between two nodes."""
     engine = _require_engine()
@@ -173,7 +175,7 @@ def add_edge(req: AddEdgeRequest) -> "GraphEdge":
         raise HTTPException(status_code=500, detail=f"Add edge failed: {exc}") from exc
 
 
-@router.get("/exposed", response_model=List["GraphNode"], summary="Internet-exposed resources")
+@router.get("/exposed", response_model=List[GraphNode] if GraphNode else None, summary="Internet-exposed resources")
 def get_exposed_resources(
     org_id: str = Query("default", description="Organisation ID"),
 ) -> List["GraphNode"]:
@@ -209,7 +211,7 @@ def get_blast_radius(
     return graph
 
 
-@router.get("/overprivileged", response_model=List["GraphNode"], summary="Overprivileged IAM entities")
+@router.get("/overprivileged", response_model=List[GraphNode] if GraphNode else None, summary="Overprivileged IAM entities")
 def get_overprivileged_roles(
     org_id: str = Query("default", description="Organisation ID"),
 ) -> List["GraphNode"]:
