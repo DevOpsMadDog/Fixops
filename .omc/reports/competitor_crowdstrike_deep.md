@@ -9,18 +9,18 @@
 
 ## Table of Contents
 
-1. [Platform Overview](#1-platform-overview)
-2. [Complete Product Module Catalog](#2-complete-product-module-catalog)
-3. [API Surface — All Endpoints & Service Collections](#3-api-surface--all-endpoints--service-collections)
-4. [ASPM Capabilities Deep Dive](#4-aspm-capabilities-deep-dive)
-5. [CTEM Capabilities Deep Dive](#5-ctem-capabilities-deep-dive)
-6. [Real-Time Streaming / SSE Capabilities](#6-real-time-streaming--sse-capabilities)
-7. [Compliance Frameworks](#7-compliance-frameworks)
-8. [Pricing Model & Tiers](#8-pricing-model--tiers)
+1. [Platform Overview](#1-platform-overview) — Architecture, scale, financial profile
+2. [Complete Product Module Catalog](#2-complete-product-module-catalog) — 30+ modules, Spring '26 / RSAC 2026 announcements, Charlotte AI AgentWorks (12 agents), Falcon Data Security, Onum
+3. [API Surface — All Endpoints & Service Collections](#3-api-surface--all-endpoints--service-collections) — 106 collections, 1,364 operations
+4. [ASPM Capabilities Deep Dive](#4-aspm-capabilities-deep-dive) — Bionic acquisition, DSPM, AI-SPM
+5. [CTEM Capabilities Deep Dive](#5-ctem-capabilities-deep-dive) — 5-stage CTEM, ExPRT.AI, HCLTech partnership
+6. [Real-Time Streaming / SSE Capabilities](#6-real-time-streaming--sse-capabilities) — Event Streams API, SIEM integrations
+7. [Compliance Frameworks](#7-compliance-frameworks) — Platform certifications, customer compliance support, gaps
+8. [Pricing Model & Tiers](#8-pricing-model--tiers) — Go/Pro/Enterprise/Elite/Complete, Falcon Flex, TCO comparison
 9. [Top 5 Enterprise Differentiators](#9-top-5-enterprise-differentiators)
-10. [Known Weaknesses](#10-known-weaknesses)
-11. [ALDECI vs CrowdStrike — Strategic Assessment](#11-aldeci-vs-crowdstrike--strategic-assessment)
-12. [Sources](#12-sources)
+10. [Known Weaknesses](#10-known-weaknesses) — 11 weaknesses including July 2024 outage
+11. [ALDECI vs CrowdStrike — Strategic Assessment](#11-aldeci-vs-crowdstrike--strategic-assessment) — Win/loss scenarios, Spring '26 threat assessment, response priorities
+12. [Sources](#12-sources) — 50+ references
 
 ---
 

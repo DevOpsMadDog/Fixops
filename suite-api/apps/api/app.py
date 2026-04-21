@@ -2765,9 +2765,9 @@ def create_app() -> FastAPI:
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
     )
     # Prometheus-compatible metrics endpoint for Grafana/monitoring
-    app.include_router(metrics_router)
+    app.include_router(metrics_router, dependencies=[Depends(_verify_api_key)])
     # Platform health dashboard — comprehensive at-a-glance snapshot
-    app.include_router(platform_router)
+    app.include_router(platform_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(
         policies_router,
         dependencies=[
@@ -6589,7 +6589,7 @@ def create_app() -> FastAPI:
 
     try:
         from apps.api.siem_integration_router import router as siem_integration_router
-        app.include_router(siem_integration_router)
+        app.include_router(siem_integration_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted SIEM Integration router at /api/v1/siem")
     except ImportError:
         pass

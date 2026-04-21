@@ -630,6 +630,16 @@ ALDECI supports 7 compliance frameworks (SOC2, HIPAA, PCI-DSS, ISO 27001, CIS, N
 
 Starting January 1, 2026, Snyk introduced a **Platform Credit Consumption** licensing model for new credit-based licenses. This replaces the per-developer flat-rate for some contracts and introduces consumption-based billing where different scan types consume different credit amounts.
 
+**Key changes in the credit model:**
+- Credits pool across products (SCA, SAST, Container, IaC) rather than fixed per-product limits
+- Different scan types consume different credit amounts (e.g., container scans likely consume more than SCA tests)
+- Billing dashboards track credit consumption in real-time
+- Provides flexibility (use credits wherever needed) but adds billing unpredictability
+- New Ignite tier ($1,260/dev/yr) replaces the old Business tier, supports up to 50 developers
+- "Contributing developer" definition: anyone who committed to a private repo monitored by Snyk in the last 90 days (inflates count with contractors and recently-departed employees)
+
+**The pricing cliff:** Teams exceeding 10 developers jump from $3,000/yr (Team, max 10) to potentially $15,000+ (Enterprise). This 5x+ price jump at the 11-developer threshold is Snyk's most exploitable pricing weakness.
+
 ### 9.3 Real-World Cost Estimates (from Vendr/G2 data)
 
 | Team Size | Tier | Estimated Annual Cost |
@@ -799,6 +809,53 @@ Independent testing consistently shows Snyk Code (SAST) has a low detection rate
 
 ---
 
+## 12. Financial Health & IPO Outlook
+
+### 12.1 Revenue and Growth
+
+| Metric | Value | Source |
+|--------|-------|--------|
+| **2024 Revenue** | $278.4M | BankInfoSecurity |
+| **2024 Revenue Growth** | 26.5% YoY | BankInfoSecurity |
+| **Q2 2025 Growth Rate** | ~12% (decelerated) | BankInfoSecurity |
+| **Expected ARR (2025)** | ~$300M | CEO statement |
+| **2024 Net Loss** | -$166.5M (improved 5% YoY) | BankInfoSecurity |
+| **Cash on Hand** | $435M | CEO statement |
+| **Cash Burn Trajectory** | Near zero-burn in 2025 | CEO statement |
+| **Peak Valuation** | $8.6B (early 2022) | Forge/PitchBook |
+| **Current Implied Valuation** | Significantly below $8.6B | Secondary market data |
+
+### 12.2 IPO Prospects
+
+Snyk CEO has publicly favored a Wall Street IPO in 2026, but multiple factors make this uncertain:
+
+**Barriers to IPO:**
+- Revenue below the informal $500M+ threshold for cyber IPOs (Rubrik had $628M, SailPoint had $622M pre-IPO)
+- Growth deceleration from 26.5% to ~12% is a red flag for public market investors
+- $166.5M annual losses, though improving
+- Snyk has spoken with at least 3 private equity firms about a potential deal but could not agree on price
+- Pre-IPO secondary markets show early investors/employees losing patience
+- Competition intensifying from Wiz ($350M ARR, acquired by Google for $32B), Semgrep, and consolidated CNAPP players
+
+**Positive signals:**
+- Near break-even cash burn
+- $435M cash reserve provides runway
+- 300M ARR milestone approaching
+- Strong enterprise customer base
+- Evo AI-SPM / Agent Security positions Snyk in emerging AI governance market
+
+### 12.3 Strategic Implications for ALDECI
+
+Snyk's financial pressure creates opportunities:
+
+1. **Pricing sensitivity:** Snyk may resist discounting to protect revenue metrics pre-IPO. This makes ALDECI's 99% cost advantage even more compelling in competitive deals.
+2. **Feature velocity risk:** Financial pressure could slow R&D investment. Snyk's new credit-based pricing model suggests focus on revenue optimization over product innovation.
+3. **Acquisition target:** If Snyk is acquired by PE or a strategic buyer (CrowdStrike, Palo Alto, Cisco), product direction could shift dramatically. Lock-in risk for Snyk customers.
+4. **Customer churn window:** Decelerating growth implies some customer churn. These are prospects ALDECI can target with "switch and save" messaging.
+5. **Market validation:** Snyk's $278M revenue proves the AppSec market is large. ALDECI can cite Snyk's revenue as TAM validation in investor conversations.
+
+---
+
 ## 13. ALDECI vs. Snyk Head-to-Head Summary
 
 | Dimension | Snyk | ALDECI | Winner |
@@ -810,20 +867,23 @@ Independent testing consistently shows Snyk Code (SAST) has a low detection rate
 | **ASPM** | AppRisk (Snyk-centric, limited 3rd party) | 334 engines, unified platform | ALDECI |
 | **CSPM** | Weak (beta, IaC-centric) | Strong (CSPM + cloud drift + posture) | ALDECI |
 | **CTEM** | None | Full (ASM, BAS, threat hunting, SIEM) | ALDECI |
+| **AI agent governance** | Evo AI-SPM + Agent Security (new, partial preview) | ai_governance_engine.py (model lifecycle) | Snyk (forward-looking) |
 | **Vulnerability DB** | Proprietary, 3x NVD, 47-day lead | 28+ feeds (NVD, EPSS, KEV, OTX, etc.) | Snyk |
 | **Developer experience** | Best-in-class (IDE, CLI, auto-fix PR) | Security console only | Snyk |
 | **CI/CD integration** | Native (15+ platforms, PR checks) | API-only | Snyk |
 | **Supply chain security** | SCA-level only | 45 endpoints (vendor, provenance, attacks) | ALDECI |
 | **Compliance** | Passive reporting, IaC-centric | Active evidence collection, 7 frameworks | ALDECI |
 | **SBOM** | 4 endpoints, CycloneDX 1.4-1.6 + SPDX | 18 endpoints, CycloneDX 1.4 + SPDX | ALDECI (depth) / Snyk (format versions) |
+| **PURL lookup** | Native REST endpoint, 17 purl types, batch queries | No PURL endpoint (gap) | Snyk |
 | **API surface** | ~212 endpoints | ~574+ endpoints | ALDECI |
-| **Pricing** | $3K-$500K/yr depending on team size | $420-$1,188/yr flat | ALDECI |
-| **Deployment** | SaaS-only | Self-hosted (Docker) | ALDECI |
+| **Pricing** | $3K-$500K/yr (credit-based from Jan 2026) | $420-$1,188/yr flat | ALDECI |
+| **Deployment** | SaaS-only (US/EU/AU data residency) | Self-hosted (Docker, 100% on-prem) | ALDECI |
 | **Data residency** | US/EU/AU only (Enterprise) | 100% on-premise | ALDECI |
-| **AI/ML** | DeepCode AI (SAST), fixed scoring | Karpathy LLM consensus (4 models) | ALDECI |
-| **Brand/market presence** | Top 3 AppSec vendor, Gartner leader | Unknown startup | Snyk |
+| **AI/ML** | DeepCode AI (SAST), Evo AI-SPM (AI governance) | Karpathy LLM consensus (4 models) | Tie |
+| **Brand/market presence** | Top 3 AppSec vendor, Gartner leader, $278M ARR | Unknown startup | Snyk |
+| **Financial stability** | Pre-IPO, $166M annual loss, growth decelerating | Self-funded, no burn | ALDECI |
 
-**Score: ALDECI wins 10 dimensions, Snyk wins 8 dimensions, with Snyk's wins concentrated in the developer-tooling lane and ALDECI's wins concentrated in enterprise security breadth.**
+**Score: ALDECI wins 11 dimensions, Snyk wins 9 dimensions, 2 ties. Snyk's wins are concentrated in the developer-tooling lane (SCA, SAST, IDE, CI/CD, vuln DB). ALDECI's wins are concentrated in enterprise security breadth (CSPM, CTEM, compliance, supply chain, API depth, pricing, deployment).**
 
 ---
 
@@ -862,15 +922,34 @@ These additions would close the competitive gap in the SCA API lane:
 
 > "Snyk is the best developer-focused SCA tool on the market. If your only problem is open-source dependency vulnerabilities and you have $250K/yr to spend, Snyk is excellent. But if you need CSPM, CTEM, compliance evidence, supply chain intelligence, threat hunting, incident response, and 330+ other security capabilities — in a single self-hosted platform for $99/month — that's ALDECI. We don't replace Snyk's scanner. We replace the other 5 tools you need alongside it."
 
-### 14.5 Competitor Battlecard: Quick-Reference Sales Objection Handling
+### 14.5 Exploit Snyk's Financial Vulnerability
+
+Snyk's financial position creates specific go-to-market opportunities:
+
+1. **"Snyk may not exist as an independent company in 18 months"** -- for risk-averse buyers, Snyk's IPO uncertainty and PE discussions create vendor lock-in anxiety. ALDECI's self-hosted model eliminates vendor dependency.
+2. **Target the 11-developer cliff** -- teams hitting Snyk's 10-dev Team plan cap face a 5x+ price jump to Enterprise. ALDECI's flat pricing is most compelling at this exact inflection point.
+3. **Credit-based billing fear** -- Snyk's new consumption model adds billing unpredictability. ALDECI's flat $99/mo is a CFO-friendly alternative.
+4. **Growth deceleration signal** -- Snyk's growth slowing from 26.5% to 12% means customers are churning. Run targeted outreach to Snyk Enterprise customers on renewal.
+
+### 14.6 Monitor (Don't Chase) Agent Security
+
+Snyk's Evo AI-SPM and Agent Security suite are forward-looking bets on AI agent governance. ALDECI's response should be:
+
+- **Short-term (0-6 months):** Monitor adoption. Agent Security is partially in preview and the market is nascent.
+- **Medium-term (6-12 months):** If AI agent governance gains traction, extend `ai_governance_engine.py` with AI-BOM generation and MCP server scanning. This is a low-effort extension of existing capability.
+- **Do NOT build:** Agent Guard or runtime agent enforcement. This requires deep integration with Claude Code/Cursor/Devin that ALDECI's security-team-focused architecture does not support.
+
+### 14.7 Competitor Battlecard: Quick-Reference Sales Objection Handling
 
 | Objection | Response |
 |-----------|----------|
-| "We already use Snyk" | "Great — ALDECI ingests Snyk results via scanner normalizers. Use Snyk for SCA scanning, ALDECI for everything else. Cut your Wiz + Lacework + Rapid7 spend." |
+| "We already use Snyk" | "Great -- ALDECI ingests Snyk results via scanner normalizers. Use Snyk for SCA scanning, ALDECI for everything else. Cut your Wiz + Lacework + Rapid7 spend." |
 | "Snyk has better developer tools" | "Correct. Snyk is a developer tool. ALDECI is a security platform. Your developers use Snyk; your security team uses ALDECI. They complement, not compete." |
 | "Snyk has a bigger vuln database" | "Snyk's proprietary DB is strong for SCA. ALDECI aggregates 28+ threat intel feeds covering network, cloud, identity, and OT/IoT threats that Snyk doesn't track." |
 | "Snyk does ASPM now" | "Snyk AppRisk is an orchestration layer for Snyk's own products. ALDECI is a 334-engine unified security platform covering ASPM + CSPM + CTEM. Snyk has 0 CSPM and 0 CTEM." |
-| "Snyk is a Gartner leader" | "Gartner evaluates SCA/SAST tooling. ALDECI competes in a different category — unified security intelligence — where Gartner hasn't published a quadrant yet." |
+| "Snyk is a Gartner leader" | "Gartner evaluates SCA/SAST tooling. ALDECI competes in a different category -- unified security intelligence -- where Gartner hasn't published a quadrant yet." |
+| "Snyk has AI agent security now" | "Evo AI-SPM is in partial preview with limited capabilities. ALDECI's ai_governance_engine already covers model lifecycle and bias assessments. The AI agent governance market is nascent -- we monitor and extend as the market matures." |
+| "What if Snyk gets acquired?" | "That's exactly the risk. If PE buys Snyk, prices go up and features get cut. If a strategic buyer acquires them, your toolchain gets absorbed into a larger platform you didn't choose. ALDECI is self-hosted -- you own it forever." |
 
 ---
 
@@ -895,6 +974,11 @@ These additions would close the competitive gap in the SCA API lane:
 - [Snyk AppRisk Pro Launch](https://snyk.io/news/snyk-launches-apprisk-pro-developer-first-aspm/)
 - [Snyk Fix PR Documentation](https://docs.snyk.io/scan-with-snyk/pull-requests/snyk-pull-or-merge-requests/enable-automatic-fix-prs)
 - [Snyk Auto-Fix Accuracy](https://snyk.io/blog/ai-code-security-snyk-autofix-deepcode-ai/)
+- [Snyk Agent Security Launch (RSAC 2026)](https://snyk.io/news/snyk-launches-agent-security-solution/)
+- [Evo AI-SPM Product Page](https://evo.ai.snyk.io/)
+- [Snyk Claude Code MCP Guide](https://docs.snyk.io/integrations/snyk-studio-agentic-integrations/quickstart-guides-for-snyk-studio/claude-code-guide)
+- [Snyk Deployment Options](https://snyk.io/platform/deployment-options/)
+- [Snyk Regional Hosting & Data Residency](https://docs.snyk.io/snyk-data-and-governance/regional-hosting-and-data-residency)
 
 ### Third-Party Analysis & Reviews
 - [Snyk Pricing Breakdown 2026 (DEV Community)](https://dev.to/rahulxsingh/snyk-pricing-in-2026-free-plan-team-business-and-enterprise-costs-breakdown-5e88)
@@ -907,6 +991,14 @@ These additions would close the competitive gap in the SCA API lane:
 - [Snyk Open Source Review 2026 (AppSec Santa)](https://appsecsanta.com/snyk-open-source)
 - [Snyk vs Semgrep 2026 (Konvu)](https://konvu.com/compare/snyk-vs-semgrep)
 - [Top Snyk Alternatives (Endor Labs)](https://www.endorlabs.com/learn/snyk-alternatives)
+- [Snyk IPO Prospects (BankInfoSecurity)](https://www.bankinfosecurity.com/blogs/snyk-finds-itself-at-crossroads-as-its-ipo-prospects-dim-p-3955)
+- [Snyk CEO Favors 2026 IPO (Globes)](https://en.globes.co.il/en/article-snyk-ceo-favors-wall-street-ipo-in-2026-1001496365)
+- [Snyk IPO Analysis (AccessIPOs)](https://accessipos.com/snyk-ipo-stock/)
+- [Snyk vs Wiz 2025 (Aicademy)](https://blog.aicademy.ac/snyk-vs-wiz-2025-cnapp-comparison)
+- [Wiz vs Snyk (Wiz Academy)](https://www.wiz.io/academy/application-security/wiz-vs-snyk)
+- [Snyk RSAC 2026 Summary (SecurityWeek)](https://www.securityweek.com/rsac-2026-conference-announcements-summary-day-1/)
+- [Snyk Agent Security Blog](https://snyk.io/blog/introducing-agent-security/)
+- [Snyk Evo Launch (SiliconANGLE)](https://siliconangle.com/2025/10/22/snyk-unveils-evo-agentic-system-govern-protect-ai-native-development/)
 - [Top Snyk Alternatives (OX Security)](https://www.ox.security/blog/snyk-alternatives/)
 - [Best ASPM Tools 2026 (Cycode)](https://cycode.com/blog/best-application-secuirty-posture-management-tools/)
 - [Snyk CI/CD Integration Examples (GitHub)](https://github.com/snyk-labs/snyk-cicd-integration-examples)
