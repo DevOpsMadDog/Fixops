@@ -72,7 +72,7 @@ class ScoreSubmit(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/teams", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_team(body: TeamCreate, org_id: str = Query(...)):
+def create_team(body: TeamCreate, org_id: str = Query(default="default")):
     """Create a new security team."""
     try:
         return _get_engine().create_team(org_id, body.model_dump())
@@ -82,7 +82,7 @@ def create_team(body: TeamCreate, org_id: str = Query(...)):
 
 @router.get("/teams", dependencies=[Depends(api_key_auth)])
 def list_teams(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     team_type: Optional[str] = Query(None),
 ):
     """List teams with optional type filter."""
@@ -90,7 +90,7 @@ def list_teams(
 
 
 @router.get("/teams/{team_id}", dependencies=[Depends(api_key_auth)])
-def get_team(team_id: str, org_id: str = Query(...)):
+def get_team(team_id: str, org_id: str = Query(default="default")):
     """Get a single team by ID."""
     team = _get_engine().get_team(org_id, team_id)
     if not team:
@@ -103,7 +103,7 @@ def get_team(team_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/challenges", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_challenge(body: ChallengeCreate, org_id: str = Query(...)):
+def record_challenge(body: ChallengeCreate, org_id: str = Query(default="default")):
     """Create a new security challenge."""
     try:
         return _get_engine().record_challenge(org_id, body.model_dump())
@@ -119,7 +119,7 @@ def record_challenge(body: ChallengeCreate, org_id: str = Query(...)):
 def submit_score(
     challenge_id: str,
     body: ScoreSubmit,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Submit a score for a team in a challenge."""
     result = _get_engine().submit_score(
@@ -132,7 +132,7 @@ def submit_score(
 
 @router.get("/challenges", dependencies=[Depends(api_key_auth)])
 def list_challenges(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
 ):
     """List challenges with optional status filter."""
@@ -144,12 +144,12 @@ def list_challenges(
 # ---------------------------------------------------------------------------
 
 @router.get("/leaderboard", dependencies=[Depends(api_key_auth)])
-def get_leaderboard(org_id: str = Query(...)):
+def get_leaderboard(org_id: str = Query(default="default")):
     """Return teams ordered by score DESC with rank field."""
     return _get_engine().get_leaderboard(org_id)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_scoreboard_stats(org_id: str = Query(...)):
+def get_scoreboard_stats(org_id: str = Query(default="default")):
     """Return aggregated scoreboard stats for the org."""
     return _get_engine().get_scoreboard_stats(org_id)

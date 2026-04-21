@@ -73,7 +73,7 @@ class RuleCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/firewalls", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_firewall(body: FirewallCreate, org_id: str = Query(...)):
+def register_firewall(body: FirewallCreate, org_id: str = Query(default="default")):
     """Register a new firewall device."""
     try:
         return _get_engine().register_firewall(org_id, body.model_dump())
@@ -82,7 +82,7 @@ def register_firewall(body: FirewallCreate, org_id: str = Query(...)):
 
 
 @router.get("/firewalls", dependencies=[Depends(api_key_auth)])
-def list_firewalls(org_id: str = Query(...)):
+def list_firewalls(org_id: str = Query(default="default")):
     """List all firewalls for the org."""
     return _get_engine().list_firewalls(org_id)
 
@@ -92,7 +92,7 @@ def list_firewalls(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/firewalls/{firewall_id}/rules", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(...)):
+def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(default="default")):
     """Add a rule to a firewall."""
     try:
         return _get_engine().add_rule(org_id, firewall_id, body.model_dump())
@@ -103,7 +103,7 @@ def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(...)):
 @router.get("/firewalls/{firewall_id}/rules", dependencies=[Depends(api_key_auth)])
 def list_rules(
     firewall_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     action: Optional[str] = Query(None),
 ):
     """List rules for a firewall with optional action filter."""
@@ -115,7 +115,7 @@ def list_rules(
 # ---------------------------------------------------------------------------
 
 @router.get("/firewalls/{firewall_id}/conflicts", dependencies=[Depends(api_key_auth)])
-def find_conflicting_rules(firewall_id: str, org_id: str = Query(...)):
+def find_conflicting_rules(firewall_id: str, org_id: str = Query(default="default")):
     """Find rules that shadow or conflict with each other."""
     return _get_engine().find_conflicting_rules(org_id, firewall_id)
 
@@ -123,7 +123,7 @@ def find_conflicting_rules(firewall_id: str, org_id: str = Query(...)):
 @router.get("/firewalls/{firewall_id}/unused", dependencies=[Depends(api_key_auth)])
 def find_unused_rules(
     firewall_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     days_threshold: int = Query(default=90, ge=1),
 ):
     """Find rules with zero hits or no recent hits."""
@@ -131,7 +131,7 @@ def find_unused_rules(
 
 
 @router.get("/firewalls/{firewall_id}/gaps", dependencies=[Depends(api_key_auth)])
-def analyze_coverage_gaps(firewall_id: str, org_id: str = Query(...)):
+def analyze_coverage_gaps(firewall_id: str, org_id: str = Query(default="default")):
     """Analyze coverage gaps and risky configurations."""
     return _get_engine().analyze_coverage_gaps(org_id, firewall_id)
 
@@ -141,6 +141,6 @@ def analyze_coverage_gaps(firewall_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_firewall_stats(org_id: str = Query(...)):
+def get_firewall_stats(org_id: str = Query(default="default")):
     """Return aggregated firewall statistics for the org."""
     return _get_engine().get_firewall_stats(org_id)

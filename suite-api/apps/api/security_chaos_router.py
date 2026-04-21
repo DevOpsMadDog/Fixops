@@ -86,7 +86,7 @@ class RemediationStatusUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/experiments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_experiment(body: ExperimentCreate, org_id: str = Query(...)):
+def create_experiment(body: ExperimentCreate, org_id: str = Query(default="default")):
     """Create a new chaos experiment."""
     try:
         return _get_engine().create_experiment(org_id, body.model_dump())
@@ -96,7 +96,7 @@ def create_experiment(body: ExperimentCreate, org_id: str = Query(...)):
 
 @router.get("/experiments", dependencies=[Depends(api_key_auth)])
 def list_experiments(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     experiment_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -107,7 +107,7 @@ def list_experiments(
 
 
 @router.get("/experiments/{experiment_id}", dependencies=[Depends(api_key_auth)])
-def get_experiment(experiment_id: str, org_id: str = Query(...)):
+def get_experiment(experiment_id: str, org_id: str = Query(default="default")):
     """Get a single chaos experiment by ID."""
     exp = _get_engine().get_experiment(org_id, experiment_id)
     if not exp:
@@ -116,7 +116,7 @@ def get_experiment(experiment_id: str, org_id: str = Query(...)):
 
 
 @router.put("/experiments/{experiment_id}/start", dependencies=[Depends(api_key_auth)])
-def start_experiment(experiment_id: str, org_id: str = Query(...)):
+def start_experiment(experiment_id: str, org_id: str = Query(default="default")):
     """Start a planned chaos experiment."""
     try:
         return _get_engine().start_experiment(org_id, experiment_id)
@@ -128,7 +128,7 @@ def start_experiment(experiment_id: str, org_id: str = Query(...)):
 
 @router.put("/experiments/{experiment_id}/complete", dependencies=[Depends(api_key_auth)])
 def complete_experiment(
-    experiment_id: str, body: CompleteExperiment, org_id: str = Query(...)
+    experiment_id: str, body: CompleteExperiment, org_id: str = Query(default="default")
 ):
     """Complete a chaos experiment with outcome and resilience score."""
     try:
@@ -147,7 +147,7 @@ def complete_experiment(
     status_code=201,
 )
 def add_observation(
-    experiment_id: str, body: ObservationCreate, org_id: str = Query(...)
+    experiment_id: str, body: ObservationCreate, org_id: str = Query(default="default")
 ):
     """Add an observation to a chaos experiment."""
     try:
@@ -162,7 +162,7 @@ def add_observation(
     "/experiments/{experiment_id}/observations",
     dependencies=[Depends(api_key_auth)],
 )
-def list_observations(experiment_id: str, org_id: str = Query(...)):
+def list_observations(experiment_id: str, org_id: str = Query(default="default")):
     """List observations for a chaos experiment."""
     return _get_engine().list_observations(org_id, experiment_id)
 
@@ -177,7 +177,7 @@ def list_observations(experiment_id: str, org_id: str = Query(...)):
     status_code=201,
 )
 def add_remediation(
-    experiment_id: str, body: RemediationCreate, org_id: str = Query(...)
+    experiment_id: str, body: RemediationCreate, org_id: str = Query(default="default")
 ):
     """Add a remediation item for a chaos experiment finding."""
     try:
@@ -190,7 +190,7 @@ def add_remediation(
 
 @router.put("/remediations/{remediation_id}/status", dependencies=[Depends(api_key_auth)])
 def update_remediation_status(
-    remediation_id: str, body: RemediationStatusUpdate, org_id: str = Query(...)
+    remediation_id: str, body: RemediationStatusUpdate, org_id: str = Query(default="default")
 ):
     """Update the status of a remediation item."""
     try:
@@ -208,6 +208,6 @@ def update_remediation_status(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(...)):
+def get_stats(org_id: str = Query(default="default")):
     """Return aggregated chaos engineering statistics."""
     return _get_engine().get_chaos_stats(org_id)

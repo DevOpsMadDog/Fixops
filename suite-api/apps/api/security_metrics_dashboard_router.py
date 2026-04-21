@@ -77,7 +77,7 @@ class SnapshotCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/dashboards", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_dashboard(body: DashboardCreate, org_id: str = Query(...)):
+def create_dashboard(body: DashboardCreate, org_id: str = Query(default="default")):
     """Create a new metrics dashboard."""
     try:
         return _get_engine().create_dashboard(org_id, body.model_dump())
@@ -87,7 +87,7 @@ def create_dashboard(body: DashboardCreate, org_id: str = Query(...)):
 
 @router.get("/dashboards", dependencies=[Depends(api_key_auth)])
 def list_dashboards(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     dashboard_type: Optional[str] = Query(None),
 ):
     """List dashboards with optional type filter."""
@@ -95,7 +95,7 @@ def list_dashboards(
 
 
 @router.get("/dashboards/{dashboard_id}", dependencies=[Depends(api_key_auth)])
-def get_dashboard(dashboard_id: str, org_id: str = Query(...)):
+def get_dashboard(dashboard_id: str, org_id: str = Query(default="default")):
     """Get a single dashboard by ID."""
     dashboard = _get_engine().get_dashboard(org_id, dashboard_id)
     if not dashboard:
@@ -112,7 +112,7 @@ def get_dashboard(dashboard_id: str, org_id: str = Query(...)):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_widget(dashboard_id: str, body: WidgetCreate, org_id: str = Query(...)):
+def add_widget(dashboard_id: str, body: WidgetCreate, org_id: str = Query(default="default")):
     """Add a widget to a dashboard."""
     try:
         result = _get_engine().add_widget(org_id, dashboard_id, body.model_dump())
@@ -124,7 +124,7 @@ def add_widget(dashboard_id: str, body: WidgetCreate, org_id: str = Query(...)):
 
 
 @router.get("/dashboards/{dashboard_id}/widgets", dependencies=[Depends(api_key_auth)])
-def list_widgets(dashboard_id: str, org_id: str = Query(...)):
+def list_widgets(dashboard_id: str, org_id: str = Query(default="default")):
     """List all widgets for a dashboard."""
     return _get_engine().list_widgets(org_id, dashboard_id)
 
@@ -134,7 +134,7 @@ def list_widgets(dashboard_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_snapshot(body: SnapshotCreate, org_id: str = Query(...)):
+def record_snapshot(body: SnapshotCreate, org_id: str = Query(default="default")):
     """Record a metric snapshot."""
     try:
         return _get_engine().record_metric_snapshot(org_id, body.model_dump())
@@ -144,7 +144,7 @@ def record_snapshot(body: SnapshotCreate, org_id: str = Query(...)):
 
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
 def get_metric_history(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     dashboard_id: str = Query(...),
     metric_name: str = Query(...),
     limit: int = Query(50, ge=1, le=500),
@@ -160,6 +160,6 @@ def get_metric_history(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(...)):
+def get_stats(org_id: str = Query(default="default")):
     """Return aggregated dashboard statistics."""
     return _get_engine().get_dashboard_stats(org_id)

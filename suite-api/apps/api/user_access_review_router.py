@@ -83,7 +83,7 @@ class CampaignCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/reviews", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_review(body: ReviewCreate, org_id: str = Query(...)):
+def create_review(body: ReviewCreate, org_id: str = Query(default="default")):
     """Create a new access review."""
     try:
         return _get_engine().create_review(
@@ -99,7 +99,7 @@ def create_review(body: ReviewCreate, org_id: str = Query(...)):
 
 @router.get("/reviews", dependencies=[Depends(api_key_auth)])
 def list_reviews(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
 ):
     """List access reviews, optionally filtered by status."""
@@ -107,7 +107,7 @@ def list_reviews(
 
 
 @router.get("/reviews/{review_id}", dependencies=[Depends(api_key_auth)])
-def get_review(review_id: str, org_id: str = Query(...)):
+def get_review(review_id: str, org_id: str = Query(default="default")):
     """Get a review with all its items."""
     result = _get_engine().get_review(review_id=review_id, org_id=org_id)
     if result is None:
@@ -120,7 +120,7 @@ def get_review(review_id: str, org_id: str = Query(...)):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_review_item(review_id: str, body: ReviewItemCreate, org_id: str = Query(...)):
+def add_review_item(review_id: str, body: ReviewItemCreate, org_id: str = Query(default="default")):
     """Add an item to an access review."""
     try:
         return _get_engine().add_review_item(
@@ -143,7 +143,7 @@ def make_decision(
     review_id: str,
     item_id: str,
     body: DecisionCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Record a certify/revoke/modify/defer decision on a review item."""
     try:
@@ -160,7 +160,7 @@ def make_decision(
 
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
-def get_overdue_reviews(org_id: str = Query(...)):
+def get_overdue_reviews(org_id: str = Query(default="default")):
     """Get access reviews past their due date that are not completed."""
     return _get_engine().get_overdue_reviews(org_id=org_id)
 
@@ -170,7 +170,7 @@ def get_overdue_reviews(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/campaigns", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_campaign(body: CampaignCreate, org_id: str = Query(...)):
+def create_campaign(body: CampaignCreate, org_id: str = Query(default="default")):
     """Create a review campaign."""
     try:
         return _get_engine().create_campaign(
@@ -184,7 +184,7 @@ def create_campaign(body: CampaignCreate, org_id: str = Query(...)):
 
 
 @router.get("/campaigns/stats", dependencies=[Depends(api_key_auth)])
-def get_campaign_stats(org_id: str = Query(...)):
+def get_campaign_stats(org_id: str = Query(default="default")):
     """Get aggregated campaign stats."""
     return _get_engine().get_campaign_stats(org_id=org_id)
 
@@ -194,7 +194,7 @@ def get_campaign_stats(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_review_summary(org_id: str = Query(...)):
+def get_review_summary(org_id: str = Query(default="default")):
     """Get total/pending/completed/overdue review counts."""
     return _get_engine().get_review_summary(org_id=org_id)
 

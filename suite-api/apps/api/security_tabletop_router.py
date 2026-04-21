@@ -86,7 +86,7 @@ class FindingCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/exercises", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_exercise(body: ExerciseCreate, org_id: str = Query(...)):
+def create_exercise(body: ExerciseCreate, org_id: str = Query(default="default")):
     """Create a new tabletop exercise."""
     try:
         return _get_engine().create_exercise(org_id, body.model_dump())
@@ -96,7 +96,7 @@ def create_exercise(body: ExerciseCreate, org_id: str = Query(...)):
 
 @router.get("/exercises", dependencies=[Depends(api_key_auth)])
 def list_exercises(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     scenario_type: Optional[str] = Query(None),
 ):
@@ -105,7 +105,7 @@ def list_exercises(
 
 
 @router.get("/exercises/{exercise_id}", dependencies=[Depends(api_key_auth)])
-def get_exercise(exercise_id: str, org_id: str = Query(...)):
+def get_exercise(exercise_id: str, org_id: str = Query(default="default")):
     """Get a single exercise by ID."""
     ex = _get_engine().get_exercise(org_id, exercise_id)
     if not ex:
@@ -114,7 +114,7 @@ def get_exercise(exercise_id: str, org_id: str = Query(...)):
 
 
 @router.put("/exercises/{exercise_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Query(...)):
+def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Query(default="default")):
     """Mark an exercise as completed with a score."""
     try:
         return _get_engine().complete_exercise(org_id, exercise_id, body.overall_score)
@@ -127,7 +127,7 @@ def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Qu
 # ---------------------------------------------------------------------------
 
 @router.post("/participants", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_participant(body: ParticipantCreate, org_id: str = Query(...)):
+def add_participant(body: ParticipantCreate, org_id: str = Query(default="default")):
     """Add a participant to an exercise."""
     try:
         return _get_engine().add_participant(org_id, body.model_dump())
@@ -136,7 +136,7 @@ def add_participant(body: ParticipantCreate, org_id: str = Query(...)):
 
 
 @router.get("/exercises/{exercise_id}/participants", dependencies=[Depends(api_key_auth)])
-def list_participants(exercise_id: str, org_id: str = Query(...)):
+def list_participants(exercise_id: str, org_id: str = Query(default="default")):
     """List participants for a specific exercise."""
     return _get_engine().list_participants(org_id, exercise_id)
 
@@ -146,7 +146,7 @@ def list_participants(exercise_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/findings", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_finding(body: FindingCreate, org_id: str = Query(...)):
+def record_finding(body: FindingCreate, org_id: str = Query(default="default")):
     """Record a finding from a tabletop exercise."""
     try:
         return _get_engine().record_finding(org_id, body.model_dump())
@@ -156,7 +156,7 @@ def record_finding(body: FindingCreate, org_id: str = Query(...)):
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     exercise_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -172,6 +172,6 @@ def list_findings(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_tabletop_stats(org_id: str = Query(...)):
+def get_tabletop_stats(org_id: str = Query(default="default")):
     """Return aggregated tabletop statistics."""
     return _get_engine().get_tabletop_stats(org_id)

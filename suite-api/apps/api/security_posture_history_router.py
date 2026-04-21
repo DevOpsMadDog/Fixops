@@ -83,7 +83,7 @@ def list_posture_history(org_id: str = Query("default")):
 
 
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_snapshot(body: SnapshotCreate, org_id: str = Query(...)):
+def record_snapshot(body: SnapshotCreate, org_id: str = Query(default="default")):
     """Record a posture snapshot for a domain."""
     try:
         return _get_engine().record_snapshot(
@@ -101,7 +101,7 @@ def record_snapshot(body: SnapshotCreate, org_id: str = Query(...)):
 
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
 def get_snapshots(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     domain: Optional[str] = Query(None),
     days: int = Query(30),
 ):
@@ -114,7 +114,7 @@ def get_snapshots(
 # ---------------------------------------------------------------------------
 
 @router.post("/trends/compute", dependencies=[Depends(api_key_auth)], status_code=201)
-def compute_trend(body: TrendCompute, org_id: str = Query(...)):
+def compute_trend(body: TrendCompute, org_id: str = Query(default="default")):
     """Compute and store a posture trend for a domain/period."""
     try:
         return _get_engine().compute_trend(
@@ -128,7 +128,7 @@ def compute_trend(body: TrendCompute, org_id: str = Query(...)):
 
 @router.get("/trends", dependencies=[Depends(api_key_auth)])
 def get_trends(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     domain: Optional[str] = Query(None),
 ):
     """Get computed posture trends, optionally filtered by domain."""
@@ -140,7 +140,7 @@ def get_trends(
 # ---------------------------------------------------------------------------
 
 @router.put("/baselines", dependencies=[Depends(api_key_auth)])
-def set_baseline(body: BaselineSet, org_id: str = Query(...)):
+def set_baseline(body: BaselineSet, org_id: str = Query(default="default")):
     """Create or update a posture baseline for a domain."""
     try:
         return _get_engine().set_baseline(
@@ -155,7 +155,7 @@ def set_baseline(body: BaselineSet, org_id: str = Query(...)):
 
 
 @router.get("/baselines/{domain}", dependencies=[Depends(api_key_auth)])
-def get_baseline(domain: str, org_id: str = Query(...)):
+def get_baseline(domain: str, org_id: str = Query(default="default")):
     """Get the baseline for a specific domain."""
     result = _get_engine().get_baseline(org_id=org_id, domain=domain)
     if result is None:
@@ -169,7 +169,7 @@ def get_baseline(domain: str, org_id: str = Query(...)):
 
 @router.get("/delta", dependencies=[Depends(api_key_auth)])
 def get_posture_delta(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     domain: str = Query(...),
     days: int = Query(30),
 ):
@@ -178,6 +178,6 @@ def get_posture_delta(
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_domain_summary(org_id: str = Query(...)):
+def get_domain_summary(org_id: str = Query(default="default")):
     """Get per-domain latest score, trend, and baseline gap."""
     return _get_engine().get_domain_summary(org_id=org_id)

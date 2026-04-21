@@ -95,7 +95,7 @@ class ScanComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/endpoints", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_endpoint(body: EndpointCreate, org_id: str = Query(...)):
+def register_endpoint(body: EndpointCreate, org_id: str = Query(default="default")):
     """Register a new API endpoint."""
     try:
         return _get_engine().register_endpoint(org_id, body.model_dump())
@@ -105,7 +105,7 @@ def register_endpoint(body: EndpointCreate, org_id: str = Query(...)):
 
 @router.get("/endpoints", dependencies=[Depends(api_key_auth)])
 def list_endpoints(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     service_name: Optional[str] = Query(None),
     is_public: Optional[bool] = Query(None),
     sensitivity_level: Optional[str] = Query(None),
@@ -124,7 +124,7 @@ def list_endpoints(
 # ---------------------------------------------------------------------------
 
 @router.post("/keys", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_api_key(body: ApiKeyCreate, org_id: str = Query(...)):
+def create_api_key(body: ApiKeyCreate, org_id: str = Query(default="default")):
     """Create an API key. Raw key is NOT stored or returned."""
     try:
         return _get_engine().create_api_key(org_id, body.model_dump())
@@ -134,7 +134,7 @@ def create_api_key(body: ApiKeyCreate, org_id: str = Query(...)):
 
 @router.get("/keys", dependencies=[Depends(api_key_auth)])
 def list_api_keys(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
 ):
     """List API keys (hashed_key never exposed)."""
@@ -142,7 +142,7 @@ def list_api_keys(
 
 
 @router.post("/keys/{key_id}/revoke", dependencies=[Depends(api_key_auth)])
-def revoke_api_key(key_id: str, org_id: str = Query(...)):
+def revoke_api_key(key_id: str, org_id: str = Query(default="default")):
     """Revoke an API key."""
     revoked = _get_engine().revoke_api_key(org_id, key_id)
     if not revoked:
@@ -155,7 +155,7 @@ def revoke_api_key(key_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/abuse-events", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_abuse_event(body: AbuseEventCreate, org_id: str = Query(...)):
+def record_abuse_event(body: AbuseEventCreate, org_id: str = Query(default="default")):
     """Record an API abuse event."""
     try:
         return _get_engine().record_abuse_event(org_id, body.model_dump())
@@ -165,7 +165,7 @@ def record_abuse_event(body: AbuseEventCreate, org_id: str = Query(...)):
 
 @router.get("/abuse-events", dependencies=[Depends(api_key_auth)])
 def list_abuse_events(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     event_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -186,7 +186,7 @@ def list_abuse_events(
 # ---------------------------------------------------------------------------
 
 @router.post("/scans", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_scan(body: ScanCreate, org_id: str = Query(...)):
+def create_scan(body: ScanCreate, org_id: str = Query(default="default")):
     """Create an API scan job."""
     try:
         return _get_engine().create_scan(org_id, body.model_dump())
@@ -195,7 +195,7 @@ def create_scan(body: ScanCreate, org_id: str = Query(...)):
 
 
 @router.post("/scans/{scan_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(...)):
+def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(default="default")):
     """Mark an API scan as completed with finding counts."""
     completed = _get_engine().complete_scan(org_id, scan_id, body.model_dump())
     if not completed:
@@ -205,7 +205,7 @@ def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(...)):
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scans(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
 ):
     """List API scans with optional status filter."""
@@ -217,6 +217,6 @@ def list_scans(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_api_stats(org_id: str = Query(...)):
+def get_api_stats(org_id: str = Query(default="default")):
     """Return aggregated API security statistics for the org."""
     return _get_engine().get_api_stats(org_id)

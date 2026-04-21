@@ -86,7 +86,7 @@ def list_network_threats(org_id: str = Query("default")):
 
 
 @router.post("/threats", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_threat(body: ThreatCreate, org_id: str = Query(...)):
+def record_threat(body: ThreatCreate, org_id: str = Query(default="default")):
     """Record or update a network threat."""
     try:
         return _get_engine().record_threat(
@@ -105,7 +105,7 @@ def record_threat(body: ThreatCreate, org_id: str = Query(...)):
 
 
 @router.post("/threats/{threat_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_threat(threat_id: str, org_id: str = Query(...)):
+def resolve_threat(threat_id: str, org_id: str = Query(default="default")):
     """Resolve an active threat."""
     try:
         return _get_engine().resolve_threat(threat_id, org_id)
@@ -115,7 +115,7 @@ def resolve_threat(threat_id: str, org_id: str = Query(...)):
 
 @router.get("/threats/active", dependencies=[Depends(api_key_auth)])
 def get_active_threats(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     threat_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -129,7 +129,7 @@ def get_active_threats(
 
 
 @router.post("/rules", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_rule(body: RuleCreate, org_id: str = Query(...)):
+def create_rule(body: RuleCreate, org_id: str = Query(default="default")):
     """Create a new threat detection rule."""
     try:
         return _get_engine().create_rule(
@@ -144,7 +144,7 @@ def create_rule(body: RuleCreate, org_id: str = Query(...)):
 
 
 @router.post("/rules/{rule_id}/trigger", dependencies=[Depends(api_key_auth)])
-def trigger_rule(rule_id: str, org_id: str = Query(...)):
+def trigger_rule(rule_id: str, org_id: str = Query(default="default")):
     """Increment match_count for a rule."""
     try:
         return _get_engine().trigger_rule(rule_id, org_id)
@@ -154,7 +154,7 @@ def trigger_rule(rule_id: str, org_id: str = Query(...)):
 
 @router.get("/rules", dependencies=[Depends(api_key_auth)])
 def list_rules(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     enabled: Optional[bool] = Query(None),
 ):
     """List threat detection rules."""
@@ -167,7 +167,7 @@ def list_rules(
 
 
 @router.put("/baselines", dependencies=[Depends(api_key_auth)])
-def update_baseline(body: BaselineUpdate, org_id: str = Query(...)):
+def update_baseline(body: BaselineUpdate, org_id: str = Query(default="default")):
     """Upsert a network baseline metric."""
     return _get_engine().update_baseline(
         org_id,
@@ -178,7 +178,7 @@ def update_baseline(body: BaselineUpdate, org_id: str = Query(...)):
 
 
 @router.get("/baselines/anomalous", dependencies=[Depends(api_key_auth)])
-def get_anomalous_baselines(org_id: str = Query(...)):
+def get_anomalous_baselines(org_id: str = Query(default="default")):
     """Return baselines flagged as anomalous."""
     return _get_engine().get_anomalous_baselines(org_id)
 
@@ -189,6 +189,6 @@ def get_anomalous_baselines(org_id: str = Query(...)):
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_threat_stats(org_id: str = Query(...)):
+def get_threat_stats(org_id: str = Query(default="default")):
     """Return aggregated network threat statistics."""
     return _get_engine().get_threat_stats(org_id)

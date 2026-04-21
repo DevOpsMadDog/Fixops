@@ -79,7 +79,7 @@ def create_asset(body: AssetCreate, org_id: str = Query(..., description="Organi
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     asset_type: Optional[str] = Query(None),
     criticality: Optional[str] = Query(None),
 ):
@@ -88,7 +88,7 @@ def list_assets(
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(...)):
+def get_asset(asset_id: str, org_id: str = Query(default="default")):
     """Fetch a single asset by ID."""
     asset = _get_engine().get_asset(org_id, asset_id)
     if not asset:
@@ -104,7 +104,7 @@ def get_asset(asset_id: str, org_id: str = Query(...)):
 def calculate_risk(
     asset_id: str,
     body: RiskCalculateRequest,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Calculate and persist a composite risk score for an asset."""
     try:
@@ -114,7 +114,7 @@ def calculate_risk(
 
 
 @router.get("/assets/{asset_id}/score", dependencies=[Depends(api_key_auth)])
-def get_latest_score(asset_id: str, org_id: str = Query(...)):
+def get_latest_score(asset_id: str, org_id: str = Query(default="default")):
     """Return the most recent risk score for an asset."""
     score = _get_engine().get_latest_score(org_id, asset_id)
     if not score:
@@ -124,7 +124,7 @@ def get_latest_score(asset_id: str, org_id: str = Query(...)):
 
 @router.get("/scores", dependencies=[Depends(api_key_auth)])
 def list_scores(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     risk_level: Optional[str] = Query(None),
 ):
     """Return latest score per asset for an org (optionally filtered by risk_level)."""
@@ -139,7 +139,7 @@ def list_scores(
 def add_risk_factor(
     asset_id: str,
     body: RiskFactorCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Add a risk factor for a specific asset."""
     try:
@@ -149,7 +149,7 @@ def add_risk_factor(
 
 
 @router.get("/assets/{asset_id}/factors", dependencies=[Depends(api_key_auth)])
-def list_risk_factors(asset_id: str, org_id: str = Query(...)):
+def list_risk_factors(asset_id: str, org_id: str = Query(default="default")):
     """List all risk factors for a specific asset."""
     return _get_engine().list_risk_factors(org_id, asset_id)
 
@@ -159,6 +159,6 @@ def list_risk_factors(asset_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_risk_stats(org_id: str = Query(...)):
+def get_risk_stats(org_id: str = Query(default="default")):
     """Return aggregate risk statistics for an org."""
     return _get_engine().get_risk_stats(org_id)

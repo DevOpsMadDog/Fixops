@@ -84,7 +84,7 @@ class AssessmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_metric(body: MetricCreate, org_id: str = Query(...)):
+def record_metric(body: MetricCreate, org_id: str = Query(default="default")):
     """Record a security culture metric data point."""
     try:
         return _get_engine().record_metric(
@@ -103,7 +103,7 @@ def record_metric(body: MetricCreate, org_id: str = Query(...)):
 @router.get("/metrics/{metric_name}/trend", dependencies=[Depends(api_key_auth)])
 def get_metric_trend(
     metric_name: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     department: Optional[str] = Query(None),
     days: int = Query(90, ge=1),
 ):
@@ -114,7 +114,7 @@ def get_metric_trend(
 
 
 @router.post("/initiatives", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_initiative(body: InitiativeCreate, org_id: str = Query(...)):
+def create_initiative(body: InitiativeCreate, org_id: str = Query(default="default")):
     """Create a new security culture initiative."""
     try:
         return _get_engine().create_initiative(
@@ -133,7 +133,7 @@ def create_initiative(body: InitiativeCreate, org_id: str = Query(...)):
     "/initiatives/{initiative_id}/progress", dependencies=[Depends(api_key_auth)]
 )
 def update_initiative_progress(
-    initiative_id: str, body: InitiativeProgressUpdate, org_id: str = Query(...)
+    initiative_id: str, body: InitiativeProgressUpdate, org_id: str = Query(default="default")
 ):
     """Update progress on an initiative."""
     try:
@@ -151,7 +151,7 @@ def update_initiative_progress(
 
 
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_assessment(body: AssessmentCreate, org_id: str = Query(...)):
+def create_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
     """Create a security culture maturity assessment."""
     return _get_engine().create_assessment(
         org_id=org_id,
@@ -164,7 +164,7 @@ def create_assessment(body: AssessmentCreate, org_id: str = Query(...)):
 
 
 @router.get("/assessments/latest", dependencies=[Depends(api_key_auth)])
-def get_latest_assessment(org_id: str = Query(...)):
+def get_latest_assessment(org_id: str = Query(default="default")):
     """Return the most recent culture assessment."""
     assessment = _get_engine().get_latest_assessment(org_id)
     if not assessment:
@@ -173,7 +173,7 @@ def get_latest_assessment(org_id: str = Query(...)):
 
 
 @router.get("/departments", dependencies=[Depends(api_key_auth)])
-def get_department_culture_scores(org_id: str = Query(...)):
+def get_department_culture_scores(org_id: str = Query(default="default")):
     """Return per-department culture scores."""
     return _get_engine().get_department_culture_scores(org_id)
 
@@ -185,6 +185,6 @@ def get_root(org_id: str = Query(default="default")):
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_culture_summary(org_id: str = Query(...)):
+def get_culture_summary(org_id: str = Query(default="default")):
     """Return overall security culture summary."""
     return _get_engine().get_culture_summary(org_id)

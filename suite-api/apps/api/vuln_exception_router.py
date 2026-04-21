@@ -69,7 +69,7 @@ class RejectRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/exceptions", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_exception(body: ExceptionCreate, org_id: str = Query(...)):
+def create_exception(body: ExceptionCreate, org_id: str = Query(default="default")):
     """Create a new vulnerability exception request."""
     try:
         return _get_engine().create_exception(org_id, body.model_dump())
@@ -79,7 +79,7 @@ def create_exception(body: ExceptionCreate, org_id: str = Query(...)):
 
 @router.get("/exceptions", dependencies=[Depends(api_key_auth)])
 def list_exceptions(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     exception_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -92,13 +92,13 @@ def list_exceptions(
 
 
 @router.post("/exceptions/expire", dependencies=[Depends(api_key_auth)])
-def expire_exceptions(org_id: str = Query(...)):
+def expire_exceptions(org_id: str = Query(default="default")):
     """Expire approved exceptions whose expiry_date has passed."""
     return _get_engine().expire_exceptions(org_id)
 
 
 @router.get("/exceptions/{exception_id}", dependencies=[Depends(api_key_auth)])
-def get_exception(exception_id: str, org_id: str = Query(...)):
+def get_exception(exception_id: str, org_id: str = Query(default="default")):
     """Retrieve a single exception by ID."""
     result = _get_engine().get_exception(org_id, exception_id)
     if not result:
@@ -108,7 +108,7 @@ def get_exception(exception_id: str, org_id: str = Query(...)):
 
 @router.post("/exceptions/{exception_id}/approve", dependencies=[Depends(api_key_auth)])
 def approve_exception(
-    exception_id: str, body: ApproveRequest, org_id: str = Query(...)
+    exception_id: str, body: ApproveRequest, org_id: str = Query(default="default")
 ):
     """Approve a pending exception."""
     try:
@@ -121,7 +121,7 @@ def approve_exception(
 
 @router.post("/exceptions/{exception_id}/reject", dependencies=[Depends(api_key_auth)])
 def reject_exception(
-    exception_id: str, body: RejectRequest, org_id: str = Query(...)
+    exception_id: str, body: RejectRequest, org_id: str = Query(default="default")
 ):
     """Reject a pending exception."""
     try:
@@ -133,6 +133,6 @@ def reject_exception(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_exception_stats(org_id: str = Query(...)):
+def get_exception_stats(org_id: str = Query(default="default")):
     """Return aggregated exception statistics for the org."""
     return _get_engine().get_exception_stats(org_id)

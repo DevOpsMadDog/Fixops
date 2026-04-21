@@ -111,7 +111,7 @@ def register_package(body: PackageCreateReq) -> Dict[str, Any]:
 
 @router.get("/packages")
 def list_packages(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     ecosystem: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -125,7 +125,7 @@ def list_packages(
 @router.get("/packages/{package_id}")
 def get_package(
     package_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     result = _get_engine().get_package(org_id, package_id)
     if result is None:
@@ -169,7 +169,7 @@ def record_detection(body: DetectionCreateReq) -> Dict[str, Any]:
 
 @router.get("/detections")
 def list_detections(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     package_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -217,7 +217,7 @@ def create_policy(body: PolicyCreateReq) -> Dict[str, Any]:
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     enabled: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
@@ -233,7 +233,7 @@ def list_policies(
 
 
 @router.get("/stats")
-def get_attack_stats(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_attack_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().get_attack_stats(org_id)
     except Exception as exc:

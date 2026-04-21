@@ -91,7 +91,7 @@ class PolicyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/devices", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_device(body: DeviceCreate, org_id: str = Query(...)):
+def register_device(body: DeviceCreate, org_id: str = Query(default="default")):
     """Register a new IoT device."""
     try:
         return _get_engine().register_device(org_id, body.model_dump())
@@ -101,7 +101,7 @@ def register_device(body: DeviceCreate, org_id: str = Query(...)):
 
 @router.get("/devices", dependencies=[Depends(api_key_auth)])
 def list_devices(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     device_category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -110,7 +110,7 @@ def list_devices(
 
 
 @router.get("/devices/{device_id}", dependencies=[Depends(api_key_auth)])
-def get_device(device_id: str, org_id: str = Query(...)):
+def get_device(device_id: str, org_id: str = Query(default="default")):
     """Get a single IoT device by ID."""
     device = _get_engine().get_device(org_id, device_id)
     if not device:
@@ -119,7 +119,7 @@ def get_device(device_id: str, org_id: str = Query(...)):
 
 
 @router.put("/devices/{device_id}/status", dependencies=[Depends(api_key_auth)])
-def update_device_status(device_id: str, body: DeviceStatusUpdate, org_id: str = Query(...)):
+def update_device_status(device_id: str, body: DeviceStatusUpdate, org_id: str = Query(default="default")):
     """Update the status of an IoT device."""
     try:
         result = _get_engine().update_device_status(org_id, device_id, body.status)
@@ -135,7 +135,7 @@ def update_device_status(device_id: str, body: DeviceStatusUpdate, org_id: str =
 # ---------------------------------------------------------------------------
 
 @router.post("/anomalies", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_anomaly(body: AnomalyCreate, org_id: str = Query(...)):
+def record_anomaly(body: AnomalyCreate, org_id: str = Query(default="default")):
     """Record an IoT anomaly."""
     try:
         return _get_engine().record_anomaly(org_id, body.model_dump())
@@ -145,7 +145,7 @@ def record_anomaly(body: AnomalyCreate, org_id: str = Query(...)):
 
 @router.get("/anomalies", dependencies=[Depends(api_key_auth)])
 def list_anomalies(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     device_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -157,7 +157,7 @@ def list_anomalies(
 
 
 @router.put("/anomalies/{anomaly_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_anomaly(anomaly_id: str, body: AnomalyResolve, org_id: str = Query(...)):
+def resolve_anomaly(anomaly_id: str, body: AnomalyResolve, org_id: str = Query(default="default")):
     """Resolve an IoT anomaly."""
     try:
         result = _get_engine().resolve_anomaly(org_id, anomaly_id, body.resolution_status)
@@ -173,7 +173,7 @@ def resolve_anomaly(anomaly_id: str, body: AnomalyResolve, org_id: str = Query(.
 # ---------------------------------------------------------------------------
 
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_policy(body: PolicyCreate, org_id: str = Query(...)):
+def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
     """Create an IoT security policy."""
     try:
         return _get_engine().create_policy(org_id, body.model_dump())
@@ -183,7 +183,7 @@ def create_policy(body: PolicyCreate, org_id: str = Query(...)):
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
 def list_policies(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     enabled: Optional[bool] = Query(None),
 ):
     """List IoT security policies, optionally filtered by enabled flag."""
@@ -195,6 +195,6 @@ def list_policies(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_iot_stats(org_id: str = Query(...)):
+def get_iot_stats(org_id: str = Query(default="default")):
     """Return aggregated IoT security statistics for the org."""
     return _get_engine().get_iot_stats(org_id)

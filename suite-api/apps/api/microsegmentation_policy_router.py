@@ -78,7 +78,7 @@ class ViolationCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/segments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_segment(body: SegmentCreate, org_id: str = Query(...)):
+def create_segment(body: SegmentCreate, org_id: str = Query(default="default")):
     """Create a microsegment."""
     try:
         return _get_engine().create_segment(org_id, body.model_dump())
@@ -88,7 +88,7 @@ def create_segment(body: SegmentCreate, org_id: str = Query(...)):
 
 @router.get("/segments", dependencies=[Depends(api_key_auth)])
 def list_segments(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     segment_type: Optional[str] = Query(None),
     enforcement_mode: Optional[str] = Query(None),
 ):
@@ -99,7 +99,7 @@ def list_segments(
 
 
 @router.get("/segments/{segment_id}", dependencies=[Depends(api_key_auth)])
-def get_segment(segment_id: str, org_id: str = Query(...)):
+def get_segment(segment_id: str, org_id: str = Query(default="default")):
     """Get a single microsegment by ID."""
     seg = _get_engine().get_segment(org_id, segment_id)
     if not seg:
@@ -112,7 +112,7 @@ def get_segment(segment_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_policy(body: PolicyCreate, org_id: str = Query(...)):
+def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
     """Create a microsegmentation policy between two segments."""
     try:
         return _get_engine().create_policy(org_id, body.model_dump())
@@ -122,7 +122,7 @@ def create_policy(body: PolicyCreate, org_id: str = Query(...)):
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
 def list_policies(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     src_segment_id: Optional[str] = Query(None),
     dst_segment_id: Optional[str] = Query(None),
     policy_action: Optional[str] = Query(None),
@@ -141,7 +141,7 @@ def list_policies(
 # ---------------------------------------------------------------------------
 
 @router.post("/violations", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_violation(body: ViolationCreate, org_id: str = Query(...)):
+def record_violation(body: ViolationCreate, org_id: str = Query(default="default")):
     """Record a microsegmentation policy violation."""
     try:
         return _get_engine().record_violation(org_id, body.model_dump())
@@ -151,7 +151,7 @@ def record_violation(body: ViolationCreate, org_id: str = Query(...)):
 
 @router.get("/violations", dependencies=[Depends(api_key_auth)])
 def list_violations(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     segment_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -164,6 +164,6 @@ def list_violations(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_segmentation_stats(org_id: str = Query(...)):
+def get_segmentation_stats(org_id: str = Query(default="default")):
     """Return aggregated microsegmentation statistics for the org."""
     return _get_engine().get_segmentation_stats(org_id)

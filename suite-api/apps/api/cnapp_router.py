@@ -77,7 +77,7 @@ def register_workload(
 
 @router.get("/workloads")
 def list_workloads(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     workload_type: Optional[str] = Query(None),
     cloud_provider: Optional[str] = Query(None),
     running_only: bool = Query(True),
@@ -102,7 +102,7 @@ def list_workloads(
 @router.post("/workloads/{workload_id}/findings")
 def add_finding(
     workload_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     body: AddFindingRequest = ...,
 ) -> Dict[str, Any]:
     """Add a CNAPP finding to a workload. Auto-updates workload risk_score."""
@@ -115,7 +115,7 @@ def add_finding(
 
 @router.get("/findings")
 def list_findings(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     category: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -136,7 +136,7 @@ def list_findings(
 @router.post("/findings/{finding_id}/suppress")
 def suppress_finding(
     finding_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     body: SuppressFindingRequest = SuppressFindingRequest(),
 ) -> Dict[str, Any]:
     """Suppress a CNAPP finding."""
@@ -158,7 +158,7 @@ def suppress_finding(
 
 @router.post("/policies")
 def create_policy(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     body: CreatePolicyRequest = ...,
 ) -> Dict[str, Any]:
     """Create a cloud security policy."""
@@ -171,7 +171,7 @@ def create_policy(
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     cloud_provider: Optional[str] = Query(None),
     enabled_only: bool = Query(True),
 ) -> List[Dict[str, Any]]:
@@ -193,7 +193,7 @@ def list_policies(
 
 @router.post("/scores/calculate")
 def calculate_cnapp_score(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     """Calculate and persist the composite CNAPP score (CSPM + CWPP + CIEM)."""
     try:
@@ -205,7 +205,7 @@ def calculate_cnapp_score(
 
 @router.get("/scores")
 def list_scores(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     limit: int = Query(10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     """List historical CNAPP scores ordered by calculated_at descending."""
@@ -222,7 +222,7 @@ def list_scores(
 
 @router.get("/stats")
 def get_cnapp_stats(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     """Get aggregate CNAPP stats for an org."""
     try:

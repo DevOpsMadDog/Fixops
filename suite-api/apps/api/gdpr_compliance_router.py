@@ -91,7 +91,7 @@ def record_processing_activity(body: ProcessingActivityReq, _auth=Depends(api_ke
 
 @router.get("/activities")
 def list_processing_activities(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     lawful_basis: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -129,7 +129,7 @@ def record_consent(body: ConsentReq, _auth=Depends(api_key_auth)) -> Dict[str, A
 
 @router.get("/consents")
 def list_consents(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     subject_id: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
@@ -162,7 +162,7 @@ def withdraw_consent(
 
 @router.get("/assessment")
 def run_gdpr_assessment(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:

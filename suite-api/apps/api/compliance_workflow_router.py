@@ -89,7 +89,7 @@ def list_compliance_workflows(org_id: str = Query("default")):
 
 
 @router.post("/workflows", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_workflow(body: WorkflowCreate, org_id: str = Query(...)):
+def create_workflow(body: WorkflowCreate, org_id: str = Query(default="default")):
     """Create a new compliance workflow."""
     try:
         return _get_engine().create_workflow(
@@ -106,7 +106,7 @@ def create_workflow(body: WorkflowCreate, org_id: str = Query(...)):
 
 @router.get("/workflows", dependencies=[Depends(api_key_auth)])
 def list_workflows(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     framework: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -115,7 +115,7 @@ def list_workflows(
 
 
 @router.get("/workflows/{workflow_id}", dependencies=[Depends(api_key_auth)])
-def get_workflow(workflow_id: str, org_id: str = Query(...)):
+def get_workflow(workflow_id: str, org_id: str = Query(default="default")):
     """Get a workflow with its tasks and approvals."""
     wf = _get_engine().get_workflow(workflow_id, org_id)
     if not wf:
@@ -128,7 +128,7 @@ def get_workflow(workflow_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/workflows/{workflow_id}/tasks", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_task(workflow_id: str, body: TaskCreate, org_id: str = Query(...)):
+def add_task(workflow_id: str, body: TaskCreate, org_id: str = Query(default="default")):
     """Add a task to a workflow."""
     try:
         return _get_engine().add_task(
@@ -149,7 +149,7 @@ def add_task(workflow_id: str, body: TaskCreate, org_id: str = Query(...)):
     "/workflows/{workflow_id}/tasks/{task_id}/complete",
     dependencies=[Depends(api_key_auth)],
 )
-def complete_task(workflow_id: str, task_id: str, body: TaskComplete, org_id: str = Query(...)):
+def complete_task(workflow_id: str, task_id: str, body: TaskComplete, org_id: str = Query(default="default")):
     """Mark a task as completed and recompute workflow completion_rate."""
     result = _get_engine().complete_task(workflow_id, task_id, org_id, body.evidence_provided)
     if not result:
@@ -162,7 +162,7 @@ def complete_task(workflow_id: str, task_id: str, body: TaskComplete, org_id: st
 # ---------------------------------------------------------------------------
 
 @router.post("/workflows/{workflow_id}/approvals", dependencies=[Depends(api_key_auth)], status_code=201)
-def submit_approval(workflow_id: str, body: ApprovalSubmit, org_id: str = Query(...)):
+def submit_approval(workflow_id: str, body: ApprovalSubmit, org_id: str = Query(default="default")):
     """Submit an approval decision for a workflow."""
     return _get_engine().submit_approval(
         workflow_id=workflow_id,
@@ -178,18 +178,18 @@ def submit_approval(workflow_id: str, body: ApprovalSubmit, org_id: str = Query(
 # ---------------------------------------------------------------------------
 
 @router.get("/overdue-tasks", dependencies=[Depends(api_key_auth)])
-def get_overdue_tasks(org_id: str = Query(...)):
+def get_overdue_tasks(org_id: str = Query(default="default")):
     """Return all tasks past their due_date that are not completed."""
     return _get_engine().get_overdue_tasks(org_id)
 
 
 @router.get("/framework/{framework}/readiness", dependencies=[Depends(api_key_auth)])
-def get_framework_readiness(framework: str, org_id: str = Query(...)):
+def get_framework_readiness(framework: str, org_id: str = Query(default="default")):
     """Return completion rate and workflow counts for a specific framework."""
     return _get_engine().get_framework_readiness(org_id, framework)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_workflow_summary(org_id: str = Query(...)):
+def get_workflow_summary(org_id: str = Query(default="default")):
     """Return workflow counts by status and framework."""
     return _get_engine().get_workflow_summary(org_id)

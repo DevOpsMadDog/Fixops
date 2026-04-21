@@ -78,7 +78,7 @@ class ObjectiveClose(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/objectives", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_objective(body: ObjectiveCreate, org_id: str = Query(...)):
+def create_objective(body: ObjectiveCreate, org_id: str = Query(default="default")):
     """Create a new security objective."""
     try:
         return _get_engine().create_objective(
@@ -95,7 +95,7 @@ def create_objective(body: ObjectiveCreate, org_id: str = Query(...)):
 
 @router.get("/objectives", dependencies=[Depends(api_key_auth)])
 def list_objectives(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     period: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -104,7 +104,7 @@ def list_objectives(
 
 
 @router.get("/objectives/{objective_id}", dependencies=[Depends(api_key_auth)])
-def get_objective(objective_id: str, org_id: str = Query(...)):
+def get_objective(objective_id: str, org_id: str = Query(default="default")):
     """Get an objective with its key results."""
     result = _get_engine().get_objective(objective_id, org_id)
     if not result:
@@ -116,7 +116,7 @@ def get_objective(objective_id: str, org_id: str = Query(...)):
 def close_objective(
     objective_id: str,
     body: ObjectiveClose,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Close an objective with a final status."""
     try:
@@ -139,7 +139,7 @@ def close_objective(
 def add_key_result(
     objective_id: str,
     body: KeyResultCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Add a key result to an objective."""
     try:
@@ -162,7 +162,7 @@ def update_key_result(
     objective_id: str,
     kr_id: str,
     body: KeyResultUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update a key result value and recompute progress."""
     try:
@@ -185,13 +185,13 @@ def update_key_result(
 # ---------------------------------------------------------------------------
 
 @router.get("/summary/{period}", dependencies=[Depends(api_key_auth)])
-def get_period_summary(period: str, org_id: str = Query(...)):
+def get_period_summary(period: str, org_id: str = Query(default="default")):
     """Get OKR summary for a period."""
     return _get_engine().get_period_summary(org_id, period)
 
 
 @router.get("/team/{owner}", dependencies=[Depends(api_key_auth)])
-def get_team_okrs(owner: str, org_id: str = Query(...)):
+def get_team_okrs(owner: str, org_id: str = Query(default="default")):
     """Get objectives filtered by owner."""
     return _get_engine().get_team_okrs(org_id, owner)
 
@@ -201,6 +201,6 @@ def get_team_okrs(owner: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/velocity", dependencies=[Depends(api_key_auth)])
-def get_okr_velocity(org_id: str = Query(...)):
+def get_okr_velocity(org_id: str = Query(default="default")):
     """Get per-objective update history showing progress over time."""
     return _get_engine().get_okr_velocity(org_id)

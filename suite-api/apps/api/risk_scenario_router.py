@@ -76,7 +76,7 @@ class ScenarioReview(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/scenarios", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_scenario(body: ScenarioCreate, org_id: str = Query(...)):
+def create_scenario(body: ScenarioCreate, org_id: str = Query(default="default")):
     """Create a new risk scenario with auto-computed inherent and residual risk."""
     try:
         return _get_engine().create_scenario(
@@ -94,7 +94,7 @@ def create_scenario(body: ScenarioCreate, org_id: str = Query(...)):
 
 @router.get("/scenarios", dependencies=[Depends(api_key_auth)])
 def list_scenarios(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     risk_level: Optional[str] = Query(None),
     threat_category: Optional[str] = Query(None),
 ):
@@ -105,7 +105,7 @@ def list_scenarios(
 
 
 @router.get("/scenarios/{scenario_id}", dependencies=[Depends(api_key_auth)])
-def get_scenario(scenario_id: str, org_id: str = Query(...)):
+def get_scenario(scenario_id: str, org_id: str = Query(default="default")):
     """Get a scenario with its mitigations and reviews."""
     result = _get_engine().get_scenario(scenario_id, org_id)
     if result is None:
@@ -118,7 +118,7 @@ def get_scenario(scenario_id: str, org_id: str = Query(...)):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_mitigation(scenario_id: str, body: MitigationCreate, org_id: str = Query(...)):
+def add_mitigation(scenario_id: str, body: MitigationCreate, org_id: str = Query(default="default")):
     """Add a mitigation to a scenario."""
     try:
         return _get_engine().add_mitigation(
@@ -137,7 +137,7 @@ def add_mitigation(scenario_id: str, body: MitigationCreate, org_id: str = Query
     "/scenarios/{scenario_id}/mitigations/{mitigation_id}/implement",
     dependencies=[Depends(api_key_auth)],
 )
-def implement_mitigation(scenario_id: str, mitigation_id: str, org_id: str = Query(...)):
+def implement_mitigation(scenario_id: str, mitigation_id: str, org_id: str = Query(default="default")):
     """Mark a mitigation as implemented and recompute residual risk."""
     result = _get_engine().implement_mitigation(mitigation_id, scenario_id, org_id)
     if result is None:
@@ -150,7 +150,7 @@ def implement_mitigation(scenario_id: str, mitigation_id: str, org_id: str = Que
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def review_scenario(scenario_id: str, body: ScenarioReview, org_id: str = Query(...)):
+def review_scenario(scenario_id: str, body: ScenarioReview, org_id: str = Query(default="default")):
     """Submit a review that adjusts scenario likelihood/impact."""
     return _get_engine().review_scenario(
         scenario_id,
@@ -167,19 +167,19 @@ def review_scenario(scenario_id: str, body: ScenarioReview, org_id: str = Query(
 # ---------------------------------------------------------------------------
 
 @router.get("/top-risks", dependencies=[Depends(api_key_auth)])
-def get_top_risks(org_id: str = Query(...), limit: int = Query(10)):
+def get_top_risks(org_id: str = Query(default="default"), limit: int = Query(10)):
     """Return top N scenarios ordered by residual risk."""
     return _get_engine().get_top_risks(org_id, limit=limit)
 
 
 @router.get("/risk-reduction", dependencies=[Depends(api_key_auth)])
-def get_risk_reduction_summary(org_id: str = Query(...)):
+def get_risk_reduction_summary(org_id: str = Query(default="default")):
     """Return per-scenario inherent vs residual risk with reduction percentage."""
     return _get_engine().get_risk_reduction_summary(org_id)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_scenario_stats(org_id: str = Query(...)):
+def get_scenario_stats(org_id: str = Query(default="default")):
     """Return aggregated scenario statistics for an org."""
     return _get_engine().get_scenario_stats(org_id)
 

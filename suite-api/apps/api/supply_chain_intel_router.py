@@ -102,7 +102,7 @@ class SBOMSnapshotCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/packages", dependencies=[Depends(api_key_auth)], status_code=201)
-def track_package(body: PackageCreate, org_id: str = Query(...)):
+def track_package(body: PackageCreate, org_id: str = Query(default="default")):
     """Register a package for tracking."""
     try:
         return _get_engine().track_package(org_id, body.model_dump())
@@ -112,7 +112,7 @@ def track_package(body: PackageCreate, org_id: str = Query(...)):
 
 @router.get("/packages", dependencies=[Depends(api_key_auth)])
 def list_packages(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     ecosystem: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
@@ -129,7 +129,7 @@ def list_packages(
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_vulnerability(pkg_id: str, body: VulnerabilityCreate, org_id: str = Query(...)):
+def add_vulnerability(pkg_id: str, body: VulnerabilityCreate, org_id: str = Query(default="default")):
     """Add a vulnerability record to a tracked package."""
     try:
         return _get_engine().add_vulnerability(org_id, pkg_id, body.model_dump())
@@ -139,7 +139,7 @@ def add_vulnerability(pkg_id: str, body: VulnerabilityCreate, org_id: str = Quer
 
 @router.get("/vulns", dependencies=[Depends(api_key_auth)])
 def list_vulnerabilities(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     pkg_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     patched: bool = Query(default=False),
@@ -155,7 +155,7 @@ def list_vulnerabilities(
 # ---------------------------------------------------------------------------
 
 @router.post("/malicious", dependencies=[Depends(api_key_auth)], status_code=201)
-def flag_malicious(body: MaliciousPackageCreate, org_id: str = Query(...)):
+def flag_malicious(body: MaliciousPackageCreate, org_id: str = Query(default="default")):
     """Flag a package as malicious (typosquat, backdoor, etc.)."""
     try:
         return _get_engine().flag_malicious(org_id, body.model_dump())
@@ -165,7 +165,7 @@ def flag_malicious(body: MaliciousPackageCreate, org_id: str = Query(...)):
 
 @router.get("/malicious", dependencies=[Depends(api_key_auth)])
 def list_malicious(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     ecosystem: Optional[str] = Query(None),
 ):
     """List malicious packages, optionally filtered by ecosystem."""
@@ -178,7 +178,7 @@ def list_malicious(
 
 @router.get("/check", dependencies=[Depends(api_key_auth)])
 def check_package(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     name: str = Query(...),
     ecosystem: str = Query(...),
 ):
@@ -191,7 +191,7 @@ def check_package(
 # ---------------------------------------------------------------------------
 
 @router.post("/sbom/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_sbom_snapshot(body: SBOMSnapshotCreate, org_id: str = Query(...)):
+def create_sbom_snapshot(body: SBOMSnapshotCreate, org_id: str = Query(default="default")):
     """Create an SBOM snapshot from a package list. Computes risk score."""
     packages_data = [
         {
@@ -209,7 +209,7 @@ def create_sbom_snapshot(body: SBOMSnapshotCreate, org_id: str = Query(...)):
 
 @router.get("/sbom/snapshots", dependencies=[Depends(api_key_auth)])
 def list_snapshots(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     project_name: Optional[str] = Query(None),
 ):
     """List SBOM snapshots, optionally filtered by project name."""
@@ -221,6 +221,6 @@ def list_snapshots(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_supply_chain_stats(org_id: str = Query(...)):
+def get_supply_chain_stats(org_id: str = Query(default="default")):
     """Return aggregated supply chain intelligence statistics for the org."""
     return _get_engine().get_supply_chain_stats(org_id)

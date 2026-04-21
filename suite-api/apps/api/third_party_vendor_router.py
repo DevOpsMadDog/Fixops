@@ -79,7 +79,7 @@ class IncidentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_vendor(body: VendorCreate, org_id: str = Query(...)):
+def register_vendor(body: VendorCreate, org_id: str = Query(default="default")):
     """Register a new third-party vendor."""
     try:
         return _get_engine().register_vendor(org_id, body.model_dump())
@@ -89,7 +89,7 @@ def register_vendor(body: VendorCreate, org_id: str = Query(...)):
 
 @router.get("/vendors", dependencies=[Depends(api_key_auth)])
 def list_vendors(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     vendor_category: Optional[str] = Query(None),
     risk_rating: Optional[str] = Query(None),
     contract_status: Optional[str] = Query(None),
@@ -104,7 +104,7 @@ def list_vendors(
 
 
 @router.get("/vendors/{vendor_id}", dependencies=[Depends(api_key_auth)])
-def get_vendor(vendor_id: str, org_id: str = Query(...)):
+def get_vendor(vendor_id: str, org_id: str = Query(default="default")):
     """Get a single vendor by ID."""
     vendor = _get_engine().get_vendor(org_id, vendor_id)
     if not vendor:
@@ -117,7 +117,7 @@ def get_vendor(vendor_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors/{vendor_id}/assess", dependencies=[Depends(api_key_auth)], status_code=201)
-def conduct_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Query(...)):
+def conduct_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Query(default="default")):
     """Conduct a security assessment for a vendor."""
     try:
         return _get_engine().conduct_assessment(org_id, vendor_id, body.model_dump())
@@ -127,7 +127,7 @@ def conduct_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Que
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     vendor_id: Optional[str] = Query(None),
     assessment_type: Optional[str] = Query(None),
 ):
@@ -142,14 +142,14 @@ def list_assessments(
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors/{vendor_id}/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_incident(vendor_id: str, body: IncidentCreate, org_id: str = Query(...)):
+def add_incident(vendor_id: str, body: IncidentCreate, org_id: str = Query(default="default")):
     """Record a vendor-related security incident."""
     return _get_engine().add_incident(org_id, vendor_id, body.model_dump())
 
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     vendor_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -165,6 +165,6 @@ def list_incidents(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_vendor_stats(org_id: str = Query(...)):
+def get_vendor_stats(org_id: str = Query(default="default")):
     """Return aggregated third-party vendor statistics for the org."""
     return _get_engine().get_vendor_stats(org_id)

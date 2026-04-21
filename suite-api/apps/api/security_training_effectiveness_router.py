@@ -89,7 +89,7 @@ def list_training_effectiveness(org_id: str = Query("default")):
 
 
 @router.post("/programs", status_code=201)
-def create_program(body: ProgramCreate, org_id: str = Query(...)):
+def create_program(body: ProgramCreate, org_id: str = Query(default="default")):
     """Create a new training program."""
     try:
         return _get_engine().create_program(
@@ -107,7 +107,7 @@ def create_program(body: ProgramCreate, org_id: str = Query(...)):
 
 @router.get("/programs")
 def list_programs(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     training_type: Optional[str] = Query(None),
 ):
     """List training programs, optionally filtered by training_type."""
@@ -115,7 +115,7 @@ def list_programs(
 
 
 @router.get("/programs/{program_id}/effectiveness")
-def get_effectiveness(program_id: str, org_id: str = Query(...)):
+def get_effectiveness(program_id: str, org_id: str = Query(default="default")):
     """Return full effectiveness report for a program."""
     try:
         return _get_engine().get_effectiveness(program_id=program_id, org_id=org_id)
@@ -124,7 +124,7 @@ def get_effectiveness(program_id: str, org_id: str = Query(...)):
 
 
 @router.post("/programs/{program_id}/enroll", status_code=201)
-def enroll(program_id: str, body: EnrollRequest, org_id: str = Query(...)):
+def enroll(program_id: str, body: EnrollRequest, org_id: str = Query(default="default")):
     """Enroll an employee in a training program."""
     try:
         return _get_engine().enroll(
@@ -138,7 +138,7 @@ def enroll(program_id: str, body: EnrollRequest, org_id: str = Query(...)):
 
 
 @router.post("/programs/{program_id}/complete")
-def record_completion(program_id: str, body: CompletionRequest, org_id: str = Query(...)):
+def record_completion(program_id: str, body: CompletionRequest, org_id: str = Query(default="default")):
     """Record a training completion with pre/post scores."""
     try:
         return _get_engine().record_completion(
@@ -156,7 +156,7 @@ def record_completion(program_id: str, body: CompletionRequest, org_id: str = Qu
 
 
 @router.post("/programs/{program_id}/retention", status_code=201)
-def record_retention(program_id: str, body: RetentionRequest, org_id: str = Query(...)):
+def record_retention(program_id: str, body: RetentionRequest, org_id: str = Query(default="default")):
     """Record a knowledge retention assessment."""
     return _get_engine().record_retention(
         program_id=program_id,
@@ -168,12 +168,12 @@ def record_retention(program_id: str, body: RetentionRequest, org_id: str = Quer
 
 
 @router.get("/department-compliance")
-def get_department_compliance(org_id: str = Query(...)):
+def get_department_compliance(org_id: str = Query(default="default")):
     """Return completion rate and avg score by department."""
     return _get_engine().get_department_compliance(org_id=org_id)
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(...)):
+def get_summary(org_id: str = Query(default="default")):
     """Return aggregate summary across all programs."""
     return _get_engine().get_summary(org_id=org_id)

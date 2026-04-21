@@ -85,7 +85,7 @@ class IncidentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/models", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_model(body: ModelCreate, org_id: str = Query(...)):
+def register_model(body: ModelCreate, org_id: str = Query(default="default")):
     """Register a new AI/ML model."""
     try:
         return _get_engine().register_model(org_id, body.model_dump())
@@ -95,7 +95,7 @@ def register_model(body: ModelCreate, org_id: str = Query(...)):
 
 @router.get("/models", dependencies=[Depends(api_key_auth)])
 def list_models(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     model_type: Optional[str] = Query(None),
     deployment_status: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -110,7 +110,7 @@ def list_models(
 
 
 @router.get("/models/{model_id}", dependencies=[Depends(api_key_auth)])
-def get_model(model_id: str, org_id: str = Query(...)):
+def get_model(model_id: str, org_id: str = Query(default="default")):
     """Get a single AI model by ID."""
     model = _get_engine().get_model(org_id, model_id)
     if not model:
@@ -119,7 +119,7 @@ def get_model(model_id: str, org_id: str = Query(...)):
 
 
 @router.put("/models/{model_id}/status", dependencies=[Depends(api_key_auth)])
-def update_model_status(model_id: str, body: ModelStatusUpdate, org_id: str = Query(...)):
+def update_model_status(model_id: str, body: ModelStatusUpdate, org_id: str = Query(default="default")):
     """Update the deployment status of a model."""
     try:
         return _get_engine().update_model_status(org_id, model_id, body.new_status)
@@ -134,7 +134,7 @@ def update_model_status(model_id: str, body: ModelStatusUpdate, org_id: str = Qu
 # ---------------------------------------------------------------------------
 
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_assessment(body: AssessmentCreate, org_id: str = Query(...)):
+def record_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
     """Record a model risk assessment."""
     try:
         return _get_engine().record_assessment(org_id, body.model_dump())
@@ -146,7 +146,7 @@ def record_assessment(body: AssessmentCreate, org_id: str = Query(...)):
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     model_id: Optional[str] = Query(None),
     assessment_type: Optional[str] = Query(None),
 ):
@@ -161,7 +161,7 @@ def list_assessments(
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def report_incident(body: IncidentCreate, org_id: str = Query(...)):
+def report_incident(body: IncidentCreate, org_id: str = Query(default="default")):
     """Report an AI incident."""
     try:
         return _get_engine().report_incident(org_id, body.model_dump())
@@ -172,7 +172,7 @@ def report_incident(body: IncidentCreate, org_id: str = Query(...)):
 
 
 @router.put("/incidents/{incident_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_incident(incident_id: str, org_id: str = Query(...)):
+def resolve_incident(incident_id: str, org_id: str = Query(default="default")):
     """Resolve an AI incident."""
     try:
         return _get_engine().resolve_incident(org_id, incident_id)
@@ -182,7 +182,7 @@ def resolve_incident(incident_id: str, org_id: str = Query(...)):
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     model_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -198,6 +198,6 @@ def list_incidents(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_governance_stats(org_id: str = Query(...)):
+def get_governance_stats(org_id: str = Query(default="default")):
     """Return aggregated AI governance statistics."""
     return _get_engine().get_governance_stats(org_id)

@@ -79,7 +79,7 @@ class FindingCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/simulations", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_simulation(body: SimulationCreate, org_id: str = Query(...)):
+def create_simulation(body: SimulationCreate, org_id: str = Query(default="default")):
     """Create a new simulation run."""
     try:
         return _get_engine().create_simulation(org_id, body.model_dump())
@@ -89,7 +89,7 @@ def create_simulation(body: SimulationCreate, org_id: str = Query(...)):
 
 @router.get("/simulations", dependencies=[Depends(api_key_auth)])
 def list_simulations(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
 ):
     """List simulation runs for an org, optionally filtered by status."""
@@ -97,7 +97,7 @@ def list_simulations(
 
 
 @router.get("/simulations/{sim_id}", dependencies=[Depends(api_key_auth)])
-def get_simulation(sim_id: str, org_id: str = Query(...)):
+def get_simulation(sim_id: str, org_id: str = Query(default="default")):
     """Get a single simulation run by ID."""
     sim = _get_engine().get_simulation(org_id, sim_id)
     if not sim:
@@ -117,7 +117,7 @@ def get_simulation(sim_id: str, org_id: str = Query(...)):
 def add_attack_path(
     sim_id: str,
     body: AttackPathCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Add an attack path step to a simulation. Also upserts MITRE coverage."""
     try:
@@ -127,7 +127,7 @@ def add_attack_path(
 
 
 @router.get("/simulations/{sim_id}/attack-paths", dependencies=[Depends(api_key_auth)])
-def list_attack_paths(sim_id: str, org_id: str = Query(...)):
+def list_attack_paths(sim_id: str, org_id: str = Query(default="default")):
     """List all attack paths for a simulation."""
     return _get_engine().list_attack_paths(org_id, sim_id)
 
@@ -144,7 +144,7 @@ def list_attack_paths(sim_id: str, org_id: str = Query(...)):
 def create_finding(
     sim_id: str,
     body: FindingCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Create a simulation finding."""
     try:
@@ -155,7 +155,7 @@ def create_finding(
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     sim_id: Optional[str] = Query(None),
 ):
     """List findings for an org, optionally filtered by sim_id."""
@@ -167,7 +167,7 @@ def list_findings(
 # ---------------------------------------------------------------------------
 
 @router.get("/mitre-coverage", dependencies=[Depends(api_key_auth)])
-def get_mitre_coverage(org_id: str = Query(...)):
+def get_mitre_coverage(org_id: str = Query(default="default")):
     """Return per-tactic MITRE ATT&CK coverage percentage across all simulations."""
     return _get_engine().get_mitre_coverage(org_id)
 
@@ -177,6 +177,6 @@ def get_mitre_coverage(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_simulation_stats(org_id: str = Query(...)):
+def get_simulation_stats(org_id: str = Query(default="default")):
     """Return aggregate simulation statistics for an org."""
     return _get_engine().get_simulation_stats(org_id)

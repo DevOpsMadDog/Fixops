@@ -93,7 +93,7 @@ def list_cost_optimization(org_id: str = Query("default")):
 
 
 @router.post("/tools", status_code=201)
-def register_tool(body: ToolCreate, org_id: str = Query(...)):
+def register_tool(body: ToolCreate, org_id: str = Query(default="default")):
     """Register a new security tool for cost tracking."""
     try:
         return _get_engine().register_tool(
@@ -110,13 +110,13 @@ def register_tool(body: ToolCreate, org_id: str = Query(...)):
 
 
 @router.get("/tools")
-def list_tools(org_id: str = Query(...)):
+def list_tools(org_id: str = Query(default="default")):
     """List all security tools for an org."""
     return _get_engine().list_tools(org_id=org_id)
 
 
 @router.get("/tools/{tool_id}/roi")
-def get_tool_roi(tool_id: str, org_id: str = Query(...)):
+def get_tool_roi(tool_id: str, org_id: str = Query(default="default")):
     """Return tool ROI details with assessments and optimizations."""
     try:
         return _get_engine().get_tool_roi(tool_id=tool_id, org_id=org_id)
@@ -125,7 +125,7 @@ def get_tool_roi(tool_id: str, org_id: str = Query(...)):
 
 
 @router.patch("/tools/{tool_id}/utilization")
-def update_utilization(tool_id: str, body: UtilizationUpdate, org_id: str = Query(...)):
+def update_utilization(tool_id: str, body: UtilizationUpdate, org_id: str = Query(default="default")):
     """Update tool utilization percentage and risk coverage."""
     try:
         return _get_engine().update_utilization(
@@ -141,7 +141,7 @@ def update_utilization(tool_id: str, body: UtilizationUpdate, org_id: str = Quer
 
 
 @router.post("/tools/{tool_id}/optimizations", status_code=201)
-def add_optimization(tool_id: str, body: OptimizationCreate, org_id: str = Query(...)):
+def add_optimization(tool_id: str, body: OptimizationCreate, org_id: str = Query(default="default")):
     """Identify a cost optimization opportunity for a tool."""
     try:
         return _get_engine().add_optimization(
@@ -158,7 +158,7 @@ def add_optimization(tool_id: str, body: OptimizationCreate, org_id: str = Query
 
 @router.post("/optimizations/{optimization_id}/implement")
 def implement_optimization(
-    optimization_id: str, body: ImplementOptimization, org_id: str = Query(...)
+    optimization_id: str, body: ImplementOptimization, org_id: str = Query(default="default")
 ):
     """Mark an optimization as implemented with actual savings."""
     try:
@@ -174,7 +174,7 @@ def implement_optimization(
 
 
 @router.post("/tools/{tool_id}/roi-assessment", status_code=201)
-def add_roi_assessment(tool_id: str, body: ROIAssessmentCreate, org_id: str = Query(...)):
+def add_roi_assessment(tool_id: str, body: ROIAssessmentCreate, org_id: str = Query(default="default")):
     """Add a ROI assessment for a security tool."""
     try:
         return _get_engine().add_roi_assessment(
@@ -193,7 +193,7 @@ def add_roi_assessment(tool_id: str, body: ROIAssessmentCreate, org_id: str = Qu
 
 @router.get("/underutilized")
 def get_underutilized_tools(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     max_utilization: float = Query(30.0),
 ):
     """Return active tools with low utilization."""
@@ -203,12 +203,12 @@ def get_underutilized_tools(
 
 
 @router.get("/portfolio")
-def get_portfolio_summary(org_id: str = Query(...)):
+def get_portfolio_summary(org_id: str = Query(default="default")):
     """Return aggregate portfolio cost summary."""
     return _get_engine().get_portfolio_summary(org_id=org_id)
 
 
 @router.get("/cost-per-risk")
-def get_cost_per_risk(org_id: str = Query(...)):
+def get_cost_per_risk(org_id: str = Query(default="default")):
     """Return cost per risk reduction percentage, ordered ASC."""
     return _get_engine().get_cost_per_risk(org_id=org_id)

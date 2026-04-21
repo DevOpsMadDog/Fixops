@@ -80,7 +80,7 @@ class BenchmarkCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/costs", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_cost(body: CostCreate, org_id: str = Query(...)):
+def record_cost(body: CostCreate, org_id: str = Query(default="default")):
     """Record a cost line-item for a security incident."""
     try:
         return _get_engine().record_cost(
@@ -101,7 +101,7 @@ def record_cost(body: CostCreate, org_id: str = Query(...)):
 
 @router.post("/incidents/{incident_id}/finalize", dependencies=[Depends(api_key_auth)])
 def finalize_incident(
-    incident_id: str, body: IncidentFinalize, org_id: str = Query(...)
+    incident_id: str, body: IncidentFinalize, org_id: str = Query(default="default")
 ):
     """Finalize an incident and compute cost totals."""
     try:
@@ -118,13 +118,13 @@ def finalize_incident(
 
 
 @router.get("/incidents/{incident_id}/costs", dependencies=[Depends(api_key_auth)])
-def get_incident_costs(incident_id: str, org_id: str = Query(...)):
+def get_incident_costs(incident_id: str, org_id: str = Query(default="default")):
     """Return all cost records for an incident."""
     return _get_engine().get_incident_costs(org_id, incident_id)
 
 
 @router.get("/incidents/{incident_id}/summary", dependencies=[Depends(api_key_auth)])
-def get_incident_summary(incident_id: str, org_id: str = Query(...)):
+def get_incident_summary(incident_id: str, org_id: str = Query(default="default")):
     """Return the finalized summary for an incident."""
     summary = _get_engine().get_incident_summary(org_id, incident_id)
     if not summary:
@@ -133,7 +133,7 @@ def get_incident_summary(incident_id: str, org_id: str = Query(...)):
 
 
 @router.post("/benchmarks", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_benchmark(body: BenchmarkCreate, org_id: str = Query(...)):
+def add_benchmark(body: BenchmarkCreate, org_id: str = Query(default="default")):
     """Add an industry cost benchmark."""
     try:
         return _get_engine().add_benchmark(
@@ -154,7 +154,7 @@ def add_benchmark(body: BenchmarkCreate, org_id: str = Query(...)):
     "/incidents/{incident_id}/benchmark-compare",
     dependencies=[Depends(api_key_auth)],
 )
-def compare_to_benchmark(incident_id: str, org_id: str = Query(...)):
+def compare_to_benchmark(incident_id: str, org_id: str = Query(default="default")):
     """Compare incident total cost to industry benchmark."""
     try:
         return _get_engine().compare_to_benchmark(org_id, incident_id)
@@ -163,14 +163,14 @@ def compare_to_benchmark(incident_id: str, org_id: str = Query(...)):
 
 
 @router.get("/analytics", dependencies=[Depends(api_key_auth)])
-def get_cost_analytics(org_id: str = Query(...)):
+def get_cost_analytics(org_id: str = Query(default="default")):
     """Return cost analytics across all incidents."""
     return _get_engine().get_cost_analytics(org_id)
 
 
 @router.get("/summaries", dependencies=[Depends(api_key_auth)])
 def list_summaries(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     incident_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):

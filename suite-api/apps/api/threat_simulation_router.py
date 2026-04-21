@@ -80,7 +80,7 @@ class SimulationComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/scenarios", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_scenario(body: ScenarioCreate, org_id: str = Query(...)):
+def create_scenario(body: ScenarioCreate, org_id: str = Query(default="default")):
     """Create a new threat simulation scenario."""
     try:
         return _get_engine().create_scenario(org_id, body.model_dump())
@@ -90,7 +90,7 @@ def create_scenario(body: ScenarioCreate, org_id: str = Query(...)):
 
 @router.get("/scenarios", dependencies=[Depends(api_key_auth)])
 def list_scenarios(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     scenario_type: Optional[str] = Query(None),
     difficulty: Optional[str] = Query(None),
 ):
@@ -101,7 +101,7 @@ def list_scenarios(
 
 
 @router.get("/scenarios/{scenario_id}", dependencies=[Depends(api_key_auth)])
-def get_scenario(scenario_id: str, org_id: str = Query(...)):
+def get_scenario(scenario_id: str, org_id: str = Query(default="default")):
     """Get a single scenario by ID."""
     scenario = _get_engine().get_scenario(org_id, scenario_id)
     if not scenario:
@@ -114,7 +114,7 @@ def get_scenario(scenario_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/simulations", dependencies=[Depends(api_key_auth)], status_code=201)
-def start_simulation(body: SimulationStart, org_id: str = Query(...)):
+def start_simulation(body: SimulationStart, org_id: str = Query(default="default")):
     """Start a new simulation run."""
     try:
         return _get_engine().start_simulation(org_id, body.model_dump())
@@ -127,7 +127,7 @@ def start_simulation(body: SimulationStart, org_id: str = Query(...)):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def record_detection(sim_id: str, body: DetectionRecord, org_id: str = Query(...)):
+def record_detection(sim_id: str, body: DetectionRecord, org_id: str = Query(default="default")):
     """Record a technique detection within a simulation."""
     try:
         result = _get_engine().record_detection(org_id, sim_id, body.model_dump())
@@ -139,7 +139,7 @@ def record_detection(sim_id: str, body: DetectionRecord, org_id: str = Query(...
 
 
 @router.put("/simulations/{sim_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_simulation(sim_id: str, body: SimulationComplete, org_id: str = Query(...)):
+def complete_simulation(sim_id: str, body: SimulationComplete, org_id: str = Query(default="default")):
     """Mark a simulation as completed and compute metrics."""
     result = _get_engine().complete_simulation(org_id, sim_id, body.model_dump())
     if result is None:
@@ -149,7 +149,7 @@ def complete_simulation(sim_id: str, body: SimulationComplete, org_id: str = Que
 
 @router.get("/simulations", dependencies=[Depends(api_key_auth)])
 def list_simulations(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     scenario_id: Optional[str] = Query(None),
 ):
@@ -164,6 +164,6 @@ def list_simulations(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_simulation_stats(org_id: str = Query(...)):
+def get_simulation_stats(org_id: str = Query(default="default")):
     """Return aggregated simulation statistics for the org."""
     return _get_engine().get_simulation_stats(org_id)

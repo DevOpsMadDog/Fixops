@@ -75,7 +75,7 @@ class ApproverCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/changes", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_change(body: ChangeCreate, org_id: str = Query(...)):
+def create_change(body: ChangeCreate, org_id: str = Query(default="default")):
     """Create a new security change request in draft status."""
     try:
         return _get_engine().create_change(org_id, body.model_dump())
@@ -85,7 +85,7 @@ def create_change(body: ChangeCreate, org_id: str = Query(...)):
 
 @router.get("/changes", dependencies=[Depends(api_key_auth)])
 def list_changes(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     change_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
@@ -100,7 +100,7 @@ def list_changes(
 
 
 @router.get("/changes/{change_id}", dependencies=[Depends(api_key_auth)])
-def get_change(change_id: str, org_id: str = Query(...)):
+def get_change(change_id: str, org_id: str = Query(default="default")):
     """Get a single change by ID."""
     change = _get_engine().get_change(org_id, change_id)
     if not change:
@@ -112,7 +112,7 @@ def get_change(change_id: str, org_id: str = Query(...)):
 def update_change_status(
     change_id: str,
     body: ChangeStatusUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update change status. Sets completed_at when status=completed."""
     try:
@@ -131,7 +131,7 @@ def update_change_status(
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_approver(change_id: str, body: ApproverCreate, org_id: str = Query(...)):
+def add_approver(change_id: str, body: ApproverCreate, org_id: str = Query(default="default")):
     """Add an approval record (approved/rejected/pending) to a change."""
     try:
         return _get_engine().add_approver(org_id, change_id, body.model_dump())
@@ -145,7 +145,7 @@ def add_approver(change_id: str, body: ApproverCreate, org_id: str = Query(...))
 
 @router.get("/approvals", dependencies=[Depends(api_key_auth)])
 def list_approvals(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     change_id: Optional[str] = Query(None),
 ):
     """List all approvals for an org, optionally filtered by change_id."""
@@ -157,6 +157,6 @@ def list_approvals(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_change_stats(org_id: str = Query(...)):
+def get_change_stats(org_id: str = Query(default="default")):
     """Return aggregated change management statistics for an org."""
     return _get_engine().get_change_stats(org_id)

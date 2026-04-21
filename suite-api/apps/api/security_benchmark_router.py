@@ -78,7 +78,7 @@ class CompareRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/benchmarks", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_benchmark(body: BenchmarkCreate, org_id: str = Query(...)):
+def create_benchmark(body: BenchmarkCreate, org_id: str = Query(default="default")):
     """Create an industry benchmark definition."""
     try:
         return _get_engine().create_benchmark(
@@ -102,7 +102,7 @@ def create_benchmark(body: BenchmarkCreate, org_id: str = Query(...)):
 
 @router.get("/benchmarks", dependencies=[Depends(api_key_auth)])
 def list_benchmarks(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     sector: Optional[str] = Query(None),
     metric_category: Optional[str] = Query(None),
 ):
@@ -115,7 +115,7 @@ def list_benchmarks(
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_org_metric(body: OrgMetricCreate, org_id: str = Query(...)):
+def record_org_metric(body: OrgMetricCreate, org_id: str = Query(default="default")):
     """Record an org security metric measurement."""
     try:
         return _get_engine().record_org_metric(
@@ -133,7 +133,7 @@ def record_org_metric(body: OrgMetricCreate, org_id: str = Query(...)):
 @router.get("/metrics/{metric_name}/trend", dependencies=[Depends(api_key_auth)])
 def get_metric_trend(
     metric_name: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     days: int = Query(90, ge=1, le=365),
 ):
     """Return metric trend for an org over the past N days."""
@@ -145,7 +145,7 @@ def get_metric_trend(
 # ---------------------------------------------------------------------------
 
 @router.post("/compare", dependencies=[Depends(api_key_auth)], status_code=201)
-def compare_to_benchmark(body: CompareRequest, org_id: str = Query(...)):
+def compare_to_benchmark(body: CompareRequest, org_id: str = Query(default="default")):
     """Compare an org metric to a benchmark and compute percentile rank."""
     try:
         return _get_engine().compare_to_benchmark(
@@ -158,7 +158,7 @@ def compare_to_benchmark(body: CompareRequest, org_id: str = Query(...)):
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_org_benchmark_summary(org_id: str = Query(...)):
+def get_org_benchmark_summary(org_id: str = Query(default="default")):
     """Return benchmark comparison summary with performance counts and overall percentile."""
     return _get_engine().get_org_benchmark_summary(org_id)
 

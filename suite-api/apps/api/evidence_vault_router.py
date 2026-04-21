@@ -108,7 +108,7 @@ async def store_evidence(body: StoreEvidenceIn) -> Dict[str, Any]:
 
 
 @router.put("/evidence/{evidence_id}/seal")
-async def seal_evidence(evidence_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
+async def seal_evidence(evidence_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Seal evidence making it immutable."""
     try:
         ev = _get_engine().seal_evidence(evidence_id, org_id)
@@ -154,7 +154,7 @@ async def add_to_collection(collection_id: str, body: AddToCollectionIn) -> Dict
 
 
 @router.get("/evidence/{evidence_id}")
-async def get_evidence_detail(evidence_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
+async def get_evidence_detail(evidence_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return evidence details plus last 20 access log entries."""
     ev = _get_engine().get_evidence_detail(evidence_id, org_id)
     if ev is None:
@@ -164,7 +164,7 @@ async def get_evidence_detail(evidence_id: str, org_id: str = Query(...)) -> Dic
 
 @router.get("/search")
 async def search_evidence(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     framework: Optional[str] = Query(None),
     control_id: Optional[str] = Query(None),
     evidence_type: Optional[str] = Query(None),
@@ -180,7 +180,7 @@ async def search_evidence(
 
 
 @router.get("/summary")
-async def get_vault_summary(org_id: str = Query(...)) -> Dict[str, Any]:
+async def get_vault_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Return vault statistics."""
     return _get_engine().get_vault_summary(org_id)
 

@@ -76,7 +76,7 @@ class PolicyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/enrollments", dependencies=[Depends(api_key_auth)], status_code=201)
-def enroll_user(body: EnrollmentCreate, org_id: str = Query(...)):
+def enroll_user(body: EnrollmentCreate, org_id: str = Query(default="default")):
     """Create a new MFA enrollment (status=pending)."""
     try:
         return _get_engine().enroll_user(org_id, body.model_dump())
@@ -86,7 +86,7 @@ def enroll_user(body: EnrollmentCreate, org_id: str = Query(...)):
 
 @router.get("/enrollments", dependencies=[Depends(api_key_auth)])
 def list_enrollments(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     user_id: Optional[str] = Query(None),
     mfa_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -96,7 +96,7 @@ def list_enrollments(
 
 
 @router.get("/enrollments/{enrollment_id}", dependencies=[Depends(api_key_auth)])
-def get_enrollment(enrollment_id: str, org_id: str = Query(...)):
+def get_enrollment(enrollment_id: str, org_id: str = Query(default="default")):
     """Get a single enrollment by ID."""
     result = _get_engine().get_enrollment(org_id, enrollment_id)
     if result is None:
@@ -105,7 +105,7 @@ def get_enrollment(enrollment_id: str, org_id: str = Query(...)):
 
 
 @router.put("/enrollments/{enrollment_id}/activate", dependencies=[Depends(api_key_auth)])
-def activate_enrollment(enrollment_id: str, org_id: str = Query(...)):
+def activate_enrollment(enrollment_id: str, org_id: str = Query(default="default")):
     """Activate a pending MFA enrollment."""
     result = _get_engine().activate_enrollment(org_id, enrollment_id)
     if result is None:
@@ -114,7 +114,7 @@ def activate_enrollment(enrollment_id: str, org_id: str = Query(...)):
 
 
 @router.put("/enrollments/{enrollment_id}/disable", dependencies=[Depends(api_key_auth)])
-def disable_enrollment(enrollment_id: str, org_id: str = Query(...)):
+def disable_enrollment(enrollment_id: str, org_id: str = Query(default="default")):
     """Disable an active MFA enrollment."""
     result = _get_engine().disable_enrollment(org_id, enrollment_id)
     if result is None:
@@ -127,7 +127,7 @@ def disable_enrollment(enrollment_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/events", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_mfa_event(body: MFAEventCreate, org_id: str = Query(...)):
+def record_mfa_event(body: MFAEventCreate, org_id: str = Query(default="default")):
     """Record an MFA authentication event."""
     try:
         return _get_engine().record_mfa_event(org_id, body.model_dump())
@@ -137,7 +137,7 @@ def record_mfa_event(body: MFAEventCreate, org_id: str = Query(...)):
 
 @router.get("/events", dependencies=[Depends(api_key_auth)])
 def get_mfa_events(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     user_id: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
     limit: int = Query(50),
@@ -151,7 +151,7 @@ def get_mfa_events(
 # ---------------------------------------------------------------------------
 
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_policy(body: PolicyCreate, org_id: str = Query(...)):
+def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
     """Create an MFA enforcement policy."""
     try:
         return _get_engine().create_policy(org_id, body.model_dump())
@@ -160,7 +160,7 @@ def create_policy(body: PolicyCreate, org_id: str = Query(...)):
 
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
-def list_policies(org_id: str = Query(...)):
+def list_policies(org_id: str = Query(default="default")):
     """List all MFA policies for an org."""
     return _get_engine().list_policies(org_id)
 
@@ -170,6 +170,6 @@ def list_policies(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_mfa_stats(org_id: str = Query(...)):
+def get_mfa_stats(org_id: str = Query(default="default")):
     """Return aggregated MFA statistics."""
     return _get_engine().get_mfa_stats(org_id)

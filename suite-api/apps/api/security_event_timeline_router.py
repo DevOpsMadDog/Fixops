@@ -82,7 +82,7 @@ class CorrelationCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/timelines", status_code=201)
-def create_timeline(body: TimelineCreate, org_id: str = Query(...)) -> Dict[str, Any]:
+def create_timeline(body: TimelineCreate, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Create a new incident timeline."""
     try:
         return _get_engine().create_timeline(org_id, body.incident_id, body.title)
@@ -92,7 +92,7 @@ def create_timeline(body: TimelineCreate, org_id: str = Query(...)) -> Dict[str,
 
 
 @router.post("/events", status_code=201)
-def add_event(body: EventCreate, org_id: str = Query(...)) -> Dict[str, Any]:
+def add_event(body: EventCreate, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Add a security event to an incident timeline."""
     try:
         return _get_engine().add_event(
@@ -117,7 +117,7 @@ def add_event(body: EventCreate, org_id: str = Query(...)) -> Dict[str, Any]:
 
 
 @router.post("/correlations", status_code=201)
-def correlate_events(body: CorrelationCreate, org_id: str = Query(...)) -> Dict[str, Any]:
+def correlate_events(body: CorrelationCreate, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Create a correlation between two timeline events."""
     try:
         return _get_engine().correlate_events(
@@ -134,7 +134,7 @@ def correlate_events(body: CorrelationCreate, org_id: str = Query(...)) -> Dict[
 
 
 @router.put("/timelines/{timeline_id}/close")
-def close_timeline(timeline_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
+def close_timeline(timeline_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Close an incident timeline."""
     try:
         return _get_engine().close_timeline(timeline_id, org_id)
@@ -146,7 +146,7 @@ def close_timeline(timeline_id: str, org_id: str = Query(...)) -> Dict[str, Any]
 
 
 @router.get("/timelines/{incident_id}")
-def get_timeline(incident_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
+def get_timeline(incident_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Get timeline header + events + correlations for an incident."""
     result = _get_engine().get_timeline(org_id, incident_id)
     if not result:
@@ -157,7 +157,7 @@ def get_timeline(incident_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
 @router.get("/events/{incident_id}")
 def get_event_sequence(
     incident_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     start_time: Optional[str] = Query(None),
     end_time: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -169,21 +169,21 @@ def get_event_sequence(
 def get_actor_activity(
     incident_id: str,
     actor: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
     """Get all events for a specific actor in an incident."""
     return _get_engine().get_actor_activity(org_id, incident_id, actor)
 
 
 @router.get("/summary")
-def get_timeline_summary(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_timeline_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Get org-level summary of all timelines."""
     return _get_engine().get_timeline_summary(org_id)
 
 
 @router.get("/search")
 def search_events(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     q: str = Query(..., description="Search query (LIKE match on actor/target/action/raw_data)"),
 ) -> List[Dict[str, Any]]:
     """Search events by actor, target, action, or raw_data."""

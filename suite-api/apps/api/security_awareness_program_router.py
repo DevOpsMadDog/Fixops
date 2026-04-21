@@ -88,7 +88,7 @@ def list_awareness_programs(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.post("/programs", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_program(body: ProgramCreate, org_id: str = Query(...)):
+def create_program(body: ProgramCreate, org_id: str = Query(default="default")):
     """Create a new awareness program."""
     try:
         return _get_engine().create_program(
@@ -105,7 +105,7 @@ def create_program(body: ProgramCreate, org_id: str = Query(...)):
 
 
 @router.post("/programs/{program_id}/enroll", dependencies=[Depends(api_key_auth)], status_code=201)
-def enroll_user(program_id: str, body: EnrollUser, org_id: str = Query(...)):
+def enroll_user(program_id: str, body: EnrollUser, org_id: str = Query(default="default")):
     """Enroll a user in a program (dedup safe)."""
     try:
         return _get_engine().enroll_user(
@@ -124,7 +124,7 @@ def enroll_user(program_id: str, body: EnrollUser, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.put("/enrollments/{enrollment_id}/complete", dependencies=[Depends(api_key_auth)])
-def record_completion(enrollment_id: str, body: CompletionRecord, org_id: str = Query(...)):
+def record_completion(enrollment_id: str, body: CompletionRecord, org_id: str = Query(default="default")):
     """Record completion of an enrollment with a score."""
     try:
         return _get_engine().record_completion(
@@ -141,7 +141,7 @@ def record_completion(enrollment_id: str, body: CompletionRecord, org_id: str = 
 # ---------------------------------------------------------------------------
 
 @router.post("/events", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_event(body: EventRecord, org_id: str = Query(...)):
+def record_event(body: EventRecord, org_id: str = Query(default="default")):
     """Record an awareness event."""
     try:
         return _get_engine().record_event(
@@ -162,7 +162,7 @@ def record_event(body: EventRecord, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/programs/{program_id}/stats", dependencies=[Depends(api_key_auth)])
-def get_program_stats(program_id: str, org_id: str = Query(...)):
+def get_program_stats(program_id: str, org_id: str = Query(default="default")):
     """Return program stats including completion rate, pass rate, dept breakdown."""
     try:
         return _get_engine().get_program_stats(program_id, org_id)
@@ -171,18 +171,18 @@ def get_program_stats(program_id: str, org_id: str = Query(...)):
 
 
 @router.get("/department-compliance", dependencies=[Depends(api_key_auth)])
-def get_department_compliance(org_id: str = Query(...)):
+def get_department_compliance(org_id: str = Query(default="default")):
     """Return per-department compliance rates."""
     return _get_engine().get_department_compliance(org_id)
 
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
-def get_overdue_enrollments(org_id: str = Query(...)):
+def get_overdue_enrollments(org_id: str = Query(default="default")):
     """Return enrollments overdue (not completed within 30 days)."""
     return _get_engine().get_overdue_enrollments(org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_program_summary(org_id: str = Query(...)):
+def get_program_summary(org_id: str = Query(default="default")):
     """Return org-level program summary statistics."""
     return _get_engine().get_program_summary(org_id)

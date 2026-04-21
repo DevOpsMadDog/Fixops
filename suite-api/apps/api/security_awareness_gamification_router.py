@@ -74,7 +74,7 @@ class BadgeCreate(BaseModel):
 @router.post("/challenges")
 async def create_challenge(
     body: ChallengeCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     auth=Depends(api_key_auth),
 ):
     """Create a new gamification challenge."""
@@ -87,7 +87,7 @@ async def create_challenge(
 
 @router.get("/challenges")
 async def list_challenges(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     challenge_type: Optional[str] = Query(None),
     difficulty: Optional[str] = Query(None),
     auth=Depends(api_key_auth),
@@ -99,7 +99,7 @@ async def list_challenges(
 @router.post("/completions")
 async def record_completion(
     body: CompletionCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     auth=Depends(api_key_auth),
 ):
     """Record a challenge completion."""
@@ -116,7 +116,7 @@ async def record_completion(
 
 @router.get("/leaderboard")
 async def get_leaderboard(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     department: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     auth=Depends(api_key_auth),
@@ -128,7 +128,7 @@ async def get_leaderboard(
 @router.get("/users/{user_id}")
 async def get_user_profile(
     user_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     auth=Depends(api_key_auth),
 ):
     """Return user gamification profile."""
@@ -139,7 +139,7 @@ async def get_user_profile(
 async def award_badge(
     user_id: str,
     body: BadgeCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     auth=Depends(api_key_auth),
 ):
     """Award a badge to a user."""
@@ -152,7 +152,7 @@ async def award_badge(
 
 @router.get("/stats")
 async def get_gamification_stats(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     auth=Depends(api_key_auth),
 ):
     """Return org-wide gamification stats."""

@@ -60,7 +60,7 @@ class SignalIngest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/signals", dependencies=[Depends(api_key_auth)], status_code=201)
-def ingest_signal(body: SignalIngest, org_id: str = Query(...)):
+def ingest_signal(body: SignalIngest, org_id: str = Query(default="default")):
     """Ingest a security signal for an asset."""
     try:
         return _get_engine().ingest_signal(org_id, body.model_dump())
@@ -73,7 +73,7 @@ def ingest_signal(body: SignalIngest, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/scores/{asset_id}/calculate", dependencies=[Depends(api_key_auth)])
-def calculate_score(asset_id: str, org_id: str = Query(...)):
+def calculate_score(asset_id: str, org_id: str = Query(default="default")):
     """Calculate composite threat score for an asset from ingested signals."""
     return _get_engine().calculate_score(org_id, asset_id)
 
@@ -84,7 +84,7 @@ def calculate_score(asset_id: str, org_id: str = Query(...)):
 
 @router.get("/scores", dependencies=[Depends(api_key_auth)])
 def list_scores(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     asset_type: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
@@ -93,7 +93,7 @@ def list_scores(
 
 
 @router.get("/scores/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_score(asset_id: str, org_id: str = Query(...)):
+def get_score(asset_id: str, org_id: str = Query(default="default")):
     """Get the latest threat score for an asset."""
     result = _get_engine().get_score(org_id, asset_id)
     if result is None:
@@ -104,7 +104,7 @@ def get_score(asset_id: str, org_id: str = Query(...)):
 @router.get("/scores/{asset_id}/history", dependencies=[Depends(api_key_auth)])
 def get_score_history(
     asset_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     limit: int = Query(30),
 ):
     """Get score history for an asset, most recent first."""
@@ -116,12 +116,12 @@ def get_score_history(
 # ---------------------------------------------------------------------------
 
 @router.get("/top-threats", dependencies=[Depends(api_key_auth)])
-def get_top_threats(org_id: str = Query(...), limit: int = Query(10)):
+def get_top_threats(org_id: str = Query(default="default"), limit: int = Query(10)):
     """Return top-scoring assets ordered by threat score descending."""
     return _get_engine().get_top_threats(org_id, limit=limit)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_threat_stats(org_id: str = Query(...)):
+def get_threat_stats(org_id: str = Query(default="default")):
     """Return aggregated threat score statistics."""
     return _get_engine().get_threat_stats(org_id)

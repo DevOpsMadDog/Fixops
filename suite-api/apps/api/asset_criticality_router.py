@@ -79,7 +79,7 @@ class DependencyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_asset(body: AssetCreate, org_id: str = Query(...)):
+def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
     """Register a new asset."""
     try:
         return _get_engine().register_asset(
@@ -98,7 +98,7 @@ def register_asset(body: AssetCreate, org_id: str = Query(...)):
 
 
 @router.post("/assets/{asset_id}/score", dependencies=[Depends(api_key_auth)])
-def score_asset(asset_id: str, body: AssetScore, org_id: str = Query(...)):
+def score_asset(asset_id: str, body: AssetScore, org_id: str = Query(default="default")):
     """Score an asset using weighted factors."""
     try:
         result = _get_engine().score_asset(
@@ -114,7 +114,7 @@ def score_asset(asset_id: str, body: AssetScore, org_id: str = Query(...)):
 
 
 @router.post("/assets/{asset_id}/dependencies", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_dependency(asset_id: str, body: DependencyCreate, org_id: str = Query(...)):
+def add_dependency(asset_id: str, body: DependencyCreate, org_id: str = Query(default="default")):
     """Add a dependency between assets."""
     try:
         return _get_engine().add_dependency(
@@ -129,7 +129,7 @@ def add_dependency(asset_id: str, body: DependencyCreate, org_id: str = Query(..
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(...)):
+def get_asset(asset_id: str, org_id: str = Query(default="default")):
     """Get asset with factors and dependencies."""
     result = _get_engine().get_asset(asset_id, org_id)
     if result is None:
@@ -139,7 +139,7 @@ def get_asset(asset_id: str, org_id: str = Query(...)):
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     criticality_tier: Optional[str] = Query(None),
     asset_type: Optional[str] = Query(None),
 ):
@@ -152,12 +152,12 @@ def list_assets(
 
 
 @router.get("/assets/{asset_id}/critical-path", dependencies=[Depends(api_key_auth)])
-def get_critical_path(asset_id: str, org_id: str = Query(...)):
+def get_critical_path(asset_id: str, org_id: str = Query(default="default")):
     """Return transitive dependency path (BFS, max 3 hops)."""
     return _get_engine().get_critical_path(org_id, asset_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_criticality_summary(org_id: str = Query(...)):
+def get_criticality_summary(org_id: str = Query(default="default")):
     """Return criticality summary: count by tier, avg score, top 5 critical assets."""
     return _get_engine().get_criticality_summary(org_id)

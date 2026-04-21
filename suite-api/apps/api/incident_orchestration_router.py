@@ -78,7 +78,7 @@ class TimelineEventCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_incident(body: IncidentCreate, org_id: str = Query(...)):
+def create_incident(body: IncidentCreate, org_id: str = Query(default="default")):
     """Create a new security incident."""
     try:
         return _get_engine().create_incident(org_id, body.model_dump())
@@ -88,7 +88,7 @@ def create_incident(body: IncidentCreate, org_id: str = Query(...)):
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -98,7 +98,7 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", dependencies=[Depends(api_key_auth)])
-def get_incident(incident_id: str, org_id: str = Query(...)):
+def get_incident(incident_id: str, org_id: str = Query(default="default")):
     """Get a single incident by ID."""
     incident = _get_engine().get_incident(org_id, incident_id)
     if not incident:
@@ -110,7 +110,7 @@ def get_incident(incident_id: str, org_id: str = Query(...)):
 def update_incident_status(
     incident_id: str,
     body: StatusUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update the status of an incident."""
     try:
@@ -128,7 +128,7 @@ def update_incident_status(
 def assign_incident(
     incident_id: str,
     body: AssignRequest,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Assign an incident to a user or team."""
     result = _get_engine().assign_incident(org_id, incident_id, body.assignee)
@@ -149,7 +149,7 @@ def assign_incident(
 def add_timeline_event(
     incident_id: str,
     body: TimelineEventCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Add a timeline event to an incident."""
     try:
@@ -162,7 +162,7 @@ def add_timeline_event(
 
 
 @router.get("/incidents/{incident_id}/timeline", dependencies=[Depends(api_key_auth)])
-def get_timeline(incident_id: str, org_id: str = Query(...)):
+def get_timeline(incident_id: str, org_id: str = Query(default="default")):
     """Get the full ordered timeline for an incident."""
     return _get_engine().get_timeline(org_id, incident_id)
 
@@ -172,7 +172,7 @@ def get_timeline(incident_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/metrics", dependencies=[Depends(api_key_auth)])
-def get_incident_metrics(org_id: str = Query(...)):
+def get_incident_metrics(org_id: str = Query(default="default")):
     """Return aggregated incident metrics for the org."""
     return _get_engine().get_incident_metrics(org_id)
 
@@ -180,7 +180,7 @@ def get_incident_metrics(org_id: str = Query(...)):
 @router.get("/incidents/{incident_id}/context", dependencies=[Depends(api_key_auth)])
 def get_incident_context(
     incident_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for an incident (related alerts, assets, similar incidents)."""
     return _get_engine().get_incident_context(org_id, incident_id)

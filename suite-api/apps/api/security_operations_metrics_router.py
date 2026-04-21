@@ -162,14 +162,14 @@ def update_analyst_workload(body: WorkloadUpdate) -> Dict[str, Any]:
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_soc_summary(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_soc_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Get SOC summary: open alerts, by_severity, by_status, last 7 snapshots, top analysts."""
     return _get_engine().get_soc_summary(org_id=org_id)
 
 
 @router.get("/mttd-trend", dependencies=[Depends(api_key_auth)])
 def get_mttd_trend(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Get MTTD/MTTR trend from snapshots (last N days)."""
@@ -178,7 +178,7 @@ def get_mttd_trend(
 
 @router.get("/analyst-performance", dependencies=[Depends(api_key_auth)])
 def get_analyst_performance(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     date: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """Get analyst performance records, optionally filtered by date."""

@@ -84,7 +84,7 @@ class IncidentReport(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_vendor(body: VendorCreate, org_id: str = Query(...)):
+def register_vendor(body: VendorCreate, org_id: str = Query(default="default")):
     """Register a new third-party vendor."""
     try:
         return _get_engine().register_vendor(
@@ -103,7 +103,7 @@ def register_vendor(body: VendorCreate, org_id: str = Query(...)):
 
 
 @router.get("/vendors/{vendor_id}", dependencies=[Depends(api_key_auth)])
-def get_vendor_detail(vendor_id: str, org_id: str = Query(...)):
+def get_vendor_detail(vendor_id: str, org_id: str = Query(default="default")):
     """Get vendor profile with all assessments and incidents."""
     try:
         return _get_engine().get_vendor_detail(vendor_id, org_id)
@@ -116,7 +116,7 @@ def get_vendor_detail(vendor_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors/{vendor_id}/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Query(...)):
+def create_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Query(default="default")):
     """Create a new assessment for a vendor."""
     try:
         return _get_engine().create_assessment(
@@ -131,7 +131,7 @@ def create_assessment(vendor_id: str, body: AssessmentCreate, org_id: str = Quer
 
 
 @router.put("/assessments/{assessment_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_assessment(assessment_id: str, body: AssessmentComplete, org_id: str = Query(...)):
+def complete_assessment(assessment_id: str, body: AssessmentComplete, org_id: str = Query(default="default")):
     """Complete an assessment and update vendor risk tier."""
     try:
         return _get_engine().complete_assessment(
@@ -151,7 +151,7 @@ def complete_assessment(assessment_id: str, body: AssessmentComplete, org_id: st
 # ---------------------------------------------------------------------------
 
 @router.post("/vendors/{vendor_id}/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def report_incident(vendor_id: str, body: IncidentReport, org_id: str = Query(...)):
+def report_incident(vendor_id: str, body: IncidentReport, org_id: str = Query(default="default")):
     """Report a vendor incident."""
     try:
         return _get_engine().report_incident(
@@ -167,7 +167,7 @@ def report_incident(vendor_id: str, body: IncidentReport, org_id: str = Query(..
 
 
 @router.put("/incidents/{incident_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_incident(incident_id: str, org_id: str = Query(...)):
+def resolve_incident(incident_id: str, org_id: str = Query(default="default")):
     """Resolve a vendor incident."""
     try:
         return _get_engine().resolve_incident(incident_id, org_id)
@@ -180,18 +180,18 @@ def resolve_incident(incident_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_tprm_summary(org_id: str = Query(...)):
+def get_tprm_summary(org_id: str = Query(default="default")):
     """Get TPRM summary: totals, tier breakdown, overdue assessments."""
     return _get_engine().get_tprm_summary(org_id)
 
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
-def get_overdue_assessments(org_id: str = Query(...)):
+def get_overdue_assessments(org_id: str = Query(default="default")):
     """Get assessments past their due date that are still in progress."""
     return _get_engine().get_overdue_assessments(org_id)
 
 
 @router.get("/high-risk", dependencies=[Depends(api_key_auth)])
-def get_high_risk_vendors(org_id: str = Query(...)):
+def get_high_risk_vendors(org_id: str = Query(default="default")):
     """Get tier-1 and tier-2 vendors ordered by risk score."""
     return _get_engine().get_high_risk_vendors(org_id)

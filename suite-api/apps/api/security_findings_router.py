@@ -154,7 +154,7 @@ def suppress_finding(finding_id: str, body: FindingSuppress) -> Dict[str, Any]:
 @router.get("/findings/{finding_id}", dependencies=[Depends(api_key_auth)])
 def get_finding(
     finding_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     """Get a finding with evidence and suppressions."""
     result = _get_engine().get_finding(finding_id=finding_id, org_id=org_id)
@@ -165,7 +165,7 @@ def get_finding(
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     source_tool: Optional[str] = Query(default=None),
@@ -182,13 +182,13 @@ def list_findings(
 @router.get("/assets/{asset_id}/findings", dependencies=[Depends(api_key_auth)])
 def get_asset_findings(
     asset_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> List[Dict[str, Any]]:
     """Get all findings for a specific asset."""
     return _get_engine().get_asset_findings(org_id=org_id, asset_id=asset_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_findings_summary(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_findings_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     """Get findings summary: counts, severity breakdown, source breakdown, top assets."""
     return _get_engine().get_findings_summary(org_id=org_id)

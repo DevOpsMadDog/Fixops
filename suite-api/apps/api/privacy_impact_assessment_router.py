@@ -100,7 +100,7 @@ def list_privacy_impact(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.post("/assessments", status_code=201)
-def create_assessment(body: AssessmentCreate, org_id: str = Query(...)):
+def create_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
     """Create a new PIA/DPIA assessment."""
     try:
         return _get_engine().create_assessment(
@@ -121,7 +121,7 @@ def create_assessment(body: AssessmentCreate, org_id: str = Query(...)):
 
 @router.get("/assessments")
 def list_assessments(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     assessment_type: Optional[str] = Query(None),
 ):
@@ -132,7 +132,7 @@ def list_assessments(
 
 
 @router.get("/assessments/{assessment_id}")
-def get_assessment(assessment_id: str, org_id: str = Query(...)):
+def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
     """Get a single assessment with its risks and consultations."""
     result = _get_engine().get_assessment(assessment_id, org_id)
     if result is None:
@@ -142,7 +142,7 @@ def get_assessment(assessment_id: str, org_id: str = Query(...)):
 
 @router.post("/assessments/{assessment_id}/approve")
 def approve_assessment(
-    assessment_id: str, body: AssessmentApprove, org_id: str = Query(...)
+    assessment_id: str, body: AssessmentApprove, org_id: str = Query(default="default")
 ):
     """DPO approval — validates all required consultations are completed first."""
     try:
@@ -156,7 +156,7 @@ def approve_assessment(
 # ---------------------------------------------------------------------------
 
 @router.post("/assessments/{assessment_id}/risks", status_code=201)
-def add_risk(assessment_id: str, body: RiskAdd, org_id: str = Query(...)):
+def add_risk(assessment_id: str, body: RiskAdd, org_id: str = Query(default="default")):
     """Add a risk to an assessment and recompute its risk_score/risk_level."""
     try:
         return _get_engine().add_risk(
@@ -174,7 +174,7 @@ def add_risk(assessment_id: str, body: RiskAdd, org_id: str = Query(...)):
 
 
 @router.patch("/risks/{risk_id}/status")
-def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query(...)):
+def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query(default="default")):
     """Update risk status (open/mitigated/accepted/transferred)."""
     try:
         result = _get_engine().update_risk_status(risk_id, org_id, body.status)
@@ -191,7 +191,7 @@ def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query
 
 @router.post("/assessments/{assessment_id}/consultations", status_code=201)
 def add_consultation(
-    assessment_id: str, body: ConsultationAdd, org_id: str = Query(...)
+    assessment_id: str, body: ConsultationAdd, org_id: str = Query(default="default")
 ):
     """Add a consultation requirement to an assessment."""
     return _get_engine().add_consultation(
@@ -205,7 +205,7 @@ def add_consultation(
 
 @router.post("/consultations/{consultation_id}/complete")
 def complete_consultation(
-    consultation_id: str, body: ConsultationComplete, org_id: str = Query(...)
+    consultation_id: str, body: ConsultationComplete, org_id: str = Query(default="default")
 ):
     """Mark a consultation as completed with outcome."""
     result = _get_engine().complete_consultation(consultation_id, org_id, body.outcome)
@@ -219,12 +219,12 @@ def complete_consultation(
 # ---------------------------------------------------------------------------
 
 @router.get("/high-risk")
-def get_high_risk_assessments(org_id: str = Query(...)):
+def get_high_risk_assessments(org_id: str = Query(default="default")):
     """Return assessments with risk_level in (critical, high)."""
     return _get_engine().get_high_risk_assessments(org_id)
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(...)):
+def get_summary(org_id: str = Query(default="default")):
     """Return aggregated PIA summary for an org."""
     return _get_engine().get_summary(org_id)

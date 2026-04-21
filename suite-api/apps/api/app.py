@@ -1900,6 +1900,7 @@ def create_app() -> FastAPI:
     from apps.api.health import router as health_v1_router
 
     app = FastAPI(
+        redirect_slashes=True,
         title="ALDECI Security Intelligence Platform",
         description=(
             "Unified ASPM + CTEM + CSPM platform API. "

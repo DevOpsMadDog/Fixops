@@ -156,23 +156,23 @@ def take_snapshot(req: TakeSnapshotRequest) -> Dict[str, Any]:
 
 
 @router.get("/overview", summary="Get maturity overview (snapshot + assessments + roadmap)")
-def get_maturity_overview(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_maturity_overview(org_id: str = Query(default="default")) -> Dict[str, Any]:
     return _get_engine().get_maturity_overview(org_id=org_id)
 
 
 @router.get("/domains", summary="Get per-domain maturity breakdown")
-def get_domain_breakdown(org_id: str = Query(...)) -> List[Dict[str, Any]]:
+def get_domain_breakdown(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
     return _get_engine().get_domain_breakdown(org_id=org_id)
 
 
 @router.get("/roadmap", summary="List roadmap items")
 def get_roadmap(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(default=None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_roadmap(org_id=org_id, status=status)
 
 
 @router.get("/overdue", summary="Get assessments with overdue reviews")
-def get_overdue_reviews(org_id: str = Query(...)) -> List[Dict[str, Any]]:
+def get_overdue_reviews(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
     return _get_engine().get_overdue_reviews(org_id=org_id)

@@ -99,7 +99,7 @@ class WatchlistAdd(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/actors", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_actor(body: ActorCreate, org_id: str = Query(...)):
+def add_actor(body: ActorCreate, org_id: str = Query(default="default")):
     """Register a new threat actor (APT, nation-state, cybercriminal group, etc.)."""
     try:
         return _get_engine().add_actor(org_id, body.model_dump())
@@ -109,7 +109,7 @@ def add_actor(body: ActorCreate, org_id: str = Query(...)):
 
 @router.get("/actors", dependencies=[Depends(api_key_auth)])
 def list_actors(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     actor_type: Optional[str] = Query(None),
     active: Optional[bool] = Query(None),
 ):
@@ -118,7 +118,7 @@ def list_actors(
 
 
 @router.get("/actors/{actor_id}", dependencies=[Depends(api_key_auth)])
-def get_actor(actor_id: str, org_id: str = Query(...)):
+def get_actor(actor_id: str, org_id: str = Query(default="default")):
     """Get a single threat actor with campaign list and IOC count."""
     actor = _get_engine().get_actor(org_id, actor_id)
     if not actor:
@@ -135,7 +135,7 @@ def get_actor(actor_id: str, org_id: str = Query(...)):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_campaign(actor_id: str, body: CampaignCreate, org_id: str = Query(...)):
+def add_campaign(actor_id: str, body: CampaignCreate, org_id: str = Query(default="default")):
     """Add a campaign attributed to a threat actor."""
     try:
         return _get_engine().add_campaign(org_id, actor_id, body.model_dump())
@@ -145,7 +145,7 @@ def add_campaign(actor_id: str, body: CampaignCreate, org_id: str = Query(...)):
 
 @router.get("/campaigns", dependencies=[Depends(api_key_auth)])
 def list_campaigns(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     actor_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -162,7 +162,7 @@ def list_campaigns(
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_ioc(actor_id: str, body: IOCCreate, org_id: str = Query(...)):
+def add_ioc(actor_id: str, body: IOCCreate, org_id: str = Query(default="default")):
     """Add an IOC attributed to a threat actor."""
     try:
         return _get_engine().add_ioc(org_id, actor_id, body.model_dump())
@@ -172,7 +172,7 @@ def add_ioc(actor_id: str, body: IOCCreate, org_id: str = Query(...)):
 
 @router.get("/iocs", dependencies=[Depends(api_key_auth)])
 def list_iocs(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     actor_id: Optional[str] = Query(None),
     ioc_type: Optional[str] = Query(None),
     active: Optional[bool] = Query(None),
@@ -192,7 +192,7 @@ def list_iocs(
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_to_watchlist(actor_id: str, body: WatchlistAdd, org_id: str = Query(...)):
+def add_to_watchlist(actor_id: str, body: WatchlistAdd, org_id: str = Query(default="default")):
     """Add a threat actor to the org watchlist for active monitoring."""
     try:
         return _get_engine().add_to_watchlist(org_id, actor_id, body.model_dump())
@@ -201,7 +201,7 @@ def add_to_watchlist(actor_id: str, body: WatchlistAdd, org_id: str = Query(...)
 
 
 @router.get("/watchlist", dependencies=[Depends(api_key_auth)])
-def get_watchlist(org_id: str = Query(...)):
+def get_watchlist(org_id: str = Query(default="default")):
     """Return all watchlist entries for the org, ordered by priority."""
     return _get_engine().get_watchlist(org_id)
 
@@ -211,6 +211,6 @@ def get_watchlist(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(...)):
+def get_stats(org_id: str = Query(default="default")):
     """Return aggregated threat actor statistics for the org."""
     return _get_engine().get_stats(org_id)

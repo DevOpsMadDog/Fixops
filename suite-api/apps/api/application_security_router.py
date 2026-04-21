@@ -105,7 +105,7 @@ class FindingStatusUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/apps", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_app(body: AppCreate, org_id: str = Query(...)):
+def register_app(body: AppCreate, org_id: str = Query(default="default")):
     """Register a new application."""
     try:
         return _get_engine(org_id).register_app(org_id, body.model_dump())
@@ -115,7 +115,7 @@ def register_app(body: AppCreate, org_id: str = Query(...)):
 
 @router.get("/apps", dependencies=[Depends(api_key_auth)])
 def list_apps(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     app_type: Optional[str] = Query(None),
     criticality: Optional[str] = Query(None),
 ):
@@ -124,7 +124,7 @@ def list_apps(
 
 
 @router.get("/apps/{app_id}", dependencies=[Depends(api_key_auth)])
-def get_app(app_id: str, org_id: str = Query(...)):
+def get_app(app_id: str, org_id: str = Query(default="default")):
     """Get a single application with open findings summary."""
     app = _get_engine(org_id).get_app(org_id, app_id)
     if not app:
@@ -139,7 +139,7 @@ def get_app(app_id: str, org_id: str = Query(...)):
 @router.get("/apps/{app_id}/sast", dependencies=[Depends(api_key_auth)])
 def list_sast_findings(
     app_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -150,7 +150,7 @@ def list_sast_findings(
 
 
 @router.post("/apps/{app_id}/sast", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_sast_finding(app_id: str, body: SASTFindingCreate, org_id: str = Query(...)):
+def add_sast_finding(app_id: str, body: SASTFindingCreate, org_id: str = Query(default="default")):
     """Add a SAST finding to an application."""
     try:
         return _get_engine(org_id).add_sast_finding(org_id, app_id, body.model_dump())
@@ -165,7 +165,7 @@ def add_sast_finding(app_id: str, body: SASTFindingCreate, org_id: str = Query(.
 @router.get("/apps/{app_id}/dast", dependencies=[Depends(api_key_auth)])
 def list_dast_findings(
     app_id: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -176,7 +176,7 @@ def list_dast_findings(
 
 
 @router.post("/apps/{app_id}/dast", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_dast_finding(app_id: str, body: DASTFindingCreate, org_id: str = Query(...)):
+def add_dast_finding(app_id: str, body: DASTFindingCreate, org_id: str = Query(default="default")):
     """Add a DAST finding to an application."""
     try:
         return _get_engine(org_id).add_dast_finding(org_id, app_id, body.model_dump())
@@ -189,7 +189,7 @@ def add_dast_finding(app_id: str, body: DASTFindingCreate, org_id: str = Query(.
 # ---------------------------------------------------------------------------
 
 @router.post("/apps/{app_id}/scans", dependencies=[Depends(api_key_auth)], status_code=201)
-def log_scan_run(app_id: str, body: ScanRunCreate, org_id: str = Query(...)):
+def log_scan_run(app_id: str, body: ScanRunCreate, org_id: str = Query(default="default")):
     """Log a scan run for an application."""
     try:
         return _get_engine(org_id).log_scan_run(org_id, app_id, body.model_dump())
@@ -203,7 +203,7 @@ def log_scan_run(app_id: str, body: ScanRunCreate, org_id: str = Query(...)):
 
 @router.patch("/findings/sast/{finding_id}/status", dependencies=[Depends(api_key_auth)])
 def update_sast_finding_status(
-    finding_id: str, body: FindingStatusUpdate, org_id: str = Query(...)
+    finding_id: str, body: FindingStatusUpdate, org_id: str = Query(default="default")
 ):
     """Update the status of a SAST finding."""
     try:
@@ -218,7 +218,7 @@ def update_sast_finding_status(
 
 @router.patch("/findings/dast/{finding_id}/status", dependencies=[Depends(api_key_auth)])
 def update_dast_finding_status(
-    finding_id: str, body: FindingStatusUpdate, org_id: str = Query(...)
+    finding_id: str, body: FindingStatusUpdate, org_id: str = Query(default="default")
 ):
     """Update the status of a DAST finding."""
     try:
@@ -236,6 +236,6 @@ def update_dast_finding_status(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(...)):
+def get_stats(org_id: str = Query(default="default")):
     """Return aggregated Application Security statistics for the org."""
     return _get_engine(org_id).get_stats(org_id)

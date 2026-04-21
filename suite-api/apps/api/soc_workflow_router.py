@@ -77,7 +77,7 @@ class ExecutionComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/workflows", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_workflow(body: WorkflowCreate, org_id: str = Query(...)):
+def create_workflow(body: WorkflowCreate, org_id: str = Query(default="default")):
     """Create a new SOC workflow."""
     try:
         return _get_engine().create_workflow(org_id, body.model_dump())
@@ -87,7 +87,7 @@ def create_workflow(body: WorkflowCreate, org_id: str = Query(...)):
 
 @router.get("/workflows", dependencies=[Depends(api_key_auth)])
 def list_workflows(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     workflow_type: Optional[str] = Query(None),
     trigger: Optional[str] = Query(None),
 ):
@@ -96,7 +96,7 @@ def list_workflows(
 
 
 @router.get("/workflows/{workflow_id}", dependencies=[Depends(api_key_auth)])
-def get_workflow(workflow_id: str, org_id: str = Query(...)):
+def get_workflow(workflow_id: str, org_id: str = Query(default="default")):
     """Get a single workflow by ID."""
     wf = _get_engine().get_workflow(org_id, workflow_id)
     if not wf:
@@ -109,7 +109,7 @@ def get_workflow(workflow_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/executions", dependencies=[Depends(api_key_auth)], status_code=201)
-def start_execution(body: ExecutionStart, org_id: str = Query(...)):
+def start_execution(body: ExecutionStart, org_id: str = Query(default="default")):
     """Start a workflow execution."""
     try:
         return _get_engine().start_execution(org_id, body.model_dump())
@@ -121,7 +121,7 @@ def start_execution(body: ExecutionStart, org_id: str = Query(...)):
 def update_execution_step(
     execution_id: str,
     body: ExecutionStepUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Record a step result for an execution."""
     result = _get_engine().update_execution(
@@ -140,7 +140,7 @@ def update_execution_step(
 def complete_execution(
     execution_id: str,
     body: ExecutionComplete,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Mark an execution as completed."""
     result = _get_engine().complete_execution(org_id, execution_id, body.outcome)
@@ -151,7 +151,7 @@ def complete_execution(
 
 @router.get("/executions", dependencies=[Depends(api_key_auth)])
 def list_executions(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     workflow_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -164,6 +164,6 @@ def list_executions(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_soc_stats(org_id: str = Query(...)):
+def get_soc_stats(org_id: str = Query(default="default")):
     """Return aggregated SOC workflow stats for the org."""
     return _get_engine().get_soc_stats(org_id)

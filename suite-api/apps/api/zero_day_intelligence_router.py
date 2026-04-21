@@ -93,7 +93,7 @@ class MitigationCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/vulns", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_vulnerability(body: VulnerabilityCreate, org_id: str = Query(...)):
+def register_vulnerability(body: VulnerabilityCreate, org_id: str = Query(default="default")):
     """Register a new zero-day vulnerability."""
     try:
         return _get_engine().register_vulnerability(org_id, body.model_dump())
@@ -103,7 +103,7 @@ def register_vulnerability(body: VulnerabilityCreate, org_id: str = Query(...)):
 
 @router.get("/vulns", dependencies=[Depends(api_key_auth)])
 def list_vulnerabilities(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     severity: Optional[str] = Query(None),
     patch_status: Optional[str] = Query(None),
     exploitation_status: Optional[str] = Query(None),
@@ -118,7 +118,7 @@ def list_vulnerabilities(
 
 
 @router.get("/vulns/{vuln_id}", dependencies=[Depends(api_key_auth)])
-def get_vulnerability(vuln_id: str, org_id: str = Query(...)):
+def get_vulnerability(vuln_id: str, org_id: str = Query(default="default")):
     """Get a single vulnerability by ID."""
     vuln = _get_engine().get_vulnerability(org_id, vuln_id)
     if not vuln:
@@ -127,7 +127,7 @@ def get_vulnerability(vuln_id: str, org_id: str = Query(...)):
 
 
 @router.put("/vulns/{vuln_id}/patch-status", dependencies=[Depends(api_key_auth)])
-def update_patch_status(vuln_id: str, body: PatchStatusUpdate, org_id: str = Query(...)):
+def update_patch_status(vuln_id: str, body: PatchStatusUpdate, org_id: str = Query(default="default")):
     """Update the patch status of a vulnerability."""
     try:
         return _get_engine().update_patch_status(
@@ -144,7 +144,7 @@ def update_patch_status(vuln_id: str, body: PatchStatusUpdate, org_id: str = Que
 # ---------------------------------------------------------------------------
 
 @router.post("/threat-actors", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_threat_actor(body: ThreatActorCreate, org_id: str = Query(...)):
+def record_threat_actor(body: ThreatActorCreate, org_id: str = Query(default="default")):
     """Record a threat actor associated with a vulnerability."""
     try:
         return _get_engine().record_threat_actor(org_id, body.model_dump())
@@ -154,7 +154,7 @@ def record_threat_actor(body: ThreatActorCreate, org_id: str = Query(...)):
 
 @router.get("/threat-actors", dependencies=[Depends(api_key_auth)])
 def list_threat_actors(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     vulnerability_id: Optional[str] = Query(None),
 ):
     """List threat actors with optional vulnerability filter."""
@@ -166,7 +166,7 @@ def list_threat_actors(
 # ---------------------------------------------------------------------------
 
 @router.post("/mitigations", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_mitigation(body: MitigationCreate, org_id: str = Query(...)):
+def record_mitigation(body: MitigationCreate, org_id: str = Query(default="default")):
     """Record a mitigation for a vulnerability."""
     try:
         return _get_engine().record_mitigation(org_id, body.model_dump())
@@ -176,7 +176,7 @@ def record_mitigation(body: MitigationCreate, org_id: str = Query(...)):
 
 @router.get("/mitigations", dependencies=[Depends(api_key_auth)])
 def list_mitigations(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     vulnerability_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -191,6 +191,6 @@ def list_mitigations(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_zero_day_stats(org_id: str = Query(...)):
+def get_zero_day_stats(org_id: str = Query(default="default")):
     """Return aggregated zero-day intelligence statistics."""
     return _get_engine().get_zero_day_stats(org_id)

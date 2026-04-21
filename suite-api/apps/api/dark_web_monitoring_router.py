@@ -82,7 +82,7 @@ class CredentialExposureCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/mentions", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_mention(body: MentionCreate, org_id: str = Query(...)):
+def add_mention(body: MentionCreate, org_id: str = Query(default="default")):
     """Add a new dark web mention."""
     try:
         return _get_engine().add_mention(org_id, body.model_dump())
@@ -92,7 +92,7 @@ def add_mention(body: MentionCreate, org_id: str = Query(...)):
 
 @router.get("/mentions", dependencies=[Depends(api_key_auth)])
 def list_mentions(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     mention_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -107,7 +107,7 @@ def list_mentions(
 
 
 @router.get("/mentions/{mention_id}", dependencies=[Depends(api_key_auth)])
-def get_mention(mention_id: str, org_id: str = Query(...)):
+def get_mention(mention_id: str, org_id: str = Query(default="default")):
     """Get a single dark web mention by ID."""
     mention = _get_engine().get_mention(org_id, mention_id)
     if not mention:
@@ -119,7 +119,7 @@ def get_mention(mention_id: str, org_id: str = Query(...)):
 def update_mention_status(
     mention_id: str,
     body: MentionStatusUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update the status of a dark web mention."""
     try:
@@ -135,7 +135,7 @@ def update_mention_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/keywords", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_keyword(body: KeywordCreate, org_id: str = Query(...)):
+def add_keyword(body: KeywordCreate, org_id: str = Query(default="default")):
     """Add a monitored keyword."""
     try:
         return _get_engine().add_keyword(org_id, body.model_dump())
@@ -145,7 +145,7 @@ def add_keyword(body: KeywordCreate, org_id: str = Query(...)):
 
 @router.get("/keywords", dependencies=[Depends(api_key_auth)])
 def list_keywords(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     keyword_type: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
 ):
@@ -162,7 +162,7 @@ def list_keywords(
 # ---------------------------------------------------------------------------
 
 @router.post("/exposures", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_credential_exposure(body: CredentialExposureCreate, org_id: str = Query(...)):
+def record_credential_exposure(body: CredentialExposureCreate, org_id: str = Query(default="default")):
     """Record a credential exposure event."""
     try:
         return _get_engine().record_credential_exposure(org_id, body.model_dump())
@@ -172,7 +172,7 @@ def record_credential_exposure(body: CredentialExposureCreate, org_id: str = Que
 
 @router.get("/exposures", dependencies=[Depends(api_key_auth)])
 def list_credential_exposures(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     verified: Optional[bool] = Query(None),
 ):
     """List credential exposures with optional verified filter."""
@@ -184,6 +184,6 @@ def list_credential_exposures(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_dark_web_stats(org_id: str = Query(...)):
+def get_dark_web_stats(org_id: str = Query(default="default")):
     """Return aggregated dark web monitoring statistics."""
     return _get_engine().get_dark_web_stats(org_id)

@@ -76,7 +76,7 @@ class LessonReview(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/lessons", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_lesson(body: LessonCreate, org_id: str = Query(...)):
+def create_lesson(body: LessonCreate, org_id: str = Query(default="default")):
     """Create a new lessons-learned entry."""
     try:
         return _get_engine().create_lesson(
@@ -94,7 +94,7 @@ def create_lesson(body: LessonCreate, org_id: str = Query(...)):
 
 @router.get("/lessons", dependencies=[Depends(api_key_auth)])
 def list_lessons(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     lesson_type: Optional[str] = Query(None),
 ):
@@ -103,7 +103,7 @@ def list_lessons(
 
 
 @router.get("/lessons/{lesson_id}", dependencies=[Depends(api_key_auth)])
-def get_lesson(lesson_id: str, org_id: str = Query(...)):
+def get_lesson(lesson_id: str, org_id: str = Query(default="default")):
     """Get a lesson with its action_items and reviews."""
     lesson = _get_engine().get_lesson(lesson_id, org_id)
     if not lesson:
@@ -116,7 +116,7 @@ def get_lesson(lesson_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/lessons/{lesson_id}/actions", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_action_item(lesson_id: str, body: ActionItemCreate, org_id: str = Query(...)):
+def add_action_item(lesson_id: str, body: ActionItemCreate, org_id: str = Query(default="default")):
     """Add an action item to a lesson."""
     try:
         return _get_engine().add_action_item(
@@ -137,7 +137,7 @@ def add_action_item(lesson_id: str, body: ActionItemCreate, org_id: str = Query(
     "/lessons/{lesson_id}/actions/{action_id}/complete",
     dependencies=[Depends(api_key_auth)],
 )
-def complete_action(lesson_id: str, action_id: str, org_id: str = Query(...)):
+def complete_action(lesson_id: str, action_id: str, org_id: str = Query(default="default")):
     """Mark an action item as completed."""
     try:
         return _get_engine().complete_action(lesson_id, action_id, org_id)
@@ -150,7 +150,7 @@ def complete_action(lesson_id: str, action_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/lessons/{lesson_id}/reviews", dependencies=[Depends(api_key_auth)], status_code=201)
-def review_lesson(lesson_id: str, body: LessonReview, org_id: str = Query(...)):
+def review_lesson(lesson_id: str, body: LessonReview, org_id: str = Query(default="default")):
     """Submit a review for a lesson."""
     try:
         return _get_engine().review_lesson(
@@ -167,18 +167,18 @@ def review_lesson(lesson_id: str, body: LessonReview, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/overdue-actions", dependencies=[Depends(api_key_auth)])
-def get_overdue_actions(org_id: str = Query(...)):
+def get_overdue_actions(org_id: str = Query(default="default")):
     """Return action items past their due_date and not completed."""
     return _get_engine().get_overdue_actions(org_id)
 
 
 @router.get("/implementation-rate", dependencies=[Depends(api_key_auth)])
-def get_implementation_rate(org_id: str = Query(...)):
+def get_implementation_rate(org_id: str = Query(default="default")):
     """Return implementation rate stats."""
     return _get_engine().get_implementation_rate(org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_summary(org_id: str = Query(...)):
+def get_summary(org_id: str = Query(default="default")):
     """Return lessons summary counts by status and lesson_type."""
     return _get_engine().get_lessons_summary(org_id)

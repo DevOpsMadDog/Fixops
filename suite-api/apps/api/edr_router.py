@@ -85,7 +85,7 @@ class IsolateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/endpoints", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_endpoint(body: EndpointCreate, org_id: str = Query(...)):
+def register_endpoint(body: EndpointCreate, org_id: str = Query(default="default")):
     """Register a new managed endpoint."""
     try:
         return _get_engine().register_endpoint(org_id, body.model_dump())
@@ -95,7 +95,7 @@ def register_endpoint(body: EndpointCreate, org_id: str = Query(...)):
 
 @router.get("/endpoints", dependencies=[Depends(api_key_auth)])
 def list_endpoints(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     os_type: Optional[str] = Query(None),
 ):
@@ -104,7 +104,7 @@ def list_endpoints(
 
 
 @router.get("/endpoints/{endpoint_id}", dependencies=[Depends(api_key_auth)])
-def get_endpoint(endpoint_id: str, org_id: str = Query(...)):
+def get_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
     """Get a single endpoint by ID."""
     ep = _get_engine().get_endpoint(org_id, endpoint_id)
     if not ep:
@@ -124,7 +124,7 @@ def get_endpoint(endpoint_id: str, org_id: str = Query(...)):
 def ingest_process_event(
     endpoint_id: str,
     body: ProcessEventCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Ingest a process event. Auto-detects suspicious patterns and creates detections."""
     try:
@@ -135,7 +135,7 @@ def ingest_process_event(
 
 @router.get("/process-events", dependencies=[Depends(api_key_auth)])
 def list_process_events(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     endpoint_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     limit: int = Query(default=100, ge=1, le=1000),
@@ -152,7 +152,7 @@ def list_process_events(
 
 @router.get("/detections", dependencies=[Depends(api_key_auth)])
 def list_detections(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     detection_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -170,7 +170,7 @@ def list_detections(
 def update_detection_status(
     detection_id: str,
     body: DetectionStatusUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update the status of a detection."""
     try:
@@ -194,7 +194,7 @@ def update_detection_status(
 def isolate_endpoint(
     endpoint_id: str,
     body: IsolateRequest,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Isolate an endpoint (network quarantine). Creates an isolation record."""
     return _get_engine().isolate_endpoint(
@@ -203,7 +203,7 @@ def isolate_endpoint(
 
 
 @router.post("/endpoints/{endpoint_id}/release", dependencies=[Depends(api_key_auth)])
-def release_endpoint(endpoint_id: str, org_id: str = Query(...)):
+def release_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
     """Release an isolated endpoint back to online status."""
     released = _get_engine().release_endpoint(org_id, endpoint_id)
     if not released:
@@ -216,6 +216,6 @@ def release_endpoint(endpoint_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_edr_stats(org_id: str = Query(...)):
+def get_edr_stats(org_id: str = Query(default="default")):
     """Return aggregated EDR statistics for the org."""
     return _get_engine().get_edr_stats(org_id)

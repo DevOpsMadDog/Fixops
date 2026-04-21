@@ -97,7 +97,7 @@ def list_intel_enrichment(org_id: str = Query("default")):
 
 
 @router.post("/requests", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query(...)):
+def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query(default="default")):
     """Create a new enrichment request."""
     try:
         return _get_engine().create_enrichment_request(
@@ -111,13 +111,13 @@ def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query
 
 
 @router.get("/requests", dependencies=[Depends(api_key_auth)])
-def list_enrichment_requests(org_id: str = Query(...), status: str = Query(None), limit: int = Query(50)):
+def list_enrichment_requests(org_id: str = Query(default="default"), status: str = Query(None), limit: int = Query(50)):
     """List enrichment requests for an org."""
     return _get_engine().list_enrichment_requests(org_id=org_id, status=status, limit=limit)
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])
-def get_enrichment(request_id: str, org_id: str = Query(...)):
+def get_enrichment(request_id: str, org_id: str = Query(default="default")):
     """Get enrichment request with results."""
     result = _get_engine().get_enrichment(request_id, org_id)
     if not result:
@@ -129,7 +129,7 @@ def get_enrichment(request_id: str, org_id: str = Query(...)):
 def add_enrichment_result(
     request_id: str,
     body: EnrichmentResultCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Add an enrichment result to a request."""
     try:
@@ -154,7 +154,7 @@ def add_enrichment_result(
 # ---------------------------------------------------------------------------
 
 @router.get("/indicators/{indicator}/summary", dependencies=[Depends(api_key_auth)])
-def get_indicator_summary(indicator: str, org_id: str = Query(...)):
+def get_indicator_summary(indicator: str, org_id: str = Query(default="default")):
     """Get aggregated enrichment summary for an indicator."""
     return _get_engine().get_indicator_summary(org_id, indicator)
 
@@ -164,7 +164,7 @@ def get_indicator_summary(indicator: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/sources", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_source(body: SourceCreate, org_id: str = Query(...)):
+def register_source(body: SourceCreate, org_id: str = Query(default="default")):
     """Register a new enrichment source."""
     try:
         return _get_engine().register_source(
@@ -181,7 +181,7 @@ def register_source(body: SourceCreate, org_id: str = Query(...)):
 def update_source_stats(
     source_id: str,
     body: SourceStatsUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update request_count and success_rate for a source."""
     try:
@@ -192,7 +192,7 @@ def update_source_stats(
 
 @router.get("/sources", dependencies=[Depends(api_key_auth)])
 def list_sources(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     enabled: Optional[bool] = Query(None),
 ):
     """List registered enrichment sources."""
@@ -204,7 +204,7 @@ def list_sources(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_enrichment_stats(org_id: str = Query(...)):
+def get_enrichment_stats(org_id: str = Query(default="default")):
     """Return aggregated enrichment statistics."""
     return _get_engine().get_enrichment_stats(org_id)
 
@@ -214,7 +214,7 @@ def get_enrichment_stats(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/bulk", dependencies=[Depends(api_key_auth)], status_code=201)
-def bulk_enrich(body: BulkEnrichRequest, org_id: str = Query(...)):
+def bulk_enrich(body: BulkEnrichRequest, org_id: str = Query(default="default")):
     """Create enrichment requests for multiple indicators."""
     try:
         indicators = [item.model_dump() for item in body.indicators]

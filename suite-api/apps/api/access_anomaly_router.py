@@ -158,7 +158,7 @@ def resolve_anomaly(anomaly_id: str, body: ResolveRequest) -> Dict[str, Any]:
 
 @router.get("/anomalies")
 def list_anomalies(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     anomaly_type: Optional[str] = Query(None),
     username: Optional[str] = Query(None),
@@ -174,14 +174,14 @@ def list_anomalies(
 @router.get("/users/{username}/profile")
 def get_user_risk_profile(
     username: str,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ) -> Dict[str, Any]:
     return _get_engine().get_user_risk_profile(org_id=org_id, username=username)
 
 
 @router.get("/high-risk-users")
 def get_high_risk_users(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     min_anomaly_count: int = Query(3),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_high_risk_users(
@@ -190,5 +190,5 @@ def get_high_risk_users(
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)

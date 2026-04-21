@@ -82,7 +82,7 @@ class RunbookExecute(BaseModel):
 
 
 @router.post("/articles", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_article(body: ArticleCreate, org_id: str = Query(...)):
+def create_article(body: ArticleCreate, org_id: str = Query(default="default")):
     """Create a new KB article."""
     try:
         return _get_engine().create_article(
@@ -100,7 +100,7 @@ def create_article(body: ArticleCreate, org_id: str = Query(...)):
 
 
 @router.put("/articles/{article_id}", dependencies=[Depends(api_key_auth)])
-def update_article(article_id: str, body: ArticleUpdate, org_id: str = Query(...)):
+def update_article(article_id: str, body: ArticleUpdate, org_id: str = Query(default="default")):
     """Update a KB article's content and tags."""
     try:
         return _get_engine().update_article(article_id, org_id, body.content, body.tags)
@@ -109,7 +109,7 @@ def update_article(article_id: str, body: ArticleUpdate, org_id: str = Query(...
 
 
 @router.post("/articles/{article_id}/view", dependencies=[Depends(api_key_auth)])
-def view_article(article_id: str, org_id: str = Query(...)):
+def view_article(article_id: str, org_id: str = Query(default="default")):
     """Increment view count and return article."""
     try:
         return _get_engine().view_article(article_id, org_id)
@@ -118,7 +118,7 @@ def view_article(article_id: str, org_id: str = Query(...)):
 
 
 @router.post("/articles/{article_id}/helpful", dependencies=[Depends(api_key_auth)])
-def mark_helpful(article_id: str, org_id: str = Query(...)):
+def mark_helpful(article_id: str, org_id: str = Query(default="default")):
     """Mark an article as helpful."""
     try:
         return _get_engine().mark_helpful(article_id, org_id)
@@ -128,7 +128,7 @@ def mark_helpful(article_id: str, org_id: str = Query(...)):
 
 @router.get("/search", dependencies=[Depends(api_key_auth)])
 def search_articles(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     query: str = Query(...),
     incident_type: Optional[str] = Query(None),
 ):
@@ -142,7 +142,7 @@ def search_articles(
 
 
 @router.post("/runbooks", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_runbook(body: RunbookCreate, org_id: str = Query(...)):
+def create_runbook(body: RunbookCreate, org_id: str = Query(default="default")):
     """Create a new incident runbook."""
     try:
         return _get_engine().create_runbook(
@@ -158,7 +158,7 @@ def create_runbook(body: RunbookCreate, org_id: str = Query(...)):
 
 @router.post("/runbooks/{runbook_id}/execute", dependencies=[Depends(api_key_auth)])
 def execute_runbook(
-    runbook_id: str, body: RunbookExecute, org_id: str = Query(...)
+    runbook_id: str, body: RunbookExecute, org_id: str = Query(default="default")
 ):
     """Record a runbook execution result."""
     try:
@@ -169,7 +169,7 @@ def execute_runbook(
 
 @router.get("/runbooks/recommended", dependencies=[Depends(api_key_auth)])
 def get_recommended_runbooks(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     incident_type: str = Query(...),
 ):
     """Return runbooks for a given incident type sorted by success rate."""
@@ -182,6 +182,6 @@ def get_recommended_runbooks(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_kb_stats(org_id: str = Query(...)):
+def get_kb_stats(org_id: str = Query(default="default")):
     """Return KB-wide statistics."""
     return _get_engine().get_kb_stats(org_id)

@@ -92,7 +92,7 @@ class CampaignCreate(BaseModel):
 
 @router.get("/champions", dependencies=[Depends(api_key_auth)])
 def list_champions(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
     department: Optional[str] = Query(None),
 ):
@@ -101,7 +101,7 @@ def list_champions(
 
 
 @router.post("/champions", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_champion(body: ChampionCreate, org_id: str = Query(...)):
+def add_champion(body: ChampionCreate, org_id: str = Query(default="default")):
     """Register a new security champion."""
     try:
         return _get_engine().add_champion(org_id, body.model_dump(exclude_none=True))
@@ -110,7 +110,7 @@ def add_champion(body: ChampionCreate, org_id: str = Query(...)):
 
 
 @router.get("/champions/{champion_id}", dependencies=[Depends(api_key_auth)])
-def get_champion(champion_id: str, org_id: str = Query(...)):
+def get_champion(champion_id: str, org_id: str = Query(default="default")):
     """Get a single champion by ID."""
     champion = _get_engine().get_champion(org_id, champion_id)
     if not champion:
@@ -130,7 +130,7 @@ def get_champion(champion_id: str, org_id: str = Query(...)):
 def log_activity(
     champion_id: str,
     body: ActivityCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Log an activity for a champion. Auto-awards points and promotes level."""
     try:
@@ -144,7 +144,7 @@ def log_activity(
 # ---------------------------------------------------------------------------
 
 @router.get("/champions/{champion_id}/certifications", dependencies=[Depends(api_key_auth)])
-def list_certifications(champion_id: str, org_id: str = Query(...)):
+def list_certifications(champion_id: str, org_id: str = Query(default="default")):
     """List certifications for a champion."""
     return _get_engine().list_certifications(org_id, champion_id=champion_id)
 
@@ -157,7 +157,7 @@ def list_certifications(champion_id: str, org_id: str = Query(...)):
 def add_certification(
     champion_id: str,
     body: CertificationCreate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Add a certification for a champion."""
     try:
@@ -172,7 +172,7 @@ def add_certification(
 
 @router.get("/campaigns", dependencies=[Depends(api_key_auth)])
 def list_campaigns(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     status: Optional[str] = Query(None),
 ):
     """List campaigns, optionally filtered by status."""
@@ -180,7 +180,7 @@ def list_campaigns(
 
 
 @router.post("/campaigns", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_campaign(body: CampaignCreate, org_id: str = Query(...)):
+def create_campaign(body: CampaignCreate, org_id: str = Query(default="default")):
     """Create a new awareness/training campaign."""
     try:
         return _get_engine().create_campaign(org_id, body.model_dump())
@@ -193,6 +193,6 @@ def create_campaign(body: CampaignCreate, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_program_stats(org_id: str = Query(...)):
+def get_program_stats(org_id: str = Query(default="default")):
     """Return aggregated Security Champions program statistics."""
     return _get_engine().get_program_stats(org_id)

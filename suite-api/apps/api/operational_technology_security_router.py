@@ -93,7 +93,7 @@ class ZoneCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_asset(body: AssetCreate, org_id: str = Query(...)):
+def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
     """Register a new OT asset."""
     try:
         return _get_engine().register_asset(org_id, body.model_dump())
@@ -103,7 +103,7 @@ def register_asset(body: AssetCreate, org_id: str = Query(...)):
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     asset_type: Optional[str] = Query(None),
     zone: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -118,7 +118,7 @@ def list_assets(
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(...)):
+def get_asset(asset_id: str, org_id: str = Query(default="default")):
     """Get a single OT asset by ID."""
     result = _get_engine().get_asset(org_id, asset_id)
     if result is None:
@@ -127,7 +127,7 @@ def get_asset(asset_id: str, org_id: str = Query(...)):
 
 
 @router.put("/assets/{asset_id}/status", dependencies=[Depends(api_key_auth)])
-def update_asset_status(asset_id: str, body: AssetStatusUpdate, org_id: str = Query(...)):
+def update_asset_status(asset_id: str, body: AssetStatusUpdate, org_id: str = Query(default="default")):
     """Update asset operational status."""
     try:
         return _get_engine().update_asset_status(org_id, asset_id, body.status)
@@ -142,7 +142,7 @@ def update_asset_status(asset_id: str, body: AssetStatusUpdate, org_id: str = Qu
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_incident(body: IncidentCreate, org_id: str = Query(...)):
+def record_incident(body: IncidentCreate, org_id: str = Query(default="default")):
     """Record an OT security incident."""
     try:
         return _get_engine().record_incident(org_id, body.model_dump())
@@ -152,7 +152,7 @@ def record_incident(body: IncidentCreate, org_id: str = Query(...)):
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     asset_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -168,7 +168,7 @@ def list_incidents(
 
 @router.put("/incidents/{incident_id}/status", dependencies=[Depends(api_key_auth)])
 def update_incident_status(
-    incident_id: str, body: IncidentStatusUpdate, org_id: str = Query(...)
+    incident_id: str, body: IncidentStatusUpdate, org_id: str = Query(default="default")
 ):
     """Update incident status."""
     try:
@@ -184,7 +184,7 @@ def update_incident_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/zones", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_zone(body: ZoneCreate, org_id: str = Query(...)):
+def create_zone(body: ZoneCreate, org_id: str = Query(default="default")):
     """Create an OT network zone."""
     try:
         return _get_engine().create_zone(org_id, body.model_dump())
@@ -194,7 +194,7 @@ def create_zone(body: ZoneCreate, org_id: str = Query(...)):
 
 @router.get("/zones", dependencies=[Depends(api_key_auth)])
 def list_zones(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     zone_type: Optional[str] = Query(None),
 ):
     """List zones with optional zone_type filter."""
@@ -206,6 +206,6 @@ def list_zones(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_ot_stats(org_id: str = Query(...)):
+def get_ot_stats(org_id: str = Query(default="default")):
     """Return aggregated OT security statistics."""
     return _get_engine().get_ot_stats(org_id)

@@ -130,7 +130,7 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", summary="Get a single incident with actions and playbooks")
-def get_incident(incident_id: str, org_id: str = Query(...)) -> Dict[str, Any]:
+def get_incident(incident_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
     try:
         return _get_engine().get_incident(incident_id=incident_id, org_id=org_id)
     except KeyError as exc:

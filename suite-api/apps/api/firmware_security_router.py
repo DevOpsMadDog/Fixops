@@ -91,7 +91,7 @@ class ScanComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/devices", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_device(body: DeviceCreate, org_id: str = Query(...)):
+def register_device(body: DeviceCreate, org_id: str = Query(default="default")):
     """Register a new firmware device."""
     try:
         return _get_engine().register_device(org_id, body.model_dump())
@@ -101,7 +101,7 @@ def register_device(body: DeviceCreate, org_id: str = Query(...)):
 
 @router.get("/devices", dependencies=[Depends(api_key_auth)])
 def list_devices(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     device_type: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
@@ -110,7 +110,7 @@ def list_devices(
 
 
 @router.get("/devices/{device_id}", dependencies=[Depends(api_key_auth)])
-def get_device(device_id: str, org_id: str = Query(...)):
+def get_device(device_id: str, org_id: str = Query(default="default")):
     """Get a single firmware device by ID."""
     device = _get_engine().get_device(org_id, device_id)
     if not device:
@@ -123,7 +123,7 @@ def get_device(device_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/vulnerabilities", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_vulnerability(body: VulnerabilityCreate, org_id: str = Query(...)):
+def record_vulnerability(body: VulnerabilityCreate, org_id: str = Query(default="default")):
     """Record a firmware vulnerability."""
     try:
         return _get_engine().record_vulnerability(org_id, body.model_dump())
@@ -133,7 +133,7 @@ def record_vulnerability(body: VulnerabilityCreate, org_id: str = Query(...)):
 
 @router.get("/vulnerabilities", dependencies=[Depends(api_key_auth)])
 def list_vulnerabilities(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     device_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -149,7 +149,7 @@ def list_vulnerabilities(
 # ---------------------------------------------------------------------------
 
 @router.post("/scans", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_scan(body: ScanCreate, org_id: str = Query(...)):
+def create_scan(body: ScanCreate, org_id: str = Query(default="default")):
     """Create a new firmware scan job."""
     try:
         return _get_engine().create_scan(org_id, body.model_dump())
@@ -158,7 +158,7 @@ def create_scan(body: ScanCreate, org_id: str = Query(...)):
 
 
 @router.put("/scans/{scan_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(...)):
+def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(default="default")):
     """Mark a firmware scan as completed with findings."""
     result = _get_engine().complete_scan(
         org_id, scan_id, body.findings_count, body.critical_count, body.high_count
@@ -170,7 +170,7 @@ def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(...)):
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scans(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     device_id: Optional[str] = Query(None),
     scan_status: Optional[str] = Query(None),
 ):
@@ -183,6 +183,6 @@ def list_scans(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_firmware_stats(org_id: str = Query(...)):
+def get_firmware_stats(org_id: str = Query(default="default")):
     """Return aggregated firmware security statistics for the org."""
     return _get_engine().get_firmware_stats(org_id)

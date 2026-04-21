@@ -96,7 +96,7 @@ class SubscriptionCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/cves", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_cve(body: CVECreate, org_id: str = Query(...)):
+def add_cve(body: CVECreate, org_id: str = Query(default="default")):
     """Add or update CVE intelligence (upserts on org_id + cve_id)."""
     try:
         return _get_engine().add_cve(org_id, body.model_dump())
@@ -106,7 +106,7 @@ def add_cve(body: CVECreate, org_id: str = Query(...)):
 
 @router.get("/cves", dependencies=[Depends(api_key_auth)])
 def list_cves(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     severity: Optional[str] = Query(None),
     kev_listed: Optional[bool] = Query(None),
     exploit_available: Optional[bool] = Query(None),
@@ -125,7 +125,7 @@ def list_cves(
 
 
 @router.get("/cves/{cve_id}", dependencies=[Depends(api_key_auth)])
-def get_cve(cve_id: str, org_id: str = Query(...)):
+def get_cve(cve_id: str, org_id: str = Query(default="default")):
     """Get a single CVE with full details."""
     cve = _get_engine().get_cve(org_id, cve_id)
     if not cve:
@@ -137,7 +137,7 @@ def get_cve(cve_id: str, org_id: str = Query(...)):
 def update_cve_status(
     cve_id: str,
     body: CVEStatusUpdate,
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
 ):
     """Update CVE lifecycle status."""
     try:
@@ -154,7 +154,7 @@ def update_cve_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/advisories", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_advisory(body: AdvisoryCreate, org_id: str = Query(...)):
+def add_advisory(body: AdvisoryCreate, org_id: str = Query(default="default")):
     """Add a vendor advisory."""
     try:
         return _get_engine().add_advisory(org_id, body.model_dump())
@@ -164,7 +164,7 @@ def add_advisory(body: AdvisoryCreate, org_id: str = Query(...)):
 
 @router.get("/advisories", dependencies=[Depends(api_key_auth)])
 def list_advisories(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     vendor: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -173,7 +173,7 @@ def list_advisories(
 
 
 @router.post("/advisories/{advisory_id}/apply", dependencies=[Depends(api_key_auth)])
-def apply_advisory(advisory_id: str, org_id: str = Query(...)):
+def apply_advisory(advisory_id: str, org_id: str = Query(default="default")):
     """Mark an advisory as applied."""
     applied = _get_engine().apply_advisory(org_id, advisory_id)
     if not applied:
@@ -186,7 +186,7 @@ def apply_advisory(advisory_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/subscriptions", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_subscription(body: SubscriptionCreate, org_id: str = Query(...)):
+def add_subscription(body: SubscriptionCreate, org_id: str = Query(default="default")):
     """Add an intel subscription."""
     try:
         return _get_engine().add_subscription(org_id, body.model_dump())
@@ -195,7 +195,7 @@ def add_subscription(body: SubscriptionCreate, org_id: str = Query(...)):
 
 
 @router.get("/subscriptions", dependencies=[Depends(api_key_auth)])
-def list_subscriptions(org_id: str = Query(...)):
+def list_subscriptions(org_id: str = Query(default="default")):
     """List all intel subscriptions for org."""
     return _get_engine().list_subscriptions(org_id)
 
@@ -205,7 +205,7 @@ def list_subscriptions(org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_intel_stats(org_id: str = Query(...)):
+def get_intel_stats(org_id: str = Query(default="default")):
     """Return aggregated vulnerability intelligence statistics for the org."""
     return _get_engine().get_intel_stats(org_id)
 

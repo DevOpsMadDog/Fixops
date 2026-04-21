@@ -90,7 +90,7 @@ class AccessReviewCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/identities", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_identity(body: IdentityCreate, org_id: str = Query(...)):
+def register_identity(body: IdentityCreate, org_id: str = Query(default="default")):
     """Register a new identity."""
     try:
         return _get_engine().register_identity(org_id, body.model_dump())
@@ -100,7 +100,7 @@ def register_identity(body: IdentityCreate, org_id: str = Query(...)):
 
 @router.get("/identities", dependencies=[Depends(api_key_auth)])
 def list_identities(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     identity_type: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -115,7 +115,7 @@ def list_identities(
 
 
 @router.get("/identities/{identity_id}", dependencies=[Depends(api_key_auth)])
-def get_identity(identity_id: str, org_id: str = Query(...)):
+def get_identity(identity_id: str, org_id: str = Query(default="default")):
     """Get a single identity by ID."""
     result = _get_engine().get_identity(org_id, identity_id)
     if result is None:
@@ -124,7 +124,7 @@ def get_identity(identity_id: str, org_id: str = Query(...)):
 
 
 @router.put("/identities/{identity_id}/risk-score", dependencies=[Depends(api_key_auth)])
-def update_risk_score(identity_id: str, body: RiskScoreUpdate, org_id: str = Query(...)):
+def update_risk_score(identity_id: str, body: RiskScoreUpdate, org_id: str = Query(default="default")):
     """Update identity risk score (auto-computes risk_level)."""
     try:
         return _get_engine().update_risk_score(org_id, identity_id, body.risk_score)
@@ -137,7 +137,7 @@ def update_risk_score(identity_id: str, body: RiskScoreUpdate, org_id: str = Que
 # ---------------------------------------------------------------------------
 
 @router.post("/risk-factors", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_risk_factor(body: RiskFactorCreate, org_id: str = Query(...)):
+def record_risk_factor(body: RiskFactorCreate, org_id: str = Query(default="default")):
     """Record a risk factor for an identity."""
     try:
         return _get_engine().record_risk_factor(org_id, body.model_dump())
@@ -147,7 +147,7 @@ def record_risk_factor(body: RiskFactorCreate, org_id: str = Query(...)):
 
 @router.get("/risk-factors", dependencies=[Depends(api_key_auth)])
 def list_risk_factors(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     identity_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -162,7 +162,7 @@ def list_risk_factors(
 
 
 @router.put("/risk-factors/{factor_id}/mitigate", dependencies=[Depends(api_key_auth)])
-def mitigate_factor(factor_id: str, org_id: str = Query(...)):
+def mitigate_factor(factor_id: str, org_id: str = Query(default="default")):
     """Mark a risk factor as mitigated."""
     try:
         return _get_engine().mitigate_factor(org_id, factor_id)
@@ -175,7 +175,7 @@ def mitigate_factor(factor_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/access-reviews", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_access_review(body: AccessReviewCreate, org_id: str = Query(...)):
+def record_access_review(body: AccessReviewCreate, org_id: str = Query(default="default")):
     """Record an access review decision."""
     try:
         return _get_engine().record_access_review(org_id, body.model_dump())
@@ -185,7 +185,7 @@ def record_access_review(body: AccessReviewCreate, org_id: str = Query(...)):
 
 @router.get("/access-reviews", dependencies=[Depends(api_key_auth)])
 def list_access_reviews(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     identity_id: Optional[str] = Query(None),
     decision: Optional[str] = Query(None),
 ):
@@ -202,6 +202,6 @@ def list_access_reviews(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_identity_risk_stats(org_id: str = Query(...)):
+def get_identity_risk_stats(org_id: str = Query(default="default")):
     """Return aggregated identity risk statistics."""
     return _get_engine().get_identity_risk_stats(org_id)

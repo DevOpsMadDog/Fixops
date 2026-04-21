@@ -75,7 +75,7 @@ class FindingCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/twins", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_twin(body: TwinCreate, org_id: str = Query(...)):
+def create_twin(body: TwinCreate, org_id: str = Query(default="default")):
     """Create a new digital twin."""
     try:
         return _get_engine().create_twin(org_id, body.model_dump())
@@ -85,7 +85,7 @@ def create_twin(body: TwinCreate, org_id: str = Query(...)):
 
 @router.get("/twins", dependencies=[Depends(api_key_auth)])
 def list_twins(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     twin_type: Optional[str] = Query(None),
 ):
     """List digital twins with optional type filter."""
@@ -93,7 +93,7 @@ def list_twins(
 
 
 @router.get("/twins/{twin_id}", dependencies=[Depends(api_key_auth)])
-def get_twin(twin_id: str, org_id: str = Query(...)):
+def get_twin(twin_id: str, org_id: str = Query(default="default")):
     """Get a single digital twin by ID."""
     twin = _get_engine().get_twin(org_id, twin_id)
     if not twin:
@@ -106,7 +106,7 @@ def get_twin(twin_id: str, org_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @router.post("/twins/{twin_id}/simulations", dependencies=[Depends(api_key_auth)], status_code=201)
-def run_simulation(twin_id: str, body: SimulationCreate, org_id: str = Query(...)):
+def run_simulation(twin_id: str, body: SimulationCreate, org_id: str = Query(default="default")):
     """Run a simulation on a digital twin."""
     try:
         return _get_engine().run_simulation(org_id, twin_id, body.model_dump())
@@ -116,7 +116,7 @@ def run_simulation(twin_id: str, body: SimulationCreate, org_id: str = Query(...
 
 @router.get("/simulations", dependencies=[Depends(api_key_auth)])
 def list_simulations(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     twin_id: Optional[str] = Query(None),
     simulation_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -135,7 +135,7 @@ def list_simulations(
 # ---------------------------------------------------------------------------
 
 @router.post("/simulations/{simulation_id}/findings", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_finding(simulation_id: str, body: FindingCreate, org_id: str = Query(...)):
+def add_finding(simulation_id: str, body: FindingCreate, org_id: str = Query(default="default")):
     """Add a finding to a simulation."""
     try:
         return _get_engine().add_finding(org_id, simulation_id, body.model_dump())
@@ -145,7 +145,7 @@ def add_finding(simulation_id: str, body: FindingCreate, org_id: str = Query(...
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     twin_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -162,6 +162,6 @@ def list_findings(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_twin_stats(org_id: str = Query(...)):
+def get_twin_stats(org_id: str = Query(default="default")):
     """Return aggregated digital twin statistics."""
     return _get_engine().get_twin_stats(org_id)

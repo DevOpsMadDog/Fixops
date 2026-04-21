@@ -175,7 +175,7 @@ def update_remediation(remediation_id: str, req: UpdateRemediationRequest) -> Di
 
 @router.get("/findings", summary="List findings with optional filters")
 def get_findings(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     provider: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -186,13 +186,13 @@ def get_findings(
 
 
 @router.get("/summary", summary="Get finding summary stats")
-def get_finding_summary(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_finding_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
     return _get_engine().get_finding_summary(org_id=org_id)
 
 
 @router.get("/top-resources", summary="Top resources by finding count")
 def get_top_affected_resources(
-    org_id: str = Query(...),
+     org_id: str = Query(default="default"),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_top_affected_resources(org_id=org_id, limit=limit)
